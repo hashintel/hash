@@ -246,3 +246,48 @@ async fn delay_push_merge_on_write() {
     let response = responses.pop().expect("response");
     assert_eq!(response.body.payload().as_bytes(), &*bytes);
 }
+
+#[tokio::test]
+async fn delay_write_checks_closed_state_even_if_not_writing() {
+    let (tx, rx) = mpsc::channel(8);
+
+    let mut writer = ResponseWriter::new(
+        WriterOptions { no_delay: true },
+        ResponseContext {
+            id: mock_request_id(0x01),
+            kind: ResponseKind::Ok,
+        },
+        &tx,
+    );
+
+    drop(rx);
+
+    let bytes = Bytes::from_static(b"hello, world!" as &[_]);
+    writer.push(bytes);
+
+    writer
+        .write()
+        .await
+        .expect_err("unable to write to closed channel");
+}
+
+#[tokio::test]
+async fn delay_write_checks_closed_state_not_if_empty_buffer() {
+    let (tx, rx) = mpsc::channel(8);
+
+    let mut writer = ResponseWriter::new(
+        WriterOptions { no_delay: true },
+        ResponseContext {
+            id: mock_request_id(0x01),
+            kind: ResponseKind::Ok,
+        },
+        &tx,
+    );
+
+    drop(rx);
+
+    writer
+        .write()
+        .await
+        .expect("able to write to closed channel with empty buffer");
+}

@@ -28,6 +28,16 @@ impl Payload {
         Self(Bytes::from_static(bytes))
     }
 
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub const fn as_bytes(&self) -> &Bytes {
         &self.0
     }

@@ -3,6 +3,7 @@ mod test;
 
 use alloc::sync::Arc;
 use core::{
+    marker::PhantomData,
     ops::ControlFlow,
     sync::atomic::{AtomicBool, Ordering},
 };

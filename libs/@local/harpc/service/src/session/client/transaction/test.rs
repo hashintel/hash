@@ -1,13 +1,18 @@
 use alloc::sync::Arc;
 use core::{num::NonZero, time::Duration};
+use std::assert_matches::assert_matches;
 
 use bytes::{Bytes, BytesMut};
 use futures::StreamExt;
+use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
-    request::id::RequestId,
+    request::{
+        begin::RequestBegin, body::RequestBody, flags::RequestFlag, frame::RequestFrame,
+        id::RequestId, procedure::ProcedureDescriptor, service::ServiceDescriptor, Request,
+    },
     response::{
         begin::ResponseBegin,
         body::ResponseBody,
@@ -20,9 +25,10 @@ use harpc_wire_protocol::{
     test_utils::mock_request_id,
 };
 use tokio::{sync::mpsc, task};
+use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
 
-use super::{ErrorStream, Permit, TransactionReceiveTask, ValueStream};
+use super::{ErrorStream, Permit, TransactionReceiveTask, TransactionSendTask, ValueStream};
 use crate::session::client::config::SessionConfig;
 
 struct StaticTransactionPermit {
@@ -544,6 +550,7 @@ async fn receive_out_of_order_frame() {
 }
 
 // TODO: inhibit that one can buffer the stream, but taking a mutable reference in the stream item?!
+// Won't properly work because `Stream` doesn't make use of GATs
 #[tokio::test]
 async fn receive_next_dropped() {
     let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
@@ -604,18 +611,383 @@ async fn receive_cancel() {
         .expect("should not panic");
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct Descriptor {
+    service: ServiceDescriptor,
+    procedure: ProcedureDescriptor,
+}
+
+impl Default for Descriptor {
+    fn default() -> Self {
+        Self {
+            service: ServiceDescriptor {
+                id: ServiceId::new(0x00),
+                version: Version { major: 1, minor: 1 },
+            },
+            procedure: ProcedureDescriptor {
+                id: ProcedureId::new(0x00),
+            },
+        }
+    }
+}
+
+fn setup_send_mapped<T>(
+    config: SessionConfig,
+    descriptor: Descriptor,
+    with_permit: impl FnOnce(&StaticTransactionPermit) -> T,
+) -> (
+    mpsc::Sender<Bytes>,
+    mpsc::Receiver<Request>,
+    T,
+    task::JoinHandle<()>,
+) {
+    let (bytes_tx, bytes_rx) = mpsc::channel(8);
+    let (request_tx, request_rx) = mpsc::channel(8);
+
+    let permit = StaticTransactionPermit {
+        id: mock_request_id(0x00),
+        cancel: CancellationToken::new(),
+    };
+
+    let permit_value = with_permit(&permit);
+
+    let task = TransactionSendTask {
+        config,
+        service: descriptor.service,
+        procedure: descriptor.procedure,
+        rx: ReceiverStream::new(bytes_rx),
+        tx: request_tx,
+        permit: Arc::new(permit),
+    };
+
+    let handle = tokio::spawn(task.run());
+
+    (bytes_tx, request_rx, permit_value, handle)
+}
+
+fn setup_send(
+    config: SessionConfig,
+    descriptor: Descriptor,
+) -> (
+    mpsc::Sender<Bytes>,
+    mpsc::Receiver<Request>,
+    task::JoinHandle<()>,
+) {
+    let (tx, rx, (), handle) = setup_send_mapped(config, descriptor, |_| ());
+
+    (tx, rx, handle)
+}
+
 #[tokio::test]
-#[ignore]
-async fn send_no_delay() {}
+async fn send_drop_sender() {
+    let descriptor = Descriptor::default();
+    let (tx, mut rx, handle) = setup_send(SessionConfig::default(), descriptor);
+
+    drop(tx);
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+
+    // even an immediate drop we should get a single request (empty, with endOfRequest)
+    let request = rx.recv().await.expect("able to receive request");
+
+    assert_matches!(
+        request.body,
+        RequestBody::Begin(RequestBegin {
+            service,
+            procedure,
+            payload
+        }) if service == descriptor.service
+            && procedure == descriptor.procedure
+            && payload.is_empty()
+    );
+}
+
+#[tokio::test]
+async fn send_drop_receiver_no_delay() {
+    let (tx, rx, handle) = setup_send(
+        SessionConfig {
+            no_delay: true,
+            ..SessionConfig::default()
+        },
+        Descriptor::default(),
+    );
+
+    // the remote connection has been suddenly terminated
+    drop(rx);
+
+    // trying to send some bytes will work once
+    tx.send(Bytes::from_static(b"apple"))
+        .await
+        .expect("able to send bytes");
+    tokio::task::yield_now().await; // the other task needs to react to our message, so we need to yield control
+    tx.send(Bytes::from_static(b"banana"))
+        .await
+        .expect_err("should not be able to send bytes");
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
+
+#[tokio::test]
+async fn send_drop_receiver_delay() {
+    let (tx, rx, handle) = setup_send(
+        SessionConfig {
+            no_delay: false,
+            ..SessionConfig::default()
+        },
+        Descriptor::default(),
+    );
+
+    // the remote connection has been suddenly terminated
+    drop(rx);
+
+    // trying to send some bytes will work once, even if we don't flush in delay mode, we still
+    // check the underlying connection on write.
+    tx.send(Bytes::from_static(b"apple"))
+        .await
+        .expect("able to send bytes");
+    tokio::task::yield_now().await; // the other task needs to react to our message, so we need to yield control
+    // force a flush
+    tx.send(Bytes::from_static(&[0; Payload::MAX_SIZE]))
+        .await
+        .expect_err("should not be able to send bytes");
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
+
+#[tokio::test]
+async fn send_no_delay() {
+    let descriptor = Descriptor::default();
+    let (tx, mut rx, handle) = setup_send(
+        SessionConfig {
+            no_delay: true,
+            ..SessionConfig::default()
+        },
+        descriptor,
+    );
+
+    tx.send(Bytes::from_static(b"apple"))
+        .await
+        .expect("able to send bytes");
+    // should be instantly delivered
+    let request = rx.recv().await.expect("able to receive request");
+    assert!(!request.header.flags.contains(RequestFlag::EndOfRequest));
+    assert_matches!(
+        request.body,
+        RequestBody::Begin(RequestBegin {
+            service,
+            procedure,
+            payload
+        }) if service == descriptor.service
+            && procedure == descriptor.procedure
+            && *payload.as_bytes() == Bytes::from_static(b"apple")
+    );
+
+    // drop the sender to close the connection
+    drop(tx);
+
+    let request = rx.recv().await.expect("able to receive request");
+    assert!(request.header.flags.contains(RequestFlag::EndOfRequest));
+    assert_matches!(
+        request.body,
+        RequestBody::Frame(RequestFrame { payload }) if payload.is_empty()
+    );
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
+
+#[tokio::test]
+async fn send_no_delay_flush_empty() {
+    let descriptor = Descriptor::default();
+    let (tx, mut rx, handle) = setup_send(
+        SessionConfig {
+            no_delay: true,
+            ..SessionConfig::default()
+        },
+        descriptor,
+    );
+
+    drop(tx);
+
+    let request = rx.recv().await.expect("able to receive request");
+    assert!(request.header.flags.contains(RequestFlag::EndOfRequest));
+    assert_matches!(
+        request.body,
+        RequestBody::Begin(RequestBegin {
+            service,
+            procedure,
+            payload
+        }) if service == descriptor.service
+            && procedure == descriptor.procedure
+            && payload.is_empty()
+    );
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
 
 #[tokio::test]
 #[ignore]
-async fn send_no_delay_flush_empty() {}
+async fn send_delay() {
+    let descriptor = Descriptor::default();
+    let (tx, mut rx, handle) = setup_send(
+        SessionConfig {
+            no_delay: false,
+            ..SessionConfig::default()
+        },
+        descriptor,
+    );
+
+    tx.send(Bytes::from_static(&[0; Payload::MAX_SIZE - 8]))
+        .await
+        .expect("able to send bytes");
+
+    // we shouldn't receive anything yet
+    tokio::time::timeout(Duration::from_millis(100), rx.recv())
+        .await
+        .expect_err("should not receive anything yet");
+
+    // send the rest to trigger a write
+    tx.send(Bytes::from_static(&[0; 16]))
+        .await
+        .expect("able to send bytes");
+
+    // should be instantly delivered
+    let request = rx.recv().await.expect("able to receive request");
+    assert!(!request.header.flags.contains(RequestFlag::EndOfRequest));
+    assert_matches!(
+        request.body,
+        RequestBody::Begin(RequestBegin {
+            service,
+            procedure,
+            payload
+        }) if service == descriptor.service
+            && procedure == descriptor.procedure
+            && payload.len() == Payload::MAX_SIZE
+    );
+
+    drop(tx);
+
+    // now we should have 8 bytes of payload left
+    let request = rx.recv().await.expect("able to receive request");
+    assert!(request.header.flags.contains(RequestFlag::EndOfRequest));
+    assert_matches!(
+        request.body,
+        RequestBody::Frame(RequestFrame { payload }) if payload.len() == 8
+    );
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
 
 #[tokio::test]
-#[ignore]
-async fn send_delay() {}
+async fn send_delay_flush_partial() {
+    let descriptor = Descriptor::default();
+    let (tx, mut rx, handle) = setup_send(
+        SessionConfig {
+            no_delay: false,
+            ..SessionConfig::default()
+        },
+        descriptor,
+    );
+
+    tx.send(Bytes::from_static(&[0; Payload::MAX_SIZE]))
+        .await
+        .expect("able to send bytes");
+
+    // we shouldn't receive anything yet
+    tokio::time::timeout(Duration::from_millis(100), rx.recv())
+        .await
+        .expect_err("should not receive anything yet");
+
+    drop(tx);
+
+    let request = rx.recv().await.expect("able to receive request");
+    assert!(request.header.flags.contains(RequestFlag::EndOfRequest));
+    assert_matches!(
+        request.body,
+        RequestBody::Begin(RequestBegin {
+            service,
+            procedure,
+            payload
+        }) if service == descriptor.service
+            && procedure == descriptor.procedure
+            && payload.len() == Payload::MAX_SIZE
+    );
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
 
 #[tokio::test]
-#[ignore]
-async fn send_delay_flush() {}
+async fn send_delay_flush_empty() {
+    let descriptor = Descriptor::default();
+    let (tx, mut rx, handle) = setup_send(
+        SessionConfig {
+            no_delay: false,
+            ..SessionConfig::default()
+        },
+        descriptor,
+    );
+
+    drop(tx);
+
+    let request = rx.recv().await.expect("able to receive request");
+    assert!(request.header.flags.contains(RequestFlag::EndOfRequest));
+    assert_matches!(
+        request.body,
+        RequestBody::Begin(RequestBegin {
+            service,
+            procedure,
+            payload
+        }) if service == descriptor.service
+            && procedure == descriptor.procedure
+            && payload.is_empty()
+    );
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
+
+#[tokio::test]
+async fn send_cancel() {
+    let (_tx, _rx, cancel, handle) =
+        setup_send_mapped(SessionConfig::default(), Descriptor::default(), |permit| {
+            permit.cancel.clone()
+        });
+
+    cancel.cancel();
+
+    // the task should automatically shutdown
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}

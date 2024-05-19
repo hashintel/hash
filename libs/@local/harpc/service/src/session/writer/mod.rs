@@ -147,6 +147,16 @@ impl NetworkPacket for Response {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+#[error("underlying output channel has been closed")]
+pub(crate) struct OutputClosedError;
+
+impl<T> From<mpsc::error::SendError<T>> for OutputClosedError {
+    fn from(_: mpsc::error::SendError<T>) -> Self {
+        Self
+    }
+}
+
 pub(crate) struct PacketWriter<'a, T>
 where
     T: NetworkPacket,
@@ -231,7 +241,17 @@ where
         Ok(())
     }
 
-    pub(crate) async fn write(&mut self) -> Result<(), mpsc::error::SendError<T>> {
+    // TODO: consider if we want to check if the channel has been closed, even if we don't send
+    pub(crate) async fn write(&mut self) -> Result<(), OutputClosedError> {
+        // even if we don't have any bytes to send, we need to check if the output is closed
+        if !self.options.no_delay
+            && self.buffer.has_remaining()
+            && self.buffer.remaining() <= Payload::MAX_SIZE
+            && self.tx.is_closed()
+        {
+            return Err(OutputClosedError);
+        }
+
         while self.buffer.remaining() > Payload::MAX_SIZE {
             let bytes = self.buffer.copy_to_bytes(Payload::MAX_SIZE);
 
@@ -247,7 +267,7 @@ where
         Ok(())
     }
 
-    pub(crate) async fn flush(&mut self) -> Result<(), mpsc::error::SendError<T>> {
+    pub(crate) async fn flush(&mut self) -> Result<(), OutputClosedError> {
         self.write().await?;
 
         self.write_remaining(true).await?;
