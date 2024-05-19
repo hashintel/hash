@@ -3,7 +3,7 @@ import type {
   EntityQueryCursor,
   GetDataTypeSubgraphRequest,
   GetEntitySubgraphRequest,
-  GetEntityTypeSubgraphRequest,
+  GetEntityTypeSubgraphParams,
   GetPropertyTypeSubgraphRequest,
   GraphApi,
   UpdateDataTypeEmbeddingParams,
@@ -111,7 +111,7 @@ export const createGraphActivities = ({
     authentication: {
       actorId: AccountId;
     };
-    request: GetEntityTypeSubgraphRequest;
+    request: GetEntityTypeSubgraphParams;
   }): Promise<Subgraph<EntityTypeRootType>> {
     return graphApiClient
       .getEntityTypeSubgraph(params.authentication.actorId, params.request)

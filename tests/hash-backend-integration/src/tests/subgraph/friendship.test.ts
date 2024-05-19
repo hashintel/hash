@@ -25,7 +25,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   GetDataTypesRequest,
   GetEntitySubgraphRequest,
-  GetEntityTypesRequest,
+  GetEntityTypesParams,
   GetPropertyTypesRequest,
 } from "@local/hash-graph-client";
 import {
@@ -465,7 +465,7 @@ it("archives/unarchives entity types", async () => {
   const entityTypeId: VersionedUrl =
     "http://localhost:3000/@alice/types/entity-type/person/v/1";
 
-  const request: GetEntityTypesRequest = {
+  const request: GetEntityTypesParams = {
     filter: {
       equal: [
         {

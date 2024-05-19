@@ -475,6 +475,7 @@ pub struct GetEntityTypeSubgraphParams<'p> {
 #[derive(Debug)]
 pub struct GetEntityTypeSubgraphResponse {
     pub subgraph: Subgraph,
+    pub cursor: Option<EntityTypeVertexId>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -484,9 +485,11 @@ pub struct GetEntityTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, EntityTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub after: Option<EntityTypeVertexId>,
-    pub limit: Option<usize>,
     pub include_drafts: bool,
+    #[serde(default)]
+    pub after: Option<EntityTypeVertexId>,
+    #[serde(default)]
+    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Serialize)]
@@ -494,6 +497,7 @@ pub struct GetEntityTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
+    pub cursor: Option<EntityTypeVertexId>,
 }
 
 #[derive(Debug, Deserialize)]
