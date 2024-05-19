@@ -11,7 +11,7 @@ use harpc_wire_protocol::{
     request::{procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
     response::Response,
 };
-use tokio::{io, pin, select, sync::mpsc};
+use tokio::{io, pin, select, sync::mpsc, task::AbortHandle};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
@@ -128,6 +128,9 @@ pub struct Connection {
     tasks: TaskTracker,
 
     transactions: TransactionCollection,
+
+    request_delegate_handle: AbortHandle,
+    response_delegate_handle: AbortHandle,
 }
 
 // TODO: BufferedResponse that will only return the last (valid) response
@@ -147,24 +150,30 @@ impl Connection {
     {
         let (tx, rx) = mpsc::channel(config.per_connection_request_buffer_size.get());
 
+        let transactions = TransactionCollection::new(config, cancel.clone());
+
+        let request_delegate_handle =
+            tasks.spawn(ConnectionRequestDelegateTask { sink, rx }.run(cancel.clone()));
+
+        let response_delegate_handle = tasks.spawn(
+            ConnectionResponseDelegateTask {
+                stream,
+                tx: Arc::clone(transactions.storage()),
+            }
+            .run(cancel.clone()),
+        );
+
         let this = Self {
             config,
 
             tx,
             tasks: tasks.clone(),
 
-            transactions: TransactionCollection::new(config, cancel.clone()),
+            transactions,
+
+            request_delegate_handle: request_delegate_handle.abort_handle(),
+            response_delegate_handle: response_delegate_handle.abort_handle(),
         };
-
-        tasks.spawn(ConnectionRequestDelegateTask { sink, rx }.run(cancel.clone()));
-
-        tasks.spawn(
-            ConnectionResponseDelegateTask {
-                stream,
-                tx: Arc::clone(this.transactions.storage()),
-            }
-            .run(cancel.clone()),
-        );
 
         tasks.spawn(
             ConnectionGarbageCollectorTask {
@@ -177,12 +186,21 @@ impl Connection {
         this
     }
 
+    /// Check if the connection is healthy
+    ///
+    /// This returns false if either the underlying read or write stream have been closed.
+    pub fn is_healthy(&self) -> bool {
+        !self.request_delegate_handle.is_finished() && !self.response_delegate_handle.is_finished()
+    }
+
     pub async fn call(
         &self,
         service: ServiceDescriptor,
         procedure: ProcedureDescriptor,
         payload: impl Stream<Item = Bytes> + Send + 'static,
     ) -> ResponseStream {
+        // We don't need to check if the connection is healthy, as if it isn't the case the produced
+        // stream will immediately be closed.
         let (permit, response_rx) = self.transactions.acquire().await;
 
         let (stream_tx, stream_rx) = mpsc::channel(1);

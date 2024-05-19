@@ -462,6 +462,10 @@ async fn call() {}
 
 #[tokio::test]
 #[ignore]
+async fn call_do_not_admit_if_partially_closed() {}
+
+#[tokio::test]
+#[ignore]
 async fn call_input_connection_closed() {}
 
 #[tokio::test]
