@@ -18,6 +18,7 @@ graph-test-data = { workspace = true }
 graph-types = { workspace = true }
 temporal-versioning = { workspace = true }
 authorization = { workspace = true }
+repo-chores = { workspace = true }
 
 type-system = { workspace = true }
 

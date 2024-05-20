@@ -1,4 +1,4 @@
-use std::{cmp, fs, mem::ManuallyDrop, path::Path};
+use std::{fs, mem::ManuallyDrop, path::Path};
 
 use authorization::{
     schema::{
@@ -26,6 +26,7 @@ use graph_types::{
     ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
     owned_by_id::OwnedById,
 };
+use repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
 use tracing_flame::FlameLayer;
@@ -57,53 +58,7 @@ pub fn setup_subscriber(
         fn drop(&mut self) {}
     }
 
-    // Taken from Criterion source code
-    fn truncate_to_character_boundary(s: &mut String, max_len: usize) {
-        let mut boundary = cmp::min(max_len, s.len());
-        while !s.is_char_boundary(boundary) {
-            boundary -= 1;
-        }
-        s.truncate(boundary);
-    }
-
-    // Taken from Criterion source code
-    pub fn make_filename_safe(string: &str) -> String {
-        const MAX_DIRECTORY_NAME_LEN: usize = 64;
-
-        let mut string = string.replace(
-            &['?', '"', '/', '\\', '*', '<', '>', ':', '|', '^'][..],
-            "_",
-        );
-
-        // Truncate to last character boundary before max length...
-        truncate_to_character_boundary(&mut string, MAX_DIRECTORY_NAME_LEN);
-
-        if cfg!(target_os = "windows") {
-            {
-                string = string
-                    // On Windows, spaces in the end of the filename are ignored and will be trimmed.
-                    //
-                    // Without trimming ourselves, creating a directory `dir ` will silently create
-                    // `dir` instead, but then operations on files like `dir /file` will fail.
-                    //
-                    // Also note that it's important to do this *after* trimming to MAX_DIRECTORY_NAME_LEN,
-                    // otherwise it can trim again to a name with a trailing space.
-                    .trim_end()
-                    // On Windows, file names are not case-sensitive, so lowercase everything.
-                    .to_lowercase();
-            }
-        }
-
-        string
-    }
-
-    let mut target_dir = Path::new("out").join(make_filename_safe(group_id));
-    if let Some(function_id) = function_id {
-        target_dir = target_dir.join(make_filename_safe(function_id));
-    }
-    if let Some(value_str) = value_str {
-        target_dir = target_dir.join(make_filename_safe(value_str));
-    }
+    let target_dir = Path::new("out").join(generate_path(group_id, function_id, value_str));
     fs::create_dir_all(&target_dir).expect("could not create directory");
     let flame_file = target_dir.join("tracing.folded");
 

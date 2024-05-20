@@ -119,6 +119,7 @@ where
         // TODO: Remove again when subgraph logic was revisited
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
+        let time_axis = temporal_axes.variable_time_axis();
 
         let (data, artifacts) = ReadPaginated::<EntityTypeWithMetadata>::read_paginated_vec(
             self,
@@ -166,9 +167,21 @@ where
                     .unwrap_or(false)
                     .then_some(entity_type)
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-        Ok((GetEntityTypesResponse { entity_types }, zookie))
+        Ok((
+            GetEntityTypesResponse {
+                cursor: if params.limit.is_some() {
+                    entity_types
+                        .last()
+                        .map(|entity_type| entity_type.vertex_id(time_axis))
+                } else {
+                    None
+                },
+                entity_types,
+            },
+            zookie,
+        ))
     }
 
     /// Internal method to read a [`EntityTypeWithMetadata`] into four [`TraversalContext`]s.
@@ -692,7 +705,13 @@ where
         let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let (GetEntityTypesResponse { entity_types }, zookie) = self
+        let (
+            GetEntityTypesResponse {
+                entity_types,
+                cursor,
+            },
+            zookie,
+        ) = self
             .get_entity_types_impl(
                 actor_id,
                 GetEntityTypesParams {
@@ -753,7 +772,7 @@ where
             .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
             .await?;
 
-        Ok(GetEntityTypeSubgraphResponse { subgraph })
+        Ok(GetEntityTypeSubgraphResponse { subgraph, cursor })
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
