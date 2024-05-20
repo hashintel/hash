@@ -39,20 +39,47 @@ fn group_end(fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
 }
 
 fn table_header(fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-    fmt.write_str("| Function | Value | Mean |\n")?;
-    fmt.write_str("|----------|-------|------|\n")
+    fmt.write_str("| Function | Value | Mean | Flame graphs | \n")?;
+    fmt.write_str("|----------|-------|------|--------------|\n")
 }
 
 fn table_row(
     fmt: &mut fmt::Formatter<'_>,
-    function: &str,
-    value: &str,
-    mean: &Stat,
-    change: Option<&Stat>,
+    analysis: &BenchmarkAnalysis,
+    name: &str,
 ) -> fmt::Result {
-    write!(fmt, "| {function} | {value} | $$")?;
-    stat(fmt, mean, change)?;
-    writeln!(fmt, " $$ |")
+    write!(
+        fmt,
+        "| {} | {} | $$",
+        analysis
+            .measurement
+            .info
+            .function_id
+            .as_deref()
+            .unwrap_or_default(),
+        analysis
+            .measurement
+            .info
+            .value_str
+            .as_deref()
+            .unwrap_or_default()
+    )?;
+    stat(
+        fmt,
+        &analysis.measurement.estimates.mean,
+        analysis.change.as_ref().map(|estimate| &estimate.mean),
+    )?;
+    write!(fmt, " $$ |")?;
+    if analysis.folded_stacks.is_some() {
+        writeln!(
+            fmt,
+            " [Flame Graph](https://benchmarks.hash.dev/{}/{}/flamegraph.svg) |",
+            name,
+            analysis.measurement.info.directory_name.replace(' ', "+")
+        )
+    } else {
+        fmt.write_str(" |\n")
+    }
 }
 
 /// Formats the given benchmarks in GitHub-flavored Markdown.
@@ -61,8 +88,9 @@ fn table_row(
 ///
 /// Returns an error if writing to `fmt` fails.
 pub fn format_github_markdown<'b>(
-    analyses: impl IntoIterator<Item = &'b BenchmarkAnalysis>,
     fmt: &mut fmt::Formatter<'_>,
+    analyses: impl IntoIterator<Item = &'b BenchmarkAnalysis>,
+    name: &str,
 ) -> fmt::Result {
     let mut last_group_id = None::<&str>;
     for analysis in analyses {
@@ -77,23 +105,7 @@ pub fn format_github_markdown<'b>(
             }
         }
         last_group_id = Some(analysis.measurement.info.group_id.as_str());
-        table_row(
-            fmt,
-            analysis
-                .measurement
-                .info
-                .function_id
-                .as_deref()
-                .unwrap_or_default(),
-            analysis
-                .measurement
-                .info
-                .value_str
-                .as_deref()
-                .unwrap_or_default(),
-            &analysis.measurement.estimates.mean,
-            analysis.change.as_ref().map(|x| &x.mean),
-        )?;
+        table_row(fmt, analysis, name)?;
     }
 
     Ok(())
