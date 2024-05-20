@@ -427,7 +427,7 @@ pub trait PropertyTypeStore {
         P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync;
 
-    /// Count the number of [`PropertyType`]s specified by the [`CountDataTypesParams`].
+    /// Count the number of [`PropertyType`]s specified by the [`CountPropertyTypesParams`].
     ///
     /// # Errors
     ///
@@ -668,7 +668,7 @@ pub trait EntityTypeStore {
         P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync;
 
-    /// Count the number of [`EntityType`]s specified by the [`CountDataTypesParams`].
+    /// Count the number of [`EntityType`]s specified by the [`CountEntityTypesParams`].
     ///
     /// # Errors
     ///
