@@ -1,5 +1,8 @@
 use alloc::sync::Arc;
-use core::time::Duration;
+use core::{
+    sync::atomic::{AtomicUsize, Ordering},
+    time::Duration,
+};
 use std::io;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
@@ -28,7 +31,6 @@ use harpc_wire_protocol::{
     },
     test_utils::mock_request_id,
 };
-use tachyonix::RecvError;
 use tokio::sync::{mpsc, Notify};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::{
@@ -37,18 +39,21 @@ use tokio_util::{
 };
 
 use super::{Connection, ConnectionParts};
-use crate::session::{
-    client::{
-        config::SessionConfig,
-        connection::{
-            collection::TransactionCollection, ConnectionRequestDelegateTask,
-            ConnectionResponseDelegateTask,
+use crate::{
+    macros::non_zero,
+    session::{
+        client::{
+            config::SessionConfig,
+            connection::{
+                collection::TransactionCollection, ConnectionRequestDelegateTask,
+                ConnectionResponseDelegateTask,
+            },
+            test::Descriptor,
+            transaction::{stream::StreamState, ClientTransactionPermit},
+            ValueStream,
         },
-        test::Descriptor,
-        transaction::{stream::StreamState, ClientTransactionPermit},
-        ValueStream,
+        gc::ConnectionGarbageCollectorTask,
     },
-    gc::ConnectionGarbageCollectorTask,
 };
 
 #[tokio::test]
@@ -250,6 +255,7 @@ async fn response_delegate() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let task = ConnectionResponseDelegateTask {
+        config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
         notify: Arc::new(Notify::new()),
@@ -277,6 +283,7 @@ async fn response_delegate_ignore_errors() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let task = ConnectionResponseDelegateTask {
+        config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
         notify: Arc::new(Notify::new()),
@@ -309,6 +316,7 @@ async fn response_delegate_stream_closed() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let task = ConnectionResponseDelegateTask {
+        config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
         notify: Arc::new(Notify::new()),
@@ -335,6 +343,7 @@ async fn response_delegate_tx_closed() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let task = ConnectionResponseDelegateTask {
+        config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
         notify: Arc::new(Notify::new()),
@@ -365,6 +374,7 @@ async fn response_delegate_unknown_request_id() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let task = ConnectionResponseDelegateTask {
+        config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
         notify: Arc::new(Notify::new()),
@@ -391,6 +401,7 @@ async fn response_delegate_cancel() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let task = ConnectionResponseDelegateTask {
+        config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
         notify: Arc::new(Notify::new()),
@@ -473,6 +484,38 @@ async fn garbage_collect_cancel() {
 }
 
 #[expect(clippy::type_complexity, reason = "setup code")]
+fn setup_connection_mapped<T>(
+    config: SessionConfig,
+    with_parts: impl FnOnce(&ConnectionParts) -> T,
+) -> (
+    Connection,
+    mpsc::Sender<Result<Response, Report<io::Error>>>,
+    mpsc::Receiver<Request>,
+    T,
+    TaskTracker,
+) {
+    let (sink_tx, sink_rx) = mpsc::channel(8);
+    let (stream_tx, stream_rx) = mpsc::channel(8);
+
+    let tasks = TaskTracker::new();
+    let parts = ConnectionParts {
+        config,
+        tasks: &tasks,
+        cancel: CancellationToken::new(),
+    };
+
+    let parts_value = with_parts(&parts);
+
+    let connection = Connection::spawn(
+        parts,
+        PollSender::new(sink_tx),
+        ReceiverStream::new(stream_rx),
+    );
+
+    (connection, stream_tx, sink_rx, parts_value, tasks)
+}
+
+#[expect(clippy::type_complexity, reason = "setup code")]
 fn setup_connection(
     config: SessionConfig,
 ) -> (
@@ -481,32 +524,30 @@ fn setup_connection(
     mpsc::Receiver<Request>,
     TaskTracker,
 ) {
-    let (sink_tx, sink_rx) = mpsc::channel(8);
-    let (stream_tx, stream_rx) = mpsc::channel(8);
-
-    let tasks = TaskTracker::new();
-    let connection = Connection::spawn(
-        ConnectionParts {
-            config,
-            tasks: &tasks,
-            cancel: CancellationToken::new(),
-        },
-        PollSender::new(sink_tx),
-        ReceiverStream::new(stream_rx),
-    );
+    let (connection, stream_tx, sink_rx, (), tasks) = setup_connection_mapped(config, |_| ());
 
     (connection, stream_tx, sink_rx, tasks)
 }
 
-struct EchoService;
+struct EchoService {
+    packets_received: Arc<AtomicUsize>,
+}
 
 impl EchoService {
+    fn new() -> Self {
+        Self {
+            packets_received: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+
     async fn serve(
-        &self,
+        self,
         mut rx: mpsc::Receiver<Request>,
         tx: mpsc::Sender<Result<Response, Report<io::Error>>>,
     ) {
         while let Some(request) = rx.recv().await {
+            self.packets_received.fetch_add(1, Ordering::SeqCst);
+
             let body = match request.body {
                 RequestBody::Begin(RequestBegin {
                     service,
@@ -566,7 +607,7 @@ async fn assert_stream(stream: &mut ValueStream, descriptor: Descriptor, expecte
 
     assert_eq!(bytes.get_u16(), descriptor.procedure.id.value());
 
-    if let Some(expected) = expected.get(0) {
+    if let Some(expected) = expected.first() {
         assert_eq!(bytes, expected);
     }
 
@@ -585,7 +626,7 @@ async fn call() {
         ..SessionConfig::default()
     });
 
-    tokio::spawn(EchoService.serve(sink_rx, stream_tx));
+    tokio::spawn(EchoService::new().serve(sink_rx, stream_tx));
 
     let descriptor = Descriptor::default();
 
@@ -679,16 +720,106 @@ async fn call_unhealthy_connection() {
 }
 
 #[tokio::test]
-#[ignore]
-async fn call_finished_removes_stale_entry() {}
+async fn call_finished_removes_stale_entry() {
+    let (connection, stream_tx, sink_rx, _tasks) = setup_connection(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
+
+    tokio::spawn(EchoService::new().serve(sink_rx, stream_tx));
+
+    let descriptor = Descriptor::default();
+    let payload = [Bytes::from_static(b"hello"), Bytes::from_static(b"world")];
+
+    let mut stream = connection
+        .call(
+            descriptor.service,
+            descriptor.procedure,
+            stream::iter(payload.clone()),
+        )
+        .await
+        .expect("should not be closed");
+
+    assert_eq!(connection.transactions.storage().len(), 1);
+
+    let mut value = stream
+        .next()
+        .await
+        .expect("should have a value")
+        .expect("should not error");
+
+    assert_stream(&mut value, descriptor, &payload).await;
+    assert_eq!(connection.transactions.storage().len(), 0);
+}
 
 #[tokio::test]
-#[ignore]
-async fn call_input_output_independent() {}
+async fn call_input_output_independent() {
+    let (connection, stream_tx, sink_rx, _tasks) = setup_connection(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
+
+    let service = EchoService::new();
+    let packets_received = Arc::clone(&service.packets_received);
+
+    tokio::spawn(service.serve(sink_rx, stream_tx));
+
+    let descriptor = Descriptor::default();
+    let payload = [Bytes::from_static(b"hello"), Bytes::from_static(b"world")];
+
+    let stream = connection
+        .call(
+            descriptor.service,
+            descriptor.procedure,
+            stream::iter(payload.clone()),
+        )
+        .await
+        .expect("should not be closed");
+
+    // even tho we don't receive anything we should still be able to send
+    drop(stream);
+
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    // should still have received every packet
+    assert_eq!(packets_received.load(Ordering::SeqCst), 3);
+}
 
 #[tokio::test]
-#[ignore]
-async fn call_cancel() {}
+async fn call_cancel() {
+    let (connection, stream_tx, sink_rx, cancel, tasks) = setup_connection_mapped(
+        SessionConfig {
+            no_delay: true,
+            ..SessionConfig::default()
+        },
+        |parts| parts.cancel.clone(),
+    );
+
+    tokio::spawn(EchoService::new().serve(sink_rx, stream_tx));
+
+    assert_eq!(tasks.len(), 3);
+
+    let descriptor = Descriptor::default();
+    let payload = [Bytes::from_static(b"hello"), Bytes::from_static(b"world")];
+
+    let _stream = connection
+        .call(
+            descriptor.service,
+            descriptor.procedure,
+            stream::iter(payload.clone()),
+        )
+        .await
+        .expect("should not be closed");
+
+    assert_eq!(tasks.len(), 5);
+
+    cancel.cancel();
+
+    tasks.close();
+    tokio::time::timeout(Duration::from_secs(1), tasks.wait())
+        .await
+        .expect("tasks should have finished");
+}
 
 #[tokio::test]
 async fn connection_drop_stops_tasks() {
@@ -713,7 +844,7 @@ async fn connection_idle_does_not_terminate() {
         ..SessionConfig::default()
     });
 
-    tokio::spawn(EchoService.serve(sink_rx, stream_tx));
+    tokio::spawn(EchoService::new().serve(sink_rx, stream_tx));
 
     let descriptor = Descriptor::default();
     let payload = [Bytes::from_static(b"hello"), Bytes::from_static(b"world")];
@@ -756,7 +887,7 @@ async fn connection_drop_waits_for_transaction_to_finish() {
         ..SessionConfig::default()
     });
 
-    tokio::spawn(EchoService.serve(sink_rx, stream_tx));
+    tokio::spawn(EchoService::new().serve(sink_rx, stream_tx));
 
     let descriptor = Descriptor::default();
     let payload = [Bytes::from_static(b"hello"), Bytes::from_static(b"world")];
@@ -791,4 +922,54 @@ async fn connection_drop_waits_for_transaction_to_finish() {
     tokio::time::timeout(Duration::from_secs(1), tasks.wait())
         .await
         .expect("tasks should have finished");
+}
+
+#[tokio::test]
+async fn call_release_on_deadline_missed() {
+    let (connection, stream_tx, sink_rx, _tasks) = setup_connection(SessionConfig {
+        no_delay: true,
+        response_delivery_deadline: Duration::from_millis(100),
+        per_transaction_response_buffer_size: non_zero!(1),
+        per_transaction_response_byte_stream_buffer_size: non_zero!(1),
+        ..SessionConfig::default()
+    });
+
+    let service = EchoService::new();
+    let packets_received = Arc::clone(&service.packets_received);
+
+    tokio::spawn(service.serve(sink_rx, stream_tx));
+
+    let descriptor = Descriptor::default();
+    let payload = [
+        Bytes::from_static(b"hello"),
+        Bytes::from_static(b"world"),
+        Bytes::from_static(b"!"),
+        Bytes::from_static(b"?"),
+    ];
+
+    let mut stream = connection
+        .call(
+            descriptor.service,
+            descriptor.procedure,
+            stream::iter(payload.clone()),
+        )
+        .await
+        .expect("should not be closed");
+
+    tokio::time::sleep(Duration::from_millis(200)).await;
+
+    assert_eq!(packets_received.load(Ordering::SeqCst), 5);
+    assert!(connection.is_healthy());
+
+    let mut value = stream
+        .next()
+        .await
+        .expect("should have a value")
+        .expect("should not error");
+
+    assert_stream(&mut value, descriptor, &payload[..3]).await;
+    assert_eq!(
+        value.state().map(StreamState::is_end_of_response),
+        Some(false)
+    );
 }

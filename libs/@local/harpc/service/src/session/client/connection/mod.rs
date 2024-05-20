@@ -12,6 +12,7 @@ use harpc_wire_protocol::{
     request::{procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
     response::Response,
 };
+use tachyonix::SendTimeoutError;
 use tokio::{
     io, pin, select,
     sync::{mpsc, Notify},
@@ -24,7 +25,7 @@ use tokio_util::{
 };
 
 use self::{
-    collection::{TransactionCollection, TransactionStorage},
+    collection::{TransactionCollection, TransactionState, TransactionStorage},
     stream::ResponseStream,
 };
 use super::{config::SessionConfig, transaction::TransactionTask};
@@ -64,6 +65,7 @@ where
 ///
 /// Takes into account the [`RequestId`] to route the response to the correct transaction
 struct ConnectionResponseDelegateTask<S> {
+    config: SessionConfig,
     stream: S,
 
     storage: TransactionStorage,
@@ -78,6 +80,64 @@ impl<S> ConnectionResponseDelegateTask<S>
 where
     S: Stream<Item = error_stack::Result<Response, io::Error>> + Send,
 {
+    pub(crate) async fn route(
+        config: SessionConfig,
+        storage: &TransactionStorage,
+        response: Response,
+    ) {
+        let id = response.header.request_id;
+
+        // `Clone` is preferable here, as it is relatively cheap (`Arc` internally) and we won't
+        // need to lock.
+        let Some(sender) =
+            storage.peek_with(&id, |_, TransactionState { sender, .. }| sender.clone())
+        else {
+            tracing::debug!(?id, "response for unknown transaction, ignoring...");
+            return;
+        };
+
+        // this creates implicit backpressure, if the transaction cannot accept more
+        // requests, we will wait a short amount (specified via the deadline), if we
+        // haven't processed the data until then, we will drop the
+        // transaction.
+        let result = sender
+            .send_timeout(
+                response,
+                tokio::time::sleep(config.response_delivery_deadline),
+            )
+            .await;
+
+        // This only happens in the case of a full buffer, which only happens if during
+        // buffering in an upper layer we are not able to process
+        // the data fast enough. This is also a mechanism to prevent
+        // a single transaction from blocking the whole session,
+        // and to prevent packet flooding.
+        match result {
+            Ok(()) => {
+                // everything is fine
+            }
+            Err(SendTimeoutError::Closed(_)) => {
+                tracing::info!(
+                    "transaction response channel has been closed, dropping transaction"
+                );
+
+                // the channel is already closed, we don't need to do anything, as the transaction
+                // will be removed automatically
+            }
+            Err(SendTimeoutError::Timeout(_)) => {
+                tracing::warn!("transaction response channel is full, dropping response channel");
+
+                // we only close the response channel instead of cancelling the whole transaction,
+                // this allows us to still send request data
+                // We have no real way of directly communication with the callee about this, this
+                // will look like the connection has been prematurely closed.
+                // but(!) the callee is able to detect this, by checking `Connection::is_healthy()`,
+                // which will be true.
+                sender.close();
+            }
+        }
+    }
+
     #[expect(
         clippy::integer_division_remainder_used,
         reason = "required for select! macro"
@@ -134,25 +194,7 @@ where
                 }
             };
 
-            let id = response.header.request_id;
-
-            let Some(entry) = self.storage.get_async(&id).await else {
-                tracing::debug!(?id, "response for unknown transaction, ignoring...");
-                continue;
-            };
-
-            // TODO: we need to send_timeout here, otherwise we *could* block the entire system and
-            // other tasks, in the event that we can't send the response to the transaction we
-            // cancel the sender.
-            if let Err(error) = entry.sender.send(response).await {
-                tracing::debug!(
-                    ?id,
-                    ?error,
-                    "unable to forward response to transaction, ignoring..."
-                );
-
-                // the item will be removed implicitely if the transaction is dropped
-            }
+            Self::route(self.config, &self.storage, response).await;
         }
     }
 }
@@ -207,6 +249,7 @@ impl Connection {
 
         let response_delegate_handle = tasks.spawn(
             ConnectionResponseDelegateTask {
+                config,
                 stream,
                 storage: Arc::clone(transactions.storage()),
                 notify: Arc::clone(transactions.notify()),

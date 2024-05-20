@@ -197,11 +197,11 @@ impl TransactionCollection {
         // and to prevent packet flooding.
         match result {
             Ok(()) => {
-                // everything is fine, continue by early returning
+                // everything is fine
                 Ok(())
             }
             Err(SendTimeoutError::Closed(_)) => {
-                tracing::info!("transaction sender has been closed, dropping packet");
+                tracing::info!("transaction request channel has been closed, dropping packet");
 
                 // the channel has already been closed, the upper layer must notify
                 // the sender that the transaction is (potentially) incomplete.
@@ -219,9 +219,9 @@ impl TransactionCollection {
                 // transaction, so that we do not send any auxilirary data.
                 // Whenever we cancel a task, we do not flush, so no `EndOfResponse` is accidentally
                 // sent.
-                // TODO: is this behaviour we want, or do we want a more graceful approach?
                 sender.close();
 
+                // TODO: is this behaviour we want, or do we want a more graceful approach?
                 // peek is not linearizable, so we need to peek again.
                 self.cancel(id);
 

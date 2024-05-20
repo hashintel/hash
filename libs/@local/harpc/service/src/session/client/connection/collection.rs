@@ -4,7 +4,8 @@ use harpc_wire_protocol::{
     request::id::{RequestId, RequestIdProducer},
     response::Response,
 };
-use scc::{ebr::Guard, hash_index::Entry, HashIndex};
+use scc::{hash_index::Entry, HashIndex};
+use tachyonix::SendTimeoutError;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
