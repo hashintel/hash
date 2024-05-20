@@ -59,12 +59,25 @@ pub struct GetDataTypeSubgraphParams<'p> {
     pub after: Option<DataTypeVertexId>,
     #[serde(default)]
     pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_count: bool,
 }
 
 #[derive(Debug)]
 pub struct GetDataTypeSubgraphResponse {
     pub subgraph: Subgraph,
     pub cursor: Option<DataTypeVertexId>,
+    pub count: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CountDataTypesParams<'p> {
+    #[serde(borrow)]
+    pub filter: Filter<'p, DataTypeWithMetadata>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -79,6 +92,8 @@ pub struct GetDataTypesParams<'p> {
     pub after: Option<DataTypeVertexId>,
     #[serde(default)]
     pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_count: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -87,6 +102,7 @@ pub struct GetDataTypesParams<'p> {
 pub struct GetDataTypesResponse {
     pub data_types: Vec<DataTypeWithMetadata>,
     pub cursor: Option<DataTypeVertexId>,
+    pub count: Option<usize>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -172,6 +188,17 @@ pub trait DataTypeStore {
     where
         P: IntoIterator<Item = CreateDataTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync;
+
+    /// Count the number of [`DataType`]s specified by the [`CountDataTypesParams`].
+    ///
+    /// # Errors
+    ///
+    /// - if the underlying store fails to count the data types.
+    fn count_data_types(
+        &self,
+        actor_id: AccountId,
+        params: CountDataTypesParams<'_>,
+    ) -> impl Future<Output = Result<usize, QueryError>> + Send;
 
     /// Get the [`DataTypes`] specified by the [`GetDataTypesParams`].
     ///
@@ -270,12 +297,25 @@ pub struct GetPropertyTypeSubgraphParams<'p> {
     pub after: Option<PropertyTypeVertexId>,
     #[serde(default)]
     pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_count: bool,
 }
 
 #[derive(Debug)]
 pub struct GetPropertyTypeSubgraphResponse {
     pub subgraph: Subgraph,
     pub cursor: Option<PropertyTypeVertexId>,
+    pub count: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CountPropertyTypesParams<'p> {
+    #[serde(borrow)]
+    pub filter: Filter<'p, PropertyTypeWithMetadata>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -290,6 +330,8 @@ pub struct GetPropertyTypesParams<'p> {
     pub after: Option<PropertyTypeVertexId>,
     #[serde(default)]
     pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_count: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -298,6 +340,7 @@ pub struct GetPropertyTypesParams<'p> {
 pub struct GetPropertyTypesResponse {
     pub property_types: Vec<PropertyTypeWithMetadata>,
     pub cursor: Option<PropertyTypeVertexId>,
+    pub count: Option<usize>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -383,6 +426,17 @@ pub trait PropertyTypeStore {
     where
         P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync;
+
+    /// Count the number of [`PropertyType`]s specified by the [`CountDataTypesParams`].
+    ///
+    /// # Errors
+    ///
+    /// - if the underlying store fails to count the property types.
+    fn count_property_types(
+        &self,
+        actor_id: AccountId,
+        params: CountPropertyTypesParams<'_>,
+    ) -> impl Future<Output = Result<usize, QueryError>> + Send;
 
     /// Get the [`Subgraph`] specified by the [`GetPropertyTypeSubgraphParams`].
     ///
@@ -482,12 +536,25 @@ pub struct GetEntityTypeSubgraphParams<'p> {
     pub after: Option<EntityTypeVertexId>,
     pub limit: Option<usize>,
     pub include_drafts: bool,
+    #[serde(default)]
+    pub include_count: bool,
 }
 
 #[derive(Debug)]
 pub struct GetEntityTypeSubgraphResponse {
     pub subgraph: Subgraph,
     pub cursor: Option<EntityTypeVertexId>,
+    pub count: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CountEntityTypesParams<'p> {
+    #[serde(borrow)]
+    pub filter: Filter<'p, EntityTypeWithMetadata>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -502,6 +569,8 @@ pub struct GetEntityTypesParams<'p> {
     pub after: Option<EntityTypeVertexId>,
     #[serde(default)]
     pub limit: Option<usize>,
+    #[serde(default)]
+    pub include_count: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -510,6 +579,7 @@ pub struct GetEntityTypesParams<'p> {
 pub struct GetEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
     pub cursor: Option<EntityTypeVertexId>,
+    pub count: Option<usize>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -597,6 +667,17 @@ pub trait EntityTypeStore {
     where
         P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync;
+
+    /// Count the number of [`EntityType`]s specified by the [`CountDataTypesParams`].
+    ///
+    /// # Errors
+    ///
+    /// - if the underlying store fails to count the entity types.
+    fn count_entity_types(
+        &self,
+        actor_id: AccountId,
+        params: CountEntityTypesParams<'_>,
+    ) -> impl Future<Output = Result<usize, QueryError>> + Send;
 
     /// Get the [`Subgraph`]s specified by the [`GetEntityTypeSubgraphParams`].
     ///
