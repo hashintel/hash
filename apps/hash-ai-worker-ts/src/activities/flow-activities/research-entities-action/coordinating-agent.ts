@@ -79,6 +79,11 @@ const generateSystemPromptPrefix = (params: {
       }
 
     You must completely satisfy the research prompt, without any missing information.
+
+    You must carefully inspect the properties on the provided entity types and link types,
+      and find all the relevant facts so that as many properties on the entity can be filled as possible.
+      
+    You may need to conduct multiple web searches, to find all the relevant facts to propose the entities.
     
     ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}` : ""}
   `);
