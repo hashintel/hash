@@ -6,7 +6,7 @@ use graph_types::{
     knowledge::{
         entity::{EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        PropertyMetadataMap, PropertyObject,
+        PropertyMetadataMap, PropertyObject, PropertyProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -102,9 +102,9 @@ async fn insert() {
                 draft_id: None,
             },
             left_entity_confidence: None,
-            left_entity_provenance: Default::default(),
+            left_entity_provenance: PropertyProvenance::default(),
             right_entity_confidence: None,
-            right_entity_provenance: Default::default(),
+            right_entity_provenance: PropertyProvenance::default(),
         }),
         draft: false,
         relationships: [],
