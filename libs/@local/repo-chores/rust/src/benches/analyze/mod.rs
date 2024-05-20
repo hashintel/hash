@@ -54,4 +54,6 @@ pub enum AnalyzeError {
     ParseInput,
     #[error("Baseline measurement is missing.")]
     BaselineMissing,
+    #[error("Flame graph is missing.")]
+    FlameGraphMissing,
 }

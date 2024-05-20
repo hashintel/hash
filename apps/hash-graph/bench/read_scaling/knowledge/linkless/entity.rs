@@ -196,7 +196,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
         let entity_uuids = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
 
-        let function_id = "get_entity_by_id";
+        let function_id = "entity_by_id";
         let parameter = format!("{size} entities");
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),

@@ -54,14 +54,17 @@ pub struct GetDataTypeSubgraphParams<'p> {
     pub filter: Filter<'p, DataTypeWithMetadata>,
     pub graph_resolve_depths: GraphResolveDepths,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub after: Option<DataTypeVertexId>,
-    pub limit: Option<usize>,
     pub include_drafts: bool,
+    #[serde(default)]
+    pub after: Option<DataTypeVertexId>,
+    #[serde(default)]
+    pub limit: Option<usize>,
 }
 
 #[derive(Debug)]
 pub struct GetDataTypeSubgraphResponse {
     pub subgraph: Subgraph,
+    pub cursor: Option<DataTypeVertexId>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -71,9 +74,11 @@ pub struct GetDataTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, DataTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub after: Option<DataTypeVertexId>,
-    pub limit: Option<usize>,
     pub include_drafts: bool,
+    #[serde(default)]
+    pub after: Option<DataTypeVertexId>,
+    #[serde(default)]
+    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Serialize)]
@@ -81,6 +86,7 @@ pub struct GetDataTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetDataTypesResponse {
     pub data_types: Vec<DataTypeWithMetadata>,
+    pub cursor: Option<DataTypeVertexId>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -259,14 +265,17 @@ pub struct GetPropertyTypeSubgraphParams<'p> {
     pub filter: Filter<'p, PropertyTypeWithMetadata>,
     pub graph_resolve_depths: GraphResolveDepths,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub after: Option<PropertyTypeVertexId>,
-    pub limit: Option<usize>,
     pub include_drafts: bool,
+    #[serde(default)]
+    pub after: Option<PropertyTypeVertexId>,
+    #[serde(default)]
+    pub limit: Option<usize>,
 }
 
 #[derive(Debug)]
 pub struct GetPropertyTypeSubgraphResponse {
     pub subgraph: Subgraph,
+    pub cursor: Option<PropertyTypeVertexId>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -276,9 +285,11 @@ pub struct GetPropertyTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, PropertyTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub after: Option<PropertyTypeVertexId>,
-    pub limit: Option<usize>,
     pub include_drafts: bool,
+    #[serde(default)]
+    pub after: Option<PropertyTypeVertexId>,
+    #[serde(default)]
+    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Serialize)]
@@ -286,6 +297,7 @@ pub struct GetPropertyTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetPropertyTypesResponse {
     pub property_types: Vec<PropertyTypeWithMetadata>,
+    pub cursor: Option<PropertyTypeVertexId>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -475,6 +487,7 @@ pub struct GetEntityTypeSubgraphParams<'p> {
 #[derive(Debug)]
 pub struct GetEntityTypeSubgraphResponse {
     pub subgraph: Subgraph,
+    pub cursor: Option<EntityTypeVertexId>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -484,9 +497,11 @@ pub struct GetEntityTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, EntityTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub after: Option<EntityTypeVertexId>,
-    pub limit: Option<usize>,
     pub include_drafts: bool,
+    #[serde(default)]
+    pub after: Option<EntityTypeVertexId>,
+    #[serde(default)]
+    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Serialize)]
@@ -494,6 +509,7 @@ pub struct GetEntityTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
+    pub cursor: Option<EntityTypeVertexId>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -540,7 +540,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetDataTypesRequest"
+                "$ref": "#/components/schemas/GetDataTypesParams"
               }
             }
           },
@@ -549,14 +549,6 @@
         "responses": {
           "200": {
             "description": "Gets a a list of data types that satisfy the given query.",
-            "headers": {
-              "Link": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "The link to be used to query the next page of data types"
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
@@ -596,7 +588,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetDataTypeSubgraphRequest"
+                "$ref": "#/components/schemas/GetDataTypeSubgraphParams"
               }
             }
           },
@@ -605,14 +597,6 @@
         "responses": {
           "200": {
             "description": "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth.",
-            "headers": {
-              "Link": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "The link to be used to query the next page of data types"
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1960,7 +1944,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetEntityTypesRequest"
+                "$ref": "#/components/schemas/GetEntityTypesParams"
               }
             }
           },
@@ -1969,14 +1953,6 @@
         "responses": {
           "200": {
             "description": "Gets a a list of entity types that satisfy the given query.",
-            "headers": {
-              "Link": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "The link to be used to query the next page of entity types"
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2016,7 +1992,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetEntityTypeSubgraphRequest"
+                "$ref": "#/components/schemas/GetEntityTypeSubgraphParams"
               }
             }
           },
@@ -2025,14 +2001,6 @@
         "responses": {
           "200": {
             "description": "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth.",
-            "headers": {
-              "Link": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "The link to be used to query the next page of entity types"
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2534,7 +2502,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetPropertyTypesRequest"
+                "$ref": "#/components/schemas/GetPropertyTypesParams"
               }
             }
           },
@@ -2543,14 +2511,6 @@
         "responses": {
           "200": {
             "description": "Gets a a list of property types that satisfy the given query.",
-            "headers": {
-              "Link": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "The link to be used to query the next page of property types"
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2590,7 +2550,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetPropertyTypeSubgraphRequest"
+                "$ref": "#/components/schemas/GetPropertyTypeSubgraphParams"
               }
             }
           },
@@ -4899,7 +4859,7 @@
           }
         ]
       },
-      "GetDataTypeSubgraphRequest": {
+      "GetDataTypeSubgraphParams": {
         "type": "object",
         "required": [
           "filter",
@@ -4908,6 +4868,14 @@
           "includeDrafts"
         ],
         "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
@@ -4916,6 +4884,11 @@
           },
           "includeDrafts": {
             "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -4929,12 +4902,20 @@
           "subgraph"
         ],
         "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "subgraph": {
             "$ref": "#/components/schemas/Subgraph"
           }
         }
       },
-      "GetDataTypesRequest": {
+      "GetDataTypesParams": {
         "type": "object",
         "required": [
           "filter",
@@ -4942,11 +4923,24 @@
           "includeDrafts"
         ],
         "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
           "includeDrafts": {
             "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -4960,6 +4954,14 @@
           "dataTypes"
         ],
         "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "dataTypes": {
             "type": "array",
             "items": {
@@ -5109,7 +5111,7 @@
           }
         }
       },
-      "GetEntityTypeSubgraphRequest": {
+      "GetEntityTypeSubgraphParams": {
         "type": "object",
         "required": [
           "filter",
@@ -5118,6 +5120,14 @@
           "includeDrafts"
         ],
         "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
@@ -5126,6 +5136,11 @@
           },
           "includeDrafts": {
             "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -5139,12 +5154,20 @@
           "subgraph"
         ],
         "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "subgraph": {
             "$ref": "#/components/schemas/Subgraph"
           }
         }
       },
-      "GetEntityTypesRequest": {
+      "GetEntityTypesParams": {
         "type": "object",
         "required": [
           "filter",
@@ -5152,11 +5175,24 @@
           "includeDrafts"
         ],
         "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
           "includeDrafts": {
             "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -5170,6 +5206,14 @@
           "entityTypes"
         ],
         "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "entityTypes": {
             "type": "array",
             "items": {
@@ -5178,7 +5222,7 @@
           }
         }
       },
-      "GetPropertyTypeSubgraphRequest": {
+      "GetPropertyTypeSubgraphParams": {
         "type": "object",
         "required": [
           "filter",
@@ -5187,6 +5231,14 @@
           "includeDrafts"
         ],
         "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
@@ -5195,6 +5247,11 @@
           },
           "includeDrafts": {
             "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -5208,12 +5265,20 @@
           "subgraph"
         ],
         "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "subgraph": {
             "$ref": "#/components/schemas/Subgraph"
           }
         }
       },
-      "GetPropertyTypesRequest": {
+      "GetPropertyTypesParams": {
         "type": "object",
         "required": [
           "filter",
@@ -5221,11 +5286,24 @@
           "includeDrafts"
         ],
         "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
           "includeDrafts": {
             "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -5239,6 +5317,14 @@
           "propertyTypes"
         ],
         "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyTypeVertexId"
+              }
+            ],
+            "nullable": true
+          },
           "propertyTypes": {
             "type": "array",
             "items": {
