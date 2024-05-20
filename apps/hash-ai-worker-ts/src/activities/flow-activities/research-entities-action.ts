@@ -26,6 +26,7 @@ import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools";
+import { deduplicateEntities } from "./research-entities-action/deduplicate-entities";
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
 import { inferFactsFromWebPageWorkerAgent } from "./research-entities-action/infer-facts-from-web-page-worker-agent";
 import type { CompletedToolCall } from "./research-entities-action/types";
@@ -334,9 +335,47 @@ export const researchEntitiesAction: FlowActionActivity<{
              * entity summaries, and existing entities provided as input.
              */
 
-            state.inferredFacts.push(...inferredFacts);
-            state.inferredFactsAboutEntities.push(
+            const { duplicates } = await deduplicateEntities({
+              entities: [
+                ...inferredFactsAboutEntities,
+                ...state.inferredFactsAboutEntities,
+              ],
+            });
+
+            const inferredFactsWithDeduplicatedEntities = inferredFacts.map(
+              (fact) => {
+                const { subjectEntityLocalId, objectEntityLocalId } = fact;
+                const subjectDuplicate = duplicates.find(
+                  ({ duplicateLocalIds }) =>
+                    duplicateLocalIds.includes(subjectEntityLocalId),
+                );
+
+                const objectDuplicate = objectEntityLocalId
+                  ? duplicates.find(({ duplicateLocalIds }) =>
+                      duplicateLocalIds.includes(objectEntityLocalId),
+                    )
+                  : undefined;
+
+                return {
+                  ...fact,
+                  subjectEntityLocalId:
+                    subjectDuplicate?.canonicalLocalId ??
+                    fact.subjectEntityLocalId,
+                  objectEntityLocalId:
+                    objectDuplicate?.canonicalLocalId ?? objectEntityLocalId,
+                };
+              },
+            );
+
+            state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
+            state.inferredFactsAboutEntities = [
+              ...state.inferredFactsAboutEntities,
               ...inferredFactsAboutEntities,
+            ].filter(
+              ({ localId }) =>
+                !duplicates.some(({ duplicateLocalIds }) =>
+                  duplicateLocalIds.includes(localId),
+                ),
             );
             state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
 
