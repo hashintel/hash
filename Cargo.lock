@@ -187,11 +187,12 @@ dependencies = [
 
 [[package]]
 name = "async-event"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4172595da7ffb68640606be5723e35a353555f2829e9209437627a003725bbdb"
+checksum = "e0d646883f5083117ea81a454a24ab6965991f25d1969a07925edb2c39a6597a"
 dependencies = [
  "loom",
+ "pin-project-lite",
 ]
 
 [[package]]
@@ -4983,15 +4984,16 @@ dependencies = [
 
 [[package]]
 name = "tachyonix"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64e0bf82be3359dbefbfea621d6365db00e1d7846561daad2ea74cc4cb4c9604"
+checksum = "1924ef47bc3b427ea2a0b55ba97d0e9116e9103483ecd75a43f47a66443527c5"
 dependencies = [
  "async-event",
  "crossbeam-utils",
  "diatomic-waker",
  "futures-core",
  "loom",
+ "pin-project-lite",
 ]
 
 [[package]]

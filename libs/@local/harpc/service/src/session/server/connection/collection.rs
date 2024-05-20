@@ -3,6 +3,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 
 use harpc_wire_protocol::request::{id::RequestId, Request};
 use scc::{ebr::Guard, hash_index::Entry, HashIndex};
+use tachyonix::SendTimeoutError;
 use tokio::sync::{Notify, OwnedSemaphorePermit, Semaphore};
 use tokio_util::sync::CancellationToken;
 
@@ -131,15 +132,12 @@ impl TransactionCollection {
     }
 
     pub(crate) async fn release(&self, id: RequestId) {
-        let entry = self.storage.entry_async(id).await;
+        let Some(entry) = self.storage.get_async(&id).await else {
+            return;
+        };
 
-        match entry {
-            Entry::Occupied(entry) => {
-                entry.cancel.cancel();
-                entry.remove_entry();
-            }
-            Entry::Vacant(_) => {}
-        }
+        entry.cancel.cancel();
+        entry.remove_entry();
     }
 
     pub(crate) fn shutdown_senders(&self) {
@@ -156,10 +154,23 @@ impl TransactionCollection {
         }
     }
 
+    fn cancel(&self, id: RequestId) {
+        let guard = Guard::new();
+        let Some(state) = self.storage.peek(&id, &guard) else {
+            return;
+        };
+        state.cancel.cancel();
+    }
+
     pub(crate) async fn send(&self, request: Request) -> Result<(), TransactionLaggingError> {
         let id = request.header.request_id;
 
-        let Some(entry) = self.storage.get(&id) else {
+        // `Clone` is perferred here instead of acquiring the entry, as we don't need to block, and
+        // we just increment an `Arc`.
+        let Some(sender) = self
+            .storage
+            .peek_with(&id, |_, TransactionState { sender, .. }| sender.clone())
+        else {
             tracing::info!(
                 ?id,
                 "rogue packet received that isn't part of a transaction, dropping"
@@ -172,11 +183,12 @@ impl TransactionCollection {
         // requests, we will wait a short amount (specified via the deadline), if we
         // haven't processed the data until then, we will drop the
         // transaction.
-        let result = tokio::time::timeout(
-            self.config.request_delivery_deadline,
-            entry.sender.send(request),
-        )
-        .await;
+        let result = sender
+            .send_timeout(
+                request,
+                tokio::time::sleep(self.config.request_delivery_deadline),
+            )
+            .await;
 
         // This only happens in the case of a full buffer, which only happens if during
         // buffering in an upper layer we are not able to process
@@ -184,11 +196,11 @@ impl TransactionCollection {
         // a single transaction from blocking the whole session,
         // and to prevent packet flooding.
         match result {
-            Ok(Ok(())) => {
+            Ok(()) => {
                 // everything is fine, continue by early returning
                 Ok(())
             }
-            Ok(Err(_)) => {
+            Err(SendTimeoutError::Closed(_)) => {
                 tracing::info!("transaction sender has been closed, dropping packet");
 
                 // the channel has already been closed, the upper layer must notify
@@ -198,7 +210,7 @@ impl TransactionCollection {
                 // in that case notifing the client would be confusing anyway.
                 Ok(())
             }
-            Err(_) => {
+            Err(SendTimeoutError::Timeout(_)) => {
                 tracing::warn!("transaction buffer is too slow, dropping transaction");
 
                 // we've missed the deadline, therefore we can no longer send data to the
@@ -208,8 +220,10 @@ impl TransactionCollection {
                 // Whenever we cancel a task, we do not flush, so no `EndOfResponse` is accidentally
                 // sent.
                 // TODO: is this behaviour we want, or do we want a more graceful approach?
-                entry.sender.close();
-                entry.cancel.cancel();
+                sender.close();
+
+                // peek is not linearizable, so we need to peek again.
+                self.cancel(id);
 
                 Err(TransactionLaggingError)
             }
