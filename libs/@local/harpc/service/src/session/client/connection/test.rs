@@ -29,7 +29,7 @@ use harpc_wire_protocol::{
     test_utils::mock_request_id,
 };
 use tachyonix::RecvError;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Notify};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::{
     sync::{CancellationToken, PollSender},
@@ -46,6 +46,7 @@ use crate::session::{
         },
         test::Descriptor,
         transaction::{stream::StreamState, ClientTransactionPermit},
+        ValueStream,
     },
     gc::ConnectionGarbageCollectorTask,
 };
@@ -89,26 +90,6 @@ async fn transaction_collection_acquire() {
 
     let received = rx.recv().await.expect("should receive response");
     assert_eq!(received, response);
-}
-
-#[tokio::test]
-async fn transaction_collection_cancel_all() {
-    let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
-
-    let (permit_a, mut rx_a) = collection.acquire().await;
-    let (permit_b, mut rx_b) = collection.acquire().await;
-    let (permit_c, mut rx_c) = collection.acquire().await;
-
-    collection.cancel_all();
-
-    assert_eq!(rx_a.recv().await, Err(RecvError));
-    assert!(permit_a.cancellation_token().is_cancelled());
-
-    assert_eq!(rx_b.recv().await, Err(RecvError));
-    assert!(permit_b.cancellation_token().is_cancelled());
-
-    assert_eq!(rx_c.recv().await, Err(RecvError));
-    assert!(permit_c.cancellation_token().is_cancelled());
 }
 
 #[tokio::test]
@@ -270,7 +251,10 @@ async fn response_delegate() {
 
     let task = ConnectionResponseDelegateTask {
         stream: ReceiverStream::new(stream_rx),
-        tx: Arc::clone(collection.storage()),
+        storage: Arc::clone(collection.storage()),
+        notify: Arc::new(Notify::new()),
+        parent: CancellationToken::new(),
+        _guard: CancellationToken::new().drop_guard(),
     };
 
     tokio::spawn(task.run(CancellationToken::new()));
@@ -294,7 +278,10 @@ async fn response_delegate_ignore_errors() {
 
     let task = ConnectionResponseDelegateTask {
         stream: ReceiverStream::new(stream_rx),
-        tx: Arc::clone(collection.storage()),
+        storage: Arc::clone(collection.storage()),
+        notify: Arc::new(Notify::new()),
+        parent: CancellationToken::new(),
+        _guard: CancellationToken::new().drop_guard(),
     };
 
     let handle = tokio::spawn(task.run(CancellationToken::new()));
@@ -323,7 +310,10 @@ async fn response_delegate_stream_closed() {
 
     let task = ConnectionResponseDelegateTask {
         stream: ReceiverStream::new(stream_rx),
-        tx: Arc::clone(collection.storage()),
+        storage: Arc::clone(collection.storage()),
+        notify: Arc::new(Notify::new()),
+        parent: CancellationToken::new(),
+        _guard: CancellationToken::new().drop_guard(),
     };
 
     let handle = tokio::spawn(task.run(CancellationToken::new()));
@@ -346,7 +336,10 @@ async fn response_delegate_tx_closed() {
 
     let task = ConnectionResponseDelegateTask {
         stream: ReceiverStream::new(stream_rx),
-        tx: Arc::clone(collection.storage()),
+        storage: Arc::clone(collection.storage()),
+        notify: Arc::new(Notify::new()),
+        parent: CancellationToken::new(),
+        _guard: CancellationToken::new().drop_guard(),
     };
 
     let handle = tokio::spawn(task.run(CancellationToken::new()));
@@ -373,7 +366,10 @@ async fn response_delegate_unknown_request_id() {
 
     let task = ConnectionResponseDelegateTask {
         stream: ReceiverStream::new(stream_rx),
-        tx: Arc::clone(collection.storage()),
+        storage: Arc::clone(collection.storage()),
+        notify: Arc::new(Notify::new()),
+        parent: CancellationToken::new(),
+        _guard: CancellationToken::new().drop_guard(),
     };
 
     let handle = tokio::spawn(task.run(CancellationToken::new()));
@@ -396,7 +392,10 @@ async fn response_delegate_cancel() {
 
     let task = ConnectionResponseDelegateTask {
         stream: ReceiverStream::new(stream_rx),
-        tx: Arc::clone(collection.storage()),
+        storage: Arc::clone(collection.storage()),
+        notify: Arc::new(Notify::new()),
+        parent: CancellationToken::new(),
+        _guard: CancellationToken::new().drop_guard(),
     };
 
     let cancel = CancellationToken::new();
@@ -558,6 +557,27 @@ impl EchoService {
     }
 }
 
+#[track_caller]
+async fn assert_stream(stream: &mut ValueStream, descriptor: Descriptor, expected: &[Bytes]) {
+    let mut bytes = stream.next().await.expect("should have a value");
+    assert_eq!(bytes.get_u16(), descriptor.service.id.value());
+    assert_eq!(bytes.get_u8(), descriptor.service.version.major);
+    assert_eq!(bytes.get_u8(), descriptor.service.version.minor);
+
+    assert_eq!(bytes.get_u16(), descriptor.procedure.id.value());
+
+    if let Some(expected) = expected.get(0) {
+        assert_eq!(bytes, expected);
+    }
+
+    for expected in &expected[1..] {
+        let bytes = stream.next().await.expect("should have a value");
+        assert_eq!(bytes, expected);
+    }
+
+    assert!(stream.next().await.is_none());
+}
+
 #[tokio::test]
 async fn call() {
     let (connection, stream_tx, sink_rx, _tasks) = setup_connection(SessionConfig {
@@ -586,19 +606,7 @@ async fn call() {
         .expect("should have a value")
         .expect("should not error");
 
-    let mut bytes = value.next().await.expect("should have a value");
-    assert_eq!(bytes.get_u16(), descriptor.service.id.value());
-    assert_eq!(bytes.get_u8(), descriptor.service.version.major);
-    assert_eq!(bytes.get_u8(), descriptor.service.version.minor);
-
-    assert_eq!(bytes.get_u16(), descriptor.procedure.id.value());
-
-    assert_eq!(bytes, payload[0]);
-
-    let bytes = value.next().await.expect("should have a value");
-    assert_eq!(bytes, payload[1]);
-
-    assert!(value.next().await.is_none());
+    assert_stream(&mut value, descriptor, &payload).await;
 
     assert_eq!(
         value.state().map(StreamState::is_end_of_response),
@@ -656,25 +664,6 @@ async fn call_do_not_admit_if_partially_closed_write() {
 }
 
 #[tokio::test]
-#[ignore]
-async fn call_input_connection_closed() {
-    let (connection, stream_tx, sink_rx, _tasks) = setup_connection(SessionConfig {
-        no_delay: true,
-        ..SessionConfig::default()
-    });
-
-    // TODO: the connection never... terminates. That is a problem!
-
-    tokio::spawn(EchoService.serve(sink_rx, stream_tx));
-
-    let descriptor = Descriptor::default();
-}
-
-#[tokio::test]
-#[ignore]
-async fn call_output_connection_closed() {}
-
-#[tokio::test]
 async fn call_unhealthy_connection() {
     let (connection, stream_tx, _sink_rx, _tasks) = setup_connection(SessionConfig {
         no_delay: true,
@@ -700,3 +689,106 @@ async fn call_input_output_independent() {}
 #[tokio::test]
 #[ignore]
 async fn call_cancel() {}
+
+#[tokio::test]
+async fn connection_drop_stops_tasks() {
+    let (connection, _stream_tx, _sink_rx, tasks) = setup_connection(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
+    drop(connection);
+
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    tasks.close();
+    tokio::time::timeout(Duration::from_secs(1), tasks.wait())
+        .await
+        .expect("tasks should have finished");
+}
+
+#[tokio::test]
+async fn connection_idle_does_not_terminate() {
+    let (connection, stream_tx, sink_rx, _tasks) = setup_connection(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
+
+    tokio::spawn(EchoService.serve(sink_rx, stream_tx));
+
+    let descriptor = Descriptor::default();
+    let payload = [Bytes::from_static(b"hello"), Bytes::from_static(b"world")];
+
+    for _ in 0..2 {
+        let mut stream = connection
+            .call(
+                descriptor.service,
+                descriptor.procedure,
+                stream::iter(payload.clone()),
+            )
+            .await
+            .expect("should not be closed");
+
+        let mut value = stream
+            .next()
+            .await
+            .expect("should have a value")
+            .expect("should not error");
+
+        assert_stream(&mut value, descriptor, &payload).await;
+        assert_eq!(
+            value.state().map(StreamState::is_end_of_response),
+            Some(true)
+        );
+
+        assert!(stream.next().await.is_none());
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        assert!(connection.is_healthy());
+        assert!(connection.transactions.storage().is_empty());
+    }
+}
+
+#[tokio::test]
+async fn connection_drop_waits_for_transaction_to_finish() {
+    let (connection, stream_tx, sink_rx, tasks) = setup_connection(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
+
+    tokio::spawn(EchoService.serve(sink_rx, stream_tx));
+
+    let descriptor = Descriptor::default();
+    let payload = [Bytes::from_static(b"hello"), Bytes::from_static(b"world")];
+
+    let mut stream = connection
+        .call(
+            descriptor.service,
+            descriptor.procedure,
+            stream::iter(payload.clone()),
+        )
+        .await
+        .expect("should not be closed");
+
+    drop(connection);
+
+    let mut value = stream
+        .next()
+        .await
+        .expect("should have a value")
+        .expect("should not error");
+
+    assert_stream(&mut value, descriptor, &payload).await;
+    assert_eq!(
+        value.state().map(StreamState::is_end_of_response),
+        Some(true)
+    );
+
+    assert!(stream.next().await.is_none());
+
+    tasks.close();
+
+    tokio::time::timeout(Duration::from_secs(1), tasks.wait())
+        .await
+        .expect("tasks should have finished");
+}

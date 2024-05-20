@@ -12,9 +12,16 @@ use harpc_wire_protocol::{
     request::{procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
     response::Response,
 };
-use tokio::{io, pin, select, sync::mpsc, task::AbortHandle};
+use tokio::{
+    io, pin, select,
+    sync::{mpsc, Notify},
+    task::AbortHandle,
+};
 use tokio_stream::wrappers::ReceiverStream;
-use tokio_util::{sync::CancellationToken, task::TaskTracker};
+use tokio_util::{
+    sync::{CancellationToken, DropGuard},
+    task::TaskTracker,
+};
 
 use self::{
     collection::{TransactionCollection, TransactionStorage},
@@ -59,7 +66,12 @@ where
 struct ConnectionResponseDelegateTask<S> {
     stream: S,
 
-    tx: TransactionStorage,
+    storage: TransactionStorage,
+
+    notify: Arc<Notify>,
+    parent: CancellationToken,
+
+    _guard: DropGuard,
 }
 
 impl<S> ConnectionResponseDelegateTask<S>
@@ -74,9 +86,38 @@ where
         let stream = self.stream;
         pin!(stream);
 
+        let mut parent_cancelled = false;
+
         loop {
             let response = select! {
                 response = stream.next().fuse() => response,
+                () = self.notify.notified() => {
+                    // We have been notified that there are no more transactions to handle,
+                    // check if the parent connection has been dropped, in that case,
+                    // there are no more transactions that can be created, so we can shutdown.
+                    // The receiver will automatically shutdown when the connection is dropped,
+                    // as we drop the only `sender` that we use to handout transactions.
+                    // We also need to check if we're really empty, as in the meantime a new transaction
+                    // could have been created just as the last one was completed and the connection was dropped.
+                    if self.parent.is_cancelled() && self.storage.is_empty() {
+                        break;
+                    }
+
+                    // false alarm, wait again for the next notification
+                    continue;
+                },
+                () = self.parent.cancelled(), if !parent_cancelled => {
+                    parent_cancelled = true;
+
+                    // if the parent connection is dropped, immediately check if storage is empty, in that case
+                    // we won't be notified via the other task, as we never actually started them
+                    if self.storage.is_empty() {
+                        break;
+                    }
+
+                    // otherwise, we wait for the notification until we're done
+                    continue;
+                },
                 () = cancel.cancelled() => break,
             };
 
@@ -95,7 +136,7 @@ where
 
             let id = response.header.request_id;
 
-            let Some(entry) = self.tx.get_async(&id).await else {
+            let Some(entry) = self.storage.get_async(&id).await else {
                 tracing::debug!(?id, "response for unknown transaction, ignoring...");
                 continue;
             };
@@ -133,6 +174,8 @@ pub struct Connection {
 
     request_delegate_handle: AbortHandle,
     response_delegate_handle: AbortHandle,
+
+    _guard: DropGuard,
 }
 
 // TODO: BufferedResponse that will only return the last (valid) response
@@ -157,15 +200,31 @@ impl Connection {
         let request_delegate_handle =
             tasks.spawn(ConnectionRequestDelegateTask { sink, rx }.run(cancel.clone()));
 
+        let guard_this = cancel.child_token();
+        // The GC should stop when the response delegate (the one observing the transactions) is
+        // stopped
+        let guard_gc = cancel.child_token();
+
         let response_delegate_handle = tasks.spawn(
             ConnectionResponseDelegateTask {
                 stream,
-                tx: Arc::clone(transactions.storage()),
+                storage: Arc::clone(transactions.storage()),
+                notify: Arc::clone(transactions.notify()),
+                parent: guard_this.clone(),
+                _guard: guard_gc.clone().drop_guard(),
             }
-            .run(cancel.clone()),
+            .run(cancel),
         );
 
-        let this = Self {
+        tasks.spawn(
+            ConnectionGarbageCollectorTask {
+                every: config.per_connection_transaction_garbage_collect_interval,
+                index: Arc::clone(transactions.storage()),
+            }
+            .run(guard_gc),
+        );
+
+        Self {
             config,
 
             tx,
@@ -175,17 +234,9 @@ impl Connection {
 
             request_delegate_handle: request_delegate_handle.abort_handle(),
             response_delegate_handle: response_delegate_handle.abort_handle(),
-        };
 
-        tasks.spawn(
-            ConnectionGarbageCollectorTask {
-                every: config.per_connection_transaction_garbage_collect_interval,
-                index: Arc::clone(this.transactions.storage()),
-            }
-            .run(cancel),
-        );
-
-        this
+            _guard: guard_this.drop_guard(),
+        }
     }
 
     /// Check if the connection is healthy

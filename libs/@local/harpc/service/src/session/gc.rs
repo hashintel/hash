@@ -10,6 +10,10 @@ pub(crate) trait Cancellable {
     fn is_cancelled(&self) -> bool;
 }
 
+/// Garbage Collector for stale connections
+///
+/// This isn't strictly required, as it should never happen, but in the case that there are
+/// connections that are not cleaned up properly, this will remove them.
 pub(crate) struct ConnectionGarbageCollectorTask<C> {
     pub(crate) every: Duration,
     pub(crate) index: Arc<HashIndex<RequestId, C>>,
@@ -48,7 +52,7 @@ where
 
             if removed > 0 {
                 // this should never really happen, but it's good to know if it does
-                tracing::info!(removed, "garbage collector removed stale transactions");
+                tracing::warn!(removed, "garbage collector removed stale transactions");
             }
         }
     }

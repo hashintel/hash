@@ -5,6 +5,7 @@ use harpc_wire_protocol::{
     response::Response,
 };
 use scc::{ebr::Guard, hash_index::Entry, HashIndex};
+use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 use crate::session::{
@@ -32,6 +33,8 @@ pub(crate) struct TransactionCollection {
 
     cancel: CancellationToken,
     storage: TransactionStorage,
+
+    notify: Arc<Notify>,
 }
 
 impl TransactionCollection {
@@ -44,11 +47,17 @@ impl TransactionCollection {
 
             cancel,
             storage,
+
+            notify: Arc::new(Notify::new()),
         }
     }
 
     pub(crate) const fn storage(&self) -> &TransactionStorage {
         &self.storage
+    }
+
+    pub(crate) const fn notify(&self) -> &Arc<Notify> {
+        &self.notify
     }
 
     pub(crate) async fn acquire(&self) -> (Arc<TransactionPermit>, tachyonix::Receiver<Response>) {
@@ -81,26 +90,12 @@ impl TransactionCollection {
 
         (permit, rx)
     }
-
-    pub(crate) fn cancel_all(&self) {
-        let guard = Guard::new();
-        for (_, state) in self.storage.iter(&guard) {
-            state.sender.close();
-            state.cancel.cancel();
-        }
-    }
 }
 
-impl Drop for TransactionCollection {
-    fn drop(&mut self) {
-        // Dropping the transaction collection indicates that the session is shutting down, this
-        // means no supervisor is there to send or recv data, so we can just go ahead and cancel any
-        // pending transactions.
-        // These should have been cancelled already implicitly, but just to be sure we do it again
-        // explicitely here, as to not leave any dangling tasks.
-        self.cancel_all();
-    }
-}
+// We cannot cancel all tasks when we drop the collection, as transactions might still be running,
+// this is in contrast to the server, where we can cancel all of them, as the drop is not initiated
+// by the user, but only happens if the connection itself is dropped and any remaining transactions
+// are not relevant anymore.
 
 pub(crate) struct TransactionPermit {
     id: RequestId,
@@ -108,6 +103,7 @@ pub(crate) struct TransactionPermit {
     storage: TransactionStorage,
 
     cancel: CancellationToken,
+    notify: Arc<Notify>,
 }
 
 impl TransactionPermit {
@@ -118,6 +114,7 @@ impl TransactionPermit {
             id,
             storage: Arc::clone(&collection.storage),
             cancel,
+            notify: Arc::clone(&collection.notify),
         })
     }
 }
@@ -137,9 +134,15 @@ impl Drop for TransactionPermit {
         let id = self.id;
 
         let storage = Arc::clone(&self.storage);
+        let notify = Arc::clone(&self.notify);
 
         tokio::spawn(async move {
-            storage.remove_async(&id).await;
+            let removed = storage.remove_async(&id).await;
+
+            if removed && storage.is_empty() {
+                // Notify the session that all transactions have been completed
+                notify.notify_one();
+            }
         });
     }
 }
