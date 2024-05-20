@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@rust/graph-test-data": "0.0.0-private",
-    "httpyac": "6.13.2",
+    "httpyac": "6.13.3",
     "quicktype": "^16.0.43",
     "tsx": "3.13.0",
     "typescript": "5.1.6"
