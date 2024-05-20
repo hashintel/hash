@@ -28,10 +28,11 @@ Using HASH, it's extremely easy to scrape the web for information you're looking
 To ensure your web scraping yields useful information, make sure you're outputting:
 
 - **Structured, typed data:** ensuring entities scraped conform to common schemas, known as "types", guarantees consistency and helps scrapers more completely capture all available information about an entity. This makes data more useful, and reliable.
-- **Validated, clean, labeled data:** using a real-world example, you want to ensure that "Celcius" and "Farenheit" values aren't confusingly mixed up when comparing "Temperature" data from across different websites. Many scraping tools fail to account for [data types](/glossary/data-types) in the same way HASH does, and this can lead to inaccurate, unreliable data. 
+- **Validated, clean, labeled data:** using a real-world example, you want to ensure that "Celcius" and "Farenheit" values aren't confusingly mixed up when comparing "Temperature" data from across different websites. Many scraping tools fail to account for [data types](/glossary/data-types) in the same way HASH does, and this can lead to inaccurate, unreliable data.
 - **Provenance data:** alongside the information you scrape, you want to know where it came from (tracking its source, and origins). You ideally also want the ability to inspect the original source (e.g. web page) as it existed at the specific point in time the information was scraped, to guarantee data was faithfully and accurately scraped in the first place.
 
 Where appropriate, also consider:
+
 - **Regularly scraping:** if information is sensitive, and changes over time, set up recurring scraping jobs to check for updates, and keep information in your datastore up-to-date.
 - **Cross-referencing:** some information can be gotten directly from its source, while other data may only be accessible through third-parties. Consider scraping data from multiple locations as a "check" on its accuracy.
 
