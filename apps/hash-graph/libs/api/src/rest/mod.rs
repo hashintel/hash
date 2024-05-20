@@ -24,12 +24,11 @@ use async_trait::async_trait;
 use authorization::AuthorizationApiPool;
 use axum::{
     extract::{FromRequestParts, Path},
-    http::{request::Parts, uri::PathAndQuery, HeaderValue, StatusCode},
+    http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
     Extension, Json, Router,
 };
-use base64::Engine;
 use error_stack::{Report, ResultExt};
 use graph::{
     ontology::{domain_validator::DomainValidator, Selector},
@@ -59,10 +58,9 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use hash_status::Status;
-use hyper::Uri;
 use include_dir::{include_dir, Dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::Serialize;
 use temporal_client::TemporalClient;
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
@@ -120,68 +118,6 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
 pub struct PermissionResponse {
     has_permission: bool,
 }
-
-#[derive(Debug)]
-pub struct Cursor<T>(pub T);
-
-impl<T: Serialize> Cursor<T> {
-    fn link_header(
-        &self,
-        relation: &'static str,
-        uri: Uri,
-        limit: usize,
-    ) -> Result<HeaderValue, Response> {
-        let mut uri_parts = uri.into_parts();
-        let json = serde_json::to_string(&self.0).map_err(report_to_response)?;
-        let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(json);
-        uri_parts.path_and_query = Some(
-            PathAndQuery::try_from(format!(
-                "{}?after={encoded}&limit={limit}",
-                uri_parts.path_and_query.expect("path is missing").path(),
-            ))
-            .map_err(report_to_response)?,
-        );
-        let uri = Uri::from_parts(uri_parts).map_err(report_to_response)?;
-        HeaderValue::from_str(&format!(r#"<{uri}>; rel="{relation}""#)).map_err(report_to_response)
-    }
-}
-
-impl<T> Serialize for Cursor<T>
-where
-    T: Serialize,
-{
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let json = serde_json::to_string(&self.0).map_err(serde::ser::Error::custom)?;
-        let base64_encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(json);
-        serializer.serialize_str(&base64_encoded)
-    }
-}
-
-impl<'de, T> Deserialize<'de> for Cursor<T>
-where
-    T: DeserializeOwned,
-{
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let json = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .decode(String::deserialize(deserializer)?)
-            .map_err(serde::de::Error::custom)?;
-        serde_json::from_slice(&json)
-            .map_err(serde::de::Error::custom)
-            .map(Self)
-    }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(
-    rename_all = "camelCase",
-    deny_unknown_fields,
-    bound(deserialize = "T: DeserializeOwned")
-)]
-struct Pagination<T> {
-    after: Option<Cursor<T>>,
-    limit: Option<usize>,
-}
-
 #[async_trait]
 pub trait RestApiStore: Store + TypeFetcher {
     async fn load_external_type(

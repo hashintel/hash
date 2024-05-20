@@ -114,6 +114,7 @@ where
         // TODO: Remove again when subgraph logic was revisited
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
+        let time_axis = temporal_axes.variable_time_axis();
 
         let (data, artifacts) = ReadPaginated::<PropertyTypeWithMetadata>::read_paginated_vec(
             self,
@@ -163,9 +164,21 @@ where
                     .unwrap_or(false)
                     .then_some(property_type)
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-        Ok((GetPropertyTypesResponse { property_types }, zookie))
+        Ok((
+            GetPropertyTypesResponse {
+                cursor: if params.limit.is_some() {
+                    property_types
+                        .last()
+                        .map(|property_type| property_type.vertex_id(time_axis))
+                } else {
+                    None
+                },
+                property_types,
+            },
+            zookie,
+        ))
     }
 
     /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`TraversalContext`]s.
@@ -507,7 +520,13 @@ where
         let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let (GetPropertyTypesResponse { property_types }, zookie) = self
+        let (
+            GetPropertyTypesResponse {
+                property_types,
+                cursor,
+            },
+            zookie,
+        ) = self
             .get_property_types_impl(
                 actor_id,
                 GetPropertyTypesParams {
@@ -568,7 +587,7 @@ where
             .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
             .await?;
 
-        Ok(GetPropertyTypeSubgraphResponse { subgraph })
+        Ok(GetPropertyTypeSubgraphResponse { subgraph, cursor })
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
