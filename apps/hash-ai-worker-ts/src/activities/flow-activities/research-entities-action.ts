@@ -331,59 +331,67 @@ export const researchEntitiesAction: FlowActionActivity<{
             } = status.contents[0]!;
 
             /**
-             * @todo: deduplicate the entity summaries from previously obtained
-             * entity summaries, and existing entities provided as input.
+             * @todo: deduplicate the entity summaries from existing entities provided as input.
              */
 
-            const { duplicates } = await deduplicateEntities({
-              entities: [
-                ...inferredFactsAboutEntities,
+            if (inferredFactsAboutEntities.length > 0) {
+              const { duplicates } = await deduplicateEntities({
+                entities: [
+                  ...inferredFactsAboutEntities,
+                  ...state.inferredFactsAboutEntities,
+                ],
+              });
+
+              const inferredFactsWithDeduplicatedEntities = inferredFacts.map(
+                (fact) => {
+                  const { subjectEntityLocalId, objectEntityLocalId } = fact;
+                  const subjectDuplicate = duplicates.find(
+                    ({ duplicateLocalIds }) =>
+                      duplicateLocalIds.includes(subjectEntityLocalId),
+                  );
+
+                  const objectDuplicate = objectEntityLocalId
+                    ? duplicates.find(({ duplicateLocalIds }) =>
+                        duplicateLocalIds.includes(objectEntityLocalId),
+                      )
+                    : undefined;
+
+                  return {
+                    ...fact,
+                    subjectEntityLocalId:
+                      subjectDuplicate?.canonicalLocalId ??
+                      fact.subjectEntityLocalId,
+                    objectEntityLocalId:
+                      objectDuplicate?.canonicalLocalId ?? objectEntityLocalId,
+                  };
+                },
+              );
+
+              state.inferredFacts.push(
+                ...inferredFactsWithDeduplicatedEntities,
+              );
+              state.inferredFactsAboutEntities = [
                 ...state.inferredFactsAboutEntities,
-              ],
-            });
+                ...inferredFactsAboutEntities,
+              ].filter(
+                ({ localId }) =>
+                  !duplicates.some(({ duplicateLocalIds }) =>
+                    duplicateLocalIds.includes(localId),
+                  ),
+              );
+              state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
 
-            const inferredFactsWithDeduplicatedEntities = inferredFacts.map(
-              (fact) => {
-                const { subjectEntityLocalId, objectEntityLocalId } = fact;
-                const subjectDuplicate = duplicates.find(
-                  ({ duplicateLocalIds }) =>
-                    duplicateLocalIds.includes(subjectEntityLocalId),
-                );
-
-                const objectDuplicate = objectEntityLocalId
-                  ? duplicates.find(({ duplicateLocalIds }) =>
-                      duplicateLocalIds.includes(objectEntityLocalId),
-                    )
-                  : undefined;
-
-                return {
-                  ...fact,
-                  subjectEntityLocalId:
-                    subjectDuplicate?.canonicalLocalId ??
-                    fact.subjectEntityLocalId,
-                  objectEntityLocalId:
-                    objectDuplicate?.canonicalLocalId ?? objectEntityLocalId,
-                };
-              },
-            );
-
-            state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
-            state.inferredFactsAboutEntities = [
-              ...state.inferredFactsAboutEntities,
-              ...inferredFactsAboutEntities,
-            ].filter(
-              ({ localId }) =>
-                !duplicates.some(({ duplicateLocalIds }) =>
-                  duplicateLocalIds.includes(localId),
-                ),
-            );
-            state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
+              return {
+                ...toolCall,
+                output: dedent(`
+                ${inferredFacts.length} facts were successfully inferred for the following entities: ${JSON.stringify(inferredFactsAboutEntities)}
+              `),
+              };
+            }
 
             return {
               ...toolCall,
-              output: dedent(`
-              ${inferredFacts.length} facts were successfully inferred for the following entities: ${JSON.stringify(inferredFactsAboutEntities)}
-            `),
+              output: "No facts were inferred about any relevant entities.",
             };
           } else if (toolCall.name === "proposeEntitiesFromFacts") {
             const { entityIds } =
