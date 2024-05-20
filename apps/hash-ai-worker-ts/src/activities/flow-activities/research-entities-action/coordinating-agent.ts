@@ -265,11 +265,11 @@ const createInitialPlan = async (params: {
   const llmResponse = await getLlmResponse(
     {
       systemPrompt,
-      tool_choice: "required",
       messages: [generateInitialUserMessage({ input })],
       model,
       tools,
       seed: 1,
+      toolChoice: "required",
     },
     {
       userAccountId: userAuthentication.actorId,
