@@ -93,7 +93,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@c2927f0c5b5adc6a76bc4a7847bc6e0503754bed # v2.33.22
+        uses: taiki-e/install-action@689459d9ffef015a7fbaef7f3b6b9f053f80a64d # v2.33.26
         with:
           tool: just@1.13.0,critcmp@0.1.8
 
@@ -172,7 +172,7 @@ jobs:
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
           echo '<details><summary><h2>${{ matrix.package }} – Units</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
-          turbo run analyze-benchmarks -- --output "/tmp/benches.md"
+          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
           cat "/tmp/benches.md" >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo '</details>' >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
 
@@ -183,15 +183,14 @@ jobs:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
           method: jwt
-          role: prod
+          role: dev
           secrets: |
-            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+            aws/creds/dev-deploy access_key | AWS_ACCESS_KEY_ID;
+            aws/creds/dev-deploy secret_key | AWS_SECRET_ACCESS_KEY;
+            aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
 
       - name: Upload benchmark results
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: turbo run upload-benchmarks
+        run: turbo run upload-benchmarks -- --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
 
       - name: Upload benchmark summary
         if: steps.benches.outputs.create-baseline == 'true'
@@ -242,7 +241,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@c2927f0c5b5adc6a76bc4a7847bc6e0503754bed # v2.33.22
+        uses: taiki-e/install-action@689459d9ffef015a7fbaef7f3b6b9f053f80a64d # v2.33.26
         with:
           tool: just@1.13.0,critcmp@0.1.8
 
@@ -344,7 +343,7 @@ jobs:
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
           echo '<details><summary><h2>${{ matrix.package }} – Integrations</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
-          turbo run analyze-benchmarks -- --output "/tmp/benches.md"
+          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
           cat "/tmp/benches.md" >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo '</details>' >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
 
@@ -355,15 +354,14 @@ jobs:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
           method: jwt
-          role: prod
+          role: dev
           secrets: |
-            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+            aws/creds/dev-deploy access_key | AWS_ACCESS_KEY_ID;
+            aws/creds/dev-deploy secret_key | AWS_SECRET_ACCESS_KEY;
+            aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
 
       - name: Upload benchmark results
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: turbo run upload-benchmarks
+        run: turbo run upload-benchmarks -- --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
 
       - name: Upload benchmark summary
         if: steps.benches.outputs.create-baseline == 'true'

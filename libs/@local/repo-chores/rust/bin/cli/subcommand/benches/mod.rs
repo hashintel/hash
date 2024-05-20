@@ -6,6 +6,7 @@ use std::{
 mod analyze;
 mod upload;
 use clap::Parser;
+use error_stack::ResultExt;
 
 fn target_directory() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -24,6 +25,18 @@ fn criterion_directory() -> PathBuf {
         .join("criterion")
         .canonicalize()
         .expect("Could not open directory")
+}
+
+fn current_commit() -> Result<String, Box<dyn Error + Send + Sync>> {
+    Ok(String::from_utf8(
+        std::process::Command::new("git")
+            .args(["rev-parse", "HEAD"])
+            .output()
+            .attach_printable("Could not get current commit hash")?
+            .stdout,
+    )?
+    .trim()
+    .to_owned())
 }
 
 #[derive(Debug, clap::Subcommand)]

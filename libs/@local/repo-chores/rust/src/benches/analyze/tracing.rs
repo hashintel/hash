@@ -4,7 +4,7 @@ use bytes::Bytes;
 use error_stack::{Context, Report};
 use inferno::flamegraph;
 
-use crate::benches::report::Measurement;
+use crate::benches::{generate_path, report::Measurement};
 #[derive(Debug)]
 pub struct FoldedStacks {
     data: Box<[u8]>,
@@ -33,7 +33,11 @@ impl FoldedStacks {
     ) -> Result<Option<Self>, Report<io::Error>> {
         let path = artifact_output
             .as_ref()
-            .join(&measurement.info.directory_name)
+            .join(generate_path(
+                &measurement.info.group_id,
+                measurement.info.function_id.as_deref(),
+                measurement.info.value_str.as_deref(),
+            ))
             .join("tracing.folded");
 
         if path.exists() {
