@@ -355,20 +355,24 @@ export type ProgressLogBase = {
 };
 
 export type QueriedWebLog = ProgressLogBase & {
+  explanation: string;
   query: string;
   type: "QueriedWeb";
 };
 
 export type CreatedPlanLog = ProgressLogBase & {
+  plan: string;
   type: "CreatedPlan";
 };
 
 export type VisitedWebPageLog = ProgressLogBase & {
+  explanation: string;
   webPage: Pick<WebPage, "url" | "title">;
   type: "VisitedWebPage";
 };
 
 export type ViewedFile = {
+  explanation: string;
   fileUrl: string;
   recordedAt: string;
   stepId: string;

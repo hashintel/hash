@@ -18,7 +18,7 @@ export const handleQueryPdfToolCall = async (params: {
   toolCall: ParsedLlmToolCall<"queryPdf">;
 }): Promise<CompletedToolCall<"queryPdf">> => {
   const { toolCall, state } = params;
-  const { description, fileUrl, exampleText } =
+  const { description, fileUrl, exampleText, explanation } =
     toolCall.input as ToolCallArguments["queryPdf"];
 
   /**
@@ -70,6 +70,7 @@ export const handleQueryPdfToolCall = async (params: {
       stepId: Context.current().info.activityId,
       type: "ViewedFile",
       fileUrl,
+      explanation,
     },
   ]);
 

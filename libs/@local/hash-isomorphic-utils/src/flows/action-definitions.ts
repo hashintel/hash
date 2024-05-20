@@ -380,6 +380,12 @@ const actionDefinitionsAsConst = {
         array: false,
         required: true,
       },
+      {
+        payloadKind: "Text",
+        name: "title",
+        array: false,
+        required: true,
+      },
     ],
   },
   answerQuestion: {

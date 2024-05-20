@@ -16,6 +16,7 @@ import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import {
   ActivityCancellationType,
+  ApplicationFailure,
   proxyActivities,
   workflowInfo,
 } from "@temporalio/workflow";
@@ -67,9 +68,9 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
       );
 
       if (!inputDefinition) {
-        throw new Error(
-          `Definition for inputName '${inputSource.inputName}' in step ${step.stepId} not found in action definition ${step.actionDefinitionId}`,
-        );
+        throw ApplicationFailure.create({
+          message: `Definition for inputName '${inputSource.inputName}' in step ${step.stepId} not found in action definition ${step.actionDefinitionId}`,
+        });
       }
 
       if (
@@ -161,7 +162,7 @@ export const runFlowWorkflow = async (
   try {
     validateFlowDefinition(flowDefinition);
   } catch (error) {
-    throw new Error((error as Error).message);
+    throw ApplicationFailure.create({ message: (error as Error).message });
   }
 
   const userHasPermissionActivity = proxyFlowActivity({
@@ -181,7 +182,7 @@ export const runFlowWorkflow = async (
 
   if (userHasPermissionToRunFlowInWeb.status !== "ok") {
     const errorMessage = `User does not have permission to run flow in web ${webId}, because they are missing permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(`,`)}`;
-    throw new Error(errorMessage);
+    throw ApplicationFailure.create({ message: errorMessage });
   }
 
   log(`Initializing ${flowDefinition.name} Flow`);
@@ -375,7 +376,7 @@ export const runFlowWorkflow = async (
   if (stepWithSatisfiedDependencies.length === 0) {
     const errorMessage =
       "No steps have satisfied dependencies when initializing the flow.";
-    throw new Error(errorMessage);
+    throw ApplicationFailure.create({ message: errorMessage });
   }
 
   // Recursively process steps which have satisfied dependencies
@@ -423,7 +424,7 @@ export const runFlowWorkflow = async (
   /** @todo this is not necessarily an error once there are branches */
   if (processedStepIds.length !== getAllStepsInFlow(flow).length) {
     const errorMessage = "Not all steps in the flows were processed.";
-    throw new Error(errorMessage);
+    throw ApplicationFailure.create({ message: errorMessage });
   }
 
   for (const outputDefinition of flowDefinition.outputs) {
@@ -439,7 +440,7 @@ export const runFlowWorkflow = async (
       }
 
       const errorMessage = `${errorPrefix}required step with id '${outputDefinition.stepId}' not found in outputs.`;
-      throw new Error(errorMessage);
+      throw ApplicationFailure.create({ message: errorMessage });
     }
 
     if (step.kind === "action") {
@@ -454,7 +455,7 @@ export const runFlowWorkflow = async (
 
         const errorMessage = `${errorPrefix}there is no output with name '${outputDefinition.stepOutputName}' in step ${step.stepId}`;
 
-        throw new Error(errorMessage);
+        throw ApplicationFailure.create({ message: errorMessage });
       }
 
       flow.outputs = [
@@ -469,7 +470,7 @@ export const runFlowWorkflow = async (
 
       if (!output) {
         const errorMessage = `${errorPrefix}no aggregate output found in step ${step.stepId}`;
-        throw new Error(errorMessage);
+        throw ApplicationFailure.create({ message: errorMessage });
       }
 
       flow.outputs = [

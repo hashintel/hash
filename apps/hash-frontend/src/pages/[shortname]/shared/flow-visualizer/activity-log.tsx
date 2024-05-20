@@ -6,11 +6,12 @@ import type {
   EntityMetadata,
   EntityRecordId,
 } from "@local/hash-subgraph";
-import { Box, Stack, TableCell } from "@mui/material";
+import { Box, Stack, TableCell, Tooltip } from "@mui/material";
 import { format } from "date-fns";
 import type { ReactElement } from "react";
 import { memo, useMemo, useState } from "react";
 
+import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../shared/ui/link";
 import type {
   CreateVirtualizedRowContentFn,
@@ -105,6 +106,16 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
   }
 };
 
+const ModelTooltip = ({ text }: { text: string }) => (
+  <Tooltip title={text}>
+    <Box sx={{ position: "absolute", top: "calc(50% - 6px)", right: 0 }}>
+      <CircleInfoIcon
+        sx={{ fontSize: 12, fill: ({ palette }) => palette.gray[40], ml: 1 }}
+      />
+    </Box>
+  </Tooltip>
+);
+
 const LogDetail = ({
   log,
 }: {
@@ -118,6 +129,7 @@ const LogDetail = ({
           <Link href={log.webPage.url} sx={{ textDecoration: "none" }}>
             {log.webPage.title}
           </Link>
+          <ModelTooltip text={log.explanation} />
         </>
       );
     }
@@ -128,6 +140,7 @@ const LogDetail = ({
           <Link href={log.fileUrl} sx={{ textDecoration: "none" }}>
             {log.fileUrl}
           </Link>
+          <ModelTooltip text={log.explanation} />
         </>
       );
     }
@@ -136,6 +149,7 @@ const LogDetail = ({
         <>
           {queriedWebPrefix}
           <strong>“{log.query}”</strong>
+          <ModelTooltip text={log.explanation} />
         </>
       );
     }
@@ -153,7 +167,12 @@ const LogDetail = ({
       );
     }
     case "CreatedPlan": {
-      return "Created research plan";
+      return (
+        <>
+          Created research plan
+          <ModelTooltip text={log.plan} />
+        </>
+      );
     }
     case "StateChange": {
       return log.message;
@@ -203,7 +222,9 @@ const TableRow = memo(
           <strong>{format(new Date(log.recordedAt), "h:mm:ss a")}</strong>
         </TableCell>
         <TableCell sx={{ ...defaultCellSx, fontSize: 13, lineHeight: 1.4 }}>
-          <LogDetail log={log} />
+          <Box sx={{ position: "relative", pr: 3 }}>
+            <LogDetail log={log} />
+          </Box>
         </TableCell>
       </>
     );
