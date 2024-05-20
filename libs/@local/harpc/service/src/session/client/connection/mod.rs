@@ -100,6 +100,9 @@ where
                 continue;
             };
 
+            // TODO: we need to send_timeout here, otherwise we *could* block the entire system and
+            // other tasks, in the event that we can't send the response to the transaction we
+            // cancel the sender.
             if let Err(error) = entry.sender.send(response).await {
                 tracing::debug!(
                     ?id,
@@ -113,15 +116,13 @@ where
     }
 }
 
-// TODO: we have no concept of when the connection is closed on call, we need to have something like
-// a `healthy` meter.
-
 pub(crate) struct ConnectionParts<'a> {
     pub(crate) config: SessionConfig,
     pub(crate) tasks: &'a TaskTracker,
     pub(crate) cancel: CancellationToken,
 }
 
+// TODO: shutdown if dropped (when 0 entries then we can just stop our tasks)
 pub struct Connection {
     config: SessionConfig,
 

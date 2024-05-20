@@ -2,16 +2,28 @@ use alloc::sync::Arc;
 use core::time::Duration;
 use std::io;
 
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 use error_stack::Report;
+use futures::{stream, StreamExt};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
-        body::RequestBody, flags::RequestFlags, frame::RequestFrame, header::RequestHeader, Request,
+        begin::RequestBegin,
+        body::RequestBody,
+        flags::{RequestFlag, RequestFlags},
+        frame::RequestFrame,
+        header::RequestHeader,
+        Request,
     },
     response::{
-        body::ResponseBody, flags::ResponseFlags, frame::ResponseFrame, header::ResponseHeader,
+        begin::ResponseBegin,
+        body::ResponseBody,
+        flags::{ResponseFlag, ResponseFlags},
+        frame::ResponseFrame,
+        header::ResponseHeader,
+        kind::ResponseKind,
         Response,
     },
     test_utils::mock_request_id,
@@ -19,8 +31,12 @@ use harpc_wire_protocol::{
 use tachyonix::RecvError;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
-use tokio_util::sync::{CancellationToken, PollSender};
+use tokio_util::{
+    sync::{CancellationToken, PollSender},
+    task::TaskTracker,
+};
 
+use super::{Connection, ConnectionParts};
 use crate::session::{
     client::{
         config::SessionConfig,
@@ -28,7 +44,8 @@ use crate::session::{
             collection::TransactionCollection, ConnectionRequestDelegateTask,
             ConnectionResponseDelegateTask,
         },
-        transaction::ClientTransactionPermit,
+        test::Descriptor,
+        transaction::{stream::StreamState, ClientTransactionPermit},
     },
     gc::ConnectionGarbageCollectorTask,
 };
@@ -456,29 +473,221 @@ async fn garbage_collect_cancel() {
         .expect("should not panic");
 }
 
+#[expect(clippy::type_complexity, reason = "setup code")]
+fn setup_connection(
+    config: SessionConfig,
+) -> (
+    Connection,
+    mpsc::Sender<Result<Response, Report<io::Error>>>,
+    mpsc::Receiver<Request>,
+    TaskTracker,
+) {
+    let (sink_tx, sink_rx) = mpsc::channel(8);
+    let (stream_tx, stream_rx) = mpsc::channel(8);
+
+    let tasks = TaskTracker::new();
+    let connection = Connection::spawn(
+        ConnectionParts {
+            config,
+            tasks: &tasks,
+            cancel: CancellationToken::new(),
+        },
+        PollSender::new(sink_tx),
+        ReceiverStream::new(stream_rx),
+    );
+
+    (connection, stream_tx, sink_rx, tasks)
+}
+
+struct EchoService;
+
+impl EchoService {
+    async fn serve(
+        &self,
+        mut rx: mpsc::Receiver<Request>,
+        tx: mpsc::Sender<Result<Response, Report<io::Error>>>,
+    ) {
+        while let Some(request) = rx.recv().await {
+            let body = match request.body {
+                RequestBody::Begin(RequestBegin {
+                    service,
+                    procedure,
+                    payload,
+                }) => {
+                    let mut bytes = BytesMut::new();
+
+                    bytes.put_u16(service.id.value());
+                    bytes.put_u8(service.version.major);
+                    bytes.put_u8(service.version.minor);
+
+                    bytes.put_u16(procedure.id.value());
+
+                    bytes.put(payload.into_bytes());
+
+                    ResponseBody::Begin(ResponseBegin {
+                        kind: ResponseKind::Ok,
+                        payload: Payload::new(bytes.freeze()),
+                    })
+                }
+                RequestBody::Frame(RequestFrame { payload }) => {
+                    ResponseBody::Frame(ResponseFrame { payload })
+                }
+            };
+
+            let mut flags = ResponseFlags::empty();
+            if request.header.flags.contains(RequestFlag::EndOfRequest) {
+                flags = flags.insert(ResponseFlag::EndOfResponse);
+            }
+
+            let response = Response {
+                header: ResponseHeader {
+                    protocol: Protocol {
+                        version: ProtocolVersion::V1,
+                    },
+                    request_id: request.header.request_id,
+                    flags,
+                },
+                body,
+            };
+
+            if tx.send(Ok(response)).await.is_err() {
+                tracing::error!("sender has shutdown");
+                break;
+            }
+        }
+    }
+}
+
 #[tokio::test]
-#[ignore]
-async fn call() {}
+async fn call() {
+    let (connection, stream_tx, sink_rx, _tasks) = setup_connection(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
+
+    tokio::spawn(EchoService.serve(sink_rx, stream_tx));
+
+    let descriptor = Descriptor::default();
+
+    let payload = [Bytes::from_static(b"hello"), Bytes::from_static(b"world")];
+
+    let mut stream = connection
+        .call(
+            descriptor.service,
+            descriptor.procedure,
+            stream::iter(payload.clone()),
+        )
+        .await
+        .expect("should not be closed");
+
+    let mut value = stream
+        .next()
+        .await
+        .expect("should have a value")
+        .expect("should not error");
+
+    let mut bytes = value.next().await.expect("should have a value");
+    assert_eq!(bytes.get_u16(), descriptor.service.id.value());
+    assert_eq!(bytes.get_u8(), descriptor.service.version.major);
+    assert_eq!(bytes.get_u8(), descriptor.service.version.minor);
+
+    assert_eq!(bytes.get_u16(), descriptor.procedure.id.value());
+
+    assert_eq!(bytes, payload[0]);
+
+    let bytes = value.next().await.expect("should have a value");
+    assert_eq!(bytes, payload[1]);
+
+    assert!(value.next().await.is_none());
+
+    assert_eq!(
+        value.state().map(StreamState::is_end_of_response),
+        Some(true)
+    );
+
+    assert!(stream.next().await.is_none());
+}
+
+#[tokio::test]
+async fn call_do_not_admit_if_partially_closed_read() {
+    let (connection, stream_tx, _sink_rx, _tasks) = setup_connection(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
+    drop(stream_tx);
+
+    tokio::task::yield_now().await;
+
+    let descriptor = Descriptor::default();
+    let _ = connection
+        .call(
+            descriptor.service,
+            descriptor.procedure,
+            stream::iter([Bytes::from_static(b"hello")]),
+        )
+        .await
+        .expect_err("should be closed");
+}
+
+#[tokio::test]
+async fn call_do_not_admit_if_partially_closed_write() {
+    // write is using a sink, so we first need to close it by pushing
+    let (connection, _stream_tx, sink_rx, _tasks) = setup_connection(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
+    drop(sink_rx);
+
+    tokio::task::yield_now().await;
+
+    let descriptor = Descriptor::default();
+    connection
+        .call(descriptor.service, descriptor.procedure, stream::empty())
+        .await
+        .expect("should be open");
+
+    tokio::task::yield_now().await;
+
+    // now we have sent a packet, so the connection should be registered as closed
+    let _ = connection
+        .call(descriptor.service, descriptor.procedure, stream::empty())
+        .await
+        .expect_err("should be closed");
+}
 
 #[tokio::test]
 #[ignore]
-async fn call_do_not_admit_if_partially_closed_read() {}
+async fn call_input_connection_closed() {
+    let (connection, stream_tx, sink_rx, _tasks) = setup_connection(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
 
-#[tokio::test]
-#[ignore]
-async fn call_do_not_admit_if_partially_closed_write() {}
+    // TODO: the connection never... terminates. That is a problem!
 
-#[tokio::test]
-#[ignore]
-async fn call_input_connection_closed() {}
+    tokio::spawn(EchoService.serve(sink_rx, stream_tx));
+
+    let descriptor = Descriptor::default();
+}
 
 #[tokio::test]
 #[ignore]
 async fn call_output_connection_closed() {}
 
 #[tokio::test]
-#[ignore]
-async fn call_unhealthy_connection() {}
+async fn call_unhealthy_connection() {
+    let (connection, stream_tx, _sink_rx, _tasks) = setup_connection(SessionConfig {
+        no_delay: true,
+        ..SessionConfig::default()
+    });
+
+    assert!(connection.is_healthy());
+
+    drop(stream_tx);
+    tokio::task::yield_now().await;
+
+    assert!(!connection.is_healthy());
+}
 
 #[tokio::test]
 #[ignore]

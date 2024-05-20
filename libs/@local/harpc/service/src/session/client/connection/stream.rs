@@ -8,6 +8,7 @@ use tokio::sync::mpsc;
 
 use crate::session::client::{ErrorStream, ValueStream};
 
+#[derive(Debug)]
 pub struct ResponseStream {
     inner: mpsc::Receiver<Result<ValueStream, ErrorStream>>,
 

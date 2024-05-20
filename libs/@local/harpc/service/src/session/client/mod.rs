@@ -1,5 +1,7 @@
 mod config;
 mod connection;
+#[cfg(test)]
+mod test;
 mod transaction;
 
 use error_stack::{Result, ResultExt};

@@ -4,14 +4,13 @@ use std::assert_matches::assert_matches;
 
 use bytes::{Bytes, BytesMut};
 use futures::StreamExt;
-use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
         begin::RequestBegin, body::RequestBody, flags::RequestFlag, frame::RequestFrame,
-        id::RequestId, procedure::ProcedureDescriptor, service::ServiceDescriptor, Request,
+        id::RequestId, Request,
     },
     response::{
         begin::ResponseBegin,
@@ -31,7 +30,7 @@ use tokio_util::sync::CancellationToken;
 use super::{
     ClientTransactionPermit, ErrorStream, TransactionReceiveTask, TransactionSendTask, ValueStream,
 };
-use crate::session::client::{config::SessionConfig, transaction::StreamState};
+use crate::session::client::{config::SessionConfig, test::Descriptor, transaction::StreamState};
 
 struct StaticTransactionPermit {
     id: RequestId,
@@ -156,6 +155,42 @@ async fn receive_single_response_ok() {
             .as_ref(),
         b"hello world"
     );
+
+    assert!(stream.next().await.is_none());
+
+    // after that we should've terminated and we should be endOfResponse
+    assert_eq!(
+        stream.state().map(StreamState::is_end_of_response),
+        Some(true)
+    );
+
+    // after that the stream should have terminated
+    assert!(rx.recv().await.is_none());
+
+    tokio::time::timeout(Duration::from_secs(1), handle)
+        .await
+        .expect("should finish within timeout")
+        .expect("should not panic");
+}
+
+#[tokio::test]
+async fn receive_empty_skipped() {
+    let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
+
+    let response = make_response_begin(ResponseFlag::EndOfResponse, ResponseKind::Ok, &[] as &[_]);
+
+    tx.send(response).await.expect("able to send response");
+
+    // we should get a single value stream, and after that the stream should have terminated,
+    // because of the end of response
+    let mut stream = rx
+        .recv()
+        .await
+        .expect("able to receive stream")
+        .expect("should be ok stream");
+
+    // checking now (where it isn't closed yet), incomplete should be inconclusive
+    assert!(stream.state().is_none());
 
     assert!(stream.next().await.is_none());
 
@@ -685,26 +720,6 @@ async fn receive_cancel() {
         .expect("should not panic");
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct Descriptor {
-    service: ServiceDescriptor,
-    procedure: ProcedureDescriptor,
-}
-
-impl Default for Descriptor {
-    fn default() -> Self {
-        Self {
-            service: ServiceDescriptor {
-                id: ServiceId::new(0x00),
-                version: Version { major: 1, minor: 1 },
-            },
-            procedure: ProcedureDescriptor {
-                id: ProcedureId::new(0x00),
-            },
-        }
-    }
-}
-
 fn setup_send_mapped<T>(
     config: SessionConfig,
     descriptor: Descriptor,
@@ -754,6 +769,7 @@ fn setup_send(
 
 #[tokio::test]
 async fn send_drop_sender() {
+    // what happens if we just send... nothing
     let descriptor = Descriptor::default();
     let (tx, mut rx, handle) = setup_send(SessionConfig::default(), descriptor);
 

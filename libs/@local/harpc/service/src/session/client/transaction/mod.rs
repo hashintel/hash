@@ -152,7 +152,11 @@ where
                     state.stream.set_end_of_response();
                 }
 
-                if state.tx.send(bytes).await.is_err() {
+                if bytes.is_empty() {
+                    // don't do anything if the byte stream is empty
+                    // (we could also add this to the other branch), but that one has side effects,
+                    // so this makes it clearer as to what's happening
+                } else if state.tx.send(bytes).await.is_err() {
                     // don't need to notify the consumer of this, as the consumer was the one that
                     // initiated it.
                     tracing::warn!("response byte stream has been prematurely dropped");
@@ -222,7 +226,6 @@ where
 
             let Some(bytes) = bytes else {
                 // Stream has finished, flush the buffer
-
                 if let Err(error) = writer.flush().await {
                     tracing::error!(?error, "connection has been prematurely closed");
                 }
