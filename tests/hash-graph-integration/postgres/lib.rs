@@ -13,6 +13,7 @@ mod data_type;
 mod drafts;
 mod entity;
 mod entity_type;
+mod interconnected_graph;
 mod links;
 mod multi_type;
 mod partial_updates;
