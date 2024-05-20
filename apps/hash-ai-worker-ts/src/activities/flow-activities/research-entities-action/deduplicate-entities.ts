@@ -11,7 +11,7 @@ import type {
 } from "../../shared/get-llm-response/types";
 import { graphApiClient } from "../../shared/graph-api-client";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
-import type { EntitySummary } from "./deduplication-agent/test-data";
+import type { EntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
 
 /**
  * @todo
@@ -52,8 +52,10 @@ const toolName = "reportDuplicates";
 
 const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
   name: toolName,
-  description:
-    "Provide a list of duplicate entities and their canonical entity to merge them with",
+  description: dedent(`
+    Provide a list of duplicate entities and their canonical entity to merge them with
+    If there are no duplicates, return an empty list for the 'duplicates' property.
+  `),
   inputSchema: {
     type: "object",
     properties: {
@@ -83,7 +85,7 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
   },
 };
 
-const defaultModel: LlmParams["model"] = "claude-3-sonnet-20240229";
+const defaultModel: LlmParams["model"] = "claude-3-opus-20240229";
 
 export const deduplicateEntities = async (params: {
   entities: EntitySummary[];
@@ -102,6 +104,7 @@ export const deduplicateEntities = async (params: {
     {
       systemPrompt: deduplicationAgentSystemPrompt,
       tools: [deduplicationAgentTool],
+      toolChoice: toolName,
       messages: [
         {
           role: "user",

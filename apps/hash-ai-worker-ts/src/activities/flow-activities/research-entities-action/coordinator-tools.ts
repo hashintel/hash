@@ -171,6 +171,8 @@ export const generateToolCalls = (params: {
           description: dedent(`
             An array of entity IDs of the proposed entities to submit.
             Each entity must have been proposed by a prior "proposeEntitiesFromFacts" tool call.
+            You must have made an effort to find all the facts required to infer as many properties and outgoing links
+              for each entity as possible.
           `),
         },
       },
