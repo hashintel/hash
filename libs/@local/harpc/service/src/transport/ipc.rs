@@ -8,7 +8,7 @@ use super::{error::TransportError, task::Command};
 const IPC_BUFFER_SIZE: usize = 16;
 
 #[derive(Debug, Clone)]
-pub(crate) struct TransportLayerIpc {
+pub struct TransportLayerIpc {
     tx: mpsc::Sender<Command>,
 }
 
@@ -56,7 +56,14 @@ impl TransportLayerIpc {
             .change_context(TransportError)
     }
 
-    pub(super) async fn external_addresses(&self) -> Result<Vec<Multiaddr>, TransportError> {
+    /// Return the currently listening addresses.
+    ///
+    /// This returns the addresses that the transport layer is currently listening on.
+    ///
+    /// # Errors
+    ///
+    /// If the transport layer has been shut down, this will return an error.
+    pub async fn external_addresses(&self) -> Result<Vec<Multiaddr>, TransportError> {
         let (tx, rx) = oneshot::channel();
 
         self.tx

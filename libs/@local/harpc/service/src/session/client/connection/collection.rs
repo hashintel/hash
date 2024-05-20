@@ -5,7 +5,6 @@ use harpc_wire_protocol::{
     response::Response,
 };
 use scc::{hash_index::Entry, HashIndex};
-use tachyonix::SendTimeoutError;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 

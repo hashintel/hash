@@ -32,10 +32,11 @@ tachyonix = "0.3.0"
 thiserror = "1.0.59"
 tokio = { workspace = true, features = ["io-util", "macros"] }
 tokio-stream = { version = "0.1.15", features = ["time"] }
-tokio-util = { workspace = true, features = ["codec", "compat", "rt"] }
+tokio-util = { workspace = true, features = ["codec", "compat", "rt", "tracing"] }
 tracing.workspace = true
 
 [dev-dependencies]
 harpc-types.workspace = true
 harpc-wire-protocol = { workspace = true, features = ["test-utils"] }
 test-log = { version = "0.2.16", features = ["trace"] }
+tokio = { workspace = true, features = ["rt-multi-thread"] }

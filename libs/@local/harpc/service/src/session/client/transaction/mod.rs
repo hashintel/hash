@@ -175,6 +175,8 @@ where
                 break;
             }
         }
+
+        tracing::trace!("transaction receive task shutting down");
     }
 }
 
@@ -239,6 +241,8 @@ where
                 break;
             }
         }
+
+        tracing::trace!("transaction send task shutting down");
     }
 }
 

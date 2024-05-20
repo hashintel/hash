@@ -5406,6 +5406,7 @@ dependencies = [
  "pin-project-lite",
  "slab",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

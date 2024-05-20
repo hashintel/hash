@@ -30,7 +30,10 @@ use tokio_util::sync::CancellationToken;
 use super::{
     ClientTransactionPermit, ErrorStream, TransactionReceiveTask, TransactionSendTask, ValueStream,
 };
-use crate::session::client::{config::SessionConfig, test::Descriptor, transaction::StreamState};
+use crate::session::{
+    client::{config::SessionConfig, transaction::StreamState},
+    test::Descriptor,
+};
 
 struct StaticTransactionPermit {
     id: RequestId,

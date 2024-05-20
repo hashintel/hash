@@ -48,11 +48,11 @@ use crate::{
                 collection::TransactionCollection, ConnectionRequestDelegateTask,
                 ConnectionResponseDelegateTask,
             },
-            test::Descriptor,
             transaction::{stream::StreamState, ClientTransactionPermit},
             ValueStream,
         },
         gc::ConnectionGarbageCollectorTask,
+        test::Descriptor,
     },
 };
 

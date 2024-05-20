@@ -19,14 +19,13 @@ use tokio_util::{
     codec::Framed, compat::FuturesAsyncReadCompatExt, sync::CancellationToken, task::TaskTracker,
 };
 
-pub use self::config::TransportConfig;
 use self::{
     client::ClientCodec,
     connection::{IncomingConnections, OutgoingConnection},
     error::{OpenStreamError, TransportError},
-    ipc::TransportLayerIpc,
     task::Task,
 };
+pub use self::{config::TransportConfig, ipc::TransportLayerIpc};
 
 const PROTOCOL_NAME: StreamProtocol = StreamProtocol::new("/harpc/1.0.0");
 
@@ -98,6 +97,11 @@ impl TransportLayer {
     #[must_use]
     pub const fn tasks(&self) -> &TaskTracker {
         &self.tasks
+    }
+
+    #[must_use]
+    pub const fn ipc(&self) -> &TransportLayerIpc {
+        &self.ipc
     }
 
     #[must_use]

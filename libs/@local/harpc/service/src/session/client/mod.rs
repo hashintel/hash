@@ -1,17 +1,16 @@
 mod config;
 mod connection;
-#[cfg(test)]
-mod test;
 mod transaction;
 
 use error_stack::{Result, ResultExt};
 use libp2p::Multiaddr;
 use tokio_util::sync::CancellationToken;
 
-pub use self::transaction::stream::{ErrorStream, ValueStream};
-use self::{
+use self::connection::ConnectionParts;
+pub use self::{
     config::SessionConfig,
-    connection::{Connection, ConnectionParts},
+    connection::Connection,
+    transaction::stream::{ErrorStream, ValueStream},
 };
 use super::error::SessionError;
 use crate::transport::{connection::OutgoingConnection, TransportLayer};
@@ -33,6 +32,11 @@ impl SessionLayer {
             cancel: transport.cancellation_token(),
             transport,
         }
+    }
+
+    #[must_use]
+    pub const fn transport(&self) -> &TransportLayer {
+        &self.transport
     }
 
     /// Dial a peer.

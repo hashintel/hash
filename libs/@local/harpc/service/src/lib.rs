@@ -6,7 +6,7 @@
     lint_reasons,
     stmt_expr_attributes
 )]
-#![cfg_attr(test, feature(assert_matches, async_fn_track_caller))]
+#![cfg_attr(test, feature(assert_matches, async_fn_track_caller, iter_repeat_n))]
 
 extern crate alloc;
 

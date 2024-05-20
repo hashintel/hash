@@ -122,6 +122,11 @@ where
         self.events.subscribe()
     }
 
+    #[must_use]
+    pub const fn transport(&self) -> &TransportLayer {
+        &self.transport
+    }
+
     /// Listen for incoming connections on the given address.
     ///
     /// # Errors

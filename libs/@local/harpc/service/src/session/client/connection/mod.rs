@@ -52,6 +52,11 @@ where
         let sink = self.sink;
         pin!(sink);
 
+        // on TCP: if we send too much data too fast, the sink get's "stuck", meaning it makes
+        // seamingly no progress anymore and will block indefinitely.
+        // This is quite flaky and I am unsure where the bug lies.
+        // This could be a problem with libp2p.
+        // TODO: this seems to be a race-condition in yamux::on_read.
         let forward = ReceiverStream::new(self.rx).map(Ok).forward(sink).fuse();
 
         select! {
@@ -196,6 +201,8 @@ where
 
             Self::route(self.config, &self.storage, response).await;
         }
+
+        tracing::debug!("response delegate task has been shut down");
     }
 }
 
@@ -289,6 +296,12 @@ impl Connection {
         !self.request_delegate_handle.is_finished() && !self.response_delegate_handle.is_finished()
     }
 
+    /// Call a service procedure
+    ///
+    /// # Errors
+    ///
+    /// This will return an error if the connection is unhealthy, meaning that the underlying
+    /// connection is currently in its process of being closed.
     pub async fn call(
         &self,
         service: ServiceDescriptor,

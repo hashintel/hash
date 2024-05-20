@@ -13,7 +13,8 @@ use libp2p::{
     metrics::{self, Metrics, Recorder},
     noise, ping,
     swarm::{dial_opts::DialOpts, ConnectionId, DialError, SwarmEvent},
-    yamux, Multiaddr, PeerId, SwarmBuilder,
+    yamux::{self, WindowUpdateMode},
+    Multiaddr, PeerId, SwarmBuilder,
 };
 use libp2p_stream as stream;
 use stream::Control;
@@ -80,7 +81,8 @@ impl Task {
             .with_tokio()
             .with_other_transport(|keypair| {
                 let noise = noise::Config::new(keypair)?;
-                let yamux = yamux::Config::default();
+                let mut yamux = yamux::Config::default();
+                yamux.set_window_update_mode(WindowUpdateMode::on_receive());
 
                 let transport = transport
                     .upgrade(upgrade::Version::V1Lazy)
@@ -271,7 +273,13 @@ impl Task {
         loop {
             select! {
                 Some(command) = self.rx.recv() => self.handle_command(command),
-                Some(event) = self.swarm.next() => self.handle_event(event),
+                event = self.swarm.next() => {
+                    if let Some(event) = event {
+                        self.handle_event(event);
+                    } else {
+                        tracing::warn!("received None from swarm.next()");
+                    }
+                },
                 () = cancel.cancelled() => break,
             }
         }
