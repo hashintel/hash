@@ -242,6 +242,7 @@ const getAnthropicResponse = async <ToolName extends string>(
     systemPrompt,
     previousInvalidResponses,
     retryContext,
+    toolChoice,
     ...remainingParams
   } = params;
 
@@ -270,6 +271,11 @@ const getAnthropicResponse = async <ToolName extends string>(
       messages: anthropicMessages,
       max_tokens: maxTokens,
       tools: anthropicTools,
+      tool_choice: toolChoice
+        ? toolChoice === "required"
+          ? { type: "any" }
+          : { type: "tool", name: toolChoice }
+        : undefined,
     });
 
     logger.debug(`Anthropic API response: ${stringify(anthropicResponse)}`);
@@ -468,6 +474,7 @@ const getOpenAiResponse = async <ToolName extends string>(
     systemPrompt,
     previousInvalidResponses,
     retryContext,
+    toolChoice,
     ...remainingParams
   } = params;
 
@@ -498,6 +505,11 @@ const getOpenAiResponse = async <ToolName extends string>(
      */
     logprobs:
       remainingParams.logprobs ?? process.env.NODE_ENV === "development",
+    tool_choice: toolChoice
+      ? toolChoice === "required"
+        ? "required"
+        : { type: "function", function: { name: toolChoice } }
+      : undefined,
   };
 
   /**

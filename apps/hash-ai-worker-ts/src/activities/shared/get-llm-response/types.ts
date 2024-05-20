@@ -26,6 +26,7 @@ export type CommonLlmParams<ToolName extends string = string> = {
   tools?: LlmToolDefinition<ToolName>[];
   systemPrompt?: string;
   messages: LlmMessage[];
+  toolChoice?: ToolName | "required";
   retryContext?: {
     retryCount: number;
     previousSuccessfulToolCalls: ParsedLlmToolCall<ToolName>[];
@@ -42,7 +43,7 @@ export type AnthropicLlmParams<ToolName extends string = string> =
     })[];
   } & Omit<
       AnthropicMessagesCreateParams,
-      "tools" | "max_tokens" | "system" | "messages"
+      "tools" | "max_tokens" | "system" | "messages" | "tool_choice"
     >;
 
 export type OpenAiLlmParams<ToolName extends string = string> =
@@ -52,7 +53,10 @@ export type OpenAiLlmParams<ToolName extends string = string> =
     previousInvalidResponses?: (OpenAiChatCompletion & {
       requestTime: number;
     })[];
-  } & Omit<OpenAiChatCompletionCreateParams, "tools" | "messages">;
+  } & Omit<
+      OpenAiChatCompletionCreateParams,
+      "tools" | "messages" | "tool_choice"
+    >;
 
 export type LlmParams<ToolName extends string = string> =
   | AnthropicLlmParams<ToolName>
