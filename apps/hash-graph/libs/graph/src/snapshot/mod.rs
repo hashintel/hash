@@ -106,11 +106,11 @@ pub enum SnapshotEntry {
     Account(Account),
     AccountGroup(AccountGroup),
     Web(Web),
-    DataType(DataTypeSnapshotRecord),
+    DataType(Box<DataTypeSnapshotRecord>),
     DataTypeEmbedding(DataTypeEmbeddingRecord),
-    PropertyType(PropertyTypeSnapshotRecord),
+    PropertyType(Box<PropertyTypeSnapshotRecord>),
     PropertyTypeEmbedding(PropertyTypeEmbeddingRecord),
-    EntityType(EntityTypeSnapshotRecord),
+    EntityType(Box<EntityTypeSnapshotRecord>),
     EntityTypeEmbedding(EntityTypeEmbeddingRecord),
     Entity(Box<EntitySnapshotRecord>),
     EntityEmbedding(EntityEmbeddingRecord),
@@ -534,72 +534,73 @@ where
         let snapshot_record_tx = snapshot_record_tx
             .sink_map_err(|error| Report::new(error).change_context(SnapshotDumpError::Write));
 
-        let ((), results) = TokioScope::scope_and_block(|scope| {
-            scope.spawn(snapshot_record_rx.map(Ok).forward(
-                sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)),
-            ));
+        let ((), results) =
+            TokioScope::scope_and_block(|scope| {
+                scope.spawn(snapshot_record_rx.map(Ok).forward(
+                    sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)),
+                ));
 
-            scope.spawn(
-                stream::once(ready(Ok(SnapshotEntry::Snapshot(SnapshotMetadata {
-                    block_protocol_module_versions: BlockProtocolModuleVersions {
-                        graph: semver::Version::new(0, 3, 0),
-                    },
-                    custom: CustomGlobalMetadata,
-                }))))
-                .forward(snapshot_record_tx.clone()),
-            );
-
-            scope.spawn(
-                self.read_webs(authorization_api)
-                    .try_flatten_stream()
-                    .map_ok(SnapshotEntry::Web)
+                scope.spawn(
+                    stream::once(ready(Ok(SnapshotEntry::Snapshot(SnapshotMetadata {
+                        block_protocol_module_versions: BlockProtocolModuleVersions {
+                            graph: semver::Version::new(0, 3, 0),
+                        },
+                        custom: CustomGlobalMetadata,
+                    }))))
                     .forward(snapshot_record_tx.clone()),
-            );
+                );
 
-            scope.spawn(
-                self.read_accounts()
-                    .try_flatten_stream()
-                    .map_ok(SnapshotEntry::Account)
-                    .forward(snapshot_record_tx.clone()),
-            );
+                scope.spawn(
+                    self.read_webs(authorization_api)
+                        .try_flatten_stream()
+                        .map_ok(SnapshotEntry::Web)
+                        .forward(snapshot_record_tx.clone()),
+                );
 
-            scope.spawn(
-                self.read_account_groups(authorization_api)
-                    .try_flatten_stream()
-                    .map_ok(SnapshotEntry::AccountGroup)
-                    .forward(snapshot_record_tx.clone()),
-            );
+                scope.spawn(
+                    self.read_accounts()
+                        .try_flatten_stream()
+                        .map_ok(SnapshotEntry::Account)
+                        .forward(snapshot_record_tx.clone()),
+                );
 
-            scope.spawn(
-                self.create_dump_stream::<DataTypeWithMetadata>()
-                    .try_flatten_stream()
-                    .and_then(move |record| async move {
-                        Ok(SnapshotEntry::DataType(DataTypeSnapshotRecord {
-                            schema: record.schema,
-                            relations: authorization_api
-                                .read_relations::<(DataTypeId, DataTypeRelationAndSubject)>(
-                                    RelationshipFilter::from_resource(DataTypeId::from_url(
-                                        &VersionedUrl::from(record.metadata.record_id.clone()),
-                                    )),
-                                    Consistency::FullyConsistent,
-                                )
-                                .await
-                                .change_context(SnapshotDumpError::Query)?
-                                .map_ok(|(_, relation)| relation)
-                                .try_collect()
-                                .await
-                                .change_context(SnapshotDumpError::Query)?,
-                            metadata: record.metadata,
-                        }))
-                    })
-                    .forward(snapshot_record_tx.clone()),
-            );
+                scope.spawn(
+                    self.read_account_groups(authorization_api)
+                        .try_flatten_stream()
+                        .map_ok(SnapshotEntry::AccountGroup)
+                        .forward(snapshot_record_tx.clone()),
+                );
 
-            scope.spawn(
-                self.create_dump_stream::<PropertyTypeWithMetadata>()
-                    .try_flatten_stream()
-                    .and_then(move |record| async move {
-                        Ok(SnapshotEntry::PropertyType(PropertyTypeSnapshotRecord {
+                scope.spawn(
+                    self.create_dump_stream::<DataTypeWithMetadata>()
+                        .try_flatten_stream()
+                        .and_then(move |record| async move {
+                            Ok(SnapshotEntry::DataType(Box::new(DataTypeSnapshotRecord {
+                                schema: record.schema,
+                                relations: authorization_api
+                                    .read_relations::<(DataTypeId, DataTypeRelationAndSubject)>(
+                                        RelationshipFilter::from_resource(DataTypeId::from_url(
+                                            &VersionedUrl::from(record.metadata.record_id.clone()),
+                                        )),
+                                        Consistency::FullyConsistent,
+                                    )
+                                    .await
+                                    .change_context(SnapshotDumpError::Query)?
+                                    .map_ok(|(_, relation)| relation)
+                                    .try_collect()
+                                    .await
+                                    .change_context(SnapshotDumpError::Query)?,
+                                metadata: record.metadata,
+                            })))
+                        })
+                        .forward(snapshot_record_tx.clone()),
+                );
+
+                scope.spawn(
+                    self.create_dump_stream::<PropertyTypeWithMetadata>()
+                        .try_flatten_stream()
+                        .and_then(move |record| async move {
+                            Ok(SnapshotEntry::PropertyType(Box::new(PropertyTypeSnapshotRecord {
                             schema: record.schema,
                             relations: authorization_api
                                 .read_relations::<(PropertyTypeId, PropertyTypeRelationAndSubject)>(
@@ -615,16 +616,16 @@ where
                                 .await
                                 .change_context(SnapshotDumpError::Query)?,
                             metadata: record.metadata,
-                        }))
-                    })
-                    .forward(snapshot_record_tx.clone()),
-            );
+                        })))
+                        })
+                        .forward(snapshot_record_tx.clone()),
+                );
 
-            scope.spawn(
-                self.create_dump_stream::<EntityTypeWithMetadata>()
-                    .try_flatten_stream()
-                    .and_then(move |record| async move {
-                        Ok(SnapshotEntry::EntityType(EntityTypeSnapshotRecord {
+                scope.spawn(
+                    self.create_dump_stream::<EntityTypeWithMetadata>()
+                        .try_flatten_stream()
+                        .and_then(move |record| async move {
+                            Ok(SnapshotEntry::EntityType(Box::new(EntityTypeSnapshotRecord {
                             schema: record.schema,
                             relations: authorization_api
                                 .read_relations::<(EntityTypeId, EntityTypeRelationAndSubject)>(
@@ -640,67 +641,67 @@ where
                                 .await
                                 .change_context(SnapshotDumpError::Query)?,
                             metadata: record.metadata,
-                        }))
-                    })
-                    .forward(snapshot_record_tx.clone()),
-            );
-
-            scope.spawn(
-                self.create_dump_stream::<Entity>()
-                    .try_flatten_stream()
-                    .and_then(move |entity| async move {
-                        Ok(SnapshotEntry::Entity(Box::new(EntitySnapshotRecord {
-                            properties: entity.properties,
-                            link_data: entity.link_data,
-                            metadata: entity.metadata,
                         })))
-                    })
-                    .forward(snapshot_record_tx.clone()),
-            );
-
-            scope.spawn(
-                self.create_data_type_embedding_stream()
-                    .try_flatten_stream()
-                    .forward(snapshot_record_tx.clone()),
-            );
-
-            scope.spawn(
-                self.create_property_type_embedding_stream()
-                    .try_flatten_stream()
-                    .forward(snapshot_record_tx.clone()),
-            );
-
-            scope.spawn(
-                self.create_entity_type_embedding_stream()
-                    .try_flatten_stream()
-                    .forward(snapshot_record_tx.clone()),
-            );
-
-            scope.spawn(
-                self.create_entity_embedding_stream()
-                    .try_flatten_stream()
-                    .forward(snapshot_record_tx.clone()),
-            );
-
-            scope.spawn(
-                authorization_api
-                    .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
-                        RelationshipFilter::from_resource(ResourceFilter::from_kind(
-                            EntityNamespace::Entity,
-                        )),
-                        Consistency::FullyConsistent,
-                    )
-                    .try_flatten_stream()
-                    .map(|result| result.change_context(SnapshotDumpError::Query))
-                    .map_ok(|(id, relation)| {
-                        SnapshotEntry::Relation(AuthorizationRelation::Entity {
-                            object: id,
-                            relationship: relation,
                         })
-                    })
-                    .forward(snapshot_record_tx),
-            );
-        });
+                        .forward(snapshot_record_tx.clone()),
+                );
+
+                scope.spawn(
+                    self.create_dump_stream::<Entity>()
+                        .try_flatten_stream()
+                        .and_then(move |entity| async move {
+                            Ok(SnapshotEntry::Entity(Box::new(EntitySnapshotRecord {
+                                properties: entity.properties,
+                                link_data: entity.link_data,
+                                metadata: entity.metadata,
+                            })))
+                        })
+                        .forward(snapshot_record_tx.clone()),
+                );
+
+                scope.spawn(
+                    self.create_data_type_embedding_stream()
+                        .try_flatten_stream()
+                        .forward(snapshot_record_tx.clone()),
+                );
+
+                scope.spawn(
+                    self.create_property_type_embedding_stream()
+                        .try_flatten_stream()
+                        .forward(snapshot_record_tx.clone()),
+                );
+
+                scope.spawn(
+                    self.create_entity_type_embedding_stream()
+                        .try_flatten_stream()
+                        .forward(snapshot_record_tx.clone()),
+                );
+
+                scope.spawn(
+                    self.create_entity_embedding_stream()
+                        .try_flatten_stream()
+                        .forward(snapshot_record_tx.clone()),
+                );
+
+                scope.spawn(
+                    authorization_api
+                        .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
+                            RelationshipFilter::from_resource(ResourceFilter::from_kind(
+                                EntityNamespace::Entity,
+                            )),
+                            Consistency::FullyConsistent,
+                        )
+                        .try_flatten_stream()
+                        .map(|result| result.change_context(SnapshotDumpError::Query))
+                        .map_ok(|(id, relation)| {
+                            SnapshotEntry::Relation(AuthorizationRelation::Entity {
+                                object: id,
+                                relationship: relation,
+                            })
+                        })
+                        .forward(snapshot_record_tx),
+                );
+            });
 
         for result in results {
             result.change_context(SnapshotDumpError::Read)??;

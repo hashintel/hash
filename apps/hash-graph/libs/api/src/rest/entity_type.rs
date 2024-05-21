@@ -550,7 +550,7 @@ enum LoadExternalEntityTypeRequest {
             default,
             skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
         )]
-        provenance: ProvidedOntologyEditionProvenance,
+        provenance: Box<ProvidedOntologyEditionProvenance>,
     },
 }
 
@@ -673,7 +673,7 @@ where
                             },
                             relationships,
                             conflict_behavior: ConflictBehavior::Fail,
-                            provenance,
+                            provenance: *provenance,
                         },
                     )
                     .await

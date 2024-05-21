@@ -7,7 +7,10 @@ use bytes::BytesMut;
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 
-use crate::account::{EditionArchivedById, EditionCreatedById};
+use crate::{
+    account::{EditionArchivedById, EditionCreatedById},
+    knowledge::entity::{ActorType, OriginProvenance, SourceProvenance},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -20,9 +23,14 @@ pub struct OntologyProvenance {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvidedOntologyEditionProvenance {
-    /// This field is only used to generate a TS type.
-    #[serde(default, rename = "__placeholder")]
-    __placeholder: (),
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sources: Vec<SourceProvenance>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actor_type: Option<ActorType>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origin: Option<OriginProvenance>,
 }
 
 impl ProvidedOntologyEditionProvenance {
