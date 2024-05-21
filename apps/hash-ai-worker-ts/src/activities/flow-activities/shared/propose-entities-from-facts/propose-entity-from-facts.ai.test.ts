@@ -5,10 +5,10 @@ import { expect, test } from "vitest";
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity";
 import { getFlowContext } from "../../../shared/get-flow-context";
 import { graphApiClient } from "../../../shared/graph-api-client";
-import type { EntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
+import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
 import { proposeEntityFromFacts } from "./propose-entity-from-facts";
 
-const huntingPlcEntitySummary: EntitySummary = {
+const huntingPlcEntitySummary: LocalEntitySummary = {
   localId: "6916156b-e759-41ad-b1da-2cf7af05d223",
   name: "HUNTING PLC ORD 25P",
   summary:

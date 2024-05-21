@@ -22,7 +22,7 @@ import { graphApiClient } from "../../shared/graph-api-client";
 import { logProgress } from "../../shared/log-progress";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
-import type { EntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
+import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../shared/infer-facts-from-text/types";
 import type {
   CoordinatorToolCallArguments,
@@ -32,6 +32,8 @@ import { generateToolCalls } from "./coordinator-tools";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { getAnswersFromHuman } from "./get-answers-from-human";
 import type { AccessedRemoteFile } from "./infer-facts-from-web-page-worker-agent/types";
+import type { ExistingEntitySummary } from "./summarize-existing-entities";
+import { summarizeExistingEntities } from "./summarize-existing-entities";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
@@ -44,6 +46,7 @@ export type CoordinatingAgentInput = {
   entityTypes: DereferencedEntityType<string>[];
   linkEntityTypes?: DereferencedEntityType<string>[];
   existingEntities?: Entity[];
+  existingEntitySummaries?: ExistingEntitySummary[];
 };
 
 const generateSystemPromptPrefix = (params: {
@@ -115,7 +118,7 @@ export type CoordinatingAgentState = {
   previousCalls: {
     completedToolCalls: CompletedToolCall<CoordinatorToolName>[];
   }[];
-  inferredFactsAboutEntities: EntitySummary[];
+  inferredFactsAboutEntities: LocalEntitySummary[];
   inferredFacts: Fact[];
   filesUsedToInferFacts: AccessedRemoteFile[];
   proposedEntities: ProposedEntity[];
@@ -357,6 +360,16 @@ const parseCoordinatorInputs = async (params: {
     ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
     : undefined;
 
+  let existingEntitySummaries: ExistingEntitySummary[] | undefined = undefined;
+
+  if (existingEntities && existingEntities.length > 0) {
+    existingEntitySummaries = (
+      await summarizeExistingEntities({
+        existingEntities,
+      })
+    ).existingEntitySummaries;
+  }
+
   const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
     graphApiClient,
     entityTypeIds: [
@@ -386,6 +399,7 @@ const parseCoordinatorInputs = async (params: {
     linkEntityTypes: linkEntityTypes.length > 0 ? linkEntityTypes : undefined,
     allDereferencedEntityTypesById: dereferencedEntityTypes,
     existingEntities,
+    existingEntitySummaries,
   };
 };
 

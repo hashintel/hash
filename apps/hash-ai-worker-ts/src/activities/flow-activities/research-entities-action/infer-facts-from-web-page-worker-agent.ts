@@ -25,7 +25,7 @@ import type {
 import { graphApiClient } from "../../shared/graph-api-client";
 import { stringify } from "../../shared/stringify";
 import { inferFactsFromText } from "../shared/infer-facts-from-text";
-import type { EntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
+import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../shared/infer-facts-from-text/types";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { handleQueryPdfToolCall } from "./infer-facts-from-web-page-worker-agent/handle-query-pdf-tool-call";
@@ -280,7 +280,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
   url: string;
 }): Promise<
   Status<{
-    inferredFactsAboutEntities: EntitySummary[];
+    inferredFactsAboutEntities: LocalEntitySummary[];
     inferredFacts: Fact[];
     filesUsedToInferFacts: AccessedRemoteFile[];
   }>

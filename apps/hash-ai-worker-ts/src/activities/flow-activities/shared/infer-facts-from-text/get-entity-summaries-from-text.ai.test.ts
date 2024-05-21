@@ -8,7 +8,7 @@ import { getFlowContext } from "../../../shared/get-flow-context";
 import { graphApiClient } from "../../../shared/graph-api-client";
 import { getEntitySummariesFromText } from "./get-entity-summaries-from-text";
 
-test.skip(
+test(
   "Test getEntitySummariesFromText with a FTSE350 table",
   async () => {
     const { userAuthentication } = await getFlowContext();
@@ -35,14 +35,18 @@ test.skip(
       dereferencedEntityType,
     });
 
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ entitySummaries }, null, 2));
+
     expect(entitySummaries).toBeDefined();
+    expect(entitySummaries.length).toBe(20);
   },
   {
     timeout: 5 * 60 * 1000,
   },
 );
 
-test(
+test.skip(
   "Test getEntitySummariesFromText with Sora paper authors",
   async () => {
     const { userAuthentication } = await getFlowContext();
@@ -74,6 +78,7 @@ test(
     });
 
     expect(entitySummaries).toBeDefined();
+    expect(entitySummaries.length).toBe(13);
   },
   {
     timeout: 5 * 60 * 1000,

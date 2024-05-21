@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type";
-import type { EntitySummary } from "../../shared/infer-facts-from-text/get-entity-summaries-from-text";
+import type { LocalEntitySummary } from "../../shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../../shared/infer-facts-from-text/types";
 import type { CompletedToolCall } from "../types";
 
@@ -39,7 +39,7 @@ export type InferFactsFromWebPageWorkerAgentState = {
   previousCalls: {
     completedToolCalls: CompletedToolCall<ToolName>[];
   }[];
-  inferredFactsAboutEntities: EntitySummary[];
+  inferredFactsAboutEntities: LocalEntitySummary[];
   inferredFacts: Fact[];
   inferredFactsFromWebPageUrls: string[];
   filesQueried: AccessedRemoteFile[];

@@ -5,16 +5,23 @@ import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/infer
 import { logger } from "../../shared/activity-logger";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { stringify } from "../../shared/stringify";
-import type { EntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
+import type { ExistingEntitySummary } from "../research-entities-action/summarize-existing-entities";
+import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "./infer-facts-from-text/types";
 import { proposeEntityFromFacts } from "./propose-entities-from-facts/propose-entity-from-facts";
 
 export const proposeEntitiesFromFacts = async (params: {
-  entitySummaries: EntitySummary[];
+  entitySummaries: LocalEntitySummary[];
+  existingEntitySummaries?: ExistingEntitySummary[];
   facts: Fact[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
 }): Promise<{ proposedEntities: ProposedEntity[] }> => {
-  const { entitySummaries, dereferencedEntityTypes, facts } = params;
+  const {
+    entitySummaries,
+    existingEntitySummaries,
+    dereferencedEntityTypes,
+    facts,
+  } = params;
 
   const proposedEntities = await Promise.all(
     entitySummaries.map(async (entitySummary) => {
@@ -71,18 +78,21 @@ export const proposeEntitiesFromFacts = async (params: {
           },
         );
 
-      const possibleOutgoingLinkTargetEntitySummaries = entitySummaries.filter(
-        (potentialTargetEntitySummary) => {
-          const someFactIncludesTargetEntityAsObject =
-            factsWithEntityAsSubject.some(
-              (fact) =>
-                fact.objectEntityLocalId ===
-                potentialTargetEntitySummary.localId,
-            );
+      const possibleOutgoingLinkTargetEntitySummaries = [
+        ...entitySummaries,
+        ...(existingEntitySummaries ?? []),
+      ].filter((potentialTargetEntitySummary) => {
+        const someFactIncludesTargetEntityAsObject =
+          factsWithEntityAsSubject.some((fact) =>
+            "localId" in potentialTargetEntitySummary
+              ? fact.objectEntityLocalId ===
+                potentialTargetEntitySummary.localId
+              : fact.objectEntityLocalId ===
+                potentialTargetEntitySummary.entityId,
+          );
 
-          return someFactIncludesTargetEntityAsObject;
-        },
-      );
+        return someFactIncludesTargetEntityAsObject;
+      });
 
       /**
        * @todo: consider batching requests made to the LLM so we propose multiple entities

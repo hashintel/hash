@@ -1,3 +1,4 @@
+import type { EntityId } from "@local/hash-subgraph";
 import dedent from "dedent";
 
 import { getFlowContext } from "../../shared/get-flow-context";
@@ -11,7 +12,8 @@ import type {
 } from "../../shared/get-llm-response/types";
 import { graphApiClient } from "../../shared/graph-api-client";
 import type { PermittedOpenAiModel } from "../../shared/openai-client";
-import type { EntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
+import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
+import type { ExistingEntitySummary } from "./summarize-existing-entities";
 
 /**
  * @todo
@@ -44,8 +46,8 @@ export const deduplicationAgentSystemPrompt = `
 `;
 
 export type DuplicateReport = {
-  canonicalLocalId: string;
-  duplicateLocalIds: string[];
+  canonicalId: string | EntityId;
+  duplicateIds: (string | EntityId)[];
 };
 
 const toolName = "reportDuplicates";
@@ -64,20 +66,20 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
         items: {
           type: "object",
           properties: {
-            canonicalLocalId: {
+            canonicalId: {
               type: "string",
-              description: "The localId of the canonical entity",
+              description: "The IDs of the canonical entity",
             },
-            duplicateLocalIds: {
+            duplicateIds: {
               type: "array",
               description:
-                "The localIds of the entities that are duplicates of the canonical entity",
+                "The IDs of entities that are duplicates of the canonical entity",
               items: {
                 type: "string",
               },
             },
           } satisfies Record<keyof DuplicateReport, unknown>,
-          required: ["canonicalLocalId", "duplicateLocalIds"],
+          required: ["canonicalId", "duplicateIds"],
         },
       },
     },
@@ -88,7 +90,7 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
 const defaultModel: LlmParams["model"] = "claude-3-opus-20240229";
 
 export const deduplicateEntities = async (params: {
-  entities: EntitySummary[];
+  entities: (LocalEntitySummary | ExistingEntitySummary)[];
   model?: PermittedOpenAiModel | AnthropicMessageModel;
 }): Promise<
   { duplicates: DuplicateReport[] } & {
@@ -114,11 +116,11 @@ export const deduplicateEntities = async (params: {
               text: dedent(
                 entities
                   .map(
-                    ({ localId, name, entityTypeId, summary }) => `
-                    Name: ${name}
-                    Type: ${entityTypeId}
-                    Summary: ${summary}
-                    LocalId: ${localId}
+                    (entitySummary) => `
+                    Name: ${entitySummary.name}
+                    Type: ${entitySummary.entityTypeId}
+                    Summary: ${entitySummary.summary}
+                    ID: ${"localId" in entitySummary ? entitySummary.localId : entitySummary.entityId}
                     `,
                   )
                   .join("\n"),

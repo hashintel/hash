@@ -11,6 +11,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { EntityId } from "@local/hash-subgraph/.";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -26,6 +27,7 @@ import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools";
+import type { DuplicateReport } from "./research-entities-action/deduplicate-entities";
 import { deduplicateEntities } from "./research-entities-action/deduplicate-entities";
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
 import { inferFactsFromWebPageWorkerAgent } from "./research-entities-action/infer-facts-from-web-page-worker-agent";
@@ -337,32 +339,67 @@ export const researchEntitiesAction: FlowActionActivity<{
             if (inferredFactsAboutEntities.length > 0) {
               const { duplicates } = await deduplicateEntities({
                 entities: [
+                  ...(input.existingEntitySummaries ?? []),
                   ...inferredFactsAboutEntities,
                   ...state.inferredFactsAboutEntities,
                 ],
               });
 
+              const existingEntityIds = (
+                input.existingEntitySummaries ?? []
+              ).map(({ entityId }) => entityId);
+
+              const adjustedDuplicates = duplicates.map<DuplicateReport>(
+                ({ canonicalId, duplicateIds }) => {
+                  if (existingEntityIds.includes(canonicalId as EntityId)) {
+                    return { canonicalId, duplicateIds };
+                  }
+
+                  const existingEntityIdMarkedAsDuplicate = duplicateIds.find(
+                    (id) => existingEntityIds.includes(id as EntityId),
+                  );
+
+                  /**
+                   * @todo: this doesn't account for when there are duplicates
+                   * detected in the existing entities.
+                   */
+                  if (existingEntityIdMarkedAsDuplicate) {
+                    return {
+                      canonicalId: existingEntityIdMarkedAsDuplicate,
+                      duplicateIds: [
+                        ...duplicateIds.filter(
+                          (id) => id !== existingEntityIdMarkedAsDuplicate,
+                        ),
+                        canonicalId,
+                      ],
+                    };
+                  }
+
+                  return { canonicalId, duplicateIds };
+                },
+              );
+
               const inferredFactsWithDeduplicatedEntities = inferredFacts.map(
                 (fact) => {
                   const { subjectEntityLocalId, objectEntityLocalId } = fact;
-                  const subjectDuplicate = duplicates.find(
-                    ({ duplicateLocalIds }) =>
-                      duplicateLocalIds.includes(subjectEntityLocalId),
+                  const subjectDuplicate = adjustedDuplicates.find(
+                    ({ duplicateIds }) =>
+                      duplicateIds.includes(subjectEntityLocalId),
                   );
 
                   const objectDuplicate = objectEntityLocalId
-                    ? duplicates.find(({ duplicateLocalIds }) =>
-                        duplicateLocalIds.includes(objectEntityLocalId),
+                    ? duplicates.find(({ duplicateIds }) =>
+                        duplicateIds.includes(objectEntityLocalId),
                       )
                     : undefined;
 
                   return {
                     ...fact,
                     subjectEntityLocalId:
-                      subjectDuplicate?.canonicalLocalId ??
+                      subjectDuplicate?.canonicalId ??
                       fact.subjectEntityLocalId,
                     objectEntityLocalId:
-                      objectDuplicate?.canonicalLocalId ?? objectEntityLocalId,
+                      objectDuplicate?.canonicalId ?? objectEntityLocalId,
                   };
                 },
               );
@@ -375,8 +412,8 @@ export const researchEntitiesAction: FlowActionActivity<{
                 ...inferredFactsAboutEntities,
               ].filter(
                 ({ localId }) =>
-                  !duplicates.some(({ duplicateLocalIds }) =>
-                    duplicateLocalIds.includes(localId),
+                  !duplicates.some(({ duplicateIds }) =>
+                    duplicateIds.includes(localId),
                   ),
               );
               state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
@@ -409,6 +446,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             const { proposedEntities } = await proposeEntitiesFromFacts({
               dereferencedEntityTypes: input.allDereferencedEntityTypesById,
               entitySummaries,
+              existingEntitySummaries: input.existingEntitySummaries,
               facts: relevantFacts,
             });
 

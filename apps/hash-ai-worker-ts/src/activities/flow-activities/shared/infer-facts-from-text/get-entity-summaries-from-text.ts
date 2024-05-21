@@ -9,7 +9,7 @@ import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-res
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types";
 import { graphApiClient } from "../../../shared/graph-api-client";
 
-export type EntitySummary = {
+export type LocalEntitySummary = {
   localId: string;
   name: string;
   summary: string;
@@ -74,7 +74,7 @@ export const getEntitySummariesFromText = async (params: {
   dereferencedEntityType: DereferencedEntityType;
   relevantEntitiesPrompt?: string;
 }): Promise<{
-  entitySummaries: EntitySummary[];
+  entitySummaries: LocalEntitySummary[];
 }> => {
   const { text, dereferencedEntityType, relevantEntitiesPrompt } = params;
 
@@ -120,7 +120,7 @@ export const getEntitySummariesFromText = async (params: {
     message: llmResponse.message,
   });
 
-  const entitySummaries: EntitySummary[] = [];
+  const entitySummaries: LocalEntitySummary[] = [];
 
   for (const toolCall of toolCalls) {
     const { entitySummaries: toolCallEntitySummaries } = toolCall.input as {
