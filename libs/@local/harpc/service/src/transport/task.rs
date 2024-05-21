@@ -74,7 +74,8 @@ impl Task {
     ) -> Result<Self, TransportError> {
         let mut registry = metrics::Registry::default();
 
-        let (ipc, rx) = TransportLayerIpc::new();
+        let (ipx_tx, rx) = mpsc::channel(config.ipc_buffer_size.get());
+        let ipc = TransportLayerIpc::new(ipx_tx);
 
         let swarm = SwarmBuilder::with_new_identity()
             .with_tokio()

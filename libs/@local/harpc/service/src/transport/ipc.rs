@@ -5,18 +5,14 @@ use tokio::sync::{mpsc, oneshot};
 
 use super::{error::TransportError, task::Command};
 
-const IPC_BUFFER_SIZE: usize = 16;
-
 #[derive(Debug, Clone)]
 pub struct TransportLayerIpc {
     tx: mpsc::Sender<Command>,
 }
 
 impl TransportLayerIpc {
-    pub(super) fn new() -> (Self, mpsc::Receiver<Command>) {
-        let (tx, rx) = mpsc::channel(IPC_BUFFER_SIZE);
-
-        (Self { tx }, rx)
+    pub(super) const fn new(tx: mpsc::Sender<Command>) -> Self {
+        Self { tx }
     }
 
     pub(super) async fn control(&self) -> Result<Control, TransportError> {
