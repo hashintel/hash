@@ -20,6 +20,7 @@ impl From<YamuxConfig> for yamux::Config {
     )]
     fn from(value: YamuxConfig) -> Self {
         let mut this = Self::default();
+
         this.set_window_update_mode(WindowUpdateMode::on_receive())
             .set_max_buffer_size(value.max_buffer_size);
 

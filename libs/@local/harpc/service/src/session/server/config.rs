@@ -52,7 +52,7 @@ pub struct SessionConfig {
     /// time the swarm will keep alive a connection, instead of the time the swarm will remain
     /// active once shutdown.
     ///
-    /// [`SwarmConfig`]: crate::transport::config::SwarmConfig
+    /// [`SwarmConfig::idle_connection_timeout`]: crate::transport::SwarmConfig::idle_connection_timeout
     pub connection_shutdown_linger: Duration,
 
     pub request_delivery_deadline: Duration,

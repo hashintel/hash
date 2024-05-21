@@ -25,7 +25,10 @@ use self::{
     error::{OpenStreamError, TransportError},
     task::Task,
 };
-pub use self::{config::TransportConfig, ipc::TransportLayerIpc};
+pub use self::{
+    config::{SwarmConfig, TransportConfig, YamuxConfig},
+    ipc::TransportLayerIpc,
+};
 
 const PROTOCOL_NAME: StreamProtocol = StreamProtocol::new("/harpc/1.0.0");
 

@@ -70,6 +70,8 @@ where
 /// Delgate responses to the respective transaction
 ///
 /// Takes into account the [`RequestId`] to route the response to the correct transaction
+///
+/// [`RequestId`]: harpc_wire_protocol::request::id::RequestId
 struct ConnectionResponseDelegateTask<S> {
     config: SessionConfig,
     stream: S,
