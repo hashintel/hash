@@ -25,8 +25,8 @@ test *arguments:
   @just install-cargo-nextest
   @just install-cargo-hack
 
-  cargo hack --optional-deps --feature-powerset {{cargo-hack-groups}} nextest run --cargo-profile {{profile}} {{arguments}}
-  cargo test --profile {{profile}} --workspace --all-features --doc {{arguments}}
+  RUST_BACKTRACE=1 cargo hack --optional-deps --feature-powerset {{cargo-hack-groups}} nextest run --cargo-profile {{profile}} {{arguments}}
+  RUST_BACKTRACE=1 cargo test --profile {{profile}} --workspace --all-features --doc {{arguments}}
 
 [private]
 coverage *arguments:
@@ -57,5 +57,5 @@ coverage *arguments:
 # Runs the test suite and asks to update the snapshots if they don't match.
 update-snapshots:
   @just install-cargo-insta
-  @RUST_BACKTRACE=1 INSTA_FORCE_PASS=1 INSTA_UPDATE=new UPDATE_EXPECT=1 just test
+  @INSTA_FORCE_PASS=1 INSTA_UPDATE=new UPDATE_EXPECT=1 just test
   @cargo insta review
