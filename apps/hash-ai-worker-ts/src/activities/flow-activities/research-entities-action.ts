@@ -23,6 +23,7 @@ import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools";
+import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
 import { inferEntitiesFromWebPageWorkerAgent } from "./research-entities-action/infer-entities-from-web-page-worker-agent";
 import type { CoordinatingAgentState } from "./research-entities-action/open-ai-coordinating-agent";
 import { coordinatingAgent } from "./research-entities-action/open-ai-coordinating-agent";
@@ -41,9 +42,11 @@ export const researchEntitiesAction: FlowActionActivity = async ({
    * We start by asking the coordinator agent to create an initial plan
    * for the research task.
    */
-  const { plan: initialPlan } = await coordinatingAgent.createInitialPlan({
-    input,
-  });
+  const { plan: initialPlan, questionsAndAnswers } =
+    await coordinatingAgent.createInitialPlan({
+      input,
+      questionsAndAnswers: null,
+    });
 
   const state: CoordinatingAgentState = {
     plan: initialPlan,
@@ -52,6 +55,7 @@ export const researchEntitiesAction: FlowActionActivity = async ({
     previousCalls: [],
     hasConductedCheckStep: false,
     filesUsedToProposeEntities: [],
+    questionsAndAnswers,
   };
 
   const { toolCalls: initialToolCalls } =
@@ -95,6 +99,20 @@ export const researchEntitiesAction: FlowActionActivity = async ({
               ...toolCall,
               output: `The plan has been successfully updated.`,
             };
+          } else if (toolCall.name === "requestHumanInput") {
+            const response = await getAnswersFromHuman(
+              (
+                toolCall.input as CoordinatorToolCallArguments["requestHumanInput"]
+              ).questions,
+            );
+
+            state.questionsAndAnswers =
+              (state.questionsAndAnswers ?? "") + response;
+
+            return {
+              ...toolCall,
+              output: response,
+            };
           } else if (toolCall.name === "submitProposedEntities") {
             const { entityIds } =
               toolCall.input as CoordinatorToolCallArguments["submitProposedEntities"];
@@ -103,7 +121,7 @@ export const researchEntitiesAction: FlowActionActivity = async ({
 
             return {
               ...toolCall,
-              output: `The entities with IDs ${JSON.stringify(entityIds)} where successfully submitted.`,
+              output: `The entities with IDs ${JSON.stringify(entityIds)} were successfully submitted.`,
             };
           } else if (toolCall.name === "getWebPageSummary") {
             const { url } =

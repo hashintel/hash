@@ -14,6 +14,7 @@ import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getFlowRuns } from "./flows/runs";
 import { startFlow } from "./flows/start-flow";
+import { submitExternalInputResponse } from "./flows/submit-external-input-response";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
 import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
 import { blocksResolver } from "./knowledge/block/block";
@@ -184,6 +185,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     ),
 
     startFlow: loggedInAndSignedUpMiddleware(startFlow),
+    submitExternalInputResponse: loggedInAndSignedUpMiddleware(
+      submitExternalInputResponse,
+    ),
 
     addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
       addAccountGroupMember(context.dataSources, context.authentication, {

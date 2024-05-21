@@ -29,7 +29,7 @@ use tokio::runtime::Runtime;
 use type_system::EntityType;
 use uuid::Uuid;
 
-use crate::util::{seed, setup, Store, StoreWrapper};
+use crate::util::{seed, setup, setup_subscriber, Store, StoreWrapper};
 
 const DB_NAME: &str = "entity_scale";
 
@@ -182,7 +182,8 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
 
 #[criterion]
 fn bench_scaling_read_entity(c: &mut Criterion) {
-    let mut group = c.benchmark_group("scaling_read_entity_linkless");
+    let group_id = "scaling_read_entity_linkless";
+    let mut group = c.benchmark_group(group_id);
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id = AccountId::new(
@@ -195,13 +196,13 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
         let entity_uuids = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
 
+        let function_id = "entity_by_id";
+        let parameter = format!("{size} entities");
         group.bench_with_input(
-            BenchmarkId::new(
-                "get_entity_by_id",
-                format!("Account ID: `{account_id}`, Number Of Entities: `{size}`"),
-            ),
+            BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_uuids),
             |b, (_account_id, entity_metadata_list)| {
+                let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 bench_get_entity_by_id(b, &runtime, store, account_id, entity_metadata_list);
             },
         );

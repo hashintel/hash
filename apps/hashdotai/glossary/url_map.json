@@ -299,6 +299,12 @@
     "tags": ["Data Science", "Simulation Modeling", "Software Engineering"]
   },
   {
+    "title": "Scraping",
+    "description": "Web scraping is the process of automatically extracting data from websites efficiently and reliably.",
+    "slug": "scraping",
+    "tags": ["Data Science", "Graphs", "Software Engineering"]
+  },
+  {
     "title": "Simulation Modeling",
     "description": "Simulation Models seek to demonstrate what happens to environments and agents within them, over time, under varying conditions.",
     "slug": "simulation",

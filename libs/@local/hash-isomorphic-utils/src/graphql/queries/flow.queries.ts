@@ -30,3 +30,12 @@ export const getFlowRunsQuery = gql`
     }
   }
 `;
+
+export const submitExternalInputResponseMutation = gql`
+  mutation submitExternalInputResponse(
+    $flowUuid: ID!
+    $response: ExternalInputResponseSignal!
+  ) {
+    submitExternalInputResponse(flowUuid: $flowUuid, response: $response)
+  }
+`;

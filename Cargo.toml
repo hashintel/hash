@@ -19,7 +19,8 @@ members = [
     "tests/hash-graph-test-data/rust",
     "libs/@local/harpc/wire-protocol",
     "libs/@local/harpc/types",
-    "libs/@local/harpc/service"]
+    "libs/@local/harpc/service"
+]
 exclude = [
     "libs/antsi",
     "libs/deer",
@@ -53,9 +54,13 @@ hash-tracing.path = "libs/@local/tracing"
 type-system.path = "libs/@blockprotocol/type-system/rust"
 harpc-types.path = "libs/@local/harpc/types"
 harpc-wire-protocol.path = "libs/@local/harpc/wire-protocol"
+repo-chores.path = "libs/@local/repo-chores/rust"
 
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }
+
+aws-config = { version = "1.4.0" }
+aws-sdk-s3 = { version = "1.28.0" }
 
 # Shared third-party dependencies
 bytes = "1.6.0"

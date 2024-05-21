@@ -31,7 +31,10 @@ import {
   createAnthropicMessagesWithTools,
   isAnthropicContentToolUseContent,
 } from "./get-llm-response/anthropic-client";
-import type { LlmUserMessage } from "./get-llm-response/llm-message";
+import type {
+  LlmMessageToolUseContent,
+  LlmUserMessage,
+} from "./get-llm-response/llm-message";
 import {
   mapAnthropicMessageToLlmMessage,
   mapLlmMessageToAnthropicMessage,
@@ -230,16 +233,15 @@ const getInputValidationErrors = (params: {
 
 const maxRetryCount = 3;
 
-const getAnthropicResponse = async (
-  params: AnthropicLlmParams,
+const getAnthropicResponse = async <ToolName extends string>(
+  params: AnthropicLlmParams<ToolName>,
 ): Promise<LlmResponse<AnthropicLlmParams>> => {
   const {
     tools,
-    retryCount = 0,
     messages,
     systemPrompt,
-    previousUsage,
     previousInvalidResponses,
+    retryContext,
     ...remainingParams
   } = params;
 
@@ -281,6 +283,8 @@ const getAnthropicResponse = async (
 
   const currentRequestTime = Date.now() - timeBeforeRequest;
 
+  const { previousUsage, retryCount = 0 } = retryContext ?? {};
+
   const usage: LlmUsage = {
     inputTokens:
       (previousUsage?.inputTokens ?? 0) + anthropicResponse.usage.input_tokens,
@@ -294,23 +298,43 @@ const getAnthropicResponse = async (
   };
 
   const retry = async (retryParams: {
+    successfullyParsedToolCalls: ParsedLlmToolCall<ToolName>[];
     retryMessageContent: LlmUserMessage["content"];
   }): Promise<LlmResponse<AnthropicLlmParams>> => {
     if (retryCount > maxRetryCount) {
       return {
         status: "exceeded-maximum-retries",
+        invalidResponses: previousInvalidResponses ?? [],
         usage,
       };
     }
 
+    const responseMessage = mapAnthropicMessageToLlmMessage({
+      anthropicMessage: {
+        ...anthropicResponse,
+        /**
+         * Filter out the tool calls that were successfully parsed,
+         * as we won't have a response for the tool call in the retried
+         * request.
+         */
+        content: anthropicResponse.content.filter(
+          (messageContent) =>
+            !(
+              messageContent.type === "tool_use" &&
+              retryParams.successfullyParsedToolCalls.some(
+                (successFullToolCall) =>
+                  successFullToolCall.id === messageContent.id,
+              )
+            ),
+        ),
+      },
+    });
+
     return getAnthropicResponse({
       ...params,
-      retryCount: retryCount + 1,
       messages: [
         ...params.messages,
-        mapAnthropicMessageToLlmMessage({
-          anthropicMessage: anthropicResponse,
-        }),
+        responseMessage,
         {
           role: "user",
           content: retryParams.retryMessageContent,
@@ -320,10 +344,18 @@ const getAnthropicResponse = async (
         ...(previousInvalidResponses ?? []),
         { ...anthropicResponse, requestTime: currentRequestTime },
       ],
+      retryContext: {
+        retryCount: retryCount + 1,
+        previousUsage: usage,
+        previousSuccessfulToolCalls: [
+          ...(retryContext?.previousSuccessfulToolCalls ?? []),
+          ...retryParams.successfullyParsedToolCalls,
+        ],
+      },
     });
   };
 
-  const parsedToolCalls: ParsedLlmToolCall[] = [];
+  const parsedToolCalls: ParsedLlmToolCall<ToolName>[] = [];
 
   const unvalidatedParsedToolCalls =
     parseToolCallsFromAnthropicResponse(anthropicResponse);
@@ -369,13 +401,22 @@ const getAnthropicResponse = async (
           `),
           is_error: true,
         });
+
+        continue;
       }
 
-      parsedToolCalls.push({ ...toolCall, input: sanitizedInput });
+      parsedToolCalls.push({
+        ...toolCall,
+        name: toolCall.name as ToolName,
+        input: sanitizedInput,
+      });
     }
 
     if (retryMessageContent.length > 0) {
-      return retry({ retryMessageContent });
+      return retry({
+        successfullyParsedToolCalls: parsedToolCalls,
+        retryMessageContent,
+      });
     }
   }
 
@@ -385,6 +426,20 @@ const getAnthropicResponse = async (
 
   if (message.role === "user") {
     throw new Error("Unexpected user message in response");
+  }
+
+  /**
+   * If we previously retried the request with incorrect tool calls,
+   * we need to include the previous successful tool calls in the
+   * response message, which may have been previously filtered out.
+   */
+  if (retryContext) {
+    const previousSuccessfulToolUses =
+      retryContext.previousSuccessfulToolCalls.map<
+        LlmMessageToolUseContent<ToolName>
+      >(({ id, input, name }) => ({ type: "tool_use", id, input, name }));
+
+    message.content.push(...previousSuccessfulToolUses);
   }
 
   return {
@@ -403,17 +458,16 @@ const getAnthropicResponse = async (
   };
 };
 
-const getOpenAiResponse = async (
-  params: OpenAiLlmParams,
+const getOpenAiResponse = async <ToolName extends string>(
+  params: OpenAiLlmParams<ToolName>,
 ): Promise<LlmResponse<OpenAiLlmParams>> => {
   const {
     tools,
     trimMessageAtIndex,
-    retryCount = 0,
     messages,
     systemPrompt,
-    previousUsage,
     previousInvalidResponses,
+    retryContext,
     ...remainingParams
   } = params;
 
@@ -521,6 +575,8 @@ const getOpenAiResponse = async (
 
   const currentRequestTime = Date.now() - timeBeforeRequest;
 
+  const { previousUsage, retryCount = 0 } = retryContext ?? {};
+
   const usage: LlmUsage = {
     inputTokens:
       (previousUsage?.inputTokens ?? 0) +
@@ -534,11 +590,13 @@ const getOpenAiResponse = async (
   };
 
   const retry = async (retryParams: {
+    successfullyParsedToolCalls: ParsedLlmToolCall<ToolName>[];
     retryMessageContent: LlmUserMessage["content"];
   }): Promise<LlmResponse<OpenAiLlmParams>> => {
     if (retryCount > maxRetryCount) {
       return {
         status: "exceeded-maximum-retries",
+        invalidResponses: previousInvalidResponses ?? [],
         usage,
       };
     }
@@ -551,13 +609,27 @@ const getOpenAiResponse = async (
 
     const responseMessages = openAiResponseMessage
       ? mapOpenAiMessagesToLlmMessages({
-          messages: [openAiResponseMessage],
+          messages: [
+            {
+              ...openAiResponseMessage,
+              /**
+               * Filter out the tool calls that were successfully parsed,
+               * as we won't have a response for the tool call in the retried
+               * request.
+               */
+              tool_calls: openAiResponseMessage.tool_calls?.filter(
+                (toolCall) =>
+                  !retryParams.successfullyParsedToolCalls.some(
+                    (parsedToolCall) => parsedToolCall.id === toolCall.id,
+                  ),
+              ),
+            },
+          ],
         })
       : undefined;
 
     return getOpenAiResponse({
       ...params,
-      retryCount: retryCount + 1,
       messages: [
         ...params.messages,
         ...(responseMessages ?? []),
@@ -566,11 +638,18 @@ const getOpenAiResponse = async (
           content: retryParams.retryMessageContent,
         },
       ],
-      previousUsage: usage,
       previousInvalidResponses: [
         ...(previousInvalidResponses ?? []),
         { ...openAiResponse, requestTime: currentRequestTime },
       ],
+      retryContext: {
+        retryCount: retryCount + 1,
+        previousSuccessfulToolCalls: [
+          ...(retryContext?.previousSuccessfulToolCalls ?? []),
+          ...retryParams.successfullyParsedToolCalls,
+        ],
+        previousUsage: usage,
+      },
     });
   };
 
@@ -581,6 +660,7 @@ const getOpenAiResponse = async (
 
   if (!firstChoice) {
     return retry({
+      successfullyParsedToolCalls: [],
       retryMessageContent: [
         {
           type: "text",
@@ -590,7 +670,7 @@ const getOpenAiResponse = async (
     });
   }
 
-  const parsedToolCalls: ParsedLlmToolCall[] = [];
+  const parsedToolCalls: ParsedLlmToolCall<ToolName>[] = [];
 
   const retryMessageContent: LlmUserMessage["content"] = [];
 
@@ -652,11 +732,14 @@ const getOpenAiResponse = async (
       continue;
     }
 
-    parsedToolCalls.push({ id, name, input: sanitizedInput });
+    parsedToolCalls.push({ id, name: name as ToolName, input: sanitizedInput });
   }
 
   if (retryMessageContent.length > 0) {
-    return retry({ retryMessageContent });
+    return retry({
+      successfullyParsedToolCalls: parsedToolCalls,
+      retryMessageContent,
+    });
   }
 
   if (
@@ -664,6 +747,7 @@ const getOpenAiResponse = async (
     parsedToolCalls.length === 0
   ) {
     return retry({
+      successfullyParsedToolCalls: [],
       retryMessageContent: [
         {
           type: "text",
@@ -711,6 +795,20 @@ const getOpenAiResponse = async (
 
   if (responseMessage.role === "user") {
     throw new Error("Unexpected user message in response");
+  }
+
+  /**
+   * If we previously retried the request with incorrect tool calls,
+   * we need to include the previous successful tool calls in the
+   * response message, which may have been previously filtered out.
+   */
+  if (retryContext) {
+    const previousSuccessfulToolUses =
+      retryContext.previousSuccessfulToolCalls.map<
+        LlmMessageToolUseContent<ToolName>
+      >(({ id, input, name }) => ({ type: "tool_use", id, input, name }));
+
+    responseMessage.content.push(...previousSuccessfulToolUses);
   }
 
   const response: LlmResponse<OpenAiLlmParams> = {

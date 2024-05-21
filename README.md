@@ -2,7 +2,7 @@
 [app.hash.ai]: https://app.hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [development roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[running your own instance]: https://hash.dev/docs/get-started?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[running your own instance]: https://hash.dev/docs/get-started/setup#local-hash?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
 <!-- markdownlint-disable link-fragments -->
 

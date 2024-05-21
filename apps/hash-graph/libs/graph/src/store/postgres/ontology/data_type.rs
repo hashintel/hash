@@ -104,6 +104,7 @@ where
         // TODO: Remove again when subgraph logic was revisited
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
+        let time_axis = temporal_axes.variable_time_axis();
 
         let (data, artifacts) = ReadPaginated::<DataTypeWithMetadata>::read_paginated_vec(
             self,
@@ -151,9 +152,21 @@ where
                     .unwrap_or(false)
                     .then_some(data_type)
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-        Ok((GetDataTypesResponse { data_types }, zookie))
+        Ok((
+            GetDataTypesResponse {
+                cursor: if params.limit.is_some() {
+                    data_types
+                        .last()
+                        .map(|data_type| data_type.vertex_id(time_axis))
+                } else {
+                    None
+                },
+                data_types,
+            },
+            zookie,
+        ))
     }
 
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
@@ -380,7 +393,7 @@ where
         let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let (GetDataTypesResponse { data_types }, zookie) = self
+        let (GetDataTypesResponse { data_types, cursor }, zookie) = self
             .get_data_types_impl(
                 actor_id,
                 GetDataTypesParams {
@@ -441,7 +454,7 @@ where
             .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
             .await?;
 
-        Ok(GetDataTypeSubgraphResponse { subgraph })
+        Ok(GetDataTypeSubgraphResponse { subgraph, cursor })
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
