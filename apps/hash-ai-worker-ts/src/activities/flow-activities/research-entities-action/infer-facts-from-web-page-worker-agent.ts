@@ -548,19 +548,32 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
               state.inferredFactsFromWebPageUrls.push(toolCallInput.url);
             }
 
-            const content =
-              "text" in toolCallInput
-                ? toolCallInput.text
-                : (
-                    await getWebPageActivity({
-                      url: toolCallInput.url,
-                      sanitizeForLlm: true,
-                    })
-                  ).htmlContent;
+            let content = "";
 
-            // const content = dedent(`
-            //   ${"htmlContent" in toolCallInput ? toolCallInput.htmlContent : toolCallInput.text}
-            // `);
+            if ("text" in toolCallInput) {
+              /**
+               * @todo: consider prepending additional contextual information about the PDF file
+               */
+              content = dedent(`
+                The following text content is a snippet of a PDF file hosted at the URL "${toolCallInput.fileUrl}".
+                ---------------- START OF TEXT SNIPPET ----------------
+                ${toolCallInput.text}
+                ---------------- END OF TEXT SNIPPET ----------------
+                
+              `);
+            } else {
+              const webPage = await getWebPageActivity({
+                url: toolCallInput.url,
+                sanitizeForLlm: true,
+              });
+
+              content = dedent(`
+                The following HTML content was obtained from the web page with title "${webPage.title}", hosted at the URL "${toolCallInput.url}".
+                ---------------- START OF INNER HTML ----------------
+                ${webPage.htmlContent}
+                ---------------- END OF INNER HTML ----------------
+              `);
+            }
 
             const dereferencedEntityTypes =
               await getDereferencedEntityTypesActivity({
