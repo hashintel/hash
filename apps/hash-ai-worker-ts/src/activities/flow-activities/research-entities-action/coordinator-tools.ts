@@ -14,7 +14,6 @@ const coordinatorToolNames = [
   "terminate",
   "updatePlan",
   // "discardProposedEntities",
-  // "proposeAndSubmitLink",
 ] as const;
 
 export type CoordinatorToolName = (typeof coordinatorToolNames)[number];
@@ -249,43 +248,6 @@ export const generateToolCalls = (params: {
       required: ["entityIds", "explanation"],
     },
   },
-  // proposeAndSubmitLink: {
-  //   name: "proposeAndSubmitLink",
-  //   description: dedent(`
-  //     Propose and submit a link entity, which creates a link between two entities.
-
-  //     The source or target entity can be:
-  //       - a proposed entity
-  //       - an existing entity
-
-  //     If the source or target are a proposed entity that has not yet been submitted,
-  //       they will be submitted in this tool call.
-  //   `),
-  //   inputSchema: {
-  //     type: "object",
-  //     properties: {
-  //       explanation: explanationDefinition,
-  //       sourceEntityId: {
-  //         type: "string",
-  //         description: "The ID of the source proposed or existing entity.",
-  //       },
-  //       targetEntityId: {
-  //         type: "string",
-  //         description: "The ID of the target proposed or existing entity.",
-  //       },
-  //       linkEntityTypeId: {
-  //         type: "string",
-  //         description: "The link entity type ID of the proposed link.",
-  //       },
-  //     },
-  //     required: [
-  //       "sourceEntityId",
-  //       "targetEntityId",
-  //       "linkEntityTypeId",
-  //       "explanation",
-  //     ],
-  //   },
-  // },
   // discardProposedEntities: {
   //   name: "discardProposedEntities",
   //   description: "Discard previously submitted proposed entities.",
@@ -333,11 +295,6 @@ export type CoordinatorToolCallArguments = Subtype<
     updatePlan: {
       plan: string;
     };
-    // proposeAndSubmitLink: {
-    //   sourceEntityId: string;
-    //   targetEntityId: string;
-    //   linkEntityTypeId: string;
-    // };
     complete: never;
     terminate: never;
   }

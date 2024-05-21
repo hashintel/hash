@@ -458,104 +458,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                 ${proposedEntities.length} entities were successfully proposed.
               `),
             };
-
-            // } else if (toolCall.name === "proposeAndSubmitLink") {
-            //   const { sourceEntityId, targetEntityId, linkEntityTypeId } =
-            //     toolCall.input as CoordinatorToolCallArguments["proposeAndSubmitLink"];
-            //   const sourceEntity =
-            //     input.existingEntities?.find(
-            //       ({ metadata }) => metadata.recordId.entityId === sourceEntityId,
-            //     ) ??
-            //     state.proposedEntities.find(
-            //       ({ localEntityId }) => localEntityId === sourceEntityId,
-            //     );
-            //   const targetEntity =
-            //     input.existingEntities?.find(
-            //       ({ metadata }) => metadata.recordId.entityId === targetEntityId,
-            //     ) ??
-            //     state.proposedEntities.find(
-            //       ({ localEntityId }) => localEntityId === targetEntityId,
-            //     );
-            //   if (!sourceEntity || !targetEntity) {
-            //     return {
-            //       ...toolCall,
-            //       output: dedent(`
-            //         There is no ${input.existingEntities ? "existing or " : ""} proposed entity with ID "${sourceEntityId}".
-            //         ${input.existingEntities ? `Possible existing entity IDs are: ${JSON.stringify(input.existingEntities.map(({ metadata }) => metadata.recordId.entityId))}.` : ""}
-            //         Possible proposed entity IDs are: ${JSON.stringify(state.proposedEntities.map(({ localEntityId }) => localEntityId))}.
-            //       `),
-            //       isError: true,
-            //     };
-            //   }
-            //   const validLinkEntityTypeIds =
-            //     input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
-            //   if (
-            //     !validLinkEntityTypeIds.includes(linkEntityTypeId as VersionedUrl)
-            //   ) {
-            //     return {
-            //       ...toolCall,
-            //       output: dedent(`
-            //         The link entity type ID "${linkEntityTypeId}" is invalid.
-            //         Valid link entity type IDs are: ${JSON.stringify(validLinkEntityTypeIds)}.
-            //       `),
-            //       isError: true,
-            //     };
-            //   }
-            //   /** @todo: improve generation of local entity id */
-            //   const localEntityId = `${linkEntityTypeId}-${state.proposedEntities.length}`;
-            //   state.proposedEntities.push({
-            //     localEntityId,
-            //     entityTypeId: linkEntityTypeId as VersionedUrl,
-            //     sourceEntityId:
-            //       "metadata" in sourceEntity
-            //         ? {
-            //             kind: "existing-entity",
-            //             entityId: sourceEntity.metadata.recordId.entityId,
-            //           }
-            //         : {
-            //             kind: "proposed-entity",
-            //             localId: sourceEntity.localEntityId,
-            //           },
-            //     targetEntityId:
-            //       "metadata" in targetEntity
-            //         ? {
-            //             kind: "existing-entity",
-            //             entityId: targetEntity.metadata.recordId.entityId,
-            //           }
-            //         : {
-            //             kind: "proposed-entity",
-            //             localId: targetEntity.localEntityId,
-            //           },
-            //     /**
-            //      * @todo: allow the agent to specify link properties.
-            //      */
-            //     properties: {},
-            //   });
-            //   state.submittedEntityIds.push(localEntityId);
-            //   let submittedSourceProposedEntityId: string | undefined;
-            //   if (
-            //     "localEntityId" in sourceEntity &&
-            //     !state.submittedEntityIds.includes(sourceEntity.localEntityId)
-            //   ) {
-            //     state.submittedEntityIds.push(sourceEntity.localEntityId);
-            //     submittedSourceProposedEntityId = sourceEntity.localEntityId;
-            //   }
-            //   let submittedTargetProposedEntityId: string | undefined;
-            //   if (
-            //     "localEntityId" in targetEntity &&
-            //     !state.submittedEntityIds.includes(targetEntity.localEntityId)
-            //   ) {
-            //     state.submittedEntityIds.push(targetEntity.localEntityId);
-            //     submittedTargetProposedEntityId = targetEntity.localEntityId;
-            //   }
-            //   return {
-            //     ...toolCall,
-            //     output: dedent(`
-            //       The link between the entities with IDs ${sourceEntityId} and ${targetEntityId} has been successfully proposed and submitted.
-            //       ${submittedSourceProposedEntityId ? `The source proposed entity with ID ${sourceEntityId} has also been submitted.` : ""}
-            //       ${submittedTargetProposedEntityId ? `The target proposed entity with ID ${targetEntityId} has also been submitted.` : ""}
-            //     `),
-            //   };
           } else if (toolCall.name === "complete") {
             if (!state.hasConductedCheckStep) {
               const warnings: string[] = [];
@@ -594,9 +496,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                     You have not proposed any links for the following link types: ${JSON.stringify(
                       missingLinkEntityTypes.map(({ $id }) => $id),
                     )}
-
-                    You can propose links using the "proposeAndSubmitLink" tool, or infer links
-                      from the text of a web page with the "inferEntitiesFromWebPage" tool.
                 `),
                 );
               }
