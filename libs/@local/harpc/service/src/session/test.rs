@@ -245,7 +245,7 @@ where
     println!("Throughput: {formatter:.2}/s");
 }
 
-#[tokio::test]
+#[test_log::test(tokio::test(flavor = "multi_thread", worker_threads = 8))]
 async fn echo_memory() {
     let address: Multiaddr = iter::once(multiaddr::Protocol::Memory(0)).collect();
 

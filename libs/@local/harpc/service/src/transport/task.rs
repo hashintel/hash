@@ -13,7 +13,6 @@ use libp2p::{
     metrics::{self, Metrics, Recorder},
     noise, ping,
     swarm::{dial_opts::DialOpts, ConnectionId, DialError, SwarmEvent},
-    yamux::{self, WindowUpdateMode},
     Multiaddr, PeerId, SwarmBuilder,
 };
 use libp2p_stream as stream;
@@ -81,14 +80,20 @@ impl Task {
             .with_tokio()
             .with_other_transport(|keypair| {
                 let noise = noise::Config::new(keypair)?;
-                let mut yamux = yamux::Config::default();
-                #[expect(deprecated, reason = "WindowUpdateMode::OnRead deadlocks, see https://github.com/libp2p/rust-libp2p/issues/5410")]
-                yamux.set_window_update_mode(WindowUpdateMode::on_receive());
+                // while mplex is slower than yamux WindowUpdateMode::OnReceive, it is not prone to
+                // "buffer of stream grows beyond limit" errors, and unlike yamux 0.13
+                // (WindowUpdateMode::OnRead) it does not deadlock.
+                // The difference here is only really visible in the case of the memory transport
+                // when we reach about ~500MiB/s throughput on the memory transport, on TCP the
+                // difference is only about 3-5% maximum, on the memory transport it's about 20%
+                // when reaching maximum throughput of 500MiB/s through yamux (down to ~400MiB/s)
+                let mut mplex = libp2p_mplex::MplexConfig::new();
+                mplex.set_split_send_size(1024 * 1024); // Max 1MiB (maximum per mplex spec)
 
                 let transport = transport
                     .upgrade(upgrade::Version::V1Lazy)
                     .authenticate(noise)
-                    .multiplex(yamux);
+                    .multiplex(mplex);
 
                 Ok(transport)
             })

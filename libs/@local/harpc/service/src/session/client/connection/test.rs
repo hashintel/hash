@@ -3,7 +3,7 @@ use core::{
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
-use std::io;
+use std::{assert_matches::assert_matches, io};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use error_stack::Report;
@@ -31,6 +31,7 @@ use harpc_wire_protocol::{
     },
     test_utils::mock_request_id,
 };
+use tachyonix::RecvTimeoutError;
 use tokio::sync::{mpsc, Notify};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::{
@@ -418,6 +419,51 @@ async fn response_delegate_cancel() {
         .await
         .expect("should finish within timeout")
         .expect("should not panic");
+}
+
+#[tokio::test]
+async fn response_delegate_cancels_running_senders_on_shutdown() {
+    let (stream_tx, stream_rx) = mpsc::channel(8);
+    let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
+
+    let task = ConnectionResponseDelegateTask {
+        config: SessionConfig::default(),
+        stream: ReceiverStream::new(stream_rx),
+        storage: Arc::clone(collection.storage()),
+        notify: Arc::new(Notify::new()),
+        parent: CancellationToken::new(),
+        _guard: CancellationToken::new().drop_guard(),
+    };
+
+    let handle = tokio::spawn(task.run(CancellationToken::new()));
+
+    let (_permit_a, mut rx_a) = collection.acquire().await;
+    let (_permit_b, mut rx_b) = collection.acquire().await;
+    let (_permit_c, mut rx_c) = collection.acquire().await;
+
+    drop(stream_tx);
+
+    tokio::task::yield_now().await;
+
+    assert!(handle.is_finished());
+    assert_matches!(
+        rx_a.recv_timeout(tokio::time::sleep(Duration::from_millis(100)))
+            .await
+            .expect_err("should be closed"),
+        RecvTimeoutError::Closed
+    );
+    assert_matches!(
+        rx_b.recv_timeout(tokio::time::sleep(Duration::from_millis(100)))
+            .await
+            .expect_err("should be closed"),
+        RecvTimeoutError::Closed
+    );
+    assert_matches!(
+        rx_c.recv_timeout(tokio::time::sleep(Duration::from_millis(100)))
+            .await
+            .expect_err("should be closed"),
+        RecvTimeoutError::Closed
+    );
 }
 
 #[tokio::test]

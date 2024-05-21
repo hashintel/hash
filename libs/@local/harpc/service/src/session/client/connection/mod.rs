@@ -12,6 +12,7 @@ use harpc_wire_protocol::{
     request::{procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
     response::Response,
 };
+use scc::ebr::Guard;
 use tachyonix::SendTimeoutError;
 use tokio::{
     io, pin, select,
@@ -200,6 +201,14 @@ where
             };
 
             Self::route(self.config, &self.storage, response).await;
+        }
+
+        // we need to cancel any remaining transactions, as we won't be able to route to them
+        // anymore
+        // TODO: test!
+        let guard = Guard::new();
+        for (_, state) in self.storage.iter(&guard) {
+            state.sender.close();
         }
 
         tracing::debug!("response delegate task has been shut down");
