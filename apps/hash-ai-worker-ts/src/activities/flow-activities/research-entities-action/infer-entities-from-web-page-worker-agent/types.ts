@@ -27,6 +27,8 @@ export type AccessedRemoteFile = {
   /**
    * @todo: consider enforcing that this refers to a type that is or extends
    * the "File" system entity type
+   *
+   * @todo H-2728 add a name and description property inferred by the AI when looking at the file
    */
   entityTypeId: VersionedUrl;
   url: string;

@@ -383,6 +383,9 @@ export type ToolCallArguments = Subtype<
     };
     inferEntitiesFromText: {
       text: string;
+      /**
+       * @todo H-2728 store the webpage URL from which this file was discovered as part of the provenance on the file entity
+       */
       fileUrl: string;
       validAt: string;
       prompt: string;

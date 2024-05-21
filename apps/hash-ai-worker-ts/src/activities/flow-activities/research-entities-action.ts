@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { OriginProvenance } from "@local/hash-graph-client";
 import type {
   InputNameForAction,
   OutputNameForAction,
@@ -11,10 +12,10 @@ import type {
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger";
+import { getFlowContext } from "../shared/get-flow-context";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
 import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
@@ -530,6 +531,18 @@ export const researchEntitiesAction: FlowActionActivity = async ({
         all.findIndex((file) => file.url === url) === index,
     );
 
+  const { flowEntityId, stepId } = await getFlowContext();
+
+  const fileEditionProvenance: ProposedEntity["provenance"] = {
+    actorType: "ai",
+    // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+    origin: {
+      type: "flow",
+      id: flowEntityId,
+      stepIds: [stepId],
+    } satisfies OriginProvenance,
+  };
+
   /**
    * We return additional proposed entities for each file that was used to propose
    * the submitted entities, so that these are persisted in the graph.
@@ -539,10 +552,11 @@ export const researchEntitiesAction: FlowActionActivity = async ({
   const fileEntityProposals: ProposedEntity[] =
     filesUsedToProposeSubmittedEntities.map(({ url, entityTypeId }) => ({
       /**
-       * @todo: set the web page this file was discovered in (if applicable) in the property provenance
+       * @todo: H-2728 set the web page this file was discovered in (if applicable) in the property provenance
        * for the `fileUrl`
        */
       propertyMetadata: [],
+      provenance: fileEditionProvenance,
       entityTypeId,
       localEntityId: generateUuid(),
       properties: {
@@ -552,7 +566,6 @@ export const researchEntitiesAction: FlowActionActivity = async ({
     }));
 
   const now = new Date().toISOString();
-  const stepId = Context.current().info.activityId;
 
   logProgress(
     fileEntityProposals.map((proposedFileEntity) => ({
