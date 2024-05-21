@@ -1,12 +1,30 @@
 use core::{num::NonZero, time::Duration};
 
-use libp2p::{core::upgrade, ping, swarm};
+use libp2p::{
+    core::upgrade,
+    ping, swarm,
+    yamux::{self, WindowUpdateMode},
+};
 
 use crate::macros::non_zero;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct YamuxConfig {
     pub max_buffer_size: usize,
+}
+
+impl From<YamuxConfig> for yamux::Config {
+    #[expect(
+        deprecated,
+        reason = "yamux 0.13 leads to deadlocks, see: https://github.com/libp2p/rust-libp2p/issues/5410"
+    )]
+    fn from(value: YamuxConfig) -> Self {
+        let mut this = Self::default();
+        this.set_window_update_mode(WindowUpdateMode::on_receive())
+            .set_max_buffer_size(value.max_buffer_size);
+
+        this
+    }
 }
 
 impl Default for YamuxConfig {

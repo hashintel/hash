@@ -13,8 +13,7 @@ use libp2p::{
     metrics::{self, Metrics, Recorder},
     noise, ping,
     swarm::{dial_opts::DialOpts, ConnectionId, DialError, SwarmEvent},
-    yamux::WindowUpdateMode,
-    Multiaddr, PeerId, SwarmBuilder,
+    yamux, Multiaddr, PeerId, SwarmBuilder,
 };
 use libp2p_stream as stream;
 use stream::Control;
@@ -113,13 +112,7 @@ impl Task {
                 // As a compromise we're using `yamux 0.12` in  `WindowUpdateMode::OnReceive` mode
                 // with a buffer that is 16x higher than the default (as default) with a value of
                 // 16MiB.
-                #[expect(deprecated, reason = "yamux 0.13 leads to deadlocks, see: https://github.com/libp2p/rust-libp2p/issues/5410")]
-                let yamux = {
-                    let mut yamux = libp2p::yamux::Config::default();
-                    yamux.set_window_update_mode(WindowUpdateMode::on_receive());
-                    yamux.set_max_buffer_size(config.yamux.max_buffer_size);
-                    yamux
-                };
+                let yamux: yamux::Config = config.yamux.into();
 
                 let transport = transport
                     .upgrade(upgrade::Version::V1Lazy)
