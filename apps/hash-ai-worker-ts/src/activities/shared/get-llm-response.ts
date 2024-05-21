@@ -121,7 +121,24 @@ const sanitizeInputBeforeValidation = (params: {
   input: object;
   toolDefinition: LlmToolDefinition;
 }): object => {
-  const { input, toolDefinition } = params;
+  const { toolDefinition } = params;
+
+  /**
+   * Some LLM models (e.g. `claude-3-sonnet-20240229`) may provide
+   * valid input, but in a nested `properties` object. If this is present,
+   * and the tool definition does not specify a `properties` input, we can
+   * attempt to gracefully handle this by extracting the input from the nested
+   * `properties` object.
+   */
+  const input =
+    "properties" in params.input &&
+    typeof params.input.properties === "object" &&
+    params.input.properties !== null &&
+    !Object.keys(toolDefinition.inputSchema.properties ?? {}).includes(
+      "properties",
+    )
+      ? params.input.properties
+      : params.input;
 
   if (toolDefinition.sanitizeInputBeforeValidation) {
     try {
