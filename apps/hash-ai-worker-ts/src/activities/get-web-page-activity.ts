@@ -109,10 +109,15 @@ export const getWebPageActivity = async (params: {
   const urlObject = new URL(url);
 
   const shouldAskBrowser =
-    domainsToRequestFromBrowser.includes(urlObject.host) ||
-    domainsToRequestFromBrowser.some((domain) =>
-      urlObject.host.endsWith(`.${domain}`),
-    );
+    (domainsToRequestFromBrowser.includes(urlObject.host) ||
+      domainsToRequestFromBrowser.some((domain) =>
+        urlObject.host.endsWith(`.${domain}`),
+      )) &&
+    /**
+     * @todo: find way to mock the temporal context to allow for accessing the
+     * browser plugin in tests.
+     */
+    process.env.NODE_ENV !== "test";
 
   const { htmlContent, title } = shouldAskBrowser
     ? await getWebPageFromBrowser(url)
