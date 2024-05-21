@@ -77,6 +77,46 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         borderColor: theme.palette.blue["70"],
       };
 
+      /** ====================== SIZE specific styling ============================= */
+
+      baseStyles = {
+        ...baseStyles,
+        borderRadius: `${buttonBorderRadius.md}px`,
+        ...(size === "large" && {
+          padding: "16px 32px",
+          minHeight: 56,
+          minWidth: 120,
+          borderRadius: `${buttonBorderRadius.lg}px`,
+          ...theme.typography.largeTextLabels,
+        }),
+        ...(size === "medium" && {
+          padding: "12px 20px",
+          minHeight: 48,
+          minWidth: 104,
+          ...theme.typography.regularTextLabels,
+        }),
+        ...(size === "small" && {
+          padding: "12px 20px",
+          minHeight: 42,
+          minWidth: 78,
+          ...theme.typography.smallTextLabels,
+        }),
+        ...(size === "xs" && {
+          padding: "8px 16px",
+          minHeight: 34,
+          minWidth: 52,
+          ...theme.typography.smallTextLabels,
+          fontSize:
+            variant === "secondary_quiet"
+              ? "var(--step--2)"
+              : theme.typography.smallTextLabels.fontSize,
+        }),
+        fontWeight: 600,
+        ...(["tertiary", "tertiary_quiet"].includes(variant ?? "primary") && {
+          fontWeight: 500,
+        }),
+      };
+
       /** ====================== VARIANTS specific styling ============================= */
 
       if (variant === "primary") {
@@ -211,47 +251,21 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           ...hoverStyles,
           background: theme.palette.red[70],
         };
+      } else if (variant === "white_cta") {
+        baseStyles = {
+          ...baseStyles,
+          background: theme.palette.common.white,
+          border: "1px solid transparent",
+          boxShadow: theme.boxShadows.md,
+          borderRadius: 8,
+          color: theme.palette.common.black,
+        };
+
+        hoverStyles = {
+          ...hoverStyles,
+          boxShadow: theme.boxShadows.md,
+        };
       }
-
-      /** ====================== SIZE specific styling ============================= */
-
-      baseStyles = {
-        ...baseStyles,
-        borderRadius: `${buttonBorderRadius.md}px`,
-        ...(size === "large" && {
-          padding: "16px 32px",
-          minHeight: 56,
-          minWidth: 120,
-          borderRadius: `${buttonBorderRadius.lg}px`,
-          ...theme.typography.largeTextLabels,
-        }),
-        ...(size === "medium" && {
-          padding: "12px 20px",
-          minHeight: 48,
-          minWidth: 104,
-          ...theme.typography.regularTextLabels,
-        }),
-        ...(size === "small" && {
-          padding: "12px 20px",
-          minHeight: 42,
-          minWidth: 78,
-          ...theme.typography.smallTextLabels,
-        }),
-        ...(size === "xs" && {
-          padding: "8px 16px",
-          minHeight: 34,
-          minWidth: 52,
-          ...theme.typography.smallTextLabels,
-          fontSize:
-            variant === "secondary_quiet"
-              ? "var(--step--2)"
-              : theme.typography.smallTextLabels.fontSize,
-        }),
-        fontWeight: 600,
-        ...(["tertiary", "tertiary_quiet"].includes(variant ?? "primary") && {
-          fontWeight: 500,
-        }),
-      };
 
       return {
         ...baseStyles,
