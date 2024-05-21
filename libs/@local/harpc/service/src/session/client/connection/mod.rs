@@ -205,7 +205,6 @@ where
 
         // we need to cancel any remaining transactions, as we won't be able to route to them
         // anymore
-        // TODO: test!
         let guard = Guard::new();
         for (_, state) in self.storage.iter(&guard) {
             state.sender.close();

@@ -87,6 +87,8 @@ impl Task {
                 // when we reach about ~500MiB/s throughput on the memory transport, on TCP the
                 // difference is only about 3-5% maximum, on the memory transport it's about 20%
                 // when reaching maximum throughput of 500MiB/s through yamux (down to ~400MiB/s)
+                // `mplex` has the disadvantage that it seems to tend to also drop connections when
+                // the buffer is full, but we can't really do anything about that here.
                 let mut mplex = libp2p_mplex::MplexConfig::new();
                 mplex.set_split_send_size(1024 * 1024); // Max 1MiB (maximum per mplex spec)
 

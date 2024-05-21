@@ -26,5 +26,7 @@ impl From<stream::OpenStreamError> for OpenStreamError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error("transport layer")]
+#[error(
+    "The underlying swarm has been stopped or the request could not be fulfilled by the swarm."
+)]
 pub struct TransportError;

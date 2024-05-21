@@ -1,4 +1,5 @@
-use core::{future::ready, iter, net::Ipv4Addr};
+use alloc::sync::Arc;
+use core::{future::ready, iter, net::Ipv4Addr, time::Duration};
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt};
@@ -10,11 +11,11 @@ use harpc_wire_protocol::{
 };
 use humansize::ISizeFormatter;
 use libp2p::{multiaddr, Multiaddr};
-use tokio::time::Instant;
-use tokio_util::sync::CancellationToken;
+use tokio::{sync::Barrier, task::JoinSet, time::Instant};
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::{
-    client,
+    client::{self, Connection},
     error::TransactionError,
     server::{
         self,
@@ -264,10 +265,153 @@ async fn echo_tcp() {
     echo(libp2p::tcp::tokio::Transport::default, address).await;
 }
 
-#[tokio::test]
-#[ignore]
-async fn echo_memory_concurrent() {}
+struct ClientOptions {
+    length: usize,
+    index: u8,
+}
 
-#[tokio::test]
-#[ignore]
-async fn echo_tcp_concurrent() {}
+async fn echo_client<const VERIFY: bool>(
+    connection: Connection,
+    ClientOptions { length, index }: ClientOptions,
+) -> Duration {
+    let descriptor = Descriptor::default();
+
+    let payload = Bytes::from(vec![index; length]);
+    let payload_len = payload.len();
+
+    let time = Instant::now();
+
+    let mut stream = connection
+        .call(
+            descriptor.service,
+            descriptor.procedure,
+            stream::iter(iter::once(payload)),
+        )
+        .await
+        .expect("connection should be open");
+
+    let mut response = stream
+        .next()
+        .await
+        .expect("should receive a response")
+        .expect("value response");
+
+    let mut bytes = 0;
+
+    while let Some(chunk) = response.next().await {
+        bytes += chunk.len();
+
+        if VERIFY {
+            assert!(chunk.iter().all(|&byte| byte == index));
+        }
+    }
+
+    let elapsed = time.elapsed();
+
+    assert_eq!(bytes, payload_len);
+
+    elapsed
+}
+
+async fn echo_concurrent<T>(
+    mut transport: impl FnMut() -> T + Send,
+    address: Multiaddr,
+    clients: u8,
+) where
+    T: Transport,
+{
+    let (server, _server_guard) = server(
+        TransportConfig::default(),
+        server::SessionConfig::default(),
+        transport(),
+    );
+    let server_ipc = server.transport().ipc().clone();
+
+    let address = {
+        let server_stream = server
+            .listen(address)
+            .await
+            .expect("should be able to listen on TCP");
+
+        let address = server_ipc
+            .external_addresses()
+            .await
+            .expect("should have transport layer running")
+            .pop()
+            .expect("should have at least one external address");
+
+        SimpleEchoService::spawn(server_stream);
+
+        address
+    };
+
+    let length = 1024 * 1024 * 32; // 32 MiB
+
+    let mut handles = JoinSet::new();
+    let barrier = Arc::new(Barrier::new(usize::from(clients)));
+
+    let (client, _client_guard) = client(
+        TransportConfig::default(),
+        client::SessionConfig::default(),
+        transport(),
+    );
+
+    for index in 0..clients {
+        let remote = address.clone();
+
+        let barrier = Arc::clone(&barrier);
+
+        let connection = client
+            .dial(remote.clone())
+            .await
+            .expect("should be able to dial server");
+
+        handles.spawn(async move {
+            barrier.wait().await;
+
+            echo_client::<true>(connection, ClientOptions { length, index }).await
+        });
+    }
+
+    let mut total = Duration::default();
+    while let Some(elapsed) = handles.join_next().await {
+        total += elapsed.expect("should not have crashed");
+    }
+    let average = total / u32::from(clients);
+
+    // calculate the throughput in bytes per second
+    #[expect(
+        clippy::float_arithmetic,
+        clippy::cast_precision_loss,
+        reason = "statistics"
+    )]
+    let throughput = (length as f64) / average.as_secs_f64();
+    let formatter = ISizeFormatter::new(throughput, humansize::BINARY);
+
+    println!("Average Elapsed: {average:?}");
+    println!("Average Throughput: {formatter:.2}/s");
+}
+
+#[test_log::test(tokio::test(flavor = "multi_thread", worker_threads = 8))]
+async fn echo_memory_concurrent() {
+    let address: Multiaddr = iter::once(multiaddr::Protocol::Memory(0)).collect();
+
+    echo_concurrent(
+        libp2p::core::transport::MemoryTransport::default,
+        address,
+        4,
+    )
+    .await;
+}
+
+#[test_log::test(tokio::test(flavor = "multi_thread", worker_threads = 8))]
+async fn echo_tcp_concurrent() {
+    let address: Multiaddr = [
+        multiaddr::Protocol::Ip4(Ipv4Addr::LOCALHOST),
+        multiaddr::Protocol::Tcp(0),
+    ]
+    .into_iter()
+    .collect();
+
+    echo_concurrent(libp2p::tcp::tokio::Transport::default, address, 4).await;
+}

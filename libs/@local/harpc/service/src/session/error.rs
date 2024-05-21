@@ -4,7 +4,7 @@ use harpc_wire_protocol::response::kind::ErrorCode;
 use crate::codec::PlainError;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error("session layer")]
+#[error("The session layer has encountered an error, the connection has been closed")]
 pub struct SessionError;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
