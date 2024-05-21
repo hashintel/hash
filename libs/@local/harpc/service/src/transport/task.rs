@@ -82,6 +82,7 @@ impl Task {
             .with_other_transport(|keypair| {
                 let noise = noise::Config::new(keypair)?;
                 let mut yamux = yamux::Config::default();
+                #[expect(deprecated, reason = "WindowUpdateMode::OnRead deadlocks, see https://github.com/libp2p/rust-libp2p/issues/5410")]
                 yamux.set_window_update_mode(WindowUpdateMode::on_receive());
 
                 let transport = transport

@@ -8,6 +8,7 @@ use harpc_wire_protocol::{
     request::{procedure::ProcedureDescriptor, service::ServiceDescriptor},
     response::kind::ErrorCode,
 };
+use humansize::ISizeFormatter;
 use libp2p::{multiaddr, Multiaddr};
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
@@ -195,7 +196,7 @@ where
     let descriptor = Descriptor::default();
 
     // send 1MiB of data
-    let payload = Bytes::from(vec![0_u8; 1024 * 1024]);
+    let payload = Bytes::from(vec![0_u8; 1024 * 1024 * 32]);
     let payload_len = payload.len();
 
     let connection = client
@@ -227,9 +228,21 @@ where
     }
 
     let elapsed = time.elapsed();
-    println!("Elapsed: {:?}", elapsed);
 
     assert_eq!(bytes, payload_len);
+
+    println!("Elapsed: {elapsed:?}");
+
+    // calculate the throughput in bytes per second
+    #[expect(
+        clippy::float_arithmetic,
+        clippy::cast_precision_loss,
+        reason = "statistics"
+    )]
+    let throughput = (payload_len as f64) / elapsed.as_secs_f64();
+    let formatter = ISizeFormatter::new(throughput, humansize::BINARY);
+
+    println!("Throughput: {formatter:.2}/s");
 }
 
 #[tokio::test]
