@@ -16,27 +16,36 @@ export type EntitySummary = {
   entityTypeId: VersionedUrl;
 };
 
-const toolNames = ["registerEntitySummary"] as const;
+const toolNames = ["registerEntitySummaries"] as const;
 
 type ToolName = (typeof toolNames)[number];
 
 const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
-  registerEntitySummary: {
-    name: "registerEntitySummary",
-    description: "Register an entity summary.",
+  registerEntitySummaries: {
+    name: "registerEntitySummaries",
+    description: "Register the relevant entity summaries.",
     inputSchema: {
       type: "object",
       properties: {
-        name: {
-          type: "string",
-          description: "The name of the entity.",
-        },
-        summary: {
-          type: "string",
-          description: "The summary of the entity.",
+        entitySummaries: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description: "The name of the entity.",
+              },
+              summary: {
+                type: "string",
+                description: "The summary of the entity.",
+              },
+            },
+            required: ["name", "summary"],
+          },
         },
       },
-      required: ["name", "summary"],
+      required: ["entitySummaries"],
     },
   },
 };
@@ -74,6 +83,7 @@ export const getEntitySummariesFromText = async (params: {
   const llmResponse = await getLlmResponse(
     {
       model: "claude-3-opus-20240229",
+      toolChoice: toolNames[0],
       messages: [
         {
           role: "user",
@@ -113,19 +123,20 @@ export const getEntitySummariesFromText = async (params: {
   const entitySummaries: EntitySummary[] = [];
 
   for (const toolCall of toolCalls) {
-    const { name, summary } = toolCall.input as {
-      name: string;
-      summary: string;
+    const { entitySummaries: toolCallEntitySummaries } = toolCall.input as {
+      entitySummaries: { name: string; summary: string }[];
     };
 
-    const localId = generateUuid();
+    for (const { name, summary } of toolCallEntitySummaries) {
+      const localId = generateUuid();
 
-    entitySummaries.push({
-      localId,
-      name,
-      summary,
-      entityTypeId: dereferencedEntityType.$id,
-    });
+      entitySummaries.push({
+        localId,
+        name,
+        summary,
+        entityTypeId: dereferencedEntityType.$id,
+      });
+    }
   }
 
   return { entitySummaries };
