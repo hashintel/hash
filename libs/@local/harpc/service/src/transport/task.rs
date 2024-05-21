@@ -13,6 +13,7 @@ use libp2p::{
     metrics::{self, Metrics, Recorder},
     noise, ping,
     swarm::{dial_opts::DialOpts, ConnectionId, DialError, SwarmEvent},
+    yamux::WindowUpdateMode,
     Multiaddr, PeerId, SwarmBuilder,
 };
 use libp2p_stream as stream;
@@ -80,22 +81,50 @@ impl Task {
             .with_tokio()
             .with_other_transport(|keypair| {
                 let noise = noise::Config::new(keypair)?;
-                // while mplex is slower than yamux WindowUpdateMode::OnReceive, it is not prone to
-                // "buffer of stream grows beyond limit" errors, and unlike yamux 0.13
-                // (WindowUpdateMode::OnRead) it does not deadlock.
-                // The difference here is only really visible in the case of the memory transport
-                // when we reach about ~500MiB/s throughput on the memory transport, on TCP the
-                // difference is only about 3-5% maximum, on the memory transport it's about 20%
-                // when reaching maximum throughput of 500MiB/s through yamux (down to ~400MiB/s)
-                // `mplex` has the disadvantage that it seems to tend to also drop connections when
-                // the buffer is full, but we can't really do anything about that here.
-                let mut mplex = libp2p_mplex::MplexConfig::new();
-                mplex.set_split_send_size(1024 * 1024); // Max 1MiB (maximum per mplex spec)
+
+                // The choice of multiplexer sadly isn't obvious, as each multiplexer has its own
+                // advantages and disadvantages. The two available multiplexers are `mplex` and
+                // `yamux`.
+                //
+                // `yamux` is recommended for all new applications, but sadly the current Rust
+                // implementations has some problems.
+                // `yamux` has two different modes of operations, `WindowUpdateMode::OnRead` and
+                // `WindowUpdateMode::OnReceive`. The former is the default as it obeys
+                // backpressure, but sadly it isn't really usable.
+                // `yamux` on `WindowUpdateMode::OnRead` is prone to deadlocks in the case that both
+                // sides of the connection are upgrading the window size at the same time.
+                // This is undesirable, as our implementation is inherently duplexed, making no
+                // distinction between the two sides of the connection. This allows for much higher
+                // throughput. `WindowUpdateMode::OnReceive` on the other hand has the problem that
+                // if too much data is send the error "buffer of stream grows beyond limit" is
+                // emitted on the client and data is lost.
+                //
+                // `mplex` is an alternative multiplexer that is slower than `yamux`, but doesn't
+                // suffer from the problem, instead `mplex` observes another problem, which is that
+                // it it (a) considered legacy, (b) allows writing after the connection has
+                // terminated, this means that we are unable to reliable detect if a connection has
+                // been terminated and our process will continue writing to the buffer and (c) is
+                // 3-10% slower than using yamux.
+                //
+                // Another alternative would be using QUIC, this has a massive performance penalty
+                // of ~50% as well as is unable to be used with js as `nodejs` does not support QUIC
+                // yet.
+                //
+                // As a compromise we're using `yamux 0.12` in  `WindowUpdateMode::OnReceive` mode
+                // with a buffer that is 16x higher than the default (as default) with a value of
+                // 16MiB.
+                #[expect(deprecated, reason = "yamux 0.13 leads to deadlocks, see: https://github.com/libp2p/rust-libp2p/issues/5410")]
+                let yamux = {
+                    let mut yamux = libp2p::yamux::Config::default();
+                    yamux.set_window_update_mode(WindowUpdateMode::on_receive());
+                    yamux.set_max_buffer_size(config.yamux.max_buffer_size);
+                    yamux
+                };
 
                 let transport = transport
                     .upgrade(upgrade::Version::V1Lazy)
                     .authenticate(noise)
-                    .multiplex(mplex);
+                    .multiplex(yamux);
 
                 Ok(transport)
             })

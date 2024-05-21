@@ -220,7 +220,6 @@ pub(crate) struct ConnectionParts<'a> {
     pub(crate) cancel: CancellationToken,
 }
 
-// TODO: shutdown if dropped (when 0 entries then we can just stop our tasks)
 pub struct Connection {
     config: SessionConfig,
 

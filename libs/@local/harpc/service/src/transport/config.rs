@@ -4,6 +4,19 @@ use libp2p::{core::upgrade, ping, swarm};
 
 use crate::macros::non_zero;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct YamuxConfig {
+    pub max_buffer_size: usize,
+}
+
+impl Default for YamuxConfig {
+    fn default() -> Self {
+        Self {
+            max_buffer_size: 16 * 1024 * 1024, // 16 MiB
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct SwarmConfig {
     pub notify_handler_buffer_size: Option<NonZero<usize>>,
@@ -60,6 +73,7 @@ impl SwarmConfig {
 pub struct TransportConfig {
     pub ping: ping::Config,
     pub swarm: SwarmConfig,
+    pub yamux: YamuxConfig,
     pub ipc_buffer_size: NonZero<usize>,
 }
 
@@ -68,6 +82,7 @@ impl Default for TransportConfig {
         Self {
             ping: ping::Config::default(),
             swarm: SwarmConfig::default(),
+            yamux: YamuxConfig::default(),
             ipc_buffer_size: non_zero!(16),
         }
     }

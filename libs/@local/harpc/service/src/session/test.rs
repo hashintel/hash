@@ -12,7 +12,7 @@ use harpc_wire_protocol::{
 use humansize::ISizeFormatter;
 use libp2p::{multiaddr, Multiaddr};
 use tokio::{sync::Barrier, task::JoinSet, time::Instant};
-use tokio_util::{sync::CancellationToken, task::TaskTracker};
+use tokio_util::sync::CancellationToken;
 
 use super::{
     client::{self, Connection},

@@ -938,7 +938,6 @@ async fn send_no_delay_flush_empty() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn send_delay() {
     let descriptor = Descriptor::default();
     let (tx, mut rx, handle) = setup_send(
