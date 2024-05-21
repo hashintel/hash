@@ -81,3 +81,6 @@ uuid = { version = "1.8.0", default-features = false }
 inherits = "release"
 lto = "fat"
 strip = "none"
+
+[patch.crates-io]
+crc32c = { git = "https://github.com/zowens/crc32c", rev = "04eabbc6ef33e0afe529da729e65916c48f9d032" }
