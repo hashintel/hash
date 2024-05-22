@@ -20,7 +20,7 @@ const systemPrompt = dedent(`
   You are an entity summary agent.
 
   The user will provide you with:
-    - "entities": a list of entities for which you need to provide a "name" and a "summary".
+    - "entities": a list of entities, for each of which you need to provide a "name" and a "summary".
 
   You must provide a summary for every entity in the list provided by the user.
 `);
