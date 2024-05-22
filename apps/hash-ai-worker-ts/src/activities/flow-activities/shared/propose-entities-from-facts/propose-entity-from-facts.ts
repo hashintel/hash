@@ -42,6 +42,12 @@ const mapPropertiesSchemaToInputPropertiesSchema = (params: {
         [simplifiedPropertyKey]: {
           type: "object",
           properties: {
+            /**
+             * @todo: attach provenance information to nested properties which have corresponding
+             * property type definitions.
+             *
+             * @see https://linear.app/hash/issue/H-2755/attach-provenance-information-to-nested-properties-when-proposing
+             */
             propertyValue: jsonSchema,
             factIdsUsedToDetermineValue: {
               type: "array",
