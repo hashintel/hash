@@ -11,7 +11,7 @@ const usageCostLimit = {
     month: 150,
   },
   user: {
-    day: 50,
+    day: 10,
     month: 50,
   },
 };
