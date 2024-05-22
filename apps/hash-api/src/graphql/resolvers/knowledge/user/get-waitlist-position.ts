@@ -32,7 +32,7 @@ export const getWaitlistPositionResolver: ResolverFn<
     throw new Error("Error fetching waitlist position");
   }
 
-  if (data.waitlistPosition === undefined) {
+  if (typeof data.waitlistPosition !== "number") {
     throw new Error("No waitlist position found for user");
   }
 

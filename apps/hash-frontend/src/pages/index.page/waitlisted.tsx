@@ -18,12 +18,24 @@ const SelfHostedAccessDenied = () => (
   <HomepageCard wide>
     <HomepageBigText>You do not have access</HomepageBigText>
     <HomepageBigText>to this instance</HomepageBigText>
-    <HomepageSmallCaps>Contact the admins if you should</HomepageSmallCaps>
+    <HomepageSmallCaps>Sign up for hosted HASH instead</HomepageSmallCaps>
+    <Button
+      href="https://hash.ai/signup"
+      variant="primary"
+      size="small"
+      sx={{ borderRadius: 2 }}
+    >
+      Create an account
+      <ArrowRightIcon sx={{ fontSize: 14, ml: 1 }} />
+    </Button>
   </HomepageCard>
 );
 
 export const Waitlisted = () => {
-  const { data } = useQuery<GetWaitlistPositionQuery>(getWaitlistPositionQuery);
+  const { data } = useQuery<GetWaitlistPositionQuery>(
+    getWaitlistPositionQuery,
+    { skip: isSelfHostedInstance },
+  );
 
   const position = data?.getWaitlistPosition;
 
@@ -77,7 +89,7 @@ export const Waitlisted = () => {
           </HomepageCard>
         </>
       )}
-      <HomepageCard>
+      <HomepageCard wide={isSelfHostedInstance}>
         <HomepageBigText sx={{ fontWeight: 400 }}>Install the </HomepageBigText>
         <HomepageBigText
           sx={{ color: ({ palette }) => palette.aqua[70], fontWeight: 700 }}
