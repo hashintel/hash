@@ -1,4 +1,4 @@
-use std::mem::ManuallyDrop;
+use std::{fs, mem::ManuallyDrop, path::Path};
 
 use authorization::{
     schema::{
@@ -26,8 +26,11 @@ use graph_types::{
     ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
     owned_by_id::OwnedById,
 };
+use repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
+use tracing_flame::FlameLayer;
+use tracing_subscriber::{prelude::*, registry::Registry};
 use type_system::{DataType, EntityType, PropertyType};
 
 type Pool = PostgresStorePool<NoTls>;
@@ -42,6 +45,30 @@ pub struct StoreWrapper<A: AuthorizationApi> {
     pub store: ManuallyDrop<Store<A>>,
     #[allow(dead_code, reason = "False positive")]
     pub account_id: AccountId,
+}
+
+pub fn setup_subscriber(
+    group_id: &str,
+    function_id: Option<&str>,
+    value_str: Option<&str>,
+) -> impl Drop {
+    struct Guard<A, B>(A, B);
+    #[expect(clippy::empty_drop)]
+    impl<A, B> Drop for Guard<A, B> {
+        fn drop(&mut self) {}
+    }
+
+    let target_dir = Path::new("out").join(generate_path(group_id, function_id, value_str));
+    fs::create_dir_all(&target_dir).expect("could not create directory");
+    let flame_file = target_dir.join("tracing.folded");
+
+    let (flame_layer, file_guard) =
+        FlameLayer::with_file(flame_file).expect("could not create flame layer");
+
+    let subscriber = Registry::default().with(flame_layer);
+
+    let default_guard = tracing::subscriber::set_default(subscriber);
+    Guard(default_guard, file_guard)
 }
 
 impl<A> StoreWrapper<A>

@@ -11,6 +11,8 @@ env:
   TURBO_TEAM: hashintel
   TURBO_REMOTE_ONLY: true
 
+  VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -23,7 +25,7 @@ jobs:
       integration: ${{ steps.packages.outputs.integration }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
         with:
           fetch-depth: 2
 
@@ -52,6 +54,9 @@ jobs:
   unit-benches:
     name: Unit
     needs: [setup]
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.unit) }}
       fail-fast: false
@@ -59,7 +64,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
         with:
           fetch-depth: 2
 
@@ -88,7 +93,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@c2927f0c5b5adc6a76bc4a7847bc6e0503754bed # v2.33.22
+        uses: taiki-e/install-action@689459d9ffef015a7fbaef7f3b6b9f053f80a64d # v2.33.26
         with:
           tool: just@1.13.0,critcmp@0.1.8
 
@@ -167,11 +172,27 @@ jobs:
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
           echo '<details><summary><h2>${{ matrix.package }} – Units</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
-          turbo run analyze-benchmarks -- --output "/tmp/benches.md"
+          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
           cat "/tmp/benches.md" >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo '</details>' >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
 
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@d1720f055e0635fd932a1d2a48f87a666a57906c # v3.0.0
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: dev
+          secrets: |
+            aws/creds/dev-deploy access_key | AWS_ACCESS_KEY_ID;
+            aws/creds/dev-deploy secret_key | AWS_SECRET_ACCESS_KEY;
+            aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
+
       - name: Upload benchmark results
+        run: turbo run upload-benchmarks -- --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
+
+      - name: Upload benchmark summary
         if: steps.benches.outputs.create-baseline == 'true'
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
@@ -181,6 +202,9 @@ jobs:
   integration-benches:
     name: Integration
     needs: [setup]
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration) }}
       fail-fast: false
@@ -188,7 +212,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
         with:
           fetch-depth: 2
 
@@ -217,7 +241,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@c2927f0c5b5adc6a76bc4a7847bc6e0503754bed # v2.33.22
+        uses: taiki-e/install-action@689459d9ffef015a7fbaef7f3b6b9f053f80a64d # v2.33.26
         with:
           tool: just@1.13.0,critcmp@0.1.8
 
@@ -319,11 +343,27 @@ jobs:
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
           echo '<details><summary><h2>${{ matrix.package }} – Integrations</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
-          turbo run analyze-benchmarks -- --output "/tmp/benches.md"
+          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
           cat "/tmp/benches.md" >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo '</details>' >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
 
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@d1720f055e0635fd932a1d2a48f87a666a57906c # v3.0.0
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: dev
+          secrets: |
+            aws/creds/dev-deploy access_key | AWS_ACCESS_KEY_ID;
+            aws/creds/dev-deploy secret_key | AWS_SECRET_ACCESS_KEY;
+            aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
+
       - name: Upload benchmark results
+        run: turbo run upload-benchmarks -- --artifacts-path "$(pwd)/${{ matrix.directory }}/out" --enforce-flame-graph
+
+      - name: Upload benchmark summary
         if: steps.benches.outputs.create-baseline == 'true'
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
@@ -366,7 +406,7 @@ jobs:
 
       - name: Checkout
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
-        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
 
       - name: Download reports' artifacts
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'

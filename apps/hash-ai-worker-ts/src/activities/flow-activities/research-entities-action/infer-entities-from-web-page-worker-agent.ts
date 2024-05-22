@@ -707,12 +707,12 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                         type: SourceType.Document,
                         location: {
                           uri: toolCallInput.fileUrl,
-                          /** @todo */
+                          /** @todo H-2728 get the AI to infer these from the doc */
                           name: undefined,
                           description: undefined,
                         },
                         loadedAt: accessedRemoteFile?.loadedAt,
-                        /** @todo */
+                        /** @todo H-2728 get the AI to infer these from the doc */
                         authors: undefined,
                         firstPublished: undefined,
                         lastUpdated: undefined,

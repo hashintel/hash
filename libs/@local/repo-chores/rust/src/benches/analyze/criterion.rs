@@ -1,8 +1,9 @@
 use std::fmt;
 
 use crate::benches::{
+    analyze::BenchmarkAnalysis,
     fmt::{latex::Latex, Braced, Color, Colored, Duration},
-    report::{Benchmark, Stat},
+    report::Stat,
 };
 
 fn stat(fmt: &mut fmt::Formatter<'_>, stat: &Stat, change: Option<&Stat>) -> fmt::Result {
@@ -38,20 +39,47 @@ fn group_end(fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
 }
 
 fn table_header(fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-    fmt.write_str("| Function | Value | Mean |\n")?;
-    fmt.write_str("|----------|-------|------|\n")
+    fmt.write_str("| Function | Value | Mean | Flame graphs | \n")?;
+    fmt.write_str("|----------|-------|------|--------------|\n")
 }
 
 fn table_row(
     fmt: &mut fmt::Formatter<'_>,
-    function: &str,
-    value: &str,
-    mean: &Stat,
-    change: Option<&Stat>,
+    analysis: &BenchmarkAnalysis,
+    name: &str,
 ) -> fmt::Result {
-    write!(fmt, "| {function} | {value} | $$")?;
-    stat(fmt, mean, change)?;
-    writeln!(fmt, " $$ |")
+    write!(
+        fmt,
+        "| {} | {} | $$",
+        analysis
+            .measurement
+            .info
+            .function_id
+            .as_deref()
+            .unwrap_or_default(),
+        analysis
+            .measurement
+            .info
+            .value_str
+            .as_deref()
+            .unwrap_or_default()
+    )?;
+    stat(
+        fmt,
+        &analysis.measurement.estimates.mean,
+        analysis.change.as_ref().map(|estimate| &estimate.mean),
+    )?;
+    write!(fmt, " $$ |")?;
+    if analysis.folded_stacks.is_some() {
+        writeln!(
+            fmt,
+            " [Flame Graph](https://benchmarks.hash.dev/{}/{}/flamegraph.svg) |",
+            name,
+            analysis.measurement.info.directory_name.replace(' ', "+")
+        )
+    } else {
+        fmt.write_str(" |\n")
+    }
 }
 
 /// Formats the given benchmarks in GitHub-flavored Markdown.
@@ -60,36 +88,24 @@ fn table_row(
 ///
 /// Returns an error if writing to `fmt` fails.
 pub fn format_github_markdown<'b>(
-    benchmarks: impl IntoIterator<Item = &'b Benchmark>,
     fmt: &mut fmt::Formatter<'_>,
-    baseline_name: &str,
+    analyses: impl IntoIterator<Item = &'b BenchmarkAnalysis>,
+    name: &str,
 ) -> fmt::Result {
     let mut last_group_id = None::<&str>;
-    for benchmark in benchmarks {
-        for (name, baseline) in &benchmark.measurements {
-            if **name != *baseline_name {
-                continue;
-            }
-
-            if last_group_id.is_none() {
-                group_start(fmt, &baseline.info.group_id)?;
+    for analysis in analyses {
+        if last_group_id.is_none() {
+            group_start(fmt, &analysis.measurement.info.group_id)?;
+            table_header(fmt)?;
+        } else if let Some(group_id) = last_group_id.as_ref() {
+            if *group_id != analysis.measurement.info.group_id {
+                group_end(fmt)?;
+                group_start(fmt, &analysis.measurement.info.group_id)?;
                 table_header(fmt)?;
-            } else if let Some(group_id) = last_group_id.as_ref() {
-                if *group_id != baseline.info.group_id {
-                    group_end(fmt)?;
-                    group_start(fmt, &baseline.info.group_id)?;
-                    table_header(fmt)?;
-                }
             }
-            last_group_id = Some(baseline.info.group_id.as_str());
-            table_row(
-                fmt,
-                baseline.info.function_id.as_deref().unwrap_or_default(),
-                baseline.info.value_str.as_deref().unwrap_or_default(),
-                &baseline.estimates.mean,
-                benchmark.change.as_ref().map(|x| &x.mean),
-            )?;
         }
+        last_group_id = Some(analysis.measurement.info.group_id.as_str());
+        table_row(fmt, analysis, name)?;
     }
 
     Ok(())

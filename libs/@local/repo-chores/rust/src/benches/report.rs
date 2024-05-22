@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
+use criterion::Throughput;
 use error_stack::{Report, ResultExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use walkdir::WalkDir;
@@ -11,10 +12,9 @@ pub struct Info {
     pub title: String,
     pub full_id: String,
     pub directory_name: String,
+    pub throughput: Option<Throughput>,
     pub group_id: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub function_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub value_str: Option<String>,
 }
 
@@ -37,7 +37,6 @@ pub struct Estimates {
     pub mean: Stat,
     pub median: Stat,
     pub median_abs_dev: Stat,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub slope: Option<Stat>,
     pub std_dev: Stat,
 }
@@ -46,6 +45,12 @@ pub struct Estimates {
 pub struct ChangeEstimates {
     pub mean: Stat,
     pub median: Stat,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Tukey {
+    values: Box<[f64]>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -59,7 +64,8 @@ pub struct Sample {
 pub struct Measurement {
     pub info: Info,
     pub estimates: Estimates,
-    pub samples: Sample,
+    pub sample: Sample,
+    pub tukey: Tukey,
 }
 
 impl Measurement {
@@ -79,7 +85,10 @@ impl Measurement {
         let Some(estimates) = read_json_path(path.join("estimates.json"))? else {
             return Ok(None);
         };
-        let Some(samples) = read_json_path(path.join("sample.json"))? else {
+        let Some(sample) = read_json_path(path.join("sample.json"))? else {
+            return Ok(None);
+        };
+        let Some(tukey) = read_json_path(path.join("tukey.json"))? else {
             return Ok(None);
         };
 
@@ -88,7 +97,8 @@ impl Measurement {
             Self {
                 info,
                 estimates,
-                samples,
+                sample,
+                tukey,
             },
         )))
     }

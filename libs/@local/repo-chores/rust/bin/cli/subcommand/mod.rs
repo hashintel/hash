@@ -13,13 +13,13 @@ pub(super) enum Subcommand {
 }
 
 impl Subcommand {
-    pub(super) fn run(self) -> Result<(), Box<dyn Error>> {
+    pub(super) async fn run(self) -> Result<(), Box<dyn Error + Send + Sync>> {
         match self {
             Self::Completions(args) => {
                 completions::run(&args);
                 Ok(())
             }
-            Self::Benches(args) => benches::run(args),
+            Self::Benches(args) => benches::run(args).await,
         }
     }
 }
