@@ -461,11 +461,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
               };
             }
 
-            const {
-              prompt: toolCallPrompt,
-              // entityTypeIds: inferringEntitiesOfTypeIds,
-              // linkEntityTypeIds: inferringLinkEntitiesOfTypeIds,
-            } = toolCallInput;
+            const { prompt: toolCallPrompt } = toolCallInput;
 
             // if (
             //   "expectedNumberOfEntities" in toolCallInput &&
@@ -476,58 +472,6 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
             //     output: dedent(`
             //       You provided an expected number of entities which is less than 1. You must provide
             //       a positive integer as the expected number of entities to infer.
-            //     `),
-            //     isError: true,
-            //   };
-            // }
-
-            // const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
-
-            // const invalidEntityTypeIds = inferringEntitiesOfTypeIds.filter(
-            //   (entityTypeId) => !validEntityTypeIds.includes(entityTypeId),
-            // );
-
-            // const validLinkEntityTypeIds = input.linkEntityTypes?.map(
-            //   ({ $id }) => $id,
-            // );
-
-            // const invalidLinkEntityTypeIds =
-            //   inferringLinkEntitiesOfTypeIds.filter(
-            //     (entityTypeId) =>
-            //       !validLinkEntityTypeIds?.includes(entityTypeId),
-            //   );
-
-            // if (
-            //   invalidEntityTypeIds.length > 0 ||
-            //   invalidLinkEntityTypeIds.length > 0
-            // ) {
-            //   return {
-            //     ...toolCall,
-            //     output: dedent(`
-            //       ${
-            //         invalidEntityTypeIds.length > 0
-            //           ? dedent(`
-            //             You provided invalid entityTypeIds which don't correspond to the entity types
-            //             which were initially provided: ${JSON.stringify(invalidEntityTypeIds)}
-
-            //             The possible entity types you can submit are: ${JSON.stringify(
-            //               validEntityTypeIds,
-            //             )}
-            //           `)
-            //           : ""
-            //       }
-            //       ${
-            //         invalidLinkEntityTypeIds.length > 0
-            //           ? dedent(`
-            //             You provided invalid linkEntityTypeIds which don't correspond to the link entity types
-            //             which were initially provided: ${JSON.stringify(invalidLinkEntityTypeIds)}
-
-            //             The possible link entity types you can submit are: ${JSON.stringify(
-            //               validLinkEntityTypeIds,
-            //             )}
-            //           `)
-            //           : ""
-            //       }
             //     `),
             //     isError: true,
             //   };

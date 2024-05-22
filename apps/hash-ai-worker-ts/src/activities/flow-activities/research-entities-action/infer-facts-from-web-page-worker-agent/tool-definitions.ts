@@ -1,4 +1,3 @@
-// import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import dedent from "dedent";
 
@@ -89,27 +88,6 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
               the entity type.
           `),
         },
-        // entityTypeIds: {
-        //   type: "array",
-        //   items: {
-        //     type: "string",
-        //   },
-        //   description: dedent(`
-        //     An array of entity type IDs of the entities for which facts should be inferred from the provided HTML content.
-        //   `),
-        // },
-        // linkEntityTypeIds: {
-        //   type: "array",
-        //   items: {
-        //     type: "string",
-        //   },
-        //   description: dedent(`
-        //     An array of link entity type IDs of the links between entities
-        //       for which facts should be inferred from provided HTML content.
-
-        //     If there are no relevant links to infer, provide an empty array.
-        //   `),
-        // },
         // /**
         //  * @todo: consider letting the agent set `"unknown"` or `"as many as possible"` as
         //  * an argument here, incase it isn't sure of the number of entities that can be inferred.
@@ -136,8 +114,6 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
         // "htmlContent",
         "prompt",
         "explanation",
-        // "entityTypeIds",
-        // "linkEntityTypeIds",
         // "expectedNumberOfEntities",
         // "validAt",
       ],
@@ -236,27 +212,6 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
               the entity type.
           `),
         },
-        // entityTypeIds: {
-        //   type: "array",
-        //   items: {
-        //     type: "string",
-        //   },
-        //   description: dedent(`
-        //     An array of entity type IDs of the entities for which facts should be inferred from the provided HTML content.
-        //   `),
-        // },
-        // linkEntityTypeIds: {
-        //   type: "array",
-        //   items: {
-        //     type: "string",
-        //   },
-        //   description: dedent(`
-        //     An array of link entity type IDs of the links between entities
-        //       for which facts should be inferred from provided HTML content.
-
-        //     If there are no relevant links to infer, provide an empty array.
-        //   `),
-        // },
         // validAt: {
         //   type: "string",
         //   format: "date-time",
@@ -284,8 +239,6 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
         "fileUrl",
         "text",
         "prompt",
-        // "entityTypeIds",
-        // "linkEntityTypeIds",
         // "validAt",
       ],
     },
@@ -353,8 +306,6 @@ export type ToolCallArguments = Subtype<
       url: string;
       // htmlContent: string;
       prompt: string;
-      // entityTypeIds: VersionedUrl[];
-      // linkEntityTypeIds: VersionedUrl[];
       // expectedNumberOfEntities: number;
       // validAt: string;
     };
@@ -378,8 +329,6 @@ export type ToolCallArguments = Subtype<
        */
       fileUrl: string;
       prompt: string;
-      // entityTypeIds: VersionedUrl[];
-      // linkEntityTypeIds: VersionedUrl[];
       // includeExistingEntityIds?: string[];
       // validAt: string;
     };
