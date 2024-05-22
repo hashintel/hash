@@ -25,6 +25,27 @@ export const HomepageBigText = ({
   </Typography>
 );
 
+export const HomepageMediumText = ({
+  children,
+  sx,
+}: PropsWithChildren<{ sx?: SxProps<Theme> }>) => (
+  <Typography
+    sx={[
+      ({ palette }) => ({
+        color: palette.gray[60],
+        fontSize: 24,
+        letterSpacing: "-2%",
+        fontWeight: 500,
+        mb: 3,
+        mt: 1,
+      }),
+      ...(Array.isArray(sx) ? sx : []),
+    ]}
+  >
+    {children}
+  </Typography>
+);
+
 export const HomepageSmallCaps = ({
   children,
   sx,

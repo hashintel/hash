@@ -15,8 +15,8 @@ export const UsesCard = () => (
           background:
             "linear-gradient(90deg, #FC29B4 0%, #FF4042 19.79%, #FFCD1D 42.71%, #2BE48C 59.9%, #23C3E7 77.6%, #2D36FD 100%)",
           fontWeight: 700,
-          "-webkit-background-clip": "text",
-          "-webkit-text-fill-color": "transparent",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
         }}
       >
         other people

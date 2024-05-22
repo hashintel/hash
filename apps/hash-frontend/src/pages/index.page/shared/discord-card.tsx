@@ -1,4 +1,4 @@
-import { DiscordIcon } from "@apps/hashdotdev/src/components/icons/discord-icon";
+import { DiscordIcon } from "@hashintel/design-system";
 
 import { Button } from "../../../shared/ui/button";
 import { HomepageCard } from "./homepage-card";

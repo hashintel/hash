@@ -9,11 +9,11 @@ import {
 } from "@mui/material";
 import type { ComponentProps, FunctionComponent, ReactNode } from "react";
 
-import { XTwitterIcon } from "@hashintel/design-system";
 import { SITE_DESCRIPTION } from "../config";
 import { DiscordIcon } from "./icons/discord-icon";
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
 import { GithubIcon } from "./icons/github-icon";
+import { XTwitterIcon } from "./icons/x-twitter-icon";
 import { Link } from "./link";
 import { Logo } from "./logo";
 import { Spacer } from "./spacer";
@@ -154,7 +154,7 @@ export const Footer: FunctionComponent = () => (
               <Link href="https://github.com/hashintel/hash">
                 <GithubIcon fontSize="inherit" />
               </Link>
-              <Link href="https://twitter.com/hashintel">
+              <Link href="https://x.com/hashintel">
                 <XTwitterIcon fontSize="inherit" />
               </Link>
               <Link href="https://hash.ai/discord">

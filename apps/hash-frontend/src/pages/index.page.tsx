@@ -1,10 +1,13 @@
 import { useQuery } from "@apollo/client";
+import { Stack } from "@mui/material";
+import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import type { HasAccessToHashQuery } from "../graphql/api-types.gen";
 import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
+import { LoggedIn } from "./index.page/logged-in";
 import { LoggedOut } from "./index.page/logged-out";
 import { Waitlisted } from "./index.page/waitlisted";
 import { useAuthInfo } from "./shared/auth-info-context";
@@ -16,6 +19,8 @@ const Page: NextPageWithLayout = () => {
     { skip: !authenticatedUser || authenticatedUser.accountSignupComplete },
   );
 
+  const { push } = useRouter();
+
   const hasAccessToHash = useMemo(() => {
     if (authenticatedUser?.accountSignupComplete) {
       return true;
@@ -24,7 +29,20 @@ const Page: NextPageWithLayout = () => {
     }
   }, [authenticatedUser, hasAccessToHashResponse]);
 
-  return hasAccessToHash ? <LoggedOut /> : <Waitlisted />;
+  if (!authenticatedUser?.accountSignupComplete) {
+    if (hasAccessToHash) {
+      void push("/signup");
+      return null;
+    }
+
+    return (
+      <Stack alignItems="center">
+        {authenticatedUser ? <Waitlisted /> : <LoggedOut />}
+      </Stack>
+    );
+  }
+
+  return <LoggedIn />;
 };
 
 Page.getLayout = (page) =>
