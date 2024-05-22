@@ -3,6 +3,7 @@ import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { BaseUrl } from "@local/hash-subgraph";
 import dedent from "dedent";
+import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
 import { extractErrorMessage } from "../../../infer-entities/shared/extract-validation-failure-details";
 import type { EntityPropertyValueWithSimplifiedProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties";
@@ -22,6 +23,121 @@ import { stringify } from "../../../shared/stringify";
 import type { ExistingEntitySummary } from "../../research-entities-action/summarize-existing-entities";
 import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../infer-facts-from-text/types";
+
+const mapPropertiesSchemaToInputPropertiesSchema = (params: {
+  properties: DereferencedEntityType["properties"];
+}): {
+  [key: string]: JSONSchemaDefinition;
+} => {
+  const { properties } = params;
+
+  const propertiesWithoutIds = stripIdsFromDereferencedProperties({
+    properties,
+  });
+
+  return Object.entries(propertiesWithoutIds).reduce(
+    (prev, [simplifiedPropertyKey, jsonSchema]) => {
+      return {
+        ...prev,
+        [simplifiedPropertyKey]: {
+          type: "object",
+          properties: {
+            propertyValue: jsonSchema,
+            factIdsUsedToDetermineValue: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+              description: dedent(`
+                The fact IDs of the facts used to determine the value of the property.
+              `),
+            },
+          },
+          required: ["propertyValue", "factIdsUsedToDetermineValue"],
+        } satisfies JSONSchemaDefinition,
+      };
+    },
+    {},
+  );
+};
+
+type InputPropertiesObject = {
+  [key: string]: {
+    propertyValue: unknown;
+    factIdsUsedToDetermineValue: string[];
+  };
+};
+
+const mapInputPropertiesToPropertiesObject = (params: {
+  inputProperties: InputPropertiesObject;
+}): Record<string, EntityPropertyValueWithSimplifiedProperties> => {
+  const { inputProperties } = params;
+
+  return Object.entries(inputProperties).reduce(
+    (prev, [simplifiedPropertyKey, { propertyValue }]) => {
+      return {
+        ...prev,
+        [simplifiedPropertyKey]: propertyValue,
+      };
+    },
+    {},
+  );
+};
+
+const generatePropertyMetadata = (params: {
+  inputProperties: InputPropertiesObject;
+  facts: Fact[];
+  simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+}): { propertyMetadata: ProposedEntity["propertyMetadata"] } => {
+  const { inputProperties, facts, simplifiedPropertyTypeMappings } = params;
+
+  const propertyMetadata: NonNullable<ProposedEntity["propertyMetadata"]> = [];
+
+  for (const [
+    simplifiedPropertyKey,
+    { factIdsUsedToDetermineValue },
+  ] of Object.entries(inputProperties)) {
+    const factsUsedToDetermineValue = facts.filter((fact) =>
+      factIdsUsedToDetermineValue.includes(fact.factId),
+    );
+
+    const sourcesUsedToDetermineValue = factsUsedToDetermineValue
+      .flatMap(({ sources }) => sources ?? [])
+      /**
+       * Deduplicate sources by URI, as the same source may have been used
+       * to produce multiple facts.
+       */
+      .filter((source, index, all) => {
+        const sourceLocationUri = source.location?.uri;
+        if (sourceLocationUri) {
+          return (
+            all.findIndex(
+              (otherSource) => otherSource.location?.uri === sourceLocationUri,
+            ) === index
+          );
+        }
+        return source;
+      });
+
+    const baseUrl = simplifiedPropertyTypeMappings[simplifiedPropertyKey];
+
+    if (!baseUrl) {
+      throw new Error(
+        `Could not find base URL mapping for simplified property key: ${simplifiedPropertyKey}`,
+      );
+    }
+
+    propertyMetadata.push({
+      path: [baseUrl],
+      metadata: { provenance: { sources: sourcesUsedToDetermineValue } },
+    });
+  }
+
+  return {
+    propertyMetadata:
+      propertyMetadata.length > 0 ? propertyMetadata : undefined,
+  };
+};
 
 const toolNames = ["proposeEntity", "abandonEntity"] as const;
 
@@ -49,7 +165,7 @@ const generateToolDefinitions = (params: {
             description: "The properties to set on the entity",
             default: {},
             type: "object",
-            properties: stripIdsFromDereferencedProperties({
+            properties: mapPropertiesSchemaToInputPropertiesSchema({
               properties: dereferencedEntityType.properties,
             }),
           },
@@ -77,10 +193,11 @@ const generateToolDefinitions = (params: {
                               "The properties to set on the outgoing link",
                             default: {},
                             type: "object",
-                            properties: stripIdsFromDereferencedProperties({
-                              properties:
-                                dereferencedOutgoingLinkEntityType.properties,
-                            }),
+                            properties:
+                              mapPropertiesSchemaToInputPropertiesSchema({
+                                properties:
+                                  dereferencedOutgoingLinkEntityType.properties,
+                              }),
                           },
                         },
                         required: [
@@ -265,18 +382,19 @@ export const proposeEntityFromFacts = async (params: {
   );
 
   if (proposeEntityToolCall) {
-    const { properties: simplifiedProperties, outgoingLinks } =
+    const { properties: inputProperties, outgoingLinks } =
       proposeEntityToolCall.input as {
-        properties: Record<string, EntityPropertyValueWithSimplifiedProperties>;
+        properties: InputPropertiesObject;
         outgoingLinks?: {
           entityTypeId: string;
           targetEntityId: string;
-          properties: Record<
-            string,
-            EntityPropertyValueWithSimplifiedProperties
-          >;
+          properties: InputPropertiesObject;
         }[];
       };
+
+    const simplifiedProperties = mapInputPropertiesToPropertiesObject({
+      inputProperties,
+    });
 
     const properties = mapSimplifiedPropertiesToProperties({
       simplifiedProperties,
@@ -330,8 +448,15 @@ export const proposeEntityFromFacts = async (params: {
             );
           }
 
+          const outgoingLinkInputProperties = outgoingLink.properties;
+
+          const outgoingLinkSimplifiedProperties =
+            mapInputPropertiesToPropertiesObject({
+              inputProperties: outgoingLinkInputProperties,
+            });
+
           const outgoingLinkProperties = mapSimplifiedPropertiesToProperties({
-            simplifiedProperties: outgoingLink.properties,
+            simplifiedProperties: outgoingLinkSimplifiedProperties,
             simplifiedPropertyTypeMappings:
               outgoingLinkSimplifiedPropertyTypeMappings,
           });
@@ -373,6 +498,14 @@ export const proposeEntityFromFacts = async (params: {
             return;
           }
 
+          const { propertyMetadata: outgoingLinkPropertyMetadata } =
+            generatePropertyMetadata({
+              inputProperties: outgoingLinkInputProperties,
+              facts,
+              simplifiedPropertyTypeMappings:
+                outgoingLinkSimplifiedPropertyTypeMappings,
+            });
+
           proposedOutgoingLinkEntities.push({
             localEntityId: generateUuid(),
             summary: `"${dereferencedOutgoingLinkEntityType.title}" link with source ${entitySummary.name} and target ${targetEntitySummary.name}`,
@@ -391,6 +524,7 @@ export const proposeEntityFromFacts = async (params: {
                     entityId: targetEntitySummary.entityId,
                   },
             entityTypeId: outgoingLink.entityTypeId as VersionedUrl,
+            propertyMetadata: outgoingLinkPropertyMetadata,
             properties: outgoingLinkProperties,
           });
         }),
@@ -417,8 +551,19 @@ export const proposeEntityFromFacts = async (params: {
       });
     }
 
+    /**
+     * @todo: consider validating fact IDs specified in the input properties
+     */
+
+    const { propertyMetadata } = generatePropertyMetadata({
+      inputProperties,
+      facts,
+      simplifiedPropertyTypeMappings,
+    });
+
     const proposedEntity: ProposedEntity = {
       localEntityId: entitySummary.localId,
+      propertyMetadata,
       summary: entitySummary.summary,
       entityTypeId: dereferencedEntityType.$id,
       properties,
