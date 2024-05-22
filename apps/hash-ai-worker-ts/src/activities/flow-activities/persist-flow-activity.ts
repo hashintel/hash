@@ -1,4 +1,4 @@
-import { getFlowById } from "@local/hash-backend-utils/flows";
+import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { mapFlowToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { Flow } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -17,12 +17,12 @@ export const persistFlowActivity = async (
 ) => {
   const { flow, userAuthentication } = params;
 
-  const { flowId } = flow;
+  const { flowRunId } = flow;
 
   const flowProperties = mapFlowToEntityProperties(flow);
 
-  const existingFlowEntity = await getFlowById({
-    flowId,
+  const existingFlowEntity = await getFlowRunEntityById({
+    flowRunId,
     graphApiClient,
     userAuthentication,
   });
@@ -41,7 +41,7 @@ export const persistFlowActivity = async (
   } else {
     await graphApiClient.createEntity(userAuthentication.actorId, {
       ownedById: userAuthentication.actorId,
-      entityUuid: flowId,
+      entityUuid: flowRunId,
       entityTypeIds: [systemEntityTypes.flow.entityTypeId],
       properties: flowProperties,
       draft: false,

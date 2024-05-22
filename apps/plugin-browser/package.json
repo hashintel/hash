@@ -19,7 +19,7 @@
     "build:firefox": "yarn lint:tsc && BROWSER=firefox NODE_ENV=production node utils/build.js",
     "build:test": "yarn lint:tsc && NODE_ENV=test node utils/build.js",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
-    "dev": "node utils/webserver.js",
+    "dev": "NODE_ENV=development node utils/webserver.js",
     "dev:firefox": "BROWSER=firefox node utils/webserver.js",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",

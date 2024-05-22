@@ -1,4 +1,8 @@
 import {
+  automaticBrowserInferenceFlowDefinition,
+  manualBrowserInferenceFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import {
   answerQuestionFlow,
   ftseInvestorsFlowDefinition,
   inferUserEntitiesFromWebPageFlowDefinition,
@@ -29,6 +33,8 @@ const exampleFlows: FlowDefinition[] = [
   inferUserEntitiesFromWebPageFlowDefinition,
   answerQuestionFlow,
   saveFileFromUrl,
+  manualBrowserInferenceFlowDefinition,
+  automaticBrowserInferenceFlowDefinition,
 ];
 
 export const FlowDefinitionsContextProvider = ({

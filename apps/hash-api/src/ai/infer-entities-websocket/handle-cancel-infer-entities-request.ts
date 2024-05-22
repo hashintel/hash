@@ -1,44 +1,35 @@
-import type {
-  CancelInferEntitiesRequestMessage,
-  InferEntitiesResponseMessage,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
-import { StatusCode } from "@local/status";
+import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
+import type { CancelInferEntitiesWebsocketRequestMessage } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { EntityUuid } from "@local/hash-subgraph";
 import type { Client } from "@temporalio/client";
-import type { WebSocket } from "ws";
 
+import type { GraphApi } from "../../graph/context-types";
 import type { User } from "../../graph/knowledge/system-types/user";
 
 export const handleCancelInferEntitiesRequest = async ({
-  socket,
+  graphApiClient,
   temporalClient,
   message,
   user,
 }: {
-  socket: WebSocket;
+  graphApiClient: GraphApi;
   temporalClient: Client;
-  message: Omit<CancelInferEntitiesRequestMessage, "cookie">;
+  message: Omit<CancelInferEntitiesWebsocketRequestMessage, "cookie">;
   user: User;
 }) => {
-  const { requestUuid } = message;
+  const { flowRunId } = message;
 
-  const workflowHandle = temporalClient.workflow.getHandle(requestUuid);
+  const flow = await getFlowRunEntityById({
+    userAuthentication: { actorId: user.accountId },
+    flowRunId: flowRunId as EntityUuid,
+    graphApiClient,
+  });
 
-  const description = await workflowHandle.describe();
-
-  if (description.memo?.userAccountId !== user.accountId) {
-    const responseMessage: InferEntitiesResponseMessage = {
-      payload: {
-        code: StatusCode.InvalidArgument,
-        contents: [],
-        message: `User has no request with id ${requestUuid}`,
-      },
-      requestUuid,
-      status: "bad-request",
-      type: "inference-response",
-    };
-    socket.send(JSON.stringify(responseMessage));
+  if (!flow) {
     return;
   }
+
+  const workflowHandle = temporalClient.workflow.getHandle(flowRunId);
 
   void workflowHandle.cancel();
 };

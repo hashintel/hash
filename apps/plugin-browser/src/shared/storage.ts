@@ -1,11 +1,16 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
-  ExternalInputRequestMessage,
+  ExternalInputWebsocketRequestMessage,
   InferenceModelName,
-  InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
+import type {
+  ExternalInputRequestSignal,
+  PersistedEntity,
+  WebPage,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   SimpleProperties,
@@ -28,44 +33,9 @@ import type {
 import debounce from "lodash.debounce";
 import browser from "webextension-polyfill";
 
+import type { FlowRun } from "../graphql/api-types.gen";
 import { setDisabledBadge, setEnabledBadge } from "./badge";
 import { updateEntity } from "./storage/update-entity";
-
-type InferenceErrorStatus = {
-  errorMessage: string;
-  status: "error";
-};
-
-type InferenceCancelledStatus = {
-  data: InferEntitiesReturn;
-  status: "user-cancelled";
-};
-
-type InferenceCompleteStatus = {
-  data: InferEntitiesReturn;
-  status: "complete";
-};
-
-export type InferenceStatus =
-  | {
-      status: "not-started" | "pending";
-    }
-  | InferenceErrorStatus
-  | InferenceCancelledStatus
-  | InferenceCompleteStatus;
-
-export type PageEntityInference = InferenceStatus & {
-  createAs: "draft" | "live";
-  createdAt: string;
-  entityTypeIds: VersionedUrl[];
-  finishedAt?: string;
-  requestUuid: string;
-  model: InferenceModelName;
-  ownedById: OwnedById;
-  sourceTitle: string;
-  sourceUrl: string;
-  trigger: "passive" | "user";
-};
 
 type SimplifiedUser = Entity & {
   properties: Required<
@@ -99,17 +69,7 @@ type PersistedUserSettingsKey = (typeof persistedUserSettingKeys)[number];
 export type PersistedUserSettings = Subtype<
   Record<PersistedUserSettingsKey, unknown>,
   {
-    automaticInferenceConfig: {
-      createAs: "draft" | "live";
-      displayGroupedBy: "type" | "location";
-      enabled: boolean;
-      model: InferenceModelName;
-      ownedById: OwnedById;
-      rules: {
-        restrictToDomains: string[];
-        entityTypeId: VersionedUrl;
-      }[];
-    };
+    automaticInferenceConfig: AutomaticInferenceSettings;
     draftQuickNote: string;
     manualInferenceConfig: {
       createAs: "draft" | "live";
@@ -117,15 +77,25 @@ export type PersistedUserSettings = Subtype<
       ownedById: OwnedById;
       targetEntityTypeIds: VersionedUrl[];
     };
-    popupTab: "one-off" | "automated" | "log";
+    popupTab: "one-off" | "automated" | "history";
   }
 >;
 
 export type ExternalInputRequestById = {
   [requestUuid: string]: {
-    message: ExternalInputRequestMessage;
+    message: ExternalInputWebsocketRequestMessage;
     receivedAt: string;
   } | null;
+};
+
+export type MinimalFlowRun = Pick<
+  FlowRun,
+  "flowDefinitionId" | "flowRunId" | "closedAt" | "executedAt" | "status"
+> & { persistedEntities: PersistedEntity[]; webPage: WebPage };
+
+export type BrowserFlowsAndBackgroundRequests = {
+  browserFlowRuns: MinimalFlowRun[];
+  inputRequests: ExternalInputRequestSignal[];
 };
 
 /**
@@ -133,10 +103,11 @@ export type ExternalInputRequestById = {
  * Cleared if the extension is loaded with no user present.
  */
 export type LocalStorage = PersistedUserSettings & {
+  browserFlowsAndBackgroundRequests: BrowserFlowsAndBackgroundRequests;
   entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
   entityTypes: EntityTypeWithMetadata[];
   externalInputRequests?: ExternalInputRequestById;
-  inferenceRequests: PageEntityInference[];
+  localPendingFlowRuns?: MinimalFlowRun[];
   user: UserAndLinkedData | null;
 };
 

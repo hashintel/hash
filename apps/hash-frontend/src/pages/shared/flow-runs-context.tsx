@@ -46,7 +46,7 @@ export const FlowRunsContextProvider = ({ children }: PropsWithChildren) => {
       flowRuns,
       setFlowRuns,
       selectedFlowRun:
-        flowRuns.find((flowRun) => flowRun.workflowId === selectedFlowRunId) ??
+        flowRuns.find((flowRun) => flowRun.flowRunId === selectedFlowRunId) ??
         null,
       selectedFlowRunId,
       setSelectedFlowRunId,
@@ -87,13 +87,7 @@ export const useStatusForStep = (
     }
 
     if (nodeId === "trigger") {
-      return {
-        closedAt: selectedFlowRun.startedAt,
-        logs: [],
-        outputs: selectedFlowRun.inputs[0].flowTrigger.outputs,
-        scheduledAt: selectedFlowRun.startedAt,
-        status: FlowStepStatus.Completed,
-      };
+      return null;
     }
 
     return selectedFlowRun.steps.find((step) => step.stepId === nodeId) ?? null;

@@ -2,6 +2,10 @@ import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import {
+  automaticBrowserInferenceFlowDefinition,
+  manualBrowserInferenceFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import type {
   FlowDefinition as FlowDefinitionType,
   FlowTrigger,
@@ -179,6 +183,11 @@ const outputsHeight = 450;
 
 const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
+const unrunnableDefinitionIds = [
+  manualBrowserInferenceFlowDefinition.flowDefinitionId,
+  automaticBrowserInferenceFlowDefinition.flowDefinitionId,
+];
+
 export const FlowDefinition = () => {
   const apolloClient = useApolloClient();
 
@@ -345,42 +354,51 @@ export const FlowDefinition = () => {
 
   const flowDefinitionStateKey = `${selectedFlow.name}`;
   const flowRunStateKey = `${flowDefinitionStateKey}-${
-    selectedFlowRun?.workflowId ?? "definition"
+    selectedFlowRun?.flowRunId ?? "definition"
   }`;
+
+  const isRunnableFromHere = !unrunnableDefinitionIds.includes(
+    selectedFlow.flowDefinitionId,
+  );
 
   return (
     <Box sx={{ height: containerHeight }}>
-      <RunFlowModal
-        key={selectedFlow.name}
-        flowDefinition={selectedFlow}
-        open={showRunModal}
-        onClose={() => setShowRunModal(false)}
-        runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
-          const { data } = await startFlow({
-            variables: {
-              flowDefinition: selectedFlow,
-              flowTrigger: {
-                outputs,
-                triggerDefinitionId: "userTrigger",
+      {isRunnableFromHere && (
+        <RunFlowModal
+          key={selectedFlow.name}
+          flowDefinition={selectedFlow}
+          open={showRunModal}
+          onClose={() => setShowRunModal(false)}
+          runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
+            const { data } = await startFlow({
+              variables: {
+                flowDefinition: selectedFlow,
+                flowTrigger: {
+                  outputs,
+                  triggerDefinitionId: "userTrigger",
+                },
+                webId,
               },
-              webId,
-            },
-          });
+            });
 
-          const workflowId = data?.startFlow;
-          if (!workflowId) {
-            throw new Error("Failed to start flow");
-          }
+            const flowRunId = data?.startFlow;
+            if (!flowRunId) {
+              throw new Error("Failed to start flow");
+            }
 
-          await apolloClient.refetchQueries({
-            include: ["getFlowRuns"],
-          });
-          setSelectedFlowRunId(workflowId);
+            await apolloClient.refetchQueries({
+              include: ["getFlowRuns"],
+            });
+            setSelectedFlowRunId(flowRunId);
 
-          setShowRunModal(false);
-        }}
+            setShowRunModal(false);
+          }}
+        />
+      )}
+      <Topbar
+        handleRunFlowClicked={handleRunFlowClicked}
+        showRunButton={isRunnableFromHere}
       />
-      <Topbar handleRunFlowClicked={handleRunFlowClicked} />
       <Box
         sx={{
           height: `calc(100% - ${outputsHeight + topbarHeight}px)`,

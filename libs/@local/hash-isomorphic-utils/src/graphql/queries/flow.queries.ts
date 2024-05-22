@@ -4,8 +4,7 @@ export const getFlowRunsQuery = gql`
   query getFlowRuns {
     getFlowRuns {
       flowDefinitionId
-      workflowId
-      runId
+      flowRunId
       status
       startedAt
       executedAt

@@ -1,40 +1,46 @@
 import type http from "node:http";
 
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import {
+  getFlowRunEntityById,
+  getFlowRuns,
+} from "@local/hash-backend-utils/flows";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type {
-  ExternalInputRequestMessage,
+  ExternalInputWebsocketRequestMessage,
   InferenceWebsocketClientMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
+import type { EntityUuid } from "@local/hash-subgraph";
 import type { Client } from "@temporalio/client";
-import type { GraphQLResolveInfo } from "graphql";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 
 import { getUserAndSession } from "../auth/create-auth-handlers";
-import type { ImpureGraphContext } from "../graph/context-types";
+import type { GraphApi, ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
 import { FlowRunStatus } from "../graphql/api-types.gen";
-import { getFlowRuns } from "../graphql/resolvers/flows/runs";
 import { handleCancelInferEntitiesRequest } from "./infer-entities-websocket/handle-cancel-infer-entities-request";
 import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-infer-entities-request";
 
 const inferEntitiesMessageHandler = async ({
   socket,
+  graphApiClient,
   temporalClient,
   message,
   user,
 }: {
+  graphApiClient: GraphApi;
   socket: WebSocket;
   temporalClient: Client;
   message: DistributiveOmit<InferenceWebsocketClientMessage, "cookie">;
   user: User;
 }) => {
   switch (message.type) {
-    case "inference-request":
+    case "automatic-inference-request":
+    case "manual-inference-request":
       await handleInferEntitiesRequest({
-        socket,
+        graphApiClient,
         temporalClient,
         message,
         user,
@@ -42,14 +48,48 @@ const inferEntitiesMessageHandler = async ({
       return;
     case "cancel-inference-request":
       await handleCancelInferEntitiesRequest({
-        socket,
+        graphApiClient,
         temporalClient,
         message,
         user,
       });
       return;
+    case "check-for-external-input-requests": {
+      const openFlowRuns = await getFlowRuns({
+        authentication: { actorId: user.accountId },
+        filters: { executionStatus: FlowRunStatus.Running },
+        graphApiClient,
+        includeDetails: true,
+        temporalClient,
+      });
+
+      for (const flowRun of openFlowRuns) {
+        for (const inputRequest of flowRun.inputRequests) {
+          if (!inputRequest.resolved) {
+            const requestMessage: ExternalInputWebsocketRequestMessage = {
+              workflowId: flowRun.flowRunId,
+              payload: inputRequest,
+              type: "external-input-request",
+            };
+            socket.send(JSON.stringify(requestMessage));
+          }
+        }
+      }
+      break;
+    }
     case "external-input-response": {
       const { workflowId, payload } = message;
+
+      const flow = await getFlowRunEntityById({
+        userAuthentication: { actorId: user.accountId },
+        flowRunId: workflowId as EntityUuid,
+        graphApiClient,
+      });
+
+      if (!flow) {
+        return;
+      }
+
       const handle = temporalClient.workflow.getHandle(workflowId);
       await handle.signal(externalInputResponseSignal, payload);
     }
@@ -73,35 +113,6 @@ export const openInferEntitiesWebSocket = ({
   });
 
   wss.on("connection", (socket) => {
-    const checkForInputRequests = async () => {
-      const openFlowRuns = await getFlowRuns(
-        {},
-        { executionStatus: FlowRunStatus.Running },
-        { temporal: temporalClient },
-        {} as GraphQLResolveInfo,
-      );
-      for (const flowRun of openFlowRuns) {
-        for (const inputRequest of flowRun.inputRequests) {
-          if (!inputRequest.resolved) {
-            const requestMessage: ExternalInputRequestMessage = {
-              workflowId: flowRun.workflowId,
-              payload: inputRequest,
-              type: "external-input-request",
-            };
-            socket.send(JSON.stringify(requestMessage));
-          }
-        }
-      }
-    };
-
-    const flowStatusInterval = setInterval(() => {
-      void checkForInputRequests();
-    }, 10_000);
-
-    socket.on("close", () => {
-      clearInterval(flowStatusInterval);
-    });
-
     socket.on(
       "message",
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -133,6 +144,7 @@ export const openInferEntitiesWebSocket = ({
         }
 
         void inferEntitiesMessageHandler({
+          graphApiClient: context.graphApi,
           socket,
           temporalClient,
           message,
