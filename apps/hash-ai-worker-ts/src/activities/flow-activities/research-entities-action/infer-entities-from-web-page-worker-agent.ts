@@ -1,20 +1,13 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import { SourceType } from "@local/hash-graph-client";
-import type {
-  InputNameForAction,
-  OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  ProposedEntity,
-  StepInput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import type { Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import { getWebPageActivity } from "../../get-web-page-activity";
 import { logger } from "../../shared/activity-logger";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
@@ -34,7 +27,8 @@ import type {
 } from "../../shared/get-llm-response/types";
 import { graphApiClient } from "../../shared/graph-api-client";
 import { stringify } from "../../shared/stringify";
-import { inferEntitiesFromContentAction } from "../infer-entities-from-content-action";
+import { inferFactsFromText } from "../shared/infer-facts-from-text";
+import { proposeEntitiesFromFacts } from "../shared/propose-entities-from-facts";
 import { handleQueryPdfToolCall } from "./infer-entities-from-web-page-worker-agent/handle-query-pdf-tool-call";
 import type { ToolCallArguments } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
 import { toolDefinitions } from "./infer-entities-from-web-page-worker-agent/tool-definitions";
@@ -375,7 +369,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
     filesUsedToProposeEntities: [],
   };
 
-  const { flowEntityId, stepId } = await getFlowContext();
+  const { flowEntityId, stepId, userAuthentication } = await getFlowContext();
 
   // const state = retrievePreviousState();
 
@@ -612,62 +606,40 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
               The above data is valid at ${validAt}.
             `);
 
-            const response = await inferEntitiesFromContentAction({
-              inputs: [
-                {
-                  inputName:
-                    "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
-                  payload: { kind: "Text", value: content },
-                },
-                {
-                  inputName:
-                    "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
-                  payload: {
-                    kind: "VersionedUrl",
-                    value: [
-                      ...inferringEntitiesOfTypeIds,
-                      ...(inferringLinkEntitiesOfTypeIds ?? []),
-                    ],
-                  },
-                },
-                {
-                  inputName:
-                    "relevantEntitiesPrompt" satisfies InputNameForAction<"inferEntitiesFromContent">,
-                  payload: { kind: "Text", value: toolCallPrompt },
-                },
-                /**
-                 * Consider allowing the worker agent to decide which existing entities
-                 * are provided to the inference agent.
-                 */
-                ...(existingEntities && existingEntities.length > 0
-                  ? [
-                      {
-                        inputName:
-                          "existingEntities" satisfies InputNameForAction<"inferEntitiesFromContent">,
-                        payload: {
-                          kind: "Entity" as const,
-                          value: existingEntities,
-                        },
-                      },
-                    ]
-                  : []),
-                ...actionDefinitions.inferEntitiesFromContent.inputs.flatMap<StepInput>(
-                  ({ name, default: defaultValue }) =>
-                    defaultValue
-                      ? [{ inputName: name, payload: defaultValue }]
-                      : [],
-                ),
-              ],
+            const dereferencedEntityTypes =
+              await getDereferencedEntityTypesActivity({
+                entityTypeIds: [
+                  ...inferringEntitiesOfTypeIds,
+                  ...(inferringLinkEntitiesOfTypeIds ?? []),
+                ],
+                graphApiClient,
+                actorId: userAuthentication.actorId,
+                simplifyPropertyKeys: true,
+              });
+
+            /**
+             * @todo: Restore ability to link to existing entities, when proposing facts.
+             *
+             * @see https://linear.app/hash/issue/H-2713/add-ability-to-specify-existingentities-when-inferring-facts-so-that
+             */
+            const { facts, entitySummaries } = await inferFactsFromText({
+              text: content,
+              dereferencedEntityTypes,
+              relevantEntitiesPrompt: toolCallPrompt,
             });
 
-            if (response.code !== StatusCode.Ok) {
-              return {
-                ...toolCall,
-                output: `An unexpected error occurred inferring entities from the web page with url ${url}, try another website.`,
-              };
-            }
-
-            const { outputs } = response.contents[0]!;
+            /**
+             * @todo: instead of directly proposing entities from the facts, we should
+             * pass the facts to the coordinator agent for collection/deduplication, so
+             * that entities can be proposed from multiple sources.
+             *
+             * @see https://linear.app/hash/issue/H-2693/implement-fact-gathering-in-the-workercoordinator-agents-of-the
+             */
+            const { proposedEntities } = await proposeEntitiesFromFacts({
+              entitySummaries,
+              facts,
+              dereferencedEntityTypes,
+            });
 
             const editionProvenance: ProposedEntity["provenance"] = {
               actorType: "ai",
@@ -720,13 +692,7 @@ export const inferEntitiesFromWebPageWorkerAgent = async (params: {
                     ],
                   };
 
-            const newProposedEntities = (
-              outputs.find(
-                ({ outputName }) =>
-                  outputName ===
-                  ("proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">),
-              )?.payload.value as ProposedEntity[]
-            ).map(
+            const newProposedEntities = proposedEntities.map(
               (proposedEntity) =>
                 ({
                   ...proposedEntity,

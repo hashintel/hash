@@ -6,14 +6,19 @@ export type PermittedOpenAiModel =
   | "gpt-4-1106-preview"
   | "gpt-4-0125-preview"
   | "gpt-4-turbo"
-  | "gpt-4";
+  | "gpt-4"
+  | "gpt-4o"
+  | "gpt-4o-2024-05-13";
 
+/** @see https://platform.openai.com/docs/models */
 export const modelToContextWindow: Record<PermittedOpenAiModel, number> = {
   "gpt-3.5-turbo-1106": 16_385,
   "gpt-4-1106-preview": 128_000,
   "gpt-4-0125-preview": 128_000,
   "gpt-4-turbo": 128_000,
   "gpt-4": 8_192,
+  "gpt-4o": 128_000,
+  "gpt-4o-2024-05-13": 128_000,
 };
 
 /**
