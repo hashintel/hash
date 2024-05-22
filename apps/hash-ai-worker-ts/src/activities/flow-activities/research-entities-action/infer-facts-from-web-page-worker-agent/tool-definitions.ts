@@ -99,15 +99,6 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
         //     You should expect at least 1 entity to be inferred.
         //   `),
         // },
-        // validAt: {
-        //   type: "string",
-        //   format: "date-time",
-        //   description: dedent(`
-        //     A date-time string in ISO 8601 format, representing when the provided HTML content is valid at.
-        //     If this cannot be found on the web page, assume it is the current date and time.
-        //     The current time is "${new Date().toISOString()}".
-        //   `),
-        // },
       },
       required: [
         "url",
@@ -115,7 +106,6 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
         "prompt",
         "explanation",
         // "expectedNumberOfEntities",
-        // "validAt",
       ],
     },
   },
@@ -307,7 +297,6 @@ export type ToolCallArguments = Subtype<
       // htmlContent: string;
       prompt: string;
       // expectedNumberOfEntities: number;
-      // validAt: string;
     };
     submitProposedEntities: {
       entityIds: string[];
@@ -330,7 +319,6 @@ export type ToolCallArguments = Subtype<
       fileUrl: string;
       prompt: string;
       // includeExistingEntityIds?: string[];
-      // validAt: string;
     };
   }
 >;
