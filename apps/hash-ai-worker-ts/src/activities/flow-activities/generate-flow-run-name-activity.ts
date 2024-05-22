@@ -1,0 +1,139 @@
+import {
+  automaticBrowserInferenceFlowDefinition,
+  manualBrowserInferenceFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import {
+  AutomaticInferenceTriggerInputName,
+  ManualInferenceTriggerInputName,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
+import {
+  goalFlowDefinition,
+  GoalFlowTriggerInput,
+} from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import type {
+  FlowDefinition,
+  FlowTrigger,
+  PayloadKind,
+  PayloadKindValues,
+} from "@local/hash-isomorphic-utils/flows/types";
+
+import {
+  getLlmResponse,
+  UsageTrackingParams,
+} from "../shared/get-llm-response";
+import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message";
+import { graphApiClient } from "../shared/graph-api-client";
+import { getFlowContext } from "../shared/get-flow-context";
+
+type PersistFlowActivityParams = {
+  flowDefinition: FlowDefinition;
+  flowTrigger: FlowTrigger;
+};
+
+const systemPrompt = `
+You are a workflow naming agent. A workflow is an automated process that produces a result of interest.
+Multiple workflows of the same kind are run with different inputs, and the user requires a unique name for each run, to distinguish it from other runs of the same kind.
+
+The user provides you with a description of the goal of the workflow, or a list of its inputs, and you generate a short name for the workflow.
+
+The name should be descriptive enough to distinguish it from other runs of the same kind
+while being as short as possible, and must always be a single sentence. If in doubt, prioritise brevity.
+
+Here is the context for the workflow run you are naming, which may be a description of its goal or a list of its inputs:
+`;
+
+const getModelSuggestedFlowRunName = async (
+  context: string,
+  usageTrackingParams: UsageTrackingParams,
+) => {
+  const llmResponse = await getLlmResponse(
+    {
+      systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: context,
+            },
+          ],
+        },
+      ],
+      model: "gpt-4o",
+    },
+    usageTrackingParams,
+  );
+
+  if (llmResponse.status !== "ok") {
+    throw new Error(`Failed to generate flow run name: ${llmResponse.status}`);
+  }
+
+  const text = getTextContentFromLlmMessage({ message: llmResponse.message });
+
+  return text;
+};
+
+const outputKindsToIgnore: PayloadKind[] = ["GoogleSheet", "GoogleAccountId"];
+
+export const generateFlowRunName = async (
+  params: PersistFlowActivityParams,
+) => {
+  const { flowDefinition, flowTrigger } = params;
+
+  if (
+    [
+      automaticBrowserInferenceFlowDefinition.flowDefinitionId,
+      manualBrowserInferenceFlowDefinition.flowDefinitionId,
+    ].includes(flowDefinition.flowDefinitionId)
+  ) {
+    const webPage = flowTrigger.outputs?.find(
+      ({ outputName }) =>
+        outputName ===
+        ("visitedWebPage" satisfies AutomaticInferenceTriggerInputName &
+          ManualInferenceTriggerInputName),
+    )?.payload.value as PayloadKindValues["WebPage"] | undefined;
+
+    if (!webPage) {
+      throw new Error(`Web page not found in browser flow trigger outputs`);
+    }
+
+    return webPage.url;
+  }
+
+  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+
+  const usageTrackingParams: UsageTrackingParams = {
+    userAccountId: userAuthentication.actorId,
+    graphApiClient,
+    incurredInEntities: [{ entityId: flowEntityId }],
+    webId,
+  };
+
+  if (flowDefinition.flowDefinitionId === goalFlowDefinition.flowDefinitionId) {
+    const researchBrief = flowTrigger.outputs?.find(
+      ({ outputName }) =>
+        outputName === ("Research guidance" satisfies GoalFlowTriggerInput),
+    )?.payload.value as PayloadKindValues["Text"] | undefined;
+
+    if (!researchBrief) {
+      throw new Error(`Research brief not found in goal flow trigger outputs`);
+    }
+
+    return getModelSuggestedFlowRunName(
+      `The research brief for the workflow: ${researchBrief}`,
+      usageTrackingParams,
+    );
+  }
+
+  const inputsOfInterest = flowTrigger.outputs?.filter(
+    (output) =>
+      !["draft", "create as draft"].includes(output.outputName.toLowerCase()) &&
+      !outputKindsToIgnore.includes(output.payload.kind),
+  );
+
+  return getModelSuggestedFlowRunName(
+    `The inputs to the workflow: ${inputsOfInterest?.map((input) => JSON.stringify(input)).join("\n")}`,
+    usageTrackingParams,
+  );
+};

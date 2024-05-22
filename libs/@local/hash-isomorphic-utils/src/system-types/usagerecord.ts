@@ -9,16 +9,17 @@ import type {
   AppliesUntilPropertyValue,
   DateTimeDataType,
   FeatureNamePropertyValue,
-  Flow,
   FlowDefinitionIDPropertyValue,
-  FlowOutgoingLinkAndTarget,
-  FlowOutgoingLinksByLinkEntityTypeId,
-  FlowProperties,
+  FlowRun,
+  FlowRunOutgoingLinkAndTarget,
+  FlowRunOutgoingLinksByLinkEntityTypeId,
+  FlowRunProperties,
   InputUnitCostPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  NamePropertyValue,
   NumberDataType,
   ObjectDataType,
   OutputsPropertyValue,
@@ -40,16 +41,17 @@ export type {
   AppliesUntilPropertyValue,
   DateTimeDataType,
   FeatureNamePropertyValue,
-  Flow,
   FlowDefinitionIDPropertyValue,
-  FlowOutgoingLinkAndTarget,
-  FlowOutgoingLinksByLinkEntityTypeId,
-  FlowProperties,
+  FlowRun,
+  FlowRunOutgoingLinkAndTarget,
+  FlowRunOutgoingLinksByLinkEntityTypeId,
+  FlowRunProperties,
   InputUnitCostPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  NamePropertyValue,
   NumberDataType,
   ObjectDataType,
   OutputsPropertyValue,
@@ -87,7 +89,7 @@ export type IncurredInOutgoingLinkAndTarget = never;
 export type IncurredInOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * Something that was incurred by something else.
+ * Something that was incurred in something else.
  */
 export type IncurredInProperties = IncurredInProperties1 &
   IncurredInProperties2;
@@ -145,7 +147,7 @@ export type UsageRecordCreatedLink = {
 
 export type UsageRecordIncurredInLink = {
   linkEntity: IncurredIn;
-  rightEntity: Flow;
+  rightEntity: FlowRun;
 };
 
 export type UsageRecordOutgoingLinkAndTarget =

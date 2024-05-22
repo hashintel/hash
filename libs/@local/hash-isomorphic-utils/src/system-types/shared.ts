@@ -295,21 +295,22 @@ export type FileStorageRegionPropertyValue = TextDataType;
  */
 export type FileURLPropertyValue = TextDataType;
 
-export type Flow = Entity<FlowProperties>;
-
 /**
  * The ID of the flow definition (the `entityId` of the flow definition entity).
  */
 export type FlowDefinitionIDPropertyValue = TextDataType;
 
-export type FlowOutgoingLinkAndTarget = never;
+export type FlowRun = Entity<FlowRunProperties>;
 
-export type FlowOutgoingLinksByLinkEntityTypeId = {};
+export type FlowRunOutgoingLinkAndTarget = never;
+
+export type FlowRunOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * A HASH flow run.
+ * An execution run of a flow.
  */
-export type FlowProperties = {
+export type FlowRunProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
   "https://hash.ai/@hash/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValue;
   "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValue;
   "https://hash.ai/@hash/types/property-type/step/": StepPropertyValue;
@@ -526,6 +527,11 @@ export type MIMETypePropertyValue = TextDataType;
  * Configuration for a manual entity inference feature
  */
 export type ManualInferenceConfigurationPropertyValue = ObjectDataType;
+
+/**
+ * A word or set of words by which something is known, addressed, or referred to.
+ */
+export type NamePropertyValue = TextDataType;
 
 export type Notification = Entity<NotificationProperties>;
 
@@ -993,23 +999,6 @@ export type UserSecretProperties = {
   "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValue;
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
 };
-
-export type UsesUserSecret = Entity<UsesUserSecretProperties> & {
-  linkData: LinkData;
-};
-
-export type UsesUserSecretOutgoingLinkAndTarget = never;
-
-export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * The user secret something uses.
- */
-export type UsesUserSecretProperties = UsesUserSecretProperties1 &
-  UsesUserSecretProperties2;
-export type UsesUserSecretProperties1 = LinkProperties;
-
-export type UsesUserSecretProperties2 = {};
 
 /**
  * The path to a secret in Hashicorp Vault.

@@ -3,7 +3,7 @@ import type {
   ActionStep,
   ActionStepDefinition,
   ArrayPayload,
-  Flow,
+  LocalFlowRun,
   FlowDefinition,
   FlowStep,
   FlowTrigger,
@@ -25,7 +25,7 @@ export const initializeActionStep = (params: {
         kind: "parallel-group-input";
       }>;
   overrideStepId?: string;
-  existingFlow?: Flow;
+  existingFlow?: LocalFlowRun;
   parallelGroupInputPayload?: Payload;
 }): ActionStep => {
   const {
@@ -175,10 +175,12 @@ export const initializeFlow = (params: {
   flowRunId: EntityUuid;
   flowDefinition: FlowDefinition;
   flowTrigger: FlowTrigger;
-}): Flow => {
-  const { flowRunId, flowDefinition, flowTrigger } = params;
+  name: string;
+}): LocalFlowRun => {
+  const { flowRunId, flowDefinition, flowTrigger, name } = params;
 
   return {
+    name,
     flowRunId,
     trigger: {
       triggerDefinitionId: flowTrigger.triggerDefinitionId,

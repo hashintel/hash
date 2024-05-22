@@ -55,25 +55,19 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/file/",
   },
-  flow: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/flow/v/1",
-    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/flow/",
-  },
   flowDefinition: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/flow-definition/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/flow-definition/",
   },
+  flowRun: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/flow-run/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/flow-run/",
+  },
   githubAccount: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/github-account/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/github-account/",
-  },
-  googleSheetsIntegration: {
-    entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/",
   },
   graphChangeNotification: {
     entityTypeId:

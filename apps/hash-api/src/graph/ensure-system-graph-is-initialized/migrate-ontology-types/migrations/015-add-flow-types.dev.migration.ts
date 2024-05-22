@@ -2,6 +2,7 @@ import type { EntityType } from "@blockprotocol/type-system";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { BaseUrl } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
@@ -103,7 +104,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Flow Definition",
-        description: "The definition of  a HASH flow.",
+        description: "The definition of a HASH flow.",
         properties: [
           {
             propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
@@ -223,9 +224,13 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        title: "Flow",
-        description: "A HASH flow run.",
+        title: "Flow Run",
+        description: "An execution run of a flow.",
         properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
           {
             propertyType: triggerPropertyType,
             required: true,

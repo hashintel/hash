@@ -1,7 +1,7 @@
 import type { AccountId, OwnedById } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 
-import type { Flow, FlowDefinition, FlowTrigger } from "./types";
+import type { LocalFlowRun, FlowDefinition, FlowTrigger } from "./types";
 
 export type RunFlowWorkflowParams = {
   flowTrigger: FlowTrigger;
@@ -11,7 +11,7 @@ export type RunFlowWorkflowParams = {
 };
 
 export type RunFlowWorkflowResponse = Status<{
-  flow?: Flow;
-  outputs?: Flow["outputs"];
+  flow?: LocalFlowRun;
+  outputs?: LocalFlowRun["outputs"];
   stepErrors?: Status<{ stepId: string }>[];
 }>;

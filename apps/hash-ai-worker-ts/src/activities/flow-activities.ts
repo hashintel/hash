@@ -16,6 +16,7 @@ import type { FlowActionActivity } from "./flow-activities/types";
 import { userHasPermissionToRunFlowInWebActivity } from "./flow-activities/user-has-permission-to-run-flow-in-web-activity";
 import { webSearchAction } from "./flow-activities/web-search-action";
 import { writeGoogleSheetAction } from "./flow-activities/write-google-sheet-action";
+import { generateFlowRunName } from "./flow-activities/generate-flow-run-name-activity";
 
 export const createFlowActionActivities = ({
   vaultClient,
@@ -46,6 +47,7 @@ export const createFlowActivities = ({
   vaultClient: VaultClient;
 }) => ({
   ...createFlowActionActivities({ vaultClient }),
+  generateFlowRunName,
   persistFlowActivity,
   userHasPermissionToRunFlowInWebActivity,
 });
