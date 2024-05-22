@@ -317,8 +317,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               return {
                 ...toolCall,
                 output: dedent(`
-                  An error occurred when inferring entities from the web
-                    page with url ${url}: ${status.message}
+                  An error occurred when inferring facts from the web page with url ${url}: ${status.message}
                   
                   Try another website.
                 `),
