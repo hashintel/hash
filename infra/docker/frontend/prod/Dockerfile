@@ -58,7 +58,7 @@ ENV API_ORIGIN ${API_ORIGIN}
 ARG FRONTEND_URL
 ENV FRONTEND_URL ${FRONTEND_URL}
 
-RUN yarn turbo build --filter '@apps/hash-frontend'
+RUN yarn turbo build --filter '@apps/hash-frontend' && rm -rf target/
 
 
 FROM node:20.13-slim AS runner
