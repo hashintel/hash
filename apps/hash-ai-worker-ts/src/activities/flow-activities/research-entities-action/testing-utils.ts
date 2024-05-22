@@ -6,12 +6,12 @@ import {
   writeFileSync,
 } from "node:fs";
 
-import type { InferEntitiesFromWebPageWorkerAgentState } from "./infer-entities-from-web-page-worker-agent/types";
+import type { InferFactsFromWebPageWorkerAgentState } from "./infer-facts-from-web-page-worker-agent/types";
 
 const directoryPath = "./persisted-states";
 
 export const writeStateToFile = (
-  state: InferEntitiesFromWebPageWorkerAgentState,
+  state: InferFactsFromWebPageWorkerAgentState,
 ) => {
   const filePath = `${directoryPath}/${new Date().getTime()}-state.json`;
   if (!existsSync(directoryPath)) {
@@ -21,7 +21,7 @@ export const writeStateToFile = (
 };
 
 export const retrievePreviousState =
-  (): InferEntitiesFromWebPageWorkerAgentState => {
+  (): InferFactsFromWebPageWorkerAgentState => {
     if (!existsSync(directoryPath)) {
       throw new Error("No persisted state directory found.");
     }
@@ -38,5 +38,5 @@ export const retrievePreviousState =
 
     return JSON.parse(
       latestFileContent,
-    ) as InferEntitiesFromWebPageWorkerAgentState;
+    ) as InferFactsFromWebPageWorkerAgentState;
   };

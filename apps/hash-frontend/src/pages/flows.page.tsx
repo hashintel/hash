@@ -1,7 +1,7 @@
-import { Avatar, InfinityLightIcon } from "@hashintel/design-system";
+import { InfinityLightIcon } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
-import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
+import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import { Box, Container, TableCell, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { memo, useMemo, useState } from "react";
 
@@ -17,17 +17,18 @@ import {
   FlowRunsContextProvider,
   useFlowRunsContext,
 } from "./shared/flow-runs-context";
+import {
+  flowTableCellSx,
+  flowTableRowHeight,
+  FlowTableWebChip,
+} from "./shared/flow-styles";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
   VirtualizedTableSort,
 } from "./shared/virtualized-table";
-import {
-  defaultCellSx,
-  headerHeight,
-  VirtualizedTable,
-} from "./shared/virtualized-table";
+import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 
@@ -36,7 +37,7 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     id: "web",
     label: "Web",
     sortable: true,
-    width: 100,
+    width: 120,
   },
   {
     id: "name",
@@ -73,51 +74,20 @@ type FlowSummary = Subtype<
   }
 >;
 
-const rowHeight = 58;
-
-const cellSx = {
-  ...defaultCellSx,
-  borderRight: "none",
-  height: rowHeight,
-  "*": {
-    whiteSpace: "nowrap",
-    overflowX: "hidden",
-    textOverflow: "ellipsis",
-  },
-};
-
 const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
   const { web, name, uuid, description, lastRunStartedAt } = flowSummary;
 
   return (
     <>
-      <TableCell sx={{ ...cellSx, fontSize: 13 }}>
-        <Link href={`/@${web.shortname}`} noLinkStyle>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="center"
-            gap={0.5}
-            sx={({ palette, transitions }) => ({
-              border: `1px solid ${palette.gray[30]}`,
-              borderRadius: 2,
-              py: "3px",
-              "&:hover": {
-                border: `1px solid ${palette.common.black}`,
-              },
-              transition: transitions.create("border"),
-            })}
-          >
-            {web.avatarUrl && <Avatar src={web.avatarUrl} size={14} />}
-            <Typography component="span" sx={{ fontSize: 12, fontWeight: 500 }}>
-              {web.name}
-            </Typography>
-          </Stack>
-        </Link>
+      <TableCell sx={{ ...flowTableCellSx, fontSize: 13 }}>
+        <FlowTableWebChip {...web} />
       </TableCell>
-      <TableCell sx={cellSx}>
+      <TableCell sx={flowTableCellSx}>
         <Link
-          href={`/@${web.shortname}/flows/${uuid}`}
+          href={generateFlowDefinitionPath({
+            shortname: web.shortname,
+            flowDefinitionId: uuid,
+          })}
           sx={{
             display: "block",
             fontSize: 14,
@@ -128,14 +98,14 @@ const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
           {name}
         </Link>
       </TableCell>
-      <TableCell sx={cellSx}>
+      <TableCell sx={flowTableCellSx}>
         <Typography
           sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
         >
           {description}
         </Typography>
       </TableCell>
-      <TableCell sx={cellSx}>
+      <TableCell sx={flowTableCellSx}>
         <Typography
           sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
         >
@@ -189,7 +159,7 @@ const FlowsPageContent = () => {
              * Flow definitions will have their own uuid once we start storing them in the db, this is a placeholder
              * while we only have hardcoded definitions
              */
-            uuid: slugifyTypeTitle(flowDefinition.name),
+            uuid: flowDefinition.flowDefinitionId,
             description: flowDefinition.description,
             lastRunStartedAt,
           },
@@ -213,7 +183,7 @@ const FlowsPageContent = () => {
 
   const tableHeight = Math.min(
     600,
-    headerHeight + rowHeight * flowDefinitionRows.length + 2, // account for borders
+    headerHeight + flowTableRowHeight * flowDefinitionRows.length + 2, // account for borders
   );
 
   return (
@@ -244,8 +214,8 @@ const FlowsPageContent = () => {
 
 const FlowsPage: NextPageWithLayout = () => {
   return (
-    <FlowDefinitionsContextProvider>
-      <FlowRunsContextProvider>
+    <FlowDefinitionsContextProvider selectedFlowDefinitionId={null}>
+      <FlowRunsContextProvider selectedFlowRunId={null}>
         <FlowsPageContent />
       </FlowRunsContextProvider>
     </FlowDefinitionsContextProvider>

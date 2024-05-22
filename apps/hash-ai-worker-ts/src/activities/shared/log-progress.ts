@@ -4,6 +4,7 @@ import { Context } from "@temporalio/activity";
 import debounce from "lodash.debounce";
 
 import { logProgressSignal } from "../../shared/signals";
+import { logger } from "./activity-logger";
 
 const temporalClient = await createTemporalClient();
 
@@ -26,10 +27,20 @@ const sendLogSignal = debounce(
 
     logQueueByRunId.set(workflowId, []);
 
-    await handle.signal(logProgressSignal, {
-      attempt: Context.current().info.attempt,
-      logs,
-    });
+    try {
+      await handle.signal(logProgressSignal, {
+        attempt: Context.current().info.attempt,
+        logs,
+      });
+    } catch (err) {
+      /**
+       * Likely the workflow doesn't exist because it has been cancelled
+       * @todo H-2545: Graceful workflow cancellation
+       */
+      logger.error(
+        `Could not send logs for workflowId ${workflowId}: ${(err as Error).message}`,
+      );
+    }
   },
   1_000,
   { maxWait: 2_000 },

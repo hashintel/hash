@@ -143,6 +143,9 @@ where
             for (entity_vertex_id, graph_resolve_depths, traversal_interval) in
                 entity_queue.drain(..)
             {
+                let span = tracing::trace_span!("collect_edges", ?entity_vertex_id);
+                let _s = span.enter();
+
                 if let Some(new_graph_resolve_depths) = graph_resolve_depths
                     .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
                 {
@@ -182,6 +185,9 @@ where
             }
 
             if let Some(traversal_data) = shared_edges_to_traverse.take() {
+                let span = tracing::trace_span!("post_filter_entity_types");
+                let _s = span.enter();
+
                 entity_type_queue.extend(
                     Self::filter_entity_types_by_permission(
                         self.read_shared_edges(&traversal_data, Some(0)).await?,
@@ -219,6 +225,9 @@ where
                     if knowledge_edges.is_empty() {
                         continue;
                     }
+
+                    let span = tracing::trace_span!("post_filter_entities");
+                    let _s = span.enter();
 
                     let permissions = self
                         .authorization_api
@@ -329,6 +338,9 @@ where
             .try_collect::<Vec<_>>()
             .await?;
 
+            let span = tracing::trace_span!("post_filter_entities");
+            let _s = span.enter();
+
             let (permissions, zookie) = self
                 .authorization_api
                 .check_entities_permission(
@@ -391,6 +403,9 @@ where
                     .iter()
                     .map(|(entity, _)| entity.metadata.record_id.entity_id)
                     .collect::<HashSet<_>>();
+
+                let span = tracing::trace_span!("post_filter_entities");
+                let _s = span.enter();
 
                 let (permissions, zookie) = self
                     .authorization_api
@@ -1011,6 +1026,9 @@ where
             temporal_axes,
         );
 
+        let span = tracing::trace_span!("construct_subgraph");
+        let _s = span.enter();
+
         subgraph.roots.extend(
             root_entities
                 .iter()
@@ -1073,6 +1091,9 @@ where
         .map_ok(|entity| entity.metadata.record_id.entity_id)
         .try_collect::<Vec<_>>()
         .await?;
+
+        let span = tracing::trace_span!("post_filter_entities");
+        let _s = span.enter();
 
         let permitted_ids = self
             .authorization_api

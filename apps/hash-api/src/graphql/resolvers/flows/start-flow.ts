@@ -34,6 +34,8 @@ export const startFlow: ResolverFn<
     ],
     memo: {
       flowDefinitionId: flowDefinition.flowDefinitionId,
+      userAccountId: user.accountId,
+      webId,
     },
     workflowId,
     retry: {

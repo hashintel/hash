@@ -22,7 +22,7 @@ import {
 } from "../../shared/style-values";
 import { useStorageSync } from "../../shared/use-storage-sync";
 import { Automated } from "./action-center/automated";
-import { Log } from "./action-center/log";
+import { History } from "./action-center/history";
 import { OneOff } from "./action-center/one-off";
 import { Avatar } from "./shared/avatar";
 import { popupWidth } from "./shared/sizing";
@@ -75,8 +75,6 @@ export const ActionCenter = ({
         .automaticInferenceConfig,
     );
 
-  const [inferenceRequests] = useStorageSync("inferenceRequests", []);
-
   return (
     <Box sx={{ maxWidth: "100%", width: popupWidth, minHeight: 400 }}>
       <Stack
@@ -98,7 +96,7 @@ export const ActionCenter = ({
         <Box>
           <MuiTabs
             onChange={(_event, newValue) =>
-              setPopupTab(newValue as "one-off" | "automated" | "log")
+              setPopupTab(newValue as "one-off" | "automated" | "history")
             }
             TabIndicatorProps={{ sx: { transition: "none" } }}
             value={popupTab}
@@ -120,10 +118,10 @@ export const ActionCenter = ({
               )}
             />
             <MuiTab
-              value="log"
+              value="history"
               {...generateCommonTabProps(
-                popupTab === "log",
-                "Log",
+                popupTab === "history",
+                "History",
                 ListRegularIcon,
               )}
             />
@@ -149,7 +147,7 @@ export const ActionCenter = ({
             user={user}
           />
         ) : (
-          <Log inferenceRequests={inferenceRequests} user={user} />
+          <History />
         )}
       </Box>
     </Box>

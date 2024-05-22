@@ -820,7 +820,7 @@ export const answerQuestionFlow: FlowDefinition = {
 
 export const saveFileFromUrl: FlowDefinition = {
   name: "Save File From Url",
-  flowDefinitionId: "saveFileFromUrl" as EntityUuid,
+  flowDefinitionId: "save-file-from-url" as EntityUuid,
   description: "Save file from URL to HASH",
   trigger: {
     triggerDefinitionId: "userTrigger",
@@ -889,3 +889,5 @@ export const saveFileFromUrl: FlowDefinition = {
     },
   ],
 };
+
+export const goalDefinitionId = researchTaskFlowDefinition.flowDefinitionId;

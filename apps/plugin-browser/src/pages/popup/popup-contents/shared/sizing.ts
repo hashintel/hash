@@ -1,1 +1,1 @@
-export const popupWidth = 575;
+export const popupWidth = 600;

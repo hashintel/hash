@@ -68,6 +68,7 @@ export const scalars = {
 
   FlowTrigger: "@local/hash-isomorphic-utils/flows/types#FlowTrigger",
   FlowDefinition: "@local/hash-isomorphic-utils/flows/types#FlowDefinition",
+  FlowInputs: "@local/hash-isomorphic-utils/flows/types#FlowInputs",
   ExternalInputRequest:
     "@local/hash-isomorphic-utils/flows/types#ExternalInputRequest",
   ExternalInputResponseSignal:

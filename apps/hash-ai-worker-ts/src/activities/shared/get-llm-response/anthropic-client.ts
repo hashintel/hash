@@ -92,6 +92,10 @@ export type AnthropicMessage = Omit<MessageParam, "content"> & {
 
 export type AnthropicMessagesCreateParams = {
   tools?: AnthropicToolDefinition[];
+  tool_choice?:
+    | { type: "tool"; name: string }
+    | { type: "any" }
+    | { type: "auto" };
   model: AnthropicMessageModel;
   messages: AnthropicMessage[];
 } & Omit<MessageCreateParamsNonStreaming, "model" | "messages">;
@@ -119,7 +123,7 @@ export const createAnthropicMessagesWithTools = async (
     params as MessageCreateParamsNonStreaming,
     {
       headers: {
-        "anthropic-beta": "tools-2024-04-04",
+        "anthropic-beta": "tools-2024-05-16",
       },
     },
   );

@@ -79,7 +79,7 @@ export const mapFlowEntityToFlow = (entity: Entity<FlowProperties>): Flow => {
   } = simplifyProperties(entity.properties);
 
   return {
-    flowId: extractEntityUuidFromEntityId(entity.metadata.recordId.entityId),
+    flowRunId: extractEntityUuidFromEntityId(entity.metadata.recordId.entityId),
     flowDefinitionId: flowDefinitionId as EntityUuid,
     outputs: outputs as Flow["outputs"],
     steps: steps as Flow["steps"],

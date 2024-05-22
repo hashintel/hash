@@ -3,12 +3,14 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type {
   Entity,
   EntityId,
   EntityPropertiesObject,
   EntityUuid,
+  OwnedById,
 } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 
@@ -71,6 +73,14 @@ export type PersistedEntities = {
   persistedEntities: PersistedEntity[];
   failedEntityProposals: FailedEntityProposal[];
 };
+
+export type FlowInputs = [
+  {
+    flowDefinition: FlowDefinition;
+    flowTrigger: FlowTrigger;
+    webId: OwnedById;
+  },
+];
 
 export const textFormats = ["CSV", "HTML", "Markdown", "Plain"] as const;
 
@@ -334,7 +344,7 @@ export type FlowTrigger = {
 };
 
 export type Flow = {
-  flowId: EntityUuid;
+  flowRunId: EntityUuid;
   trigger: FlowTrigger;
   flowDefinitionId: EntityUuid;
   steps: FlowStep[];
@@ -437,3 +447,14 @@ export type ExternalInputRequest = ExternalInputRequestSignal & {
   /** Whether or not the request has been resolved */
   resolved: boolean;
 };
+
+export const detailedFlowFields = [
+  "inputs",
+  "inputRequests",
+  "outputs",
+  "steps",
+] as const;
+
+export type DetailedFlowField = (typeof detailedFlowFields)[number];
+
+export type SparseFlowRun = Omit<FlowRun, DetailedFlowField>;

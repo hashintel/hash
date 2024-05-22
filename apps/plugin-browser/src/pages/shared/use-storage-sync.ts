@@ -17,6 +17,8 @@ import { getFromLocalStorage, setInLocalStorage } from "../../shared/storage";
  * @param initialValue the value to initialise the state with
  * @param key the key for the value in storage
  *
+ * @return [value, setValue, storageHasBeenChecked]
+ *
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage
  */
 export const useStorageSync = <Key extends keyof LocalStorage>(

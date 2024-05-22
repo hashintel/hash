@@ -16,6 +16,7 @@ import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
+import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification";
 import {
@@ -52,14 +53,6 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
   const createEditionAsDraft = draft ?? false;
 
-  const ownedById = webId;
-
-  const webBotActorId = await getWebMachineActorId(
-    { graphApi: graphApiClient },
-    { actorId },
-    { ownedById },
-  );
-
   const { entityTypeId, properties, linkData, provenance, propertyMetadata } =
     proposedEntityWithResolvedLinks;
 
@@ -73,6 +66,28 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     provenance,
     propertyMetadata,
   };
+
+  const ownedById = webId;
+
+  const isAiGenerated = provenance?.actorType === "ai";
+
+  const webBotActorId = isAiGenerated
+    ? await getAiAssistantAccountIdActivity({
+        authentication: { actorId },
+        graphApiClient,
+        grantCreatePermissionForWeb: ownedById,
+      })
+    : await getWebMachineActorId(
+        { graphApi: graphApiClient },
+        { actorId },
+        { ownedById },
+      );
+
+  if (!webBotActorId) {
+    throw new Error(
+      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${ownedById}`,
+    );
+  }
 
   /**
    * @todo: determine whether the entity type ID is a file entity type ID
@@ -97,6 +112,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     const getFileEntityFromUrlStatus = await getFileEntityFromUrl({
       url: fileUrl,
       propertyMetadata,
+      provenance,
       entityTypeId,
     });
 

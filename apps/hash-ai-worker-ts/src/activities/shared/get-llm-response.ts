@@ -121,7 +121,24 @@ const sanitizeInputBeforeValidation = (params: {
   input: object;
   toolDefinition: LlmToolDefinition;
 }): object => {
-  const { input, toolDefinition } = params;
+  const { toolDefinition } = params;
+
+  /**
+   * Some LLM models (e.g. `claude-3-sonnet-20240229`) may provide
+   * valid input, but in a nested `properties` object. If this is present,
+   * and the tool definition does not specify a `properties` input, we can
+   * attempt to gracefully handle this by extracting the input from the nested
+   * `properties` object.
+   */
+  const input =
+    "properties" in params.input &&
+    typeof params.input.properties === "object" &&
+    params.input.properties !== null &&
+    !Object.keys(toolDefinition.inputSchema.properties ?? {}).includes(
+      "properties",
+    )
+      ? params.input.properties
+      : params.input;
 
   if (toolDefinition.sanitizeInputBeforeValidation) {
     try {
@@ -242,6 +259,7 @@ const getAnthropicResponse = async <ToolName extends string>(
     systemPrompt,
     previousInvalidResponses,
     retryContext,
+    toolChoice,
     ...remainingParams
   } = params;
 
@@ -270,6 +288,11 @@ const getAnthropicResponse = async <ToolName extends string>(
       messages: anthropicMessages,
       max_tokens: maxTokens,
       tools: anthropicTools,
+      tool_choice: toolChoice
+        ? toolChoice === "required"
+          ? { type: "any" }
+          : { type: "tool", name: toolChoice }
+        : undefined,
     });
 
     logger.debug(`Anthropic API response: ${stringify(anthropicResponse)}`);
@@ -468,6 +491,7 @@ const getOpenAiResponse = async <ToolName extends string>(
     systemPrompt,
     previousInvalidResponses,
     retryContext,
+    toolChoice,
     ...remainingParams
   } = params;
 
@@ -498,6 +522,11 @@ const getOpenAiResponse = async <ToolName extends string>(
      */
     logprobs:
       remainingParams.logprobs ?? process.env.NODE_ENV === "development",
+    tool_choice: toolChoice
+      ? toolChoice === "required"
+        ? "required"
+        : { type: "function", function: { name: toolChoice } }
+      : undefined,
   };
 
   /**
@@ -994,7 +1023,7 @@ export const getLlmResponse = async <T extends LlmParams>(
     }
   }
 
-  if (process.env.NODE_ENV === "development") {
+  if (["development", "test"].includes(process.env.NODE_ENV ?? "")) {
     logLlmRequest({ llmParams, llmResponse });
   }
 

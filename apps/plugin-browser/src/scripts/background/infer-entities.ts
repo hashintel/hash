@@ -1,25 +1,29 @@
 import type {
-  CancelInferEntitiesRequestMessage,
-  ExternalInputResponseMessage,
+  AutomaticInferenceWebsocketRequestMessage,
+  CancelInferEntitiesWebsocketRequestMessage,
+  CheckForExternalInputRequestsWebsocketRequestMessage,
+  ExternalInputWebsocketResponseMessage,
   InferenceWebsocketServerMessage,
-  InferEntitiesRequestMessage,
-  InferEntitiesReturn,
-  InferEntitiesUserArguments,
+  ManualInferenceWebsocketRequestMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Status } from "@local/status";
+import {
+  automaticBrowserInferenceFlowDefinition,
+  manualBrowserInferenceFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import type {
+  AutomaticInferenceArguments,
+  ManualInferenceArguments,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import { v4 as uuid } from "uuid";
 import browser from "webextension-polyfill";
 
-import { setErroredBadge } from "../../shared/badge";
+import { FlowRunStatus } from "../../graphql/api-types.gen";
 import type { InferEntitiesRequest } from "../../shared/messages";
 import {
   getFromLocalStorage,
   getSetFromLocalStorageValue,
 } from "../../shared/storage";
 import { getWebsiteContent } from "./infer-entities/get-website-content";
-
-const setInferenceRequestValue =
-  getSetFromLocalStorageValue("inferenceRequests");
 
 const setExternalInputRequestsValue = getSetFromLocalStorageValue(
   "externalInputRequests",
@@ -65,14 +69,21 @@ const getWebSocket = async () => {
 
   ws = new WebSocket(websocketUrl);
 
-  const heartbeat = setInterval(() => {
-    ws?.send("ping");
+  const externalRequestPoll = setInterval(() => {
+    void getCookieString().then((cookie) =>
+      ws?.send(
+        JSON.stringify({
+          cookie,
+          type: "check-for-external-input-requests",
+        } satisfies CheckForExternalInputRequestsWebsocketRequestMessage),
+      ),
+    );
   }, 20_000);
 
   ws.addEventListener("close", () => {
     console.log("Connection closed");
     ws = null;
-    clearInterval(heartbeat);
+    clearInterval(externalRequestPoll);
   });
 
   ws.addEventListener("open", () => {
@@ -86,96 +97,55 @@ const getWebSocket = async () => {
     async (event: MessageEvent<string>) => {
       const message = JSON.parse(event.data) as InferenceWebsocketServerMessage;
 
-      if (message.type === "external-input-request") {
-        const { workflowId, payload } = message;
-        if (payload.type === "get-urls-html-content") {
-          const inputRequests =
-            (await getFromLocalStorage("externalInputRequests")) ?? {};
+      const { workflowId, payload } = message;
+      if (payload.type === "get-urls-html-content") {
+        const inputRequests =
+          (await getFromLocalStorage("externalInputRequests")) ?? {};
 
-          const request = inputRequests[payload.requestId];
+        const request = inputRequests[payload.requestId];
 
-          if (request) {
-            /**
-             * This request is already being or has already been processed, so we don't need to do anything.
-             */
-            return;
-          } else {
-            await setExternalInputRequestsValue((requestsById) => ({
-              ...requestsById,
-              [payload.requestId]: {
-                message,
-                receivedAt: new Date().toISOString(),
-              },
-            }));
-          }
-
-          const webPages = await getWebsiteContent(payload.data.urls);
-
-          const cookie = await getCookieString();
-
-          ws?.send(
-            JSON.stringify({
-              cookie,
-              workflowId,
-              payload: {
-                ...payload,
-                data: { webPages: webPages ?? [] },
-              },
-              type: "external-input-response",
-            } satisfies ExternalInputResponseMessage),
-          );
-
+        if (request) {
           /**
-           * Clear the request from local storage after 30 seconds – if the message didn't get through to Temporal
-           * for some reason, the API will request the content again.
+           * This request is already being or has already been processed, so we don't need to do anything.
            */
-          setTimeout(() => {
-            void setExternalInputRequestsValue((requestsById) => ({
-              ...requestsById,
-              [payload.requestId]: null,
-            }));
-          }, 30_000);
+          return;
+        } else {
+          await setExternalInputRequestsValue((requestsById) => ({
+            ...requestsById,
+            [payload.requestId]: {
+              message,
+              receivedAt: new Date().toISOString(),
+            },
+          }));
         }
-        return;
-      }
 
-      const { payload: inferredEntitiesReturn, requestUuid, status } = message;
+        const webPages = await getWebsiteContent(payload.data.urls);
 
-      if (
-        status === "bad-request" ||
-        (inferredEntitiesReturn.code !== "OK" &&
-          inferredEntitiesReturn.contents.length === 0)
-      ) {
-        const errorMessage = inferredEntitiesReturn.message;
+        const cookie = await getCookieString();
 
-        await setInferenceRequestValue((currentValue) =>
-          (currentValue ?? []).map((requestInState) =>
-            requestInState.requestUuid === requestUuid
-              ? {
-                  ...requestInState,
-                  errorMessage:
-                    errorMessage ?? "Unknown error – please contact us",
-                  finishedAt: new Date().toISOString(),
-                  status: "error",
-                }
-              : requestInState,
-          ),
+        ws?.send(
+          JSON.stringify({
+            cookie,
+            workflowId,
+            payload: {
+              ...payload,
+              data: { webPages: webPages ?? [] },
+            },
+            type: "external-input-response",
+          } satisfies ExternalInputWebsocketResponseMessage),
         );
-        return;
-      }
 
-      await setInferenceRequestValue((currentValue) =>
-        (currentValue ?? []).map((requestInState) =>
-          requestInState.requestUuid === requestUuid
-            ? {
-                ...requestInState,
-                data: inferredEntitiesReturn,
-                finishedAt: new Date().toISOString(),
-                status,
-              }
-            : requestInState,
-        ),
-      );
+        /**
+         * Clear the request from local storage after 30 seconds – if the message didn't get through to Temporal
+         * for some reason, the API will request the content again.
+         */
+        setTimeout(() => {
+          void setExternalInputRequestsValue((requestsById) => ({
+            ...requestsById,
+            [payload.requestId]: null,
+          }));
+        }, 30_000);
+      }
     },
   );
 
@@ -184,39 +154,37 @@ const getWebSocket = async () => {
   return ws;
 };
 
-const sendInferEntitiesMessage = async (params: {
-  requestUuid: string;
-  payload: Omit<
-    InferEntitiesRequestMessage["payload"],
-    "cookie" | "maxTokens" | "temperature"
-  >;
-}) => {
-  const { requestUuid, payload } = params;
-
+const sendInferEntitiesMessage = async (
+  params:
+    | {
+        requestUuid: string;
+        payload: AutomaticInferenceArguments;
+        type: "automatic-inference-request";
+      }
+    | {
+        requestUuid: string;
+        payload: ManualInferenceArguments;
+        type: "manual-inference-request";
+      },
+) => {
   const socket = await getWebSocket();
-
-  const inferMessagePayload: InferEntitiesUserArguments = {
-    ...payload,
-    maxTokens: null,
-    temperature: 0,
-  };
 
   const cookie = await getCookieString();
 
   socket.send(
     JSON.stringify({
       cookie,
-      payload: inferMessagePayload,
-      requestUuid,
-      type: "inference-request",
-    } satisfies InferEntitiesRequestMessage),
+      ...params,
+    } satisfies
+      | AutomaticInferenceWebsocketRequestMessage
+      | ManualInferenceWebsocketRequestMessage),
   );
 };
 
 export const cancelInferEntities = async ({
-  requestUuid,
+  flowRunId,
 }: {
-  requestUuid: string;
+  flowRunId: string;
 }) => {
   const cookie = await getCookieString();
 
@@ -225,15 +193,18 @@ export const cancelInferEntities = async ({
   socket.send(
     JSON.stringify({
       cookie,
-      requestUuid,
+      flowRunId,
+      requestUuid: uuid(),
       type: "cancel-inference-request",
-    } satisfies CancelInferEntitiesRequestMessage),
+    } satisfies CancelInferEntitiesWebsocketRequestMessage),
   );
 };
 
+const setLocalPendingRuns = getSetFromLocalStorageValue("localPendingFlowRuns");
+
 export const inferEntities = async (
   message: InferEntitiesRequest,
-  trigger: "passive" | "user",
+  trigger: "automatic" | "manual",
 ) => {
   const user = await getFromLocalStorage("user");
   if (!user) {
@@ -252,53 +223,79 @@ export const inferEntities = async (
 
   const requestUuid = uuid();
 
-  await setInferenceRequestValue((currentValue) => [
-    {
-      createAs,
-      createdAt: new Date().toISOString(),
-      entityTypeIds,
-      requestUuid,
-      model,
-      ownedById,
-      status: "pending",
-      sourceTitle,
-      sourceUrl,
-      trigger,
-    },
-    ...(currentValue ?? []),
-  ]);
-
-  try {
-    await sendInferEntitiesMessage({
-      requestUuid,
-      payload: {
-        createAs,
-        entityTypeIds,
-        model,
-        ownedById,
-        sourceTitle,
-        sourceUrl,
-        textInput,
+  const basePayload = {
+    webId: ownedById,
+    visitedWebPage: {
+      kind: "WebPage",
+      value: {
+        htmlContent: textInput,
+        title: sourceTitle,
+        url: sourceUrl,
       },
-    });
-  } catch (err) {
-    setErroredBadge();
+    },
+  } as const satisfies AutomaticInferenceArguments;
 
-    const errorMessage = (err as Error | Status<InferEntitiesReturn>).message;
+  const inferenceArgs =
+    trigger === "automatic"
+      ? ({
+          payload: basePayload,
+          requestUuid,
+          type: "automatic-inference-request",
+        } as const)
+      : ({
+          payload: {
+            ...basePayload,
+            draft: {
+              kind: "Boolean",
+              value: createAs === "draft",
+            },
+            entityTypeIds: {
+              kind: "VersionedUrl",
+              value: entityTypeIds,
+            },
+            model: {
+              kind: "Text",
+              value: model,
+            },
+          } as const satisfies ManualInferenceArguments,
+          requestUuid,
+          type: "manual-inference-request",
+        } as const);
 
-    await setInferenceRequestValue((currentValue) =>
-      (currentValue ?? []).map((request) =>
-        request.requestUuid === requestUuid
-          ? {
-              ...request,
-              errorMessage: errorMessage ?? "Unknown error – please contact us",
-              finishedAt: new Date().toISOString(),
-              status: "error",
-            }
-          : request,
-      ),
-    );
-  }
+  await sendInferEntitiesMessage(inferenceArgs);
+
+  const flowDefinition =
+    trigger === "automatic"
+      ? automaticBrowserInferenceFlowDefinition
+      : manualBrowserInferenceFlowDefinition;
+
+  /**
+   * Optimistically add the run to local storage so that it appears in the history tab immediately.
+   * When the next request for the latest runs comes back from the API, it will overwrite local storage again.
+   */
+  await setLocalPendingRuns((existingValue) => [
+    ...(existingValue ?? []),
+    {
+      flowDefinitionId: flowDefinition.flowDefinitionId,
+      flowRunId: requestUuid,
+      closedAt: null,
+      executedAt: new Date().toISOString(),
+      persistedEntities: [],
+      webId: ownedById,
+      inputs: [
+        {
+          flowDefinition,
+          flowTrigger: {
+            triggerDefinitionId: flowDefinition.trigger.triggerDefinitionId,
+            outputs: [],
+          },
+          webId: ownedById,
+        },
+      ],
+      webPage: basePayload.visitedWebPage.value,
+      status: FlowRunStatus.Running,
+    },
+  ]);
 };
 
 /**

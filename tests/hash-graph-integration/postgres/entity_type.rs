@@ -105,6 +105,7 @@ async fn query() {
                 after: None,
                 limit: None,
                 include_drafts: false,
+                include_count: false,
             },
         )
         .await
@@ -196,6 +197,7 @@ async fn update() {
                 after: None,
                 limit: None,
                 include_drafts: false,
+                include_count: false,
             },
         )
         .await
@@ -219,6 +221,7 @@ async fn update() {
                 after: None,
                 limit: None,
                 include_drafts: false,
+                include_count: false,
             },
         )
         .await

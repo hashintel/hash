@@ -12,7 +12,8 @@ import type {
 } from "../api-types.gen";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
-import { getFlowRuns } from "./flows/runs";
+import { getFlowRunByIdResolver } from "./flows/get-flow-run-by-id";
+import { getFlowRunsResolver } from "./flows/get-flow-runs";
 import { startFlow } from "./flows/start-flow";
 import { submitExternalInputResponse } from "./flows/submit-external-input-response";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
@@ -116,7 +117,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
     getEntity: getEntityResolver,
-    getFlowRuns,
+    getFlowRuns: loggedInAndSignedUpMiddleware(getFlowRunsResolver),
+    getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
     queryEntities: queryEntitiesResolver,
     isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
     getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(
