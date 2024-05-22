@@ -1,7 +1,6 @@
-import { BugIcon } from "@hashintel/design-system";
+import { ArrowRightIconRegular, BugIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 
-import { ArrowRightIcon } from "../../shared/icons/arrow-right";
 import { EnvelopeRegularIcon } from "../../shared/icons/envelope-regular-icon";
 import { Button } from "../../shared/ui/button";
 import { DiscordCard } from "./shared/discord-card";
@@ -62,7 +61,7 @@ export const LoggedIn = () => {
           >
             a suggestion
           </Box>
-          <ArrowRightIcon
+          <ArrowRightIconRegular
             sx={{
               fontSize: 14,
               ml: 1.2,

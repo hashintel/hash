@@ -1,5 +1,9 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { ArrowUpRightRegularIcon, ChromeIcon } from "@hashintel/design-system";
+import {
+  ArrowRightIconRegular,
+  ArrowUpRightRegularIcon,
+  ChromeIcon,
+} from "@hashintel/design-system";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import type { ProspectiveUserProperties } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
 import { Box } from "@mui/material";
@@ -14,7 +18,6 @@ import {
   getWaitlistPositionQuery,
   submitEarlyAccessFormMutation,
 } from "../../graphql/queries/user.queries";
-import { ArrowRightIcon } from "../../shared/icons/arrow-right";
 import { Button } from "../../shared/ui/button";
 import { DiscordCard } from "./shared/discord-card";
 import { FollowUsButton } from "./shared/follow-us-button";
@@ -36,7 +39,7 @@ const SelfHostedAccessDenied = () => (
       sx={{ borderRadius: 2 }}
     >
       Create an account
-      <ArrowRightIcon sx={{ fontSize: 14, ml: 1 }} />
+      <ArrowRightIconRegular sx={{ fontSize: 14, ml: 1 }} />
     </Button>
   </HomepageCard>
 );
@@ -142,7 +145,7 @@ export const Waitlisted = () => {
                       Tell us about your
                     </Box>
                     use case
-                    <ArrowRightIcon sx={{ fontSize: 14, ml: 1 }} />
+                    <ArrowRightIconRegular sx={{ fontSize: 14, ml: 1 }} />
                   </Button>
                 </>
               )}
