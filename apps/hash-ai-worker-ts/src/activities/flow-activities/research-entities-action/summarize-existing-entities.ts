@@ -42,10 +42,7 @@ const registerEntitySummariesToolDefinition: LlmToolDefinition<
           properties: {
             entityId: {
               type: "string",
-              description: dedent(`
-                The "name" should be as unique as possible based on the properties of the entity.
-                For example for an entity of type "Person" with first name "John", middle name "Doe", and last name "Smith", the "name" could be "John Doe Smith".
-             `),
+              description: `The ID of the entity for which the "name" and "summary" is being provided.`,
             },
             name: {
               type: "string",
