@@ -1,21 +1,20 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity } from "@local/hash-subgraph";
 
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type";
+import type { LocalEntitySummary } from "../../shared/infer-facts-from-text/get-entity-summaries-from-text";
+import type { Fact } from "../../shared/infer-facts-from-text/types";
 import type { CompletedToolCall } from "../types";
 
 const toolNames = [
   // "getWebPageInnerText",
   "getWebPageInnerHtml",
   // "getWebPageSummary",
-  "inferEntitiesFromWebPage",
-  "submitProposedEntities",
+  "inferFactsFromWebPage",
   "complete",
   "terminate",
   "updatePlan",
   "queryPdf",
-  "inferEntitiesFromText",
+  "inferFactsFromText",
 ] as const;
 
 export type ToolName = (typeof toolNames)[number];
@@ -35,24 +34,22 @@ export type AccessedRemoteFile = {
   loadedAt: string;
 };
 
-export type InferEntitiesFromWebPageWorkerAgentState = {
+export type InferFactsFromWebPageWorkerAgentState = {
   currentPlan: string;
   previousCalls: {
     completedToolCalls: CompletedToolCall<ToolName>[];
   }[];
-  proposedEntities: ProposedEntity[];
-  submittedEntityIds: string[];
-  inferredEntitiesFromWebPageUrls: string[];
-  idCounter: number;
+  inferredFactsAboutEntities: LocalEntitySummary[];
+  inferredFacts: Fact[];
+  inferredFactsFromWebPageUrls: string[];
   filesQueried: AccessedRemoteFile[];
-  filesUsedToProposeEntities: AccessedRemoteFile[];
+  filesUsedToInferFacts: AccessedRemoteFile[];
 };
 
-export type InferEntitiesFromWebPageWorkerAgentInput = {
+export type InferFactsFromWebPageWorkerAgentInput = {
   prompt: string;
   entityTypes: DereferencedEntityType[];
   linkEntityTypes?: DereferencedEntityType[];
-  existingEntities?: Entity[];
   url: string;
   innerHtml: string;
 };

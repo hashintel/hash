@@ -1,7 +1,7 @@
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import { logger } from "../../shared/activity-logger";
 import { stringify } from "../../shared/stringify";
-import type { EntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
+import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
 import { getEntitySummariesFromText } from "./infer-facts-from-text/get-entity-summaries-from-text";
 import { inferEntityFactsFromText } from "./infer-facts-from-text/infer-entity-facts-from-text";
 import type { Fact } from "./infer-facts-from-text/types";
@@ -11,11 +11,11 @@ export const inferFactsFromText = async (params: {
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
   relevantEntitiesPrompt?: string;
   testingParams?: {
-    existingEntitySummaries?: EntitySummary[];
+    existingEntitySummaries?: LocalEntitySummary[];
   };
 }): Promise<{
   facts: Fact[];
-  entitySummaries: EntitySummary[];
+  entitySummaries: LocalEntitySummary[];
 }> => {
   const {
     text,
@@ -24,7 +24,7 @@ export const inferFactsFromText = async (params: {
     relevantEntitiesPrompt,
   } = params;
 
-  const entitySummaries: EntitySummary[] =
+  const entitySummaries: LocalEntitySummary[] =
     testingParams?.existingEntitySummaries ??
     (await Promise.all(
       Object.values(dereferencedEntityTypes)

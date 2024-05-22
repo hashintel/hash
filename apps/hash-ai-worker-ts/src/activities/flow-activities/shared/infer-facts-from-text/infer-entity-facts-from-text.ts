@@ -12,7 +12,7 @@ import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-res
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types";
 import { graphApiClient } from "../../../shared/graph-api-client";
 import { stringify } from "../../../shared/stringify";
-import type { EntitySummary } from "./get-entity-summaries-from-text";
+import type { LocalEntitySummary } from "./get-entity-summaries-from-text";
 import type { Fact } from "./types";
 
 const toolNames = ["submitFacts"] as const;
@@ -20,7 +20,7 @@ const toolNames = ["submitFacts"] as const;
 type ToolName = (typeof toolNames)[number];
 
 const generateToolDefinitions = (params: {
-  subjectEntity: EntitySummary;
+  subjectEntity: LocalEntitySummary;
 }): Record<ToolName, LlmToolDefinition<ToolName>> => ({
   submitFacts: {
     name: "submitFacts",
@@ -103,8 +103,8 @@ const systemPrompt = dedent(`
 const retryMax = 3;
 
 export const inferEntityFactsFromText = async (params: {
-  subjectEntity: EntitySummary;
-  potentialObjectEntities: EntitySummary[];
+  subjectEntity: LocalEntitySummary;
+  potentialObjectEntities: LocalEntitySummary[];
   text: string;
   dereferencedEntityType: DereferencedEntityType;
   retryContext?: {

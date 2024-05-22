@@ -18,21 +18,27 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
   const page = await browser.newPage();
 
   try {
-    const response = await page.goto(url, {
-      // waits until the network is idle (no more than 2 network connections for at least 500 ms)
+    const timeout = 10_000;
+
+    const navigationPromise = page.goto(url, {
       waitUntil: "networkidle2",
+      timeout: timeout + 10_000,
     });
 
-    if (!response?.ok()) {
-      const status = response?.status()
-        ? `${response.status()} ${response.statusText()}`
-        : "Unknown Error";
-      const message = await response?.text();
+    const timeoutPromise = new Promise((resolve) => {
+      setTimeout(() => resolve(undefined), timeout);
+    });
 
-      throw new Error(`${status}: ${message}`);
-    }
-
-    const htmlContent = await page.evaluate(() => document.body.innerHTML);
+    /**
+     * Obtain the `innerHTML` of the page, whether or
+     * not it has finished loading after the timeout. This means
+     * that for web pages with a significant amount of content,
+     * we are still able to return a partial result.
+     */
+    const htmlContent = await Promise.race([
+      navigationPromise,
+      timeoutPromise,
+    ]).then(() => page.evaluate(() => document.body.innerHTML)); // Return partial content if timeout occurs
 
     const title = await page.title();
 
@@ -103,10 +109,15 @@ export const getWebPageActivity = async (params: {
   const urlObject = new URL(url);
 
   const shouldAskBrowser =
-    domainsToRequestFromBrowser.includes(urlObject.host) ||
-    domainsToRequestFromBrowser.some((domain) =>
-      urlObject.host.endsWith(`.${domain}`),
-    );
+    (domainsToRequestFromBrowser.includes(urlObject.host) ||
+      domainsToRequestFromBrowser.some((domain) =>
+        urlObject.host.endsWith(`.${domain}`),
+      )) &&
+    /**
+     * @todo: find way to mock the temporal context to allow for accessing the
+     * browser plugin in tests.
+     */
+    process.env.NODE_ENV !== "test";
 
   const { htmlContent, title } = shouldAskBrowser
     ? await getWebPageFromBrowser(url)

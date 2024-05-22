@@ -19,7 +19,8 @@ import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-res
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types";
 import { graphApiClient } from "../../../shared/graph-api-client";
 import { stringify } from "../../../shared/stringify";
-import type { EntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
+import type { ExistingEntitySummary } from "../../research-entities-action/summarize-existing-entities";
+import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../infer-facts-from-text/types";
 
 const toolNames = ["proposeEntity", "abandonEntity"] as const;
@@ -67,9 +68,9 @@ const generateToolDefinitions = (params: {
                             description:
                               "The entity type ID of the target entity",
                           },
-                          targetEntityLocalId: {
+                          targetEntityId: {
                             type: "string",
-                            description: "The local ID of the target entity",
+                            description: "The ID of the target entity",
                           },
                           properties: {
                             description:
@@ -84,7 +85,7 @@ const generateToolDefinitions = (params: {
                         },
                         required: [
                           "entityTypeId",
-                          "targetEntityLocalId",
+                          "targetEntityId",
                           "properties",
                         ],
                       }),
@@ -140,7 +141,7 @@ const generateSystemPrompt = (params: { proposingOutgoingLinks: boolean }) =>
 const retryMax = 3;
 
 export const proposeEntityFromFacts = async (params: {
-  entitySummary: EntitySummary;
+  entitySummary: LocalEntitySummary;
   facts: Fact[];
   dereferencedEntityType: DereferencedEntityType;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
@@ -148,7 +149,10 @@ export const proposeEntityFromFacts = async (params: {
     schema: DereferencedEntityType;
     simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
   }[];
-  possibleOutgoingLinkTargetEntitySummaries: EntitySummary[];
+  possibleOutgoingLinkTargetEntitySummaries: (
+    | LocalEntitySummary
+    | ExistingEntitySummary
+  )[];
   retryContext?: {
     retryCount: number;
     retryMessages: LlmMessage[];
@@ -266,7 +270,7 @@ export const proposeEntityFromFacts = async (params: {
         properties: Record<string, EntityPropertyValueWithSimplifiedProperties>;
         outgoingLinks?: {
           entityTypeId: string;
-          targetEntityLocalId: string;
+          targetEntityId: string;
           properties: Record<
             string,
             EntityPropertyValueWithSimplifiedProperties
@@ -353,12 +357,17 @@ export const proposeEntityFromFacts = async (params: {
 
           const targetEntitySummary =
             possibleOutgoingLinkTargetEntitySummaries.find(
-              ({ localId }) => localId === outgoingLink.targetEntityLocalId,
+              (possibleOutgoingLinkTargetEntitySummary) =>
+                "localId" in possibleOutgoingLinkTargetEntitySummary
+                  ? possibleOutgoingLinkTargetEntitySummary.localId ===
+                    outgoingLink.targetEntityId
+                  : possibleOutgoingLinkTargetEntitySummary.entityId ===
+                    outgoingLink.targetEntityId,
             );
 
           if (!targetEntitySummary) {
             retryToolCallMessages.push(
-              `The target entity with local ID ${outgoingLink.targetEntityLocalId} does not exist.`,
+              `The target entity with local ID ${outgoingLink.targetEntityId} does not exist.`,
             );
 
             return;
@@ -371,10 +380,16 @@ export const proposeEntityFromFacts = async (params: {
               kind: "proposed-entity",
               localId: entitySummary.localId,
             },
-            targetEntityId: {
-              kind: "proposed-entity",
-              localId: outgoingLink.targetEntityLocalId,
-            },
+            targetEntityId:
+              "localId" in targetEntitySummary
+                ? {
+                    kind: "proposed-entity",
+                    localId: targetEntitySummary.localId,
+                  }
+                : {
+                    kind: "existing-entity",
+                    entityId: targetEntitySummary.entityId,
+                  },
             entityTypeId: outgoingLink.entityTypeId as VersionedUrl,
             properties: outgoingLinkProperties,
           });

@@ -9,34 +9,43 @@ import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-res
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types";
 import { graphApiClient } from "../../../shared/graph-api-client";
 
-export type EntitySummary = {
+export type LocalEntitySummary = {
   localId: string;
   name: string;
   summary: string;
   entityTypeId: VersionedUrl;
 };
 
-const toolNames = ["registerEntitySummary"] as const;
+const toolNames = ["registerEntitySummaries"] as const;
 
 type ToolName = (typeof toolNames)[number];
 
 const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
-  registerEntitySummary: {
-    name: "registerEntitySummary",
-    description: "Register an entity summary.",
+  registerEntitySummaries: {
+    name: "registerEntitySummaries",
+    description: "Register the relevant entity summaries.",
     inputSchema: {
       type: "object",
       properties: {
-        name: {
-          type: "string",
-          description: "The name of the entity.",
-        },
-        summary: {
-          type: "string",
-          description: "The summary of the entity.",
+        entitySummaries: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description: "The name of the entity.",
+              },
+              summary: {
+                type: "string",
+                description: "The summary of the entity.",
+              },
+            },
+            required: ["name", "summary"],
+          },
         },
       },
-      required: ["name", "summary"],
+      required: ["entitySummaries"],
     },
   },
 };
@@ -65,7 +74,7 @@ export const getEntitySummariesFromText = async (params: {
   dereferencedEntityType: DereferencedEntityType;
   relevantEntitiesPrompt?: string;
 }): Promise<{
-  entitySummaries: EntitySummary[];
+  entitySummaries: LocalEntitySummary[];
 }> => {
   const { text, dereferencedEntityType, relevantEntitiesPrompt } = params;
 
@@ -73,7 +82,8 @@ export const getEntitySummariesFromText = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "gpt-4-0125-preview",
+      model: "gpt-4o-2024-05-13",
+      toolChoice: toolNames[0],
       messages: [
         {
           role: "user",
@@ -110,22 +120,23 @@ export const getEntitySummariesFromText = async (params: {
     message: llmResponse.message,
   });
 
-  const entitySummaries: EntitySummary[] = [];
+  const entitySummaries: LocalEntitySummary[] = [];
 
   for (const toolCall of toolCalls) {
-    const { name, summary } = toolCall.input as {
-      name: string;
-      summary: string;
+    const { entitySummaries: toolCallEntitySummaries } = toolCall.input as {
+      entitySummaries: { name: string; summary: string }[];
     };
 
-    const localId = generateUuid();
+    for (const { name, summary } of toolCallEntitySummaries) {
+      const localId = generateUuid();
 
-    entitySummaries.push({
-      localId,
-      name,
-      summary,
-      entityTypeId: dereferencedEntityType.$id,
-    });
+      entitySummaries.push({
+        localId,
+        name,
+        summary,
+        entityTypeId: dereferencedEntityType.$id,
+      });
+    }
   }
 
   return { entitySummaries };
