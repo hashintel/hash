@@ -91,14 +91,11 @@
     {
       "groupName": "LLM provider SDK npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": [
-        "^@openai/",
-        "^@anthropic/",
-        "groq-sdk"
-      ],
+      "matchPackagePatterns": ["^@openai/", "^@anthropic/", "groq-sdk"],
       "automerge": false,
       "dependencyDashboardApproval": false,
-      "minimumReleaseAge": "0 days"
+      "minimumReleaseAge": "0 days",
+      "schedule": ["after 1am"]
     },
     {
       "groupName": "Block Protocol npm packages",
