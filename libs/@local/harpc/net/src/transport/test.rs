@@ -59,7 +59,7 @@ static EXAMPLE_RESPONSE: Response = Response {
 
 const DEFAULT_DELAY: Duration = Duration::from_millis(10);
 
-pub(crate) fn address() -> libp2p::Multiaddr {
+pub(crate) fn memory_address() -> libp2p::Multiaddr {
     // to allow for unique port numbers, even if the tests are run concurrently we use an atomic
     // we're not starting at `0` as `0` indicates that the port should be chosen by the
     // underlying transport.
@@ -87,7 +87,7 @@ async fn lookup_peer() {
     let (server, _guard_server) = layer();
     let (client, _guard_client) = layer();
 
-    let address = address();
+    let address = memory_address();
 
     server
         .listen_on(address.clone())
@@ -110,7 +110,7 @@ async fn lookup_peer() {
 async fn lookup_peer_does_not_exist() {
     let (client, _guard_client) = layer();
 
-    let address = address();
+    let address = memory_address();
 
     let error = client
         .lookup_peer(address)
@@ -161,7 +161,7 @@ async fn establish_connection() {
     let (server, _guard_server) = layer();
     let (client, _guard_client) = layer();
 
-    let address = address();
+    let address = memory_address();
 
     server
         .listen_on(address.clone())
@@ -205,7 +205,7 @@ async fn send_request() {
     let (server, _guard_server) = layer();
     let (client, _guard_client) = layer();
 
-    let address = address();
+    let address = memory_address();
 
     server
         .listen_on(address.clone())
@@ -269,7 +269,7 @@ async fn send_request_response() {
     let (server, _guard_server) = layer();
     let (client, _guard_client) = layer();
 
-    let address = address();
+    let address = memory_address();
 
     server
         .listen_on(address.clone())
@@ -343,7 +343,7 @@ async fn send_request_response_multiple() {
     let (server, _guard_server) = layer();
     let (client, _guard_client) = layer();
 
-    let address = address();
+    let address = memory_address();
 
     server
         .listen_on(address.clone())
@@ -441,7 +441,7 @@ async fn establish_connection_server_offline() {
     let (server, guard_server) = layer();
     let (client, _guard_client) = layer();
 
-    let address = address();
+    let address = memory_address();
 
     server
         .listen_on(address.clone())
@@ -477,7 +477,7 @@ async fn listen_on() {
     let (layer, _guard) = layer();
 
     layer
-        .listen_on(address())
+        .listen_on(memory_address())
         .await
         .expect("memory transport should be able to listen on memory address");
 }

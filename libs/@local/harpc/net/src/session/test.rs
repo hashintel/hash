@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
     codec::{ErrorEncoder, PlainError},
-    transport::{Transport, TransportConfig, TransportLayer},
+    transport::{test::memory_address, Transport, TransportConfig, TransportLayer},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -248,7 +248,7 @@ where
 
 #[test_log::test(tokio::test(flavor = "multi_thread", worker_threads = 8))]
 async fn echo_memory() {
-    let address: Multiaddr = iter::once(multiaddr::Protocol::Memory(0)).collect();
+    let address = memory_address();
 
     echo(libp2p::core::transport::MemoryTransport::default, address).await;
 }
@@ -394,7 +394,7 @@ async fn echo_concurrent<T>(
 
 #[test_log::test(tokio::test(flavor = "multi_thread", worker_threads = 8))]
 async fn echo_memory_concurrent() {
-    let address: Multiaddr = iter::once(multiaddr::Protocol::Memory(0)).collect();
+    let address = memory_address();
 
     echo_concurrent(
         libp2p::core::transport::MemoryTransport::default,

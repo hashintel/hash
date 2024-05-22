@@ -40,7 +40,7 @@ use crate::{
     transport::{
         connection::OutgoingConnection,
         error::{OpenStreamError, TransportError},
-        test::{address, layer},
+        test::{layer, memory_address},
         TransportLayer,
     },
 };
@@ -281,7 +281,7 @@ async fn assert_response(
 
 #[tokio::test]
 async fn single_session() {
-    let address = address();
+    let address = memory_address();
 
     let (server, _server_guard) = session(SessionConfig::default(), address.clone()).await;
     let (client, _client_guard) = layer();
@@ -331,7 +331,7 @@ async fn single_session() {
 async fn client_disconnect() {
     // if a client spuriously disconnects, do we properly disconnect as well and can still start
     // another connection
-    let address = address();
+    let address = memory_address();
 
     let (server, _server_guard) = session(SessionConfig::default(), address.clone()).await;
 
@@ -394,7 +394,7 @@ async fn client_disconnect() {
 
 #[tokio::test]
 async fn server_disconnect_by_dropping_listen_stream() {
-    let address = address();
+    let address = memory_address();
 
     let (mut server, _server_guard) = session(
         SessionConfig {
@@ -454,7 +454,7 @@ async fn server_disconnect_by_dropping_listen_stream() {
 
 #[tokio::test]
 async fn swarm_shutdown_client() {
-    let address = address();
+    let address = memory_address();
 
     let (server, server_task_cancel, (), _server_guard) = session_map(
         SessionConfig::default(),
@@ -510,7 +510,7 @@ async fn swarm_shutdown_client() {
 
 #[tokio::test]
 async fn swarm_shutdown_server() {
-    let address = address();
+    let address = memory_address();
 
     let (mut server, server_task_cancel, (), _server_guard) = session_map(
         SessionConfig {
@@ -573,7 +573,7 @@ async fn swarm_shutdown_server() {
 
 #[tokio::test]
 async fn too_many_connections() {
-    let address = address();
+    let address = memory_address();
 
     let (server, _server_guard) = session(
         SessionConfig {
@@ -620,7 +620,7 @@ async fn too_many_connections() {
 
 #[tokio::test]
 async fn connection_reclaim() {
-    let address = address();
+    let address = memory_address();
 
     let (server, _server_guard) = session(
         SessionConfig {
