@@ -52,7 +52,7 @@ RUN yarn install --frozen-lockfile --prefer-offline && \
 
 COPY --from=base /app/out/full/ .
 
-RUN yarn turbo build --filter '@apps/hash-integration-worker'
+RUN yarn turbo build --filter '@apps/hash-integration-worker' && rm -rf target/
 
 
 FROM node:20.13-slim AS runner
