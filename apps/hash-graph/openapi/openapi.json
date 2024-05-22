@@ -7224,9 +7224,25 @@
       "ProvidedOntologyEditionProvenance": {
         "type": "object",
         "properties": {
-          "__placeholder": {
-            "default": null,
-            "nullable": true
+          "actorType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActorType"
+              }
+            ]
+          },
+          "origin": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OriginProvenance"
+              }
+            ]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceProvenance"
+            }
           }
         },
         "additionalProperties": false

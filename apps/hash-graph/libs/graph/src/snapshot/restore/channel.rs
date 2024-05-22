@@ -111,7 +111,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .attach_printable("could not send account group"),
             SnapshotEntry::DataType(data_type) => self
                 .data_type
-                .start_send_unpin(data_type)
+                .start_send_unpin(*data_type)
                 .attach_printable("could not send data type"),
             SnapshotEntry::DataTypeEmbedding(embedding) => self
                 .data_type_embedding
@@ -124,7 +124,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .attach_printable("could not send data type embedding"),
             SnapshotEntry::PropertyType(property_type) => self
                 .property_type
-                .start_send_unpin(property_type)
+                .start_send_unpin(*property_type)
                 .attach_printable("could not send property type"),
             SnapshotEntry::PropertyTypeEmbedding(embedding) => self
                 .property_type_embedding
@@ -137,7 +137,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .attach_printable("could not send property type embedding"),
             SnapshotEntry::EntityType(entity_type) => self
                 .entity_type
-                .start_send_unpin(entity_type)
+                .start_send_unpin(*entity_type)
                 .attach_printable("could not send entity type"),
             SnapshotEntry::EntityTypeEmbedding(embedding) => self
                 .entity_type_embedding
