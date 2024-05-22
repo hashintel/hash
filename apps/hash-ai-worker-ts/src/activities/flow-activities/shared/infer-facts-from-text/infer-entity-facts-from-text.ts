@@ -8,6 +8,7 @@ import { getLlmResponse } from "../../../shared/get-llm-response";
 import type {
   LlmMessage,
   LlmMessageToolResultContent,
+  LlmUserMessage,
 } from "../../../shared/get-llm-response/llm-message";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types";
@@ -88,10 +89,11 @@ const systemPrompt = dedent(`
   You are a fact extracting agent.
 
   The user will provide you with:
-    - "text": the text from which you should extract facts.
-    - "subjectEntity": the entity the facts must have a their subject.
-    - "entityType": a definition of the entity type of the subject entity, which includes the properties and outgoing links of the entity.
-    - "potentialObjectEntities": a list of other entities mentioned in the text, which may be the object of facts.
+    - Text: the text from which you should extract facts.
+    - Subject Entity: the entity the facts must have a their subject.
+    - Relevant Properties: a list of properties the user is looking for in the text.
+    - Relevant Outgoing Links: a definition of the possible outgoing links the user is looking for in the text.
+    - Potential Object Entities: a list of other entities mentioned in the text, which may be the object of facts.
 
   You must provide an exhaustive list of facts about the entity based on the information provided in the text.
   For example, if you are provided with data from a table where the entity is a row of the table,
@@ -100,6 +102,43 @@ const systemPrompt = dedent(`
   These facts will be later used to construct the entity with the properties and links of the entity type.
   If any information in the text is relevant for constructing the properties or outgoing links, you must include them as facts.
 `);
+
+const constructUserMessage = (params: {
+  text: string;
+  subjectEntity: LocalEntitySummary;
+  dereferencedEntityType: DereferencedEntityType;
+  potentialObjectEntities: LocalEntitySummary[];
+}): LlmUserMessage => {
+  const {
+    text,
+    subjectEntity,
+    dereferencedEntityType,
+    potentialObjectEntities,
+  } = params;
+
+  const relevantProperties = Object.values(dereferencedEntityType.properties)
+    .flatMap((value) => ("items" in value ? value.items : value))
+    .map((definition) => ({
+      title: definition.title,
+      description: definition.description,
+    }));
+
+  return {
+    role: "user",
+    content: [
+      {
+        type: "text",
+        text: dedent(`
+          Text: ${text}
+          Subject Entity: ${JSON.stringify({ localId: subjectEntity.localId, name: subjectEntity.name })}
+          Relevant Properties: ${JSON.stringify(relevantProperties)}
+          Relevant Outgoing Links: ${JSON.stringify(Object.values(dereferencedEntityType.links ?? {}))}
+          Potential Object Entities: ${JSON.stringify(potentialObjectEntities.map(({ localId, name, summary }) => ({ localId, name, summary })))}
+        `),
+      },
+    ],
+  };
+};
 
 const retryMax = 3;
 
@@ -131,20 +170,14 @@ export const inferEntityFactsFromText = async (params: {
       toolChoice: toolNames[0],
       systemPrompt,
       messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: dedent(`
-                text: ${retryContext ? "Omitted, as you no longer need to infer new facts." : text}
-                subjectEntity: ${JSON.stringify({ localId: subjectEntity.localId, name: subjectEntity.name })}
-                entityType: ${JSON.stringify(dereferencedEntityType)}
-                potentialObjectEntities: ${JSON.stringify(potentialObjectEntities.map(({ localId, name }) => ({ localId, name })))}
-              `),
-            },
-          ],
-        },
+        constructUserMessage({
+          text: retryContext
+            ? "Omitted, as you no longer need to infer new facts."
+            : text,
+          subjectEntity,
+          dereferencedEntityType,
+          potentialObjectEntities,
+        }),
         ...(retryContext?.retryMessages ?? []),
       ],
     },
