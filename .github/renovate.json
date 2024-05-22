@@ -89,6 +89,18 @@
       "dependencyDashboardApproval": false
     },
     {
+      "groupName": "LLM provider SDK npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": [
+        "^@openai/",
+        "^@anthropic/",
+        "groq-sdk"
+      ],
+      "automerge": false,
+      "dependencyDashboardApproval": false,
+      "minimumReleaseAge": "0 days"
+    },
+    {
       "groupName": "Block Protocol npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": [
