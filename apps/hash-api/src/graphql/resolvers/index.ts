@@ -64,6 +64,7 @@ import {
   checkUserPermissionsOnEntity,
 } from "./knowledge/shared/check-permissions";
 import { getUsageRecordsResolver } from "./knowledge/user/get-usage-records";
+import { getWaitlistPositionResolver } from "./knowledge/user/get-waitlist-position";
 import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
@@ -97,6 +98,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
     // Logged in users only
     me: loggedInMiddleware(meResolver),
+    getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
     // Admins
     getUsageRecords: loggedInMiddleware(getUsageRecordsResolver),
     // Any user

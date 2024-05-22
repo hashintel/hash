@@ -23,5 +23,10 @@ export const userTypedef = gql`
     hasAccessToHash: Boolean!
 
     getUsageRecords: [UserUsageRecords!]!
+
+    """
+    Get the user's position on the access waitlist (for hosted HASH)
+    """
+    getWaitlistPosition: Int!
   }
 `;

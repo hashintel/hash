@@ -9,49 +9,74 @@ import { HomepageCard } from "./shared/homepage-card";
 import { HomepageGrid } from "./shared/homepage-grid";
 import { HomepageBigText, HomepageSmallCaps } from "./shared/typography";
 import { UsesCard } from "./shared/uses-card";
+import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
+import { useQuery } from "@apollo/client";
+import { GetWaitlistPositionQuery } from "../../graphql/api-types.gen";
+import { getWaitlistPositionQuery } from "../../graphql/queries/user.queries";
 
-export const Waitlisted = ({ position = 100 }: { position?: number }) => {
+const SelfHostedAccessDenied = () => (
+  <HomepageCard wide>
+    <HomepageBigText>You do not have access</HomepageBigText>
+    <HomepageBigText>to this instance</HomepageBigText>
+    <HomepageSmallCaps>Contact the admins if you should</HomepageSmallCaps>
+  </HomepageCard>
+);
+
+export const Waitlisted = () => {
+  const { data } = useQuery<GetWaitlistPositionQuery>(getWaitlistPositionQuery);
+
+  const position = data?.getWaitlistPosition;
+
   return (
     <HomepageGrid>
-      <HomepageCard>
-        <HomepageBigText>
-          You are{" "}
-          <Box
-            component="span"
-            sx={{ color: ({ palette }) => palette.teal[60] }}
-          >
-            #{position}
-          </Box>
-        </HomepageBigText>
-        <HomepageBigText>on the waitlist</HomepageBigText>
-        <HomepageSmallCaps>
-          Stay tuned
-          <Box
-            component="span"
-            sx={{ color: ({ palette }) => palette.teal[60], ml: 0.8 }}
-          >
-            for access
-          </Box>
-        </HomepageSmallCaps>
-        <FollowUsButton />
-      </HomepageCard>
-      <HomepageCard>
-        <HomepageBigText>Skip the wait </HomepageBigText>
-        <HomepageBigText sx={{ color: ({ palette }) => palette.blue[70] }}>
-          get early access
-        </HomepageBigText>
-        <HomepageSmallCaps>Jump the queue</HomepageSmallCaps>
-        <Button variant="primary" size="small" sx={{ borderRadius: 2 }}>
-          <Box
-            component="span"
-            sx={{ color: ({ palette }) => palette.blue[25], mr: 0.5 }}
-          >
-            Tell us about your
-          </Box>
-          use case
-          <ArrowRightIcon sx={{ fontSize: 14, ml: 1 }} />
-        </Button>
-      </HomepageCard>
+      {isSelfHostedInstance ? (
+        <SelfHostedAccessDenied />
+      ) : (
+        <>
+          <HomepageCard>
+            <HomepageBigText>
+              You are{" "}
+              <Box
+                component="span"
+                sx={{
+                  color: ({ palette }) =>
+                    position ? palette.teal[60] : "inherit",
+                }}
+              >
+                {position ? `#${position}` : "currently"}
+              </Box>
+            </HomepageBigText>
+            <HomepageBigText>on the waitlist</HomepageBigText>
+            <HomepageSmallCaps>
+              Stay tuned
+              <Box
+                component="span"
+                sx={{ color: ({ palette }) => palette.teal[60], ml: 0.8 }}
+              >
+                for access
+              </Box>
+            </HomepageSmallCaps>
+            <FollowUsButton />
+          </HomepageCard>
+          <HomepageCard>
+            <HomepageBigText>Skip the wait </HomepageBigText>
+            <HomepageBigText sx={{ color: ({ palette }) => palette.blue[70] }}>
+              get early access
+            </HomepageBigText>
+            <HomepageSmallCaps>Jump the queue</HomepageSmallCaps>
+            <Button variant="primary" size="small" sx={{ borderRadius: 2 }}>
+              <Box
+                component="span"
+                sx={{ color: ({ palette }) => palette.blue[25], mr: 0.5 }}
+              >
+                Tell us about your
+              </Box>
+              use case
+              <ArrowRightIcon sx={{ fontSize: 14, ml: 1 }} />
+            </Button>
+          </HomepageCard>
+        </>
+      )}
       <HomepageCard>
         <HomepageBigText sx={{ fontWeight: 400 }}>Install the </HomepageBigText>
         <HomepageBigText

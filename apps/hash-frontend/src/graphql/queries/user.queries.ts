@@ -13,6 +13,12 @@ export const hasAccessToHashQuery = gql`
   }
 `;
 
+export const getWaitlistPositionQuery = gql`
+  query getWaitlistPosition {
+    getWaitlistPosition
+  }
+`;
+
 export const meQuery = gql`
   query me {
     me(

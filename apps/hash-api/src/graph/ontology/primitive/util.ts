@@ -13,9 +13,9 @@ import type {
 import { entityIdFromComponents } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import { isSelfHostedInstance } from "../../ensure-system-graph-is-initialized/system-webs-and-entities";
 import { getOrgById } from "../../knowledge/system-types/org";
 import { getUserById } from "../../knowledge/system-types/user";
+import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 
 export const isExternalTypeId = (typeId: VersionedUrl) =>
   !typeId.startsWith(frontendUrl) &&
