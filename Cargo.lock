@@ -2369,7 +2369,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "harpc-service"
+name = "harpc-net"
 version = "0.0.0"
 dependencies = [
  "bytes",

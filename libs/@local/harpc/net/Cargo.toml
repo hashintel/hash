@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "harpc-service"
+name = "harpc-net"
 version = "0.0.0"
 license = "AGPL-3.0"
 publish = false

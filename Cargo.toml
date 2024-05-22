@@ -19,7 +19,7 @@ members = [
     "tests/hash-graph-test-data/rust",
     "libs/@local/harpc/wire-protocol",
     "libs/@local/harpc/types",
-    "libs/@local/harpc/service"
+    "libs/@local/harpc/net"
 ]
 exclude = [
     "libs/antsi",

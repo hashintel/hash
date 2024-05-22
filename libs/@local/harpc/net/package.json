@@ -1,5 +1,5 @@
 {
-  "name": "@rust/harpc-service",
+  "name": "@rust/harpc-net",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3.0",
@@ -9,7 +9,10 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@rust/codec": "0.0.0-private"
+    "@rust/codec": "0.0.0-private",
+    "@rust/harpc-wire-protocol": "0.0.0-private"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@rust/harpc-types": "0.0.0-private"
+  }
 }
