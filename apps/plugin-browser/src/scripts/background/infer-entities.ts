@@ -282,6 +282,7 @@ export const inferEntities = async (
       executedAt: new Date().toISOString(),
       persistedEntities: [],
       webId: ownedById,
+      inputRequests: [],
       inputs: [
         {
           flowDefinition,

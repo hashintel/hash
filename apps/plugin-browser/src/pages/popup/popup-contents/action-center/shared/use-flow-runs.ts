@@ -136,7 +136,7 @@ export const useFlowRuns = (): {
     }
 
     const pollInterval = setInterval(() => {
-      void getFlowRuns().then(setValue);
+      void getFlowRuns({ userAccountId }).then(setValue);
     }, 2_000);
 
     return () => clearInterval(pollInterval);
@@ -168,7 +168,7 @@ export const useFlowRuns = (): {
     const flowRunsToShow: MinimalFlowRun[] = [];
     const redundantOptimisticRunIds: string[] = [];
 
-    const allFlowIds = value.browserFlowRuns.map((run) => run.flowRunId);
+    const allFlowIds = value.map((run) => run.flowRunId);
 
     for (const run of localPendingRuns ?? []) {
       if (allFlowIds.includes(run.flowRunId)) {
@@ -178,13 +178,13 @@ export const useFlowRuns = (): {
       }
     }
 
-    flowRunsToShow.push(...value.browserFlowRuns);
+    flowRunsToShow.push(...value);
 
     return {
       allFlowRuns: flowRunsToShow,
       redundantLocalRunIds: redundantOptimisticRunIds,
     };
-  }, [value.browserFlowRuns, localPendingRuns]);
+  }, [value, localPendingRuns]);
 
   /**
    * Clean up the state for any runs that have been added to the API response.
@@ -201,9 +201,8 @@ export const useFlowRuns = (): {
 
   return useMemo(() => {
     return {
-      inputRequests: value.inputRequests,
-      browserFlowRuns: allFlowRuns,
+      flowRuns: allFlowRuns,
       loading: !storageLoading || !apiChecked,
     };
-  }, [allFlowRuns, apiChecked, storageLoading, value]);
+  }, [allFlowRuns, apiChecked, storageLoading]);
 };
