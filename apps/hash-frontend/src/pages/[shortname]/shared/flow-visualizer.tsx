@@ -3,10 +3,7 @@ import "reactflow/dist/style.css";
 import { useApolloClient, useMutation } from "@apollo/client";
 import { Skeleton } from "@hashintel/design-system";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import {
-  automaticBrowserInferenceFlowDefinition,
-  manualBrowserInferenceFlowDefinition,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import type {
   FlowDefinition as FlowDefinitionType,
@@ -188,7 +185,6 @@ const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
 const unrunnableDefinitionIds = [
   manualBrowserInferenceFlowDefinition.flowDefinitionId,
-  automaticBrowserInferenceFlowDefinition.flowDefinitionId,
 ];
 
 export const FlowRunVisualizerSkeleton = () => (
@@ -391,9 +387,9 @@ export const FlowVisualizer = () => {
     selectedFlowRun?.flowRunId ?? "definition"
   }`;
 
-  const isRunnableFromHere = !unrunnableDefinitionIds.includes(
-    selectedFlowDefinition.flowDefinitionId,
-  );
+  const isRunnableFromHere =
+    selectedFlowDefinition.trigger.triggerDefinitionId === "userTrigger" &&
+    !unrunnableDefinitionIds.includes(selectedFlowDefinition.flowDefinitionId);
 
   return (
     <Box sx={{ height: containerHeight }}>
