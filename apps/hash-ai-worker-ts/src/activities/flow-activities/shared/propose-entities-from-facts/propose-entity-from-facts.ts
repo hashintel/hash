@@ -306,13 +306,14 @@ export const proposeEntityFromFacts = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "gpt-4-0125-preview",
+      model: "gpt-4o-2024-05-13",
       tools: Object.values(
         generateToolDefinitions({
           dereferencedEntityType,
           proposeOutgoingLinkEntityTypes,
         }),
       ),
+      toolChoice: "required",
       systemPrompt: generateSystemPrompt({
         proposingOutgoingLinks,
       }),
