@@ -197,7 +197,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
                 if (!summaryOutput) {
                   throw new Error(
-                    `No summary output was found when calling "getWebPageSummaryAction" for the web page at url ${webPageUrl}.`,
+                    `No summary output was found when calling "getSummariesOfWebPages" for the web page at url ${webPageUrl}.`,
                   );
                 }
 
