@@ -259,11 +259,18 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           boxShadow: theme.boxShadows.md,
           borderRadius: 8,
           color: theme.palette.common.black,
+          transition: theme.transitions.create("background"),
         };
 
         hoverStyles = {
           ...hoverStyles,
-          boxShadow: theme.boxShadows.md,
+          background: "linear-gradient(87.69deg, #EDFBFF 0%, #FFFFFF 96.24%)",
+          boxShadow:
+            "0px 0.2px 0.63px 0px rgba(33, 77, 223, 0.07), 0px 4.24px 8.1px 0px rgba(21, 68, 222, 0.06), 0px 7.13px 18.37px 0px rgba(22, 70, 225, 0.05), 0px 11px 30px 0px rgba(22, 69, 221, 0.04)",
+          transition: theme.transitions.create("background"),
+          svg: {
+            filter: "brightness(110%)",
+          },
         };
       }
 

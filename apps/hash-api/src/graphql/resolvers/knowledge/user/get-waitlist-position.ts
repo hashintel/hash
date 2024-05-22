@@ -1,5 +1,5 @@
-import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
+import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import type { GetWaitlistPosition200Response } from "@local/internal-api-client";
 
 import type { Query, ResolverFn } from "../../../api-types.gen";

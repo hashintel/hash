@@ -30,6 +30,7 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import {
   blockProtocolDataTypes,
   systemDataTypes,
@@ -90,7 +91,6 @@ import { getOrCreateOwningAccountGroupId } from "../system-webs-and-entities";
 import type { MigrationState } from "./types";
 import { upgradeWebEntities } from "./util/upgrade-entities";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
-import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

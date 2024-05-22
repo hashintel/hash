@@ -1,4 +1,3 @@
-import { IconButton } from "@hashintel/design-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import type {
   FlowDefinition,
@@ -7,11 +6,10 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { OwnedById } from "@local/hash-subgraph";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useState } from "react";
 
-import { XMarkRegularIcon } from "../../../../../shared/icons/x-mark-regular-icon";
 import { Button } from "../../../../../shared/ui/button";
 import { Modal } from "../../../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
@@ -152,35 +150,12 @@ export const RunFlowModal = ({
   return (
     <Modal
       contentStyle={{ p: { xs: 0, md: 0 } }}
+      header={{ title: "Run flow" }}
       open={open}
       onClose={onClose}
       sx={{ zIndex: 1000 }} // Google File Picker has zIndex 1001, MUI Modal default is 1300
     >
       <GoogleAuthProvider>
-        <Stack
-          alignItems="center"
-          direction="row"
-          justifyContent="space-between"
-          sx={{
-            borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-            py: 1,
-            pl: 2.5,
-            pr: 1.5,
-          }}
-        >
-          <Typography
-            sx={{ fontWeight: 500, color: ({ palette }) => palette.gray[80] }}
-          >
-            Run flow
-          </Typography>
-          <IconButton
-            aria-label="Cancel"
-            onClick={onClose}
-            sx={{ "& svg": { fontSize: 20 } }}
-          >
-            <XMarkRegularIcon />
-          </IconButton>
-        </Stack>
         <Box sx={{ px: 4.5, py: 2.5 }}>
           <Typography
             component="p"

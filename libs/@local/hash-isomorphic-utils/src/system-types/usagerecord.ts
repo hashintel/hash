@@ -87,7 +87,7 @@ export type IncurredInOutgoingLinkAndTarget = never;
 export type IncurredInOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * Something that was incurred by something else.
+ * Something that was incurred in something else.
  */
 export type IncurredInProperties = IncurredInProperties1 &
   IncurredInProperties2;
