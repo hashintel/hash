@@ -34,3 +34,9 @@ export const meQuery = gql`
   }
   ${subgraphFieldsFragment}
 `;
+
+export const submitEarlyAccessFormMutation = gql`
+  mutation submitEarlyAccessForm($properties: ProspectiveUserProperties!) {
+    submitEarlyAccessForm(properties: $properties)
+  }
+`;

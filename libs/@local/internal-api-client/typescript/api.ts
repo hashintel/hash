@@ -525,7 +525,7 @@ export interface GetWaitlistPosition200Response {
  * @type GetWaitlistPosition200ResponseWaitlistPosition
  * @export
  */
-export type GetWaitlistPosition200ResponseWaitlistPosition = Null | number;
+export type GetWaitlistPosition200ResponseWaitlistPosition = null | number;
 
 /**
  *

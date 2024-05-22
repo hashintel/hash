@@ -1,18 +1,19 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { ArrowUpRightRegularIcon, ChromeIcon } from "@hashintel/design-system";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ProspectiveUserProperties } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
 import { Box } from "@mui/material";
 import { useCallback, useState } from "react";
 
 import type {
-  CreateEntityMutation,
-  CreateEntityMutationVariables,
   GetWaitlistPositionQuery,
+  SubmitEarlyAccessFormMutation,
+  SubmitEarlyAccessFormMutationVariables,
 } from "../../graphql/api-types.gen";
-import { createEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { getWaitlistPositionQuery } from "../../graphql/queries/user.queries";
+import {
+  getWaitlistPositionQuery,
+  submitEarlyAccessFormMutation,
+} from "../../graphql/queries/user.queries";
 import { ArrowRightIcon } from "../../shared/icons/arrow-right";
 import { Button } from "../../shared/ui/button";
 import { DiscordCard } from "./shared/discord-card";
@@ -52,23 +53,22 @@ export const Waitlisted = () => {
 
   const position = data?.getWaitlistPosition;
 
-  const [createFn] = useMutation<
-    CreateEntityMutation,
-    CreateEntityMutationVariables
-  >(createEntityMutation);
+  const [submitToApi] = useMutation<
+    SubmitEarlyAccessFormMutation,
+    SubmitEarlyAccessFormMutationVariables
+  >(submitEarlyAccessFormMutation);
 
   const submitForm = useCallback(
     async (properties: ProspectiveUserProperties) => {
-      await createFn({
+      await submitToApi({
         variables: {
-          entityTypeId: systemEntityTypes.prospectiveUser.entityTypeId,
           properties,
         },
       });
 
       setEarlyAccessFormState("submitted");
     },
-    [createFn],
+    [submitToApi],
   );
 
   return (
