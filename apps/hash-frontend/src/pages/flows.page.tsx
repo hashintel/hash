@@ -214,8 +214,8 @@ const FlowsPageContent = () => {
 
 const FlowsPage: NextPageWithLayout = () => {
   return (
-    <FlowDefinitionsContextProvider>
-      <FlowRunsContextProvider>
+    <FlowDefinitionsContextProvider selectedFlowDefinitionId={null}>
+      <FlowRunsContextProvider selectedFlowRunId={null}>
         <FlowsPageContent />
       </FlowRunsContextProvider>
     </FlowDefinitionsContextProvider>
