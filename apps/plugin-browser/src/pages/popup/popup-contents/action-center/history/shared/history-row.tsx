@@ -7,6 +7,7 @@ import {
   MicroscopeRegularIcon,
   PlugIconRegular,
 } from "@hashintel/design-system";
+import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import {
   Box,
   Collapse,
@@ -16,9 +17,10 @@ import {
   TableRow,
   Tooltip,
 } from "@mui/material";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { MinimalFlowRun } from "../../../../../../shared/storage";
+import { useStorageSync } from "../../../../../shared/use-storage-sync";
 import { CellWithHoverButton } from "./history-row/cell-with-hover-button";
 import { Chip } from "./history-row/chip";
 import { FlowMetadataCellContents } from "./history-row/flow-metadata-cell-contents";
@@ -56,10 +58,31 @@ export const HistoryRow = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
 
+  const [user] = useStorageSync("user", null);
+
+  const owner = useMemo(() => {
+    if (!user) {
+      return null;
+    }
+    if (user.webOwnedById === flowRun.webId) {
+      return user;
+    }
+    const orgOwner = user.orgs.find(
+      (org) => org.webOwnedById === flowRun.webId,
+    );
+    if (!orgOwner) {
+      throw new Error(`Owner with webId ${flowRun.webId} not found`);
+    }
+    return orgOwner;
+  }, [flowRun.webId, user]);
+
+  if (!owner) {
+    return null;
+  }
+
   const openFlowButton = (
-    /** @todo H-1323 make this link work in the frontend */
     <Link
-      href={`${FRONTEND_ORIGIN}/@hash/workers/${flowRun.flowRunId}`}
+      href={`${FRONTEND_ORIGIN}${generateWorkerRunPath({ shortname: owner.properties.shortname, flowRunId: flowRun.flowRunId })}`}
       target="_blank"
     >
       <ArrowUpRightFromSquareRegularIcon />

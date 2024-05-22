@@ -90,7 +90,13 @@ export type ExternalInputRequestById = {
 
 export type MinimalFlowRun = Pick<
   FlowRun,
-  "flowDefinitionId" | "flowRunId" | "closedAt" | "executedAt" | "status"
+  | "flowDefinitionId"
+  | "flowRunId"
+  | "webId"
+  | "closedAt"
+  | "executedAt"
+  | "status"
+  | "inputs"
 > & { persistedEntities: PersistedEntity[]; webPage: WebPage };
 
 export type BrowserFlowsAndBackgroundRequests = {

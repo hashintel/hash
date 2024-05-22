@@ -1,6 +1,6 @@
 import type { SxProps, Theme } from "@mui/material";
 
-import type { SimpleStatus } from "../../../../../../shared/flow-runs-context";
+import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
 
 const redStyles: SxProps<Theme> = {
   borderColor: ({ palette }) => palette.red[30],

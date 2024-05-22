@@ -14,8 +14,8 @@ import { useMemo } from "react";
 import type {
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
-} from "../../../../../../graphql/api-types.gen";
-import { queryEntityTypesQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
+} from "../../../../../graphql/api-types.gen";
+import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";

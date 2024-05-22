@@ -264,6 +264,11 @@ export const inferEntities = async (
 
   await sendInferEntitiesMessage(inferenceArgs);
 
+  const flowDefinition =
+    trigger === "automatic"
+      ? automaticBrowserInferenceFlowDefinition
+      : manualBrowserInferenceFlowDefinition;
+
   /**
    * Optimistically add the run to local storage so that it appears in the history tab immediately.
    * When the next request for the latest runs comes back from the API, it will overwrite local storage again.
@@ -271,14 +276,22 @@ export const inferEntities = async (
   await setLocalPendingRuns((existingValue) => [
     ...(existingValue ?? []),
     {
-      flowDefinitionId:
-        trigger === "automatic"
-          ? automaticBrowserInferenceFlowDefinition.flowDefinitionId
-          : manualBrowserInferenceFlowDefinition.flowDefinitionId,
+      flowDefinitionId: flowDefinition.flowDefinitionId,
       flowRunId: requestUuid,
       closedAt: null,
       executedAt: new Date().toISOString(),
       persistedEntities: [],
+      webId: ownedById,
+      inputs: [
+        {
+          flowDefinition,
+          flowTrigger: {
+            triggerDefinitionId: flowDefinition.trigger.triggerDefinitionId,
+            outputs: [],
+          },
+          webId: ownedById,
+        },
+      ],
       webPage: basePayload.visitedWebPage.value,
       status: FlowRunStatus.Running,
     },

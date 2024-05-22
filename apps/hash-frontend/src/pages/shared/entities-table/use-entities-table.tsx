@@ -158,7 +158,9 @@ export const useEntitiesTable = (params: {
               (type) => type.$id === entity.metadata.entityTypeId,
             );
 
-            const { shortname: entityNamespace } = getOwnerForEntity(entity);
+            const { shortname: entityNamespace } = getOwnerForEntity({
+              entity,
+            });
 
             const entityId = entity.metadata.recordId.entityId;
 

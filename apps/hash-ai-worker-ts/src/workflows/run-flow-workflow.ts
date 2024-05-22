@@ -161,19 +161,13 @@ export const runFlowWorkflow = async (
   try {
     validateFlowDefinition(flowDefinition);
   } catch (error) {
-    throw new Error((error as Error).message, {
-      cause: {
-        code: StatusCode.InvalidArgument,
-        message: (error as Error).message,
-        contents: [],
-      },
-    });
+    throw new Error((error as Error).message);
   }
 
   const userHasPermissionActivity = proxyFlowActivity({
     actionId: "userHasPermissionToRunFlowInWebActivity",
     maximumAttempts: 1,
-    activityId: "check-permissions",
+    activityId: "check-user-permission",
   });
 
   const persistFlowActivity = proxyFlowActivity({
@@ -187,13 +181,7 @@ export const runFlowWorkflow = async (
 
   if (userHasPermissionToRunFlowInWeb.status !== "ok") {
     const errorMessage = `User does not have permission to run flow in web ${webId}, because they are missing permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(`,`)}`;
-    throw new Error(errorMessage, {
-      cause: {
-        code: StatusCode.PermissionDenied,
-        message: errorMessage,
-        contents: [],
-      },
-    });
+    throw new Error(errorMessage);
   }
 
   log(`Initializing ${flowDefinition.name} Flow`);
@@ -206,7 +194,7 @@ export const runFlowWorkflow = async (
     flowRunId: workflowId as EntityUuid,
   });
 
-  await persistFlowActivity({ flow, userAuthentication });
+  await persistFlowActivity({ flow, userAuthentication, webId });
 
   setQueryAndSignalHandlers();
 
@@ -387,13 +375,7 @@ export const runFlowWorkflow = async (
   if (stepWithSatisfiedDependencies.length === 0) {
     const errorMessage =
       "No steps have satisfied dependencies when initializing the flow.";
-    throw new Error(errorMessage, {
-      cause: {
-        code: StatusCode.FailedPrecondition,
-        message: errorMessage,
-        contents: [{ flow }],
-      },
-    });
+    throw new Error(errorMessage);
   }
 
   // Recursively process steps which have satisfied dependencies
@@ -417,7 +399,7 @@ export const runFlowWorkflow = async (
 
     await Promise.all(stepsToProcess.map((step) => processStep(step.stepId)));
 
-    await persistFlowActivity({ flow, userAuthentication });
+    await persistFlowActivity({ flow, userAuthentication, webId });
 
     // Recursively call processSteps until all steps are processed
     await processSteps();
@@ -441,13 +423,7 @@ export const runFlowWorkflow = async (
   /** @todo this is not necessarily an error once there are branches */
   if (processedStepIds.length !== getAllStepsInFlow(flow).length) {
     const errorMessage = "Not all steps in the flows were processed.";
-    throw new Error(errorMessage, {
-      cause: {
-        code: StatusCode.Unknown,
-        message: errorMessage,
-        contents: [{ flow, stepErrors }],
-      },
-    });
+    throw new Error(errorMessage);
   }
 
   for (const outputDefinition of flowDefinition.outputs) {
@@ -463,13 +439,7 @@ export const runFlowWorkflow = async (
       }
 
       const errorMessage = `${errorPrefix}required step with id '${outputDefinition.stepId}' not found in outputs.`;
-      throw new Error(errorMessage, {
-        cause: {
-          code: StatusCode.NotFound,
-          message: errorMessage,
-          contents: [{ flow, stepErrors }],
-        },
-      });
+      throw new Error(errorMessage);
     }
 
     if (step.kind === "action") {
@@ -484,13 +454,7 @@ export const runFlowWorkflow = async (
 
         const errorMessage = `${errorPrefix}there is no output with name '${outputDefinition.stepOutputName}' in step ${step.stepId}`;
 
-        throw new Error(errorMessage, {
-          cause: {
-            code: StatusCode.NotFound,
-            message: errorMessage,
-            contents: [{ stepErrors }],
-          },
-        });
+        throw new Error(errorMessage);
       }
 
       flow.outputs = [
@@ -505,13 +469,7 @@ export const runFlowWorkflow = async (
 
       if (!output) {
         const errorMessage = `${errorPrefix}no aggregate output found in step ${step.stepId}`;
-        throw new Error(errorMessage, {
-          cause: {
-            code: StatusCode.NotFound,
-            message: errorMessage,
-            contents: [{ stepErrors }],
-          },
-        });
+        throw new Error(errorMessage);
       }
 
       flow.outputs = [
@@ -524,7 +482,7 @@ export const runFlowWorkflow = async (
     }
   }
 
-  await persistFlowActivity({ flow, userAuthentication });
+  await persistFlowActivity({ flow, userAuthentication, webId });
 
   const outputs = flow.outputs ?? [];
 

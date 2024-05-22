@@ -4,18 +4,23 @@ import {
   PlayIconSolid,
   Select,
 } from "@hashintel/design-system";
-import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
+import {
+  generateFlowDefinitionPath,
+  generateWorkerRunPath,
+} from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import { Button } from "../../../../../shared/ui/button";
-import { Link } from "../../../../../shared/ui/link";
-import { MenuItem } from "../../../../../shared/ui/menu-item";
-import { useFlowDefinitionsContext } from "../../../../shared/flow-definitions-context";
-import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
+import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
+import { BoltLightIcon } from "../../../../shared/icons/bolt-light-icon";
+import { Button } from "../../../../shared/ui/button";
+import { Link } from "../../../../shared/ui/link";
+import { MenuItem } from "../../../../shared/ui/menu-item";
+import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
+import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 
 const typographySx: SxProps<Theme> = {
   color: ({ palette }) => palette.gray[70],
@@ -58,17 +63,19 @@ export const Topbar = ({
 }) => {
   const { push } = useRouter();
 
-  const { flowDefinitions, selectedFlow } = useFlowDefinitionsContext();
+  const { flowDefinitions, selectedFlowDefinitionId } =
+    useFlowDefinitionsContext();
 
-  const { flowRuns, selectedFlowRun, setSelectedFlowRunId } =
-    useFlowRunsContext();
+  const { flowRuns, selectedFlowRunId } = useFlowRunsContext();
+
+  const getOwner = useGetOwnerForEntity();
 
   const runOptions = useMemo(
     () =>
       flowRuns.filter(
-        (run) => run.inputs[0].flowDefinition.name === selectedFlow.name,
+        (run) => run.flowDefinitionId === selectedFlowDefinitionId,
       ),
-    [flowRuns, selectedFlow.name],
+    [flowRuns, selectedFlowDefinitionId],
   );
 
   return (
@@ -85,8 +92,26 @@ export const Topbar = ({
       })}
     >
       <Stack direction="row" alignItems="center">
+        <BoltLightIcon
+          sx={{
+            fill: ({ palette }) => palette.gray[60],
+            fontSize: 14,
+            mr: 0.8,
+          }}
+        />
+        <Link href="/workers" noLinkStyle>
+          <Typography sx={typographySx} variant="smallTextParagraphs">
+            Workers
+          </Typography>
+        </Link>
+        <Divider />
+
         <InfinityLightIcon
-          sx={{ fill: ({ palette }) => palette.gray[60], fontSize: 20, mr: 1 }}
+          sx={{
+            fill: ({ palette }) => palette.gray[60],
+            fontSize: 20,
+            mr: 1,
+          }}
         />
         <Link href="/flows" noLinkStyle>
           <Typography sx={typographySx} variant="smallTextParagraphs">
@@ -97,18 +122,25 @@ export const Topbar = ({
         <Box mr={1}>
           <Select
             selectSx={selectSx}
-            value={selectedFlow.name}
+            value={selectedFlowDefinitionId ?? "none"}
             onChange={(event) => {
               /**
                * @todo update this to use the flow definition's uuid when stored in the db
-               * also needs to take account of the correct namespace, which might be different from the current
+               *    also then needs to take account of the correct namespace, which might be different from the current
                */
-              void push(`/@hash/flows/${slugifyTypeTitle(event.target.value)}`);
-              setSelectedFlowRunId(null);
+              void push(
+                generateFlowDefinitionPath({
+                  shortname: "hash",
+                  flowDefinitionId: event.target.value,
+                }),
+              );
             }}
           >
             {flowDefinitions.map((flow) => (
-              <MenuItem key={flow.name} value={flow.name}>
+              <MenuItem
+                key={flow.flowDefinitionId}
+                value={flow.flowDefinitionId}
+              >
                 {flow.name}
               </MenuItem>
             ))}
@@ -119,13 +151,33 @@ export const Topbar = ({
             <Divider />
             <Select
               selectSx={{ ...selectSx, minWidth: 100 }}
-              value={selectedFlowRun?.flowRunId ?? "none"}
+              value={selectedFlowRunId ?? "none"}
               onChange={(event) => {
                 const value = event.target.value;
-                if (!value) {
-                  setSelectedFlowRunId(null);
+
+                if (value === "none") {
+                  void push(
+                    generateFlowDefinitionPath({
+                      shortname: "hash",
+                      flowDefinitionId: selectedFlowDefinitionId ?? "none",
+                    }),
+                  );
+                  return;
                 }
-                setSelectedFlowRunId(event.target.value);
+
+                const flowRun = flowRuns.find((run) => run.flowRunId === value);
+                if (!flowRun) {
+                  throw new Error(`Flow run with id ${value} not found`);
+                }
+
+                const { shortname } = getOwner({ ownedById: flowRun.webId });
+
+                void push(
+                  generateWorkerRunPath({
+                    shortname,
+                    flowRunId: value,
+                  }),
+                );
               }}
             >
               <MenuItem selected value="none">

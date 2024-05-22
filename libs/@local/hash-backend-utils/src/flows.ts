@@ -15,8 +15,18 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FlowProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { AccountId, Entity, EntityUuid } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type {
+  AccountId,
+  Entity,
+  EntityId,
+  EntityUuid,
+  OwnedById,
+} from "@local/hash-subgraph";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  splitEntityId,
+} from "@local/hash-subgraph";
 
 import {
   getFlowRunFromWorkflowId,
@@ -96,12 +106,17 @@ export async function getFlowRunById({
     return null;
   }
 
+  const webId = extractOwnedByIdFromEntityId(
+    existingFlowEntity.metadata.recordId.entityId,
+  );
+
   if (includeDetails) {
     return getFlowRunFromWorkflowId({
       workflowId: extractEntityUuidFromEntityId(
         existingFlowEntity.metadata.recordId.entityId,
       ),
       temporalClient,
+      webId,
     });
   } else {
     return getSparseFlowRunFromWorkflowId({
@@ -109,6 +124,7 @@ export async function getFlowRunById({
         existingFlowEntity.metadata.recordId.entityId,
       ),
       temporalClient,
+      webId,
     });
   }
 }
@@ -184,22 +200,26 @@ export async function getFlowRuns({
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, authentication.actorId),
-      ),
-    );
+    .then(({ data: response }) => {
+      const flowRunIdToWebId: Record<EntityUuid, OwnedById> = {};
+      for (const entity of response.entities) {
+        const [ownedById, entityUuid] = splitEntityId(
+          entity.metadata.recordId.entityId as EntityId,
+        );
+        flowRunIdToWebId[entityUuid] = ownedById;
+      }
+      return flowRunIdToWebId;
+    });
 
-  if (!relevantFlows.length) {
+  const relevantFlowRunIds = Object.keys(relevantFlows);
+
+  if (!relevantFlowRunIds.length) {
     return [];
   }
 
   /** @see https://docs.temporal.io/dev-guide/typescript/observability#search-attributes */
-  let query = `WorkflowType = 'runFlow' AND WorkflowId IN (${relevantFlows
-    .map(
-      (flow) =>
-        `'${extractEntityUuidFromEntityId(flow.metadata.recordId.entityId)}'`,
-    )
+  let query = `WorkflowType = 'runFlow' AND WorkflowId IN (${relevantFlowRunIds
+    .map((uuid) => `'${uuid}'`)
     .join(", ")})`;
 
   if (filters.executionStatus) {
@@ -214,10 +234,18 @@ export async function getFlowRuns({
     const workflows: FlowRun[] = [];
 
     for await (const workflow of workflowIterable) {
+      const webId = relevantFlows[workflow.workflowId as EntityUuid];
+      if (!webId) {
+        throw new Error(
+          `Could not find webId for workflowId ${workflow.workflowId}`,
+        );
+      }
+
       const workflowId = workflow.workflowId;
       const runInfo = await getFlowRunFromWorkflowId({
         workflowId,
         temporalClient,
+        webId,
       });
       workflows.push(runInfo);
     }
@@ -228,9 +256,17 @@ export async function getFlowRuns({
 
     for await (const workflow of workflowIterable) {
       const workflowId = workflow.workflowId;
+      const webId = relevantFlows[workflow.workflowId as EntityUuid];
+      if (!webId) {
+        throw new Error(
+          `Could not find webId for workflowId ${workflow.workflowId}`,
+        );
+      }
+
       const runInfo = await getSparseFlowRunFromWorkflowId({
         workflowId,
         temporalClient,
+        webId,
       });
       workflows.push(runInfo);
     }

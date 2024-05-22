@@ -5,6 +5,21 @@ export const getFlowRunsQuery = gql`
     getFlowRuns {
       flowDefinitionId
       flowRunId
+      webId
+      status
+      startedAt
+      executedAt
+      closedAt
+    }
+  }
+`;
+
+export const getFlowRunById = gql`
+  query getFlowRunById($flowRunId: String!) {
+    getFlowRunById(flowRunId: $flowRunId) {
+      flowDefinitionId
+      flowRunId
+      webId
       status
       startedAt
       executedAt

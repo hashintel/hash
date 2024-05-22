@@ -75,7 +75,7 @@ const inferEntitiesMessageHandler = async ({
           }
         }
       }
-      break;
+      return;
     }
     case "external-input-response": {
       const { workflowId, payload } = message;
@@ -92,6 +92,7 @@ const inferEntitiesMessageHandler = async ({
 
       const handle = temporalClient.workflow.getHandle(workflowId);
       await handle.signal(externalInputResponseSignal, payload);
+      return;
     }
   }
   socket.send(`Unrecognized message '${JSON.stringify(message)}'`);

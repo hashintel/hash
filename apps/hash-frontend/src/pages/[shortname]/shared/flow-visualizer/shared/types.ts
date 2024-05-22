@@ -10,7 +10,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Edge, Node } from "reactflow";
 
-import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
+import type { SimpleStatus } from "../../../../shared/flow-runs-context";
 
 export type NodeData = {
   kind: StepDefinition["kind"];

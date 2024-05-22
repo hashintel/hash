@@ -11,16 +11,16 @@ import { format } from "date-fns";
 import type { ReactElement } from "react";
 import { memo, useMemo, useState } from "react";
 
-import { Link } from "../../../../../shared/ui/link";
+import { Link } from "../../../../shared/ui/link";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableSort,
-} from "../../../../shared/virtualized-table";
+} from "../../../shared/virtualized-table";
 import {
   defaultCellSx,
   VirtualizedTable,
-} from "../../../../shared/virtualized-table";
+} from "../../../shared/virtualized-table";
 import { SectionLabel } from "./section-label";
 import type { LocalProgressLog } from "./shared/types";
 

@@ -7,16 +7,16 @@ import { formatDistance } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import type { NodeProps } from "reactflow";
 
-import { Button } from "../../../../../../shared/ui/button";
+import { Button } from "../../../../../shared/ui/button";
 import type {
   SimpleStatus,
   StepRunStatus,
-} from "../../../../../shared/flow-runs-context";
+} from "../../../../shared/flow-runs-context";
 import {
   statusToSimpleStatus,
   useFlowRunsContext,
   useStatusForCurrentStep,
-} from "../../../../../shared/flow-runs-context";
+} from "../../../../shared/flow-runs-context";
 import type { NodeData } from "../shared/types";
 import { Handles } from "./custom-node/handles";
 import { NodeContainer } from "./custom-node/node-container";
