@@ -22,6 +22,7 @@
     "dev": "NODE_ENV=development node utils/webserver.js",
     "dev:firefox": "BROWSER=firefox node utils/webserver.js",
     "fix:eslint": "eslint --fix .",
+    "install:itero": "sh ./utils/install-in-itero.sh",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
   },
