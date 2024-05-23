@@ -120,6 +120,21 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: `The plan has been successfully updated.`,
             };
           } else if (toolCall.name === "requestHumanInput") {
+            const { questions } =
+              toolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
+
+            if (questions.length === 0) {
+              return {
+                ...toolCall,
+                output: "No questions were provided.",
+                isError: true,
+              };
+            }
+
+            logger.debug(
+              `Requesting human input for questions: ${stringify(questions)}`,
+            );
+
             const response = await getAnswersFromHuman(
               (
                 toolCall.input as CoordinatorToolCallArguments["requestHumanInput"]
@@ -666,6 +681,9 @@ export const researchEntitiesAction: FlowActionActivity<{
     })),
   );
 
+  logger.debug(
+    `Submitted Proposed Entities: ${stringify(submittedProposedEntities)}`,
+  );
   logger.debug(`File Entities Proposed: ${stringify(fileEntityProposals)}`);
 
   return {
