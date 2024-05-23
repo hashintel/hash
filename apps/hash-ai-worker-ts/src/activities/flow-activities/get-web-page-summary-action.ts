@@ -40,7 +40,7 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
     };
   }
 
-  const webPage = await getWebPageActivity({ url });
+  const webPage = await getWebPageActivity({ url, sanitizeForLlm: true });
 
   const systemPrompt = generateSummarizeWebPageSystemPrompt({
     numberOfSentences: numberOfSentences!,
