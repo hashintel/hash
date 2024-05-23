@@ -15,6 +15,7 @@ type FormFieldMetadata = {
   multiline?: boolean;
   placeholder: string;
   type?: string;
+  url?: boolean;
 };
 
 type FormFields = Record<keyof ProspectiveUserProperties, FormFieldMetadata>;
@@ -23,7 +24,7 @@ const formFields: FormFields = {
   "https://hash.ai/@hash/types/property-type/website-url/": {
     label: "Your company website",
     placeholder: "e.g. starbucks.com",
-    type: "url",
+    url: true,
   },
   "https://hash.ai/@hash/types/property-type/role/": {
     label: "Your role/title",
@@ -58,6 +59,7 @@ const Input = ({
   onChange,
   placeholder,
   type,
+  url,
   value,
 }: Pick<TextFieldProps, "onChange" | "value"> & FormFieldMetadata) => (
   <Box mb={2.5}>
@@ -79,6 +81,12 @@ const Input = ({
       </Box>
       <Box>
         <TextField
+          autoFocus={url}
+          inputProps={
+            url
+              ? { pattern: "\\w+\\.\\w+", title: "Please enter a valid URL" }
+              : undefined
+          }
           multiline={multiline}
           onChange={onChange}
           placeholder={placeholder}
