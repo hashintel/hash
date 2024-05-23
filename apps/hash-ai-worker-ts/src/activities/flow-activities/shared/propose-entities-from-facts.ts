@@ -94,6 +94,10 @@ export const proposeEntitiesFromFacts = async (params: {
         return someFactIncludesTargetEntityAsObject;
       });
 
+      logger.debug(
+        `Proposing "${entitySummary.name}" entity with facts: ${stringify(factsWithEntityAsSubject)}`,
+      );
+
       /**
        * @todo: consider batching requests made to the LLM so we propose multiple entities
        * in a single LLM requests, to reduce the number of requests made to LLM providers.

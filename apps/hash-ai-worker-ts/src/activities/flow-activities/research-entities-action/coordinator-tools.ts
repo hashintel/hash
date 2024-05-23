@@ -7,7 +7,7 @@ const coordinatorToolNames = [
   "requestHumanInput",
   "webSearch",
   "getSummariesOfWebPages",
-  "inferFactsFromWebPage",
+  "inferFactsFromWebPages",
   "proposeEntitiesFromFacts",
   "submitProposedEntities",
   "complete",
@@ -94,51 +94,60 @@ export const generateToolCalls = (params: {
       required: ["query", "explanation"],
     },
   },
-  inferFactsFromWebPage: {
-    name: "inferFactsFromWebPage",
+  inferFactsFromWebPages: {
+    name: "inferFactsFromWebPages",
     description: dedent(`
-      Infer facts from the content of a web page.
+      Infer facts from the content of web pages.
       This tool should be used to gather facts about entities of specific types, before the entities can be proposed.
     `),
     inputSchema: {
       type: "object",
       properties: {
         explanation: explanationDefinition,
-        url: {
-          type: "string",
-          description: "The URL of the web page",
-        },
-        prompt: {
-          type: "string",
-          description: dedent(`
-            A prompt instructing the inference agent which entities it should gather facts about from the webpage.
-            Do not specify any information of the structure of the entities, as this is predefined by
-              the entity type.
-
-            You must be specific about which and how many entities you need to gather facts about from
-              the webpage to satisfy the research task.
-          `),
-        },
-        entityTypeIds: {
+        webPages: {
           type: "array",
           items: {
-            type: "string",
-            description: dedent(`
-              The entity type IDs of the kind of entities to infer from the web page.
-              You must specify at least one.
-            `),
-          },
-        },
-        linkEntityTypeIds: {
-          type: "array",
-          items: {
-            type: "string",
-            description:
-              "The link entity type IDs of the kind of link entities to infer from the web page",
+            type: "object",
+            properties: {
+              url: {
+                type: "string",
+                description: "The URL of the web page",
+              },
+              prompt: {
+                type: "string",
+                description: dedent(`
+                A prompt instructing the inference agent which entities it should gather facts about from the webpage.
+                Do not specify any information of the structure of the entities, as this is predefined by
+                  the entity type.
+    
+                You must be specific about which and how many entities you need to gather facts about from
+                  the webpage to satisfy the research task.
+              `),
+              },
+              entityTypeIds: {
+                type: "array",
+                items: {
+                  type: "string",
+                  description: dedent(`
+                  The entity type IDs of the kind of entities to infer from the web page.
+                  You must specify at least one.
+                `),
+                },
+              },
+              linkEntityTypeIds: {
+                type: "array",
+                items: {
+                  type: "string",
+                  description:
+                    "The link entity type IDs of the kind of link entities to infer from the web page",
+                },
+              },
+            },
+            required: ["url", "prompt", "entityTypeIds"],
           },
         },
       },
-      required: ["url", "prompt", "explanation", "entityTypeIds"],
+      required: ["webPages", "explanation"],
     },
   },
   getSummariesOfWebPages: {
@@ -291,12 +300,14 @@ export type CoordinatorToolCallArguments = Subtype<
       explanation: string;
       query: string;
     };
-    inferFactsFromWebPage: {
+    inferFactsFromWebPages: {
       explanation: string;
-      url: string;
-      prompt: string;
-      entityTypeIds: string[];
-      linkEntityTypeIds?: string[];
+      webPages: {
+        url: string;
+        prompt: string;
+        entityTypeIds: string[];
+        linkEntityTypeIds?: string[];
+      }[];
     };
     getSummariesOfWebPages: {
       explanation: string;

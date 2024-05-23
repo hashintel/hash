@@ -32,7 +32,10 @@ import type { DuplicateReport } from "./research-entities-action/deduplicate-ent
 import { deduplicateEntities } from "./research-entities-action/deduplicate-entities";
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
 import { inferFactsFromWebPageWorkerAgent } from "./research-entities-action/infer-facts-from-web-page-worker-agent";
+import type { AccessedRemoteFile } from "./research-entities-action/infer-facts-from-web-page-worker-agent/types";
 import type { CompletedToolCall } from "./research-entities-action/types";
+import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text";
+import type { Fact } from "./shared/infer-facts-from-text/types";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
 import type { FlowActionActivity } from "./types";
 import { webSearchAction } from "./web-search-action";
@@ -284,31 +287,30 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: JSON.stringify(outputs),
             };
-          } else if (toolCall.name === "inferFactsFromWebPage") {
-            const {
-              url,
-              prompt: inferencePrompt,
-              entityTypeIds,
-              linkEntityTypeIds,
-            } = toolCall.input as CoordinatorToolCallArguments["inferFactsFromWebPage"];
+          } else if (toolCall.name === "inferFactsFromWebPages") {
+            const { webPages } =
+              toolCall.input as CoordinatorToolCallArguments["inferFactsFromWebPages"];
 
             const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
 
-            const invalidEntityTypeIds = entityTypeIds.filter(
-              (entityTypeId) =>
-                !validEntityTypeIds.includes(entityTypeId as VersionedUrl),
-            );
+            const invalidEntityTypeIds = webPages
+              .flatMap(({ entityTypeIds }) => entityTypeIds)
+              .filter(
+                (entityTypeId) =>
+                  !validEntityTypeIds.includes(entityTypeId as VersionedUrl),
+              );
 
             const validLinkEntityTypeIds =
               input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
 
-            const invalidLinkEntityTypeIds =
-              linkEntityTypeIds?.filter(
+            const invalidLinkEntityTypeIds = webPages
+              .flatMap(({ linkEntityTypeIds }) => linkEntityTypeIds ?? [])
+              .filter(
                 (entityTypeId) =>
                   !validLinkEntityTypeIds.includes(
                     entityTypeId as VersionedUrl,
                   ),
-              ) ?? [];
+              );
 
             if (
               invalidEntityTypeIds.length > 0 ||
@@ -334,8 +336,8 @@ export const researchEntitiesAction: FlowActionActivity<{
                         The following link entity type IDs are invalid: ${JSON.stringify(
                           invalidLinkEntityTypeIds,
                         )}
-
-                        The valid link entity types type IDs are: ${JSON.stringify(linkEntityTypeIds)}
+                        
+                        The valid link entity types type IDs are: ${JSON.stringify(validLinkEntityTypeIds)}
                       `)
                       : ""
                   }
@@ -345,34 +347,51 @@ export const researchEntitiesAction: FlowActionActivity<{
               };
             }
 
-            const status = await inferFactsFromWebPageWorkerAgent({
-              prompt: inferencePrompt,
-              entityTypes: input.entityTypes.filter(({ $id }) =>
-                entityTypeIds.includes($id),
-              ),
-              linkEntityTypes: input.linkEntityTypes?.filter(
-                ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
-              ),
-              url,
-            });
+            const statusesWithUrl = await Promise.all(
+              webPages.map(
+                async ({ url, prompt, entityTypeIds, linkEntityTypeIds }) => {
+                  const status = await inferFactsFromWebPageWorkerAgent({
+                    prompt,
+                    entityTypes: input.entityTypes.filter(({ $id }) =>
+                      entityTypeIds.includes($id),
+                    ),
+                    linkEntityTypes: input.linkEntityTypes?.filter(
+                      ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
+                    ),
+                    url,
+                  });
 
-            if (status.code !== StatusCode.Ok) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  An error occurred when inferring facts from the web page with url ${url}: ${status.message}
+                  return { status, url };
+                },
+              ),
+            );
 
-                  Try another website.
-                `),
-                isError: true,
-              };
+            let outputMessage = "";
+
+            const inferredFacts: Fact[] = [];
+            const inferredFactsAboutEntities: LocalEntitySummary[] = [];
+            const filesUsedToInferFacts: AccessedRemoteFile[] = [];
+
+            for (const { status, url } of statusesWithUrl) {
+              if (status.code !== StatusCode.Ok) {
+                outputMessage += `An error occurred when inferring facts from the web page with url ${url}: ${status.message}\n`;
+              }
+
+              const content = status.contents[0]!;
+
+              inferredFacts.push(...content.inferredFacts);
+              inferredFactsAboutEntities.push(
+                ...content.inferredFactsAboutEntities,
+              );
+              filesUsedToInferFacts.push(...content.filesUsedToInferFacts);
+
+              outputMessage += `Inferred ${content.inferredFacts.length} facts on the web page with url ${url} for the following entities: ${stringify(
+                content.inferredFactsAboutEntities.map(({ name, summary }) => ({
+                  name,
+                  summary,
+                })),
+              )}\n`;
             }
-
-            const {
-              inferredFacts,
-              inferredFactsAboutEntities,
-              filesUsedToInferFacts,
-            } = status.contents[0]!;
 
             /**
              * @todo: deduplicate the entity summaries from existing entities provided as input.
@@ -462,9 +481,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
               return {
                 ...toolCall,
-                output: dedent(`
-                ${inferredFacts.length} facts were successfully inferred for the following entities: ${JSON.stringify(inferredFactsAboutEntities)}
-              `),
+                output: outputMessage,
               };
             }
 
