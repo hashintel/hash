@@ -11,6 +11,8 @@ import { LinksSection } from "./entity-editor/links-section";
 import { PropertiesSection } from "./entity-editor/properties-section";
 import { TypesSection } from "./entity-editor/types-section";
 import type { DraftLinkState } from "./shared/use-draft-link-state";
+import { useEntityEditorTab } from "./shared/entity-editor-tabs";
+import { HistorySection } from "./entity-editor/history-section";
 
 export interface EntityEditorProps extends DraftLinkState {
   isDirty: boolean;
@@ -55,19 +57,25 @@ export const EntityEditor = (props: EntityEditorProps) => {
     [entity, isSpecialEntityTypeLookup],
   );
 
+  const tab = useEntityEditorTab();
+
   return (
     <EntityEditorContextProvider {...props}>
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 6.5 }}>
-        {isLinkEntity ? <LinkSection /> : <TypesSection />}
+      {tab === "history" ? (
+        <HistorySection entityId={entity.metadata.recordId.entityId} />
+      ) : (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 6.5 }}>
+          {isLinkEntity ? <LinkSection /> : <TypesSection />}
 
-        <FilePreviewSection />
+          <FilePreviewSection />
 
-        <PropertiesSection />
+          <PropertiesSection />
 
-        {isLinkEntity ? null : <LinksSection />}
+          {isLinkEntity ? null : <LinksSection />}
 
-        {/* <PeersSection /> */}
-      </Box>
+          {/* <PeersSection /> */}
+        </Box>
+      )}
     </EntityEditorContextProvider>
   );
 };
