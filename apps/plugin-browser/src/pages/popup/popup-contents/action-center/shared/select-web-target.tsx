@@ -32,7 +32,6 @@ export const SelectWebTarget = ({
 }: SelectWebTargetProps) => {
   return (
     <RadioGroup
-      aria-labelledby="demo-radio-buttons-group-label"
       name="radio-buttons-group"
       onChange={(event) => setCreateAs(event.target.value as "draft" | "live")}
       value={createAs}

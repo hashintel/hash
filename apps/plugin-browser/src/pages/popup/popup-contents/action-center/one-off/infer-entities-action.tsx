@@ -40,16 +40,16 @@ export const InferEntitiesAction = ({
   const { createAs, model, ownedById, targetEntityTypeIds } =
     manualInferenceConfig;
 
-  const { browserFlowRuns } = useFlowRuns();
+  const { flowRuns } = useFlowRuns();
 
   const pendingInferenceRequest = useMemo(
     () =>
-      browserFlowRuns.some(({ status, webPage }) => {
+      flowRuns.some(({ status, webPage }) => {
         return (
           webPage.url === activeTab?.url && status === FlowRunStatus.Running
         );
       }),
-    [activeTab, browserFlowRuns],
+    [activeTab, flowRuns],
   );
 
   const inferEntitiesFromPage = async () => {

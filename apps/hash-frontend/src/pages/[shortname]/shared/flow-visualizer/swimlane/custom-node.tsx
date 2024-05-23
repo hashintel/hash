@@ -102,7 +102,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
      */
     let browserInputRequest: ExternalInputRequest | undefined = undefined;
     for (const request of selectedFlowRun?.inputRequests ?? []) {
-      if (request.resolved || request.stepId !== id) {
+      if (request.resolvedAt ?? request.stepId !== id) {
         continue;
       }
       if (request.type === "human-input") {

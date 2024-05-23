@@ -107,7 +107,11 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
         title,
         description,
       })}
-      inputPlaceholder="Search for an entity type"
+      inputPlaceholder={
+        !value || (Array.isArray(value) && value.length === 0)
+          ? `Search for ${multiple ? "entity types" : "an entity type"}`
+          : undefined
+      }
       open={open}
       onOpen={() => setOpen(true)}
       onClose={(_, reason) => {

@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import { useMemo, useState } from "react";
 
-import type { MinimalFlowRun } from "../../../../../../shared/storage";
+import type { LocalStorage } from "../../../../../../shared/storage";
 import { useStorageSync } from "../../../../../shared/use-storage-sync";
 import { CellWithHoverButton } from "./history-row/cell-with-hover-button";
 import { Chip } from "./history-row/chip";
@@ -53,7 +53,7 @@ export const HistoryRow = ({
   flowRun,
   type,
 }: {
-  flowRun: MinimalFlowRun;
+  flowRun: LocalStorage["flowRuns"][number];
   type: RowType;
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -141,7 +141,10 @@ export const HistoryRow = ({
           </CellWithHoverButton>
         ) : (
           <TableCell>
-            <UrlChip type={type} url={flowRun.webPage.url} />
+            <UrlChip
+              type={type}
+              url={flowRun.requestedPageUrl ?? flowRun.webPage.url}
+            />
           </TableCell>
         )}
         {(type === "automatic" || type === "external-page-request") && (

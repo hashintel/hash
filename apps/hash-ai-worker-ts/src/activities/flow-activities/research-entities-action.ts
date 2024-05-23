@@ -11,8 +11,9 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityId } from "@local/hash-subgraph/.";
+import type { EntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger";
@@ -164,7 +165,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: `The entities with IDs ${JSON.stringify(entityIds)} were successfully submitted.`,
             };
           } else if (toolCall.name === "getSummariesOfWebPages") {
-            const { webPageUrls } =
+            const { webPageUrls, explanation } =
               toolCall.input as CoordinatorToolCallArguments["getSummariesOfWebPages"];
 
             const summaries = await Promise.all(
@@ -203,6 +204,23 @@ export const researchEntitiesAction: FlowActionActivity<{
 
                 const summary = summaryOutput.payload.value as string;
 
+                logProgress([
+                  {
+                    recordedAt: new Date().toISOString(),
+                    stepId: Context.current().info.activityId,
+                    type: "VisitedWebPage",
+                    webPage: {
+                      url: webPageUrl,
+                      title: outputs.find(
+                        (output) =>
+                          output.outputName ===
+                          ("title" satisfies OutputNameForAction<"getWebPageSummary">),
+                      )?.payload.value as string,
+                    },
+                    explanation,
+                  },
+                ]);
+
                 return `Summary of the web page at url ${webPageUrl}: ${summary}`;
               }),
             );
@@ -212,7 +230,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: summaries.join("\n"),
             };
           } else if (toolCall.name === "webSearch") {
-            const { query } =
+            const { query, explanation } =
               toolCall.input as CoordinatorToolCallArguments["webSearch"];
 
             const response = await webSearchAction({
@@ -234,6 +252,16 @@ export const researchEntitiesAction: FlowActionActivity<{
                 `Failed to perform web search: ${JSON.stringify(response)}`,
               );
             }
+
+            logProgress([
+              {
+                type: "QueriedWeb",
+                query,
+                recordedAt: new Date().toISOString(),
+                stepId: Context.current().info.activityId,
+                explanation,
+              },
+            ]);
 
             const { outputs } = response.contents[0]!;
 

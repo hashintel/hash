@@ -187,7 +187,7 @@ export const flowTypedef = gql`
 
   scalar FlowDefinition
   scalar FlowTrigger
-  scalar ExternalInputResponseSignal
+  scalar ExternalInputResponseWithoutUser
 
   extend type Mutation {
     """
@@ -203,7 +203,7 @@ export const flowTypedef = gql`
     Submit a response to a request from a flow step for external input
     """
     submitExternalInputResponse(
-      response: ExternalInputResponseSignal!
+      response: ExternalInputResponseWithoutUser!
       flowUuid: ID!
     ): Boolean!
   }

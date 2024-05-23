@@ -14,8 +14,9 @@ import { Button } from "../../../../shared/ui/button";
 import { Modal } from "../../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { GoogleAuthProvider } from "../../../shared/integrations/google/google-auth-context";
+import { WebSelector } from "../../../shared/web-selector";
 import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
-import { WebSelector } from "./run-flow-modal/manual-trigger-input/web-selector";
+import { inputHeight } from "./run-flow-modal/shared/dimensions";
 import type { FormState, LocalPayload } from "./run-flow-modal/types";
 import { isSupportedPayloadKind } from "./run-flow-modal/types";
 
@@ -210,6 +211,7 @@ export const RunFlowModal = ({
             );
           })}
           <WebSelector
+            inputHeight={inputHeight}
             selectedWebOwnedById={webId}
             setSelectedWebOwnedById={(newWebId) => setWebId(newWebId)}
           />

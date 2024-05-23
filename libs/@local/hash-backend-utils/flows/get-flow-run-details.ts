@@ -207,8 +207,16 @@ const getFlowRunDetailedFields = async ({
          * This is a request for external input
          */
         const existingRequest = inputRequestsById[signalData.requestId];
+        const raisedAt = eventTimeIsoStringFromEvent(event);
+        if (!raisedAt) {
+          throw new Error(
+            `No eventTime on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
+          );
+        }
+
         if (existingRequest) {
           existingRequest.data = signalData.data;
+          existingRequest.raisedAt = raisedAt;
         } else {
           /**
            * If we haven't already populated the request record, it must not have been resolved yet,
@@ -217,7 +225,7 @@ const getFlowRunDetailedFields = async ({
            */
           inputRequestsById[signalData.requestId] = {
             ...signalData,
-            resolved: false,
+            raisedAt,
           };
         }
       }
@@ -243,7 +251,8 @@ const getFlowRunDetailedFields = async ({
           requestId,
           stepId: "unresolved",
           type,
-          resolved: true,
+          raisedAt: "", // we will populate this when we hit the original request
+          resolvedAt: eventTimeIsoStringFromEvent(event),
         };
       }
 
@@ -433,7 +442,7 @@ const getFlowRunDetailedFields = async ({
 
   const inputRequests = Object.values(inputRequestsById);
   for (const inputRequest of inputRequests) {
-    if (!inputRequest.resolved) {
+    if (!inputRequest.resolvedAt) {
       const step = stepMap[inputRequest.stepId];
       if (!step) {
         throw new Error(

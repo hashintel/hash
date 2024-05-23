@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type {
   AutomaticInferenceArguments,
   ManualInferenceArguments,
@@ -149,7 +150,7 @@ export type ExternalInputWebsocketResponseMessage = {
   cookie: string;
   workflowId: string;
   type: "external-input-response";
-  payload: ExternalInputResponseSignal;
+  payload: DistributiveOmit<ExternalInputResponseSignal, "resolvedBy">;
 };
 
 export type InferenceWebsocketClientMessage =

@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
@@ -6,6 +7,7 @@ import type {
 import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type {
+  AccountId,
   Entity,
   EntityId,
   EntityPropertiesObject,
@@ -334,10 +336,6 @@ export type ParallelGroupStep = {
 
 export type FlowStep = ActionStep | ParallelGroupStep;
 
-/**
- * Flow
- */
-
 export type FlowTrigger = {
   triggerDefinitionId: TriggerDefinitionId;
   outputs?: StepOutput[];
@@ -357,20 +355,24 @@ export type ProgressLogBase = {
 };
 
 export type QueriedWebLog = ProgressLogBase & {
+  explanation: string;
   query: string;
   type: "QueriedWeb";
 };
 
 export type CreatedPlanLog = ProgressLogBase & {
+  plan: string;
   type: "CreatedPlan";
 };
 
 export type VisitedWebPageLog = ProgressLogBase & {
+  explanation: string;
   webPage: Pick<WebPage, "url" | "title">;
   type: "VisitedWebPage";
 };
 
 export type ViewedFile = {
+  explanation: string;
   fileUrl: string;
   recordedAt: string;
   stepId: string;
@@ -435,17 +437,27 @@ export type ExternalInputResponseSignal<
   RequestType extends ExternalInputRequestType = ExternalInputRequestType,
 > = {
   [Type in RequestType]: {
+    resolvedBy: AccountId;
     requestId: string;
     type: Type;
     data: ExternalInputResponseByType[Type];
   };
 }[RequestType];
 
+export type ExternalInputResponseWithoutUser = DistributiveOmit<
+  ExternalInputResponseSignal,
+  "resolvedBy"
+>;
+
 export type ExternalInputRequest = ExternalInputRequestSignal & {
   /** The answers given by the human, if it was a request for human input */
   answers?: string[];
-  /** Whether or not the request has been resolved */
-  resolved: boolean;
+  /** The time at which the request was resolved */
+  resolvedAt?: string;
+  /** The user that responded to the request (or the user whose device responded to the request) */
+  resolvedBy?: AccountId;
+  /** The time at which the request was made */
+  raisedAt: string;
 };
 
 export const detailedFlowFields = [
