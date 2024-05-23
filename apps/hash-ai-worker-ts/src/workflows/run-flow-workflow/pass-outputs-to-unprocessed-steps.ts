@@ -2,8 +2,8 @@ import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-def
 import type {
   ArrayPayload,
   DeepReadOnly,
-  LocalFlowRun,
   FlowDefinition,
+  LocalFlowRun,
   OutputDefinition,
   Payload,
   StepInputSource,

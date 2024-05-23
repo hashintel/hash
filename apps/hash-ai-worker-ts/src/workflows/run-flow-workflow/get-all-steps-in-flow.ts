@@ -1,6 +1,6 @@
 import type {
-  LocalFlowRun,
   FlowStep,
+  LocalFlowRun,
   ParallelGroupStep,
 } from "@local/hash-isomorphic-utils/flows/types";
 

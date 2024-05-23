@@ -460,6 +460,7 @@ export const FlowVisualizer = () => {
             <FlowRunSidebar
               flowDefinition={selectedFlowDefinition}
               groups={flowMaybeGrouped.groups}
+              name={selectedFlowRun.name}
             />
           ) : null}
           <Box sx={{ minHeight: 300, px: 3 }}>

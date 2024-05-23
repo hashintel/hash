@@ -2,10 +2,10 @@ import type { Entity, EntityUuid } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
 import { simplifyProperties } from "../simplify-properties";
-import type { FlowRunProperties } from "../system-types/flowrun";
 import type { FlowDefinitionProperties } from "../system-types/flowdefinition";
+import type { FlowRunProperties } from "../system-types/flowrun";
 import type { TriggerDefinitionId } from "./trigger-definitions";
-import type { LocalFlowRun, FlowDefinition, OutputDefinition } from "./types";
+import type { FlowDefinition, LocalFlowRun, OutputDefinition } from "./types";
 
 export const mapFlowDefinitionToEntityProperties = (
   flowDefinition: FlowDefinition,

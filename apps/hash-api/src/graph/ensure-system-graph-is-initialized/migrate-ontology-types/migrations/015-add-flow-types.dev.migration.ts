@@ -2,7 +2,6 @@ import type { EntityType } from "@blockprotocol/type-system";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
-  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { BaseUrl } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";

@@ -13,7 +13,7 @@ import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { EntityUuid } from "@local/hash-subgraph";
 
 export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
-  name: "Research triggered manually from browser",
+  name: "Analyze webpage",
   flowDefinitionId: "manual-browser-inference" as EntityUuid,
   description: "Find entities of the requested types in a web page",
   trigger: {
@@ -123,7 +123,7 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
 };
 
 export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
-  name: "Research triggered automatically from browser",
+  name: "Auto-analyze webpage",
   flowDefinitionId: "automatic-browser-inference" as EntityUuid,
   description:
     "Find entities in a web page according to the user's passive analysis settings",

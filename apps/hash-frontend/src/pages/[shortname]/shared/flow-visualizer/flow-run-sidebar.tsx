@@ -5,6 +5,7 @@ import {
   CircleEllipsisRegularIcon,
   CloseIcon,
 } from "@hashintel/design-system";
+import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import type {
   FlowDefinition,
   StepDefinition,
@@ -20,6 +21,7 @@ import { differenceInMilliseconds, intervalToDuration } from "date-fns";
 import type { PropsWithChildren } from "react";
 import { useEffect, useMemo, useState } from "react";
 
+import type { FlowRun } from "../../../../graphql/api-types.gen";
 import { isNonNullable } from "../../../../lib/typeguards";
 import { EllipsisRegularIcon } from "../../../../shared/icons/ellipsis-regular-icon";
 import {
@@ -291,30 +293,32 @@ const GroupStatus = ({
 type FlowRunSidebarProps = {
   flowDefinition: FlowDefinition;
   groups: FlowMaybeGrouped["groups"];
+  name: FlowRun["name"];
 };
 
 export const FlowRunSidebar = ({
   flowDefinition,
   groups,
+  name,
 }: FlowRunSidebarProps) => {
   return (
     <Box sx={{ ml: 3, width: 320 }}>
       <Box sx={{ mb: 2 }}>
-        <SectionLabel text="Description" />
+        <SectionLabel
+          text={
+            flowDefinition.flowDefinitionId ===
+            goalFlowDefinition.flowDefinitionId
+              ? "Goal"
+              : "Description"
+          }
+        />
         <SidebarSection>
           <Typography
             component="p"
             variant="smallTextParagraphs"
             sx={{ lineHeight: 1, mb: 0.7 }}
           >
-            <strong>{flowDefinition.name}</strong>
-          </Typography>
-          <Typography
-            component="p"
-            variant="smallTextParagraphs"
-            sx={{ lineHeight: "18px" }}
-          >
-            {flowDefinition.description}
+            {name}
           </Typography>
         </SidebarSection>
       </Box>

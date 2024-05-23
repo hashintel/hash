@@ -2,14 +2,12 @@ import {
   automaticBrowserInferenceFlowDefinition,
   manualBrowserInferenceFlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
-import {
+import type {
   AutomaticInferenceTriggerInputName,
   ManualInferenceTriggerInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import {
-  goalFlowDefinition,
-  GoalFlowTriggerInput,
-} from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import type {
   FlowDefinition,
   FlowTrigger,
@@ -17,13 +15,11 @@ import type {
   PayloadKindValues,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-import {
-  getLlmResponse,
-  UsageTrackingParams,
-} from "../shared/get-llm-response";
+import { getFlowContext } from "../shared/get-flow-context";
+import type { UsageTrackingParams } from "../shared/get-llm-response";
+import { getLlmResponse } from "../shared/get-llm-response";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message";
 import { graphApiClient } from "../shared/graph-api-client";
-import { getFlowContext } from "../shared/get-flow-context";
 
 type PersistFlowActivityParams = {
   flowDefinition: FlowDefinition;
@@ -34,10 +30,10 @@ const systemPrompt = `
 You are a workflow naming agent. A workflow is an automated process that produces a result of interest.
 Multiple workflows of the same kind are run with different inputs, and the user requires a unique name for each run, to distinguish it from other runs of the same kind.
 
-The user provides you with a description of the goal of the workflow, or a list of its inputs, and you generate a short name for the workflow.
+The user provides you with a description of the goal of the workflow, or a description of the template and a list of its inputs, and you generate a short name for the run.
 
-The name should be descriptive enough to distinguish it from other runs of the same kind
-while being as short as possible, and must always be a single sentence. If in doubt, prioritise brevity.
+The name should be descriptive enough to distinguish it from other runs from the same template while being as short as possible, and must always be a single sentence. 
+If in doubt, prioritise brevity.
 
 Here is the context for the workflow run you are naming, which may be a description of its goal or a list of its inputs:
 `;
@@ -60,7 +56,7 @@ const getModelSuggestedFlowRunName = async (
           ],
         },
       ],
-      model: "gpt-4o",
+      model: "claude-3-haiku-20240307",
     },
     usageTrackingParams,
   );
@@ -70,6 +66,12 @@ const getModelSuggestedFlowRunName = async (
   }
 
   const text = getTextContentFromLlmMessage({ message: llmResponse.message });
+
+  if (!text) {
+    throw new Error(
+      `Failed to generate flow run name: no text content found in LLM message`,
+    );
+  }
 
   return text;
 };
@@ -98,7 +100,7 @@ export const generateFlowRunName = async (
       throw new Error(`Web page not found in browser flow trigger outputs`);
     }
 
-    return webPage.url;
+    return `${flowDefinition.flowDefinitionId === automaticBrowserInferenceFlowDefinition.flowDefinitionId ? "Auto-analyze" : "Analyze"} webpage: ${webPage.url}`;
   }
 
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
@@ -133,7 +135,8 @@ export const generateFlowRunName = async (
   );
 
   return getModelSuggestedFlowRunName(
-    `The inputs to the workflow: ${inputsOfInterest?.map((input) => JSON.stringify(input)).join("\n")}`,
+    `The workflow template is named ${flowDefinition.name} with a description of ${flowDefinition.description}.
+    The inputs to the workflow run to be named: ${inputsOfInterest?.map((input) => JSON.stringify(input)).join("\n")}`,
     usageTrackingParams,
   );
 };
