@@ -73,20 +73,41 @@ export const inferFactsFromText = async (params: {
           );
         }
 
-        const { facts } = await inferEntityFactsFromText({
-          subjectEntities: entitySummariesOfType,
-          /**
-           * Note: we could reduce the number of potential object entities by filtering out
-           * all entities which don't have a type that the subject entity can link to. This
-           * would result in missed facts, so is not being done at the moment but could be
-           * considered in the future.
-           */
-          potentialObjectEntities: entitySummaries,
-          text,
-          dereferencedEntityType,
-        });
+        const numberOfEntitySummariesPerRequest = 5;
 
-        return facts;
+        const chunkedSubjectEntities = entitySummariesOfType.reduce<
+          LocalEntitySummary[][]
+        >((result, item, index) => {
+          const chunkIndex = Math.floor(
+            index / numberOfEntitySummariesPerRequest,
+          );
+
+          return [
+            ...result.slice(0, chunkIndex),
+            [...(result[chunkIndex] ?? []), item],
+          ];
+        }, []);
+
+        const factsObtainedPerChunk = await Promise.all(
+          chunkedSubjectEntities.map(async (subjectEntities) => {
+            const { facts } = await inferEntityFactsFromText({
+              subjectEntities,
+              /**
+               * Note: we could reduce the number of potential object entities by filtering out
+               * all entities which don't have a type that the subject entity can link to. This
+               * would result in missed facts, so is not being done at the moment but could be
+               * considered in the future.
+               */
+              potentialObjectEntities: entitySummaries,
+              text,
+              dereferencedEntityType,
+            });
+
+            return facts;
+          }),
+        );
+
+        return factsObtainedPerChunk.flat();
       },
     ),
   ).then((unflattenedFacts) => unflattenedFacts.flat());
