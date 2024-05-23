@@ -25,7 +25,7 @@ import type {
   MinimalFlowRun,
 } from "../../../../../shared/storage";
 import { useStorageSync } from "../../../../shared/use-storage-sync";
-import { useUser } from "../../../../shared/use-user";
+import { useUserContext } from "../../shared/user-context";
 
 const mapFlowRunToMinimalFlowRun = (
   flowRun: GetMinimalFlowRunsQuery["getFlowRuns"][number],
@@ -78,17 +78,17 @@ const getFlowRuns = async ({
         return b.executedAt.localeCompare(a.executedAt);
       }),
     )
-    .then((flowRuns) => {
+    .then((unfilteredFlowRuns) => {
       const flowRunsOfInterest: LocalStorage["flowRuns"] = [];
 
-      for (const flowRun of flowRuns) {
+      for (const flowRun of unfilteredFlowRuns) {
         if (
           flowRun.flowDefinitionId ===
             manualBrowserInferenceFlowDefinition.flowDefinitionId ||
           flowRun.flowDefinitionId ===
             automaticBrowserInferenceFlowDefinition.flowDefinitionId
         ) {
-          flowRuns.push(mapFlowRunToMinimalFlowRun(flowRun));
+          flowRunsOfInterest.push(mapFlowRunToMinimalFlowRun(flowRun));
         }
 
         for (const inputRequest of flowRun.inputRequests) {
@@ -119,7 +119,7 @@ export const useFlowRuns = (): {
 
   const [apiChecked, setApiChecked] = useState(false);
 
-  const { user } = useUser();
+  const { user } = useUserContext();
 
   const userAccountId = useMemo(() => {
     if (!user) {
