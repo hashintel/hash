@@ -1,7 +1,7 @@
 import type { AccountId, OwnedById } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 
-import type { FlowDefinition, FlowTrigger,LocalFlowRun } from "./types";
+import type { FlowDefinition, FlowTrigger, LocalFlowRun } from "./types";
 
 export type RunFlowWorkflowParams = {
   flowTrigger: FlowTrigger;

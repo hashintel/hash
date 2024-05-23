@@ -99,7 +99,6 @@ const inferEntitiesMessageHandler = async ({
       return;
     }
   }
-  console.log(JSON.stringify(message));
   socket.send(`Unrecognized message '${JSON.stringify(message)}'`);
 };
 

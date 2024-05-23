@@ -32,9 +32,9 @@ Multiple workflows of the same kind are run with different inputs, and the user 
 
 The user provides you with a description of the goal of the workflow, or a description of the template and a list of its inputs, and you generate a short name for the run. Provide only the name – don't include any other text.
 
-The name should be descriptive enough to distinguish it from other runs from the same template, and must always be a single human-readable sentence.
-
-Here is the context for the workflow run you are naming, which may be a description of its goal or a list of its inputs:
+The name should be descriptive enough to distinguish it from other runs from the same template, and must always be a single human-readable sentence, with proper grammar and spacing between words.
+Don't include any quotation marks or special characters around the name.
+Don't include the word 'workflow' in the name – the user already knows it's a workflow.
 `;
 
 const getModelSuggestedFlowRunName = async (
@@ -50,7 +50,7 @@ const getModelSuggestedFlowRunName = async (
           content: [
             {
               type: "text",
-              text: context,
+              text: `User:${context}\nApplication name:`,
             },
           ],
         },
