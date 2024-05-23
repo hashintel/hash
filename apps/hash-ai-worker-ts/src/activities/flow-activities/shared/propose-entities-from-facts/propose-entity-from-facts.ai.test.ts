@@ -1,11 +1,13 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context";
 
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity";
 import { getFlowContext } from "../../../shared/get-flow-context";
 import { graphApiClient } from "../../../shared/graph-api-client";
 import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
+import type { Fact } from "../infer-facts-from-text/types";
 import { proposeEntityFromFacts } from "./propose-entity-from-facts";
 
 const huntingPlcEntitySummary: LocalEntitySummary = {
@@ -57,14 +59,33 @@ test(
     const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
       Object.values(dereferencedEntityTypes)[0]!;
 
+    const huntingPlcEntityFactsWithSources = huntingPlcEntityFacts.map(
+      (fact): Fact => ({
+        ...fact,
+        factId: generateUuid(),
+        sources: [
+          {
+            type: "webpage",
+            location: {
+              uri: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+            },
+            loadedAt: new Date().toISOString(),
+          },
+        ],
+      }),
+    );
+
     const proposeEntityFromFactsStatus = await proposeEntityFromFacts({
       entitySummary: huntingPlcEntitySummary,
-      facts: huntingPlcEntityFacts,
+      facts: huntingPlcEntityFactsWithSources,
       dereferencedEntityType,
       simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
       proposeOutgoingLinkEntityTypes: [],
       possibleOutgoingLinkTargetEntitySummaries: [],
     });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ proposeEntityFromFactsStatus }, null, 2));
 
     expect(proposeEntityFromFactsStatus).toBeDefined();
   },
