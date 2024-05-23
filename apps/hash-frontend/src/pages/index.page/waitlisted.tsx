@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@apollo/client";
 import {
   ArrowRightIconRegular,
   ArrowUpRightRegularIcon,
+  CheckIcon,
   ChromeIcon,
 } from "@hashintel/design-system";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
@@ -10,6 +11,8 @@ import { Box } from "@mui/material";
 import { useCallback, useState } from "react";
 
 import type {
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
   GetWaitlistPositionQuery,
   SubmitEarlyAccessFormMutation,
   SubmitEarlyAccessFormMutationVariables,
@@ -26,6 +29,13 @@ import { HomepageGrid } from "./shared/homepage-grid";
 import { HomepageBigText, HomepageSmallCaps } from "./shared/typography";
 import { UsesCard } from "./shared/uses-card";
 import { EarlyAccessFormModal } from "./waitlisted/early-access-modal";
+import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 const SelfHostedAccessDenied = () => (
   <HomepageCard wide>
@@ -45,7 +55,7 @@ const SelfHostedAccessDenied = () => (
 );
 
 export const Waitlisted = () => {
-  const { data } = useQuery<GetWaitlistPositionQuery>(
+  const { data: waitlistPositionData } = useQuery<GetWaitlistPositionQuery>(
     getWaitlistPositionQuery,
     { skip: isSelfHostedInstance },
   );
@@ -54,7 +64,30 @@ export const Waitlisted = () => {
     "closed" | "open" | "submitted"
   >("closed");
 
-  const position = data?.getWaitlistPosition;
+  useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
+    getEntitySubgraphQuery,
+    {
+      variables: {
+        request: {
+          filter: generateVersionedUrlMatchingFilter(
+            systemEntityTypes.prospectiveUser.entityTypeId,
+          ),
+          graphResolveDepths: zeroedGraphResolveDepths,
+          includeDrafts: false,
+          temporalAxes: currentTimeInstantTemporalAxes,
+        },
+        includePermissions: false,
+      },
+      fetchPolicy: "cache-and-network",
+      onCompleted: (data) => {
+        if (data.getEntitySubgraph.subgraph.roots.length) {
+          setEarlyAccessFormState("submitted");
+        }
+      },
+    },
+  );
+
+  const position = waitlistPositionData?.getWaitlistPosition;
 
   const [submitToApi] = useMutation<
     SubmitEarlyAccessFormMutation,
@@ -74,9 +107,11 @@ export const Waitlisted = () => {
     [submitToApi],
   );
 
+  const hasSubmittedForm = earlyAccessFormState === "submitted";
+
   return (
     <>
-      {!isSelfHostedInstance && earlyAccessFormState !== "submitted" && (
+      {!isSelfHostedInstance && !hasSubmittedForm && (
         <EarlyAccessFormModal
           onClose={() => setEarlyAccessFormState("closed")}
           open={earlyAccessFormState === "open"}
@@ -114,30 +149,33 @@ export const Waitlisted = () => {
               <FollowUsButton />
             </HomepageCard>
             <HomepageCard>
-              {earlyAccessFormState === "submitted" ? (
-                <>
-                  <HomepageBigText
-                    sx={{ color: ({ palette }) => palette.blue[70] }}
-                  >
-                    Thank you
-                  </HomepageBigText>
-                  <HomepageBigText>we'll be in touch</HomepageBigText>
-                </>
-              ) : (
-                <>
-                  <HomepageBigText>Skip the wait </HomepageBigText>
-                  <HomepageBigText
-                    sx={{ color: ({ palette }) => palette.blue[70] }}
-                  >
-                    get early access
-                  </HomepageBigText>
-                  <HomepageSmallCaps>Jump the queue</HomepageSmallCaps>
-                  <Button
-                    onClick={() => setEarlyAccessFormState("open")}
-                    variant="primary"
-                    size="small"
-                    sx={{ borderRadius: 2 }}
-                  >
+              <HomepageBigText>Skip the wait </HomepageBigText>
+              <HomepageBigText
+                sx={{ color: ({ palette }) => palette.blue[70] }}
+              >
+                get early access
+              </HomepageBigText>
+              <HomepageSmallCaps>Jump the queue</HomepageSmallCaps>
+              <Button
+                onClick={() => setEarlyAccessFormState("open")}
+                disabled={hasSubmittedForm}
+                variant="primary"
+                size="small"
+                sx={{ borderRadius: 2 }}
+              >
+                {hasSubmittedForm ? (
+                  <>
+                    You have applied{" "}
+                    <CheckIcon
+                      sx={{
+                        fill: ({ palette }) => palette.green[70],
+                        fontSize: 16,
+                        ml: 1,
+                      }}
+                    />
+                  </>
+                ) : (
+                  <>
                     <Box
                       component="span"
                       sx={{ color: ({ palette }) => palette.blue[25], mr: 0.5 }}
@@ -146,9 +184,9 @@ export const Waitlisted = () => {
                     </Box>
                     use case
                     <ArrowRightIconRegular sx={{ fontSize: 14, ml: 1 }} />
-                  </Button>
-                </>
-              )}
+                  </>
+                )}
+              </Button>
             </HomepageCard>
           </>
         )}
