@@ -1,5 +1,5 @@
 # Build in the Itero environment
-dnf install java-latest-openjdk
+apk add openjdk17
 curl https://sh.rustup.rs -sSf | sh -s -- -y
 . "$HOME/.cargo/env"
 yarn config set ignore-engines true
