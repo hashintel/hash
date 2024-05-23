@@ -42,7 +42,11 @@ const Page: NextPageWithLayout = () => {
     );
   }
 
-  return <LoggedIn />;
+  return (
+    <Stack alignItems="center">
+      <LoggedIn />
+    </Stack>
+  );
 };
 
 Page.getLayout = (page) =>
