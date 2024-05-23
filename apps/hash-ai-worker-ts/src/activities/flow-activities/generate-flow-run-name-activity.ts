@@ -50,7 +50,7 @@ const getModelSuggestedFlowRunName = async (
           content: [
             {
               type: "text",
-              text: `User:${context}\nApplication name:`,
+              text: `User:${context}\nWorkflow name:`,
             },
           ],
         },
