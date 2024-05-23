@@ -8,10 +8,9 @@ import type {
   browserInferenceFlowOutput,
   ManualInferenceTriggerInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type {
-  ExternalInputRequestSignal,
-  PayloadKindValues,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { PayloadKindValues } from "@local/hash-isomorphic-utils/flows/types";
+import type { AccountId } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useEffect, useMemo, useState } from "react";
 
 import type {
@@ -21,16 +20,15 @@ import type {
 import { getMinimalFlowRunsQuery } from "../../../../../graphql/queries/flow.queries";
 import { queryGraphQlApi } from "../../../../../shared/query-graphql-api";
 import type {
-  BrowserFlowsAndBackgroundRequests,
+  FlowFromBrowserOrWithPageRequest,
+  LocalStorage,
   MinimalFlowRun,
 } from "../../../../../shared/storage";
 import { useStorageSync } from "../../../../shared/use-storage-sync";
+import { useUserContext } from "../../shared/user-context";
 
 const mapFlowRunToMinimalFlowRun = (
-  flowRun: Omit<
-    GetMinimalFlowRunsQuery["getFlowRuns"][number],
-    "inputRequests"
-  >,
+  flowRun: GetMinimalFlowRunsQuery["getFlowRuns"][number],
 ): MinimalFlowRun => {
   const persistedEntities = (flowRun.outputs ?? []).flatMap((output) =>
     output.contents[0].outputs.flatMap(({ outputName, payload }) => {
@@ -61,7 +59,11 @@ const mapFlowRunToMinimalFlowRun = (
   };
 };
 
-const getFlowRuns = async (): Promise<BrowserFlowsAndBackgroundRequests> =>
+const getFlowRuns = async ({
+  userAccountId,
+}: {
+  userAccountId: AccountId;
+}): Promise<FlowFromBrowserOrWithPageRequest[]> =>
   queryGraphQlApi<GetMinimalFlowRunsQuery, GetMinimalFlowRunsQueryVariables>(
     getMinimalFlowRunsQuery,
   )
@@ -76,63 +78,82 @@ const getFlowRuns = async (): Promise<BrowserFlowsAndBackgroundRequests> =>
         return b.executedAt.localeCompare(a.executedAt);
       }),
     )
-    .then((flowRuns) => {
-      const browserFlowRuns: MinimalFlowRun[] = [];
-      const allInputRequests: ExternalInputRequestSignal[] = [];
+    .then((unfilteredFlowRuns) => {
+      const flowRunsOfInterest: LocalStorage["flowRuns"] = [];
 
-      for (const flowRun of flowRuns) {
-        const { inputRequests, ...flow } = flowRun;
+      for (const flowRun of unfilteredFlowRuns) {
         if (
-          flow.flowDefinitionId ===
+          flowRun.flowDefinitionId ===
             manualBrowserInferenceFlowDefinition.flowDefinitionId ||
-          flow.flowDefinitionId ===
+          flowRun.flowDefinitionId ===
             automaticBrowserInferenceFlowDefinition.flowDefinitionId
         ) {
-          browserFlowRuns.push(mapFlowRunToMinimalFlowRun(flowRun));
+          flowRunsOfInterest.push(mapFlowRunToMinimalFlowRun(flowRun));
         }
 
-        allInputRequests.push(...inputRequests);
+        for (const inputRequest of flowRun.inputRequests) {
+          if (
+            inputRequest.type === "get-urls-html-content" &&
+            !!inputRequest.resolvedAt &&
+            inputRequest.resolvedBy === userAccountId
+          ) {
+            for (const url of inputRequest.data.urls) {
+              flowRunsOfInterest.push({
+                ...mapFlowRunToMinimalFlowRun(flowRun),
+                requestedPageUrl: url,
+              });
+            }
+          }
+        }
       }
 
-      return {
-        browserFlowRuns,
-        inputRequests: allInputRequests,
-      };
+      return flowRunsOfInterest;
     });
 
-export const useFlowRuns = (): BrowserFlowsAndBackgroundRequests & {
+export const useFlowRuns = (): {
+  flowRuns: FlowFromBrowserOrWithPageRequest[];
+} & {
   loading: boolean;
 } => {
-  const [value, setValue, storageLoading] = useStorageSync(
-    "browserFlowsAndBackgroundRequests",
-    {
-      browserFlowRuns: [],
-      inputRequests: [],
-    },
-  );
+  const [value, setValue, storageLoading] = useStorageSync("flowRuns", []);
 
   const [apiChecked, setApiChecked] = useState(false);
 
-  useEffect(() => {
-    const pollInterval = setInterval(() => {
-      void getFlowRuns().then(setValue);
-    }, 2_000);
+  const { user } = useUserContext();
 
-    return () => clearInterval(pollInterval);
-  }, [setValue]);
+  const userAccountId = useMemo(() => {
+    if (!user) {
+      return null;
+    }
+    return extractOwnedByIdFromEntityId(
+      user.metadata.recordId.entityId,
+    ) as AccountId;
+  }, [user]);
 
   useEffect(() => {
-    if (apiChecked) {
+    if (!userAccountId) {
       return;
     }
 
-    void getFlowRuns().then((newValue) => {
+    const pollInterval = setInterval(() => {
+      void getFlowRuns({ userAccountId }).then(setValue);
+    }, 2_000);
+
+    return () => clearInterval(pollInterval);
+  }, [setValue, userAccountId]);
+
+  useEffect(() => {
+    if (apiChecked || !userAccountId) {
+      return;
+    }
+
+    void getFlowRuns({ userAccountId }).then((newValue) => {
       setValue(newValue);
       setApiChecked(true);
     });
 
     setApiChecked(true);
-  }, [apiChecked, setValue]);
+  }, [apiChecked, setValue, userAccountId]);
 
   const [localPendingRuns, setLocalPendingRuns] = useStorageSync(
     "localPendingFlowRuns",
@@ -147,7 +168,7 @@ export const useFlowRuns = (): BrowserFlowsAndBackgroundRequests & {
     const flowRunsToShow: MinimalFlowRun[] = [];
     const redundantOptimisticRunIds: string[] = [];
 
-    const allFlowIds = value.browserFlowRuns.map((run) => run.flowRunId);
+    const allFlowIds = value.map((run) => run.flowRunId);
 
     for (const run of localPendingRuns ?? []) {
       if (allFlowIds.includes(run.flowRunId)) {
@@ -157,13 +178,13 @@ export const useFlowRuns = (): BrowserFlowsAndBackgroundRequests & {
       }
     }
 
-    flowRunsToShow.push(...value.browserFlowRuns);
+    flowRunsToShow.push(...value);
 
     return {
       allFlowRuns: flowRunsToShow,
       redundantLocalRunIds: redundantOptimisticRunIds,
     };
-  }, [value.browserFlowRuns, localPendingRuns]);
+  }, [value, localPendingRuns]);
 
   /**
    * Clean up the state for any runs that have been added to the API response.
@@ -180,9 +201,8 @@ export const useFlowRuns = (): BrowserFlowsAndBackgroundRequests & {
 
   return useMemo(() => {
     return {
-      inputRequests: value.inputRequests,
-      browserFlowRuns: allFlowRuns,
+      flowRuns: allFlowRuns,
       loading: !storageLoading || !apiChecked,
     };
-  }, [allFlowRuns, apiChecked, storageLoading, value]);
+  }, [allFlowRuns, apiChecked, storageLoading]);
 };

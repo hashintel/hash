@@ -8,9 +8,9 @@ import { HistoryRow } from "./shared/history-row";
 import { TableLabel } from "./shared/table-label";
 
 export const ManuallyTriggered = ({
-  browserFlowRuns: unfilteredFlowRuns,
+  flowRuns: unfilteredFlowRuns,
 }: {
-  browserFlowRuns: MinimalFlowRun[];
+  flowRuns: MinimalFlowRun[];
 }) => {
   const manuallyTriggeredFlows = useMemo(
     () =>

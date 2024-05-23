@@ -315,6 +315,7 @@ const createInitialPlan = async (params: {
         recordedAt: new Date().toISOString(),
         stepId: Context.current().info.activityId,
         type: "CreatedPlan",
+        plan,
       },
     ]);
 

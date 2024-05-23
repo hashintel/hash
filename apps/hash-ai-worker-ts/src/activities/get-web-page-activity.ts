@@ -6,7 +6,6 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import sanitizeHtml from "sanitize-html";
 
 import { logger } from "./shared/activity-logger";
-import { logProgress } from "./shared/log-progress";
 import { requestExternalInput } from "./shared/request-external-input";
 
 puppeteer.use(StealthPlugin());
@@ -122,18 +121,6 @@ export const getWebPageActivity = async (params: {
   const { htmlContent, title } = shouldAskBrowser
     ? await getWebPageFromBrowser(url)
     : await getWebPageFromPuppeteer(url);
-
-  logProgress([
-    {
-      recordedAt: new Date().toISOString(),
-      stepId: Context.current().info.activityId,
-      type: "VisitedWebPage",
-      webPage: {
-        url,
-        title,
-      },
-    },
-  ]);
 
   if (sanitizeForLlm) {
     const sanitizedHtml = sanitizeHtml(htmlContent, {

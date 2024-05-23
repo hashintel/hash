@@ -19,7 +19,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
     outputs: [
       {
         payloadKind: "Text",
-        name: "Research guidance" as const,
+        name: "Research guidance",
         array: false,
         required: true,
       },
@@ -209,7 +209,7 @@ export const researchEntitiesFlowDefinition: FlowDefinition = {
     outputs: [
       {
         payloadKind: "Text",
-        name: "Research guidance" as const,
+        name: "Research guidance",
         array: false,
         required: true,
       },
@@ -890,4 +890,105 @@ export const saveFileFromUrl: FlowDefinition = {
   ],
 };
 
-export const goalDefinitionId = researchTaskFlowDefinition.flowDefinitionId;
+export type GoalFlowTriggerInput =
+  | "Research guidance"
+  | "Entity Types"
+  | "Create as draft";
+
+export const goalFlowDefinition: FlowDefinition = {
+  name: "Research Goal",
+  flowDefinitionId: "research-goal" as EntityUuid,
+  description:
+    "Discover entities according to a research brief, save them to HASH",
+  trigger: {
+    triggerDefinitionId: "userTrigger",
+    description:
+      "User provides research specification and entity types to discover",
+    kind: "trigger",
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "Research guidance" as const satisfies GoalFlowTriggerInput,
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "VersionedUrl",
+        name: "Entity Types" satisfies GoalFlowTriggerInput,
+        array: true,
+        required: true,
+      },
+      {
+        payloadKind: "Boolean",
+        name: "Create as draft" satisfies GoalFlowTriggerInput,
+        array: false,
+        required: true,
+      },
+    ],
+  },
+  groups: [
+    {
+      groupId: 1,
+      description: "Research and persist entities",
+    },
+  ],
+  steps: [
+    {
+      stepId: "1",
+      kind: "action",
+      groupId: 1,
+      actionDefinitionId: "researchEntities",
+      description:
+        "Discover entities according to research specification, using public web sources",
+      inputSources: [
+        {
+          inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Research guidance",
+        },
+        {
+          inputName:
+            "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Entity Types",
+        },
+      ],
+    },
+    {
+      stepId: "2",
+      kind: "action",
+      groupId: 1,
+      description: "Save discovered entities and relationships to HASH graph",
+      actionDefinitionId: "persistEntities",
+      inputSources: [
+        {
+          inputName:
+            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "1",
+          sourceStepOutputName:
+            "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
+        },
+        {
+          inputName: "draft" satisfies InputNameForAction<"persistEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName: "Create as draft",
+        },
+      ],
+    },
+  ],
+  outputs: [
+    {
+      stepId: "2",
+      stepOutputName:
+        "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+      payloadKind: "PersistedEntity",
+      name: "persistedEntities" as const,
+      array: false,
+      required: true,
+    },
+  ],
+};

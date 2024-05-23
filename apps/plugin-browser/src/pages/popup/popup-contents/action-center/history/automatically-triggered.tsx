@@ -2,22 +2,23 @@ import { automaticBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-
 import { TableCell, TableRow } from "@mui/material";
 import { useMemo } from "react";
 
-import type { MinimalFlowRun } from "../../../../../shared/storage";
+import type { LocalStorage } from "../../../../../shared/storage";
 import { EventTable } from "./shared/event-table";
 import { HistoryRow } from "./shared/history-row";
 import { TableLabel } from "./shared/table-label";
 
 export const AutomaticallyTriggered = ({
-  browserFlowRuns: unfilteredFlowRuns,
+  flowRuns: unfilteredFlowRuns,
 }: {
-  browserFlowRuns: MinimalFlowRun[];
+  flowRuns: LocalStorage["flowRuns"];
 }) => {
   const automaticallyTriggeredFlows = useMemo(
     () =>
       unfilteredFlowRuns.filter(
         (flow) =>
           flow.flowDefinitionId ===
-          automaticBrowserInferenceFlowDefinition.flowDefinitionId,
+            automaticBrowserInferenceFlowDefinition.flowDefinitionId ||
+          flow.requestedPageUrl,
       ),
     [unfilteredFlowRuns],
   );
@@ -38,7 +39,13 @@ export const AutomaticallyTriggered = ({
             const flowRunId = flow.flowRunId;
 
             return (
-              <HistoryRow flowRun={flow} key={flowRunId} type="automatic" />
+              <HistoryRow
+                flowRun={flow}
+                key={flowRunId}
+                type={
+                  flow.requestedPageUrl ? "external-page-request" : "automatic"
+                }
+              />
             );
           })
         )}

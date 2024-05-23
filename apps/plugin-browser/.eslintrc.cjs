@@ -11,6 +11,13 @@ module.exports = {
             message: "Use the API_ORIGIN or FRONTEND_ORIGIN globals instead.",
           },
         ],
+        patterns: [
+          {
+            group: ["*use-user-value"],
+            message:
+              "Please useUserContext instead to share state across components",
+          },
+        ],
       },
     ],
     /**

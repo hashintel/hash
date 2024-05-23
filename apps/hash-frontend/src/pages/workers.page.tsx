@@ -5,12 +5,11 @@ import {
   TerminalLightIcon,
 } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { goalDefinitionId } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import {
   generateWorkerRunPath,
   workerFlowFilterParam,
 } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   Container,
@@ -38,11 +37,15 @@ import {
   FlowRunsContextProvider,
   useFlowRunsContext,
 } from "./shared/flow-runs-context";
+import type { SimpleFlowRunStatus } from "./shared/flow-tables";
 import {
+  flowRunStatusToStatusText,
+  FlowStatusChip,
   flowTableCellSx,
+  FlowTableChip,
   flowTableRowHeight,
   FlowTableWebChip,
-} from "./shared/flow-styles";
+} from "./shared/flow-tables";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -51,7 +54,7 @@ import type {
 } from "./shared/virtualized-table";
 import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
 
-type FieldId = "web" | "type" | "name" | "executedAt" | "closedAt";
+type FieldId = "web" | "type" | "name" | "executedAt" | "closedAt" | "status";
 
 const columns: VirtualizedTableColumn<FieldId>[] = [
   {
@@ -84,6 +87,12 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     sortable: true,
     width: 170,
   },
+  {
+    id: "status",
+    label: "Status",
+    sortable: true,
+    width: 140,
+  },
 ];
 
 type WorkerSummary = Subtype<
@@ -99,19 +108,13 @@ type WorkerSummary = Subtype<
       shortname: string;
     };
     name: string;
+    status: SimpleFlowRunStatus;
   }
 >;
 
-const chipSx: SxProps<Theme> = {
-  border: ({ palette }) => `1px solid ${palette.gray[30]}`,
-  borderRadius: 2,
-  display: "inline-flex",
-  py: "4px",
-  px: 1.2,
-};
-
 const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
-  const { web, flowRunId, type, name, executedAt, closedAt } = workerSummary;
+  const { web, flowRunId, type, name, executedAt, closedAt, status } =
+    workerSummary;
 
   const Icon = type === "flow" ? InfinityLightIcon : BullseyeLightIcon;
 
@@ -121,13 +124,7 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
         <FlowTableWebChip {...web} />
       </MuiTableCell>
       <MuiTableCell sx={flowTableCellSx}>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="center"
-          gap={1}
-          sx={chipSx}
-        >
+        <FlowTableChip>
           <Icon
             sx={{ fontSize: 14, fill: ({ palette }) => palette.blue[70] }}
           />
@@ -137,7 +134,7 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
           >
             {type}
           </Typography>
-        </Stack>
+        </FlowTableChip>
       </MuiTableCell>
       <MuiTableCell sx={flowTableCellSx}>
         <Link
@@ -172,8 +169,11 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
         >
           {closedAt
             ? format(new Date(closedAt), "yyyy-MM-dd HH:mm a")
-            : "Current running"}
+            : "Currently running"}
         </Typography>
+      </MuiTableCell>
+      <MuiTableCell sx={flowTableCellSx}>
+        <FlowStatusChip status={status} />
       </MuiTableCell>
     </>
   );
@@ -248,10 +248,14 @@ const WorkersPageContent = () => {
   }, [unfilteredFlowRuns, definitionFilterQueryParam]);
 
   const flowRunRows = useMemo<VirtualizedTableRow<WorkerSummary>[]>(() => {
+    const webByWebId: Record<string, WorkerSummary["web"] | undefined> = {};
+
     const rowData: VirtualizedTableRow<WorkerSummary>[] = filteredFlowRuns.map(
       (flowRun) => {
         const type =
-          flowRun.flowDefinitionId === goalDefinitionId ? "goal" : "flow";
+          flowRun.flowDefinitionId === goalFlowDefinition.flowDefinitionId
+            ? "goal"
+            : "flow";
 
         const flowDefinition = flowDefinitions.find(
           (def) => def.flowDefinitionId === flowRun.flowDefinitionId,
@@ -263,33 +267,37 @@ const WorkersPageContent = () => {
           );
         }
 
-        const { webId, flowRunId, executedAt, closedAt } = flowRun;
+        const { webId, flowRunId, executedAt, closedAt, status } = flowRun;
 
-        let web: WorkerSummary["web"];
-        if (webId === authenticatedUser.accountId) {
-          web = {
-            avatarUrl:
-              authenticatedUser.hasAvatar?.imageEntity.properties[
-                "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-              ],
-            name: authenticatedUser.displayName ?? "Unknown",
-            shortname: authenticatedUser.shortname ?? "unknown",
-          };
-        } else {
-          const org = authenticatedUser.memberOf.find(
-            (memberOf) => memberOf.org.accountGroupId === webId,
-          )?.org;
-          if (!org) {
-            throw new Error(`Could not find org with id ${webId}`);
+        let web: WorkerSummary["web"] | undefined = webByWebId[webId];
+
+        if (!web) {
+          if (webId === authenticatedUser.accountId) {
+            web = {
+              avatarUrl:
+                authenticatedUser.hasAvatar?.imageEntity.properties[
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+                ],
+              name: authenticatedUser.displayName ?? "Unknown",
+              shortname: authenticatedUser.shortname ?? "unknown",
+            };
+          } else {
+            const org = authenticatedUser.memberOf.find(
+              (memberOf) => memberOf.org.accountGroupId === webId,
+            )?.org;
+            if (!org) {
+              throw new Error(`Could not find org with id ${webId}`);
+            }
+            web = {
+              avatarUrl:
+                org.hasAvatar?.imageEntity.properties[
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+                ],
+              name: org.name,
+              shortname: org.shortname,
+            };
           }
-          web = {
-            avatarUrl:
-              org.hasAvatar?.imageEntity.properties[
-                "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-              ],
-            name: org.name,
-            shortname: org.shortname,
-          };
+          webByWebId[webId] = web;
         }
 
         return {
@@ -301,6 +309,7 @@ const WorkersPageContent = () => {
             name: flowDefinition.name,
             closedAt: closedAt ?? null,
             executedAt: executedAt ?? null,
+            status: flowRunStatusToStatusText(status),
           },
         };
       },

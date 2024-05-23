@@ -82,8 +82,13 @@ export const generateToolCalls = (params: {
           type: "string",
           description: "The web search query",
         },
+        explanation: {
+          type: "string",
+          description:
+            "An explanation of why the web search will advance the research task, and how it will be used",
+        },
       },
-      required: ["query"],
+      required: ["query", "explanation"],
     },
   },
   inferFactsFromWebPage: {
@@ -272,30 +277,41 @@ export type CoordinatorToolCallArguments = Subtype<
   Record<CoordinatorToolName, unknown>,
   {
     requestHumanInput: {
+      explanation: string;
       questions: string[];
     };
     webSearch: {
+      explanation: string;
       query: string;
     };
     inferFactsFromWebPage: {
+      explanation: string;
       url: string;
       prompt: string;
       entityTypeIds: string[];
       linkEntityTypeIds?: string[];
     };
     getSummariesOfWebPages: {
+      explanation: string;
       webPageUrls: string[];
     };
     proposeEntitiesFromFacts: {
+      explanation: string;
       entityIds: string[];
     };
     submitProposedEntities: {
+      explanation: string;
       entityIds: string[];
     };
     updatePlan: {
+      explanation: string;
       plan: string;
     };
-    complete: never;
-    terminate: never;
+    complete: {
+      explanation: string;
+    };
+    terminate: {
+      explanation: string;
+    };
   }
 >;

@@ -290,28 +290,38 @@ export type ToolCallArguments = Subtype<
   Record<ToolName, unknown>,
   {
     getWebPageInnerHtml: {
+      explanation: string;
       url: string;
     };
     inferFactsFromWebPage: {
+      explanation: string;
       url: string;
       // htmlContent: string;
       prompt: string;
       // expectedNumberOfEntities: number;
     };
     submitProposedEntities: {
+      explanation: string;
       entityIds: string[];
     };
     updatePlan: {
+      explanation: string;
       plan: string;
     };
-    complete: never;
-    terminate: never;
+    complete: {
+      explanation: string;
+    };
+    terminate: {
+      explanation: string;
+    };
     queryPdf: {
+      explanation: string;
       fileUrl: string;
       description: string;
       exampleText: string;
     };
     inferFactsFromText: {
+      explanation: string;
       text: string;
       /**
        * @todo H-2728 store the webpage URL from which this file was discovered as part of the provenance on the file entity
