@@ -215,24 +215,28 @@ export const runFlowWorkflow = async (
 
   const { workflowId } = workflowInfo();
 
+  const flow = initializeFlow({
+    flowDefinition,
+    flowTrigger,
+    flowRunId: workflowId as EntityUuid,
+    /** use the flow definition's name as a placeholder – we need the Flow persisted to link the generating name usage to it */
+    name: flowDefinition.name,
+  });
+
+  await persistFlowActivity({ flow, userAuthentication, webId });
+
   const generateFlowRunNameActivity = proxyFlowActivity({
     actionId: "generateFlowRunName",
     maximumAttempts: 1,
     activityId: "generate-flow-run-name",
   });
 
-  const name = await generateFlowRunNameActivity({
+  const generatedName = await generateFlowRunNameActivity({
     flowDefinition,
     flowTrigger,
   });
 
-  const flow = initializeFlow({
-    flowDefinition,
-    flowTrigger,
-    flowRunId: workflowId as EntityUuid,
-    name,
-  });
-
+  flow.name = generatedName;
   await persistFlowActivity({ flow, userAuthentication, webId });
 
   setQueryAndSignalHandlers();
