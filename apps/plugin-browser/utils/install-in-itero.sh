@@ -1,3 +1,3 @@
 # Install dependencies in the Itero Plasmo build environment
 curl https://sh.rustup.rs -sSf | sh -s -- -y
-yarn --no-engines
+yarn --ignore-engines
