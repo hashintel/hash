@@ -10,6 +10,31 @@ import { requestExternalInput } from "./shared/request-external-input";
 
 puppeteer.use(StealthPlugin());
 
+export const sanitizeHtmlForLlmConsumption = (htmlContent: string): string =>
+  sanitizeHtml(htmlContent, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.filter(
+      /**
+       * @todo: consider whether there are other tags that aren't relevant
+       * for LLM consumption.
+       */
+      (tag) => !["script", "style", "link", "canvas", "svg"].includes(tag),
+    ),
+    allowedAttributes: {
+      "*": [
+        "href",
+        "src",
+        "onclick",
+        "title",
+        "alt",
+        "aria",
+        "label",
+        "aria-*",
+        "data-*",
+      ],
+    },
+    disallowedTagsMode: "discard",
+  });
+
 const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
   /** @todo: consider re-using the same `browser` instance across requests  */
   const browser = await puppeteer.launch();
@@ -123,29 +148,7 @@ export const getWebPageActivity = async (params: {
     : await getWebPageFromPuppeteer(url);
 
   if (sanitizeForLlm) {
-    const sanitizedHtml = sanitizeHtml(htmlContent, {
-      allowedTags: sanitizeHtml.defaults.allowedTags.filter(
-        /**
-         * @todo: consider whether there are other tags that aren't relevant
-         * for LLM consumption.
-         */
-        (tag) => !["script", "style", "link", "canvas", "svg"].includes(tag),
-      ),
-      allowedAttributes: {
-        "*": [
-          "href",
-          "src",
-          "onclick",
-          "title",
-          "alt",
-          "aria",
-          "label",
-          "aria-*",
-          "data-*",
-        ],
-      },
-      disallowedTagsMode: "discard",
-    });
+    const sanitizedHtml = sanitizeHtmlForLlmConsumption(htmlContent);
 
     return { htmlContent: sanitizedHtml, title, url };
   }

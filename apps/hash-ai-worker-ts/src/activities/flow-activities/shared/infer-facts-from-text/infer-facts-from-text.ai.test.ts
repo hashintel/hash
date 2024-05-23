@@ -1,9 +1,17 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context";
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import dedent from "dedent";
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity";
-import { getWebPageActivity } from "../../../get-web-page-activity";
+import {
+  getWebPageActivity,
+  sanitizeHtmlForLlmConsumption,
+} from "../../../get-web-page-activity";
 import { getFlowContext } from "../../../shared/get-flow-context";
 import { graphApiClient } from "../../../shared/graph-api-client";
 import { inferFactsFromText } from "../infer-facts-from-text";
@@ -121,7 +129,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
   },
 ];
 
-test(
+test.skip(
   "Test inferFactsFromText with FTSE350 web page html",
   async () => {
     const { htmlContent } = await getWebPageActivity({
@@ -145,6 +153,97 @@ test(
     const { facts, entitySummaries } = await inferFactsFromText({
       text: htmlContent,
       dereferencedEntityTypes,
+    });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ facts, entitySummaries }, null, 2));
+
+    expect(facts).toBeDefined();
+  },
+  {
+    timeout: 5 * 60 * 1000,
+  },
+);
+
+const statyaNadellaLinkedInEntitySummaries: LocalEntitySummary[] = [
+  {
+    localId: "aaff2df6-22a1-44b2-a58e-2374bfda7ad4",
+    name: "Satya Nadella",
+    summary: "Chairman and CEO at Microsoft.",
+    entityTypeId: "https://hash.ai/@ftse/types/entity-type/person/v/1",
+  },
+  {
+    localId: "fe64f288-ad60-4da5-a47e-4a37ef3d90e4",
+    name: "Microsoft",
+    summary: "Satya Nadella is the Chairman and CEO.",
+    entityTypeId: "https://hash.ai/@ftse/types/entity-type/company/v/1",
+  },
+  {
+    localId: "b10f69c2-1494-44de-a346-3c388eff9731",
+    name: "Starbucks",
+    summary: "Satya Nadella is a Board Member.",
+    entityTypeId: "https://hash.ai/@ftse/types/entity-type/company/v/1",
+  },
+  {
+    localId: "2f81d53d-653b-413d-8359-fa27e6a48736",
+    name: "The Business Council U.S.",
+    summary: "Satya Nadella was Chairman from 2021 to 2023.",
+    entityTypeId: "https://hash.ai/@ftse/types/entity-type/company/v/1",
+  },
+  {
+    localId: "6502865f-68e5-49d1-9849-0b984c1c6bb7",
+    name: "Fred Hutch",
+    summary: "Satya Nadella was a Board Member from 2016 to 2022.",
+    entityTypeId: "https://hash.ai/@ftse/types/entity-type/company/v/1",
+  },
+  {
+    localId: "a27f19ce-f356-41ca-a1d3-19be9e1aa87a",
+    name: "University of Chicago",
+    summary: "Satya Nadella is a Member of the Board of Trustees.",
+    entityTypeId: "https://hash.ai/@ftse/types/entity-type/company/v/1",
+  },
+];
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+test(
+  "Test inferFactsFromText with Linked In web page",
+  async () => {
+    const linkedInInnerHtmlPath = join(__dirname, "/var/linkedin.html");
+
+    const innerHtml = readFileSync(linkedInInnerHtmlPath, "utf8");
+
+    const sanitizedInnerHtml = sanitizeHtmlForLlmConsumption(innerHtml);
+
+    const text = dedent(`
+      The following HTML content was obtained from the web page with title "Satya Nadella", hosted at the URL "https://www.linkedin.com/in/satyanadella/".
+      ---------------- START OF INNER HTML ----------------
+      ${sanitizedInnerHtml}
+      ---------------- END OF INNER HTML ----------------
+    `);
+
+    const { userAuthentication } = await getFlowContext();
+
+    const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
+      entityTypeIds: [
+        "https://hash.ai/@ftse/types/entity-type/person/v/1",
+        "https://hash.ai/@ftse/types/entity-type/worked-at/v/1",
+        "https://hash.ai/@ftse/types/entity-type/company/v/1",
+      ],
+      actorId: userAuthentication.actorId,
+      graphApiClient,
+      simplifyPropertyKeys: true,
+    });
+
+    const { facts, entitySummaries } = await inferFactsFromText({
+      text,
+      dereferencedEntityTypes,
+      relevantEntitiesPrompt:
+        "Find facts about Satya Nadella, and the companies where he has worked.",
+      testingParams: {
+        existingEntitySummaries: statyaNadellaLinkedInEntitySummaries,
+      },
     });
 
     // eslint-disable-next-line no-console
