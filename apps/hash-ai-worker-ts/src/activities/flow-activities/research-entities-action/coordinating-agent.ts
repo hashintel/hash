@@ -83,6 +83,9 @@ const generateSystemPromptPrefix = (params: {
 
     You must completely satisfy the research prompt, without any missing information.
 
+    The "complete" tool for completing the research task will only be available once you have submitted
+      proposed entities that satisfy the research prompt.
+
     You must carefully inspect the properties on the provided entity types and link types,
       and find all the relevant facts so that as many properties on the entity can be filled as possible.
       
@@ -189,6 +192,7 @@ const getNextToolCalls = async (params: {
   const tools = Object.values(
     generateToolCalls({
       humanInputCanBeRequested: input.humanInputCanBeRequested,
+      canCompleteActivity: state.submittedEntityIds.length > 0,
     }),
   );
 
@@ -262,6 +266,7 @@ const createInitialPlan = async (params: {
   const tools = Object.values(
     generateToolCalls({
       humanInputCanBeRequested: input.humanInputCanBeRequested,
+      canCompleteActivity: false,
     }),
   );
 

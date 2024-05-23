@@ -36,11 +36,14 @@ const explanationDefinition = {
 
 export const generateToolCalls = (params: {
   humanInputCanBeRequested: boolean;
+  canCompleteActivity: boolean;
 }):
   | Record<CoordinatorToolName, LlmToolDefinition<CoordinatorToolName>>
   | Record<
-      OmitValue<CoordinatorToolName, "requestHumanInput">,
-      LlmToolDefinition<OmitValue<CoordinatorToolName, "requestHumanInput">>
+      OmitValue<CoordinatorToolName, "requestHumanInput" | "complete">,
+      LlmToolDefinition<
+        OmitValue<CoordinatorToolName, "requestHumanInput" | "complete">
+      >
     > => ({
   ...(params.humanInputCanBeRequested
     ? {
@@ -183,17 +186,21 @@ export const generateToolCalls = (params: {
       required: ["entityIds", "explanation"],
     },
   },
-  complete: {
-    name: "complete",
-    description: "Complete the research task.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        explanation: explanationDefinition,
-      },
-      required: ["explanation"],
-    },
-  },
+  ...(params.canCompleteActivity
+    ? {
+        complete: {
+          name: "complete",
+          description: "Complete the research task.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              explanation: explanationDefinition,
+            },
+            required: ["explanation"],
+          },
+        },
+      }
+    : {}),
   terminate: {
     name: "terminate",
     description:
