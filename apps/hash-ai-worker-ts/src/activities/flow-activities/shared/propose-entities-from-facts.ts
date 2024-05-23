@@ -1,5 +1,5 @@
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import type { BaseUrl } from "@local/hash-subgraph/.";
+import type { BaseUrl } from "@local/hash-subgraph";
 
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import { logger } from "../../shared/activity-logger";
