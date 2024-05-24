@@ -1,3 +1,4 @@
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import dedent from "dedent";
 
 import { logger } from "../../../shared/activity-logger";
@@ -179,6 +180,7 @@ export const inferEntityFactsFromText = async (params: {
     };
 
     const newFacts: Fact[] = input.facts.map((fact) => ({
+      factId: generateUuid(),
       text: fact.text,
       subjectEntityLocalId: subjectEntity.localId,
       objectEntityLocalId: fact.objectEntityLocalId ?? undefined,

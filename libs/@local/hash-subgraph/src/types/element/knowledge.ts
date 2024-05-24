@@ -14,6 +14,7 @@ import type {
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { PropertyMetadataMap } from "@local/hash-graph-client";
 
 import type {
   BaseUrl,
@@ -93,6 +94,8 @@ export type EntityMetadata = Subtype<
     temporalVersioning: EntityTemporalVersioningMetadata;
     archived: boolean;
     provenance: EntityProvenance;
+    confidence?: number;
+    properties?: PropertyMetadataMap;
   }
 >;
 

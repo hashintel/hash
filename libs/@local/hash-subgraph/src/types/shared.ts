@@ -1,4 +1,10 @@
 import type {
+  ActorType,
+  ProvidedEntityEditionProvenanceOrigin,
+  SourceProvenance,
+} from "@local/hash-graph-client";
+
+import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
   CreatedById,
@@ -16,6 +22,9 @@ export type OntologyProvenance = {
 export type OntologyEditionProvenance = {
   createdById: EditionCreatedById;
   archivedById?: EditionArchivedById;
+  actorType?: ActorType;
+  origin?: ProvidedEntityEditionProvenanceOrigin;
+  sources?: Array<SourceProvenance>;
 };
 
 export type EntityProvenance = {
@@ -29,4 +38,8 @@ export type EntityProvenance = {
 
 export type EntityEditionProvenance = {
   createdById: EditionCreatedById;
+  archivedById?: EditionArchivedById;
+  actorType?: ActorType;
+  origin?: ProvidedEntityEditionProvenanceOrigin;
+  sources?: Array<SourceProvenance>;
 };
