@@ -341,7 +341,8 @@ export type FlowTrigger = {
   outputs?: StepOutput[];
 };
 
-export type Flow = {
+export type LocalFlowRun = {
+  name: string;
   flowRunId: EntityUuid;
   trigger: FlowTrigger;
   flowDefinitionId: EntityUuid;

@@ -14,7 +14,7 @@ export const hiddenEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.comment.entityTypeId,
   systemEntityTypes.commentNotification.entityTypeId,
   systemEntityTypes.facebookAccount.entityTypeId,
-  systemEntityTypes.flow.entityTypeId,
+  systemEntityTypes.flowRun.entityTypeId,
   systemEntityTypes.flowDefinition.entityTypeId,
   systemEntityTypes.githubAccount.entityTypeId,
   systemEntityTypes.graphChangeNotification.entityTypeId,

@@ -9,16 +9,17 @@ import type {
   AppliesUntilPropertyValue,
   DateTimeDataType,
   FeatureNamePropertyValue,
-  Flow,
   FlowDefinitionIDPropertyValue,
-  FlowOutgoingLinkAndTarget,
-  FlowOutgoingLinksByLinkEntityTypeId,
-  FlowProperties,
+  FlowRun,
+  FlowRunOutgoingLinkAndTarget,
+  FlowRunOutgoingLinksByLinkEntityTypeId,
+  FlowRunProperties,
   InputUnitCostPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  NamePropertyValue,
   NumberDataType,
   ObjectDataType,
   OutputsPropertyValue,
@@ -40,16 +41,17 @@ export type {
   AppliesUntilPropertyValue,
   DateTimeDataType,
   FeatureNamePropertyValue,
-  Flow,
   FlowDefinitionIDPropertyValue,
-  FlowOutgoingLinkAndTarget,
-  FlowOutgoingLinksByLinkEntityTypeId,
-  FlowProperties,
+  FlowRun,
+  FlowRunOutgoingLinkAndTarget,
+  FlowRunOutgoingLinksByLinkEntityTypeId,
+  FlowRunProperties,
   InputUnitCostPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  NamePropertyValue,
   NumberDataType,
   ObjectDataType,
   OutputsPropertyValue,
@@ -145,7 +147,7 @@ export type UsageRecordCreatedLink = {
 
 export type UsageRecordIncurredInLink = {
   linkEntity: IncurredIn;
-  rightEntity: Flow;
+  rightEntity: FlowRun;
 };
 
 export type UsageRecordOutgoingLinkAndTarget =

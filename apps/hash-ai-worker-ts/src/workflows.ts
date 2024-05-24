@@ -393,14 +393,14 @@ export const updateEntityEmbeddings = async (
 
     for (const entity of entities) {
       /**
-       * Don't try to create embeddings for `Flow` entities, due to the size
+       * Don't try to create embeddings for `FlowRun` entities, due to the size
        * of their property values.
        *
        * @todo: consider having a general approach for declaring which entity/property
        * types should be skipped when generating embeddings.
        */
       if (
-        systemEntityTypes.flow.entityTypeId === entity.metadata.entityTypeId
+        systemEntityTypes.flowRun.entityTypeId === entity.metadata.entityTypeId
       ) {
         continue;
       }

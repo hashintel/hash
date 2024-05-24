@@ -858,24 +858,26 @@ const getOpenAiResponse = async <ToolName extends string>(
   return response;
 };
 
+export type UsageTrackingParams = {
+  /**
+   * Required for tracking usage on a per-user basis.
+   *
+   * @todo: consider abstracting this in a wrapper method, or via
+   * generic params (via a `logUsage` method).
+   */
+  userAccountId: AccountId;
+  webId: OwnedById;
+  graphApiClient: GraphApi;
+  incurredInEntities: { entityId: EntityId }[];
+};
+
 /**
  * This function sends a request to the Anthropic or OpenAI API based on the
  * `model` provided in the parameters.
  */
 export const getLlmResponse = async <T extends LlmParams>(
   llmParams: T,
-  usageTrackingParams: {
-    /**
-     * Required for tracking usage on a per-user basis.
-     *
-     * @todo: consider abstracting this in a wrapper method, or via
-     * generic params (via a `logUsage` method).
-     */
-    userAccountId: AccountId;
-    webId: OwnedById;
-    graphApiClient: GraphApi;
-    incurredInEntities: { entityId: EntityId }[];
-  },
+  usageTrackingParams: UsageTrackingParams,
 ): Promise<LlmResponse<T>> => {
   const { graphApiClient, userAccountId, webId } = usageTrackingParams;
 

@@ -466,10 +466,12 @@ const getFlowRunDetailedFields = async ({
 };
 
 export const getSparseFlowRunFromWorkflowId = async ({
+  name,
   webId,
   workflowId,
   temporalClient,
 }: {
+  name: string;
   webId: OwnedById;
   workflowId: string;
   temporalClient: TemporalClient;
@@ -480,6 +482,7 @@ export const getSparseFlowRunFromWorkflowId = async ({
     await handle.describe();
 
   return {
+    name,
     flowDefinitionId:
       (memo?.flowDefinitionId as string | undefined) ?? "unknown",
     flowRunId: workflowId,
@@ -492,6 +495,7 @@ export const getSparseFlowRunFromWorkflowId = async ({
 };
 
 export const getFlowRunFromWorkflowId = async (args: {
+  name: string;
   webId: OwnedById;
   workflowId: string;
   temporalClient: TemporalClient;
