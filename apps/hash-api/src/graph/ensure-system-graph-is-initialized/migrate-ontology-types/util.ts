@@ -800,7 +800,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: entityTypeSchema,
       relationships,
-      label_property: entityTypeDefinition.labelProperty,
+      labelProperty: entityTypeDefinition.labelProperty,
     });
 
     return await getEntityTypeById(context, authentication, {
