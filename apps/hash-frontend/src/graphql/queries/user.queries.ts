@@ -13,6 +13,12 @@ export const hasAccessToHashQuery = gql`
   }
 `;
 
+export const getWaitlistPositionQuery = gql`
+  query getWaitlistPosition {
+    getWaitlistPosition
+  }
+`;
+
 export const meQuery = gql`
   query me {
     me(
@@ -27,4 +33,10 @@ export const meQuery = gql`
     }
   }
   ${subgraphFieldsFragment}
+`;
+
+export const submitEarlyAccessFormMutation = gql`
+  mutation submitEarlyAccessForm($properties: ProspectiveUserProperties!) {
+    submitEarlyAccessForm(properties: $properties)
+  }
 `;

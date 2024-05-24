@@ -5,6 +5,7 @@ import {
   CircleEllipsisRegularIcon,
   CloseIcon,
 } from "@hashintel/design-system";
+import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import type {
   FlowDefinition,
   StepDefinition,
@@ -18,10 +19,12 @@ import {
 } from "@mui/material";
 import { differenceInMilliseconds, intervalToDuration } from "date-fns";
 import type { PropsWithChildren } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 
+import type { FlowRun } from "../../../../graphql/api-types.gen";
 import { isNonNullable } from "../../../../lib/typeguards";
 import { EllipsisRegularIcon } from "../../../../shared/icons/ellipsis-regular-icon";
+import { Link } from "../../../../shared/ui/link";
 import {
   statusToSimpleStatus,
   useStatusForStep,
@@ -291,30 +294,52 @@ const GroupStatus = ({
 type FlowRunSidebarProps = {
   flowDefinition: FlowDefinition;
   groups: FlowMaybeGrouped["groups"];
+  name: FlowRun["name"];
 };
 
 export const FlowRunSidebar = ({
   flowDefinition,
   groups,
+  name,
 }: FlowRunSidebarProps) => {
+  const nameParts = useMemo<{ text: string; url?: boolean }[]>(() => {
+    const parts = name.split(/( )/g);
+    const urlRegex = /^https?:\/\//;
+
+    return parts.map((part) => ({
+      text: part,
+      url: urlRegex.test(part),
+    }));
+  }, [name]);
+
   return (
     <Box sx={{ ml: 3, width: 320 }}>
       <Box sx={{ mb: 2 }}>
-        <SectionLabel text="Description" />
+        <SectionLabel
+          text={
+            flowDefinition.flowDefinitionId ===
+            goalFlowDefinition.flowDefinitionId
+              ? "Goal"
+              : "Description"
+          }
+        />
         <SidebarSection>
           <Typography
             component="p"
             variant="smallTextParagraphs"
-            sx={{ lineHeight: 1, mb: 0.7 }}
+            sx={{ lineHeight: 1.2, mb: 0.7, wordBreak: "break-word" }}
           >
-            <strong>{flowDefinition.name}</strong>
-          </Typography>
-          <Typography
-            component="p"
-            variant="smallTextParagraphs"
-            sx={{ lineHeight: "18px" }}
-          >
-            {flowDefinition.description}
+            {nameParts.map((part, index) =>
+              part.url ? (
+                // eslint-disable-next-line react/no-array-index-key
+                <Link href={part.text} key={index} target="_blank">
+                  {part.text}
+                </Link>
+              ) : (
+                // eslint-disable-next-line react/no-array-index-key
+                <Fragment key={index}>{part.text}</Fragment>
+              ),
+            )}
           </Typography>
         </SidebarSection>
       </Box>

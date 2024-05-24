@@ -2,7 +2,6 @@ cargo-features = ["edition2024"]
 
 [workspace]
 members = [
-    "apps/hash-graph/bench",
     "apps/hash-graph/bins/cli",
     "apps/hash-graph/libs/*",
     "libs/@blockprotocol/type-system/rust",
@@ -15,6 +14,7 @@ members = [
     "libs/@local/repo-chores/rust",
     "libs/@local/temporal-client",
     "libs/@local/temporal-versioning",
+    "tests/hash-graph-benches",
     "tests/hash-graph-integration",
     "tests/hash-graph-test-data/rust",
     "libs/@local/harpc/wire-protocol",

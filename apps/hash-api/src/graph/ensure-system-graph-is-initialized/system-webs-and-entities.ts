@@ -5,7 +5,6 @@ import {
   createMachineActorEntity,
   getMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import type {
@@ -25,13 +24,6 @@ import {
 import type { ImpureGraphContext } from "../context-types";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
-
-// Whether this is a self-hosted instance, rather than the central HASH hosted instance
-export const isSelfHostedInstance =
-  process.env.SELF_HOSTED_HASH === "true" ||
-  !["http://localhost:3000", "https://app.hash.ai", "https://hash.ai"].includes(
-    frontendUrl,
-  );
 
 export const owningWebs: Record<
   SystemTypeWebShortname,
@@ -166,7 +158,8 @@ export const ensureSystemWebEntitiesExist = async ({
    *
    * Note: these are different from the web-scoped machine actors that EVERY org (system or not) has associated with.
    *   - the web-scoped machine actors are for taking action in the web, e.g. to grant other bots permissions in it
-   *   - _these_ machine actors are for performing actions across the system related to the types they create, e.g. Linear actions
+   *   - _these_ machine actors are for performing actions across the system related to the types they create, e.g.
+   * Linear actions
    */
   try {
     await getMachineActorId(context, authentication, {

@@ -30,6 +30,7 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import {
   blockProtocolDataTypes,
   systemDataTypes,
@@ -86,10 +87,7 @@ import {
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
 import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
-import {
-  getOrCreateOwningAccountGroupId,
-  isSelfHostedInstance,
-} from "../system-webs-and-entities";
+import { getOrCreateOwningAccountGroupId } from "../system-webs-and-entities";
 import type { MigrationState } from "./types";
 import { upgradeWebEntities } from "./util/upgrade-entities";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
@@ -566,8 +564,8 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
 
   if (isSelfHostedInstance) {
     /**
-     * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
-     * although they will be created by a machine actor associated with an equivalently named web.
+     * If this is a self-hosted instance, the system types will be created as external types that don't belong to an
+     * in-instance web, although they will be created by a machine actor associated with an equivalently named web.
      */
     await context.graphApi.loadExternalPropertyType(machineActorId, {
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
@@ -609,6 +607,7 @@ export type EntityTypeDefinition = {
   entityTypeId: VersionedUrl;
   title: string;
   description?: string;
+  labelProperty?: BaseUrl;
   properties?: {
     propertyType: PropertyTypeWithMetadata | VersionedUrl;
     required?: boolean;
@@ -801,6 +800,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: entityTypeSchema,
       relationships,
+      labelProperty: entityTypeDefinition.labelProperty,
     });
 
     return await getEntityTypeById(context, authentication, {
@@ -816,6 +816,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
         schema: entityTypeSchema,
         webShortname,
         relationships,
+        labelProperty: entityTypeDefinition.labelProperty,
       },
     ).catch((createError) => {
       // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);
@@ -945,8 +946,8 @@ export const updateSystemEntityType: ImpureGraphFunction<
     );
   }
 
+  const nextEntityTypeId = versionedUrlFromComponents(baseUrl, version + 1);
   try {
-    const nextEntityTypeId = versionedUrlFromComponents(baseUrl, version + 1);
     await getEntityTypeById(context, authentication, {
       entityTypeId: nextEntityTypeId,
     });
@@ -981,13 +982,23 @@ export const updateSystemEntityType: ImpureGraphFunction<
     ),
   };
 
-  const updatedTypeMetadata = await context.graphApi
-    .updateEntityType(authentication.actorId, {
-      typeToUpdate: currentEntityTypeId,
-      schema: schemaWithConsistentSelfReferences,
-      relationships: currentRelationships,
-    })
-    .then((resp) => resp.data);
+  const updatedTypeMetadata = isSelfHostedInstance
+    ? await context.graphApi
+        .loadExternalEntityType(authentication.actorId, {
+          relationships: currentRelationships,
+          schema: {
+            ...schemaWithConsistentSelfReferences,
+            $id: nextEntityTypeId,
+          },
+        })
+        .then((resp) => resp.data)
+    : await context.graphApi
+        .updateEntityType(authentication.actorId, {
+          typeToUpdate: currentEntityTypeId,
+          schema: schemaWithConsistentSelfReferences,
+          relationships: currentRelationships,
+        })
+        .then((resp) => resp.data);
 
   const { version: newVersion } = updatedTypeMetadata.recordId;
 
@@ -1027,8 +1038,8 @@ export const updateSystemPropertyType: ImpureGraphFunction<
     );
   }
 
+  const nextPropertyTypeId = versionedUrlFromComponents(baseUrl, version + 1);
   try {
-    const nextPropertyTypeId = versionedUrlFromComponents(baseUrl, version + 1);
     await getPropertyTypeById(context, authentication, {
       propertyTypeId: nextPropertyTypeId,
     });
@@ -1046,13 +1057,23 @@ export const updateSystemPropertyType: ImpureGraphFunction<
 
   const { $id: _, ...schemaWithout$id } = newSchema;
 
-  const updatedPropertyTypeMetadata = await context.graphApi
-    .updatePropertyType(authentication.actorId, {
-      typeToUpdate: currentPropertyTypeId,
-      schema: schemaWithout$id,
-      relationships: currentRelationships,
-    })
-    .then((resp) => resp.data);
+  const updatedPropertyTypeMetadata = isSelfHostedInstance
+    ? await context.graphApi
+        .loadExternalPropertyType(authentication.actorId, {
+          relationships: currentRelationships,
+          schema: {
+            ...newSchema,
+            $id: nextPropertyTypeId,
+          },
+        })
+        .then((resp) => resp.data)
+    : await context.graphApi
+        .updatePropertyType(authentication.actorId, {
+          typeToUpdate: currentPropertyTypeId,
+          schema: schemaWithout$id,
+          relationships: currentRelationships,
+        })
+        .then((resp) => resp.data);
 
   const { version: newVersion } = updatedPropertyTypeMetadata.recordId;
 
