@@ -132,12 +132,14 @@ pub struct OriginProvenance {
     pub session_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub api_key_public_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_agent: Option<String>,
 }
 
 #[cfg(feature = "utoipa")]
 impl<'__s> ToSchema<'__s> for OriginProvenance {
     fn schema() -> (&'__s str, RefOr<Schema>) {
-        let common_types: [(&'static str, RefOr<Schema>); 7] = [
+        let common_types: [(&'static str, RefOr<Schema>); 8] = [
             (
                 "id",
                 RefOr::T(Schema::from(
@@ -181,6 +183,12 @@ provides.",
             ),
             (
                 "apiKeyPublicId",
+                RefOr::T(Schema::from(
+                    ObjectBuilder::new().schema_type(SchemaType::String),
+                )),
+            ),
+            (
+                "userAgent",
                 RefOr::T(Schema::from(
                     ObjectBuilder::new().schema_type(SchemaType::String),
                 )),

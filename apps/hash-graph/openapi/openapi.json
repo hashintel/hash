@@ -6260,6 +6260,9 @@
                   "web-app"
                 ]
               },
+              "userAgent": {
+                "type": "string"
+              },
               "version": {
                 "type": "string",
                 "description": "The origin version, in whatever format the origin natively\nprovides."
@@ -6295,6 +6298,9 @@
                 "enum": [
                   "mobile-app"
                 ]
+              },
+              "userAgent": {
+                "type": "string"
               },
               "version": {
                 "type": "string",
@@ -6332,6 +6338,9 @@
                   "browser-extension"
                 ]
               },
+              "userAgent": {
+                "type": "string"
+              },
               "version": {
                 "type": "string",
                 "description": "The origin version, in whatever format the origin natively\nprovides."
@@ -6367,6 +6376,9 @@
                 "enum": [
                   "api"
                 ]
+              },
+              "userAgent": {
+                "type": "string"
               },
               "version": {
                 "type": "string",
@@ -6410,6 +6422,9 @@
                   "flow"
                 ]
               },
+              "userAgent": {
+                "type": "string"
+              },
               "version": {
                 "type": "string",
                 "description": "The origin version, in whatever format the origin natively\nprovides."
@@ -6445,6 +6460,9 @@
                 "enum": [
                   "migration"
                 ]
+              },
+              "userAgent": {
+                "type": "string"
               },
               "version": {
                 "type": "string",
