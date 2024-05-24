@@ -94,7 +94,9 @@ const migrate: MigrationFunction = async ({
     await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
         title: "Prospective User",
-        description: "The",
+        description:
+          "Information about a prospective user of an application or system",
+        labelProperty: systemPropertyTypes.email.propertyTypeBaseUrl as BaseUrl,
         properties: [
           {
             propertyType: systemPropertyTypes.websiteUrl.propertyTypeId,
@@ -122,7 +124,6 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-
       webShortname: "hash",
       migrationState,
       instantiator: anyUserInstantiator,

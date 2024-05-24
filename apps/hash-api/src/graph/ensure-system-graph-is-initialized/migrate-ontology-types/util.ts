@@ -607,6 +607,7 @@ export type EntityTypeDefinition = {
   entityTypeId: VersionedUrl;
   title: string;
   description?: string;
+  labelProperty?: BaseUrl;
   properties?: {
     propertyType: PropertyTypeWithMetadata | VersionedUrl;
     required?: boolean;
@@ -799,6 +800,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: entityTypeSchema,
       relationships,
+      label_property: entityTypeDefinition.labelProperty,
     });
 
     return await getEntityTypeById(context, authentication, {
@@ -814,6 +816,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
         schema: entityTypeSchema,
         webShortname,
         relationships,
+        labelProperty: entityTypeDefinition.labelProperty,
       },
     ).catch((createError) => {
       // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);
