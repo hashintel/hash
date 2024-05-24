@@ -5,7 +5,13 @@ import {
   CheckIcon,
   ChromeIcon,
 } from "@hashintel/design-system";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ProspectiveUserProperties } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
 import { Box } from "@mui/material";
 import { useCallback, useState } from "react";
@@ -17,6 +23,7 @@ import type {
   SubmitEarlyAccessFormMutation,
   SubmitEarlyAccessFormMutationVariables,
 } from "../../graphql/api-types.gen";
+import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import {
   getWaitlistPositionQuery,
   submitEarlyAccessFormMutation,
@@ -29,13 +36,6 @@ import { HomepageGrid } from "./shared/homepage-grid";
 import { HomepageBigText, HomepageSmallCaps } from "./shared/typography";
 import { UsesCard } from "./shared/uses-card";
 import { EarlyAccessFormModal } from "./waitlisted/early-access-modal";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 const SelfHostedAccessDenied = () => (
   <HomepageCard wide>
