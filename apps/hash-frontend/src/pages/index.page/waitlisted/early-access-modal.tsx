@@ -1,5 +1,4 @@
-import type { TextFieldProps } from "@hashintel/design-system";
-import { TextField } from "@hashintel/design-system";
+import { Select, TextField } from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { ProspectiveUserProperties } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
 import { Box, Stack, Typography } from "@mui/material";
@@ -7,12 +6,14 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 
 import { Button } from "../../../shared/ui/button";
+import { MenuItem } from "../../../shared/ui/menu-item";
 import { Modal } from "../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 
 type FormFieldMetadata = {
   label: string;
   multiline?: boolean;
+  options?: string[];
   placeholder: string;
   type?: string;
   url?: boolean;
@@ -50,6 +51,14 @@ const formFields: FormFields = {
   "https://hash.ai/@hash/types/property-type/willing-to-pay/": {
     label: "How much are you willing to pay for a fully automated solution?",
     placeholder: "",
+    options: [
+      "$1—$20 per month",
+      "$21-$50 per month",
+      "$51-$250 per month",
+      "$250+ per month",
+      "On an 'as needed' basis",
+      "I'm not willing to pay",
+    ],
   },
 };
 
@@ -57,11 +66,15 @@ const Input = ({
   label,
   multiline,
   onChange,
+  options,
   placeholder,
   type,
   url,
   value,
-}: Pick<TextFieldProps, "onChange" | "value"> & FormFieldMetadata) => (
+}: {
+  onChange: (value: string) => void;
+  value: string;
+} & FormFieldMetadata) => (
   <Box mb={2.5}>
     <Typography
       component="label"
@@ -80,20 +93,34 @@ const Input = ({
         *
       </Box>
       <Box>
-        <TextField
-          autoFocus={url}
-          inputProps={
-            url
-              ? { pattern: "\\w+\\.\\w+", title: "Please enter a valid URL" }
-              : undefined
-          }
-          multiline={multiline}
-          onChange={onChange}
-          placeholder={placeholder}
-          sx={{ width: multiline ? "100%" : 330 }}
-          type={type ?? "text"}
-          value={value}
-        />
+        {options ? (
+          <Select
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            sx={{ width: 250 }}
+          >
+            {options.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </Select>
+        ) : (
+          <TextField
+            autoFocus={url}
+            inputProps={
+              url
+                ? { pattern: "\\S+\\.\\w+", title: "Please enter a valid URL" }
+                : undefined
+            }
+            multiline={multiline}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            sx={{ width: multiline ? "100%" : 330 }}
+            type={type ?? "text"}
+            value={value}
+          />
+        )}
       </Box>
     </Typography>
   </Box>
@@ -154,12 +181,13 @@ export const EarlyAccessFormModal = ({
             <Input
               key={key}
               {...metadata}
-              onChange={(event) =>
+              onChange={(value) =>
                 setFormState((currentState) => ({
                   ...currentState,
-                  [key]: event.target.value,
+                  [key]: value,
                 }))
               }
+              value={formState[key]}
             />
           );
         })}
