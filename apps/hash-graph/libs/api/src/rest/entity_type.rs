@@ -538,6 +538,7 @@ where
 enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
     Fetch { entity_type_id: VersionedUrl },
+    #[serde(rename_all = "camelCase")]
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
         schema: EntityType,
