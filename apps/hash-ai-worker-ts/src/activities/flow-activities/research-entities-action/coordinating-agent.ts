@@ -36,6 +36,8 @@ import type { ExistingEntitySummary } from "./summarize-existing-entities";
 import { summarizeExistingEntities } from "./summarize-existing-entities";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
+import { logger } from "../../shared/activity-logger";
+import { stringify } from "../../shared/stringify";
 
 const model: PermittedOpenAiModel = "gpt-4-0125-preview";
 
@@ -226,13 +228,14 @@ const getNextToolCalls = async (params: {
   return { toolCalls };
 };
 
+const maximumRetries = 3;
+
 const createInitialPlan = async (params: {
   input: CoordinatingAgentInput;
   questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
+  retryContext?: { retryMessages: LlmMessage[]; retryCount: number };
 }): Promise<Pick<CoordinatingAgentState, "plan" | "questionsAndAnswers">> => {
-  const { input } = params;
-
-  const { questionsAndAnswers } = params;
+  const { input, questionsAndAnswers, retryContext } = params;
 
   const systemPrompt = dedent(`
     ${generateSystemPromptPrefix({ input, questionsAndAnswers })}
@@ -252,7 +255,7 @@ const createInitialPlan = async (params: {
           
           Please now either ask the user your questions, or produce the initial plan if there are no ${questionsAndAnswers ? "more " : ""}useful questions to ask.
           
-          At this stage you may only use the 'requestHumanInput' and 'updatePlan' tools – definitions for the other tools are only provided to help you produce a plan.
+          You must now make either a "requestHumanInput" or a "updatePlan" tool call – definitions for the other tools are only provided to help you produce a plan.
     `)
         : dedent(`
         You must now provide a plan with the "updatePlan" tool of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
@@ -273,11 +276,14 @@ const createInitialPlan = async (params: {
   const llmResponse = await getLlmResponse(
     {
       systemPrompt,
-      messages: [generateInitialUserMessage({ input })],
+      messages: [
+        generateInitialUserMessage({ input }),
+        ...(retryContext?.retryMessages ?? []),
+      ],
       model,
       tools,
       seed: 1,
-      toolChoice: "required",
+      toolChoice: input.humanInputCanBeRequested ? "required" : "updatePlan",
     },
     {
       userAccountId: userAuthentication.actorId,
@@ -297,23 +303,13 @@ const createInitialPlan = async (params: {
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
-  const firstToolCall = toolCalls[0];
+  const updatePlanToolCall = toolCalls.find(
+    (toolCall) => toolCall.name === "updatePlan",
+  );
 
-  if (!firstToolCall) {
-    throw new Error(
-      `Expected tool calls in message: ${JSON.stringify(message, null, 2)}`,
-    );
-  }
-
-  if (toolCalls.length > 1) {
-    throw new Error(
-      `Expected only one tool call in message: ${JSON.stringify(message, null, 2)}`,
-    );
-  }
-
-  if (firstToolCall.name === "updatePlan") {
+  if (updatePlanToolCall) {
     const { plan } =
-      firstToolCall.input as CoordinatorToolCallArguments["updatePlan"];
+      updatePlanToolCall.input as CoordinatorToolCallArguments["updatePlan"];
 
     logProgress([
       {
@@ -327,16 +323,71 @@ const createInitialPlan = async (params: {
     return { plan, questionsAndAnswers };
   }
 
+  const retry = (retryParams: { retryMessage: LlmUserMessage }) => {
+    const retryCount = retryContext?.retryCount ?? 1;
+
+    if (retryCount >= maximumRetries) {
+      throw new Error(
+        `Exceeded maximum number of retries (${maximumRetries}) for creating initial plan`,
+      );
+    }
+
+    logger.debug(
+      `Retrying to create initial plan with retry message: ${stringify(retryParams.retryMessage)}`,
+    );
+
+    return createInitialPlan({
+      input,
+      questionsAndAnswers,
+      retryContext: {
+        retryMessages: [message, retryParams.retryMessage],
+        retryCount: retryCount + 1,
+      },
+    });
+  };
+
   /** @todo: ensure the tool call is one of the expected ones */
 
-  const { questions } =
-    firstToolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
+  const requestHumanInputToolCall = toolCalls.find(
+    (toolCall) => toolCall.name === "requestHumanInput",
+  );
 
-  const responseString = await getAnswersFromHuman(questions);
+  if (input.humanInputCanBeRequested && requestHumanInputToolCall) {
+    const { questions } =
+      requestHumanInputToolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
 
-  return createInitialPlan({
-    input,
-    questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
+    const responseString = await getAnswersFromHuman(questions);
+
+    return createInitialPlan({
+      input,
+      questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
+    });
+  }
+
+  if (toolCalls.length === 0) {
+    return retry({
+      retryMessage: {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `You didn't make any tool calls, you must call the ${input.humanInputCanBeRequested ? `"requestHumanInput" tool or the` : ""}"updatePlan" tool.`,
+          },
+        ],
+      },
+    });
+  }
+
+  return retry({
+    retryMessage: {
+      role: "user",
+      content: toolCalls.map(({ name, id }) => ({
+        type: "tool_result",
+        tool_use_id: id,
+        content: `You cannot call the "${name}" tool yet, you must call the ${input.humanInputCanBeRequested ? `"requestHumanInput" tool or the` : ""}"updatePlan" tool first.`,
+        is_error: true,
+      })),
+    },
   });
 };
 
