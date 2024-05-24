@@ -103,7 +103,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Flow Definition",
-        description: "The definition of  a HASH flow.",
+        description: "The definition of a HASH flow.",
         labelProperty: blockProtocolPropertyTypes.name
           .propertyTypeBaseUrl as BaseUrl,
         properties: [
@@ -225,9 +225,15 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        title: "Flow",
-        description: "A HASH flow run.",
+        title: "Flow Run",
+        description: "An execution run of a flow.",
+        labelProperty: blockProtocolPropertyTypes.name
+          .propertyTypeBaseUrl as BaseUrl,
         properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
           {
             propertyType: triggerPropertyType,
             required: true,

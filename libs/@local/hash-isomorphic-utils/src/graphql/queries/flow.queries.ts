@@ -3,6 +3,7 @@ import { gql } from "@apollo/client";
 export const getFlowRunsQuery = gql`
   query getFlowRuns {
     getFlowRuns {
+      name
       flowDefinitionId
       flowRunId
       webId
@@ -30,6 +31,7 @@ export const getFlowRunsQuery = gql`
 export const getFlowRunById = gql`
   query getFlowRunById($flowRunId: String!) {
     getFlowRunById(flowRunId: $flowRunId) {
+      name
       flowDefinitionId
       flowRunId
       webId

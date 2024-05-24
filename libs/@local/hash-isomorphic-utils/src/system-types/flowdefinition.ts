@@ -6,6 +6,7 @@ import type { Entity } from "@local/hash-subgraph";
 
 import type {
   DescriptionPropertyValue,
+  NamePropertyValue,
   ObjectDataType,
   TextDataType,
   TriggerDefinitionIDPropertyValue,
@@ -13,6 +14,7 @@ import type {
 
 export type {
   DescriptionPropertyValue,
+  NamePropertyValue,
   ObjectDataType,
   TextDataType,
   TriggerDefinitionIDPropertyValue,
@@ -25,7 +27,7 @@ export type FlowDefinitionOutgoingLinkAndTarget = never;
 export type FlowDefinitionOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * The definition of  a HASH flow.
+ * The definition of a HASH flow.
  */
 export type FlowDefinitionProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
@@ -34,11 +36,6 @@ export type FlowDefinitionProperties = {
   "https://hash.ai/@hash/types/property-type/step-definitions/": StepDefinitionsPropertyValue;
   "https://hash.ai/@hash/types/property-type/trigger-definition/": TriggerDefinitionPropertyValue;
 };
-
-/**
- * A word or set of words by which something is known, addressed, or referred to.
- */
-export type NamePropertyValue = TextDataType;
 
 /**
  * The output definitions of something.
