@@ -129,6 +129,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
               ({ data }) => data?.hasAccessToHash,
             );
             if (!hasAccessToHash) {
+              await refetch();
               void router.push("/");
               return;
             }

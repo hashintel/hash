@@ -13,7 +13,7 @@ import { SITE_DESCRIPTION } from "../config";
 import { DiscordIcon } from "./icons/discord-icon";
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
 import { GithubIcon } from "./icons/github-icon";
-import { TwitterIcon } from "./icons/twitter-icon";
+import { XTwitterIcon } from "./icons/x-twitter-icon";
 import { Link } from "./link";
 import { Logo } from "./logo";
 import { Spacer } from "./spacer";
@@ -154,8 +154,8 @@ export const Footer: FunctionComponent = () => (
               <Link href="https://github.com/hashintel/hash">
                 <GithubIcon fontSize="inherit" />
               </Link>
-              <Link href="https://twitter.com/hashintel">
-                <TwitterIcon fontSize="inherit" />
+              <Link href="https://x.com/hashintel">
+                <XTwitterIcon fontSize="inherit" />
               </Link>
               <Link href="https://hash.ai/discord">
                 <DiscordIcon fontSize="inherit" />

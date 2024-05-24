@@ -511,6 +511,25 @@ export interface GetUpcomingInvoice200Response {
 /**
  *
  * @export
+ * @interface GetWaitlistPosition200Response
+ */
+export interface GetWaitlistPosition200Response {
+  /**
+   *
+   * @type {GetWaitlistPosition200ResponseWaitlistPosition}
+   * @memberof GetWaitlistPosition200Response
+   */
+  waitlistPosition: GetWaitlistPosition200ResponseWaitlistPosition;
+}
+/**
+ * @type GetWaitlistPosition200ResponseWaitlistPosition
+ * @export
+ */
+export type GetWaitlistPosition200ResponseWaitlistPosition = null | number;
+
+/**
+ *
+ * @export
  * @interface GetWebSearchResults200Response
  */
 export interface GetWebSearchResults200Response {
@@ -1487,6 +1506,53 @@ export const DefaultApiAxiosParamCreator = function (
     },
     /**
      *
+     * @summary Get position of a user in the HASH waitlist
+     * @param {string} email The email of the user
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getWaitlistPosition: async (
+      email: string,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'email' is not null or undefined
+      assertParamExists("getWaitlistPosition", "email", email);
+      const localVarPath = `/waitlist-position`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      if (email !== undefined) {
+        localVarQueryParameter["email"] = email;
+      }
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
      * @summary Get web search results based on a text query
      * @param {string} query The query for the web search
      * @param {*} [options] Override http request option.
@@ -2110,6 +2176,31 @@ export const DefaultApiFp = function (configuration?: Configuration) {
     },
     /**
      *
+     * @summary Get position of a user in the HASH waitlist
+     * @param {string} email The email of the user
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getWaitlistPosition(
+      email: string,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<GetWaitlistPosition200Response>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.getWaitlistPosition(email, options);
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
      * @summary Get web search results based on a text query
      * @param {string} query The query for the web search
      * @param {*} [options] Override http request option.
@@ -2443,6 +2534,21 @@ export const DefaultApiFactory = function (
     },
     /**
      *
+     * @summary Get position of a user in the HASH waitlist
+     * @param {string} email The email of the user
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getWaitlistPosition(
+      email: string,
+      options?: any,
+    ): AxiosPromise<GetWaitlistPosition200Response> {
+      return localVarFp
+        .getWaitlistPosition(email, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
      * @summary Get web search results based on a text query
      * @param {string} query The query for the web search
      * @param {*} [options] Override http request option.
@@ -2691,6 +2797,19 @@ export interface DefaultApiInterface {
     newSubscriptionTier?: SubscriptionTier,
     options?: AxiosRequestConfig,
   ): AxiosPromise<GetUpcomingInvoice200Response>;
+
+  /**
+   *
+   * @summary Get position of a user in the HASH waitlist
+   * @param {string} email The email of the user
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof DefaultApiInterface
+   */
+  getWaitlistPosition(
+    email: string,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<GetWaitlistPosition200Response>;
 
   /**
    *
@@ -2962,6 +3081,20 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
   ) {
     return DefaultApiFp(this.configuration)
       .getUpcomingInvoice(newSubscriptionTier, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @summary Get position of a user in the HASH waitlist
+   * @param {string} email The email of the user
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof DefaultApi
+   */
+  public getWaitlistPosition(email: string, options?: AxiosRequestConfig) {
+    return DefaultApiFp(this.configuration)
+      .getWaitlistPosition(email, options)
       .then((request) => request(this.axios, this.basePath));
   }
 

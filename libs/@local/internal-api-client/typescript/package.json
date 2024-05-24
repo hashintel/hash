@@ -7,7 +7,7 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "generate": "openapi-generator-cli generate && yarn workspace @local/internal-api-client build && prettier --cache --write --ignore-unknown .",
+    "generate": "openapi-generator-cli generate && prettier --cache --write --ignore-unknown .",
     "validate": "openapi-generator-cli validate"
   },
   "dependencies": {

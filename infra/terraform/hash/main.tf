@@ -361,6 +361,10 @@ module "application" {
       name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
     },
+    {
+      name  = "INTERNAL_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_key"])
+    },
     #    { name = "LINEAR_CLIENT_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_id"]) },
     #    { name = "LINEAR_CLIENT_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_secret"]) },
     {

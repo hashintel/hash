@@ -30,6 +30,7 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import {
   blockProtocolDataTypes,
   systemDataTypes,
@@ -86,10 +87,7 @@ import {
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
 import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
-import {
-  getOrCreateOwningAccountGroupId,
-  isSelfHostedInstance,
-} from "../system-webs-and-entities";
+import { getOrCreateOwningAccountGroupId } from "../system-webs-and-entities";
 import type { MigrationState } from "./types";
 import { upgradeWebEntities } from "./util/upgrade-entities";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
@@ -609,6 +607,7 @@ export type EntityTypeDefinition = {
   entityTypeId: VersionedUrl;
   title: string;
   description?: string;
+  labelProperty?: BaseUrl;
   properties?: {
     propertyType: PropertyTypeWithMetadata | VersionedUrl;
     required?: boolean;
@@ -801,6 +800,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: entityTypeSchema,
       relationships,
+      labelProperty: entityTypeDefinition.labelProperty,
     });
 
     return await getEntityTypeById(context, authentication, {
@@ -816,6 +816,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
         schema: entityTypeSchema,
         webShortname,
         relationships,
+        labelProperty: entityTypeDefinition.labelProperty,
       },
     ).catch((createError) => {
       // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);

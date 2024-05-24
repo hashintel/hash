@@ -45,6 +45,8 @@ export const scalars = {
   UserPermissions: "@local/hash-isomorphic-utils/types#UserPermissions",
   UserPermissionsOnEntityType:
     "@local/hash-isomorphic-utils/types#UserPermissionsOnEntityType",
+  ProspectiveUserProperties:
+    "@local/hash-isomorphic-utils/system-types/prospectiveuser#ProspectiveUserProperties",
 
   GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
   Edges: "@local/hash-subgraph#Edges",
