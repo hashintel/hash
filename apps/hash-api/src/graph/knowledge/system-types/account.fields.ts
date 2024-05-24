@@ -27,7 +27,6 @@ export const RESTRICTED_SHORTNAMES = [
   "dashboard",
   "deploy.html",
   "dw",
-  "example",
   "explore",
   "favicon.ico",
   "favicon.png",

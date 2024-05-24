@@ -79,7 +79,7 @@ export const PageHeader: FunctionComponent = () => {
               />
             </Link>
           </Box>
-          {authenticatedUser ? <SearchBar /> : null}
+          {authenticatedUser?.accountSignupComplete ? <SearchBar /> : null}
         </Box>
         {authenticatedUser ? (
           <Box
@@ -92,18 +92,24 @@ export const PageHeader: FunctionComponent = () => {
               },
             }}
           >
-            <ActionsDropdown />
-            <NotificationsDropdown />
-            <Tooltip title="Actions" placement="bottom">
-              <Link noLinkStyle href="/actions">
-                <HeaderIconButtonWithCount
-                  icon={
-                    <CheckRegularIcon sx={{ color: theme.palette.blue[70] }} />
-                  }
-                  count={draftEntities?.length}
-                />
-              </Link>
-            </Tooltip>
+            {authenticatedUser.accountSignupComplete && (
+              <>
+                <ActionsDropdown />
+                <NotificationsDropdown />
+                <Tooltip title="Actions" placement="bottom">
+                  <Link noLinkStyle href="/actions">
+                    <HeaderIconButtonWithCount
+                      icon={
+                        <CheckRegularIcon
+                          sx={{ color: theme.palette.blue[70] }}
+                        />
+                      }
+                      count={draftEntities?.length}
+                    />
+                  </Link>
+                </Tooltip>
+              </>
+            )}
             <AccountDropdown logout={logout} />
           </Box>
         ) : (
