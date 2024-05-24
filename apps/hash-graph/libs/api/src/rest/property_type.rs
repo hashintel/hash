@@ -273,10 +273,11 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(untagged)]
+#[serde(deny_unknown_fields, untagged)]
 enum LoadExternalPropertyTypeRequest {
     #[serde(rename_all = "camelCase")]
     Fetch { property_type_id: VersionedUrl },
+    #[serde(rename_all = "camelCase")]
     Create {
         #[schema(value_type = VAR_PROPERTY_TYPE)]
         schema: PropertyType,

@@ -534,7 +534,7 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(untagged)]
+#[serde(deny_unknown_fields, untagged)]
 enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
     Fetch { entity_type_id: VersionedUrl },
