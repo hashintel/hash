@@ -39,7 +39,7 @@ export const HomepageMediumText = ({
         mb: 3,
         mt: 1,
       }),
-      ...(Array.isArray(sx) ? sx : []),
+      ...(Array.isArray(sx) ? sx : [sx]),
     ]}
   >
     {children}
