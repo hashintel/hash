@@ -8,7 +8,7 @@ export class Entity {
     this.#entity = entity;
   }
 
-  public get id(): EntityRecordId {
-    return this.#entity.metadata.recordId as EntityRecordId;
+  public get entityId(): EntityRecordId {
+    return this.#entity.metadata.recordId.entityId as EntityId;
   }
 }

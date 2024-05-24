@@ -2,14 +2,14 @@
   "name": "@local/hash-graph-sdk",
   "version": "0.0.0-private",
   "private": true,
-  "description": "SDK for the HASH Graph API.",
+  "description": "SDK for the HASH Graph.",
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
     ".": {
-      "types": "./pkg/src/*.ts",
-      "node": "./pkg/src/*.ts",
-      "default": "./pkg/src/*.ts"
+      "types": "./src/*.ts",
+      "node": "./src/*.ts",
+      "default": "./src/*.ts"
     }
   },
   "scripts": {
