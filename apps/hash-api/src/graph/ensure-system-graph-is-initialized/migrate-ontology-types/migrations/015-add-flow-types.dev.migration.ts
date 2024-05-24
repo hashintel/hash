@@ -225,6 +225,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Flow Run",
         description: "An execution run of a flow.",
+        labelProperty: blockProtocolPropertyTypes.name
+          .propertyTypeBaseUrl as BaseUrl,
         properties: [
           {
             propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
