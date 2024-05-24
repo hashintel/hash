@@ -33,7 +33,7 @@
     "@local/hash-subgraph": "0.0.0-private",
     "@local/status": "0.0.0-private",
     "@opensearch-project/opensearch": "1.1.0",
-    "@sentry/node": "7.109.0",
+    "@sentry/node": "7.116.0",
     "@temporalio/activity": "1.8.1",
     "@temporalio/client": "1.8.1",
     "@temporalio/proto": "1.8.1",
