@@ -743,7 +743,22 @@ const seedFlowTestTypes = async () => {
       propertyTypeDefinition: {
         title: "Input Token Cost",
         description: "The cost per input token for using the model.",
-        possibleValues: [{ primitiveDataType: "number" }],
+        possibleValues: [
+          {
+            propertyTypeObjectProperties: {
+              [valuePropertyType.metadata.recordId.baseUrl]: {
+                $ref: valuePropertyType.schema.$id,
+              },
+              [unitPropertyType.metadata.recordId.baseUrl]: {
+                $ref: unitPropertyType.schema.$id,
+              },
+            },
+            propertyTypeObjectRequiredProperties: [
+              valuePropertyType.metadata.recordId.baseUrl,
+              unitPropertyType.metadata.recordId.baseUrl,
+            ],
+          },
+        ],
       },
       ownedById,
     },
@@ -756,7 +771,22 @@ const seedFlowTestTypes = async () => {
       propertyTypeDefinition: {
         title: "Output Token Cost",
         description: "The cost per output token for using the model.",
-        possibleValues: [{ primitiveDataType: "number" }],
+        possibleValues: [
+          {
+            propertyTypeObjectProperties: {
+              [valuePropertyType.metadata.recordId.baseUrl]: {
+                $ref: valuePropertyType.schema.$id,
+              },
+              [unitPropertyType.metadata.recordId.baseUrl]: {
+                $ref: unitPropertyType.schema.$id,
+              },
+            },
+            propertyTypeObjectRequiredProperties: [
+              valuePropertyType.metadata.recordId.baseUrl,
+              unitPropertyType.metadata.recordId.baseUrl,
+            ],
+          },
+        ],
       },
       ownedById,
     },
