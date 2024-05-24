@@ -703,6 +703,133 @@ const seedFlowTestTypes = async () => {
       ownedById,
     },
   );
+
+  const largeLanguageModelProviderEntityType =
+    await createSystemEntityTypeIfNotExists(context, authentication, {
+      entityTypeDefinition: {
+        title: "Large Language Model Provider",
+        description: "An entity that provides large language models.",
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+            required: true,
+          },
+        ],
+      },
+      ownedById,
+    });
+
+  const contextSizePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Context Size",
+        description: "The maximum context size the model can handle.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      ownedById,
+    },
+  );
+
+  const inputTokenCostPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Input Token Cost",
+        description: "The cost per input token for using the model.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      ownedById,
+    },
+  );
+
+  const outputTokenCostPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Output Token Cost",
+        description: "The cost per output token for using the model.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      ownedById,
+    },
+  );
+
+  const trainingDataCutoffDatePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Training Data Cutoff Date",
+        description:
+          "The date until which the training data was included for the model.",
+        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+      },
+      ownedById,
+    });
+
+  const providedByLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Provided By",
+        description: "Something that is provided by something else.",
+        properties: [],
+      },
+      ownedById,
+    },
+  );
+
+  const _largeLanguageModelEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Large Language Model",
+        description: "A large language model.",
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: contextSizePropertyType.schema.$id,
+            required: false,
+          },
+          {
+            propertyType: inputTokenCostPropertyType.schema.$id,
+            required: false,
+          },
+          {
+            propertyType: outputTokenCostPropertyType.schema.$id,
+            required: false,
+          },
+          {
+            propertyType: trainingDataCutoffDatePropertyType.schema.$id,
+            required: false,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: providedByLinkEntityType,
+            destinationEntityTypes: [largeLanguageModelProviderEntityType],
+          },
+        ],
+      },
+      ownedById,
+    },
+  );
 };
 
 await seedFlowTestTypes();
