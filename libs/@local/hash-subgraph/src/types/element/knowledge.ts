@@ -14,7 +14,10 @@ import type {
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { PropertyMetadataMap } from "@local/hash-graph-client";
+import type {
+  DiffEntityParams,
+  PropertyMetadataMap,
+} from "@local/hash-graph-client";
 
 import type {
   BaseUrl,
@@ -129,5 +132,17 @@ export type LinkEntityAndRightEntity = Subtype<
   {
     linkEntity: Entity[];
     rightEntity: Entity[];
+  }
+>;
+
+export type DiffEntityInput = Subtype<
+  DiffEntityParams,
+  {
+    firstEntityId: EntityId;
+    firstTransactionTime: Timestamp | null;
+    firstDecisionTime: Timestamp | null;
+    secondEntityId: EntityId;
+    secondDecisionTime: Timestamp | null;
+    secondTransactionTime: Timestamp | null;
   }
 >;

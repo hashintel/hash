@@ -80,6 +80,7 @@ export type VirtualizedTableColumn<FieldId extends string = string> = {
   id: FieldId;
   label: string;
   sortable: boolean;
+  textSx?: SxProps<Theme>;
   width: number | string;
 };
 
@@ -146,7 +147,14 @@ const HeaderContent = <Sort extends VirtualizedTableSort>({
               justifyContent="space-between"
               alignItems="center"
             >
-              <Typography sx={{ fontSize: 14, fontWeight: 500 }}>
+              <Typography
+                sx={[
+                  { fontSize: 14, fontWeight: 500 },
+                  ...(Array.isArray(column.textSx)
+                    ? column.textSx
+                    : [column.textSx]),
+                ]}
+              >
                 {column.label}
               </Typography>
               {column.sortable && (

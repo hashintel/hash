@@ -1,47 +1,124 @@
 import { useQuery } from "@apollo/client";
-import { Chip, WhiteCard } from "@hashintel/design-system";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import type { EntityId } from "@local/hash-subgraph";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
+import { Chip, Skeleton, WhiteCard } from "@hashintel/design-system";
+import {
+  fullDecisionTimeAxis,
+  fullOntologyResolveDepths,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import type {
+  DiffEntityInput,
+  EntityId,
+  Timestamp,
+} from "@local/hash-subgraph";
+import { splitEntityId } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import type {
-  GetEntityQuery,
-  GetEntityQueryVariables,
+  GetEntityDiffsQuery,
+  GetEntityDiffsQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import type { HistoryEvent } from "./history-section/history-table";
 import { HistoryTable } from "./history-section/history-table";
+import {
+  getEntityDiffsQuery,
+  getEntitySubgraphQuery,
+} from "../../../../../graphql/queries/knowledge/entity.queries";
+import { getHistoryEvents } from "./history-section/get-history-events";
 
 export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
-  const isDraft = useMemo(() => {
-    const draftId = extractDraftIdFromEntityId(entityId);
-    return !!draftId;
-  }, [entityId]);
+  const [ownedById, entityUuid, draftUuid] = splitEntityId(entityId);
 
-  const { data, loading } = useQuery<GetEntityQuery, GetEntityQueryVariables>(
-    getEntityQuery,
-    {
-      fetchPolicy: "cache-and-network",
-      variables: {
-        entityId,
+  const isDraft = !!draftUuid;
+
+  const { data: editionsData, loading: editionsLoading } = useQuery<
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
+    fetchPolicy: "cache-and-network",
+    variables: {
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+            },
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            },
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          ...fullOntologyResolveDepths,
+        },
+        temporalAxes: fullDecisionTimeAxis,
         includeDrafts: isDraft,
-        includePermissions: false,
-        ...zeroedGraphResolveDepths,
       },
+      includePermissions: false,
     },
-  );
+  });
+
+  const diffPairs = useMemo<DiffEntityInput[]>(() => {
+    const editions = editionsData?.getEntitySubgraph.subgraph.roots;
+    if (!editions) {
+      return [];
+    }
+
+    const diffInputs: DiffEntityInput[] = [];
+    for (const [index, edition] of editions.entries()) {
+      const nextEdition = editions[index + 1];
+      if (!nextEdition) {
+        break;
+      }
+
+      diffInputs.push({
+        firstEntityId: edition.baseId as EntityId,
+        firstDecisionTime: edition.revisionId as Timestamp,
+        firstTransactionTime: null,
+        secondEntityId: nextEdition.baseId as EntityId,
+        secondDecisionTime: nextEdition.revisionId as Timestamp,
+        secondTransactionTime: null,
+      });
+    }
+    return diffInputs;
+  }, [editionsData]);
+
+  const { data: diffsData, loading: diffsLoading } = useQuery<
+    GetEntityDiffsQuery,
+    GetEntityDiffsQueryVariables
+  >(getEntityDiffsQuery, {
+    fetchPolicy: "cache-and-network",
+    variables: {
+      inputs: diffPairs,
+    },
+    skip: !diffPairs.length,
+  });
 
   const historyEvents = useMemo<HistoryEvent[]>(() => {
-    return [
-      {
-        number: "1",
-        type: "created",
-        timestamp: new Date().toISOString(),
-      },
-    ];
-  }, []);
+    if (
+      editionsLoading ||
+      !editionsData ||
+      (diffPairs.length > 0 && diffsLoading)
+    ) {
+      return [];
+    }
+
+    const diffs = diffsData?.getEntityDiffs;
+    if (!diffs) {
+      return [];
+    }
+
+    const { subgraph } = editionsData.getEntitySubgraph;
+
+    return getHistoryEvents(diffs, subgraph);
+  }, [diffsData, diffsLoading, diffPairs, editionsData, editionsLoading]);
+
+  const subgraph = editionsData?.getEntitySubgraph.subgraph;
+
+  const loading = editionsLoading || diffsLoading;
 
   return (
     <SectionWrapper
@@ -49,13 +126,17 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
       titleStartContent={
         <Chip
           size="xs"
-          label="10 events"
+          label={editionsLoading ? "–" : `${historyEvents.length} events`}
           sx={{ color: ({ palette }) => palette.gray[70] }}
         />
       }
     >
       <WhiteCard>
-        <HistoryTable events={historyEvents} />
+        {loading || !subgraph ? (
+          <Skeleton height={600} />
+        ) : (
+          <HistoryTable events={historyEvents} subgraph={subgraph} />
+        )}
       </WhiteCard>
     </SectionWrapper>
   );

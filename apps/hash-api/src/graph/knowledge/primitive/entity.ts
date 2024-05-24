@@ -31,10 +31,11 @@ import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
-import type {
+import {
   AccountGroupId,
   AccountId,
   BaseUrl,
+  DiffEntityInput,
   Entity,
   EntityAuthorizationRelationship,
   EntityId,
@@ -1068,14 +1069,7 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
     );
 
 export const calculateEntityDiff: ImpureGraphFunction<
-  {
-    firstEntityId: EntityId;
-    firstTransactionTime: Timestamp | null;
-    firstDecisionTime: Timestamp | null;
-    secondEntityId: EntityId;
-    secondDecisionTime: Timestamp | null;
-    secondTransactionTime: Timestamp | null;
-  },
+  DiffEntityInput,
   Promise<DiffEntityResult>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi.diffEntity(actorId, params).then(({ data }) => data);

@@ -1,3 +1,4 @@
+import { DiffEntityParams } from "@local/hash-graph-client";
 import { gql } from "apollo-server-express";
 
 export const entityTypedef = gql`
@@ -82,6 +83,14 @@ export const entityTypedef = gql`
     subject: EntityAuthorizationSubject!
   }
 
+  scalar DiffEntityInput
+  scalar DiffEntityResult
+
+  type EntityDiff {
+    input: DiffEntityInput!
+    diff: DiffEntityResult!
+  }
+
   extend type Query {
     """
     Implementation of the Block Protocol queryEntities hook
@@ -136,6 +145,8 @@ export const entityTypedef = gql`
     ): [EntityAuthorizationRelationship!]!
 
     checkUserPermissionsOnEntity(metadata: EntityMetadata!): UserPermissions!
+
+    getEntityDiffs(inputs: [DiffEntityInput!]!): [EntityDiff!]!
   }
 
   enum AuthorizationSubjectKind {
