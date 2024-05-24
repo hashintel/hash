@@ -108,6 +108,14 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
               value: summary,
             },
           },
+          {
+            outputName:
+              "title" satisfies OutputNameForAction<"getWebPageSummary">,
+            payload: {
+              kind: "Text",
+              value: webPage.title,
+            },
+          },
         ],
       },
     ],

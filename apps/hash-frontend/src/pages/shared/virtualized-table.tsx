@@ -13,7 +13,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 /* eslint-enable no-restricted-imports */
 import type { ComponentPropsWithoutRef, ReactElement } from "react";
-import { forwardRef, useCallback } from "react";
+import { forwardRef, useCallback, useMemo } from "react";
 import type { TableComponents } from "react-virtuoso";
 import { TableVirtuoso } from "react-virtuoso";
 
@@ -27,7 +27,6 @@ export type VirtualizedTableRow<D extends Data> = {
 export const defaultCellSx: SxProps<Theme> = {
   padding: "5px 14px",
   borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-  borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
   textAlign: "left",
 };
 
@@ -147,7 +146,7 @@ const HeaderContent = <Sort extends VirtualizedTableSort>({
               justifyContent="space-between"
               alignItems="center"
             >
-              <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 500 }}>
                 {column.label}
               </Typography>
               {column.sortable && (
@@ -177,6 +176,7 @@ type VirtualizedTableProps<D extends Data, S extends VirtualizedTableSort> = {
    */
   createRowContent: CreateVirtualizedRowContentFn<D>;
   columns?: VirtualizedTableColumn[];
+  EmptyPlaceholder?: () => ReactElement;
   rows: VirtualizedTableRow<D>[];
 } & TableSortProps<S>;
 
@@ -188,6 +188,7 @@ export const VirtualizedTable = <
 >({
   createRowContent,
   columns,
+  EmptyPlaceholder,
   rows,
   sort,
   setSort,
@@ -197,11 +198,19 @@ export const VirtualizedTable = <
     [columns, sort, setSort],
   );
 
+  const components = useMemo(
+    () => ({
+      ...VirtuosoTableComponents,
+      EmptyPlaceholder,
+    }),
+    [EmptyPlaceholder],
+  );
+
   return (
     <Box style={{ borderRadius, height, width: "100%" }}>
       <TableVirtuoso
         data={rows}
-        components={VirtuosoTableComponents}
+        components={components}
         fixedHeaderContent={fixedHeaderContent}
         followOutput="smooth"
         increaseViewportBy={50}

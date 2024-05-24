@@ -45,6 +45,7 @@ pub fn bench_get_entity_type_by_id<A: AuthorizationApi>(
                         after: None,
                         limit: None,
                         include_drafts: false,
+                        include_count: false,
                     },
                 )
                 .await

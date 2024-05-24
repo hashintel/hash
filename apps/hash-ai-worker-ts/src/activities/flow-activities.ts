@@ -10,6 +10,7 @@ import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities
 import { persistEntitiesAction } from "./flow-activities/persist-entities-action";
 import { persistEntityAction } from "./flow-activities/persist-entity-action";
 import { persistFlowActivity } from "./flow-activities/persist-flow-activity";
+import { processAutomaticBrowsingSettingsAction } from "./flow-activities/process-automatic-browsing-settings-action";
 import { researchEntitiesAction } from "./flow-activities/research-entities-action";
 import type { FlowActionActivity } from "./flow-activities/types";
 import { userHasPermissionToRunFlowInWebActivity } from "./flow-activities/user-has-permission-to-run-flow-in-web-activity";
@@ -24,6 +25,7 @@ export const createFlowActionActivities = ({
   generateWebQueriesAction,
   webSearchAction,
   getWebPageByUrlAction,
+  processAutomaticBrowsingSettingsAction,
   inferEntitiesFromContentAction,
   persistEntityAction,
   persistEntitiesAction,

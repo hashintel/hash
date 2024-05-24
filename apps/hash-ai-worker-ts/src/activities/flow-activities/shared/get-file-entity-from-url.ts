@@ -20,9 +20,11 @@ import {
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
+import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type {
   OriginProvenance,
   PropertyMetadataMap,
+  ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -32,6 +34,7 @@ import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/s
 import type { EntityMetadata } from "@local/hash-subgraph";
 import mime from "mime-types";
 
+import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity";
 import { logger } from "../../shared/activity-logger";
 import { getFlowContext } from "../../shared/get-flow-context";
 import { graphApiClient } from "../../shared/graph-api-client";
@@ -120,6 +123,7 @@ const writeFileToS3URL = async ({
 export const getFileEntityFromUrl = async (params: {
   url: string;
   propertyMetadata?: PropertyMetadataMap;
+  provenance?: ProvidedEntityEditionProvenance;
   entityTypeId?: VersionedUrl;
   description?: string;
   displayName?: string;
@@ -143,6 +147,7 @@ export const getFileEntityFromUrl = async (params: {
     description,
     displayName,
     propertyMetadata,
+    provenance: provenanceFromParams,
   } = params;
 
   const { userAuthentication, webId, flowEntityId, stepId } =
@@ -196,28 +201,48 @@ export const getFileEntityFromUrl = async (params: {
       fileSizeInBytes,
   };
 
+  const ownedById = webId;
+
+  const isAiGenerated = provenanceFromParams?.actorType === "ai";
+
+  const webBotActorId = isAiGenerated
+    ? await getAiAssistantAccountIdActivity({
+        authentication: { actorId: userAuthentication.actorId },
+        graphApiClient,
+        grantCreatePermissionForWeb: ownedById,
+      })
+    : await getWebMachineActorId(
+        { graphApi: graphApiClient },
+        { actorId: userAuthentication.actorId },
+        { ownedById },
+      );
+
+  if (!webBotActorId) {
+    throw new Error(
+      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${ownedById}`,
+    );
+  }
+
+  // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+  const provenance: ProvidedEntityEditionProvenance = provenanceFromParams ?? {
+    origin: {
+      type: "flow",
+      id: flowEntityId,
+      stepIds: [stepId],
+    } satisfies OriginProvenance,
+  };
+
   const incompleteFileEntityMetadata = await graphApiClient
-    .createEntity(
-      // @todo H-2618 use AI bot or web bot as appropriate depending on provenance
-      userAuthentication.actorId,
-      {
-        draft: false,
-        ownedById: webId,
-        propertyMetadata,
-        properties: initialProperties,
-        entityTypeIds: [entityTypeId],
-        relationships:
-          createDefaultAuthorizationRelationships(userAuthentication),
-        provenance: {
-          // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
-          origin: {
-            type: "flow",
-            id: flowEntityId,
-            stepIds: [stepId],
-          } satisfies OriginProvenance,
-        },
-      },
-    )
+    .createEntity(webBotActorId, {
+      draft: false,
+      ownedById: webId,
+      propertyMetadata,
+      properties: initialProperties,
+      entityTypeIds: [entityTypeId],
+      relationships:
+        createDefaultAuthorizationRelationships(userAuthentication),
+      provenance,
+    })
     .then((result) => mapGraphApiEntityMetadataToMetadata(result.data));
 
   const s3Config = getAwsS3Config();
@@ -250,20 +275,17 @@ export const getFileEntityFromUrl = async (params: {
   };
 
   const updatedEntityMetadata = await graphApiClient
-    .patchEntity(
-      // @todo H-2618 use AI bot or web bot as appropriate depending on provenance
-      userAuthentication.actorId,
-      {
-        entityId: incompleteFileEntityMetadata.recordId.entityId,
-        properties: [
-          {
-            op: "replace",
-            path: [],
-            value: properties,
-          },
-        ],
-      },
-    )
+    .patchEntity(webBotActorId, {
+      entityId: incompleteFileEntityMetadata.recordId.entityId,
+      properties: [
+        {
+          op: "replace",
+          path: [],
+          value: properties,
+        },
+      ],
+      provenance,
+    })
     .then((result) => mapGraphApiEntityMetadataToMetadata(result.data));
 
   try {

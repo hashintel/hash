@@ -66,10 +66,11 @@ export const scalars = {
 
   FlowTrigger: "@local/hash-isomorphic-utils/flows/types#FlowTrigger",
   FlowDefinition: "@local/hash-isomorphic-utils/flows/types#FlowDefinition",
+  FlowInputs: "@local/hash-isomorphic-utils/flows/types#FlowInputs",
   ExternalInputRequest:
     "@local/hash-isomorphic-utils/flows/types#ExternalInputRequest",
-  ExternalInputResponseSignal:
-    "@local/hash-isomorphic-utils/flows/types#ExternalInputResponseSignal",
+  ExternalInputResponseWithoutUser:
+    "@local/hash-isomorphic-utils/flows/types#ExternalInputResponseWithoutUser",
   StepInput: "@local/hash-isomorphic-utils/flows/types#StepInput",
   StepRunOutput: "@local/hash-isomorphic-utils/flows/types#StepRunOutput",
   StepProgressLog: "@local/hash-isomorphic-utils/flows/types#StepProgressLog",

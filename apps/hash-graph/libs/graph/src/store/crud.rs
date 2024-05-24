@@ -9,6 +9,7 @@
 use async_trait::async_trait;
 use error_stack::Result;
 use futures::{Stream, TryStreamExt};
+use tracing::instrument;
 
 use crate::{
     store::{query::Filter, QueryError, QueryRecord, SubgraphRecord},
@@ -170,6 +171,7 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync = VertexIdSorting<R>>:
         >,
     > + Send;
 
+    #[instrument(level = "info", skip(self, filter, sorting))]
     fn read_paginated_vec(
         &self,
         filter: &Filter<'_, R>,
@@ -209,6 +211,7 @@ pub trait Read<R: QueryRecord>: Sync {
         include_drafts: bool,
     ) -> Result<Self::ReadStream, QueryError>;
 
+    #[instrument(level = "info", skip(self, filter))]
     async fn read_vec(
         &self,
         filter: &Filter<'_, R>,

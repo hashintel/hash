@@ -4882,6 +4882,9 @@
           "graphResolveDepths": {
             "$ref": "#/components/schemas/GraphResolveDepths"
           },
+          "includeCount": {
+            "type": "boolean"
+          },
           "includeDrafts": {
             "type": "boolean"
           },
@@ -4934,6 +4937,9 @@
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
+          "includeCount": {
+            "type": "boolean"
+          },
           "includeDrafts": {
             "type": "boolean"
           },
@@ -4954,6 +4960,11 @@
           "dataTypes"
         ],
         "properties": {
+          "count": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
           "cursor": {
             "allOf": [
               {
@@ -5134,6 +5145,9 @@
           "graphResolveDepths": {
             "$ref": "#/components/schemas/GraphResolveDepths"
           },
+          "includeCount": {
+            "type": "boolean"
+          },
           "includeDrafts": {
             "type": "boolean"
           },
@@ -5186,6 +5200,9 @@
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
+          "includeCount": {
+            "type": "boolean"
+          },
           "includeDrafts": {
             "type": "boolean"
           },
@@ -5206,6 +5223,11 @@
           "entityTypes"
         ],
         "properties": {
+          "count": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
           "cursor": {
             "allOf": [
               {
@@ -5244,6 +5266,9 @@
           },
           "graphResolveDepths": {
             "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "includeCount": {
+            "type": "boolean"
           },
           "includeDrafts": {
             "type": "boolean"
@@ -5297,6 +5322,9 @@
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
+          "includeCount": {
+            "type": "boolean"
+          },
           "includeDrafts": {
             "type": "boolean"
           },
@@ -5317,6 +5345,11 @@
           "propertyTypes"
         ],
         "properties": {
+          "count": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
           "cursor": {
             "allOf": [
               {
@@ -7191,9 +7224,25 @@
       "ProvidedOntologyEditionProvenance": {
         "type": "object",
         "properties": {
-          "__placeholder": {
-            "default": null,
-            "nullable": true
+          "actorType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActorType"
+              }
+            ]
+          },
+          "origin": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OriginProvenance"
+              }
+            ]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceProvenance"
+            }
           }
         },
         "additionalProperties": false

@@ -12,6 +12,7 @@ const actionDefinitionIds = [
   "getFileFromUrl",
   "getWebPageByUrl",
   "getWebPageSummary",
+  "processAutomaticBrowsingSettings",
   "inferEntitiesFromContent",
   "persistEntities",
   "persistEntity",
@@ -109,6 +110,44 @@ const actionDefinitionsAsConst = {
         name: "webPage",
         array: false,
         required: true,
+      },
+    ],
+  },
+  processAutomaticBrowsingSettings: {
+    actionDefinitionId: "processAutomaticBrowsingSettings",
+    name: "Process Automatic Browsing Settings",
+    description:
+      "Given a web page, determine which entities to find based on the user's settings.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["WebPage"],
+        name: "webPage",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "VersionedUrl",
+        name: "entityTypeIds",
+        description: "The entityTypeIds to look for given the web page visited",
+        array: true,
+        required: true,
+      },
+      {
+        payloadKind: "Boolean",
+        name: "draft",
+        description: "Whether or not the entities should be created as drafts",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Text",
+        name: "model",
+        description: "The LLM model to use to infer entities",
+        required: true,
+        array: false,
       },
     ],
   },
@@ -338,6 +377,12 @@ const actionDefinitionsAsConst = {
       {
         payloadKind: "Text",
         name: "summary",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Text",
+        name: "title",
         array: false,
         required: true,
       },

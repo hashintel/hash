@@ -15,7 +15,7 @@ export type InferEntitiesRequest = {
 
 export type CancelInferEntitiesRequest = {
   type: "cancel-infer-entities";
-  requestUuid: string;
+  flowRunId: string;
 };
 
 export type GetTabContentRequest = {

@@ -6,6 +6,7 @@ use std::{
 
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
+use tracing::instrument;
 
 use crate::{
     store::{
@@ -375,6 +376,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
+    #[instrument(level = "info", skip(self))]
     pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
         (
             self.statement.transpile_to_string(),

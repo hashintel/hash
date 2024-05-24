@@ -32,7 +32,7 @@ export const useRows = () => {
     (params: { entity: Entity }) => {
       const { entity } = params;
 
-      const { shortname } = getOwnerForEntity(entity);
+      const { shortname } = getOwnerForEntity({ entity });
 
       void router.push(
         generateEntityPath({

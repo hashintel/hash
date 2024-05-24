@@ -42,6 +42,7 @@ use crate::{
         },
         ontology::{
             ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
+            CountDataTypesParams, CountEntityTypesParams, CountPropertyTypesParams,
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
             GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
             GetDataTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse,
@@ -264,6 +265,7 @@ where
                         after: None,
                         limit: None,
                         include_drafts: true,
+                        include_count: false,
                     },
                 )
                 .await
@@ -281,6 +283,7 @@ where
                         after: None,
                         limit: None,
                         include_drafts: true,
+                        include_count: false,
                     },
                 )
                 .await
@@ -298,6 +301,7 @@ where
                         after: None,
                         limit: None,
                         include_drafts: true,
+                        include_count: false,
                     },
                 )
                 .await
@@ -839,6 +843,14 @@ where
             .await
     }
 
+    async fn count_data_types(
+        &self,
+        actor_id: AccountId,
+        params: CountDataTypesParams<'_>,
+    ) -> Result<usize, QueryError> {
+        self.store.count_data_types(actor_id, params).await
+    }
+
     async fn get_data_types(
         &self,
         actor_id: AccountId,
@@ -944,6 +956,14 @@ where
         self.store
             .create_property_types(actor_id, creation_parameters)
             .await
+    }
+
+    async fn count_property_types(
+        &self,
+        actor_id: AccountId,
+        params: CountPropertyTypesParams<'_>,
+    ) -> Result<usize, QueryError> {
+        self.store.count_property_types(actor_id, params).await
     }
 
     async fn get_property_types(
@@ -1053,6 +1073,14 @@ where
         self.store
             .create_entity_types(actor_id, creation_parameters)
             .await
+    }
+
+    async fn count_entity_types(
+        &self,
+        actor_id: AccountId,
+        params: CountEntityTypesParams<'_>,
+    ) -> Result<usize, QueryError> {
+        self.store.count_entity_types(actor_id, params).await
     }
 
     async fn get_entity_types(

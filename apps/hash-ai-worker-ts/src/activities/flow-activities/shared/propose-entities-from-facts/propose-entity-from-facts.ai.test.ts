@@ -1,0 +1,95 @@
+import "../../../../shared/testing-utilities/mock-get-flow-context";
+
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { expect, test } from "vitest";
+
+import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity";
+import { getFlowContext } from "../../../shared/get-flow-context";
+import { graphApiClient } from "../../../shared/graph-api-client";
+import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
+import type { Fact } from "../infer-facts-from-text/types";
+import { proposeEntityFromFacts } from "./propose-entity-from-facts";
+
+const huntingPlcEntitySummary: LocalEntitySummary = {
+  localId: "6916156b-e759-41ad-b1da-2cf7af05d223",
+  name: "HUNTING PLC ORD 25P",
+  summary:
+    "HUNTING PLC, represented by the stock code HTG, has a market cap of 614.40 million GBX, a last recorded price of 452.50 GBX, and experienced a recent price change of 80.00 GBX, translating to a 21.48% increase.",
+  entityTypeId:
+    "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+};
+
+const huntingPlcEntityFacts = [
+  {
+    text: "HUNTING PLC has a market cap of 614.40 million GBX",
+    subjectEntityLocalId: "66f93842-c6e0-4378-ab04-519edd7231af",
+    prepositionalPhrases: [],
+  },
+  {
+    text: "HUNTING PLC has a price of 443.50 GBX",
+    subjectEntityLocalId: "66f93842-c6e0-4378-ab04-519edd7231af",
+    prepositionalPhrases: [],
+  },
+  {
+    text: "HUNTING PLC has a change value of 71.00 GBX",
+    subjectEntityLocalId: "66f93842-c6e0-4378-ab04-519edd7231af",
+    prepositionalPhrases: [],
+  },
+  {
+    text: "HUNTING PLC has a change percentage of 19.06%",
+    subjectEntityLocalId: "66f93842-c6e0-4378-ab04-519edd7231af",
+    prepositionalPhrases: [],
+  },
+];
+
+test(
+  "Test proposeEntityFromFacts",
+  async () => {
+    const { userAuthentication } = await getFlowContext();
+
+    const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
+      entityTypeIds: [
+        "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      ],
+      actorId: userAuthentication.actorId,
+      graphApiClient,
+      simplifyPropertyKeys: true,
+    });
+
+    const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
+      Object.values(dereferencedEntityTypes)[0]!;
+
+    const huntingPlcEntityFactsWithSources = huntingPlcEntityFacts.map(
+      (fact): Fact => ({
+        ...fact,
+        factId: generateUuid(),
+        sources: [
+          {
+            type: "webpage",
+            location: {
+              uri: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+            },
+            loadedAt: new Date().toISOString(),
+          },
+        ],
+      }),
+    );
+
+    const proposeEntityFromFactsStatus = await proposeEntityFromFacts({
+      entitySummary: huntingPlcEntitySummary,
+      facts: huntingPlcEntityFactsWithSources,
+      dereferencedEntityType,
+      simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
+      proposeOutgoingLinkEntityTypes: [],
+      possibleOutgoingLinkTargetEntitySummaries: [],
+    });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ proposeEntityFromFactsStatus }, null, 2));
+
+    expect(proposeEntityFromFactsStatus).toBeDefined();
+  },
+  {
+    timeout: 5 * 60 * 1000,
+  },
+);

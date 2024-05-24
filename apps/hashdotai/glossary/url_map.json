@@ -54,12 +54,6 @@
     "tags": ["Business Software"]
   },
   {
-    "title": "Directed Acyclic Graphs",
-    "description": "If you don’t know your DAGs from your dogs, you can finally get some clarity and sleep easily tonight. Learn what makes a Directed Acyclic Graph a DAG.",
-    "slug": "dag",
-    "tags": ["Data Science", "Graphs", "Software Engineering"]
-  },
-  {
     "title": "Data Drift",
     "description": "Data Drift is the phenomenon where changes to data degrade model performance.",
     "slug": "data-drift",
@@ -114,10 +108,22 @@
     "tags": ["Business Intelligence", "Simulation Modeling"]
   },
   {
+    "title": "Directed Acyclic Graphs",
+    "description": "If you don’t know your DAGs from your dogs, you can finally get some clarity and sleep easily tonight. Learn what makes a Directed Acyclic Graph a DAG.",
+    "slug": "dag",
+    "tags": ["Data Science", "Graphs", "Software Engineering"]
+  },
+  {
     "title": "Discrete Event Simulation",
     "description": "DES is a modeling approach that focuses on the occurrence of events in a simulation, separately and instantaneously, rather than on any chronological-scale.",
     "slug": "discrete-event-modeling",
     "tags": ["Simulation Modeling"]
+  },
+  {
+    "title": "Document Management System",
+    "description": "Document management systems allow you to store, manage and track documents (both physical and digital).",
+    "slug": "dms",
+    "tags": ["Business Software"]
   },
   {
     "title": "Ego Networks",

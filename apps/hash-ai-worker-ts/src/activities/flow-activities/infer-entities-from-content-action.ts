@@ -6,7 +6,7 @@ import {
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import type { EntityId, OwnedById } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
@@ -40,15 +40,11 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
     : [];
 
-  const { userAuthentication } = await getFlowContext();
+  const { userAuthentication, webId } = await getFlowContext();
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: userAuthentication,
-    /**
-     * @todo: we probably want this customizable by an input for the action, or
-     * as an additional parameter for the activity.
-     */
-    grantCreatePermissionForWeb: userAuthentication.actorId as OwnedById,
+    grantCreatePermissionForWeb: webId,
     graphApiClient,
   });
 

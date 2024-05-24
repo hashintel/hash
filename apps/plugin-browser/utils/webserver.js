@@ -10,10 +10,6 @@ import config from "../webpack.config.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-process.env.BABEL_ENV = "development";
-process.env.NODE_ENV = "development";
-process.env.ASSET_PATH = "/";
-
 const excludeEntriesToHotReload = ["background", "content"];
 
 const port = 8080;
