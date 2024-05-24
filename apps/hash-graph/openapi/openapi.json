@@ -5734,7 +5734,7 @@
                 "type": "string",
                 "nullable": true
               },
-              "label_property": {
+              "labelProperty": {
                 "allOf": [
                   {
                     "$ref": "#/components/schemas/BaseUrl"
