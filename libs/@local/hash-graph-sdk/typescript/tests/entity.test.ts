@@ -52,5 +52,7 @@ test("Entity can be created from Graph API", () => {
 
   const entityInstance = new Entity(graph_api_entity);
 
-  expect(entityInstance.id).toBe(graph_api_entity.metadata.recordId);
+  expect(entityInstance.entityId).toBe(
+    graph_api_entity.metadata.recordId.entityId,
+  );
 });

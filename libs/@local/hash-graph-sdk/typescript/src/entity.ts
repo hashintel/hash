@@ -1,5 +1,5 @@
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
-import type { EntityRecordId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-subgraph";
 
 export class Entity {
   #entity: GraphApiEntity;
@@ -8,7 +8,7 @@ export class Entity {
     this.#entity = entity;
   }
 
-  public get entityId(): EntityRecordId {
+  public get entityId(): EntityId {
     return this.#entity.metadata.recordId.entityId as EntityId;
   }
 }
