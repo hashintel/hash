@@ -116,6 +116,9 @@ const mapOntologyProvenance = (
     edition: {
       createdById: metadata.edition.createdById as EditionCreatedById,
       archivedById: metadata.edition.archivedById as EditionArchivedById,
+      actorType: metadata.edition.actorType,
+      origin: metadata.edition.origin,
+      sources: metadata.edition.sources,
     },
   };
 };
@@ -131,6 +134,10 @@ const mapEntityProvenance = (
       metadata.createdAtDecisionTime as CreatedAtDecisionTime,
     edition: {
       createdById: metadata.edition.createdById as EditionCreatedById,
+      archivedById: metadata.edition.archivedById as EditionArchivedById,
+      actorType: metadata.edition.actorType,
+      origin: metadata.edition.origin,
+      sources: metadata.edition.sources,
     },
   };
 };
@@ -334,6 +341,8 @@ const mapEntityMetadata = (
     ),
     provenance: mapEntityProvenance(metadata.provenance),
     archived: metadata.archived,
+    confidence: metadata.confidence,
+    properties: metadata.properties,
   };
 };
 
