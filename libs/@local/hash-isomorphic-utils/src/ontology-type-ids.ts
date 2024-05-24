@@ -143,6 +143,12 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/profile-bio/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/profile-bio/",
   },
+  prospectiveUser: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/prospective-user/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/prospective-user/",
+  },
   quickNote: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/quick-note/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/quick-note/",
@@ -375,6 +381,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/connection-source-name/",
   },
+  currentApproach: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/current-approach/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/current-approach/",
+  },
   dataAudience: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/data-audience/v/1",
@@ -498,6 +510,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/input-unit-count/",
   },
+  intendedUse: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/intended-use/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/intended-use/",
+  },
   kratosIdentityId: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/kratos-identity-id/v/1",
@@ -604,6 +622,10 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/resolved-at/",
   },
+  role: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/role/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/role/",
+  },
   rotationInRads: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/rotation-in-rads/v/1",
@@ -693,6 +715,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/width-in-pixels/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/width-in-pixels/",
+  },
+  willingToPay: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/willing-to-pay/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/willing-to-pay/",
   },
   xPosition: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/x-position/v/1",

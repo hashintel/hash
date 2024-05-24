@@ -1,7 +1,7 @@
+import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
-import { internalApi } from "../shared/internal-api-client";
 import type { FlowActionActivity } from "./types";
 
 export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
@@ -12,7 +12,7 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
 
   const {
     data: { webSearchResults },
-  } = await internalApi.getWebSearchResults(query);
+  } = await internalApiClient.getWebSearchResults(query);
 
   const webPagesUrls = webSearchResults
     .map(({ url }) => url)

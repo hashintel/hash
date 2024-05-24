@@ -104,6 +104,8 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Flow Definition",
         description: "The definition of a HASH flow.",
+        labelProperty: blockProtocolPropertyTypes.name
+          .propertyTypeBaseUrl as BaseUrl,
         properties: [
           {
             propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
