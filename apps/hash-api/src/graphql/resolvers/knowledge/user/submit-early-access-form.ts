@@ -1,4 +1,4 @@
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { OwnedById } from "@local/hash-subgraph";
 
@@ -20,6 +20,11 @@ export const submitEarlyAccessFormResolver: ResolverFn<
   const { user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
+  const adminAccountGroupId = await getHashInstanceAdminAccountGroupId(
+    context,
+    { actorId: systemAccountId },
+  );
+
   await createEntity(
     context,
     /** The user does not yet have permissions to create entities, so we do it with the HASH system account instead */
@@ -28,9 +33,37 @@ export const submitEarlyAccessFormResolver: ResolverFn<
       ownedById: user.accountId as OwnedById,
       entityTypeId: systemEntityTypes.prospectiveUser.entityTypeId,
       properties,
-      relationships: createDefaultAuthorizationRelationships({
-        actorId: systemAccountId,
-      }),
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: systemAccountId,
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "accountGroup",
+            subjectId: adminAccountGroupId,
+          },
+        },
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "administratorFromWeb",
+          },
+        },
+
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "viewFromWeb",
+          },
+        },
+      ],
     },
   );
 
