@@ -1,3 +1,4 @@
+import { MenuItem, Select } from "@hashintel/design-system";
 import {
   Box,
   FormControlLabel,
@@ -7,11 +8,37 @@ import {
 } from "@mui/material";
 
 import type { LocalStorage } from "../../../../shared/storage";
+import { useStorageSync } from "../../../shared/use-storage-sync";
 import { SelectScope } from "./automated/select-scope";
 import { ModelSelector } from "./shared/model-selector";
 import { Section } from "./shared/section";
 import { SelectWebTarget } from "./shared/select-web-target";
 import { SwitchWithDarkMode } from "./switch-with-dark-mode";
+
+const DevelopmentTargetApiSwitcher = () => {
+  const [apiTarget, setApiTarget] = useStorageSync("apiOrigin", API_ORIGIN);
+
+  return (
+    <Section
+      headerText="Select the API that the plugin will communicate with"
+      description="If you select production, you are using and potentially affecting production data!"
+    >
+      <Select
+        value={apiTarget}
+        onChange={(event) => setApiTarget(event.target.value)}
+        sx={{ width: 150 }}
+      >
+        <MenuItem value="http://localhost:5001">Local</MenuItem>
+        <MenuItem value="https://app-api.hash.ai">Production</MenuItem>
+      </Select>
+      <Typography
+        sx={{ fontSize: 14, mt: 1.5, color: ({ palette }) => palette.gray[90] }}
+      >
+        Remember to log in at the relevant frontend if you switch environments.
+      </Typography>
+    </Section>
+  );
+};
 
 export const Automated = ({
   automaticInferenceConfig,
@@ -111,6 +138,9 @@ export const Automated = ({
           />
         </Box>
       </Section>
+      {(ENVIRONMENT !== "production" || ITERO_TEST_BED) && (
+        <DevelopmentTargetApiSwitcher />
+      )}
     </Box>
   );
 };

@@ -34,6 +34,11 @@ We will add a link to the user guide for the plugin here, when it is available.
 **Pages** will reload (the `popup` and `options` screens).
 **Scripts** (`background`, `content`) require clicking 'Update' in [Chrome](chrome://extensions) or 'Reload' in [Firefox](about:debugging#/runtime/this-firefox)
 
+You can **change the target API** in development in the 'Automated' tab (to become 'Settings'). This will override the value set by environment variable.
+The target frontend URL is **not** configurable in this way, because it would involve introducing asynchronous code to generate links,
+which is all that the frontend URL is used for. You will need to replace the frontend URL you are sent to manually if needed,
+e.g. when you click on a link, replace 'http://localhost:3000' with 'https://app.hash.ai' in the link, or vice-versa.
+
 ### Permissions
 
 In Firefox, the following permissions via Tools-Addons must be set before the extension will work:
