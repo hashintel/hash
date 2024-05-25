@@ -117,7 +117,7 @@ To run HASH locally, please follow these steps:
 1. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
 
    ```sh
-   yarn external-services up
+   yarn external-services --wait
    ```
 
    1. You can optionally force a rebuild of the Docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
@@ -149,8 +149,9 @@ To run HASH locally, please follow these steps:
 1. Log in
 
    There are three users seeded automatically for development. Their passwords are all `password`.
-   `alice@example.com`, `bob@example.com` – regular users
-   `admin@example.com` – an admin
+
+   - `alice@example.com`, `bob@example.com` – regular users
+   - `admin@example.com` – an admin
 
 If you need to run the browser plugin locally, see the `README.md` in the `apps/plugin-browser` directory.
 
@@ -162,7 +163,7 @@ If you need to reset the local database, to clear out test data or because it ha
 
    1. In the Docker UI (or via CLI at your preference), stop and delete the `hash-external-services` container
    1. In 'Volumes', search 'hash-external-services' and delete the volumes shown
-   1. Run `yarn external-services up` to rebuild the services
+   1. Run `yarn external-services up --wait` to rebuild the services
 
 1. The fast option – reset the database via the Graph API
 
