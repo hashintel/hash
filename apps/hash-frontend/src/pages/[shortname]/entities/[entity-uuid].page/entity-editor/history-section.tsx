@@ -19,14 +19,14 @@ import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import { SectionWrapper } from "../../../shared/section-wrapper";
-import type { HistoryEvent } from "./history-section/history-table";
-import { HistoryTable } from "./history-section/history-table";
 import {
   getEntityDiffsQuery,
   getEntitySubgraphQuery,
 } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { SectionWrapper } from "../../../shared/section-wrapper";
 import { getHistoryEvents } from "./history-section/get-history-events";
+import { HistoryTable } from "./history-section/history-table";
+import type { HistoryEvent } from "./history-section/shared/types";
 
 export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
   const [ownedById, entityUuid, draftUuid] = splitEntityId(entityId);
@@ -107,13 +107,13 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
     }
 
     const diffs = diffsData?.getEntityDiffs;
-    if (!diffs) {
+    if (!diffs && diffPairs.length > 0) {
       return [];
     }
 
     const { subgraph } = editionsData.getEntitySubgraph;
 
-    return getHistoryEvents(diffs, subgraph);
+    return getHistoryEvents(diffs ?? [], subgraph);
   }, [diffsData, diffsLoading, diffPairs, editionsData, editionsLoading]);
 
   const subgraph = editionsData?.getEntitySubgraph.subgraph;

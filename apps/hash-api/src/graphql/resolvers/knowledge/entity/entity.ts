@@ -14,6 +14,7 @@ import type {
   AccountGroupId,
   AccountId,
   Entity,
+  EntityEditionProvenance,
   EntityId,
   OwnedById,
 } from "@local/hash-subgraph";
@@ -94,7 +95,7 @@ export const createEntityResolver: ResolverFn<
   },
   graphQLContext,
 ) => {
-  const { authentication, user } = graphQLContext;
+  const { authentication, user, userAgent } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   /**
@@ -105,6 +106,15 @@ export const createEntityResolver: ResolverFn<
    */
 
   let entity: Entity | LinkEntity;
+
+  const provenance: EntityEditionProvenance = {
+    actorType: "human",
+    origin: {
+      userAgent,
+      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+      type: "web-app",
+    },
+  };
 
   if (linkData) {
     const { leftEntityId, rightEntityId } = linkData;
@@ -130,6 +140,7 @@ export const createEntityResolver: ResolverFn<
         relationships ??
         createDefaultAuthorizationRelationships(authentication),
       draft: draft ?? undefined,
+      provenance,
     });
   } else {
     entity = await createEntityWithLinks(context, authentication, {
@@ -139,6 +150,7 @@ export const createEntityResolver: ResolverFn<
       linkedEntities: linkedEntities ?? undefined,
       relationships: createDefaultAuthorizationRelationships(authentication),
       draft: draft ?? undefined,
+      provenance,
     });
   }
 
@@ -324,7 +336,7 @@ export const updateEntityResolver: ResolverFn<
   { entityUpdate: { draft, entityId, updatedProperties, entityTypeId } },
   graphQLContext,
 ) => {
-  const { authentication, user } = graphQLContext;
+  const { authentication, user, userAgent } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const isIncompleteUser = !user.isAccountSignupComplete;
@@ -344,11 +356,21 @@ export const updateEntityResolver: ResolverFn<
 
   let updatedEntity: Entity;
 
+  const provenance: EntityEditionProvenance = {
+    actorType: "human",
+    origin: {
+      userAgent,
+      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+      type: "web-app",
+    },
+  };
+
   if (isEntityLinkEntity(entity)) {
     updatedEntity = await updateLinkEntity(context, authentication, {
       linkEntity: entity,
       properties: updatedProperties,
       draft: draft ?? undefined,
+      provenance,
     });
   } else {
     updatedEntity = await updateEntity(context, authentication, {
@@ -356,6 +378,7 @@ export const updateEntityResolver: ResolverFn<
       entityTypeId: entityTypeId ?? undefined,
       properties: updatedProperties,
       draft: draft ?? undefined,
+      provenance,
     });
   }
 

@@ -327,12 +327,19 @@ const createInitialPlan = async (params: {
   const { questions } =
     firstToolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
 
-  const responseString = await getAnswersFromHuman(questions);
+  if (questions.length) {
+    const responseString = await getAnswersFromHuman(questions);
 
-  return createInitialPlan({
-    input,
-    questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
-  });
+    return createInitialPlan({
+      input,
+      questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
+    });
+  } else {
+    return createInitialPlan({
+      input,
+      questionsAndAnswers,
+    });
+  }
 };
 
 const parseCoordinatorInputs = async (params: {

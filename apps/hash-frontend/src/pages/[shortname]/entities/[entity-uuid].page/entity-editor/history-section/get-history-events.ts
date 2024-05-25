@@ -13,7 +13,7 @@ import {
 import { isEqual } from "lodash";
 
 import type { EntityDiff } from "../../../../../../graphql/api-types.gen";
-import type { HistoryEvent } from "./history-table";
+import type { HistoryEvent } from "./shared/types";
 
 export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
   const firstEditionIdentifier = subgraph.roots[0];

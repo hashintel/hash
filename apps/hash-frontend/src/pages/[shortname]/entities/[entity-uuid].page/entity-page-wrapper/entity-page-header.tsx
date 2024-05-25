@@ -11,8 +11,8 @@ import { useContext } from "react";
 import { NotificationsWithLinksContextProvider } from "../../../../shared/notifications-with-links-context";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
-import { DraftEntityBanner } from "./draft-entity-banner";
 import { EntityEditorTabs } from "../shared/entity-editor-tabs";
+import { DraftEntityBanner } from "./draft-entity-banner";
 
 export const EntityPageHeader = ({
   entity,

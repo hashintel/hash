@@ -1,24 +1,17 @@
 import { AngleRightRegularIcon, IconButton } from "@hashintel/design-system";
-import type {
-  EntityEditionProvenance,
-  EntityType,
-  PropertyDiff,
-  PropertyProvenance,
-  PropertyType,
-} from "@local/hash-graph-client";
+import type { Subgraph } from "@local/hash-subgraph";
+import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   Collapse,
   Stack,
-  SxProps,
   TableCell,
   tableContainerClasses,
   tableHeadClasses,
-  Theme,
   Typography,
 } from "@mui/material";
 import { format } from "date-fns";
-import { memo, PropsWithChildren, useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import { CircleInfoIcon } from "../../../../../../shared/icons/circle-info-icon";
 import type {
@@ -32,8 +25,9 @@ import {
   headerHeight,
   VirtualizedTable,
 } from "../../../../../shared/virtualized-table";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { Provenance } from "./history-table/provenance";
+import { EventDetail } from "./history-table/shared/event-detail";
+import type { HistoryEvent } from "./shared/types";
 
 type FieldId = "number" | "event" | "time" | "actions";
 
@@ -73,133 +67,6 @@ const createColumns = (rowCount: number): VirtualizedTableColumn<FieldId>[] => [
   },
 ];
 
-type HistoryEventBase = {
-  number: string;
-  timestamp: string;
-};
-
-type CreationEvent = HistoryEventBase & {
-  type: "created";
-  entity: Entity;
-  entityType: EntityType;
-  provenance: {
-    edition: EntityEditionProvenance;
-  };
-};
-
-type PropertyUpdateEvent = HistoryEventBase & {
-  type: "property-update";
-  diff: PropertyDiff;
-  propertyType: PropertyType;
-  provenance: {
-    edition: EntityEditionProvenance;
-    property?: PropertyProvenance;
-  };
-};
-
-type TypeUpdateEvent = HistoryEventBase & {
-  type: "type-update";
-  entityType: EntityType;
-  provenance: {
-    edition: EntityEditionProvenance;
-  };
-};
-
-export type HistoryEvent =
-  | CreationEvent
-  | PropertyUpdateEvent
-  | TypeUpdateEvent;
-
-const Chip = ({
-  children,
-  type,
-  sx,
-  value,
-}: PropsWithChildren<{
-  type?: boolean;
-  sx?: SxProps<Theme>;
-  value?: boolean;
-}>) => (
-  <Stack
-    direction="row"
-    alignItems="center"
-    sx={[
-      ({ palette }) => ({
-        background: palette.common.white,
-        border: `1px solid ${palette.gray[30]}`,
-        borderRadius: type ? 4 : 2,
-        fontWeight: 500,
-        fontSize: 12,
-        px: value ? 1.2 : 1,
-        py: 0.5,
-      }),
-      ...(Array.isArray(sx) ? sx : [sx]),
-    ]}
-  >
-    {children}
-  </Stack>
-);
-
-const EventDetail = ({
-  event,
-  subgraph,
-}: {
-  event: HistoryEvent;
-  subgraph: Subgraph;
-}) => {
-  switch (event.type) {
-    case "created": {
-      const entityLabel = generateEntityLabel(
-        subgraph as Subgraph<EntityRootType>,
-        event.entity,
-      );
-      return (
-        <>
-          <Chip>{entityLabel}</Chip>
-          <Box mx={1}>created with type</Box>
-          <Chip type>{event.entityType.title}</Chip>
-        </>
-      );
-    }
-    case "property-update": {
-      const { diff, propertyType } = event;
-
-      switch (diff.op) {
-        case "added": {
-          return (
-            <>
-              <Chip type>{propertyType.title}</Chip> <Box mx={1}>added as</Box>
-              <Chip value>{diff.added}</Chip>
-            </>
-          );
-        }
-        case "removed": {
-          return (
-            <>
-              <Chip type>{propertyType.title}</Chip>{" "}
-              <Box mx={1}>removed, was</Box>
-              <Chip value>{diff.removed}</Chip>
-            </>
-          );
-        }
-        case "changed": {
-          return (
-            <>
-              <Chip type>{propertyType.title}</Chip>{" "}
-              <Box mx={1}>updated from</Box>
-              <Chip value>{diff.old}</Chip>
-              <Box mx={1}>to</Box>
-              <Chip value>{diff.new}</Chip>
-            </>
-          );
-        }
-      }
-    }
-    case "type-update":
-      return <span>Updated type</span>;
-  }
-};
-
 const typographySx: SxProps<Theme> = {
   fontSize: 14,
 };
@@ -214,38 +81,6 @@ const historyEventCellSx: SxProps<Theme> = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-};
-
-const ProvenanceHeader = ({ label }: { label: string }) => (
-  <Typography sx={{ color: "black", fontWeight: 700, fontSize: 14, mb: 1 }}>
-    {label}
-  </Typography>
-);
-
-const Provenance = ({ event }: { event: HistoryEvent }) => {
-  const actionText = event.type === "created" ? "Created by" : "Updated by";
-
-  return (
-    <Box
-      py={2}
-      px={4}
-      sx={({ palette }) => ({
-        background: palette.blue[10],
-        borderTop: `1px solid ${palette.blue[20]}`,
-        borderRadius: 2,
-      })}
-    >
-      <Stack direction="row" gap={4}>
-        <Box>
-          <ProvenanceHeader label="Change origins" />
-          <Typography sx={typographySx}>
-            {actionText}
-            {" Ciaran Morinan"}
-          </Typography>
-        </Box>
-      </Stack>
-    </Box>
-  );
 };
 
 const TableRow = memo(
@@ -367,7 +202,7 @@ const TableRow = memo(
             </Stack>
           </Stack>
           <Collapse in={showProvenance} timeout={200}>
-            <Provenance event={event} />
+            <Provenance event={event} subgraph={subgraph} />
           </Collapse>
         </Box>
       </TableCell>
