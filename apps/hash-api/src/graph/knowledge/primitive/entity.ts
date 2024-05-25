@@ -31,7 +31,7 @@ import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
-import {
+import type {
   AccountGroupId,
   AccountId,
   BaseUrl,
@@ -45,7 +45,6 @@ import {
   EntityUuid,
   OwnedById,
   Subgraph,
-  Timestamp,
 } from "@local/hash-subgraph";
 import {
   extractDraftIdFromEntityId,

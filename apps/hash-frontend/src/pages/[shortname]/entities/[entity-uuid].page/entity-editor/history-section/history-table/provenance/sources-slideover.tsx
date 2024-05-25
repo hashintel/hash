@@ -1,7 +1,11 @@
+import { faFile } from "@fortawesome/free-regular-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { Subgraph } from "@local/hash-subgraph";
 import {
+  Backdrop,
   Box,
   Slide,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -10,7 +14,6 @@ import {
   Typography,
 } from "@mui/material";
 
-import { PageIcon } from "../../../../../../../../components/page-icon";
 import { Link } from "../../../../../../../../shared/ui/link";
 import { Cell } from "../../../../../../../settings/organizations/shared/cell";
 import type { HistoryEvent } from "../../shared/types";
@@ -24,10 +27,12 @@ const boxPadding = {
 
 export const SourcesSlideover = ({
   event,
+  onClose,
   open,
   subgraph,
 }: {
   event: HistoryEvent;
+  onClose: () => void;
   open: boolean;
   subgraph: Subgraph;
 }) => {
@@ -50,84 +55,135 @@ export const SourcesSlideover = ({
       : event.provenance.edition.sources) ?? [];
 
   return (
-    <Slide in={open} direction="left">
-      <Box>
-        <Box sx={boxPadding}>
-          <Typography
-            variant="h5"
-            sx={{ color: ({ palette }) => palette.gray[90] }}
-          >
-            {headerText}
-          </Typography>
-          <EventDetail event={event} subgraph={subgraph} />
-        </Box>
-        <Box
-          sx={{ ...boxPadding, background: ({ palette }) => palette.blue[10] }}
+    <Backdrop
+      open={open}
+      onClick={onClose}
+      sx={{
+        zIndex: ({ zIndex }) => zIndex.drawer + 2,
+        justifyContent: "flex-end",
+      }}
+    >
+      <Slide in={open} direction="left">
+        <Stack
+          sx={{
+            height: "100vh",
+            overflowY: "auto",
+            background: ({ palette }) => palette.common.white,
+          }}
         >
-          <Typography
-            variant="h5"
-            sx={{ color: ({ palette }) => palette.gray[90] }}
+          <Box
+            sx={{
+              ...boxPadding,
+              borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
+            }}
           >
-            Sources
-          </Typography>
-          <Table
-            sx={[
-              ({ palette }) => ({
-                borderRadius: 1,
-                boxShadow: ({ boxShadows }) => boxShadows.xs,
-                "th, td": {
-                  padding: "12px 16px",
-                  "&:first-of-type": {
-                    paddingLeft: "24px",
-                  },
-                  "&:last-of-type": {
-                    paddingRight: "24px",
-                  },
-                },
-                th: {
-                  borderBottom: `1px solid ${palette.gray[20]}`,
-                },
-              }),
-            ]}
+            <Typography
+              variant="h5"
+              sx={{ color: ({ palette }) => palette.gray[90], mb: 2 }}
+            >
+              {headerText}
+            </Typography>
+            <Stack direction="row" alignItems="center">
+              <EventDetail event={event} subgraph={subgraph} />
+            </Stack>
+          </Box>
+          <Box
+            sx={{
+              ...boxPadding,
+              background: ({ palette }) => palette.gray[10],
+              flexGrow: 1,
+            }}
           >
-            <TableHead>
-              <TableRow>
-                <Cell>Type</Cell>
-                <Cell>Title</Cell>
-                <Cell>Location</Cell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {sources.map(({ type, location }, index) => (
-                <TableRow key={location?.uri ?? index}>
-                  <TableCell>
-                    <Chip type>
-                      <PageIcon
-                        sx={{
-                          fill: ({ palette }) => palette.blue[70],
-                          fontSize: 12,
-                          mr: 1,
-                        }}
-                      />{" "}
-                      {type}
-                    </Chip>
-                  </TableCell>
-                  <TableCell>{location?.name ?? "Unknown"}</TableCell>
-                  <TableCell>
-                    {location?.uri ? (
-                      <Link href={location.uri} target="_blank">
-                        {location.uri}
-                      </Link>
-                    ) : (
-                      "Unknown"
-                    )}
-                  </TableCell>
+            <Typography
+              variant="h5"
+              sx={{ color: ({ palette }) => palette.gray[90], mb: 2 }}
+            >
+              Sources
+            </Typography>
+            <Table
+              sx={[
+                ({ palette }) => ({
+                  background: palette.common.white,
+                  borderRadius: 1,
+                  boxShadow: ({ boxShadows }) => boxShadows.xs,
+                  "th, td": {
+                    padding: "12px 16px",
+                    "&:first-of-type": {
+                      paddingLeft: "24px",
+                    },
+                    "&:last-of-type": {
+                      paddingRight: "24px",
+                    },
+                  },
+                  th: {
+                    borderBottom: `1px solid ${palette.gray[20]}`,
+                  },
+                }),
+              ]}
+            >
+              <TableHead>
+                <TableRow>
+                  <Cell>Type</Cell>
+                  <Cell>Title</Cell>
+                  <Cell>Location</Cell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Box>
-      </Box>
-    </Slide>
+              </TableHead>
+              <TableBody>
+                {sources.map(({ type, location }, index) => (
+                  <TableRow key={location?.uri ?? index}>
+                    <TableCell>
+                      <Chip type sx={{ py: 0.2 }}>
+                        <FontAwesomeIcon
+                          icon={faFile}
+                          sx={(theme) => ({
+                            fontSize: 12,
+                            color: theme.palette.blue[70],
+                            mr: 0.6,
+                          })}
+                        />
+                        <Box
+                          component="span"
+                          sx={{ textTransform: "capitalize", fontWeight: 500 }}
+                        >
+                          {type}
+                        </Box>
+                      </Chip>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: ({ palette }) => palette.gray[80],
+                      }}
+                    >
+                      {location?.name ?? "Unknown"}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: ({ palette }) => palette.gray[80],
+                      }}
+                    >
+                      {location?.uri ? (
+                        <Link
+                          href={location.uri}
+                          target="_blank"
+                          sx={{ textDecoration: "none" }}
+                        >
+                          {location.uri}
+                        </Link>
+                      ) : (
+                        "Unknown"
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        </Stack>
+      </Slide>
+    </Backdrop>
   );
 };

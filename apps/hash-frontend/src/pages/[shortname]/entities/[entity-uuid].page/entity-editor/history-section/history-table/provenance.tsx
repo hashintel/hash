@@ -118,6 +118,7 @@ export const Provenance = ({
       {!!sources?.length && (
         <SourcesSlideover
           event={event}
+          onClose={() => setShowSourcesSlideover(false)}
           open={showSourcesSlideover}
           subgraph={subgraph}
         />
@@ -198,6 +199,8 @@ export const Provenance = ({
                       border: "none",
                       fontWeight: 600,
                       color: ({ palette }) => palette.blue[70],
+                      cursor: "pointer",
+                      ml: 0.6,
                     }}
                   >
                     {sources.length}{" "}

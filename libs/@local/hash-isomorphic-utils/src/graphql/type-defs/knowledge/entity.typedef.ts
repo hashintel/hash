@@ -1,4 +1,3 @@
-import { DiffEntityParams } from "@local/hash-graph-client";
 import { gql } from "apollo-server-express";
 
 export const entityTypedef = gql`
