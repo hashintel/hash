@@ -171,8 +171,6 @@ If you need to reset the local database, to clear out test data or because it ha
    2. Run `yarn graph:reset-database` to reset the database
    3. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or login will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
 
-````sh
-
 #### External services test mode
 
 The external services of the system can be started in 'test mode' to prevent polluting the development database.
@@ -182,7 +180,7 @@ To make use of this test mode, the external services can be started as follows:
 
 ```sh
 yarn external-services:test up
-````
+```
 
 </details>
 
