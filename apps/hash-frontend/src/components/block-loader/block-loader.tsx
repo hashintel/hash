@@ -15,7 +15,6 @@ import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/s
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import type {
   Entity,
-  EntityId,
   EntityPropertiesObject,
   EntityRevisionId,
   EntityRootType,
@@ -53,6 +52,7 @@ import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/
 import type { RemoteBlockProps } from "../remote-block/remote-block";
 import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
+import { EntityId } from "@local/hash-graph-types/entity";
 
 export type BlockLoaderProps = {
   blockCollectionSubgraph?: Subgraph<EntityRootType>;

@@ -4,8 +4,6 @@ import type {
   Entity,
   EntityPropertyValue,
   EntityRootType,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
 import type { ListItemButtonProps } from "@mui/material";
@@ -29,6 +27,10 @@ import { Button } from "../../../../../shared/ui";
 import { useEntityIcon } from "../../../../../shared/use-entity-icon";
 import { MentionSuggesterSubheading } from "./mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester-wrapper";
+import {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 
 export type SortOrder = "asc" | "desc";
 

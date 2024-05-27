@@ -6,7 +6,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { BlockCollectionProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { generateKeyBetween } from "fractional-indexing";
 import { useCallback } from "react";

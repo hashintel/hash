@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
-import type { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityRevision,
@@ -32,6 +32,7 @@ import { LayerGroupLightIcon } from "../../shared/icons/layer-group-light-icon";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
 import { Button, MenuItem } from "../../shared/ui";
 import { useNotificationsWithLinks } from "../shared/notifications-with-links-context";
+import { EntityId } from "@local/hash-graph-types/entity";
 
 export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
   selectedDraftEntityIds: EntityId[];

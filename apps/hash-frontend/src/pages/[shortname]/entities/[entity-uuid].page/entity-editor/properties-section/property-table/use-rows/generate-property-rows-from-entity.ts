@@ -1,4 +1,4 @@
-import type { BaseUrl, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getRoots,
@@ -7,6 +7,7 @@ import {
 import type { PropertyRow } from "../types";
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
 
+import { BaseUrl } from "@local/hash-graph-types/ontology";
 export const generatePropertyRowsFromEntity = (
   entitySubgraph: Subgraph<EntityRootType>,
 ): PropertyRow[] => {

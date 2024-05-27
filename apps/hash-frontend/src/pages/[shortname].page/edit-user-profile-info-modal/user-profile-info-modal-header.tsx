@@ -9,7 +9,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { Box, buttonClasses, styled } from "@mui/material";
 import Image from "next/image";
 import type { ChangeEventHandler, FunctionComponent } from "react";

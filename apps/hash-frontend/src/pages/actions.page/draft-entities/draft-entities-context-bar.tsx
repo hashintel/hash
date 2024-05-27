@@ -1,10 +1,11 @@
-import type { Entity, EntityId } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { Box, Checkbox, Fade, styled, Typography } from "@mui/material";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useCallback } from "react";
 
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { Button } from "../../../shared/ui";
+import { EntityId } from "@local/hash-graph-types/entity";
 
 const SelectAdditionalButton = styled(Button)(({ theme }) => ({
   padding: 0,

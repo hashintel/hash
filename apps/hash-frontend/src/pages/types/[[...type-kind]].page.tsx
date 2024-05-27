@@ -1,7 +1,4 @@
-import type {
-  DataTypeRootType,
-  DataTypeWithMetadata,
-} from "@local/hash-subgraph";
+import type { DataTypeRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Container, Typography } from "@mui/material";
 import type { GetServerSideProps } from "next";
@@ -21,6 +18,7 @@ import {
   TypesPageTabs,
 } from "./[[...type-kind]].page/types-page-tabs";
 import { TypesTable } from "./[[...type-kind]].page/types-table";
+import { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 const parsedQueryParams = [
   "entity-type",

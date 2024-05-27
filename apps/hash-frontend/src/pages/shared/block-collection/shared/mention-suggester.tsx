@@ -16,14 +16,7 @@ import {
   isPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type {
-  BaseUrl,
-  Entity,
-  EntityId,
-  EntityRootType,
-  EntityTypeWithMetadata,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
@@ -62,6 +55,12 @@ import type {
 import { MentionSuggesterEntity } from "./mention-suggester/mention-suggester-entity";
 import { MentionSuggesterSubheading } from "./mention-suggester/mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester/mention-suggester-wrapper";
+import { EntityId } from "@local/hash-graph-types/entity";
+import {
+  BaseUrl,
+  EntityTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import { OwnedById } from "@local/hash-graph-types/web";
 
 export type Mention =
   | {

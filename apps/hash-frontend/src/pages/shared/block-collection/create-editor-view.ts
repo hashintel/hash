@@ -10,7 +10,8 @@ import {
 // import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { save } from "@local/hash-isomorphic-utils/save";
-import type { EntityId, OwnedById } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import debounce from "lodash/debounce";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin, PluginKey } from "prosemirror-state";
@@ -257,7 +258,7 @@ export const createEditorView = (params: {
   /**
    * @todo the collab editor connection is disabled currently.
    *   see https://app.asana.com/0/0/1203099452204542/f
-   
+
   connection = new EditorConnection(
     `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
     view.state.schema,

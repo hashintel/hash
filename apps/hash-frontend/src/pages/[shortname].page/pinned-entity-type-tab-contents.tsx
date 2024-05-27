@@ -1,13 +1,7 @@
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type {
-  Entity,
-  EntityRootType,
-  EntityTypeWithMetadata,
-  OwnedById,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   Box,
@@ -41,6 +35,8 @@ import { useEntityIcon } from "../../shared/use-entity-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { InlineSelect } from "../shared/inline-select";
 import type { ProfilePageTab } from "./util";
+import { OwnedById } from "@local/hash-graph-types/web";
+import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 const EntityRow: FunctionComponent<{
   entity: Entity;

@@ -2,7 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { SxProps, Theme } from "@mui/material";
 import type { MouseEventHandler } from "react";
 import { useCallback } from "react";

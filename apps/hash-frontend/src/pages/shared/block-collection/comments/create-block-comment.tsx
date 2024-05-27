@@ -1,7 +1,7 @@
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { Box } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useState } from "react";

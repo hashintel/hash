@@ -10,7 +10,7 @@ import {
   isEntityNode,
 } from "@local/hash-isomorphic-utils/prosemirror";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Node } from "prosemirror-model";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import type { EditorView, NodeView } from "prosemirror-view";

@@ -8,7 +8,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import type { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -25,6 +25,8 @@ import { XMarkRegularIcon } from "../../../../shared/icons/x-mark-regular-icon";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { useBlockContext } from "../block-context";
+import { EntityId } from "@local/hash-graph-types/entity";
+import { OwnedById } from "@local/hash-graph-types/web";
 
 export const BlockSelectDataModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {

@@ -1,5 +1,5 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { useMemo } from "react";
 
 import { useUserOrOrg } from "../../shared/use-user-or-org";

@@ -5,7 +5,7 @@ import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityId, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   Box,
@@ -34,6 +34,7 @@ import { DraftEntitiesBulkActionsDropdown } from "./actions.page/draft-entities-
 import { InlineSelect } from "./shared/inline-select";
 import { NotificationsWithLinksContextProvider } from "./shared/notifications-with-links-context";
 import { TopContextBar } from "./shared/top-context-bar";
+import { EntityId } from "@local/hash-graph-types/entity";
 
 const sortOrderHumanReadable: Record<SortOrder, string> = {
   "created-at-asc": "creation date/time (oldest first)",

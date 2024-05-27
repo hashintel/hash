@@ -4,7 +4,8 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { BaseUrl, Entity, OwnedById } from "@local/hash-subgraph";
+import { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { Entity } from "@local/hash-subgraph";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
@@ -24,6 +25,7 @@ import type {
 import { Button, MenuItem } from "../../../shared/ui";
 import { ServiceAccountsInput } from "./service-accounts-input";
 import { urlRegex } from "./util";
+import { OwnedById } from "@local/hash-graph-types/web";
 
 export type UserProfileFormServiceAccount = {
   existingLinkEntity?: LinkEntity;

@@ -13,7 +13,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { BaseUrl, Entity, EntityId } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -59,6 +59,8 @@ import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
+import { BaseUrl } from "@local/hash-graph-types/ontology";
+import { EntityId } from "@local/hash-graph-types/entity";
 
 /**
  * @todo: avoid having to maintain this list, potentially by

@@ -22,7 +22,7 @@ import {
 } from "@local/hash-isomorphic-utils/prosemirror";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { textBlockNodeToEntityProperties } from "@local/hash-isomorphic-utils/text";
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import * as Sentry from "@sentry/nextjs";
 import type { Node } from "prosemirror-model";
 import type { Transaction } from "prosemirror-state";

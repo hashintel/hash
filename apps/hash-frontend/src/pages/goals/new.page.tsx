@@ -8,7 +8,8 @@ import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/ex
 import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
-import type { EntityTypeWithMetadata, OwnedById } from "@local/hash-subgraph";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   autocompleteClasses,
   Box,

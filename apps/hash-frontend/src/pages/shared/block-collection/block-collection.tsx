@@ -2,7 +2,8 @@ import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import type { EntityId, OwnedById } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { BoxProps } from "@mui/material";
 import { Box } from "@mui/material";
 import type { EditorView } from "prosemirror-view";

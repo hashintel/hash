@@ -5,11 +5,10 @@ import type {
   PayloadKind,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
-import type {
-  Entity,
-  EntityTypeWithMetadata,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
+
+import { OwnedById } from "@local/hash-graph-types/web";
+import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 const unsupportedPayloadKinds = [
   /** @todo support ActorType to vary Sheet output formatting */

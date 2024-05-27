@@ -10,7 +10,7 @@ import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
 import { isExternalOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";

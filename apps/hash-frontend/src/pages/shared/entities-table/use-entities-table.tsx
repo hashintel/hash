@@ -1,18 +1,13 @@
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  BaseUrl,
-  Entity,
-  EntityId,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { format } from "date-fns";
 import { useMemo } from "react";
@@ -20,6 +15,7 @@ import { useMemo } from "react";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import type { MinimalActor } from "../../../shared/use-actors";
 import { useActors } from "../../../shared/use-actors";
+import { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export interface TypeEntitiesRow {
   rowId: string;

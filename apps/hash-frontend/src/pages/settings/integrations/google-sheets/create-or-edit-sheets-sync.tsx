@@ -4,7 +4,7 @@ import { CheckIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useMemo, useState } from "react";

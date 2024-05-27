@@ -5,9 +5,8 @@ import type {
 } from "@hashintel/type-editor";
 import type {
   EntityTypeWithMetadata,
-  OwnedById,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
 import {
   getEntityTypeById,
   getPropertyTypeById,
@@ -25,6 +24,7 @@ import { useRefetchPropertyTypes } from "../../../../shared/property-types-conte
 import { canUserEditType } from "../../../../shared/readonly-mode";
 import { useAuthInfo } from "../../auth-info-context";
 import { useGenerateTypeUrlsForUser } from "../../use-generate-type-urls-for-user";
+import { OwnedById } from "@local/hash-graph-types/web";
 
 export const useEditorOntologyFunctions = (
   ownedById: OwnedById | null,

@@ -9,7 +9,6 @@ import type {
   Entity,
   EntityPropertyValue,
   EntityRootType,
-  EntityTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
@@ -37,6 +36,7 @@ import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-e
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
 import { Link } from "../../shared/ui";
+import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({
   fontSize: 14,

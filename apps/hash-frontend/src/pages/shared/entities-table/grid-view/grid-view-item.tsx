@@ -1,7 +1,7 @@
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { BaseUrl, Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
@@ -20,6 +20,7 @@ import { Link } from "../../../../shared/ui";
 import { getImageUrlFromEntityProperties } from "../../get-file-properties";
 import { useEntityHref } from "../../use-entity-href";
 import { GridViewItemWrapper } from "./grid-view-item-wrapper";
+import { BaseUrl } from "@local/hash-graph-types/ontology";
 
 /**
  * @todo: gradually we will want to rely more on entity types to determine the icon

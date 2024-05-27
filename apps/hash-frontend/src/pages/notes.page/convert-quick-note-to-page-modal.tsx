@@ -4,7 +4,7 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/page";
-import type { Entity, OwnedById } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import type { ModalProps } from "@mui/material";
 import {
   autocompleteClasses,
@@ -24,6 +24,7 @@ import { useAccountPages } from "../../components/hooks/use-account-pages";
 import { PageIcon } from "../../components/page-icon";
 import { Button, Modal } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
+import { OwnedById } from "@local/hash-graph-types/web";
 
 export type PageWithParentLink = SimplePage & { parentLinkEntity?: Entity };
 

@@ -3,19 +3,13 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-  CreatedById,
-  EditionCreatedById,
   Entity,
-  EntityId,
   EntityPropertiesObject,
   EntityRevisionId,
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphVertices,
   Subgraph,
-  Timestamp,
 } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
@@ -24,6 +18,16 @@ import type {
   GetEntityQueryVariables,
   SubgraphAndPermissions,
 } from "../graphql/api-types.gen";
+import { EntityId } from "@local/hash-graph-types/entity";
+import {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  Timestamp,
+} from "@local/hash-graph-types/temporal-versioning";
+import {
+  CreatedById,
+  EditionCreatedById,
+} from "@local/hash-graph-types/account";
 
 export const useFetchBlockSubgraph = (): ((
   blockEntityTypeId: VersionedUrl,

@@ -1,5 +1,8 @@
 import { Autocomplete, Avatar } from "@hashintel/design-system";
-import type { AccountGroupId, AccountId } from "@local/hash-subgraph";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
 import {
   autocompleteClasses,
   Box,

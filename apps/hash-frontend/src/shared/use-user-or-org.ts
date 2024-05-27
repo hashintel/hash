@@ -12,8 +12,6 @@ import {
 import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
-  AccountGroupId,
-  AccountId,
   Entity,
   EntityRootType,
   GraphResolveDepths,
@@ -28,6 +26,7 @@ import type {
 } from "../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { isEntityOrgEntity, isEntityUserEntity } from "../lib/user-and-org";
+import { AccountGroupId, AccountId } from "@local/hash-graph-types/account";
 
 export const useUserOrOrg = (
   params: {

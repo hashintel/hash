@@ -6,7 +6,6 @@ import {
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import type {
-  EntityId,
   EntityRootType,
   GraphResolveDepths,
   Subgraph,
@@ -17,6 +16,7 @@ import type {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../graphql/api-types.gen";
+import { EntityId } from "@local/hash-graph-types/entity";
 
 export const useEntityById = ({
   entityId,

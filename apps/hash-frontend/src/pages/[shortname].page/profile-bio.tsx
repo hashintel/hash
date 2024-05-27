@@ -7,7 +7,7 @@ import type {
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityRootType, OwnedById } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
@@ -27,6 +27,7 @@ import {
 } from "../shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "../shared/block-collection-context";
 import { useCreateBlockCollection } from "../shared/use-create-block-collection";
+import { OwnedById } from "@local/hash-graph-types/web";
 
 export const ProfileBio: FunctionComponent<{
   profile: User | Org;

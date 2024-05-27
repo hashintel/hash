@@ -6,7 +6,7 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountId, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -17,6 +17,7 @@ import type {
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { User } from "../../lib/user-and-org";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
+import { AccountId } from "@local/hash-graph-types/account";
 
 /**
  * Retrieves a specific set of users, with their avatars populated

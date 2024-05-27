@@ -2,10 +2,10 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   DataTypeWithMetadata,
-  Entity,
-  EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+  EntityTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type { Entity } from "@local/hash-subgraph";
 
 import { isEntityPageEntity, isType } from "./is-of-type";
 

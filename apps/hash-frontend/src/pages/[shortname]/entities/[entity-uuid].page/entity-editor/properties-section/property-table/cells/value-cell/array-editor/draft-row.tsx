@@ -1,4 +1,4 @@
-import type { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { useState } from "react";
 
 import { DRAFT_ROW_KEY } from "../array-editor";

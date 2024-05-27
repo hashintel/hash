@@ -9,7 +9,7 @@ import {
 import type { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import type { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
+import type { Entity, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   Box,
@@ -31,6 +31,7 @@ import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity
 import { entityHasEntityTypeByBaseUrlFilter } from "../../../../shared/filters";
 import { MenuItem } from "../../../../shared/ui";
 import { useBlockView } from "../block-view";
+import { EntityId } from "@local/hash-graph-types/entity";
 
 type LoadEntityMenuContentProps = {
   blockEntityId: EntityId | null;

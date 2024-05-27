@@ -4,7 +4,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
@@ -12,6 +12,7 @@ import { useMemo } from "react";
 import { FileRegularIcon } from "./icons/file-regular-icon";
 import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
+import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 export const entityTypeIcons: Record<VersionedUrl, ReactNode> = {
   [systemEntityTypes.user.entityTypeId]: <UserIcon sx={{ fontSize: 12 }} />,

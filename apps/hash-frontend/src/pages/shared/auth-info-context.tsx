@@ -3,14 +3,7 @@ import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-u
 import { checkUserPermissionsOnEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  AccountGroupId,
-  EntityMetadata,
-  EntityRootType,
-  Subgraph,
-  Timestamp,
-  Uuid,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
@@ -37,6 +30,10 @@ import type {
 import { meQuery } from "../../graphql/queries/user.queries";
 import type { User } from "../../lib/user-and-org";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
+import { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import { EntityMetadata } from "@local/hash-graph-types/entity";
+import { Uuid } from "@local/hash-graph-types/branded";
+import { AccountGroupId } from "@local/hash-graph-types/account";
 
 type RefetchAuthInfoFunction = () => Promise<{
   authenticatedUser?: User;

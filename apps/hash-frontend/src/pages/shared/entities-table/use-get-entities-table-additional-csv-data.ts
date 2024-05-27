@@ -6,11 +6,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type {
-  Entity,
-  EntityRootType,
-  EntityTypeWithMetadata,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
@@ -25,6 +21,7 @@ import type {
 import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import type { GetAdditionalCsvDataFunction } from "../../../shared/table-header";
 import type { TypeEntitiesRow } from "./use-entities-table";
+import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 export const useGetEntitiesTableAdditionalCsvData = (props: {
   currentlyDisplayedRowsRef: MutableRefObject<TypeEntitiesRow[] | null>;

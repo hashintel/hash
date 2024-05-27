@@ -4,7 +4,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
 import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
-import type { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 import {
   getCellHorizontalPadding,

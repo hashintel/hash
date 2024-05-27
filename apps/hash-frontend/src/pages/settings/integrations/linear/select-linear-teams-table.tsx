@@ -1,7 +1,7 @@
 import { Chip, Select } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   Box,
   Table,

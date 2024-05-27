@@ -2,7 +2,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { useCallback, useState } from "react";
 
 import type { Org, User } from "../../../lib/user-and-org";

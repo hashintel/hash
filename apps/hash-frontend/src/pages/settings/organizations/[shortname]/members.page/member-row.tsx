@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { AccountEntityId, AccountGroupId } from "@local/hash-subgraph";
+import type { AccountEntityId } from "@local/hash-subgraph";
 import { extractAccountId } from "@local/hash-subgraph";
 import { TableCell, TableRow, Typography } from "@mui/material";
 
@@ -14,6 +14,7 @@ import { Link } from "../../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
 import { Cell } from "../../shared/cell";
 import { MemberContextMenu } from "./member-row/member-context-menu";
+import { AccountGroupId } from "@local/hash-graph-types/account";
 
 export const MemberRow = ({
   accountGroupId,

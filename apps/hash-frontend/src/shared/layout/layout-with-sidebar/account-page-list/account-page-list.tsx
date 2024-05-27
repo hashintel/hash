@@ -20,7 +20,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { IconButton } from "@hashintel/design-system";
-import type { EntityUuid, OwnedById } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   isEntityId,
@@ -51,6 +50,8 @@ import {
   getTreeItemList,
   isPageCollapsed,
 } from "./utils";
+import { OwnedById } from "@local/hash-graph-types/web";
+import { EntityUuid } from "@local/hash-graph-types/entity";
 
 type AccountPageListProps = {
   ownedById: OwnedById;

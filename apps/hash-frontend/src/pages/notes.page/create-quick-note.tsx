@@ -1,10 +1,5 @@
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
-import type {
-  Entity,
-  EntityRootType,
-  OwnedById,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Skeleton } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -19,6 +14,7 @@ import { Button } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useCreateBlockCollection } from "../shared/use-create-block-collection";
 import { EditableQuickNote } from "./editable-quick-note";
+import { OwnedById } from "@local/hash-graph-types/web";
 
 export const CreateQuickNote: FunctionComponent<{
   initialQuickNoteEntity?: Entity | null;

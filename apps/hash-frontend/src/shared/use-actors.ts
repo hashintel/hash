@@ -7,7 +7,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
-import type { AccountId, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -18,6 +18,7 @@ import type {
 } from "../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../lib/user-and-org";
+import { AccountId } from "@local/hash-graph-types/account";
 
 type MachineActor = {
   accountId: AccountId;

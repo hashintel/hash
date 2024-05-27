@@ -16,9 +16,7 @@ import type {
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type {
   Entity,
-  EntityId,
   EntityRootType,
-  EntityUuid,
   GraphResolveDepths,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -33,6 +31,7 @@ import type {
   BlockCollectionContentItem,
   GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
+import { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 
 /**
  * The depths required to fetch the contents for blocks to render, rooted at a BlockCollection

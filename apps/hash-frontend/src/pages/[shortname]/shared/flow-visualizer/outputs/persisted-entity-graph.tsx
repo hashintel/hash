@@ -8,7 +8,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
-import type { Entity, EntityId } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
+import { EntityId } from "@local/hash-graph-types/entity";
 import { useMemo } from "react";
 
 import type {

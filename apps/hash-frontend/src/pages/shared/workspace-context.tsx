@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,

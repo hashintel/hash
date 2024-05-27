@@ -1,12 +1,7 @@
 import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  Entity,
-  EntityId,
-  EntityPropertiesObject,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import type { PropsWithChildren } from "react";
 import {
@@ -46,6 +41,8 @@ import {
   requestFileUpload,
 } from "../graphql/queries/knowledge/file.queries";
 import { uploadFileToStorageProvider } from "./upload-to-storage-provider";
+import { EntityId } from "@local/hash-graph-types/entity";
+import { OwnedById } from "@local/hash-graph-types/web";
 
 /**
  * If an uploaded file is to be linked to another entity, this data describes the link

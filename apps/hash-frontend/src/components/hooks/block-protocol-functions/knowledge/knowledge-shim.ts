@@ -17,10 +17,8 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   Entity,
-  EntityId,
   EntityPropertiesObject,
   EntityRootType,
-  LinkData,
   Subgraph,
 } from "@local/hash-subgraph";
 
@@ -28,6 +26,7 @@ import type {
   FileEntityCreationInput,
   FileEntityUpdateInput,
 } from "../../../../graphql/api-types.gen";
+import { EntityId, LinkData } from "@local/hash-graph-types/entity";
 
 /* Entity CRU */
 

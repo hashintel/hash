@@ -5,12 +5,7 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type {
-  BaseUrl,
-  EntityRootType,
-  GraphResolveDepths,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -25,6 +20,8 @@ import {
 } from "../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../lib/apollo-client";
 import type { EntityTypeEntitiesContextValue } from "./entity-type-entities-context";
+import { OwnedById } from "@local/hash-graph-types/web";
+import { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export const generateUseEntityTypeEntitiesQueryVariables = (params: {
   ownedById?: OwnedById;

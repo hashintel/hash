@@ -7,13 +7,10 @@ import type {
 } from "@blockprotocol/type-system";
 import type { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import type {
-  AccountId,
-  BaseUrl,
   EntityTypeWithMetadata,
-  OwnedById,
   PropertyTypeWithMetadata,
-  Subgraph,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
+import type { Subgraph } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getEntityTypesByBaseUrl,
@@ -45,6 +42,9 @@ import {
   useEntityTypesSubgraphOptional,
   useFetchEntityTypes,
 } from "../../../shared/entity-types-context/hooks";
+import { BaseUrl } from "@local/hash-graph-types/ontology";
+import { AccountId } from "@local/hash-graph-types/account";
+import { OwnedById } from "@local/hash-graph-types/web";
 
 /**
  * Adds all property types referenced by the given property reference objects to the provided map,

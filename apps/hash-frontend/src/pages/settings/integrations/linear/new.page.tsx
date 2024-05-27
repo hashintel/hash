@@ -1,7 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";

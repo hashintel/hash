@@ -1,4 +1,4 @@
-import type { EntityUuid } from "@local/hash-subgraph";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
 import type { FunctionComponent, ReactNode } from "react";

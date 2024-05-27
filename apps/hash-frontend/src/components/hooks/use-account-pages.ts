@@ -8,11 +8,7 @@ import {
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  EntityMetadata,
-  EntityRootType,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -26,6 +22,8 @@ import type {
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 import { useHashInstance } from "./use-hash-instance";
+import { EntityMetadata } from "@local/hash-graph-types/entity";
+import { OwnedById } from "@local/hash-graph-types/web";
 
 export type SimplePage = SimpleProperties<PageProperties> & {
   metadata: EntityMetadata;

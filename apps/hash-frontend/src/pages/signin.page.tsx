@@ -1,6 +1,6 @@
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { Box, buttonClasses, styled, Typography } from "@mui/material";
 import type { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
