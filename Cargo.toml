@@ -52,6 +52,8 @@ hash-tracing.path = "libs/@local/tracing"
 type-system.path = "libs/@blockprotocol/type-system/rust"
 harpc-types.path = "libs/@local/harpc/types"
 harpc-wire-protocol.path = "libs/@local/harpc/wire-protocol"
+harpc-net.path = "libs/@local/harpc/net"
+harpc-tower.path = "libs/@local/harpc/tower"
 repo-chores.path = "libs/@local/repo-chores/rust"
 
 # External dependencies owned by HASH
