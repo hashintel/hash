@@ -23,7 +23,6 @@ pin_project_lite::pin_project! {
     pub struct Limited<B> {
         limit: usize,
         remaining: usize,
-        incomplete: bool,
 
         #[pin]
         inner: B,
@@ -36,7 +35,6 @@ impl<B> Limited<B> {
         Self {
             limit,
             remaining: limit,
-            incomplete: false,
             inner,
         }
     }
@@ -59,7 +57,6 @@ where
             None => None,
             Some(Ok(buffer)) => {
                 if buffer.remaining() > *this.remaining {
-                    *this.incomplete = true;
                     *this.remaining = 0;
 
                     Some(Err(Report::new(LimitedError::LimitReached {
