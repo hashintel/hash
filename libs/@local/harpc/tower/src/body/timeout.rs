@@ -50,13 +50,13 @@ impl<B, C> Body for Timeout<B>
 where
     B: Body<Error = Report<C>>,
 {
-    type Data = B::Data;
     type Error = Report<TimeoutError>;
+    type Frame = B::Frame;
 
-    fn poll_data(
+    fn poll_frame(
         self: Pin<&mut Self>,
         cx: &mut Context,
-    ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
+    ) -> Poll<Option<Result<Self::Frame, Self::Error>>> {
         let this = self.project();
 
         if *this.exceeded {
@@ -67,7 +67,7 @@ where
 
         // first try polling the future, this gives the future the chance to yield a value one last
         // time
-        if let Poll::Ready(value) = this.inner.poll_data(cx) {
+        if let Poll::Ready(value) = this.inner.poll_frame(cx) {
             // reset the timer if we got a value
             this.delay.reset(Instant::now() + *this.timeout);
 
@@ -77,7 +77,7 @@ where
         }
 
         // then try polling the timer
-        if let Poll::Ready(()) = this.delay.poll(cx) {
+        if this.delay.poll(cx) == Poll::Ready(()) {
             // do not re-poll if we have already exceeded the deadline
             *this.exceeded = true;
 

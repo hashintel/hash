@@ -6,7 +6,7 @@ use core::{
 use bytes::Buf;
 use error_stack::Report;
 
-use super::Body;
+use super::{Body, Frame};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[non_exhaustive]
@@ -44,29 +44,32 @@ impl<B, C> Body for Limited<B>
 where
     B: Body<Error = Report<C>>,
 {
-    type Data = B::Data;
     type Error = Report<LimitedError>;
+    type Frame = B::Frame;
 
-    fn poll_data(
+    fn poll_frame(
         self: Pin<&mut Self>,
         cx: &mut Context,
-    ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
+    ) -> Poll<Option<Result<Self::Frame, Self::Error>>> {
         let this = self.project();
 
-        let body = match ready!(this.inner.poll_data(cx)) {
+        let body = match ready!(this.inner.poll_frame(cx)) {
             None => None,
-            Some(Ok(buffer)) => {
-                if buffer.remaining() > *this.remaining {
-                    *this.remaining = 0;
+            Some(Ok(frame)) => match frame.into_data() {
+                Ok(data) => {
+                    if data.remaining() > *this.remaining {
+                        *this.remaining = 0;
 
-                    Some(Err(Report::new(LimitedError::LimitReached {
-                        limit: *this.limit,
-                    })))
-                } else {
-                    *this.remaining -= buffer.remaining();
-                    Some(Ok(buffer))
+                        Some(Err(Report::new(LimitedError::LimitReached {
+                            limit: *this.limit,
+                        })))
+                    } else {
+                        *this.remaining -= data.remaining();
+                        Some(Ok(B::Frame::from(data)))
+                    }
                 }
-            }
+                Err(frame) => Some(Ok(frame)),
+            },
             Some(Err(error)) => Some(Err(error.change_context(LimitedError::Other))),
         };
 

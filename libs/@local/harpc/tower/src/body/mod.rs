@@ -8,14 +8,23 @@ use core::{
 
 use bytes::Buf;
 
-pub trait Body {
+pub trait Frame: Sized + From<Self::Data> {
     type Data: Buf;
+
+    fn data(&self) -> Option<&Self::Data>;
+    fn data_mut(&mut self) -> Option<&mut Self::Data>;
+
+    fn into_data(self) -> Result<Self::Data, Self>;
+}
+
+pub trait Body {
+    type Frame: Frame;
     type Error;
 
-    fn poll_data(
+    fn poll_frame(
         self: Pin<&mut Self>,
         cx: &mut Context,
-    ) -> Poll<Option<Result<Self::Data, Self::Error>>>;
+    ) -> Poll<Option<Result<Self::Frame, Self::Error>>>;
 
     fn is_end_stream(&self) -> bool;
     // we can model is_incomplete through an error instead

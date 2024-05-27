@@ -1,13 +1,4 @@
-use core::{
-    pin::Pin,
-    task::{Context, Poll},
-};
-
-use bytes::Buf;
-use harpc_wire_protocol::{
-    request::{procedure::ProcedureDescriptor, service::ServiceDescriptor},
-    response::kind::ResponseKind,
-};
+use harpc_wire_protocol::request::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 
 pub struct Request<B> {
     service: ServiceDescriptor,
