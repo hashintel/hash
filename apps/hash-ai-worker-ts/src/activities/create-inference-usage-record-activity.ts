@@ -1,6 +1,6 @@
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-graph-types/account";
 
 import type { LlmUsage } from "./shared/get-llm-response/types";
 import type { PermittedOpenAiModel } from "./shared/openai-client";

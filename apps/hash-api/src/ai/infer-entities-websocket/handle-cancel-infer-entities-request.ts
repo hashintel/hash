@@ -1,6 +1,6 @@
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { CancelInferEntitiesWebsocketRequestMessage } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { EntityUuid } from "@local/hash-subgraph";
 import type { Client } from "@temporalio/client";
 
 import type { GraphApi } from "../../graph/context-types";

@@ -4,6 +4,8 @@ import type {
   TypeListSelectorDropdownProps,
 } from "@hashintel/design-system";
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -11,13 +13,7 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type {
-  Entity,
-  EntityId,
-  EntityRootType,
-  EntityTypeWithMetadata,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   entityIdFromComponents,
   extractDraftIdFromEntityId,

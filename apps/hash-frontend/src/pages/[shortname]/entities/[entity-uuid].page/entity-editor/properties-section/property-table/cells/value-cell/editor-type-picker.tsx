@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { Box, ButtonBase, Typography } from "@mui/material";
 
 import { getEditorSpecs } from "./editor-specs";

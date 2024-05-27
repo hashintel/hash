@@ -7,10 +7,10 @@ import type {
 import { getLinearMappingByLinearType } from "@local/hash-backend-utils/linear-type-mappings";
 import type { PartialEntity } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
-  AccountId,
   Entity,
-  EntityId,
   EntityPropertiesObject,
   EntityPropertyValue,
 } from "@local/hash-subgraph";

@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 
 import { defaultProductionRules } from "../pages/popup/popup-contents/action-center/default-production-rules";
 import type { PersistedUserSettings } from "./storage";

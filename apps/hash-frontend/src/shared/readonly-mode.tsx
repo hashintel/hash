@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { useRouter } from "next/router";
 
 import type { User } from "../lib/user-and-org";

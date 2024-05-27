@@ -4,12 +4,12 @@ import {
   Chip,
   EyeSlashIconRegular,
 } from "@hashintel/design-system";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type {
   Entity,
   EntityPropertyValue,
   EntityRootType,
-  EntityTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";

@@ -1,5 +1,5 @@
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 
 export class Entity {
   #entity: GraphApiEntity;

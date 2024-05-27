@@ -16,13 +16,15 @@ import type {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import type { EmptyObject } from "@local/hash-isomorphic-utils/util";
 import type {
   DataTypeRootType,
   EntityTypeRootType,
-  EntityTypeWithMetadata,
   PropertyTypeRootType,
-  PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
 

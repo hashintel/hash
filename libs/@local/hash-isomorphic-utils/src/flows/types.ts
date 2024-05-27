@@ -4,16 +4,12 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
-import type {
-  AccountId,
-  Entity,
-  EntityId,
-  EntityPropertiesObject,
-  EntityUuid,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 
 import type { ActionDefinitionId } from "./action-definitions";

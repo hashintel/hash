@@ -17,6 +17,14 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -32,19 +40,12 @@ import type {
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
 import type {
-  AccountGroupId,
-  AccountId,
-  BaseUrl,
   Entity,
   EntityAuthorizationRelationship,
-  EntityId,
   EntityPropertiesObject,
   EntityRelationAndSubject,
   EntityRootType,
-  EntityUuid,
-  OwnedById,
   Subgraph,
-  Timestamp,
 } from "@local/hash-subgraph";
 import {
   extractDraftIdFromEntityId,

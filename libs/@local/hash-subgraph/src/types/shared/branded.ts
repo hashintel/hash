@@ -1,7 +1,4 @@
-import type {
-  BaseUrl as BaseUrlBp,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { validateBaseUrl } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
 import type {
@@ -12,44 +9,23 @@ import type {
   PropertyTypeRelationAndSubject as PropertyTypeRelationAndSubjectGraph,
   WebRelationAndSubject as WebRelationAndSubjectGraph,
 } from "@local/hash-graph-client";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
+import type {
+  DraftId,
+  EntityId,
+  EntityUuid,
+} from "@local/hash-graph-types/entity";
+import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { validate as validateUuid } from "uuid";
-
-import type { Timestamp } from "./temporal-versioning";
-
-export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
 
 export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
   return validateBaseUrl(baseUrl).type === "Ok";
 };
-
-/** Valid Uuids of the system */
-export type Uuid = Brand<string, "Uuid">;
-
-/** An ID to uniquely identify an account (e.g. a User) */
-export type AccountId = Brand<Uuid, "AccountId">;
-
-/** An ID to uniquely identify an account group (e.g. an Org) */
-export type AccountGroupId = Brand<Uuid, "AccountGroupId">;
-
-/** An ID to uniquely identify an authorization subject (either a User or an Org) */
-export type AuthorizationSubjectId = AccountId | AccountGroupId;
-
-/** An account ID of an actor that is the owner of something */
-export type OwnedById = Brand<AccountId | AccountGroupId, "OwnedById">;
-
-/** A `Uuid` that points to an Entity without any edition */
-export type EntityUuid = Brand<Uuid, "EntityUuid">;
-
-/** The draft identifier for an entity */
-export type DraftId = Brand<Uuid, "DraftId">;
-
-export const ENTITY_ID_DELIMITER = "~";
-
-/** An ID to uniquely identify an entity */
-export type EntityId = Brand<
-  `${OwnedById}${typeof ENTITY_ID_DELIMITER}${EntityUuid}`,
-  "EntityId"
->;
 
 export const isEntityId = (entityId: string): entityId is EntityId => {
   const [accountId, entityUuid] = entityId.split(ENTITY_ID_DELIMITER);
@@ -97,25 +73,6 @@ export const extractDraftIdFromEntityId = (
 ): DraftId | undefined => {
   return splitEntityId(entityId)[2];
 };
-
-/** An account ID of creating actor */
-export type CreatedById = Brand<AccountId, "CreatedById">;
-
-/** The transaction time when the record was inserted into the database the first time */
-export type CreatedAtTransactionTime = Brand<
-  Timestamp,
-  "CreatedAtTransactionTime"
->;
-
-/** The transaction time when the record was inserted into the database the first time. This does not take into account
- *  if an updated later happened with a decision time before the initial decision time. */
-export type CreatedAtDecisionTime = Brand<Timestamp, "CreatedAtDecisionTime">;
-
-/** An account ID of an actor that has created a specific edition */
-export type EditionCreatedById = Brand<AccountId, "EditionCreatedById">;
-
-/** An account ID of an actor that has archived an edition */
-export type EditionArchivedById = Brand<AccountId, "EditionArchivedById">;
 
 /** An `EntityId` identifying a `User` Entity */
 export type AccountEntityId = Brand<EntityId, "AccountEntityId">;

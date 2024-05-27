@@ -4,12 +4,12 @@ import {
   typedKeys,
   typedValues,
 } from "@local/advanced-types/typed-entries";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { isDraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
-  BaseUrl,
-  EntityId,
   EntityRootType,
   EntityVertex,
   Subgraph,

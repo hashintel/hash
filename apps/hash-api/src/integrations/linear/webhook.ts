@@ -5,8 +5,9 @@ import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { supportedLinearTypes } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type { Uuid } from "@local/hash-graph-types/branded";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import type { OwnedById, Uuid } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
 

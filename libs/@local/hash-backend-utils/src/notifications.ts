@@ -1,17 +1,15 @@
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  AccountId,
-  EntityId,
-  EntityRelationAndSubject,
-  OwnedById,
-  Timestamp,
-} from "@local/hash-subgraph";
+import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 export const createNotificationEntityPermissions = ({
   machineActorId,

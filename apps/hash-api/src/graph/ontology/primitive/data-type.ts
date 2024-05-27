@@ -11,6 +11,13 @@ import type {
   ProvidedOntologyEditionProvenance,
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
+import type {
+  ConstructDataTypeParams,
+  DataTypeMetadata,
+  DataTypeWithMetadata,
+  OntologyTypeRecordId,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -18,14 +25,9 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
-  ConstructDataTypeParams,
   DataTypeAuthorizationRelationship,
-  DataTypeMetadata,
   DataTypeRelationAndSubject,
   DataTypeRootType,
-  DataTypeWithMetadata,
-  OntologyTypeRecordId,
-  OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";

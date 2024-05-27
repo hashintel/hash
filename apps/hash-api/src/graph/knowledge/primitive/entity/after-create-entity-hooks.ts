@@ -1,3 +1,6 @@
+import type { Uuid } from "@local/hash-graph-types/branded";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -5,7 +8,6 @@ import {
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { EntityUuid, OwnedById, Uuid } from "@local/hash-subgraph";
 import { entityIdFromComponents } from "@local/hash-subgraph";
 
 import { isProdEnv } from "../../../../lib/env-config";

@@ -26,12 +26,12 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import type { EntityMetadata } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityMetadata } from "@local/hash-subgraph";
 import mime from "mime-types";
 
 import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity";

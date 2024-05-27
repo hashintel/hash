@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
   InputNameForAction,
   OutputNameForAction,
@@ -11,7 +12,6 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
@@ -308,7 +308,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                         The following entity type IDs are invalid: ${JSON.stringify(
                           invalidEntityTypeIds,
                         )}
-                        
+
                         Valid entity type IDs are: ${JSON.stringify(validEntityTypeIds)}
                       `)
                       : ""
@@ -319,12 +319,12 @@ export const researchEntitiesAction: FlowActionActivity<{
                         The following link entity type IDs are invalid: ${JSON.stringify(
                           invalidLinkEntityTypeIds,
                         )}
-                        
+
                         The valid link entity types type IDs are: ${JSON.stringify(linkEntityTypeIds)}
                       `)
                       : ""
                   }
-                 
+
                 `),
                 isError: true,
               };
@@ -346,7 +346,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                 ...toolCall,
                 output: dedent(`
                   An error occurred when inferring facts from the web page with url ${url}: ${status.message}
-                  
+
                   Try another website.
                 `),
                 isError: true,

@@ -20,7 +20,8 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { IconButton } from "@hashintel/design-system";
-import type { EntityUuid, OwnedById } from "@local/hash-subgraph";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   extractEntityUuidFromEntityId,
   isEntityId,

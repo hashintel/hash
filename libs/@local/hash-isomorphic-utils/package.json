@@ -29,6 +29,7 @@
     "@blockprotocol/graph": "0.3.4",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-graph-types": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@sentry/browser": "7.116.0",
     "apollo-server-express": "3.9.0",

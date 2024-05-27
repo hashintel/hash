@@ -6,13 +6,13 @@ import {
   type SubgraphRootType as SubgraphRootTypeBp,
 } from "@blockprotocol/graph/temporal";
 import type { Subtype } from "@local/advanced-types/subtype";
-
 import type {
   DataTypeWithMetadata,
-  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "./element";
+} from "@local/hash-graph-types/ontology";
+
+import type { Entity } from "./element";
 import type { Edges } from "./subgraph/edges";
 import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths";
 import type { SubgraphTemporalAxes } from "./subgraph/temporal-axes";
