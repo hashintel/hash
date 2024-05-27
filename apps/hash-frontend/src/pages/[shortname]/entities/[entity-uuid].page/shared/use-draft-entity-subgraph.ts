@@ -1,5 +1,15 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
+  CreatedById,
+  EditionCreatedById,
+} from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  Timestamp,
+} from "@local/hash-graph-types/temporal-versioning";
+import type {
   Entity,
   EntityRevisionId,
   EntityRootType,
@@ -10,16 +20,6 @@ import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
-import {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-  Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
-import { EntityId } from "@local/hash-graph-types/entity";
-import {
-  CreatedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
 
 export const useDraftEntitySubgraph = (
   entityTypeId: VersionedUrl,

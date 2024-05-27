@@ -1,4 +1,8 @@
 import { useApolloClient, useQuery } from "@apollo/client";
+import type { AccountGroupId } from "@local/hash-graph-types/account";
+import type { Uuid } from "@local/hash-graph-types/branded";
+import type { EntityMetadata } from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { checkUserPermissionsOnEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -30,10 +34,6 @@ import type {
 import { meQuery } from "../../graphql/queries/user.queries";
 import type { User } from "../../lib/user-and-org";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
-import { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import { EntityMetadata } from "@local/hash-graph-types/entity";
-import { Uuid } from "@local/hash-graph-types/branded";
-import { AccountGroupId } from "@local/hash-graph-types/account";
 
 type RefetchAuthInfoFunction = () => Promise<{
   authenticatedUser?: User;

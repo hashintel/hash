@@ -1,4 +1,9 @@
 import { useQuery } from "@apollo/client";
+import type {
+  EntityId,
+  EntityMetadata,
+  EntityTemporalVersioningMetadata,
+} from "@local/hash-graph-types/entity";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { Entity } from "@local/hash-subgraph";
 
@@ -7,11 +12,6 @@ import type {
   GetPageCommentsQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getPageComments } from "../../graphql/queries/page.queries";
-import {
-  EntityId,
-  EntityMetadata,
-  EntityTemporalVersioningMetadata,
-} from "@local/hash-graph-types/entity";
 
 export type PageThread = PageComment & {
   replies: PageComment[];

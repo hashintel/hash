@@ -1,5 +1,6 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import type { AccountId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -17,7 +18,6 @@ import type {
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { User } from "../../lib/user-and-org";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
-import { AccountId } from "@local/hash-graph-types/account";
 
 /**
  * Retrieves a specific set of users, with their avatars populated

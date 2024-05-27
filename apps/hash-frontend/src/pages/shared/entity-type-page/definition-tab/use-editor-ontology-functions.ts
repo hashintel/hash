@@ -7,6 +7,7 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   getEntityTypeById,
   getPropertyTypeById,
@@ -24,7 +25,6 @@ import { useRefetchPropertyTypes } from "../../../../shared/property-types-conte
 import { canUserEditType } from "../../../../shared/readonly-mode";
 import { useAuthInfo } from "../../auth-info-context";
 import { useGenerateTypeUrlsForUser } from "../../use-generate-type-urls-for-user";
-import { OwnedById } from "@local/hash-graph-types/web";
 
 export const useEditorOntologyFunctions = (
   ownedById: OwnedById | null,

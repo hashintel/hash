@@ -1,5 +1,7 @@
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
@@ -20,8 +22,6 @@ import {
 } from "../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../lib/apollo-client";
 import type { EntityTypeEntitiesContextValue } from "./entity-type-entities-context";
-import { OwnedById } from "@local/hash-graph-types/web";
-import { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export const generateUseEntityTypeEntitiesQueryVariables = (params: {
   ownedById?: OwnedById;

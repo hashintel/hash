@@ -6,6 +6,15 @@ import {
   EyeSlashIconRegular,
   IconButton,
 } from "@hashintel/design-system";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import type { Entity } from "@local/hash-subgraph";
 import {
   extractOwnedByIdFromEntityId,
@@ -44,13 +53,6 @@ import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
 import type { GenerateCsvFileFunction } from "./table-header/export-to-csv-button";
 import { ExportToCsvButton } from "./table-header/export-to-csv-button";
 import { TableHeaderButton } from "./table-header/table-header-button";
-import { AccountId } from "@local/hash-graph-types/account";
-import { AccountGroupId } from "@local/hash-graph-types/account";
-import {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
 
 export const tableHeaderHeight = 50;
 

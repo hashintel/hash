@@ -2,6 +2,8 @@ import type { MultiFilter } from "@blockprotocol/graph";
 import type { ModalProps } from "@hashintel/design-system";
 import { IconButton, Modal } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   blockProtocolEntityTypes,
   blockProtocolLinkEntityTypes,
@@ -25,8 +27,6 @@ import { XMarkRegularIcon } from "../../../../shared/icons/x-mark-regular-icon";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { useBlockContext } from "../block-context";
-import { EntityId } from "@local/hash-graph-types/entity";
-import { OwnedById } from "@local/hash-graph-types/web";
 
 export const BlockSelectDataModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {

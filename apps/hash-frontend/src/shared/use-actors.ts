@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { AccountId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -18,7 +19,6 @@ import type {
 } from "../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../lib/user-and-org";
-import { AccountId } from "@local/hash-graph-types/account";
 
 type MachineActor = {
   accountId: AccountId;

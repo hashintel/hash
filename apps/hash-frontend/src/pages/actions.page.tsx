@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { PenRegularIcon } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
@@ -34,7 +35,6 @@ import { DraftEntitiesBulkActionsDropdown } from "./actions.page/draft-entities-
 import { InlineSelect } from "./shared/inline-select";
 import { NotificationsWithLinksContextProvider } from "./shared/notifications-with-links-context";
 import { TopContextBar } from "./shared/top-context-bar";
-import { EntityId } from "@local/hash-graph-types/entity";
 
 const sortOrderHumanReadable: Record<SortOrder, string> = {
   "created-at-asc": "creation date/time (oldest first)",

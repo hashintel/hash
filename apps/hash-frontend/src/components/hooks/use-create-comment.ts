@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { useCallback } from "react";
 
 import type {

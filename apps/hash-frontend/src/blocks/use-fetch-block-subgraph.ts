@@ -1,5 +1,15 @@
 import { useLazyQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  CreatedById,
+  EditionCreatedById,
+} from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  Timestamp,
+} from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import type {
@@ -18,16 +28,6 @@ import type {
   GetEntityQueryVariables,
   SubgraphAndPermissions,
 } from "../graphql/api-types.gen";
-import { EntityId } from "@local/hash-graph-types/entity";
-import {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-  Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
-import {
-  CreatedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
 
 export const useFetchBlockSubgraph = (): ((
   blockEntityTypeId: VersionedUrl,

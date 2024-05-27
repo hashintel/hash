@@ -1,3 +1,4 @@
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
   currentTimeInstantTemporalAxes,
@@ -31,7 +32,6 @@ import type {
   BlockCollectionContentItem,
   GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 
 /**
  * The depths required to fetch the contents for blocks to render, rooted at a BlockCollection

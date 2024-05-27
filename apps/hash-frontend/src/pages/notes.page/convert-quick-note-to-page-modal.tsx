@@ -1,4 +1,5 @@
 import { Autocomplete, TextField } from "@hashintel/design-system";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -24,7 +25,6 @@ import { useAccountPages } from "../../components/hooks/use-account-pages";
 import { PageIcon } from "../../components/page-icon";
 import { Button, Modal } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
-import { OwnedById } from "@local/hash-graph-types/web";
 
 export type PageWithParentLink = SimplePage & { parentLinkEntity?: Entity };
 

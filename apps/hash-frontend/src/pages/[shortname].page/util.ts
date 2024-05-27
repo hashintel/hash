@@ -1,4 +1,4 @@
-import {
+import type {
   BaseUrl,
   EntityTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";

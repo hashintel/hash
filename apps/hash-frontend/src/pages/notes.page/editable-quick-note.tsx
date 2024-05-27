@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
@@ -38,8 +40,6 @@ import { BlockCollection } from "../shared/block-collection/block-collection";
 import { getBlockCollectionContents } from "../shared/block-collection-contents";
 import type { PageWithParentLink } from "./convert-quick-note-to-page-modal";
 import { ConvertQuickNoteToPageModal } from "./convert-quick-note-to-page-modal";
-import { BaseUrl } from "@local/hash-graph-types/ontology";
-import { OwnedById } from "@local/hash-graph-types/web";
 
 const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
   amount,

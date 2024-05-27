@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 
 export type EntityTypesContextValue = {

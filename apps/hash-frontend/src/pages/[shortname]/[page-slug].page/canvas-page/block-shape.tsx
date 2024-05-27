@@ -1,10 +1,10 @@
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
 import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { toDomPrecision } from "@tldraw/primitives";
 import type { TLBaseShape, TLOpacityType } from "@tldraw/tldraw";

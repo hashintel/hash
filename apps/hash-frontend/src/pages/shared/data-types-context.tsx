@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client";
 import type { JsonValue } from "@blockprotocol/core";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
 import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
 import type { OntologyTypeRevisionId } from "@local/hash-subgraph";
@@ -14,7 +15,6 @@ import type {
   QueryDataTypesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
-import { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 export type DataTypesContextValue = {
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;

@@ -1,10 +1,11 @@
 import { Select, TextField } from "@hashintel/design-system";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Entity } from "@local/hash-subgraph";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -25,7 +26,6 @@ import type {
 import { Button, MenuItem } from "../../../shared/ui";
 import { ServiceAccountsInput } from "./service-accounts-input";
 import { urlRegex } from "./util";
-import { OwnedById } from "@local/hash-graph-types/web";
 
 export type UserProfileFormServiceAccount = {
   existingLinkEntity?: LinkEntity;

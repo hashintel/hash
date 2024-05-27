@@ -1,5 +1,15 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
+import type {
+  CreatedById,
+  EditionCreatedById,
+} from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  Timestamp,
+} from "@local/hash-graph-types/temporal-versioning";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
@@ -18,16 +28,6 @@ import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
 import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
 import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
 import { LinkedEntitySelector } from "./linked-entity-selector";
-import { EntityId } from "@local/hash-graph-types/entity";
-import {
-  CreatedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
-import {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-  Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
 
 /**
  * @todo - This is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't

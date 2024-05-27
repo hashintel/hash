@@ -4,6 +4,7 @@ import {
   Chip,
   EyeSlashIconRegular,
 } from "@hashintel/design-system";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type {
   Entity,
@@ -36,7 +37,6 @@ import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-e
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
 import { Link } from "../../shared/ui";
-import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({
   fontSize: 14,

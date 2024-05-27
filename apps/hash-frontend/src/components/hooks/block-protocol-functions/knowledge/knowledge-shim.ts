@@ -14,6 +14,7 @@ import type {
   UploadFileData as BpUploadFileData,
 } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityId, LinkData } from "@local/hash-graph-types/entity";
 import type { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   Entity,
@@ -26,7 +27,6 @@ import type {
   FileEntityCreationInput,
   FileEntityUpdateInput,
 } from "../../../../graphql/api-types.gen";
-import { EntityId, LinkData } from "@local/hash-graph-types/entity";
 
 /* Entity CRU */
 

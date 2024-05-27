@@ -1,4 +1,5 @@
 import { useMutation } from "@apollo/client";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { Entity } from "@local/hash-subgraph";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -18,7 +19,6 @@ import {
   isItemEntityType,
   useContextBarActionsContext,
 } from "../../shared/top-context-bar";
-import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 export const ArchiveMenuItem: FunctionComponent<{
   item: Entity | EntityTypeWithMetadata;

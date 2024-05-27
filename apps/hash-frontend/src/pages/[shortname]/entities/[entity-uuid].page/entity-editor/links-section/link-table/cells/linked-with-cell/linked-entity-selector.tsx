@@ -1,6 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { PaperProps } from "@mui/material";
@@ -21,8 +23,6 @@ import { FileUploadDropzone } from "../../../../../../../../settings/shared/file
 import { EntitySelector } from "../../../../../../../../shared/entity-selector";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
-import { EntityId } from "@local/hash-graph-types/entity";
-import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 interface EntitySelectorProps {
   includeDrafts: boolean;

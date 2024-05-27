@@ -1,5 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
@@ -21,7 +22,6 @@ import type {
 import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import type { GetAdditionalCsvDataFunction } from "../../../shared/table-header";
 import type { TypeEntitiesRow } from "./use-entities-table";
-import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 export const useGetEntitiesTableAdditionalCsvData = (props: {
   currentlyDisplayedRowsRef: MutableRefObject<TypeEntitiesRow[] | null>;

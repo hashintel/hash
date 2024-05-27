@@ -1,10 +1,11 @@
 import { useMutation } from "@apollo/client";
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { ModalProps } from "@mui/material";
 import { Box, Typography, typographyClasses } from "@mui/material";
@@ -40,7 +41,6 @@ import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-hea
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { useActiveWorkspace } from "../shared/workspace-context";
-import { OwnedById } from "@local/hash-graph-types/web";
 
 /** @see https://github.com/atlassian/react-beautiful-dnd/issues/128#issuecomment-1010053365 */
 const useDraggableInPortal = () => {

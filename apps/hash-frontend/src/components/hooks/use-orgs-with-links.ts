@@ -1,5 +1,6 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import type { AccountGroupId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -17,7 +18,6 @@ import type {
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { Org } from "../../lib/user-and-org";
 import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
-import { AccountGroupId } from "@local/hash-graph-types/account";
 
 /**
  * Retrieves a specific set of organizations, with their avatars and members populated

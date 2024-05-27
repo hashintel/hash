@@ -1,4 +1,6 @@
 import { Skeleton } from "@hashintel/design-system";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -28,8 +30,6 @@ import {
   isFilerStateDefaultFilterState,
 } from "./draft-entities/draft-entities-filters";
 import { DraftEntity } from "./draft-entity";
-import { BaseUrl } from "@local/hash-graph-types/ontology";
-import { EntityId } from "@local/hash-graph-types/entity";
 
 const incrementNumberOfEntitiesToDisplay = 20;
 

@@ -7,8 +7,8 @@ import {
   faPencil,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
-import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
 import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRef, useState } from "react";

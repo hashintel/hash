@@ -1,4 +1,8 @@
 import { useQuery } from "@apollo/client";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -26,7 +30,6 @@ import type {
 } from "../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { isEntityOrgEntity, isEntityUserEntity } from "../lib/user-and-org";
-import { AccountGroupId, AccountId } from "@local/hash-graph-types/account";
 
 export const useUserOrOrg = (
   params: {

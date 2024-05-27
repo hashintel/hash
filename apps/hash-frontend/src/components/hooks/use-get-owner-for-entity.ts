@@ -1,10 +1,10 @@
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Entity } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import { useOrgs } from "./use-orgs";
 import { useUsers } from "./use-users";
-import { OwnedById } from "@local/hash-graph-types/web";
 
 export const useGetOwnerForEntity = () => {
   /*

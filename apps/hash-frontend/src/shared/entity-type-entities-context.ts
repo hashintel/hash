@@ -4,11 +4,11 @@ import type {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { createContext, useContext } from "react";
 
 import type { GetEntitySubgraphQuery } from "../graphql/api-types.gen";
-import { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export type EntityTypeEntitiesContextValue = {
   entityTypeId?: VersionedUrl;

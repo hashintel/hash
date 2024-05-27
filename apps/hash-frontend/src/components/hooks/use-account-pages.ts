@@ -1,5 +1,7 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import type { EntityMetadata } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -22,8 +24,6 @@ import type {
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 import { useHashInstance } from "./use-hash-instance";
-import { EntityMetadata } from "@local/hash-graph-types/entity";
-import { OwnedById } from "@local/hash-graph-types/web";
 
 export type SimplePage = SimpleProperties<PageProperties> & {
   metadata: EntityMetadata;

@@ -1,4 +1,8 @@
 import { useMutation } from "@apollo/client";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
 import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type { Entity } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
@@ -30,7 +34,6 @@ import type {
   AuthorizationRelationship,
   PublicAuthorizationRelationship,
 } from "./types";
-import { AccountGroupId, AccountId } from "@local/hash-graph-types/account";
 
 type AccountAuthorizationRelationshipsByAccount = {
   account: User | Org;

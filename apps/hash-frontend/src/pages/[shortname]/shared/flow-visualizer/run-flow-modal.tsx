@@ -1,11 +1,11 @@
 import { typedValues } from "@local/advanced-types/typed-entries";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
   FlowDefinition,
   FlowTrigger,
   OutputDefinition,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { Box, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useState } from "react";

@@ -14,10 +14,10 @@ import {
   IconButton,
   LoadingSpinner,
 } from "@hashintel/design-system";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";

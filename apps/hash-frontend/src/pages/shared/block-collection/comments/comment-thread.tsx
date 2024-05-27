@@ -1,7 +1,7 @@
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type { AccountEntityId } from "@local/hash-subgraph";
 import { extractAccountId } from "@local/hash-subgraph";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";

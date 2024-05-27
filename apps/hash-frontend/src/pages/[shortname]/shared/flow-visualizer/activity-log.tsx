@@ -1,7 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  EntityMetadata,
+  EntityRecordId,
+} from "@local/hash-graph-types/entity";
 import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRecordId } from "@local/hash-subgraph";
 import { Box, Stack, TableCell, Tooltip } from "@mui/material";
 import { format } from "date-fns";
 import type { ReactElement } from "react";
@@ -20,7 +24,6 @@ import {
 } from "../../../shared/virtualized-table";
 import { SectionLabel } from "./section-label";
 import type { LocalProgressLog } from "./shared/types";
-import { EntityId, EntityMetadata } from "@local/hash-graph-types/entity";
 
 const getEntityLabelFromLog = (log: StepProgressLog): string => {
   if (log.type !== "ProposedEntity" && log.type !== "PersistedEntity") {

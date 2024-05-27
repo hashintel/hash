@@ -1,3 +1,4 @@
+import type { AccountId } from "@local/hash-graph-types/account";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -15,7 +16,6 @@ import { useUserOrOrg } from "../../../shared/use-user-or-org";
 import { SettingsPageContainer } from "../../settings/shared/settings-page-container";
 import { getAdminLayout } from "../admin-page-layout";
 import { BasicInfoSection } from "./basic-info-section";
-import { AccountId } from "@local/hash-graph-types/account";
 
 const AdminUserPage: NextPageWithLayout = () => {
   const router = useRouter();

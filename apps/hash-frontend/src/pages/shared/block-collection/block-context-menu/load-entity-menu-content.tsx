@@ -6,6 +6,7 @@ import {
   LoadingSpinner,
   TextField,
 } from "@hashintel/design-system";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
@@ -31,7 +32,6 @@ import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity
 import { entityHasEntityTypeByBaseUrlFilter } from "../../../../shared/filters";
 import { MenuItem } from "../../../../shared/ui";
 import { useBlockView } from "../block-view";
-import { EntityId } from "@local/hash-graph-types/entity";
 
 type LoadEntityMenuContentProps = {
   blockEntityId: EntityId | null;

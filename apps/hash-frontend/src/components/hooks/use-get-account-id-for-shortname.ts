@@ -1,10 +1,10 @@
+import type { AccountId } from "@local/hash-graph-types/account";
 import type { AccountEntityId } from "@local/hash-subgraph";
 import { extractAccountId } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useOrgs } from "./use-orgs";
 import { useUsers } from "./use-users";
-import { AccountId } from "@local/hash-graph-types/account";
 
 export const useGetAccountIdForShortname = (
   shortname: string | undefined,

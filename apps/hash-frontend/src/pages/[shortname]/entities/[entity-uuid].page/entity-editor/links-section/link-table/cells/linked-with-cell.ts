@@ -1,8 +1,8 @@
 import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 
 import {
   getCellHorizontalPadding,

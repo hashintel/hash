@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -12,7 +13,6 @@ import { useMemo } from "react";
 import { FileRegularIcon } from "./icons/file-regular-icon";
 import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
-import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 export const entityTypeIcons: Record<VersionedUrl, ReactNode> = {
   [systemEntityTypes.user.entityTypeId]: <UserIcon sx={{ fontSize: 12 }} />,

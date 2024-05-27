@@ -1,7 +1,7 @@
 import type { BlockVariant } from "@blockprotocol/core";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { Popper } from "@mui/material";
 import type {
   EditorState,

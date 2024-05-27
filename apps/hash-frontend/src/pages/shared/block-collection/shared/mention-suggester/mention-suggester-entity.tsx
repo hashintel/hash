@@ -1,4 +1,8 @@
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type {
   Entity,
@@ -27,10 +31,6 @@ import { Button } from "../../../../../shared/ui";
 import { useEntityIcon } from "../../../../../shared/use-entity-icon";
 import { MentionSuggesterSubheading } from "./mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester-wrapper";
-import {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
 
 export type SortOrder = "asc" | "desc";
 

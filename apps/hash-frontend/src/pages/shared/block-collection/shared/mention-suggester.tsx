@@ -1,6 +1,12 @@
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -55,12 +61,6 @@ import type {
 import { MentionSuggesterEntity } from "./mention-suggester/mention-suggester-entity";
 import { MentionSuggesterSubheading } from "./mention-suggester/mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester/mention-suggester-wrapper";
-import { EntityId } from "@local/hash-graph-types/entity";
-import {
-  BaseUrl,
-  EntityTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import { OwnedById } from "@local/hash-graph-types/web";
 
 export type Mention =
   | {

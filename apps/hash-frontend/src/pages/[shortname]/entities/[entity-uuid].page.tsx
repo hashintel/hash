@@ -1,4 +1,10 @@
 import { useLazyQuery } from "@apollo/client";
+import type {
+  DraftId,
+  EntityId,
+  EntityUuid,
+} from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
@@ -41,8 +47,6 @@ import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./[entity-uuid].page/shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./[entity-uuid].page/shared/use-draft-link-state";
-import { DraftId, EntityId, EntityUuid } from "@local/hash-graph-types/entity";
-import { OwnedById } from "@local/hash-graph-types/web";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();

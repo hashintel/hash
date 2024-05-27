@@ -1,4 +1,6 @@
 import type { ApolloClient } from "@apollo/client";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
@@ -10,8 +12,6 @@ import {
 // import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { save } from "@local/hash-isomorphic-utils/save";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import debounce from "lodash/debounce";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin, PluginKey } from "prosemirror-state";

@@ -3,8 +3,8 @@ import type {
   EntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system/dist/cjs";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 export const getParentIds = (

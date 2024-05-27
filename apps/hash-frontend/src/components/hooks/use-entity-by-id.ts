@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
@@ -16,7 +17,6 @@ import type {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../graphql/api-types.gen";
-import { EntityId } from "@local/hash-graph-types/entity";
 
 export const useEntityById = ({
   entityId,

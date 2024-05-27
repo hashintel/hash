@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   GetEntityQuery,
@@ -27,7 +28,6 @@ import {
 } from "../shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "../shared/block-collection-context";
 import { useCreateBlockCollection } from "../shared/use-create-block-collection";
-import { OwnedById } from "@local/hash-graph-types/web";
 
 export const ProfileBio: FunctionComponent<{
   profile: User | Org;

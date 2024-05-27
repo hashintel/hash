@@ -5,6 +5,7 @@ import type {
 } from "@hashintel/design-system";
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -26,7 +27,6 @@ import type {
   GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 type EntitySelectorProps<Multiple extends boolean = false> = Omit<
   SelectorAutocompleteProps<Entity, Multiple>,
