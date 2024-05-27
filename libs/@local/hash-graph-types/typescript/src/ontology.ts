@@ -200,14 +200,6 @@ export type ConstructDataTypeParams = DistributiveOmit<
   "$id" | "kind" | "$schema"
 >;
 
-export const isExternalOntologyElementMetadata = (
-  metadata: DataTypeMetadata | EntityTypeMetadata,
-): metadata is ExternalOntologyElementMetadata => "fetchedAt" in metadata;
-
-export const isOwnedOntologyElementMetadata = (
-  metadata: DataTypeMetadata | EntityTypeMetadata,
-): metadata is OwnedOntologyElementMetadata => "ownedById" in metadata;
-
 export type DataTypeMetadata = OntologyElementMetadata;
 
 export type PropertyTypeMetadata = OntologyElementMetadata;

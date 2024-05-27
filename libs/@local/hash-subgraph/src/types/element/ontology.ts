@@ -1,7 +1,13 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { validateBaseUrl } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  DataTypeMetadata,
+  EntityTypeMetadata,
+  ExternalOntologyElementMetadata,
+  OwnedOntologyElementMetadata,
+} from "@local/hash-graph-types/ontology";
 
 /**
  * The second component of the [{@link BaseUrl}, RevisionId] tuple needed to identify a specific ontology type vertex
@@ -35,3 +41,11 @@ export const isOntologyTypeRecordId = (
     Number.isInteger(editionId.version)
   );
 };
+
+export const isExternalOntologyElementMetadata = (
+  metadata: DataTypeMetadata | EntityTypeMetadata,
+): metadata is ExternalOntologyElementMetadata => "fetchedAt" in metadata;
+
+export const isOwnedOntologyElementMetadata = (
+  metadata: DataTypeMetadata | EntityTypeMetadata,
+): metadata is OwnedOntologyElementMetadata => "ownedById" in metadata;

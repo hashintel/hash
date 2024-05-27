@@ -10,20 +10,13 @@ import type {
 } from "@blockprotocol/graph/temporal";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { PropertyMetadataMap } from "@local/hash-graph-client";
 import type {
   EntityId,
   EntityMetadata,
   LinkData,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type {
-  ExclusiveLimitedTemporalBound,
-  InclusiveLimitedTemporalBound,
-  TimeInterval,
-  Timestamp,
-  Unbounded,
-} from "@local/hash-graph-types/temporal-versioning";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 
 import { isEntityId } from "../shared";
 
