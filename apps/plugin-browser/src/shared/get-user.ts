@@ -1,3 +1,6 @@
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -11,14 +14,7 @@ import type {
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type {
-  Entity,
-  EntityId,
-  EntityRootType,
-  OwnedById,
-  Subgraph,
-  Timestamp,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
