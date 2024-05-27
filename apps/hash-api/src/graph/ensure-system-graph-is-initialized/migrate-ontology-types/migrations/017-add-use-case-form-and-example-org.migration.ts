@@ -1,9 +1,9 @@
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { BaseUrl } from "@local/hash-subgraph";
 
 import {
   createOrg,

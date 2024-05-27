@@ -3,13 +3,13 @@ import {
   getGoogleAccountById,
 } from "@local/hash-backend-utils/google";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
   GoogleOAuth2CallbackRequest,
   GoogleOAuth2CallbackResponse,
 } from "@local/hash-isomorphic-utils/google-integration";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
-import type { OwnedById } from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
 import { google } from "googleapis";
 

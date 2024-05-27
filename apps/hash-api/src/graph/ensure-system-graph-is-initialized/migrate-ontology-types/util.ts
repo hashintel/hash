@@ -26,6 +26,15 @@ import type {
   DataTypeRelationAndSubject,
   UpdatePropertyType,
 } from "@local/hash-graph-client";
+import type {
+  BaseUrl,
+  ConstructDataTypeParams,
+  CustomDataType,
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -47,18 +56,11 @@ import {
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import type {
-  BaseUrl,
-  ConstructDataTypeParams,
-  CustomDataType,
-  DataTypeWithMetadata,
   Entity,
   EntityPropertiesObject,
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
-  EntityTypeWithMetadata,
-  OwnedById,
   PropertyTypeRelationAndSubject,
-  PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {

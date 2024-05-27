@@ -1,4 +1,6 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -19,12 +21,7 @@ import type {
   LinearIntegrationProperties,
   SyncLinearDataWithProperties,
 } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type {
-  AccountId,
-  Entity,
-  EntityId,
-  EntityRootType,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,

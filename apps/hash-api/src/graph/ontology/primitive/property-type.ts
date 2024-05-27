@@ -12,6 +12,11 @@ import type {
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
+import type {
+  PropertyTypeMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -21,12 +26,9 @@ import {
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import type {
   OntologyTypeRecordId,
-  OwnedById,
   PropertyTypeAuthorizationRelationship,
-  PropertyTypeMetadata,
   PropertyTypeRelationAndSubject,
   PropertyTypeRootType,
-  PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
 import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";

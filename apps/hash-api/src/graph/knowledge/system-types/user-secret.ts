@@ -5,17 +5,15 @@ import type {
 } from "@local/hash-backend-utils/vault";
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  AccountId,
-  EntityId,
-  EntityRelationAndSubject,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 import type { Auth } from "googleapis";
 
 import { archiveEntity, createEntity } from "../primitive/entity";
