@@ -3,19 +3,19 @@ import path from "node:path";
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type { GetEntitySubgraphRequest } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
-  AccountId,
   Entity,
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphEdgeKind,
   Subgraph,
 } from "@local/hash-subgraph";
-import { ENTITY_ID_DELIMITER } from "@local/hash-subgraph";
 import {
   getEntities as getEntitiesSubgraph,
   getRoots,
