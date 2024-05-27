@@ -6,10 +6,11 @@ import type {
   BaseUrl,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
+  OntologyTypeRecordId,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { Entity, OntologyTypeRecordId } from "../element";
+import type { Entity } from "../element";
 import type { EntityIdWithInterval, EntityIdWithTimestamp } from "./edges";
 import type {
   DataTypeVertex,

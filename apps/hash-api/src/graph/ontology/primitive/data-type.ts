@@ -15,6 +15,7 @@ import type {
   ConstructDataTypeParams,
   DataTypeMetadata,
   DataTypeWithMetadata,
+  OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -27,7 +28,6 @@ import type {
   DataTypeAuthorizationRelationship,
   DataTypeRelationAndSubject,
   DataTypeRootType,
-  OntologyTypeRecordId,
   Subgraph,
 } from "@local/hash-subgraph";
 import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";

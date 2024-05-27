@@ -19,7 +19,6 @@ import type {
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
 } from "@local/hash-graph-client";
-import type { OntologyTypeRecordId } from "@local/hash-subgraph";
 
 import type { EditionArchivedById, EditionCreatedById } from "./account";
 import type {
@@ -43,6 +42,11 @@ export type OntologyEditionProvenance = {
   actorType?: ActorType;
   origin?: ProvidedEntityEditionProvenanceOrigin;
   sources?: Array<SourceProvenance>;
+};
+
+export type OntologyTypeRecordId = {
+  baseUrl: BaseUrl;
+  version: number;
 };
 
 /** @todo-0.3 - Consider redefining `EntityType` and `PropertyType` to use the branded `BaseUrl`s inside them */

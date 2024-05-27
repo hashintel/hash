@@ -19,6 +19,7 @@ import type {
   BaseUrl,
   EntityTypeMetadata,
   EntityTypeWithMetadata,
+  OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -35,7 +36,6 @@ import type {
   EntityTypeAuthorizationRelationship,
   EntityTypeRelationAndSubject,
   EntityTypeRootType,
-  OntologyTypeRecordId,
   Subgraph,
 } from "@local/hash-subgraph";
 import {

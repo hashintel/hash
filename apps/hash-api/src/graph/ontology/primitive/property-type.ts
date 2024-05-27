@@ -13,6 +13,7 @@ import type {
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
 import type {
+  OntologyTypeRecordId,
   PropertyTypeMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
@@ -25,7 +26,6 @@ import {
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import type {
-  OntologyTypeRecordId,
   PropertyTypeAuthorizationRelationship,
   PropertyTypeRelationAndSubject,
   PropertyTypeRootType,

@@ -2,10 +2,10 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { validateBaseUrl } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
 import type {
-  BaseUrl,
   DataTypeMetadata,
   EntityTypeMetadata,
   ExternalOntologyElementMetadata,
+  OntologyTypeRecordId,
   OwnedOntologyElementMetadata,
 } from "@local/hash-graph-types/ontology";
 
@@ -17,11 +17,6 @@ export type OntologyTypeRevisionId = Brand<
   `${number}`,
   "OntologyTypeRevisionId"
 >;
-
-export type OntologyTypeRecordId = {
-  baseUrl: BaseUrl;
-  version: number;
-};
 
 export const ontologyTypeRecordIdToVersionedUrl = (
   ontologyTypeRecordId: OntologyTypeRecordId,

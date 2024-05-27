@@ -46,6 +46,7 @@ import type {
   DataTypeMetadata,
   EntityTypeMetadata,
   OntologyProvenance,
+  OntologyTypeRecordId,
 } from "@local/hash-graph-types/ontology";
 import type {
   CreatedAtDecisionTime,
@@ -55,7 +56,6 @@ import type {
 import type {
   EntityPropertiesObject,
   KnowledgeGraphVertex,
-  OntologyTypeRecordId,
   OntologyVertex,
   Vertices,
 } from "@local/hash-subgraph";
