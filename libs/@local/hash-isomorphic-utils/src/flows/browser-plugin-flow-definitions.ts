@@ -1,3 +1,4 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   InputNameForAction,
   OutputNameForAction,
@@ -10,7 +11,6 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import { browserInferenceFlowOutput } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import type { EntityUuid } from "@local/hash-subgraph";
 
 export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
   name: "Analyze webpage",

@@ -9,21 +9,22 @@ import type {
   Subgraph as GraphApiSubgraph,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId, EntityMetadata } from "@local/hash-graph-types/entity";
+import type {
+  BaseUrl,
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
-  AccountId,
-  BaseUrl,
-  DataTypeWithMetadata,
   Entity,
-  EntityId,
-  EntityMetadata,
   EntityPropertiesObject,
-  EntityTypeWithMetadata,
   KnowledgeGraphVertex,
-  PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootType,
   Vertices,

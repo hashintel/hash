@@ -2,10 +2,10 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   EntityId,
   EntityMetadata,
-  EntityPropertiesObject,
   EntityTemporalVersioningMetadata,
   LinkData,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/entity";
+import type { EntityPropertiesObject } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { Draft } from "immer";
 import { produce } from "immer";
