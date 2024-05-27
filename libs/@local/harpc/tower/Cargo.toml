@@ -7,3 +7,9 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
+bytes.workspace = true
+error-stack.workspace = true
+harpc-types.workspace = true
+harpc-wire-protocol.workspace = true
+pin-project-lite = "0.2.14"
+thiserror = "1.0.61"
