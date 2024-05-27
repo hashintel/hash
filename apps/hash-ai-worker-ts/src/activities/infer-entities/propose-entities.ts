@@ -1,7 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Entity, EntityId } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -461,7 +462,7 @@ export const proposeEntities = async (params: {
 
           if (invalidProposedEntities.length > 0) {
             retryMessageContentText += dedent(`
-              Some of the entities you suggested for creation were invalid. Please review their properties and try again. 
+              Some of the entities you suggested for creation were invalid. Please review their properties and try again.
               The entities you should review and make a 'create_entities' call for are:
               ${invalidProposedEntities
                 .map(
