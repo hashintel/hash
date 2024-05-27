@@ -6,7 +6,7 @@ use core::{
 use bytes::Buf;
 use error_stack::Report;
 
-use super::{Body, Frame};
+use super::Body;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[non_exhaustive]
@@ -22,6 +22,7 @@ pin_project_lite::pin_project! {
     #[derive(Debug)]
     pub struct Limited<B> {
         limit: usize,
+        limit_exceeded: bool,
         remaining: usize,
 
         #[pin]
@@ -34,6 +35,8 @@ impl<B> Limited<B> {
     pub const fn new(inner: B, limit: usize) -> Self {
         Self {
             limit,
+            limit_exceeded: false,
+
             remaining: limit,
             inner,
         }
@@ -44,39 +47,42 @@ impl<B, C> Body for Limited<B>
 where
     B: Body<Error = Report<C>>,
 {
+    type Data = B::Data;
     type Error = Report<LimitedError>;
-    type Frame = B::Frame;
 
     fn poll_frame(
         self: Pin<&mut Self>,
         cx: &mut Context,
-    ) -> Poll<Option<Result<Self::Frame, Self::Error>>> {
+    ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
         let this = self.project();
 
         let body = match ready!(this.inner.poll_frame(cx)) {
             None => None,
-            Some(Ok(frame)) => match frame.into_data() {
-                Ok(data) => {
-                    if data.remaining() > *this.remaining {
-                        *this.remaining = 0;
+            Some(Ok(data)) => {
+                if data.remaining() > *this.remaining {
+                    *this.remaining = 0;
+                    *this.limit_exceeded = true;
 
-                        Some(Err(Report::new(LimitedError::LimitReached {
-                            limit: *this.limit,
-                        })))
-                    } else {
-                        *this.remaining -= data.remaining();
-                        Some(Ok(B::Frame::from(data)))
-                    }
+                    Some(Err(Report::new(LimitedError::LimitReached {
+                        limit: *this.limit,
+                    })))
+                } else {
+                    *this.remaining -= data.remaining();
+
+                    Some(Ok(data))
                 }
-                Err(frame) => Some(Ok(frame)),
-            },
+            }
             Some(Err(error)) => Some(Err(error.change_context(LimitedError::Other))),
         };
 
         Poll::Ready(body)
     }
 
-    fn is_end_stream(&self) -> bool {
-        self.inner.is_end_stream()
+    fn is_complete(&self) -> Option<bool> {
+        if self.limit_exceeded {
+            Some(false)
+        } else {
+            self.inner.is_complete()
+        }
     }
 }

@@ -1,4 +1,7 @@
-use harpc_wire_protocol::request::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use harpc_wire_protocol::{
+    request::{procedure::ProcedureDescriptor, service::ServiceDescriptor},
+    response::kind::ResponseKind,
+};
 
 pub struct Request<B> {
     service: ServiceDescriptor,

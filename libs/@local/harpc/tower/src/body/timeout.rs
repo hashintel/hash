@@ -23,7 +23,7 @@ pin_project_lite::pin_project! {
     #[derive(Debug)]
     pub struct Timeout<B> {
         timeout: Duration,
-        exceeded: bool,
+        timeout_exceeded: bool,
 
         #[pin]
         delay: Sleep,
@@ -38,7 +38,7 @@ impl<B> Timeout<B> {
     pub fn new(inner: B, timeout: Duration) -> Self {
         Self {
             timeout,
-            exceeded: false,
+            timeout_exceeded: false,
 
             delay: tokio::time::sleep(timeout),
             inner,
@@ -50,16 +50,16 @@ impl<B, C> Body for Timeout<B>
 where
     B: Body<Error = Report<C>>,
 {
+    type Data = B::Data;
     type Error = Report<TimeoutError>;
-    type Frame = B::Frame;
 
     fn poll_frame(
         self: Pin<&mut Self>,
         cx: &mut Context,
-    ) -> Poll<Option<Result<Self::Frame, Self::Error>>> {
+    ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
         let this = self.project();
 
-        if *this.exceeded {
+        if *this.timeout_exceeded {
             return Poll::Ready(Some(Err(Report::new(TimeoutError::DeadlineExceeded {
                 timeout: *this.timeout,
             }))));
@@ -79,7 +79,7 @@ where
         // then try polling the timer
         if this.delay.poll(cx) == Poll::Ready(()) {
             // do not re-poll if we have already exceeded the deadline
-            *this.exceeded = true;
+            *this.timeout_exceeded = true;
 
             return Poll::Ready(Some(Err(Report::new(TimeoutError::DeadlineExceeded {
                 timeout: *this.timeout,
@@ -89,7 +89,11 @@ where
         Poll::Pending
     }
 
-    fn is_end_stream(&self) -> bool {
-        self.inner.is_end_stream()
+    fn is_complete(&self) -> Option<bool> {
+        if self.timeout_exceeded {
+            Some(false)
+        } else {
+            self.inner.is_complete()
+        }
     }
 }
