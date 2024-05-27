@@ -1,3 +1,4 @@
+use harpc_net::session::server::SessionId;
 use harpc_wire_protocol::request::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 
 use crate::extensions::Extensions;
@@ -6,9 +7,10 @@ pub struct Request<B, S> {
     service: ServiceDescriptor,
     procedure: ProcedureDescriptor,
 
+    session: SessionId,
+
     body: B,
 
-    session: S,
     extensions: Extensions,
 }
 
