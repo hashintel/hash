@@ -19,7 +19,7 @@ pub enum LimitedError {
 
 pin_project_lite::pin_project! {
     /// A body that limits the amount of data that can be read.
-    #[derive(Debug)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Limited<B> {
         limit: usize,
         limit_exceeded: bool,
