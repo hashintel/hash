@@ -4,10 +4,15 @@
 
 use harpc_wire_protocol::response::kind::ResponseKind;
 
-pub struct Response<B> {
+use crate::extensions::Extensions;
+
+pub struct Response<B, S> {
     kind: ResponseKind,
 
     body: B,
+
+    session: S,
+    extensions: Extensions,
 }
 
 pub struct ResponseStream<S> {
