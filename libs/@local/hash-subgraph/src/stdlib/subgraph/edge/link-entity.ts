@@ -6,14 +6,10 @@ import {
   getOutgoingLinksForEntity as getOutgoingLinksForEntityBp,
   getRightEntityForLinkEntity as getRightEntityForLinkEntityBp,
 } from "@blockprotocol/graph/temporal/stdlib";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
-import type {
-  Entity,
-  EntityId,
-  LinkEntityAndRightEntity,
-  Subgraph,
-  TimeInterval,
-} from "../../../main";
+import type { Entity, LinkEntityAndRightEntity, Subgraph } from "../../../main";
 
 /**
  * Get all outgoing link entities from a given {@link Entity}.
