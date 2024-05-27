@@ -7,7 +7,7 @@ use core::{
 use error_stack::Report;
 use tokio::time::{Instant, Sleep};
 
-use super::Body;
+use super::{Body, SizeHint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[non_exhaustive]
@@ -53,7 +53,7 @@ where
     type Data = B::Data;
     type Error = Report<TimeoutError>;
 
-    fn poll_frame(
+    fn poll_data(
         self: Pin<&mut Self>,
         cx: &mut Context,
     ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
@@ -67,7 +67,7 @@ where
 
         // first try polling the future, this gives the future the chance to yield a value one last
         // time
-        if let Poll::Ready(value) = this.inner.poll_frame(cx) {
+        if let Poll::Ready(value) = this.inner.poll_data(cx) {
             // reset the timer if we got a value
             this.delay.reset(Instant::now() + *this.timeout);
 
@@ -95,5 +95,9 @@ where
         } else {
             self.inner.is_complete()
         }
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        self.inner.size_hint()
     }
 }

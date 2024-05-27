@@ -5,7 +5,7 @@ use core::{
 
 use bytes::Buf;
 
-use super::Body;
+use super::{Body, SizeHint};
 
 pin_project_lite::pin_project! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -31,13 +31,13 @@ where
     type Data = T;
     type Error = B::Error;
 
-    fn poll_frame(
+    fn poll_data(
         self: Pin<&mut Self>,
         cx: &mut Context,
     ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
         let this = self.project();
 
-        match ready!(this.inner.poll_frame(cx)) {
+        match ready!(this.inner.poll_data(cx)) {
             Some(Ok(data)) => Poll::Ready(Some(Ok((this.map)(data)))),
             Some(Err(err)) => Poll::Ready(Some(Err(err))),
             None => Poll::Ready(None),
@@ -46,5 +46,9 @@ where
 
     fn is_complete(&self) -> Option<bool> {
         self.inner.is_complete()
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        self.inner.size_hint()
     }
 }

@@ -3,7 +3,9 @@ use harpc_wire_protocol::request::{procedure::ProcedureDescriptor, service::Serv
 
 use crate::extensions::Extensions;
 
-pub struct Request<B, S> {
+// TODO: Parts?!
+
+pub struct Request<B> {
     service: ServiceDescriptor,
     procedure: ProcedureDescriptor,
 
@@ -12,6 +14,12 @@ pub struct Request<B, S> {
     body: B,
 
     extensions: Extensions,
+}
+
+impl<B> Request<B> {
+    pub fn session(&self) -> SessionId {
+        self.session
+    }
 }
 
 // TODO: response to be able to set multiple kinds?! in that case we would need another poll_data

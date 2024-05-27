@@ -6,7 +6,7 @@ use core::{
 use bytes::Buf;
 use error_stack::Report;
 
-use super::Body;
+use super::{Body, SizeHint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[non_exhaustive]
@@ -50,13 +50,13 @@ where
     type Data = B::Data;
     type Error = Report<LimitedError>;
 
-    fn poll_frame(
+    fn poll_data(
         self: Pin<&mut Self>,
         cx: &mut Context,
     ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
         let this = self.project();
 
-        let body = match ready!(this.inner.poll_frame(cx)) {
+        let body = match ready!(this.inner.poll_data(cx)) {
             None => None,
             Some(Ok(data)) => {
                 if data.remaining() > *this.remaining {
@@ -83,6 +83,23 @@ where
             Some(false)
         } else {
             self.inner.is_complete()
+        }
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        match u64::try_from(self.remaining) {
+            Ok(n) => {
+                let mut hint = self.inner.size_hint();
+                if hint.lower() >= n {
+                    hint.set_exact(n)
+                } else if let Some(max) = hint.upper() {
+                    hint.set_upper(n.min(max))
+                } else {
+                    hint.set_upper(n)
+                }
+                hint
+            }
+            Err(_) => self.inner.size_hint(),
         }
     }
 }
