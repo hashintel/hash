@@ -2,7 +2,6 @@ import type {
   Entity as EntityBp,
   EntityPropertiesObject as EntityPropertiesObjectBp,
   EntityPropertyValue as EntityPropertyValueBp,
-  EntityRecordId as EntityRecordIdBp,
   EntityRevisionId as EntityRevisionIdBp,
   isEntityRecordId as isEntityRecordIdBp,
   JsonValue as JsonValueBp,
@@ -13,6 +12,7 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   EntityId,
   EntityMetadata,
+  EntityRecordId,
   LinkData,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -25,14 +25,6 @@ import { isEntityId } from "../shared";
 export type EntityRevisionId = Subtype<
   EntityRevisionIdBp,
   Brand<Timestamp, "EntityRevisionId">
->;
-
-export type EntityRecordId = Subtype<
-  EntityRecordIdBp,
-  {
-    entityId: EntityId;
-    editionId: string;
-  }
 >;
 
 /**

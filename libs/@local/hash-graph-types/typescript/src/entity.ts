@@ -1,5 +1,6 @@
 import type {
   EntityMetadata as EntityMetadataBp,
+  EntityRecordId as EntityRecordIdBp,
   EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
   LinkData as LinkDataBp,
 } from "@blockprotocol/graph/temporal";
@@ -12,7 +13,6 @@ import type {
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
 } from "@local/hash-graph-client";
-import type { EntityRecordId } from "@local/hash-subgraph";
 
 import type {
   CreatedById,
@@ -43,6 +43,14 @@ export const ENTITY_ID_DELIMITER = "~";
 export type EntityId = Brand<
   `${OwnedById}${typeof ENTITY_ID_DELIMITER}${EntityUuid}`,
   "EntityId"
+>;
+
+export type EntityRecordId = Subtype<
+  EntityRecordIdBp,
+  {
+    entityId: EntityId;
+    editionId: string;
+  }
 >;
 
 type HalfClosedInterval = TimeInterval<

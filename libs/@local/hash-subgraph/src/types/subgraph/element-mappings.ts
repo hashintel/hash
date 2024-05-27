@@ -1,7 +1,7 @@
 import { type GraphElementIdentifiers as GraphElementIdentifiersBp } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, EntityRecordId } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -9,7 +9,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { Entity, EntityRecordId, OntologyTypeRecordId } from "../element";
+import type { Entity, OntologyTypeRecordId } from "../element";
 import type { EntityIdWithInterval, EntityIdWithTimestamp } from "./edges";
 import type {
   DataTypeVertex,

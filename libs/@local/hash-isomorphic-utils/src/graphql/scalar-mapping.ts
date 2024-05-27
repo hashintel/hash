@@ -29,7 +29,7 @@ export const scalars = {
     "@local/hash-isomorphic-utils/types#ConstructPropertyTypeParams",
 
   Entity: "@local/hash-subgraph#Entity",
-  EntityRecordId: "@local/hash-subgraph#EntityRecordId",
+  EntityRecordId: "@local/hash-graph-types/entity#EntityRecordId",
   EntityMetadata: "@local/hash-graph-types/entity#EntityMetadata",
   EntityRelationAndSubject: "@local/hash-subgraph#EntityRelationAndSubject",
   GetEntitySubgraphRequest: "@local/hash-graph-client#GetEntitySubgraphRequest",

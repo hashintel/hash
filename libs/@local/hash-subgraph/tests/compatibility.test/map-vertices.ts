@@ -36,6 +36,7 @@ import type {
   EntityId,
   EntityMetadata,
   EntityProvenance,
+  EntityRecordId,
   EntityTemporalVersioningMetadata,
   LinkData,
 } from "@local/hash-graph-types/entity";
@@ -53,7 +54,6 @@ import type {
 } from "@local/hash-graph-types/temporal-versioning";
 import type {
   EntityPropertiesObject,
-  EntityRecordId,
   KnowledgeGraphVertex,
   OntologyTypeRecordId,
   OntologyVertex,
