@@ -164,7 +164,9 @@ const sanitizeInputBeforeValidation = (params: {
   return input;
 };
 
-const ajv = new Ajv();
+const ajv = new Ajv({
+  strict: false,
+});
 
 addFormats(ajv);
 
