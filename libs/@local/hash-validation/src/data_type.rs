@@ -424,11 +424,11 @@ impl<P: Sync> Schema<Property, P> for DataType {
 
     async fn validate_value<'a>(
         &'a self,
-        property: &'a Property,
+        value: &'a Property,
         _: ValidateEntityComponents,
         _: &'a P,
     ) -> Result<(), Report<DataValidationError>> {
-        match (self.json_type(), property) {
+        match (self.json_type(), value) {
             (JsonSchemaValueType::Number, Property::Value(value)) => {
                 #[expect(clippy::float_arithmetic)]
                 check_numeric_additional_property(
@@ -458,9 +458,9 @@ impl<P: Sync> Schema<Property, P> for DataType {
                 )?;
             }
             (expected, _) => ensure!(
-                property.json_type() == expected,
+                value.json_type() == expected,
                 DataValidationError::InvalidType {
-                    actual: property.json_type(),
+                    actual: value.json_type(),
                     expected,
                 }
             ),
@@ -469,9 +469,9 @@ impl<P: Sync> Schema<Property, P> for DataType {
         for (additional_key, additional_property) in self.additional_properties() {
             match additional_key.as_str() {
                 "const" => ensure!(
-                    property == additional_property,
+                    value == additional_property,
                     Report::new(DataTypeConstraint::Const {
-                        actual: property.clone(),
+                        actual: value.clone(),
                         expected: additional_property.clone(),
                     })
                     .change_context(DataValidationError::ConstraintUnfulfilled)
@@ -480,9 +480,9 @@ impl<P: Sync> Schema<Property, P> for DataType {
                     ensure!(
                         additional_property
                             .as_array()
-                            .is_some_and(|array| array.iter().any(|expected| property == expected)),
+                            .is_some_and(|array| array.iter().any(|expected| value == expected)),
                         Report::new(DataTypeConstraint::Enum {
-                            actual: property.clone(),
+                            actual: value.clone(),
                             expected: additional_property.clone(),
                         })
                         .change_context(DataValidationError::ConstraintUnfulfilled)

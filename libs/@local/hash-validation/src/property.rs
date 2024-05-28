@@ -21,14 +21,14 @@ where
 
     async fn validate(
         &self,
-        object: &PropertyObject,
+        schema: &PropertyObject,
         _components: ValidateEntityComponents,
         _provider: &P,
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
         for (path, _confidence) in self {
-            if !object.path_exists(path) {
+            if !schema.path_exists(path) {
                 extend_report!(
                     status,
                     EntityValidationError::InvalidPropertyPath {

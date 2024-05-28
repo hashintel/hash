@@ -1,7 +1,5 @@
 //! Web routes for CRU operations on Property types.
 
-#![expect(clippy::str_to_string)]
-
 use std::sync::Arc;
 
 use authorization::{

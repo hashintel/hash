@@ -94,6 +94,10 @@ where
             return Err(Report::new(BufferError::EarlyEndOfStream));
         }
 
+        #[expect(
+            clippy::needless_borrows_for_generic_args,
+            reason = "Would move the buffer"
+        )]
         Ok(N::unchecked_read_from_buf(&mut self.0))
     }
 
@@ -136,6 +140,10 @@ where
             return Err(Report::new(BufferError::NotEnoughCapacity));
         }
 
+        #[expect(
+            clippy::needless_borrows_for_generic_args,
+            reason = "Would move the buffer"
+        )]
         number.unchecked_write_to_buf(&mut self.0);
 
         Ok(())

@@ -574,9 +574,9 @@ mod full {
 
     #[cfg(nightly)]
     impl Error for ContextD {
-        fn provide<'a>(&'a self, req: &mut Request<'a>) {
-            req.provide_ref(&self.code);
-            req.provide_ref(&self.reason);
+        fn provide<'a>(&'a self, request: &mut Request<'a>) {
+            request.provide_ref(&self.code);
+            request.provide_ref(&self.reason);
         }
     }
 
