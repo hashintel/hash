@@ -113,7 +113,7 @@ export const EntityResultTable = ({
           : entity.metadata.entityTypeId;
 
       const entityLabel = generateEntityLabel(null, {
-        properties: entity.properties,
+        ...entity,
         metadata: {
           recordId: {
             editionId: "irrelevant-here",
