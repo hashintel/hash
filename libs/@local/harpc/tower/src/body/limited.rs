@@ -6,7 +6,7 @@ use core::{
 use bytes::Buf;
 use error_stack::Report;
 
-use super::{Body, SizeHint};
+use super::{Body, Frame, SizeHint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[non_exhaustive]
@@ -47,35 +47,42 @@ impl<B, C> Body for Limited<B>
 where
     B: Body<Error = Report<C>>,
 {
+    type Control = B::Control;
     type Data = B::Data;
     type Error = Report<LimitedError>;
 
-    fn poll_data(
+    fn poll_frame(
         self: Pin<&mut Self>,
         cx: &mut Context,
-    ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
+    ) -> Poll<Option<Result<Frame<Self::Data, Self::Control>, Self::Error>>> {
         let this = self.project();
 
-        let body = match ready!(this.inner.poll_data(cx)) {
-            None => None,
-            Some(Ok(data)) => {
-                if data.remaining() > *this.remaining {
-                    *this.remaining = 0;
-                    *this.limit_exceeded = true;
-
-                    Some(Err(Report::new(LimitedError::LimitReached {
-                        limit: *this.limit,
-                    })))
-                } else {
-                    *this.remaining -= data.remaining();
-
-                    Some(Ok(data))
-                }
-            }
-            Some(Err(error)) => Some(Err(error.change_context(LimitedError::Other))),
+        let Some(result) = ready!(this.inner.poll_frame(cx)) else {
+            return Poll::Ready(None);
         };
 
-        Poll::Ready(body)
+        let data = match result {
+            Ok(frame) => match frame.into_data() {
+                Ok(data) => data,
+                Err(frame) => return Poll::Ready(Some(Ok(frame))),
+            },
+            Err(error) => return Poll::Ready(Some(Err(error.change_context(LimitedError::Other)))),
+        };
+
+        let body = if data.remaining() > *this.remaining {
+            *this.remaining = 0;
+            *this.limit_exceeded = true;
+
+            Err(Report::new(LimitedError::LimitReached {
+                limit: *this.limit,
+            }))
+        } else {
+            *this.remaining -= data.remaining();
+
+            Ok(Frame::new_data(data))
+        };
+
+        Poll::Ready(Some(body))
     }
 
     fn is_complete(&self) -> Option<bool> {

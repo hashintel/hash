@@ -6,7 +6,7 @@ use std::{
 use bytes::Buf;
 use error_stack::Report;
 
-use super::Body;
+use super::{Body, Frame};
 
 macro_rules! get {
     ($ty:ty => $($method:ident),*) => {
@@ -34,6 +34,76 @@ pub enum EitherError {
 pub enum Either<L, R> {
     Left(#[pin] L),
     Right(#[pin] R),
+}
+
+impl<L, R> Either<L, R> {
+    pub fn left(&self) -> Option<&L> {
+        match self {
+            Self::Left(left) => Some(left),
+            Self::Right(_) => None,
+        }
+    }
+
+    pub fn left_mut(&mut self) -> Option<&mut L> {
+        match self {
+            Self::Left(left) => Some(left),
+            Self::Right(_) => None,
+        }
+    }
+
+    pub fn into_left(self) -> Option<L> {
+        match self {
+            Self::Left(left) => Some(left),
+            Self::Right(_) => None,
+        }
+    }
+
+    pub fn right(&self) -> Option<&R> {
+        match self {
+            Self::Left(_) => None,
+            Self::Right(right) => Some(right),
+        }
+    }
+
+    pub fn right_mut(&mut self) -> Option<&mut R> {
+        match self {
+            Self::Left(_) => None,
+            Self::Right(right) => Some(right),
+        }
+    }
+
+    pub fn into_right(self) -> Option<R> {
+        match self {
+            Self::Left(_) => None,
+            Self::Right(right) => Some(right),
+        }
+    }
+}
+
+impl<T> Either<T, T> {
+    pub fn into_inner(self) -> T {
+        match self {
+            Self::Left(left) => left,
+            Self::Right(right) => right,
+        }
+    }
+}
+
+// TODO: don't particularly like the names here.
+impl<L> Either<L, !> {
+    pub fn take_left(self) -> L {
+        let Self::Left(left) = self;
+
+        left
+    }
+}
+
+impl<R> Either<!, R> {
+    pub fn take_right(self) -> R {
+        let Self::Right(right) = self;
+
+        right
+    }
 }
 
 impl<L, R> Buf for Either<L, R>
@@ -162,28 +232,29 @@ where
     L: Body<Error = Report<C1>>,
     R: Body<Error = Report<C2>>,
 {
+    type Control = Either<L::Control, R::Control>;
     type Data = Either<L::Data, R::Data>;
     type Error = Report<EitherError>;
 
-    fn poll_data(
+    fn poll_frame(
         self: Pin<&mut Self>,
         cx: &mut Context,
-    ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
+    ) -> Poll<Option<Result<Frame<Self::Data, Self::Control>, Self::Error>>> {
         let this = self.project();
 
         match this {
-            EitherProj::Left(left) => left.poll_data(cx).map(|opt| {
+            EitherProj::Left(left) => left.poll_frame(cx).map(|opt| {
                 opt.map(|response| {
                     response
-                        .map(Either::Left)
+                        .map(|frame| frame.map_data(Either::Left).map_control(Either::Left))
                         .map_err(|error| error.change_context(EitherError::Left))
                 })
             }),
 
-            EitherProj::Right(right) => right.poll_data(cx).map(|response| {
+            EitherProj::Right(right) => right.poll_frame(cx).map(|response| {
                 response.map(|response| {
                     response
-                        .map(Either::Right)
+                        .map(|frame| frame.map_data(Either::Right).map_control(Either::Right))
                         .map_err(|error| error.change_context(EitherError::Right))
                 })
             }),

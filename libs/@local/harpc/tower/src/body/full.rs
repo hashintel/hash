@@ -5,7 +5,7 @@ use core::{
 
 use bytes::{Buf, Bytes};
 
-use super::{Body, SizeHint};
+use super::{Body, Frame, SizeHint};
 
 pub struct Full {
     data: Option<Bytes>,
@@ -18,14 +18,15 @@ impl Full {
 }
 
 impl Body for Full {
+    type Control = !;
     type Data = Bytes;
     type Error = !;
 
-    fn poll_data(
+    fn poll_frame(
         mut self: Pin<&mut Self>,
         _: &mut Context,
-    ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
-        Poll::Ready(self.data.take().map(Ok))
+    ) -> Poll<Option<Result<Frame<Self::Data, Self::Control>, Self::Error>>> {
+        Poll::Ready(self.data.take().map(Frame::new_data).map(Ok))
     }
 
     fn is_complete(&self) -> Option<bool> {

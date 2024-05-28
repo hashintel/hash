@@ -1,4 +1,9 @@
-#![feature(impl_trait_in_assoc_type, never_type, type_changing_struct_update)]
+#![feature(
+    impl_trait_in_assoc_type,
+    never_type,
+    type_changing_struct_update,
+    min_exhaustive_patterns
+)]
 
 mod body;
 mod extensions;

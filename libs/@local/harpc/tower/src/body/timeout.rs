@@ -7,7 +7,7 @@ use core::{
 use error_stack::Report;
 use tokio::time::{Instant, Sleep};
 
-use super::{Body, SizeHint};
+use super::{Body, Frame, SizeHint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[non_exhaustive]
@@ -50,13 +50,14 @@ impl<B, C> Body for Timeout<B>
 where
     B: Body<Error = Report<C>>,
 {
+    type Control = B::Control;
     type Data = B::Data;
     type Error = Report<TimeoutError>;
 
-    fn poll_data(
+    fn poll_frame(
         self: Pin<&mut Self>,
         cx: &mut Context,
-    ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
+    ) -> Poll<Option<Result<Frame<Self::Data, Self::Control>, Self::Error>>> {
         let this = self.project();
 
         if *this.timeout_exceeded {
@@ -67,7 +68,7 @@ where
 
         // first try polling the future, this gives the future the chance to yield a value one last
         // time
-        if let Poll::Ready(value) = this.inner.poll_data(cx) {
+        if let Poll::Ready(value) = this.inner.poll_frame(cx) {
             // reset the timer if we got a value
             this.delay.reset(Instant::now() + *this.timeout);
 
