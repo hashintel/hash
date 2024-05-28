@@ -238,7 +238,8 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
     description: dedent(`
       Complete the inference task.
       You must explain how the task has been completed with the existing submitted facts about entities.
-      Do not make this tool call if the research prompt hasn't been fully satisfied.
+      Do not call this tool call unless you have made a significant effort to find as many relevant
+        facts as possible with the provided tools.
     `),
     inputSchema: {
       type: "object",
@@ -250,8 +251,11 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
   },
   terminate: {
     name: "terminate",
-    description:
-      "Terminate the inference task, because it cannot be completed with the provided tools.",
+    description: dedent(`
+      Terminate the inference task, because it cannot be progressed with the provided tools.
+      Do not under any circumstances terminate the inference task if you were able to find some, but
+        not all of the facts requested by the user.
+    `),
     inputSchema: {
       type: "object",
       properties: {
