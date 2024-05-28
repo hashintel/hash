@@ -100,7 +100,7 @@ export const LoadEntityMenuContent: FunctionComponent<
       /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
       blockView.manager.replaceBlockChildEntity(
         blockEntityId,
-        targetEntity as unknown as EntityStoreType,
+        targetEntity as EntityStoreType,
       );
     },
     [blockView, blockEntityId],

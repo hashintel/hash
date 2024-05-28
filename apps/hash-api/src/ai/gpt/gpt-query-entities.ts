@@ -3,6 +3,7 @@ import type {
   SimpleLinkWithoutHref,
 } from "@local/hash-backend-utils/simplified-graph";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
+import type { Uuid } from "@local/hash-graph-types/branded";
 import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   CreateEmbeddingsParams,
@@ -268,7 +269,7 @@ export const gptQueryEntities: RequestHandler<
             {
               entityId: entityIdFromComponents(
                 webOwnedById,
-                webOwnedById as unknown as EntityUuid,
+                webOwnedById as Uuid as EntityUuid,
               ),
             },
           );

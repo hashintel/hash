@@ -132,7 +132,7 @@ export const LinkedEntitySelector = ({
         makePublic: false,
         onComplete: (upload) =>
           onSelect(
-            upload.createdEntities.fileEntity as unknown as Entity,
+            upload.createdEntities.fileEntity as Entity,
             // the entity's subgraph should mostly contain the file's type, since we're choosing it based on the expected type
             // it will not if the expected type is File and we automatically choose a narrower type of e.g. Image based on the upload
             entitySubgraph,

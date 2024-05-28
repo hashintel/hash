@@ -246,14 +246,14 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           entity: existingEntity,
           entityTypeId,
           properties,
-        })) as unknown as File)
+        })) as File)
       : ((await createEntity(ctx, authentication, {
           ownedById,
           properties,
           entityTypeId,
           relationships:
             createDefaultAuthorizationRelationships(authentication),
-        })) as unknown as File);
+        })) as File);
   } catch (error) {
     throw new Error(
       `There was an error creating the file entity from a link: ${error}`,

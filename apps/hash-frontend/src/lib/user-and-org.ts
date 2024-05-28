@@ -169,8 +169,7 @@ export const constructOrg = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: avatarLinkAndEntities[0].linkEntity[0] as LinkEntity,
-        imageEntity: avatarLinkAndEntities[0]
-          .rightEntity[0] as unknown as Image,
+        imageEntity: avatarLinkAndEntities[0].rightEntity[0] as Image,
       }
     : undefined;
 
@@ -402,8 +401,7 @@ export const constructUser = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: avatarLinkAndEntities[0].linkEntity[0] as LinkEntity,
-        imageEntity: avatarLinkAndEntities[0]
-          .rightEntity[0] as unknown as Image,
+        imageEntity: avatarLinkAndEntities[0].rightEntity[0] as Image,
       }
     : undefined;
 
@@ -421,8 +419,7 @@ export const constructUser = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: coverImageLinkAndEntities[0].linkEntity[0] as LinkEntity,
-        imageEntity: coverImageLinkAndEntities[0]
-          .rightEntity[0] as unknown as Image,
+        imageEntity: coverImageLinkAndEntities[0].rightEntity[0] as Image,
       }
     : undefined;
 

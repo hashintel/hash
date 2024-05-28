@@ -67,7 +67,7 @@ export const App: BlockComponent<BlockEntity> = ({
       )
       .map(
         ({ rightEntity: rightEntityRevisions }) =>
-          rightEntityRevisions as unknown as Query,
+          rightEntityRevisions as Query,
       );
 
     return linkedQueryEntities[0];

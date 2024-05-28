@@ -42,7 +42,7 @@ const getAvatarForEntity = (
       linkEntity[0]?.metadata.entityTypeId ===
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
   );
-  return avatarLinkAndEntities[0]?.rightEntity[0] as unknown as
+  return avatarLinkAndEntities[0]?.rightEntity[0] as
     | Entity<ImageProperties>
     | undefined;
 };

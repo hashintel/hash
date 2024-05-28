@@ -77,7 +77,7 @@ export const useBlockProtocolFileUpload = (
 
         const { createFileFromUrl: fileEntity } = result.data;
 
-        return { data: fileEntity as unknown as FileEntityType };
+        return { data: fileEntity as FileEntityType };
       }
 
       if (!("file" in fileUploadData)) {
@@ -130,7 +130,7 @@ export const useBlockProtocolFileUpload = (
 
       await uploadFileToStorageProvider(presignedPut, file);
 
-      return { data: uploadedFileEntity as unknown as FileEntityType };
+      return { data: uploadedFileEntity as FileEntityType };
     },
     [createFileFromUrlFn, ownedById, requestFileUploadFn],
   );

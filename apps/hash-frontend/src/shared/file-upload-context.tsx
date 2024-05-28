@@ -277,8 +277,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             throw new Error(errors?.[0]?.message ?? "unknown error");
           }
 
-          fileEntity =
-            data.createFileFromUrl as unknown as Entity<FileProperties>;
+          fileEntity = data.createFileFromUrl as Entity<FileProperties>;
 
           if (makePublic) {
             /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -341,7 +340,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             }
 
             fileEntity = data.requestFileUpload
-              .entity as unknown as Entity<FileProperties>;
+              .entity as Entity<FileProperties>;
 
             if (makePublic) {
               /** @todo: make entity public as part of `createEntity` query once this is supported */
