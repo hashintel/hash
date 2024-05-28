@@ -33,10 +33,12 @@ const provenanceIconSx: SxProps<Theme> = {
 };
 
 const provenanceIconMap: Record<
-  ProvidedEntityEditionProvenanceOriginTypeEnum,
+  /**
+   * @todo: remove this when "flow" is correctly included in `ProvidedEntityEditionProvenanceOrigin`
+   */
+  ProvidedEntityEditionProvenanceOriginTypeEnum & "flow",
   FunctionComponent<SvgIconProps>
 > = {
-  // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
   flow: InfinityLightIcon,
   "browser-extension": UserIcon,
   "web-app": UserIcon,
