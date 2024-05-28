@@ -4,9 +4,9 @@ import {
   getHashInstance,
   getHashInstanceFromEntity,
 } from "@local/hash-backend-utils/hash-instance";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import type { OwnedById } from "@local/hash-subgraph";
 
 import { createAccountGroup } from "../../account-permission-management";
 import type { ImpureGraphFunction } from "../../context-types";

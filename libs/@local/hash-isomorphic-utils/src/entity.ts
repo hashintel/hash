@@ -1,5 +1,6 @@
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { Entity, EntityId, Subgraph } from "@local/hash-subgraph";
+import type { Entity, Subgraph } from "@local/hash-subgraph";
 import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
 
 import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";

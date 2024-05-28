@@ -9,11 +9,13 @@ import {
 import type {
   AccountGroupId,
   AccountId,
+} from "@local/hash-graph-types/account";
+import type {
   DataTypeWithMetadata,
-  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
+import type { Entity } from "@local/hash-subgraph";
 import {
   extractOwnedByIdFromEntityId,
   isBaseUrl,

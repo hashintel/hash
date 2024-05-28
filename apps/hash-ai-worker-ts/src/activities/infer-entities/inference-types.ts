@@ -1,9 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   InferredEntityChangeResult,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { BaseUrl, Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import type OpenAI from "openai";
 
 import type { DereferencedEntityType } from "../shared/dereference-entity-type";

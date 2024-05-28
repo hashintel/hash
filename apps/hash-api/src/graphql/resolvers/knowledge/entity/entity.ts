@@ -4,19 +4,19 @@ import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type {
-  AccountGroupId,
-  AccountId,
-  Entity,
-  EntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { splitEntityId } from "@local/hash-subgraph";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import {

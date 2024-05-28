@@ -1,6 +1,8 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
-import type { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import produce from "immer";
 

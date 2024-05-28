@@ -1,3 +1,4 @@
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
   currentTimeInstantTemporalAxes,
@@ -16,9 +17,7 @@ import type {
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type {
   Entity,
-  EntityId,
   EntityRootType,
-  EntityUuid,
   GraphResolveDepths,
   Subgraph,
 } from "@local/hash-subgraph";

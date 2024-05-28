@@ -1,4 +1,4 @@
-import type { EntityUuid } from "@local/hash-subgraph";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 
 import type {
   InputNameForAction,

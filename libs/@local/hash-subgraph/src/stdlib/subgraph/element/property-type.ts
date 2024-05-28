@@ -11,14 +11,13 @@ import type {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-
 import type {
   BaseUrl,
   DataTypeWithMetadata,
-  OntologyTypeVertexId,
   PropertyTypeWithMetadata,
-  Subgraph,
-} from "../../../main";
+} from "@local/hash-graph-types/ontology";
+
+import type { OntologyTypeVertexId, Subgraph } from "../../../main";
 import { getJsonSchemaTypeFromValue, mustGetDataTypeById } from "./data-type";
 import { getEntityTypeAndParentsById } from "./entity-type";
 

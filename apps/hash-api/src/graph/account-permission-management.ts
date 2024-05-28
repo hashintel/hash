@@ -6,8 +6,8 @@ import type {
 import type {
   AccountGroupId,
   AccountId,
-  OwnedById,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/account";
+import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { ImpureGraphFunction } from "./context-types";
 

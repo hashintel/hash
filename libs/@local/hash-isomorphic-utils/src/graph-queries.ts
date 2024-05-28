@@ -8,16 +8,16 @@ import type {
   PropertyTypeQueryToken,
   Selector,
 } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type {
-  AccountId,
-  EntityId,
   EntityRelationAndSubject,
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,
   QueryTemporalAxesUnresolved,
   Subgraph,
   SubgraphRootType,
-  Timestamp,
 } from "@local/hash-subgraph";
 import { splitEntityId } from "@local/hash-subgraph";
 import {

@@ -1,6 +1,8 @@
 import { compareBounds as compareBoundsBp } from "@blockprotocol/graph/temporal/stdlib";
-
-import type { TemporalBound, TimeInterval } from "../main";
+import type {
+  TemporalBound,
+  TimeInterval,
+} from "@local/hash-graph-types/temporal-versioning";
 
 export const compareBounds = (
   left: TemporalBound,

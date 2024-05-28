@@ -1,4 +1,5 @@
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import type { AccountId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -8,10 +9,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import {
-  type AccountId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { graphApiClient } from "../../activities/shared/graph-api-client";

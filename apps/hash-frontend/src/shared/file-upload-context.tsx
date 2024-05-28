@@ -1,12 +1,9 @@
 import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  Entity,
-  EntityId,
-  EntityPropertiesObject,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import type { PropsWithChildren } from "react";
 import {

@@ -1,11 +1,7 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type {
-  Entity,
-  EntityRootType,
-  EntityTypeWithMetadata,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,

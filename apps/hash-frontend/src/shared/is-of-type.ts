@@ -1,10 +1,10 @@
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import type {
   DataTypeWithMetadata,
-  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import type { Entity } from "@local/hash-subgraph";
 
 export const isType = (
   item:

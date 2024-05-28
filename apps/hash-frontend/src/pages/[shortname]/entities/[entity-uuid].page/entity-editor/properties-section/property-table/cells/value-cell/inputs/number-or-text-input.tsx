@@ -1,6 +1,6 @@
 import type { TextFieldProps } from "@hashintel/design-system";
 import { TextField } from "@hashintel/design-system";
-import type { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { format, formatISO, parseISO } from "date-fns";
 
 import type { CellInputProps } from "./types";

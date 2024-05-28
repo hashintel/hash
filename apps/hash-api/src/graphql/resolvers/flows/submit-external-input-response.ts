@@ -1,6 +1,6 @@
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
-import type { EntityUuid } from "@local/hash-subgraph";
 import { ApolloError } from "apollo-server-errors";
 
 import type {

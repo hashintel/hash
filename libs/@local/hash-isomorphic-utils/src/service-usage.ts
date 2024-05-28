@@ -1,4 +1,4 @@
-import type { BoundedTimeInterval } from "@local/hash-subgraph";
+import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
 export type AggregatedUsageRecord = {
   serviceName: string;

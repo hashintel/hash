@@ -5,15 +5,15 @@ import type {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
+import type { AccountId } from "@local/hash-graph-types/account";
 import type {
-  AccountId,
   BaseUrl,
   EntityTypeWithMetadata,
-  OwnedById,
   PropertyTypeWithMetadata,
-  Subgraph,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import type { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
+import type { Subgraph } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getEntityTypesByBaseUrl,

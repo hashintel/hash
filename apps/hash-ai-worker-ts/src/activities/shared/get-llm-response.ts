@@ -1,8 +1,10 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";

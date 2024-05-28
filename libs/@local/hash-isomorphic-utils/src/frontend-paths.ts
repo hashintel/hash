@@ -1,4 +1,4 @@
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { splitEntityId } from "@local/hash-subgraph";
 
 export const generateEntityPath = (params: {

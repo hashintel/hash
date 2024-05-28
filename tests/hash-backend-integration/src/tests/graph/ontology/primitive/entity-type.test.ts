@@ -13,6 +13,11 @@ import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -21,11 +26,6 @@ import type {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
 } from "@local/hash-isomorphic-utils/types";
-import type {
-  EntityTypeWithMetadata,
-  OwnedById,
-  PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
 import {
   isOwnedOntologyElementMetadata,
   linkEntityTypeUrl,

@@ -1,12 +1,9 @@
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
-import type {
-  AccountId,
-  EntityId,
-  EntityUuid,
-  OwnedById,
-} from "@local/hash-subgraph";
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
 import { caching } from "cache-manager";
