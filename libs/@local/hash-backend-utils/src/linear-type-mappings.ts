@@ -1,5 +1,6 @@
 /* eslint-disable no-param-reassign */
 
+import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Issue, Organization, User } from "@linear/sdk";
 import type {
@@ -16,7 +17,6 @@ import {
   linearPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityPropertyValue } from "@blockprotocol/graph";
 
 const mapLinearDateToIsoString = (date: string | Date): string => {
   if (typeof date === "string") {

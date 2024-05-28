@@ -5,8 +5,9 @@ import type {
 } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { EntityMetadata as GraphApiEntityMetadata } from "@local/hash-graph-client/api";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
 import type {
-  Entity,
   EntityId,
   EntityPropertiesObject,
 } from "@local/hash-graph-types/entity";
@@ -284,23 +285,32 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
           ...entityOrTypeEditionMap,
           [draftEntityEditionTimestamp as string]: {
             kind: "entity",
-            inner: {
-              ...entityInStore,
+            // TODO: `GraphEntity` should not be created here
+            //   see https://linear.app/hash/issue/H-2786/avoid-constructing-graphentity-in-block-loader
+            inner: new GraphEntity({
+              metadata: {
+                recordId: entityInStore.metadata.recordId,
+                entityTypeIds: [entityInStore.metadata.entityTypeId],
+                temporalVersioning: entityInStore.metadata.temporalVersioning,
+                archived: entityInStore.metadata.archived,
+                provenance: entityInStore.metadata.provenance,
+                /**
+                 * This cast is necessary because the DraftEntity type has some missing fields (e.g. entityId)
+                 * to account for entities which are only in the local store, and not in the API.
+                 * Because this entity must exist in the API, since we have matched it on an entityId from the API,
+                 * we can safely cast it to the Entity type.
+                 *
+                 * Ideally the entity store would not have differences in the type to persisted entities,
+                 * which we should address when moving to a single global entity store – see H-1351.
+                 */
+              } as GraphApiEntityMetadata,
               properties: isBlockEntity
                 ? entityInStore.properties
                 : rewrittenPropertiesForTextualContent(
                     entityInStore.properties,
                   ),
-              /**
-               * This cast is necessary because the DraftEntity type has some missing fields (e.g. entityId)
-               * to account for entities which are only in the local store, and not in the API.
-               * Because this entity must exist in the API, since we have matched it on an entityId from the API,
-               * we can safely cast it to the Entity type.
-               *
-               * Ideally the entity store would not have differences in the type to persisted entities,
-               * which we should address when moving to a single global entity store – see H-1351.
-               */
-            } as Entity,
+              linkData: entityInStore.linkData,
+            }),
           } satisfies EntityVertex,
         };
 
