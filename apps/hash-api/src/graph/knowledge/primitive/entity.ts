@@ -15,7 +15,6 @@ import type {
   GraphResolveDepths,
   ModifyRelationshipOperation,
   PropertyMetadataMap,
-  PropertyValues,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
 import type {
@@ -648,7 +647,7 @@ export const updateEntityProperties: ImpureGraphFunction<
     entity: Entity;
     updatedProperties: {
       propertyTypeBaseUrl: BaseUrl;
-      value: PropertyValues | undefined;
+      value: PropertyValue | undefined;
     }[];
     provenance?: ProvidedEntityEditionProvenance;
   },
@@ -686,7 +685,7 @@ export const updateEntityProperty: ImpureGraphFunction<
   {
     entity: Entity;
     propertyTypeBaseUrl: BaseUrl;
-    value: PropertyValues | undefined;
+    value: PropertyValue | undefined;
     provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,

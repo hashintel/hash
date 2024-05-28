@@ -1,10 +1,8 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type {
-  BaseUrl,
-  EntityId,
-  Subgraph,
-  Timestamp,
-} from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import type { Subgraph } from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getEntityTypeById,

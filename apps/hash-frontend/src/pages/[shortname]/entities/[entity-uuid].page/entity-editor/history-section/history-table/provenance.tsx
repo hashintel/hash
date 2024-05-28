@@ -6,8 +6,9 @@ import {
   WandMagicSparklesIcon,
 } from "@hashintel/design-system";
 import type { ProvidedEntityEditionProvenanceOriginTypeEnum } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import type { AccountId, Subgraph } from "@local/hash-subgraph";
+import type { Subgraph } from "@local/hash-subgraph";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
@@ -33,10 +34,15 @@ const provenanceIconSx: SxProps<Theme> = {
 };
 
 const provenanceIconMap: Record<
+  | ProvidedEntityEditionProvenanceOriginTypeEnum
   /**
-   * @todo: remove this when "flow" is correctly included in `ProvidedEntityEditionProvenanceOrigin`
+   * @todo: remove this when remaining possible values have been correctly included in `ProvidedEntityEditionProvenanceOrigin`
    */
-  ProvidedEntityEditionProvenanceOriginTypeEnum & "flow",
+  | "flow"
+  | "browser-extension"
+  | "web-app"
+  | "mobile-app"
+  | "api",
   FunctionComponent<SvgIconProps>
 > = {
   flow: InfinityLightIcon,
