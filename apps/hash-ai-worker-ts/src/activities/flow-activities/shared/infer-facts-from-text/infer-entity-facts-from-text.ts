@@ -223,17 +223,23 @@ export const inferEntityFactsFromText = async (params: {
       }[];
     };
 
-    const newFacts: Fact[] = input.facts.map((fact) => {
+    const newFacts: Fact[] = input.facts.flatMap((fact) => {
       const subjectEntity = subjectEntities.find(
         ({ localId }) => localId === fact.subjectEntityLocalId,
       );
 
-      /** @todo: retry if an invalid `subjectEntityId` has been provided */
-
       if (!subjectEntity) {
-        throw new Error(
-          `Could not find subject entity with local ID ${fact.subjectEntityLocalId}`,
-        );
+        invalidFacts.push({
+          factId: generateUuid(),
+          text: fact.text,
+          subjectEntityLocalId: fact.subjectEntityLocalId,
+          objectEntityLocalId: fact.objectEntityLocalId ?? undefined,
+          prepositionalPhrases: fact.prepositionalPhrases,
+          invalidReason: `An invalid "subjectEntityLocalId" has been provided: ${fact.subjectEntityLocalId}`,
+          toolCallId: toolCall.id,
+        });
+
+        return [];
       }
 
       return {
