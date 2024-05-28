@@ -1,8 +1,10 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
@@ -858,24 +860,26 @@ const getOpenAiResponse = async <ToolName extends string>(
   return response;
 };
 
+export type UsageTrackingParams = {
+  /**
+   * Required for tracking usage on a per-user basis.
+   *
+   * @todo: consider abstracting this in a wrapper method, or via
+   * generic params (via a `logUsage` method).
+   */
+  userAccountId: AccountId;
+  webId: OwnedById;
+  graphApiClient: GraphApi;
+  incurredInEntities: { entityId: EntityId }[];
+};
+
 /**
  * This function sends a request to the Anthropic or OpenAI API based on the
  * `model` provided in the parameters.
  */
 export const getLlmResponse = async <T extends LlmParams>(
   llmParams: T,
-  usageTrackingParams: {
-    /**
-     * Required for tracking usage on a per-user basis.
-     *
-     * @todo: consider abstracting this in a wrapper method, or via
-     * generic params (via a `logUsage` method).
-     */
-    userAccountId: AccountId;
-    webId: OwnedById;
-    graphApiClient: GraphApi;
-    incurredInEntities: { entityId: EntityId }[];
-  },
+  usageTrackingParams: UsageTrackingParams,
 ): Promise<LlmResponse<T>> => {
   const { graphApiClient, userAccountId, webId } = usageTrackingParams;
 

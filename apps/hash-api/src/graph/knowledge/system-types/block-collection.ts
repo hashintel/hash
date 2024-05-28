@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -13,7 +14,6 @@ import type {
   HasDataProperties,
   HasIndexedContentProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityId } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 

@@ -1,19 +1,19 @@
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityMetadata } from "@local/hash-graph-types/entity";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type {
-  AccountId,
-  DataTypeWithMetadata,
-  Entity,
-  EntityMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import {
   ActivityCancellationType,
   proxyActivities,
@@ -393,14 +393,14 @@ export const updateEntityEmbeddings = async (
 
     for (const entity of entities) {
       /**
-       * Don't try to create embeddings for `Flow` entities, due to the size
+       * Don't try to create embeddings for `FlowRun` entities, due to the size
        * of their property values.
        *
        * @todo: consider having a general approach for declaring which entity/property
        * types should be skipped when generating embeddings.
        */
       if (
-        systemEntityTypes.flow.entityTypeId === entity.metadata.entityTypeId
+        systemEntityTypes.flowRun.entityTypeId === entity.metadata.entityTypeId
       ) {
         continue;
       }

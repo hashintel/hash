@@ -1,3 +1,4 @@
+import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import {
   Configuration,
   DefaultApi as InternalApiClient,
@@ -9,7 +10,7 @@ const basePath = process.env.INTERNAL_API_HOST ?? "http://localhost:5002";
 
 const internalApiKey = process.env.INTERNAL_API_KEY;
 
-if (!internalApiKey) {
+if (!isSelfHostedInstance && !internalApiKey) {
   throw new Error("INTERNAL_API_KEY is required");
 }
 
@@ -36,7 +37,7 @@ axiosInstance.interceptors.response.use(
   },
 );
 
-export const internalApi = new InternalApiClient(
+export const internalApiClient = new InternalApiClient(
   config,
   basePath,
   axiosInstance,

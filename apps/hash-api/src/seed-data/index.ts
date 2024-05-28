@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { Org } from "../graph/knowledge/system-types/org";

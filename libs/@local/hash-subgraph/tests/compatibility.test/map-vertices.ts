@@ -28,27 +28,35 @@ import type {
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 import type {
-  BaseUrl,
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
   CreatedById,
-  CustomDataType,
-  DataTypeMetadata,
   EditionArchivedById,
   EditionCreatedById,
+} from "@local/hash-graph-types/account";
+import type {
   EntityId,
   EntityMetadata,
-  EntityPropertiesObject,
   EntityProvenance,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
-  EntityTypeMetadata,
-  KnowledgeGraphVertex,
   LinkData,
+} from "@local/hash-graph-types/entity";
+import type {
+  BaseUrl,
+  CustomDataType,
+  DataTypeMetadata,
+  EntityTypeMetadata,
   OntologyProvenance,
   OntologyTypeRecordId,
-  OntologyVertex,
+} from "@local/hash-graph-types/ontology";
+import type {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
   Timestamp,
+} from "@local/hash-graph-types/temporal-versioning";
+import type {
+  EntityPropertiesObject,
+  KnowledgeGraphVertex,
+  OntologyVertex,
   Vertices,
 } from "@local/hash-subgraph";
 import { isEntityId } from "@local/hash-subgraph";

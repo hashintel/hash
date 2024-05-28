@@ -3,11 +3,12 @@
  */
 
 import type {
-  Flow,
   FlowDefinitionIDPropertyValue,
-  FlowOutgoingLinkAndTarget,
-  FlowOutgoingLinksByLinkEntityTypeId,
-  FlowProperties,
+  FlowRun,
+  FlowRunOutgoingLinkAndTarget,
+  FlowRunOutgoingLinksByLinkEntityTypeId,
+  FlowRunProperties,
+  NamePropertyValue,
   ObjectDataType,
   OutputsPropertyValue,
   StepPropertyValue,
@@ -17,11 +18,12 @@ import type {
 } from "./shared";
 
 export type {
-  Flow,
   FlowDefinitionIDPropertyValue,
-  FlowOutgoingLinkAndTarget,
-  FlowOutgoingLinksByLinkEntityTypeId,
-  FlowProperties,
+  FlowRun,
+  FlowRunOutgoingLinkAndTarget,
+  FlowRunOutgoingLinksByLinkEntityTypeId,
+  FlowRunProperties,
+  NamePropertyValue,
   ObjectDataType,
   OutputsPropertyValue,
   StepPropertyValue,

@@ -16,6 +16,11 @@ import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/en
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -23,13 +28,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  Entity,
-  EntityRootType,
-  EntityTypeWithMetadata,
-  OwnedById,
-  PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { beforeAll, describe, expect, it } from "vitest";

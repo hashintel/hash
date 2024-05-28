@@ -1,7 +1,8 @@
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountId, BaseUrl } from "@local/hash-subgraph";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import { createAccount } from "./account-permission-management";

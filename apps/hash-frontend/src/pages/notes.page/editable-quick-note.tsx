@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
@@ -10,13 +12,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { QuickNoteProperties } from "@local/hash-isomorphic-utils/system-types/quicknote";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type {
-  BaseUrl,
-  Entity,
-  EntityRootType,
-  OwnedById,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";

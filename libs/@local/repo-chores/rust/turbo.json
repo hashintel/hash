@@ -2,7 +2,7 @@
   "extends": ["//"],
   "pipeline": {
     "build": {
-      "outputs": ["../../../../target/debug/repo-chores-cli"]
+      "cache": false
     },
     "analyze-benchmarks": {
       "dependsOn": ["build"],

@@ -1,16 +1,16 @@
 import { type GraphElementIdentifiers as GraphElementIdentifiersBp } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { Subtype } from "@local/advanced-types/subtype";
-
+import type { EntityId, EntityRecordId } from "@local/hash-graph-types/entity";
 import type {
+  BaseUrl,
   DataTypeWithMetadata,
-  Entity,
-  EntityRecordId,
   EntityTypeWithMetadata,
   OntologyTypeRecordId,
   PropertyTypeWithMetadata,
-} from "../element";
-import type { BaseUrl, EntityId } from "../shared";
+} from "@local/hash-graph-types/ontology";
+
+import type { Entity } from "../element";
 import type { EntityIdWithInterval, EntityIdWithTimestamp } from "./edges";
 import type {
   DataTypeVertex,

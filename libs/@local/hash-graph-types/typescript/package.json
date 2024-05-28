@@ -1,0 +1,35 @@
+{
+  "name": "@local/hash-graph-types",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Type definitions for the HASH Graph.",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./src/*.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@blockprotocol/graph": "0.3.4",
+    "@blockprotocol/type-system": "0.1.1",
+    "@local/advanced-types": "0.0.0-private",
+    "@local/hash-graph-client": "0.0.0-private"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "eslint": "8.57.0",
+    "typescript": "5.1.6"
+  }
+}

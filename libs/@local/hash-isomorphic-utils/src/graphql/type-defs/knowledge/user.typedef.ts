@@ -2,6 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const userTypedef = gql`
   scalar AggregatedUsageRecord
+  scalar ProspectiveUserProperties
 
   type UserUsageRecords {
     shortname: String!
@@ -23,5 +24,14 @@ export const userTypedef = gql`
     hasAccessToHash: Boolean!
 
     getUsageRecords: [UserUsageRecords!]!
+
+    """
+    Get the user's position on the access waitlist (for hosted HASH)
+    """
+    getWaitlistPosition: Int!
+  }
+
+  extend type Mutation {
+    submitEarlyAccessForm(properties: ProspectiveUserProperties!): Boolean
   }
 `;

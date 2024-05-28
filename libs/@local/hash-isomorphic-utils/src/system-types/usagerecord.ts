@@ -2,23 +2,25 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, LinkData } from "@local/hash-subgraph";
+import type { LinkData } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-subgraph";
 
 import type {
   AppliesFromPropertyValue,
   AppliesUntilPropertyValue,
   DateTimeDataType,
   FeatureNamePropertyValue,
-  Flow,
   FlowDefinitionIDPropertyValue,
-  FlowOutgoingLinkAndTarget,
-  FlowOutgoingLinksByLinkEntityTypeId,
-  FlowProperties,
+  FlowRun,
+  FlowRunOutgoingLinkAndTarget,
+  FlowRunOutgoingLinksByLinkEntityTypeId,
+  FlowRunProperties,
   InputUnitCostPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  NamePropertyValue,
   NumberDataType,
   ObjectDataType,
   OutputsPropertyValue,
@@ -40,16 +42,17 @@ export type {
   AppliesUntilPropertyValue,
   DateTimeDataType,
   FeatureNamePropertyValue,
-  Flow,
   FlowDefinitionIDPropertyValue,
-  FlowOutgoingLinkAndTarget,
-  FlowOutgoingLinksByLinkEntityTypeId,
-  FlowProperties,
+  FlowRun,
+  FlowRunOutgoingLinkAndTarget,
+  FlowRunOutgoingLinksByLinkEntityTypeId,
+  FlowRunProperties,
   InputUnitCostPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  NamePropertyValue,
   NumberDataType,
   ObjectDataType,
   OutputsPropertyValue,
@@ -87,7 +90,7 @@ export type IncurredInOutgoingLinkAndTarget = never;
 export type IncurredInOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * Something that was incurred by something else.
+ * Something that was incurred in something else.
  */
 export type IncurredInProperties = IncurredInProperties1 &
   IncurredInProperties2;
@@ -145,7 +148,7 @@ export type UsageRecordCreatedLink = {
 
 export type UsageRecordIncurredInLink = {
   linkEntity: IncurredIn;
-  rightEntity: Flow;
+  rightEntity: FlowRun;
 };
 
 export type UsageRecordOutgoingLinkAndTarget =

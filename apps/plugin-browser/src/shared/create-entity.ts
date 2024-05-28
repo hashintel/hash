@@ -1,9 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
-import type {
-  Entity,
-  EntityPropertiesObject,
-  LinkData,
-} from "@local/hash-subgraph";
+import type { LinkData } from "@local/hash-graph-types/entity";
+import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 
 import type {
   CreateEntityMutation,

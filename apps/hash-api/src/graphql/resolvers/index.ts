@@ -66,9 +66,11 @@ import {
   checkUserPermissionsOnEntity,
 } from "./knowledge/shared/check-permissions";
 import { getUsageRecordsResolver } from "./knowledge/user/get-usage-records";
+import { getWaitlistPositionResolver } from "./knowledge/user/get-waitlist-position";
 import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
+import { submitEarlyAccessFormResolver } from "./knowledge/user/submit-early-access-form";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
 import { getDataType, queryDataTypes } from "./ontology/data-type";
@@ -99,6 +101,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
     // Logged in users only
     me: loggedInMiddleware(meResolver),
+    getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
     // Admins
     getUsageRecords: loggedInMiddleware(getUsageRecordsResolver),
     // Any user
@@ -176,6 +179,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
 
     createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
+
+    submitEarlyAccessForm: loggedInMiddleware(submitEarlyAccessFormResolver),
 
     addEntityOwner: loggedInAndSignedUpMiddleware(addEntityOwnerResolver),
     removeEntityOwner: loggedInAndSignedUpMiddleware(removeEntityOwnerResolver),

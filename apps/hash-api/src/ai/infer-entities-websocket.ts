@@ -6,13 +6,13 @@ import {
   getFlowRuns,
 } from "@local/hash-backend-utils/flows";
 import type { Logger } from "@local/hash-backend-utils/logger";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   ExternalInputWebsocketRequestMessage,
   InferenceWebsocketClientMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
 import type { ExternalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/types";
-import type { EntityUuid } from "@local/hash-subgraph";
 import type { Client } from "@temporalio/client";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";

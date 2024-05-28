@@ -7,13 +7,12 @@ import {
 } from "@blockprotocol/graph/temporal/stdlib";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { DataType } from "@local/hash-graph-client";
-
 import type {
   BaseUrl,
   DataTypeWithMetadata,
-  OntologyTypeVertexId,
-  Subgraph,
-} from "../../../main";
+} from "@local/hash-graph-types/ontology";
+
+import type { OntologyTypeVertexId, Subgraph } from "../../../main";
 
 /**
  * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph

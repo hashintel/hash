@@ -1,4 +1,6 @@
 import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
+import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   defaultPropertyTypeAuthorizationRelationships,
@@ -6,12 +8,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  OwnedById,
-  PropertyTypeRootType,
-  PropertyTypeWithMetadata,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { PropertyTypeRootType, Subgraph } from "@local/hash-subgraph";
 
 import {
   archivePropertyType,

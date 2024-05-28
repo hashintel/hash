@@ -1,11 +1,11 @@
 export const scalars = {
-  BaseUrl: "@blockprotocol/type-system#BaseUrl",
+  BaseUrl: "@local/hash-graph-types/ontology#BaseUrl",
+  VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
 
   Date: "string",
 
   JSONObject: "@blockprotocol/core#JsonObject",
   QueryOperationInput: "@blockprotocol/graph#QueryOperationInput",
-  VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
 
   TextToken: "@local/hash-isomorphic-utils/types#TextToken",
 
@@ -14,25 +14,27 @@ export const scalars = {
   HasSpatiallyPositionedContentProperties:
     "@local/hash-isomorphic-utils/system-types/canvas#HasSpatiallyPositionedContentProperties",
 
-  DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
+  DataTypeWithMetadata: "@local/hash-graph-types/ontology#DataTypeWithMetadata",
   ConstructDataTypeParams:
     "@local/hash-isomorphic-utils/data-types#ConstructDataTypeParams",
 
-  EntityTypeWithMetadata: "@local/hash-subgraph#EntityTypeWithMetadata",
+  EntityTypeWithMetadata:
+    "@local/hash-graph-types/ontology#EntityTypeWithMetadata",
   ConstructEntityTypeParams:
     "@local/hash-isomorphic-utils/types#ConstructEntityTypeParams",
 
-  PropertyTypeWithMetadata: "@local/hash-subgraph#PropertyTypeWithMetadata",
+  PropertyTypeWithMetadata:
+    "@local/hash-graph-types/ontology#PropertyTypeWithMetadata",
   ConstructPropertyTypeParams:
     "@local/hash-isomorphic-utils/types#ConstructPropertyTypeParams",
 
   Entity: "@local/hash-subgraph#Entity",
-  EntityRecordId: "@local/hash-subgraph#EntityRecordId",
-  EntityMetadata: "@local/hash-subgraph#EntityMetadata",
+  EntityRecordId: "@local/hash-graph-types/entity#EntityRecordId",
+  EntityMetadata: "@local/hash-graph-types/entity#EntityMetadata",
   EntityRelationAndSubject: "@local/hash-subgraph#EntityRelationAndSubject",
   GetEntitySubgraphRequest: "@local/hash-graph-client#GetEntitySubgraphRequest",
   EntityTemporalVersioningMetadata:
-    "@local/hash-subgraph#EntityTemporalVersioningMetadata",
+    "@local/hash-graph-types/entity#EntityTemporalVersioningMetadata",
   EntityPropertiesObject: "@local/hash-subgraph#EntityPropertiesObject",
   DiffEntityInput: "@local/hash-subgraph#DiffEntityInput",
   DiffEntityResult: "@local/hash-graph-client#DiffEntityResult",
@@ -47,22 +49,25 @@ export const scalars = {
   UserPermissions: "@local/hash-isomorphic-utils/types#UserPermissions",
   UserPermissionsOnEntityType:
     "@local/hash-isomorphic-utils/types#UserPermissionsOnEntityType",
+  ProspectiveUserProperties:
+    "@local/hash-isomorphic-utils/system-types/prospectiveuser#ProspectiveUserProperties",
 
   GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
   Edges: "@local/hash-subgraph#Edges",
   Vertices: "@local/hash-subgraph#Vertices",
-  LinkData: "@local/hash-subgraph#LinkData",
+  LinkData: "@local/hash-graph-types/entity#LinkData",
   SubgraphTemporalAxes: "@local/hash-subgraph#SubgraphTemporalAxes",
 
-  OwnedById: "@local/hash-subgraph#OwnedById",
+  OwnedById: "@local/hash-graph-types/web#OwnedById",
   EditionCreatedById: "@local/hash-subgraph#EditionCreatedById",
-  AccountId: "@local/hash-subgraph#AccountId",
-  AccountGroupId: "@local/hash-subgraph#AccountGroupId",
-  AuthorizationSubjectId: "@local/hash-subgraph#AuthorizationSubjectId",
-  EntityId: "@local/hash-subgraph#EntityId",
+  AccountId: "@local/hash-graph-types/account#AccountId",
+  AccountGroupId: "@local/hash-graph-types/account#AccountGroupId",
+  AuthorizationSubjectId:
+    "@local/hash-graph-types/authorization#AuthorizationSubjectId",
+  EntityId: "@local/hash-graph-types/entity#EntityId",
 
-  EntityUuid: "@local/hash-subgraph#EntityUuid",
-  Uuid: "@local/hash-subgraph#Uuid",
+  EntityUuid: "@local/hash-graph-types/entity#EntityUuid",
+  Uuid: "@local/hash-graph-types/branded#Uuid",
 
   OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
 

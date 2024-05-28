@@ -1,11 +1,12 @@
-import type { Entity, EntityUuid } from "@local/hash-subgraph";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
 import { simplifyProperties } from "../simplify-properties";
-import type { FlowProperties } from "../system-types/flow";
 import type { FlowDefinitionProperties } from "../system-types/flowdefinition";
+import type { FlowRunProperties } from "../system-types/flowrun";
 import type { TriggerDefinitionId } from "./trigger-definitions";
-import type { Flow, FlowDefinition, OutputDefinition } from "./types";
+import type { FlowDefinition, LocalFlowRun, OutputDefinition } from "./types";
 
 export const mapFlowDefinitionToEntityProperties = (
   flowDefinition: FlowDefinition,
@@ -59,19 +60,26 @@ export const mapFlowDefinitionEntityToFlowDefinition = (
   };
 };
 
-export const mapFlowToEntityProperties = (flow: Flow): FlowProperties => ({
+export const mapFlowRunToEntityProperties = (
+  flowRun: LocalFlowRun,
+): FlowRunProperties => ({
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
+    flowRun.name,
   "https://hash.ai/@hash/types/property-type/flow-definition-id/":
-    flow.flowDefinitionId,
-  "https://hash.ai/@hash/types/property-type/outputs/": flow.outputs,
-  "https://hash.ai/@hash/types/property-type/step/": flow.steps,
+    flowRun.flowDefinitionId,
+  "https://hash.ai/@hash/types/property-type/outputs/": flowRun.outputs,
+  "https://hash.ai/@hash/types/property-type/step/": flowRun.steps,
   "https://hash.ai/@hash/types/property-type/trigger/": {
     "https://hash.ai/@hash/types/property-type/trigger-definition-id/":
-      flow.trigger.triggerDefinitionId,
+      flowRun.trigger.triggerDefinitionId,
   },
 });
 
-export const mapFlowEntityToFlow = (entity: Entity<FlowProperties>): Flow => {
+export const mapFlowEntityToFlow = (
+  entity: Entity<FlowRunProperties>,
+): LocalFlowRun => {
   const {
+    name,
     flowDefinitionId,
     outputs,
     step: steps,
@@ -79,17 +87,18 @@ export const mapFlowEntityToFlow = (entity: Entity<FlowProperties>): Flow => {
   } = simplifyProperties(entity.properties);
 
   return {
+    name,
     flowRunId: extractEntityUuidFromEntityId(entity.metadata.recordId.entityId),
     flowDefinitionId: flowDefinitionId as EntityUuid,
-    outputs: outputs as Flow["outputs"],
-    steps: steps as Flow["steps"],
+    outputs: outputs as LocalFlowRun["outputs"],
+    steps: steps as LocalFlowRun["steps"],
     trigger: {
       triggerDefinitionId: trigger[
         "https://hash.ai/@hash/types/property-type/trigger-definition-id/"
       ] as TriggerDefinitionId,
       outputs: trigger[
         "https://hash.ai/@hash/types/property-type/outputs/"
-      ] as Flow["trigger"]["outputs"],
+      ] as LocalFlowRun["trigger"]["outputs"],
     },
   };
 };

@@ -306,7 +306,7 @@ const WorkersPageContent = () => {
             flowRunId,
             web,
             type,
-            name: flowDefinition.name,
+            name: flowRun.name,
             closedAt: closedAt ?? null,
             executedAt: executedAt ?? null,
             status: flowRunStatusToStatusText(status),

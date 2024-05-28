@@ -5,7 +5,7 @@ import type {
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import type { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import produce from "immer";
 import type { RefObject } from "react";
 

@@ -1,20 +1,15 @@
-import {
-  Autocomplete,
-  IconButton,
-  Modal,
-  TextField,
-} from "@hashintel/design-system";
+import { Autocomplete, TextField } from "@hashintel/design-system";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/page";
-import type { Entity, OwnedById } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import type { ModalProps } from "@mui/material";
 import {
   autocompleteClasses,
   Box,
-  Divider,
   outlinedInputClasses,
   Typography,
 } from "@mui/material";
@@ -28,8 +23,7 @@ import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-proto
 import type { SimplePage } from "../../components/hooks/use-account-pages";
 import { useAccountPages } from "../../components/hooks/use-account-pages";
 import { PageIcon } from "../../components/page-icon";
-import { XMarkRegularIcon } from "../../shared/icons/x-mark-regular-icon";
-import { Button } from "../../shared/ui";
+import { Button, Modal } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 
 export type PageWithParentLink = SimplePage & { parentLinkEntity?: Entity };
@@ -142,38 +136,12 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
           padding: 0,
         },
       }}
+      header={{
+        title: "Convert note to page",
+      }}
       onClose={onClose}
     >
       <Box>
-        <Box
-          sx={{
-            paddingX: 3,
-            paddingTop: 2,
-            paddingBottom: 1.5,
-            position: "relative",
-          }}
-        >
-          <Typography
-            sx={{
-              fontSize: 16,
-              fontWeight: 500,
-              color: ({ palette }) => palette.gray[80],
-            }}
-          >
-            Convert note to page
-          </Typography>
-          <IconButton
-            onClick={onClose}
-            sx={{
-              position: "absolute",
-              top: ({ spacing }) => spacing(1),
-              right: ({ spacing }) => spacing(1),
-            }}
-          >
-            <XMarkRegularIcon />
-          </IconButton>
-        </Box>
-        <Divider sx={{ borderColor: ({ palette }) => palette.gray[20] }} />
         <Box
           component="form"
           onSubmit={innerSubmit}

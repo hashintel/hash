@@ -6,13 +6,12 @@ import {
   getEntityTypesByBaseUrl as getEntityTypesByBaseUrlBp,
 } from "@blockprotocol/graph/temporal/stdlib";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
-  OntologyTypeVertexId,
-  Subgraph,
-} from "../../../main";
+} from "@local/hash-graph-types/ontology";
+
+import type { OntologyTypeVertexId, Subgraph } from "../../../main";
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph

@@ -1,14 +1,14 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
+  EntityId,
+  EntityMetadata,
+  EntityRecordId,
+} from "@local/hash-graph-types/entity";
+import type {
   PersistedEntity,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type {
-  EntityId,
-  EntityMetadata,
-  EntityRecordId,
-} from "@local/hash-subgraph";
 import { TableCell } from "@mui/material";
 import { memo, useMemo, useState } from "react";
 

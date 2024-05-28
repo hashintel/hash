@@ -214,6 +214,7 @@ const publiclyAccessiblePagePathnames = [
   "/signin",
   "/signup",
   "/recovery",
+  "/",
 ];
 
 /**

@@ -1,5 +1,8 @@
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -14,14 +17,8 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { FlowProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  AccountId,
-  Entity,
-  EntityId,
-  EntityUuid,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { FlowRunProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Entity } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -37,7 +34,7 @@ export const getFlowRunEntityById = async (params: {
   flowRunId: EntityUuid;
   graphApiClient: GraphApi;
   userAuthentication: { actorId: AccountId };
-}): Promise<Entity<FlowProperties> | null> => {
+}): Promise<Entity<FlowRunProperties> | null> => {
   const { flowRunId, graphApiClient, userAuthentication } = params;
 
   const [existingFlowEntity] = await graphApiClient
@@ -48,7 +45,7 @@ export const getFlowRunEntityById = async (params: {
             equal: [{ path: ["uuid"] }, { parameter: flowRunId }],
           },
           generateVersionedUrlMatchingFilter(
-            systemEntityTypes.flow.entityTypeId,
+            systemEntityTypes.flowRun.entityTypeId,
             { ignoreParents: true },
           ),
         ],
@@ -62,7 +59,7 @@ export const getFlowRunEntityById = async (params: {
           mapGraphApiEntityToEntity(
             entity,
             userAuthentication.actorId,
-          ) as Entity<FlowProperties>,
+          ) as Entity<FlowRunProperties>,
       ),
     );
 
@@ -112,6 +109,9 @@ export async function getFlowRunById({
 
   if (includeDetails) {
     return getFlowRunFromWorkflowId({
+      name: existingFlowEntity.properties[
+        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
+      ],
       workflowId: extractEntityUuidFromEntityId(
         existingFlowEntity.metadata.recordId.entityId,
       ),
@@ -120,6 +120,9 @@ export async function getFlowRunById({
     });
   } else {
     return getSparseFlowRunFromWorkflowId({
+      name: existingFlowEntity.properties[
+        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
+      ],
       workflowId: extractEntityUuidFromEntityId(
         existingFlowEntity.metadata.recordId.entityId,
       ),
@@ -174,7 +177,7 @@ export async function getFlowRuns({
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            systemEntityTypes.flow.entityTypeId,
+            systemEntityTypes.flowRun.entityTypeId,
             { ignoreParents: true },
           ),
           ...(filters.flowDefinitionIds
@@ -201,14 +204,23 @@ export async function getFlowRuns({
       includeDrafts: false,
     })
     .then(({ data: response }) => {
-      const flowRunIdToWebId: Record<EntityUuid, OwnedById> = {};
+      const flowRunIdToOwnedByAndName: Record<
+        EntityUuid,
+        { ownedById: OwnedById; name: string }
+      > = {};
       for (const entity of response.entities) {
         const [ownedById, entityUuid] = splitEntityId(
           entity.metadata.recordId.entityId as EntityId,
         );
-        flowRunIdToWebId[entityUuid] = ownedById;
+
+        flowRunIdToOwnedByAndName[entityUuid] = {
+          name: (entity.properties as FlowRunProperties)[
+            "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
+          ],
+          ownedById,
+        };
       }
-      return flowRunIdToWebId;
+      return flowRunIdToOwnedByAndName;
     });
 
   const relevantFlowRunIds = Object.keys(relevantFlows);
@@ -234,18 +246,20 @@ export async function getFlowRuns({
     const workflows: FlowRun[] = [];
 
     for await (const workflow of workflowIterable) {
-      const webId = relevantFlows[workflow.workflowId as EntityUuid];
-      if (!webId) {
+      const flowDetails = relevantFlows[workflow.workflowId as EntityUuid];
+
+      if (!flowDetails) {
         throw new Error(
-          `Could not find webId for workflowId ${workflow.workflowId}`,
+          `Could not find details for workflowId ${workflow.workflowId}`,
         );
       }
 
       const workflowId = workflow.workflowId;
       const runInfo = await getFlowRunFromWorkflowId({
+        name: flowDetails.name,
         workflowId,
         temporalClient,
-        webId,
+        webId: flowDetails.ownedById,
       });
       workflows.push(runInfo);
     }
@@ -256,17 +270,19 @@ export async function getFlowRuns({
 
     for await (const workflow of workflowIterable) {
       const workflowId = workflow.workflowId;
-      const webId = relevantFlows[workflow.workflowId as EntityUuid];
-      if (!webId) {
+
+      const flowDetails = relevantFlows[workflow.workflowId as EntityUuid];
+
+      if (!flowDetails) {
         throw new Error(
-          `Could not find webId for workflowId ${workflow.workflowId}`,
+          `Could not find details for workflowId ${workflow.workflowId}`,
         );
       }
-
       const runInfo = await getSparseFlowRunFromWorkflowId({
+        name: flowDetails.name,
         workflowId,
         temporalClient,
-        webId,
+        webId: flowDetails.ownedById,
       });
       workflows.push(runInfo);
     }

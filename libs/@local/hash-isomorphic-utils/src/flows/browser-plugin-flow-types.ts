@@ -1,12 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type {
   OutputDefinition,
   Payload,
   WebPage,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { OwnedById } from "@local/hash-subgraph";
 
 export type AutomaticInferenceSettings = {
   createAs: "draft" | "live";

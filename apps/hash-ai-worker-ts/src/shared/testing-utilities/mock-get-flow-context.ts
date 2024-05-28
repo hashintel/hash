@@ -1,13 +1,11 @@
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { FlowProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  type AccountId,
-  type EntityId,
-  extractEntityUuidFromEntityId,
-  type OwnedById,
-} from "@local/hash-subgraph";
+import type { FlowRunProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { Context } from "@temporalio/activity";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { vi } from "vitest";
@@ -28,8 +26,11 @@ type DeepPartial<T> = {
 const createDummyFlow = async (params: { actorId: AccountId }) => {
   const { actorId } = params;
 
-  const dummyFlowProperties: FlowProperties = {
-    "https://hash.ai/@hash/types/property-type/flow-definition-id/": "dummy",
+  const dummyFlowRunProperties: FlowRunProperties = {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
+      "dummy-name",
+    "https://hash.ai/@hash/types/property-type/flow-definition-id/":
+      "dummy-def",
     "https://hash.ai/@hash/types/property-type/step/": [{}],
     "https://hash.ai/@hash/types/property-type/trigger/": {
       "https://hash.ai/@hash/types/property-type/trigger-definition-id/":
@@ -41,8 +42,8 @@ const createDummyFlow = async (params: { actorId: AccountId }) => {
     actorId,
     {
       ownedById: actorId,
-      entityTypeIds: [systemEntityTypes.flow.entityTypeId],
-      properties: dummyFlowProperties,
+      entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
+      properties: dummyFlowRunProperties,
       draft: false,
       relationships: createDefaultAuthorizationRelationships({ actorId }),
     },
