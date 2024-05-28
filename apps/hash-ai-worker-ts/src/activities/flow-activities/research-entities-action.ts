@@ -260,7 +260,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                 {
                   inputName:
                     "numberOfSearchResults" satisfies InputNameForAction<"webSearch">,
-                  payload: { kind: "Number", value: 3 },
+                  payload: { kind: "Number", value: 5 },
                 },
               ],
             });
