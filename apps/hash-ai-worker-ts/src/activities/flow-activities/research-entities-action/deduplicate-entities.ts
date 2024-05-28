@@ -35,7 +35,9 @@ export const deduplicationAgentSystemPrompt = `
   3. the same or very similar name may refer to different entities
   4. the same or very similar summary may refer to different entities
 
-  If in doubt, do not merge entities. If you are confident that two entities are duplicates, merge them.
+  If an entity is a version of another entity, do not report it as a duplicate as they are not referring to the same thing.
+  
+  If in doubt, do not merge entities. If you are confident that two entities are referring to the exact same thing, report them as duplicates.
 
   Once you have identified duplicates, you must pick a single canonical entity to assign its duplicate(s) too.
   Choose the one with the best summary.
