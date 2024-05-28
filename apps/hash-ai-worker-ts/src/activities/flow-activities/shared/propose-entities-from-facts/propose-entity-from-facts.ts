@@ -1,5 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { OriginProvenance } from "@local/hash-graph-client";
+import type {
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { BaseUrl } from "@local/hash-subgraph";
@@ -432,6 +435,18 @@ export const proposeEntityFromFacts = async (params: {
 
     const proposedOutgoingLinkEntities: ProposedEntity[] = [];
 
+    const { stepId } = await getFlowContext();
+
+    const editionProvenance: ProvidedEntityEditionProvenance = {
+      actorType: "ai",
+      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+      origin: {
+        type: "flow",
+        id: flowEntityId,
+        stepIds: [stepId],
+      } satisfies OriginProvenance,
+    };
+
     if (proposingOutgoingLinks && outgoingLinks) {
       await Promise.all(
         outgoingLinks.map(async (outgoingLink) => {
@@ -534,6 +549,7 @@ export const proposeEntityFromFacts = async (params: {
             entityTypeId: outgoingLink.entityTypeId as VersionedUrl,
             propertyMetadata: outgoingLinkPropertyMetadata,
             properties: outgoingLinkProperties,
+            provenance: editionProvenance,
           });
         }),
       );
@@ -569,23 +585,13 @@ export const proposeEntityFromFacts = async (params: {
       simplifiedPropertyTypeMappings,
     });
 
-    const { stepId } = await getFlowContext();
-
     const proposedEntity: ProposedEntity = {
       localEntityId: entitySummary.localId,
       propertyMetadata,
       summary: entitySummary.summary,
       entityTypeId: dereferencedEntityType.$id,
       properties,
-      provenance: {
-        actorType: "ai",
-        // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
-        origin: {
-          type: "flow",
-          id: flowEntityId,
-          stepIds: [stepId],
-        } satisfies OriginProvenance,
-      },
+      provenance: editionProvenance,
     };
 
     return {
