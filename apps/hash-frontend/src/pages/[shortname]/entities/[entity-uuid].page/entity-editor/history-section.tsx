@@ -131,7 +131,7 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
         />
       }
     >
-      <WhiteCard>
+      <WhiteCard sx={{ borderRadius: "10px" }}>
         {loading || !subgraph ? (
           <Skeleton height={600} />
         ) : (
