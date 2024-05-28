@@ -80,6 +80,19 @@ impl<L, R> Either<L, R> {
     }
 }
 
+impl<L, R, T> AsRef<T> for Either<L, R>
+where
+    L: AsRef<T>,
+    R: AsRef<T>,
+{
+    fn as_ref(&self) -> &T {
+        match self {
+            Self::Left(left) => left.as_ref(),
+            Self::Right(right) => right.as_ref(),
+        }
+    }
+}
+
 impl<T> Either<T, T> {
     pub fn into_inner(self) -> T {
         match self {
