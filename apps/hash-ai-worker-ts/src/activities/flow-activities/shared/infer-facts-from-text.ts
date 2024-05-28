@@ -73,41 +73,54 @@ export const inferFactsFromText = async (params: {
           );
         }
 
-        const numberOfEntitySummariesPerRequest = 5;
+        const maximumNumberOfParallelizedRequests = 3;
 
-        const chunkedSubjectEntities = entitySummariesOfType.reduce<
-          LocalEntitySummary[][]
-        >((result, item, index) => {
-          const chunkIndex = Math.floor(
-            index / numberOfEntitySummariesPerRequest,
-          );
+        const facts: Fact[] = [];
 
-          return [
-            ...result.slice(0, chunkIndex),
-            [...(result[chunkIndex] ?? []), item],
-          ];
-        }, []);
+        const chunks = entitySummariesOfType.reduce<LocalEntitySummary[][]>(
+          (previousArray, item, index) => {
+            const chunkIndex = Math.floor(
+              index / maximumNumberOfParallelizedRequests,
+            );
 
-        const factsObtainedPerChunk = await Promise.all(
-          chunkedSubjectEntities.map(async (subjectEntities) => {
-            const { facts } = await inferEntityFactsFromText({
-              subjectEntities,
-              /**
-               * Note: we could reduce the number of potential object entities by filtering out
-               * all entities which don't have a type that the subject entity can link to. This
-               * would result in missed facts, so is not being done at the moment but could be
-               * considered in the future.
-               */
-              potentialObjectEntities: entitySummaries,
-              text,
-              dereferencedEntityType,
-            });
+            const resultArray = previousArray;
 
-            return facts;
-          }),
+            if (!resultArray[chunkIndex]) {
+              return [...resultArray, [item]];
+            }
+
+            return [
+              ...resultArray.slice(0, chunkIndex),
+              [...(resultArray[chunkIndex] ?? []), item],
+            ];
+          },
+          [],
         );
 
-        return factsObtainedPerChunk.flat();
+        /**
+         * Parallelize the facts for entities in chunks, to reduce risk of hitting rate limits.
+         *
+         * @todo: implement more robust strategy for dealing with rate limits
+         * @see https://linear.app/hash/issue/H-2787/handle-rate-limits-gracefully-particularly-when-gathering-facts-for
+         */
+        for (const chunk of chunks) {
+          const chunkResults = await Promise.all(
+            chunk.map(async (entity) => {
+              const { facts: factsForSingleEntity } =
+                await inferEntityFactsFromText({
+                  subjectEntities: [entity],
+                  potentialObjectEntities: entitySummaries,
+                  text,
+                  dereferencedEntityType,
+                });
+              return factsForSingleEntity;
+            }),
+          );
+
+          facts.push(...chunkResults.flat());
+        }
+
+        return facts;
       },
     ),
   ).then((unflattenedFacts) => unflattenedFacts.flat());
