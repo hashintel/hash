@@ -2,10 +2,9 @@ import type { MultiFilter } from "@blockprotocol/graph";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Entity, EntityId } from "@local/hash-graph-types/entity";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import type { Entity } from "@local/hash-subgraph";
 
 import { getLatestEntityById } from "../shared/graph-requests";
 

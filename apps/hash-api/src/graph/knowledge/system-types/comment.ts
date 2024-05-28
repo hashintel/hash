@@ -1,5 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Entity, EntityId } from "@local/hash-graph-types/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -9,7 +9,7 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { Entity, EntityRelationAndSubject } from "@local/hash-subgraph";
+import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {

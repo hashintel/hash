@@ -1,6 +1,7 @@
 import { FeatherRegularIcon } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-types/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import type { FunctionComponent } from "react";

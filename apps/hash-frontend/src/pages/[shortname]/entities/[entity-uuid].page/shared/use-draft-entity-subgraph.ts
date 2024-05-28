@@ -3,14 +3,13 @@ import type {
   CreatedById,
   EditionCreatedById,
 } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Entity, EntityId } from "@local/hash-graph-types/entity";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
   Timestamp,
 } from "@local/hash-graph-types/temporal-versioning";
 import type {
-  Entity,
   EntityRevisionId,
   EntityRootType,
   EntityVertexId,

@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
 
 import { getBlockCollectionBlocks } from "../../../../graph/knowledge/system-types/block-collection";
 import type { ResolverFn } from "../../../api-types.gen";

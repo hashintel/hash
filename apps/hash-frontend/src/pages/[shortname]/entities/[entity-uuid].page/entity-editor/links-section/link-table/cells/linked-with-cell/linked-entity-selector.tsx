@@ -1,9 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Entity, EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { PaperProps } from "@mui/material";
 import { Stack, Typography } from "@mui/material";

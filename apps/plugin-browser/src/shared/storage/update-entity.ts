@@ -1,6 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
+import type {
+  Entity,
+  EntityId,
+  EntityPropertiesObject,
+} from "@local/hash-graph-types/entity";
 
 import type {
   UpdateEntityMutation,

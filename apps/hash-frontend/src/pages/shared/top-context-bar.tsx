@@ -1,8 +1,8 @@
 import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Entity } from "@local/hash-subgraph";
 import type { SxProps, Theme } from "@mui/material";
 import {
   Box,

@@ -7,15 +7,16 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { EntityId, LinkData } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   Entity,
+  EntityId,
   EntityPropertiesObject,
-  EntityRelationAndSubject,
-} from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+  LinkData,
+  LinkEntity,
+} from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import {

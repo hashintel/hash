@@ -8,6 +8,7 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
+import type { Entity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -17,7 +18,6 @@ import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-pro
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import type { Entity } from "@local/hash-subgraph";
 
 export type HashInstance = {
   entity: Entity;

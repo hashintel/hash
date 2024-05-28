@@ -1,18 +1,16 @@
 import {
   type DataTypeRootType as DataTypeRootTypeBp,
-  type EntityRootType as EntityRootTypeBp,
   type EntityTypeRootType as EntityTypeRootTypeBp,
   type PropertyTypeRootType as PropertyTypeRootTypeBp,
-  type SubgraphRootType as SubgraphRootTypeBp,
 } from "@blockprotocol/graph/temporal";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { Entity } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { Entity } from "./element";
 import type { Edges } from "./subgraph/edges";
 import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths";
 import type { SubgraphTemporalAxes } from "./subgraph/temporal-axes";
@@ -51,18 +49,16 @@ export type EntityTypeRootType = Subtype<
   }
 >;
 
-export type EntityRootType = Subtype<
-  EntityRootTypeBp,
-  {
-    vertexId: EntityVertexId;
-    element: Entity;
-  }
->;
+export type EntityRootType = {
+  vertexId: EntityVertexId;
+  element: Entity;
+};
 
-export type SubgraphRootType = Subtype<
-  SubgraphRootTypeBp,
-  DataTypeRootType | PropertyTypeRootType | EntityTypeRootType | EntityRootType
->;
+export type SubgraphRootType =
+  | DataTypeRootType
+  | PropertyTypeRootType
+  | EntityTypeRootType
+  | EntityRootType;
 
 /** @todo - Figure out the incompatible vertices/edges is it the `&` instead of `|`? */
 // export type Subgraph<

@@ -1,7 +1,9 @@
 import { useLazyQuery } from "@apollo/client";
 import type {
   DraftId,
+  Entity,
   EntityId,
+  EntityPropertiesObject,
   EntityUuid,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -15,12 +17,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  Entity,
-  EntityPropertiesObject,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   entityIdFromComponents,
   extractDraftIdFromEntityId,

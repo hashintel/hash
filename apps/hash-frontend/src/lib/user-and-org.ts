@@ -2,6 +2,7 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
+import type { Entity, LinkEntity } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -23,7 +24,6 @@ import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/u
 import type {
   AccountEntityId,
   AccountGroupEntityId,
-  Entity,
   EntityRootType,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -37,7 +37,6 @@ import {
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 export const constructMinimalOrg = (params: {
   orgEntity: Entity<OrganizationProperties>;

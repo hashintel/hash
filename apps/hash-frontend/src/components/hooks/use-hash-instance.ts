@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { Entity } from "@local/hash-graph-types/entity";
 import type {
   SimpleProperties,
   Simplified,
@@ -8,7 +9,6 @@ import type {
   HASHInstance,
   HASHInstanceProperties,
 } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import type { Entity } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import type {

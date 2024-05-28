@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
 
 import { getCommentAuthor } from "../../../../graph/knowledge/system-types/comment";
 import type { ResolverFn } from "../../../api-types.gen";

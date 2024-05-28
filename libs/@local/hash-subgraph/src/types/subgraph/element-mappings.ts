@@ -1,7 +1,9 @@
-import { type GraphElementIdentifiers as GraphElementIdentifiersBp } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { Subtype } from "@local/advanced-types/subtype";
-import type { EntityId, EntityRecordId } from "@local/hash-graph-types/entity";
+import type {
+  Entity,
+  EntityId,
+  EntityRecordId,
+} from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -10,7 +12,6 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { Entity } from "../element";
 import type { EntityIdWithInterval, EntityIdWithTimestamp } from "./edges";
 import type {
   DataTypeVertex,
@@ -27,8 +28,7 @@ import type {
  *
  * Helpful when creating generic functions that operate over a {@link Subgraph}
  */
-export type GraphElementIdentifiers = Subtype<
-  GraphElementIdentifiersBp,
+export type GraphElementIdentifiers =
   | {
       identifier: VersionedUrl | OntologyTypeVertexId | OntologyTypeRecordId;
       element:
@@ -54,8 +54,7 @@ export type GraphElementIdentifiers = Subtype<
       identifier: EntityId | EntityIdWithInterval;
       element: Entity[];
       vertex: EntityVertex[];
-    }
->;
+    };
 
 /**
  * A helper type that takes a type `T` and a type `U`, and tries to select subtypes of `T` that match the given type

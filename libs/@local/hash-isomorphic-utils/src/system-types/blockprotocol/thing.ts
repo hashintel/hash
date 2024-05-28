@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
 
 export type Thing = Entity<ThingProperties>;
 

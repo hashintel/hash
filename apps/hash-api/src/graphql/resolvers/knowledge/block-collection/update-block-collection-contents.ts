@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
 import { UserInputError } from "apollo-server-errors";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";

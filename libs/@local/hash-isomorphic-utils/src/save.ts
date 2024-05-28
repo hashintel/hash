@@ -1,15 +1,18 @@
 import type { ApolloClient } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  Entity,
+  EntityId,
+  LinkEntity,
+} from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { generateNKeysBetween } from "fractional-indexing";
 import isEqual from "lodash/isEqual";
 import type { Node } from "prosemirror-model";

@@ -2,8 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { LinkData } from "@local/hash-graph-types/entity";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity, LinkData } from "@local/hash-graph-types/entity";
 
 import type {
   Account,

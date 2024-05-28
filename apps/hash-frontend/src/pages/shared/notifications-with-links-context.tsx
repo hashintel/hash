@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type { Filter } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-types/entity";
 import type { TextProperties } from "@local/hash-isomorphic-utils/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
@@ -27,7 +28,6 @@ import type { GraphChangeNotificationProperties } from "@local/hash-isomorphic-u
 import type { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
-  Entity,
   EntityRootType,
   EntityVertex,
   LinkEntityAndRightEntity,

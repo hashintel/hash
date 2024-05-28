@@ -1,6 +1,6 @@
 import type { MutationHookOptions } from "@apollo/client";
 import { useMutation } from "@apollo/client";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
 import {
   Box,
   buttonClasses,

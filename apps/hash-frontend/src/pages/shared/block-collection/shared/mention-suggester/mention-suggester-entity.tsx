@@ -1,15 +1,12 @@
+import type { EntityPropertyValue } from "@blockprotocol/graph";
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-types/entity";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type {
-  Entity,
-  EntityPropertyValue,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import type { ListItemButtonProps } from "@mui/material";
 import {
   Box,

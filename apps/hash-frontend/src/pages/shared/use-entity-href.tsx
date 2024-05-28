@@ -1,5 +1,5 @@
+import type { Entity } from "@local/hash-graph-types/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import type { Entity } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";

@@ -1,5 +1,5 @@
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
 
 import type { ResolverFn } from "../../../api-types.gen";
 import type { GraphQLContext } from "../../../context";

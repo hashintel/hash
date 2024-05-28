@@ -1,10 +1,10 @@
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
 import { expect, test } from "vitest";
 
-import { Entity } from "../src/entity";
+import { GraphEntity } from "../src/entity";
 
 test("Entity can be created from Graph API", () => {
-  const graph_api_entity: GraphApiEntity = {
+  const graph_api_entity = {
     metadata: {
       archived: false,
       confidence: 0.5,
@@ -48,9 +48,9 @@ test("Entity can be created from Graph API", () => {
       },
     },
     properties: {},
-  };
+  } satisfies GraphApiEntity;
 
-  const entityInstance = new Entity(graph_api_entity);
+  const entityInstance = new GraphEntity(graph_api_entity);
 
   expect(entityInstance.entityId).toBe(
     graph_api_entity.metadata.recordId.entityId,

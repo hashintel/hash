@@ -10,12 +10,12 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
+import type { Entity } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
-import type { Entity } from "@local/hash-subgraph";
 import {
   extractOwnedByIdFromEntityId,
   isBaseUrl,

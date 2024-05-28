@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, LinkEntity } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -15,7 +15,6 @@ import type {
   HasIndexedContentProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import type { PositionInput } from "../../../graphql/api-types.gen";
 import type { ImpureGraphFunction } from "../../context-types";
@@ -113,7 +112,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
-  return linkEntity as unknown as
+  return linkEntity as
     | HasSpatiallyPositionedContent
     | HasIndexedContentProperties;
 };

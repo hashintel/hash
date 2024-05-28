@@ -1,4 +1,5 @@
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Collapse, Divider } from "@mui/material";
 import { forwardRef, Fragment, useState } from "react";
 

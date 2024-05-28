@@ -1,10 +1,10 @@
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type {
   Entity,
   EntityPropertiesObject,
-  EntityPropertyValue,
-  JsonValue,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { JsonValue } from "@local/hash-subgraph";
 
 export type EntityPropertyValueWithSimplifiedProperties =
   | JsonValue

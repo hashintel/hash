@@ -1,27 +1,22 @@
 import {
   type DataTypeVertex as DataTypeVertexBp,
   type EntityTypeVertex as EntityTypeVertexBp,
-  type EntityVertex as EntityVertexBp,
   type EntityVertexId as EntityVertexIdBp,
   type GraphElementVertexId as GraphElementVertexIdBp,
-  isDataTypeVertex as isDataTypeVertexBp,
-  isEntityTypeVertex as isEntityTypeVertexBp,
-  isEntityVertex as isEntityVertexBp,
   isEntityVertexId as isEntityVertexIdBp,
   isOntologyTypeVertexId as isOntologyTypeVertexIdBp,
-  isPropertyTypeVertex as isPropertyTypeVertexBp,
-  type KnowledgeGraphVertex as KnowledgeGraphVertexBp,
-  type KnowledgeGraphVertices as KnowledgeGraphVerticesBp,
   type OntologyTypeVertexId as OntologyTypeVertexIdBp,
   type OntologyVertex as OntologyVertexBp,
   type OntologyVertices as OntologyVerticesBp,
   type PropertyTypeVertex as PropertyTypeVertexBp,
-  type Vertex as VertexBp,
   type VertexId as VertexIdBp,
-  type Vertices as VerticesBp,
 } from "@blockprotocol/graph/temporal";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { GraphEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  EntityId,
+  EntityPropertiesObject,
+} from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -29,13 +24,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type {
-  Entity,
-  EntityPropertiesObject,
-  EntityPropertyValue,
-  EntityRevisionId,
-  OntologyTypeRevisionId,
-} from "../element";
+import type { EntityRevisionId, OntologyTypeRevisionId } from "../element";
 
 export type DataTypeVertex = Subtype<
   DataTypeVertexBp,
@@ -62,50 +51,27 @@ export type EntityTypeVertex = Subtype<
 >;
 
 export type EntityVertex<
-  Properties extends EntityPropertiesObject | null = Record<
-    BaseUrl,
-    EntityPropertyValue
-  >,
-> = Subtype<
-  EntityVertexBp<Properties>,
-  { kind: "entity"; inner: Entity<Properties> }
->;
+  Properties extends EntityPropertiesObject | null = EntityPropertiesObject,
+> = { kind: "entity"; inner: GraphEntity<Properties> };
 
 export type OntologyVertex = Subtype<
   OntologyVertexBp,
   DataTypeVertex | PropertyTypeVertex | EntityTypeVertex
 >;
 
-export type KnowledgeGraphVertex<
-  Properties extends EntityPropertiesObject | null = Record<
-    BaseUrl,
-    EntityPropertyValue
-  >,
-> = Subtype<KnowledgeGraphVertexBp<Properties>, EntityVertex<Properties>>;
+export type KnowledgeGraphVertex = EntityVertex;
 
-export type Vertex<
-  Properties extends EntityPropertiesObject | null = Record<
-    BaseUrl,
-    EntityPropertyValue
-  >,
-> = Subtype<
-  VertexBp<Properties>,
-  OntologyVertex | KnowledgeGraphVertex<Properties>
->;
+export type Vertex = OntologyVertex | KnowledgeGraphVertex;
 
 export const isDataTypeVertex = (vertex: Vertex): vertex is DataTypeVertex =>
-  isDataTypeVertexBp(vertex);
+  vertex.kind === "dataType";
 
 export const isPropertyTypeVertex = (
   vertex: Vertex,
-): vertex is PropertyTypeVertex => isPropertyTypeVertexBp(vertex);
-
-export const isEntityTypeVertex = (
-  vertex: Vertex,
-): vertex is EntityTypeVertex => isEntityTypeVertexBp(vertex);
+): vertex is PropertyTypeVertex => vertex.kind === "propertyType";
 
 export const isEntityVertex = (vertex: Vertex): vertex is EntityVertex =>
-  isEntityVertexBp(vertex);
+  vertex.kind === "entity";
 
 export type VertexId<BaseId, RevisionId> = VertexIdBp<BaseId, RevisionId>;
 export type EntityVertexId = Subtype<
@@ -138,26 +104,10 @@ export type OntologyVertices = Subtype<
   }
 >;
 
-export type KnowledgeGraphVertices = Subtype<
-  KnowledgeGraphVerticesBp,
-  {
-    [entityId: EntityId]: {
-      [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
-    };
-  }
->;
+export type KnowledgeGraphVertices = {
+  [entityId: EntityId]: {
+    [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
+  };
+};
 
 export type Vertices = OntologyVertices & KnowledgeGraphVertices;
-
-/**
- * This provides a sanity check that we've almost correctly expressed `Vertices` as a subtype of the Block Protocol one.
- *
- * We unfortunately need these two different types because in the Block Protocol we had to use `|` instead of `&` due
- * to overlapping index types. We _wanted_ to use `&` but it produces unsatisfiable types. However, because we have
- * branded types here (thus the index types do not overlap) we can do better in HASH and use `&`, although this confuses
- * TypeScript and it thinks they are incompatible. Thus, the strange check type.
- */
-export type _CheckVertices = Subtype<
-  VerticesBp,
-  OntologyVertices | KnowledgeGraphVertices
->;

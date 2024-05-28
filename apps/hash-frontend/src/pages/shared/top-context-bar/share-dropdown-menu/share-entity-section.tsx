@@ -3,8 +3,8 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
+import type { Entity } from "@local/hash-graph-types/entity";
 import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type { Entity } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo } from "react";

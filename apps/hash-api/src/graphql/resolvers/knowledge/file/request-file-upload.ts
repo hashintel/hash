@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
 import { UserInputError } from "apollo-server-errors";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
@@ -62,6 +62,6 @@ export const requestFileUpload: ResolverFn<
 
   return {
     presignedPut,
-    entity: entity as unknown as Entity,
+    entity: entity as Entity,
   };
 };

@@ -3,6 +3,7 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
+import type { Entity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -16,7 +17,6 @@ import {
 import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
-  Entity,
   EntityRootType,
   GraphResolveDepths,
   QueryTemporalAxesUnresolved,

@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
 import { Box, Divider, Popover, Typography } from "@mui/material";
 import {
   bindMenu,

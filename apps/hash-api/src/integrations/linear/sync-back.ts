@@ -6,15 +6,17 @@ import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/tempora
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Uuid } from "@local/hash-graph-types/branded";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type {
+  Entity,
+  EntityUuid,
+  LinkEntity,
+} from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Entity } from "@local/hash-subgraph";
 import {
   entityIdFromComponents,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphContext } from "../../graph/context-types";

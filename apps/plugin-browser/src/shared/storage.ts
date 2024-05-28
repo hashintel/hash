@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Entity, EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
@@ -24,11 +24,7 @@ import type {
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type {
-  Entity,
-  EntityTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 import debounce from "lodash.debounce";
 import browser from "webextension-polyfill";
 

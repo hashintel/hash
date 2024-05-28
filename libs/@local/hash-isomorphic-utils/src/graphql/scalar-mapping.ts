@@ -28,14 +28,15 @@ export const scalars = {
   ConstructPropertyTypeParams:
     "@local/hash-isomorphic-utils/types#ConstructPropertyTypeParams",
 
-  Entity: "@local/hash-subgraph#Entity",
+  Entity: "@local/hash-graph-types/entity#Entity",
   EntityRecordId: "@local/hash-graph-types/entity#EntityRecordId",
   EntityMetadata: "@local/hash-graph-types/entity#EntityMetadata",
   EntityRelationAndSubject: "@local/hash-subgraph#EntityRelationAndSubject",
   GetEntitySubgraphRequest: "@local/hash-graph-client#GetEntitySubgraphRequest",
   EntityTemporalVersioningMetadata:
     "@local/hash-graph-types/entity#EntityTemporalVersioningMetadata",
-  EntityPropertiesObject: "@local/hash-subgraph#EntityPropertiesObject",
+  EntityPropertiesObject:
+    "@local/hash-graph-types/entity#EntityPropertiesObject",
 
   Filter: "@local/hash-graph-client#Filter",
 

@@ -4,17 +4,17 @@ import type {
   PropertyPatchOperation,
 } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  Entity,
+  EntityId,
+  EntityPropertiesObject,
+} from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  Entity,
-  EntityPropertiesObject,
-  EntityRootType,
-} from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import {
   extractDraftIdFromEntityId,
   splitEntityId,

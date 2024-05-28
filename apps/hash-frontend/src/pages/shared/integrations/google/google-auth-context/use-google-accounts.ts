@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { Entity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -7,7 +8,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
-import type { Entity, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 

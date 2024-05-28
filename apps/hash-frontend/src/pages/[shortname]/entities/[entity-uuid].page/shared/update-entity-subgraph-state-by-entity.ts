@@ -1,5 +1,5 @@
+import type { Entity } from "@local/hash-graph-types/entity";
 import type {
-  Entity,
   EntityRevisionId,
   EntityRootType,
   Subgraph,

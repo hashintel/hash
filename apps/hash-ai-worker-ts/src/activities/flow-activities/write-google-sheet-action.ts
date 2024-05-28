@@ -5,6 +5,7 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
+import type { Entity } from "@local/hash-graph-types/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   createDefaultAuthorizationRelationships,
@@ -18,7 +19,6 @@ import {
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { GoogleSheetsFileProperties } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
-import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import type { sheets_v4 } from "googleapis";

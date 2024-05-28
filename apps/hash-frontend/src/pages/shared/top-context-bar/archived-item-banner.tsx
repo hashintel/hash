@@ -1,8 +1,8 @@
 import { useMutation } from "@apollo/client";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { Entity } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
 import type { FunctionComponent } from "react";

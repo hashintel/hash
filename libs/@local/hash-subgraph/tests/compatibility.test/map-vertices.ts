@@ -27,6 +27,7 @@ import type {
   PropertyTypeMetadata as PropertyTypeMetadataGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
 import type {
   CreatedById,
   EditionArchivedById,
@@ -54,7 +55,6 @@ import type {
   Timestamp,
 } from "@local/hash-graph-types/temporal-versioning";
 import type {
-  EntityPropertiesObject,
   KnowledgeGraphVertex,
   OntologyVertex,
   Vertices,
@@ -357,17 +357,13 @@ const mapEntityMetadata = (
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,
 ): KnowledgeGraphVertex => {
+  const _metadata = mapEntityMetadata(vertex.inner.metadata);
+  const _linkData = vertex.inner.linkData
+    ? mapLinkData(vertex.inner.linkData)
+    : undefined;
   return {
     kind: vertex.kind,
-    inner: {
-      properties: vertex.inner.properties as EntityPropertiesObject,
-      ...(vertex.inner.linkData
-        ? {
-            linkData: mapLinkData(vertex.inner.linkData),
-          }
-        : ({} as { linkData: never })),
-      metadata: mapEntityMetadata(vertex.inner.metadata),
-    },
+    inner: new GraphEntity(vertex.inner),
   };
 };
 

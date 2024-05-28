@@ -1,7 +1,10 @@
 import { useApolloClient, useQuery } from "@apollo/client";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
+import type {
+  EntityMetadata,
+  LinkEntity,
+} from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { checkUserPermissionsOnEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
@@ -14,7 +17,6 @@ import {
   getRoots,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,

@@ -1,7 +1,7 @@
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
+import type { Entity, EntityMetadata } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -13,7 +13,6 @@ import type {
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type { Entity } from "@local/hash-subgraph";
 import {
   ActivityCancellationType,
   proxyActivities,

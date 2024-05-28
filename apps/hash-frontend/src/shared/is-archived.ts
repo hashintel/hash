@@ -1,3 +1,4 @@
+import type { Entity } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -5,7 +6,6 @@ import type {
 } from "@local/hash-graph-types/ontology";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity } from "@local/hash-subgraph";
 
 import { isEntityPageEntity, isType } from "./is-of-type";
 

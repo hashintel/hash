@@ -20,6 +20,7 @@ import {
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import type { LinkEntity } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -27,7 +28,6 @@ import type {
   HasIndexedContentProperties,
   TextProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { generateKeyBetween } from "fractional-indexing";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -230,7 +230,7 @@ describe("Page", () => {
 
     testBlock1 = existingBlocks[0]!.rightEntity!;
     testBlockLink1 = existingBlocks[0]!
-      .linkEntity as unknown as LinkEntity<HasIndexedContentProperties>;
+      .linkEntity as LinkEntity<HasIndexedContentProperties>;
 
     [testBlock2, testBlock3] = await Promise.all([
       createTestBlock(),

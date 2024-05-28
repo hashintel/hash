@@ -10,7 +10,7 @@ import {
   storageProviderLookup,
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Entity, EntityId } from "@local/hash-graph-types/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -19,7 +19,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity } from "@local/hash-subgraph";
 import { isEntityId, splitEntityId } from "@local/hash-subgraph";
 import type { Express } from "express";
 

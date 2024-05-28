@@ -1,6 +1,9 @@
 import type { Entity as BpEntity } from "@blockprotocol/graph";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
+import type {
+  Entity,
+  EntityPropertiesObject,
+} from "@local/hash-graph-types/entity";
 import camelCase from "lodash/camelCase";
 
 /** @see https://stackoverflow.com/a/65015868/17217717 */

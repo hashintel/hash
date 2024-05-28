@@ -1,9 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
-import type { LinkData } from "@local/hash-graph-types/entity";
+import type {
+  Entity,
+  EntityPropertiesObject,
+  LinkData,
+} from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";

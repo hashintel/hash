@@ -1,11 +1,11 @@
 import { Autocomplete, TextField } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/page";
-import type { Entity } from "@local/hash-subgraph";
 import type { ModalProps } from "@mui/material";
 import {
   autocompleteClasses,

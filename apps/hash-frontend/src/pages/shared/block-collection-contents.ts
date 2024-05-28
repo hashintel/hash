@@ -1,4 +1,9 @@
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type {
+  Entity,
+  EntityId,
+  EntityUuid,
+  LinkEntity,
+} from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
   currentTimeInstantTemporalAxes,
@@ -16,7 +21,6 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type {
-  Entity,
   EntityRootType,
   GraphResolveDepths,
   Subgraph,
@@ -25,7 +29,6 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {

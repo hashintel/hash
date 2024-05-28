@@ -6,6 +6,6 @@
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
     "noEmit": true,
-    "target": "es5"
+    "target": "es2015"
   }
 }

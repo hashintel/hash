@@ -4,7 +4,11 @@ import type {
   CreatedById,
   EditionCreatedById,
 } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  Entity,
+  EntityId,
+  EntityPropertiesObject,
+} from "@local/hash-graph-types/entity";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
@@ -13,8 +17,6 @@ import type {
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import type {
-  Entity,
-  EntityPropertiesObject,
   EntityRevisionId,
   EntityRootType,
   GraphResolveDepths,

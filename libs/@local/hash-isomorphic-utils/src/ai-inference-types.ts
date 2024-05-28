@@ -1,5 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
+import type { EntityPropertyValue } from "@blockprotocol/graph/temporal";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type { Entity } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   AutomaticInferenceArguments,
@@ -9,7 +11,6 @@ import type {
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity, EntityPropertyValue } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import type { QueryDefinition } from "@temporalio/workflow";
 

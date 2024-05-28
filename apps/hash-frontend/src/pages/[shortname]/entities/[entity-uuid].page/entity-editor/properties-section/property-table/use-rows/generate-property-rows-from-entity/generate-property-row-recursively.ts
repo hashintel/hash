@@ -2,8 +2,9 @@ import type {
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getPropertyTypeById } from "@local/hash-subgraph/stdlib";
 import get from "lodash/get";
 

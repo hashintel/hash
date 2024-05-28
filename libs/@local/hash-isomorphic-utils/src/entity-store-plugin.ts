@@ -1,8 +1,10 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  EntityPropertiesObject,
+} from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Block } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type { EntityPropertiesObject } from "@local/hash-subgraph";
 import type { Draft } from "immer";
 import { castDraft, produce } from "immer";
 import isEqual from "lodash/isEqual";

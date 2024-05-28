@@ -1,21 +1,15 @@
 import type {
-  Entity as EntityBp,
-  EntityPropertiesObject as EntityPropertiesObjectBp,
-  EntityPropertyValue as EntityPropertyValueBp,
   EntityRevisionId as EntityRevisionIdBp,
   isEntityRecordId as isEntityRecordIdBp,
   JsonValue as JsonValueBp,
-  LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
 } from "@blockprotocol/graph/temporal";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
+  Entity,
   EntityId,
-  EntityMetadata,
   EntityRecordId,
-  LinkData,
 } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 
 import { isEntityId } from "../shared";
@@ -51,33 +45,8 @@ export const isEntityRecordId: typeof isEntityRecordIdBp = (
   );
 };
 export type JsonValue = JsonValueBp;
-export type EntityPropertyValue = EntityPropertyValueBp;
-export type EntityPropertiesObject = Subtype<
-  EntityPropertiesObjectBp,
-  {
-    [_: BaseUrl]: EntityPropertyValue;
-  }
->;
 
-export type Entity<
-  Properties extends EntityPropertiesObject | null = Record<
-    BaseUrl,
-    EntityPropertyValue
-  >,
-> = Subtype<
-  EntityBp<Properties>,
-  {
-    metadata: EntityMetadata;
-    linkData?: LinkData;
-  } & (Properties extends null
-    ? Record<string, never>
-    : { properties: Properties })
->;
-
-export type LinkEntityAndRightEntity = Subtype<
-  LinkEntityAndRightEntityBp,
-  {
-    linkEntity: Entity[];
-    rightEntity: Entity[];
-  }
->;
+export type LinkEntityAndRightEntity = {
+  linkEntity: Entity[];
+  rightEntity: Entity[];
+};

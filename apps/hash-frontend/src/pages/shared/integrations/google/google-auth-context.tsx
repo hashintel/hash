@@ -1,6 +1,6 @@
+import type { Entity } from "@local/hash-graph-types/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
-import type { Entity } from "@local/hash-subgraph";
 import Script from "next/script";
 import type { PropsWithChildren } from "react";
 import {

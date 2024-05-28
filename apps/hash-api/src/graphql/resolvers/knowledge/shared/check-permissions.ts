@@ -1,5 +1,5 @@
+import type { Entity } from "@local/hash-graph-types/entity";
 import type { UserPermissions } from "@local/hash-isomorphic-utils/types";
-import type { Entity } from "@local/hash-subgraph";
 
 import {
   checkEntityPermission,

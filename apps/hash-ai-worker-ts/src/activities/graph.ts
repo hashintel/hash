@@ -13,6 +13,7 @@ import type {
 } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
+import type { Entity } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -26,7 +27,6 @@ import {
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   DataTypeRootType,
-  Entity,
   EntityRootType,
   EntityTypeRootType,
   PropertyTypeRootType,

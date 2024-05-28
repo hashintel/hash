@@ -9,8 +9,13 @@ import type {
   Subgraph as GraphApiSubgraph,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, EntityMetadata } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  EntityMetadata,
+  EntityPropertiesObject,
+} from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -22,8 +27,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
-  Entity,
-  EntityPropertiesObject,
   KnowledgeGraphVertex,
   Subgraph,
   SubgraphRootType,
@@ -60,8 +63,8 @@ export const mapGraphApiEntityToEntity = (
   entity: GraphApiEntity,
   userAccountId: AccountId | null,
   preserveProperties: boolean = false,
-) => {
-  return {
+) =>
+  new GraphEntity({
     ...entity,
     /**
      * Until cell-level permissions is implemented (H-814), remove user properties that shouldn't be generally visible
@@ -91,9 +94,7 @@ export const mapGraphApiEntityToEntity = (
             },
             {} as EntityPropertiesObject,
           ),
-    metadata: mapGraphApiEntityMetadataToMetadata(entity.metadata),
-  } as Entity;
-};
+  });
 
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,

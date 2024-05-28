@@ -21,7 +21,13 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type {
+  Entity,
+  EntityId,
+  EntityPropertiesObject,
+  EntityUuid,
+  LinkEntity,
+} from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -40,9 +46,7 @@ import type {
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
 import type {
-  Entity,
   EntityAuthorizationRelationship,
-  EntityPropertiesObject,
   EntityRelationAndSubject,
   EntityRootType,
   Subgraph,
@@ -54,7 +58,6 @@ import {
   isEntityVertex,
   splitEntityId,
 } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
 import type {

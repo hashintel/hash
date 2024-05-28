@@ -4,6 +4,7 @@ import {
   storageProviderLookup,
 } from "@local/hash-backend-utils/file-storage";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import type { Entity } from "@local/hash-graph-types/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -13,7 +14,6 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/docxdocument";
 import type { PDFDocumentProperties } from "@local/hash-isomorphic-utils/system-types/pdfdocument";
 import type { PPTXPresentationProperties } from "@local/hash-isomorphic-utils/system-types/pptxpresentation";
-import type { Entity } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import type { UpdateEntityHookCallback } from "../update-entity-hooks";
@@ -33,7 +33,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
   async ({ entity, updatedProperties, context, authentication }) => {
     const { temporalClient } = context;
 
-    const fileEntity = entity as unknown as Entity<FileEntityToParseProperties>;
+    const fileEntity = entity as Entity<FileEntityToParseProperties>;
 
     const {
       textualContent,

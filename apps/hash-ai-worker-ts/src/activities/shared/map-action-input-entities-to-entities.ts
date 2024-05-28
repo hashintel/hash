@@ -1,8 +1,8 @@
+import type { Entity } from "@local/hash-graph-types/entity";
 import type {
   PersistedEntities,
   PersistedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity } from "@local/hash-subgraph";
 
 export const mapActionInputEntitiesToEntities = (params: {
   inputEntities: (Entity | PersistedEntity | PersistedEntities)[];

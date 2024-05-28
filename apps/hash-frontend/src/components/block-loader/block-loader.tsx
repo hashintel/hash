@@ -5,7 +5,11 @@ import type {
 } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  Entity,
+  EntityId,
+  EntityPropertiesObject,
+} from "@local/hash-graph-types/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import {
@@ -15,8 +19,6 @@ import {
 import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import type {
-  Entity,
-  EntityPropertiesObject,
   EntityRevisionId,
   EntityRootType,
   EntityVertex,

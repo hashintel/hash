@@ -1,7 +1,11 @@
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type {
+  Entity,
+  EntityId,
+  EntityUuid,
+} from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import {
@@ -18,7 +22,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FlowRunProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -29,12 +32,13 @@ import {
   getFlowRunFromWorkflowId,
   getSparseFlowRunFromWorkflowId,
 } from "../flows/get-flow-run-details";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
 
 export const getFlowRunEntityById = async (params: {
   flowRunId: EntityUuid;
   graphApiClient: GraphApi;
   userAuthentication: { actorId: AccountId };
-}): Promise<Entity<FlowRunProperties> | null> => {
+}): Promise<GraphEntity<FlowRunProperties> | null> => {
   const { flowRunId, graphApiClient, userAuthentication } = params;
 
   const [existingFlowEntity] = await graphApiClient
@@ -59,7 +63,7 @@ export const getFlowRunEntityById = async (params: {
           mapGraphApiEntityToEntity(
             entity,
             userAuthentication.actorId,
-          ) as Entity<FlowRunProperties>,
+          ) as GraphEntity<FlowRunProperties>,
       ),
     );
 

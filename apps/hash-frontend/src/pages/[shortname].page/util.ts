@@ -1,8 +1,9 @@
+import type { Entity } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
 
 export type ProfilePageTab =

@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
 import { Grid } from "@mui/material";
 import type { FunctionComponent } from "react";
 

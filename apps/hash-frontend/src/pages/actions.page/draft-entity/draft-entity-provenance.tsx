@@ -1,5 +1,5 @@
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
 import { Box, styled, Typography } from "@mui/material";
 import { format } from "date-fns";
 import type { FunctionComponent } from "react";

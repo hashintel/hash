@@ -1,5 +1,5 @@
+import type { Entity } from "@local/hash-graph-types/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Entity } from "@local/hash-subgraph";
 
 import { getPageBlocks } from "../../../../graph/knowledge/system-types/page";
 import type { ResolverFn } from "../../../api-types.gen";

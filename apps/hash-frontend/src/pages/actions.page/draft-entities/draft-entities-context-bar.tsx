@@ -1,5 +1,4 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity, EntityId } from "@local/hash-graph-types/entity";
 import { Box, Checkbox, Fade, styled, Typography } from "@mui/material";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useCallback } from "react";

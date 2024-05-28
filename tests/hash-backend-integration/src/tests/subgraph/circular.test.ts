@@ -4,13 +4,13 @@ import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types"
 import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type { GetEntitySubgraphRequest } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
+import type { Entity } from "@local/hash-graph-types/entity";
 import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
-  Entity,
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphEdgeKind,
