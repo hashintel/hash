@@ -485,6 +485,16 @@ const seedFlowTestTypes = async () => {
     },
   );
 
+  const hashOrg = await getOrgByShortname(context, authentication, {
+    shortname: "hash",
+  });
+
+  if (!hashOrg) {
+    throw new Error("Hash org not found");
+  }
+
+  const hashOwnedById = hashOrg.accountGroupId as OwnedById;
+
   const rolePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -494,7 +504,7 @@ const seedFlowTestTypes = async () => {
         description: "The name of a role performed by someone or something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -521,7 +531,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -534,7 +544,7 @@ const seedFlowTestTypes = async () => {
         description: "A URL to a LinkedIn profile",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -545,7 +555,7 @@ const seedFlowTestTypes = async () => {
         description: "A URL to a Google Scholar profile",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     });
 
   const twitterUrlPropertyType = await createSystemPropertyTypeIfNotExists(
@@ -557,7 +567,7 @@ const seedFlowTestTypes = async () => {
         description: "A URL to a Twitter account",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -570,7 +580,7 @@ const seedFlowTestTypes = async () => {
         description: "A URL to a GitHub account",
         possibleValues: [{ primitiveDataType: "text" }],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -623,7 +633,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -646,7 +656,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -674,7 +684,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -700,7 +710,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -720,7 +730,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     });
 
   const contextSizePropertyType = await createSystemPropertyTypeIfNotExists(
@@ -732,7 +742,7 @@ const seedFlowTestTypes = async () => {
         description: "The maximum context size the model can handle.",
         possibleValues: [{ primitiveDataType: "number" }],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -760,7 +770,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -788,7 +798,7 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -800,7 +810,7 @@ const seedFlowTestTypes = async () => {
           "The date until which the training data was included for the model.",
         possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     });
 
   const providedByLinkEntityType = await createSystemEntityTypeIfNotExists(
@@ -813,7 +823,7 @@ const seedFlowTestTypes = async () => {
         description: "Something that is provided by something else.",
         properties: [],
       },
-      ownedById,
+      ownedById: hashOwnedById,
     },
   );
 
@@ -857,7 +867,179 @@ const seedFlowTestTypes = async () => {
           },
         ],
       },
-      ownedById,
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const nvidiaCUDACoresPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "NVIDIA CUDA Cores",
+        description: "Number of NVIDIA CUDA cores.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const baseClockPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Base Clock",
+        description: "Base clock speed in GHz.",
+        possibleValues: [{ dataTypeId: systemDataTypes.gigahertz.dataTypeId }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const boostClockPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Boost Clock",
+        description: "Boost clock speed in GHz.",
+        possibleValues: [{ dataTypeId: systemDataTypes.gigahertz.dataTypeId }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const memorySizePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Memory Size",
+        description: "Memory size in GB.",
+        possibleValues: [{ dataTypeId: systemDataTypes.gigabytes.dataTypeId }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const memoryTypePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Memory Type",
+        description: "Type of memory.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const rayTracingCoresPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Ray Tracing Cores",
+        description: "Number of ray tracing cores.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const tensorCoresPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Tensor Cores",
+        description: "Number of tensor cores.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const widthPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Width",
+        description: "Width in mm.",
+        possibleValues: [
+          { dataTypeId: systemDataTypes.millimeters.dataTypeId },
+        ],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const lengthPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Length",
+        description: "Length in mm.",
+        possibleValues: [
+          { dataTypeId: systemDataTypes.millimeters.dataTypeId },
+        ],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const powerDrawPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Power Draw",
+        description: "Power draw in watts.",
+        possibleValues: [{ dataTypeId: systemDataTypes.watts.dataTypeId }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const _graphicsCardEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Graphics Card",
+        description: "A graphics card entity type.",
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: nvidiaCUDACoresPropertyType.schema.$id,
+            required: false,
+          },
+          { propertyType: baseClockPropertyType.schema.$id, required: false },
+          { propertyType: boostClockPropertyType.schema.$id, required: false },
+          { propertyType: memorySizePropertyType.schema.$id, required: false },
+          { propertyType: memoryTypePropertyType.schema.$id, required: false },
+          {
+            propertyType: rayTracingCoresPropertyType.schema.$id,
+            required: false,
+          },
+          { propertyType: tensorCoresPropertyType.schema.$id, required: false },
+          { propertyType: widthPropertyType.schema.$id, required: false },
+          { propertyType: lengthPropertyType.schema.$id, required: false },
+          { propertyType: powerDrawPropertyType.schema.$id, required: false },
+        ],
+      },
+      ownedById: hashOwnedById,
     },
   );
 };
