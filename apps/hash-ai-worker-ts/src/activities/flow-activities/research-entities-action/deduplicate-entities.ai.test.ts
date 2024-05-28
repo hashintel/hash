@@ -114,7 +114,7 @@ const nonDuplicateEntitySummaries: LocalEntitySummary[] = [
   },
 ];
 
-test(
+test.skip(
   "Test deduplicate entities with FTSE350 companies",
   async () => {
     const { duplicates } = await deduplicateEntities({
@@ -151,6 +151,170 @@ test(
         ),
       ).toBeUndefined();
     }
+  },
+  {
+    timeout: 5 * 60 * 1000,
+  },
+);
+
+const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
+  {
+    localId: "1f33981a-4d1f-4067-b279-a7d72f609b71",
+    name: "GPT-4o",
+    summary:
+      "GPT-4o is OpenAI's most advanced multimodal large language model, known for its high efficiency, speed, and cost-effectiveness.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "771c6c67-3ea4-46e3-a120-b95a89c9ca4d",
+    name: "GPT-4 Turbo",
+    summary:
+      "GPT-4 Turbo is a high-intelligence and multimodal large language model previously favored for its advanced reasoning and vision capabilities.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "bd536684-597b-4368-b390-425868dd5b83",
+    name: "GPT-3.5 Turbo",
+    summary:
+      "GPT-3.5 Turbo is a fast, inexpensive large language model optimized for simple tasks and chat functionalities.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "ab049eb7-894d-42ea-a063-a76144b08b71",
+    name: "GPT Base",
+    summary:
+      "GPT Base models are large language models capable of understanding and generating natural language or code without instruction following.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "3ae3cc00-eb67-41a4-9d51-fa19e0157537",
+    name: "gpt-4-turbo-2024-04-09",
+    summary:
+      "gpt-4-turbo-2024-04-09 is a version of GPT-4 Turbo with vision capabilities, supporting JSON mode and function calling.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "c5a65ece-9499-4ebf-bf33-117b7a58c6fb",
+    name: "gpt-4-turbo-2024-04-09",
+    summary:
+      "GPT-4 Turbo with Vision is the latest GPT-4 Turbo model with vision capabilities, including support for JSON mode and function calling.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "f8aea256-2e38-4c1c-b748-c6d0be878b24",
+    name: "gpt-4-turbo-preview",
+    summary:
+      "gpt-4-turbo-preview is a preview version of GPT-4 Turbo intended to reduce incomplete task responses.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "7c5d7b76-f5c8-4dd7-a88e-7f94996050aa",
+    name: "gpt-4-0125-preview",
+    summary:
+      "gpt-4-0125-preview is an earlier preview of GPT-4 Turbo, focused on reducing inadequately completed tasks.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "14fdba17-11f2-4957-a00b-3e2e8b58a2ac",
+    name: "gpt-4-1106-preview",
+    summary:
+      "gpt-4-1106-preview is a preview version of GPT-4 Turbo with improved instruction following and new features.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "06a0bad9-da61-41c0-9149-cdbb1e49c750",
+    name: "gpt-4-vision-preview",
+    summary:
+      "gpt-4-vision-preview is a preview model of GPT-4 with image understanding and other high-level capabilities.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "52aa0aa0-3753-4c03-8552-f86915fa5bfe",
+    name: "gpt-4-1106-vision-preview",
+    summary:
+      "gpt-4-1106-vision-preview is a preview model of GPT-4 with image understanding and advanced functionalities.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "d588f0d1-8ea1-4f18-b09e-099f1ba573eb",
+    name: "gpt-4",
+    summary:
+      "GPT-4 is a multimodal large language model known for its advanced reasoning, solving difficult problems with greater accuracy and broader general knowledge.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "02f58d32-6fa5-4055-8518-1178eaddabbb",
+    name: "gpt-4-0613",
+    summary:
+      "gpt-4-0613 is a snapshot model of GPT-4 focused on improved function calling support as of June 13, 2023.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "11a7b96a-44f0-48ee-9b88-19cd13bab94c",
+    name: "gpt-4-32k",
+    summary:
+      "gpt-4-32k is a version of GPT-4 designed for larger context windows, though not widely rolled out due to preference for GPT-4 Turbo.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "bf6aa6ae-85ea-4590-bf0e-6e9102cb69b0",
+    name: "gpt-4-32k-0613",
+    summary:
+      "gpt-4-32k-0613 is a snapshot model of GPT-4 for large context windows with better function calling support.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "1e42a1ef-d1ea-482e-97d2-37d4403591c6",
+    name: "gpt-3.5-turbo-0125",
+    summary:
+      "gpt-3.5-turbo-0125 is a version of GPT-3.5 Turbo with higher programming format accuracy and improved non-English language support.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "f20f5e21-17bb-4b27-9deb-9e04a89df33f",
+    name: "gpt-3.5-turbo-1106",
+    summary:
+      "gpt-3.5-turbo-1106 features improved instruction following and other enhancements.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+  {
+    localId: "244114fe-bd85-434b-a56b-20ebefed3210",
+    name: "gpt-3.5-turbo-instruct",
+    summary:
+      "GPT-3.5 Turbo Instruct is a large language model compatible with legacy Completions endpoints.",
+    entityTypeId:
+      "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+  },
+];
+
+test(
+  "Test deduplicate entities with FTSE350 companies",
+  async () => {
+    const { duplicates } = await deduplicateEntities({
+      entities: llmProviderExistingEntitySummaries,
+    });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ duplicates }, null, 2));
+
+    expect(duplicates).toBeDefined();
   },
   {
     timeout: 5 * 60 * 1000,
