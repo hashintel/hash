@@ -168,8 +168,8 @@ If you need to reset the local database, to clear out test data or because it ha
 1. The fast option – reset the database via the Graph API
 
    1. Run the Graph API in test mode by running `yarn dev:graph:test-server`
-   2. Run `yarn graph:reset-database` to reset the database
-   3. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or login will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
+   1. Run `yarn graph:reset-database` to reset the database
+   1. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or login will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
 
 #### External services test mode
 
