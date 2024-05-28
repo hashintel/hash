@@ -10,8 +10,13 @@ import { requestExternalInput } from "./shared/request-external-input";
 
 puppeteer.use(StealthPlugin());
 
-export const sanitizeHtmlForLlmConsumption = (htmlContent: string): string =>
-  sanitizeHtml(htmlContent, {
+export const sanitizeHtmlForLlmConsumption = (params: {
+  htmlContent: string;
+  maximumNumberOfTokens?: number;
+}): string => {
+  const { htmlContent, maximumNumberOfTokens = 75_000 } = params;
+
+  const sanitizedHtml = sanitizeHtml(htmlContent, {
     allowedTags: sanitizeHtml.defaults.allowedTags.filter(
       /**
        * @todo: consider whether there are other tags that aren't relevant
@@ -34,6 +39,19 @@ export const sanitizeHtmlForLlmConsumption = (htmlContent: string): string =>
     },
     disallowedTagsMode: "discard",
   });
+
+  const slicedSanitizedHtml = sanitizedHtml.slice(
+    0,
+    /**
+     * Assume that each token is 4 characters long.
+     *
+     * @todo: use `js-token` to more accurately determine the number of tokens.
+     */
+    maximumNumberOfTokens * 4,
+  );
+
+  return slicedSanitizedHtml;
+};
 
 const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
   /** @todo: consider re-using the same `browser` instance across requests  */
@@ -148,7 +166,7 @@ export const getWebPageActivity = async (params: {
     : await getWebPageFromPuppeteer(url);
 
   if (sanitizeForLlm) {
-    const sanitizedHtml = sanitizeHtmlForLlmConsumption(htmlContent);
+    const sanitizedHtml = sanitizeHtmlForLlmConsumption({ htmlContent });
 
     return { htmlContent: sanitizedHtml, title, url };
   }
