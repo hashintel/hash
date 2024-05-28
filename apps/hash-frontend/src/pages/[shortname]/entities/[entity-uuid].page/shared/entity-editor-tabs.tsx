@@ -9,10 +9,18 @@ export type EntityEditorTab = "overview" | "history";
 const defaultTab: EntityEditorTab = "overview";
 
 export const getTabUrl = (tab: string) => {
-  const pathWithoutParams = window.location.pathname.split("?")[0]!;
-  return tab === defaultTab
-    ? pathWithoutParams
-    : `${pathWithoutParams}?tab=${encodeURIComponent(tab)}`;
+  const url = new URL(window.location.href);
+  const searchParams = new URLSearchParams(url.search);
+
+  searchParams.delete("tab");
+
+  if (tab === defaultTab) {
+    return `${url.pathname}?${searchParams.toString()}`;
+  }
+
+  searchParams.set("tab", tab);
+
+  return `${url.pathname}?${searchParams.toString()}`;
 };
 
 export const useEntityEditorTab = () => {
