@@ -5,12 +5,13 @@
 use harpc_net::session::{error::TransactionError, server::SessionId};
 use harpc_wire_protocol::response::kind::ResponseKind;
 
-use crate::{body::full::Full, extensions::Extensions};
+use crate::{
+    body::{control::Controlled, full::Full, Body},
+    extensions::Extensions,
+};
 
 // TODO: into parts?!
 pub struct Response<B> {
-    kind: ResponseKind,
-
     session: SessionId,
 
     body: B,
@@ -18,27 +19,29 @@ pub struct Response<B> {
     extensions: Extensions,
 }
 
-impl Response<Full> {
-    pub(crate) fn new_error(session: SessionId, error: TransactionError) -> Self {
+impl<B> Response<B>
+where
+    B: Body<Control: AsRef<ResponseKind>>,
+{
+    pub fn session(&self) -> SessionId {
+        self.session
+    }
+
+    pub fn map_body<B2>(self, f: impl FnOnce(B) -> B2) -> Response<B2> {
+        Response {
+            session: self.session,
+            body: f(self.body),
+            extensions: self.extensions,
+        }
+    }
+}
+
+impl Response<Controlled<ResponseKind, Full>> {
+    pub fn new_error(session: SessionId, error: TransactionError) -> Self {
         Self {
-            kind: ResponseKind::Err(error.code),
             session,
-            body: Full::new(error.bytes),
+            body: Controlled::new(ResponseKind::Err(error.code), Full::new(error.bytes)),
             extensions: Extensions::new(),
         }
     }
-}
-
-impl<B> Response<B> {
-    pub fn map_body<NB>(self, func: impl FnOnce(B) -> NB) -> Response<NB> {
-        Response {
-            body: func(self.body),
-            ..self
-        }
-    }
-}
-
-// TODO: consider removing this?!
-pub struct ResponseStream<S> {
-    stream: S,
 }

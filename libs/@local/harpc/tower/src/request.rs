@@ -1,7 +1,7 @@
 use harpc_net::session::server::SessionId;
 use harpc_wire_protocol::request::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 
-use crate::extensions::Extensions;
+use crate::{body::Body, extensions::Extensions};
 
 // TODO: Parts?!
 
@@ -16,7 +16,10 @@ pub struct Request<B> {
     extensions: Extensions,
 }
 
-impl<B> Request<B> {
+impl<B> Request<B>
+where
+    B: Body<Control = !>,
+{
     pub fn session(&self) -> SessionId {
         self.session
     }

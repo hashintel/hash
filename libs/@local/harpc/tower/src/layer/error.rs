@@ -1,12 +1,12 @@
 use core::task::{Context, Poll};
-use std::error::Error;
 
 use error_stack::Report;
 use harpc_net::codec::{ErrorEncoder, PlainError};
+use harpc_wire_protocol::response::kind::ResponseKind;
 use tower::{Service, ServiceExt};
 
 use crate::{
-    body::{either::Either, full::Full},
+    body::{control::Controlled, either::Either, full::Full, Body},
     request::Request,
     response::Response,
 };
@@ -22,9 +22,11 @@ where
     S: Service<Request<ReqBody>, Error = Report<C>, Response = Response<ResBody>> + Clone + Send,
     E: ErrorEncoder + Clone,
     C: error_stack::Context,
+    ReqBody: Body<Control = !>,
+    ResBody: Body<Control: AsRef<ResponseKind>>,
 {
     type Error = !;
-    type Response = Response<Either<ResBody, Full>>;
+    type Response = Response<Either<ResBody, Controlled<ResponseKind, Full>>>;
 
     type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
 
@@ -56,6 +58,7 @@ where
     }
 }
 
+// TODO: this is on tower level (which works)
 pub struct HandleError<S, E> {
     inner: S,
 
@@ -67,9 +70,11 @@ where
     S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
     S::Error: PlainError,
     E: ErrorEncoder + Clone,
+    ReqBody: Body<Control = !>,
+    ResBody: Body<Control: AsRef<ResponseKind>>,
 {
     type Error = !;
-    type Response = Response<Either<ResBody, Full>>;
+    type Response = Response<Either<ResBody, Controlled<ResponseKind, Full>>>;
 
     type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
 
