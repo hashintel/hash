@@ -250,10 +250,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       return value instanceof GraphEntity ? value.serialize() : value;
     },
     parseValue(value) {
-      if (typeof value === "object") {
-        return new GraphEntity(value as SerializedEntity);
-      }
-      throw new Error("GraphQL Date Scalar parser expected a `number`");
+      return new GraphEntity(value as SerializedEntity);
     },
   }),
 
