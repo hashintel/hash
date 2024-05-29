@@ -46,6 +46,6 @@ We also make use of third-party open-source applications as part of:
 - **Authorization system:** based on SpiceDB, extends a Zanzibar-like way of providing permissionsed access to information. Managed by the Graph.
 - **Execution system:** based on Temporal, powers AI [workers](https://hash.ai/guide/workers) who run [flows](https://hash.ai/guide/flows) and complete [goals](https://hash.ai/guide/workers/goals)
 - **Data storage:** currently Postgres, with planned support for additional specialized backends for selectively storing/offloading specific kinds of data (e.g. timeseries, financial/accounting) and queries (e.g. full-text/vector search). Managed by the Graph.
-- **Object storage:** currently supportive of S3-compatible APIs (with Cloudflare R2 utilized by default), with planned for support for file-type specific handlers (e.g. Cloudflare Images for images, Cloudflare Stream for video). Managed by the Node API.
+- **Object storage:** currently supportive of S3-compatible APIs (with Cloudflare R2 utilized by default in production environments, alongside minio locally), with planned for support for file-type specific handlers (e.g. Cloudflare Images for images, Cloudflare Stream for video). Managed by the Node API.
 
 More information about each of these, as well as the corresponding code, can be found in the `hash-` prefixed subdirectories within [`apps`](https://github.com/hashintel/hash/tree/main/apps) (in our [`@hashintel/hash` public monorepo](https://github.com/hashintel)):
