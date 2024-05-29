@@ -42,7 +42,7 @@ import type {
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
-const model: LlmParams["model"] = "gpt-4-0125-preview";
+const model: LlmParams["model"] = "claude-3-opus-20240229";
 
 const generateSystemMessagePrefix = (params: {
   input: InferFactsFromWebPageWorkerAgentInput;
