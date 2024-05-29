@@ -12,7 +12,10 @@ import {
   type VertexId as VertexIdBp,
 } from "@blockprotocol/graph/temporal";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { GraphEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  GraphEntity,
+  SerializedEntity,
+} from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityPropertiesObject,
@@ -53,6 +56,10 @@ export type EntityTypeVertex = Subtype<
 export type EntityVertex<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > = { kind: "entity"; inner: GraphEntity<Properties> };
+export type SerializedEntityVertex = {
+  kind: "entity";
+  inner: SerializedEntity;
+};
 
 export type OntologyVertex = Subtype<
   OntologyVertexBp,
@@ -60,6 +67,7 @@ export type OntologyVertex = Subtype<
 >;
 
 export type KnowledgeGraphVertex = EntityVertex;
+export type SerializedKnowledgeGraphVertex = SerializedEntityVertex;
 
 export type Vertex = OntologyVertex | KnowledgeGraphVertex;
 
@@ -109,5 +117,12 @@ export type KnowledgeGraphVertices = {
     [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
   };
 };
+export type SerializedKnowledgeGraphVertices = {
+  [entityId: EntityId]: {
+    [revisionId: EntityRevisionId]: SerializedKnowledgeGraphVertex;
+  };
+};
 
 export type Vertices = OntologyVertices & KnowledgeGraphVertices;
+export type SerializedVertices = OntologyVertices &
+  SerializedKnowledgeGraphVertices;

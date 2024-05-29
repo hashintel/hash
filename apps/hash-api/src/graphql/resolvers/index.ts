@@ -1,3 +1,11 @@
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeGraphVertices,
+  serializeGraphVertices,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { SerializedVertices, Vertices } from "@local/hash-subgraph";
+import { GraphQLScalarType } from "graphql";
 import { JSONObjectResolver } from "graphql-scalars";
 
 import {
@@ -225,6 +233,29 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
     contents: blockCollectionContents,
   },
+
+  Vertices: new GraphQLScalarType({
+    name: "Vertices",
+    serialize(value) {
+      return serializeGraphVertices(value as Vertices);
+    },
+    parseValue(value) {
+      return deserializeGraphVertices(value as SerializedVertices);
+    },
+  }),
+
+  Entity: new GraphQLScalarType({
+    name: "Entity",
+    serialize(value) {
+      return value instanceof GraphEntity ? value.serialize() : value;
+    },
+    parseValue(value) {
+      if (typeof value === "object") {
+        return new GraphEntity(value as SerializedEntity);
+      }
+      throw new Error("GraphQL Date Scalar parser expected a `number`");
+    },
+  }),
 
   Comment: {
     canUserEdit,

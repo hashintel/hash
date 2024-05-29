@@ -1,3 +1,4 @@
+import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
 import type {
   Entity,
@@ -7,6 +8,12 @@ import type {
   LinkData,
   LinkEntity,
 } from "@local/hash-graph-types/entity";
+
+export type SerializedEntity = {
+  metadata: EntityMetadata;
+  properties: EntityPropertiesObject;
+  linkData?: LinkData;
+};
 
 export class GraphEntity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
@@ -18,18 +25,25 @@ export class GraphEntity<
     linkData?: LinkData;
   };
 
-  constructor(entity: GraphApiEntity) {
-    if (entity.metadata.entityTypeIds.length !== 1) {
-      throw new Error(
-        `Expected entity metadata to have exactly one entity type id, but got ${entity.metadata.entityTypeIds.length}`,
-      );
+  constructor(entity: GraphApiEntity | SerializedEntity) {
+    let entityTypeId: VersionedUrl;
+
+    if ("entityTypeId" in entity.metadata) {
+      entityTypeId = entity.metadata.entityTypeId;
+    } else {
+      if (entity.metadata.entityTypeIds.length !== 1) {
+        throw new Error(
+          `Expected entity metadata to have exactly one entity type id, but got ${entity.metadata.entityTypeIds.length}`,
+        );
+      }
+      entityTypeId = entity.metadata.entityTypeIds[0] as VersionedUrl;
     }
 
     this.#entity = {
       properties: entity.properties as Properties,
       metadata: {
         recordId: entity.metadata.recordId,
-        entityTypeId: entity.metadata.entityTypeIds[0],
+        entityTypeId,
         temporalVersioning: entity.metadata.temporalVersioning,
         provenance: entity.metadata.provenance,
         archived: entity.metadata.archived,
@@ -54,7 +68,7 @@ export class GraphEntity<
     return this.#entity.linkData;
   }
 
-  public asObject(): Entity<Properties> {
+  public serialize(): SerializedEntity {
     return {
       metadata: this.metadata,
       properties: this.properties,

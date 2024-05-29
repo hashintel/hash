@@ -27,11 +27,17 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   KnowledgeGraphVertex,
+  SerializedKnowledgeGraphVertex,
+  SerializedVertices,
   Subgraph,
   SubgraphRootType,
   Vertices,
 } from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId, isEntityId } from "@local/hash-subgraph";
+import {
+  extractOwnedByIdFromEntityId,
+  isEntityId,
+  isEntityVertex,
+} from "@local/hash-subgraph";
 
 /**
  * A mapping function that can be used to map entity metadata returned by the Graph API to the HASH `EntityMetadata`
@@ -97,6 +103,22 @@ const mapKnowledgeGraphVertex = (
   } as KnowledgeGraphVertex;
 };
 
+const serializeKnowledgeGraphVertex = (vertex: KnowledgeGraphVertex) => {
+  return {
+    kind: vertex.kind,
+    inner: vertex.inner.serialize(),
+  } as SerializedKnowledgeGraphVertex;
+};
+
+const deserializeKnowledgeGraphVertex = (
+  vertex: SerializedKnowledgeGraphVertex,
+) => {
+  return {
+    kind: vertex.kind,
+    inner: new GraphEntity(vertex.inner),
+  } as KnowledgeGraphVertex;
+};
+
 export const mapGraphApiVerticesToVertices = (
   vertices: VerticesGraphApi,
   userAccountId: AccountId | null,
@@ -117,6 +139,36 @@ export const mapGraphApiVerticesToVertices = (
             ]),
           )
         : inner,
+    ]),
+  ) as Vertices;
+
+export const serializeGraphVertices = (vertices: Vertices) =>
+  Object.fromEntries(
+    typedEntries(vertices).map(([baseId, inner]) => [
+      baseId,
+      Object.fromEntries(
+        typedEntries(inner).map(([version, vertex]) => [
+          version,
+          isEntityVertex(vertex)
+            ? serializeKnowledgeGraphVertex(vertex)
+            : vertex,
+        ]),
+      ),
+    ]),
+  ) as SerializedVertices;
+
+export const deserializeGraphVertices = (vertices: SerializedVertices) =>
+  Object.fromEntries(
+    typedEntries(vertices).map(([baseId, inner]) => [
+      baseId,
+      Object.fromEntries(
+        typedEntries(inner).map(([version, vertex]) => [
+          version,
+          vertex.kind === "entity"
+            ? deserializeKnowledgeGraphVertex(vertex)
+            : vertex,
+        ]),
+      ),
     ]),
   ) as Vertices;
 
