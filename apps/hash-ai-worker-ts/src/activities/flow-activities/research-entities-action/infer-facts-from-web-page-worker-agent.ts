@@ -284,6 +284,10 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
   entityTypes: DereferencedEntityType[];
   linkEntityTypes?: DereferencedEntityType[];
   url: string;
+  testingParams?: {
+    persistState?: (state: InferFactsFromWebPageWorkerAgentState) => void;
+    resumeFromState?: InferFactsFromWebPageWorkerAgentState;
+  };
 }): Promise<
   Status<{
     inferredFactsAboutEntities: LocalEntitySummary[];
@@ -291,7 +295,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
     filesUsedToInferFacts: AccessedRemoteFile[];
   }>
 > => {
-  const { url } = params;
+  const { url, testingParams } = params;
 
   /**
    * We start by making a asking the coordinator agent to create an initial plan
@@ -311,25 +315,29 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
     innerHtml: initialWebPageInnerHtml,
   };
 
-  const { plan: initialPlan } = await createInitialPlan({
-    input,
-  });
+  let state: InferFactsFromWebPageWorkerAgentState;
 
-  logger.debug(`Worker agent initial plan: ${initialPlan}`);
+  if (testingParams?.resumeFromState) {
+    state = testingParams.resumeFromState;
+  } else {
+    const { plan: initialPlan } = await createInitialPlan({
+      input,
+    });
 
-  const state: InferFactsFromWebPageWorkerAgentState = {
-    currentPlan: initialPlan,
-    previousCalls: [],
-    inferredFactsAboutEntities: [],
-    inferredFacts: [],
-    inferredFactsFromWebPageUrls: [],
-    filesQueried: [],
-    filesUsedToInferFacts: [],
-  };
+    logger.debug(`Worker agent initial plan: ${initialPlan}`);
+
+    state = {
+      currentPlan: initialPlan,
+      previousCalls: [],
+      inferredFactsAboutEntities: [],
+      inferredFacts: [],
+      inferredFactsFromWebPageUrls: [],
+      filesQueried: [],
+      filesUsedToInferFacts: [],
+    };
+  }
 
   const { userAuthentication } = await getFlowContext();
-
-  // const state = retrievePreviousState();
 
   const { toolCalls: initialToolCalls } = await getNextToolCalls({
     state,
@@ -655,7 +663,9 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
 
     state.previousCalls = [...state.previousCalls, { completedToolCalls }];
 
-    // writeStateToFile(state);
+    if (testingParams?.persistState) {
+      testingParams.persistState(state);
+    }
 
     const { toolCalls: nextToolCalls } = await getNextToolCalls({
       state,
