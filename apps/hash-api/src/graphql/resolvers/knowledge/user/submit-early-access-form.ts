@@ -1,6 +1,6 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { OwnedById } from "@local/hash-subgraph";
 
 import { createEntity } from "../../../../graph/knowledge/primitive/entity";
 import { systemAccountId } from "../../../../graph/system-account";

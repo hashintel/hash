@@ -1,6 +1,7 @@
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { AccountId, OwnedById } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";

@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity, EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-subgraph";
 import dedent from "dedent";
 
 import { getFlowContext } from "../../shared/get-flow-context";

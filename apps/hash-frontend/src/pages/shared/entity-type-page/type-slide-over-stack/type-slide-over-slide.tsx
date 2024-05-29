@@ -16,7 +16,7 @@ import {
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, ButtonBase, Slide, Tooltip } from "@mui/material";
 import type { FunctionComponent } from "react";

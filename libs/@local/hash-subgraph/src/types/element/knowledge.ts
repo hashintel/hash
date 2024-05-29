@@ -1,32 +1,24 @@
 import type {
   Entity as EntityBp,
-  EntityMetadata as EntityMetadataBp,
   EntityPropertiesObject as EntityPropertiesObjectBp,
   EntityPropertyValue as EntityPropertyValueBp,
-  EntityRecordId as EntityRecordIdBp,
   EntityRevisionId as EntityRevisionIdBp,
-  EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
   isEntityRecordId as isEntityRecordIdBp,
   JsonValue as JsonValueBp,
-  LinkData as LinkDataBp,
   LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
 } from "@blockprotocol/graph/temporal";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { PropertyMetadataMap } from "@local/hash-graph-client";
-
+import type { DiffEntityParams } from "@local/hash-graph-client";
 import type {
-  BaseUrl,
   EntityId,
-  EntityProvenance,
-  ExclusiveLimitedTemporalBound,
-  InclusiveLimitedTemporalBound,
-  TemporalAxis,
-  TimeInterval,
-  Timestamp,
-  Unbounded,
-} from "../shared";
+  EntityMetadata,
+  EntityRecordId,
+  LinkData,
+} from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+
 import { isEntityId } from "../shared";
 
 // This isn't necessary, it just _could_ provide greater clarity that this corresponds to an exact vertex and can be
@@ -34,14 +26,6 @@ import { isEntityId } from "../shared";
 export type EntityRevisionId = Subtype<
   EntityRevisionIdBp,
   Brand<Timestamp, "EntityRevisionId">
->;
-
-export type EntityRecordId = Subtype<
-  EntityRecordIdBp,
-  {
-    entityId: EntityId;
-    editionId: string;
-  }
 >;
 
 /**
@@ -76,39 +60,6 @@ export type EntityPropertiesObject = Subtype<
   }
 >;
 
-type HalfClosedInterval = TimeInterval<
-  InclusiveLimitedTemporalBound,
-  ExclusiveLimitedTemporalBound | Unbounded
->;
-
-export type EntityTemporalVersioningMetadata = Subtype<
-  EntityTemporalVersioningMetadataBp,
-  Record<TemporalAxis, HalfClosedInterval>
->;
-
-export type EntityMetadata = Subtype<
-  EntityMetadataBp,
-  {
-    recordId: EntityRecordId;
-    entityTypeId: VersionedUrl;
-    temporalVersioning: EntityTemporalVersioningMetadata;
-    archived: boolean;
-    provenance: EntityProvenance;
-    confidence?: number;
-    properties?: PropertyMetadataMap;
-  }
->;
-
-export type LinkData = Subtype<
-  LinkDataBp,
-  {
-    leftEntityId: EntityId;
-    rightEntityId: EntityId;
-    leftEntityConfidence?: number;
-    rightEntityConfidence?: number;
-  }
->;
-
 export type Entity<
   Properties extends EntityPropertiesObject | null = Record<
     BaseUrl,
@@ -129,5 +80,17 @@ export type LinkEntityAndRightEntity = Subtype<
   {
     linkEntity: Entity[];
     rightEntity: Entity[];
+  }
+>;
+
+export type DiffEntityInput = Subtype<
+  DiffEntityParams,
+  {
+    firstEntityId: EntityId;
+    firstTransactionTime: Timestamp | null;
+    firstDecisionTime: Timestamp | null;
+    secondEntityId: EntityId;
+    secondDecisionTime: Timestamp | null;
+    secondTransactionTime: Timestamp | null;
   }
 >;

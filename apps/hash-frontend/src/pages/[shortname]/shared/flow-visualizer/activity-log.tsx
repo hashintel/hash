@@ -1,11 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type {
   EntityId,
   EntityMetadata,
   EntityRecordId,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/entity";
+import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { Box, Stack, TableCell, Tooltip } from "@mui/material";
 import { format } from "date-fns";
 import type { ReactElement } from "react";

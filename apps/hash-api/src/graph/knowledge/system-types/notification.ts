@@ -2,6 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -17,7 +18,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import type { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
-import type { Entity, EntityId } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,

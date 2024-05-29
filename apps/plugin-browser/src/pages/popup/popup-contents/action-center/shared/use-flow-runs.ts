@@ -1,3 +1,4 @@
+import type { AccountId } from "@local/hash-graph-types/account";
 import {
   automaticBrowserInferenceFlowDefinition,
   manualBrowserInferenceFlowDefinition,
@@ -9,7 +10,6 @@ import type {
   ManualInferenceTriggerInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { PayloadKindValues } from "@local/hash-isomorphic-utils/flows/types";
-import type { AccountId } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useEffect, useMemo, useState } from "react";
 

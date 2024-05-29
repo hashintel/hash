@@ -3,6 +3,7 @@ import type {
   SimpleLinkWithoutHref,
 } from "@local/hash-backend-utils/simplified-graph";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -17,7 +18,6 @@ import type {
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityId, EntityUuid } from "@local/hash-subgraph";
 import {
   entityIdFromComponents,
   extractEntityUuidFromEntityId,

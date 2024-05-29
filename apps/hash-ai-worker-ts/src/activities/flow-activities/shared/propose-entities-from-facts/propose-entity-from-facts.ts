@@ -1,7 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  OriginProvenance,
+  ProvidedEntityEditionProvenance,
+} from "@local/hash-graph-client";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import type { BaseUrl } from "@local/hash-subgraph";
 import dedent from "dedent";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
@@ -252,10 +256,10 @@ const generateSystemPrompt = (params: { proposingOutgoingLinks: boolean }) =>
   The user will provide you with:
     - Facts: a list of facts about the entity
     ${params.proposingOutgoingLinks ? `Possible outgoing link target entities: a list of entities which can be used as target entities when defining outgoing links on the entity` : ``}
-  
+
   The user has requested that you fill out as many properties as possible, so please do so. Do not optimize for short responses.
 
-  The provided facts are your only source of information, so make sure to extract as much information as possible, 
+  The provided facts are your only source of information, so make sure to extract as much information as possible,
     and do not rely on other information about the entities in question you may know.
 
   You must make exactly one tool call.
@@ -338,7 +342,7 @@ export const proposeEntityFromFacts = async (params: {
                       )}`
                     : ""
                 }
-              
+
               `),
             },
           ],
@@ -430,6 +434,18 @@ export const proposeEntityFromFacts = async (params: {
     }
 
     const proposedOutgoingLinkEntities: ProposedEntity[] = [];
+
+    const { stepId } = await getFlowContext();
+
+    const editionProvenance: ProvidedEntityEditionProvenance = {
+      actorType: "ai",
+      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+      origin: {
+        type: "flow",
+        id: flowEntityId,
+        stepIds: [stepId],
+      } satisfies OriginProvenance,
+    };
 
     if (proposingOutgoingLinks && outgoingLinks) {
       await Promise.all(
@@ -533,6 +549,7 @@ export const proposeEntityFromFacts = async (params: {
             entityTypeId: outgoingLink.entityTypeId as VersionedUrl,
             propertyMetadata: outgoingLinkPropertyMetadata,
             properties: outgoingLinkProperties,
+            provenance: editionProvenance,
           });
         }),
       );
@@ -548,7 +565,7 @@ export const proposeEntityFromFacts = async (params: {
               tool_use_id: proposeEntityToolCall.id,
               content: dedent(`
                 ${retryToolCallMessages.join("\n")}
-                
+
                 Make another call to "proposeEntity" addressing the issue(s).
               `),
               is_error: true,
@@ -574,6 +591,7 @@ export const proposeEntityFromFacts = async (params: {
       summary: entitySummary.summary,
       entityTypeId: dereferencedEntityType.$id,
       properties,
+      provenance: editionProvenance,
     };
 
     return {

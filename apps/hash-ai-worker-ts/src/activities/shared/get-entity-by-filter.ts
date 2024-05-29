@@ -1,7 +1,8 @@
 import type { Filter, GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 
 export const getEntityByFilter = async ({
   actorId,

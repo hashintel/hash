@@ -17,6 +17,13 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -32,19 +39,13 @@ import type {
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
 import type {
-  AccountGroupId,
-  AccountId,
-  BaseUrl,
+  DiffEntityInput,
   Entity,
   EntityAuthorizationRelationship,
-  EntityId,
   EntityPropertiesObject,
   EntityRelationAndSubject,
   EntityRootType,
-  EntityUuid,
-  OwnedById,
   Subgraph,
-  Timestamp,
 } from "@local/hash-subgraph";
 import {
   extractDraftIdFromEntityId,
@@ -223,7 +224,7 @@ export const getEntitySubgraph: ImpureGraphFunction<
       if (
         // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
         //                    the latest revision
-        (editionMap[latestEditionTimestamp]!.inner.metadata as EntityMetadata)
+        (editionMap[latestEditionTimestamp].inner.metadata as EntityMetadata)
           .archived &&
         // if the vertex is in the roots of the query, then it is intentionally included
         !subgraph.roots.find((root) => root.baseId === entityId)
@@ -1068,14 +1069,7 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
     );
 
 export const calculateEntityDiff: ImpureGraphFunction<
-  {
-    firstEntityId: EntityId;
-    firstTransactionTime: Timestamp | null;
-    firstDecisionTime: Timestamp | null;
-    secondEntityId: EntityId;
-    secondDecisionTime: Timestamp | null;
-    secondTransactionTime: Timestamp | null;
-  },
+  DiffEntityInput,
   Promise<DiffEntityResult>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi.diffEntity(actorId, params).then(({ data }) => data);

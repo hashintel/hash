@@ -1,5 +1,5 @@
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
-  BaseUrl,
   Entity,
   EntityPropertiesObject,
   EntityPropertyValue,

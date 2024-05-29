@@ -2,9 +2,9 @@ import type { JsonValue } from "@blockprotocol/core";
 import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
 import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
-import type { DataTypeWithMetadata } from "@local/hash-subgraph";
 
 import {
   getCellHorizontalPadding,

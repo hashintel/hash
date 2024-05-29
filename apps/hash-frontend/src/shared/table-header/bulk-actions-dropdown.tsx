@@ -2,10 +2,10 @@ import { useMutation } from "@apollo/client";
 import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
 import type {
   DataTypeWithMetadata,
-  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
+import type { Entity } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   Box,

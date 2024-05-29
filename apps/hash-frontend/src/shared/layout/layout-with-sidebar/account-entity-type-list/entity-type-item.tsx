@@ -3,7 +3,7 @@ import {
   IconButton,
   LinkTypeIcon,
 } from "@hashintel/design-system";
-import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { BoxProps } from "@mui/material";
 import { Box, styled, Tooltip, Typography } from "@mui/material";

@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { OwnedById } from "@local/hash-subgraph";
 
 export type InferEntitiesRequest = {
   createAs: "draft" | "live";

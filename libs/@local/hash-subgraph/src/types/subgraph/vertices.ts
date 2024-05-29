@@ -21,18 +21,21 @@ import {
   type Vertices as VerticesBp,
 } from "@blockprotocol/graph/temporal";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  BaseUrl,
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 
 import type {
-  DataTypeWithMetadata,
   Entity,
   EntityPropertiesObject,
   EntityPropertyValue,
   EntityRevisionId,
-  EntityTypeWithMetadata,
   OntologyTypeRevisionId,
-  PropertyTypeWithMetadata,
 } from "../element";
-import type { BaseUrl, EntityId } from "../shared";
 
 export type DataTypeVertex = Subtype<
   DataTypeVertexBp,

@@ -1,6 +1,6 @@
 import { getFlowRunById } from "@local/hash-backend-utils/flows";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
-import type { EntityUuid } from "@local/hash-subgraph";
 import { ApolloError } from "apollo-server-errors";
 
 import type {

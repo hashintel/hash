@@ -1,21 +1,25 @@
 import { useLazyQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import type {
+  CreatedById,
+  EditionCreatedById,
+} from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
-  CreatedById,
-  EditionCreatedById,
+  Timestamp,
+} from "@local/hash-graph-types/temporal-versioning";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import type {
   Entity,
-  EntityId,
   EntityPropertiesObject,
   EntityRevisionId,
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphVertices,
   Subgraph,
-  Timestamp,
 } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
