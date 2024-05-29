@@ -293,6 +293,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
     inferredFactsAboutEntities: LocalEntitySummary[];
     inferredFacts: Fact[];
     filesUsedToInferFacts: AccessedRemoteFile[];
+    suggestionForNextSteps: string;
   }>
 > => {
   const { url, testingParams } = params;
@@ -346,7 +347,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
 
   const processToolCalls = async (processToolCallsParams: {
     toolCalls: ParsedLlmToolCall<ToolName>[];
-  }): Promise<Status<never>> => {
+  }): Promise<Status<{ suggestionForNextSteps: string }>> => {
     const { toolCalls } = processToolCallsParams;
 
     logger.debug(`Worker agent processing tool calls: ${stringify(toolCalls)}`);
@@ -649,7 +650,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
       ),
     );
 
-    const isCompleted = toolCalls.some(
+    const completeToolCall = toolCalls.find(
       (toolCall) => toolCall.name === "complete",
     );
 
@@ -657,8 +658,10 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
      * Check whether the research task has completed after processing the tool calls,
      * incase the agent has made other tool calls at the same time as the "complete" tool call.
      */
-    if (isCompleted) {
-      return { code: StatusCode.Ok, contents: [] };
+    if (completeToolCall) {
+      const { suggestionForNextSteps } =
+        completeToolCall.input as ToolCallArguments["complete"];
+      return { code: StatusCode.Ok, contents: [{ suggestionForNextSteps }] };
     }
 
     state.previousCalls = [...state.previousCalls, { completedToolCalls }];
@@ -689,6 +692,8 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
     };
   }
 
+  const { suggestionForNextSteps } = status.contents[0]!;
+
   return {
     code: StatusCode.Ok,
     contents: [
@@ -696,6 +701,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
         inferredFacts: state.inferredFacts,
         inferredFactsAboutEntities: state.inferredFactsAboutEntities,
         filesUsedToInferFacts: state.filesUsedToInferFacts,
+        suggestionForNextSteps,
       },
     ],
   };
