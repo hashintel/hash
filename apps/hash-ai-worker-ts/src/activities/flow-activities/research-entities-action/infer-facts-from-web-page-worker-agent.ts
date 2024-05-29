@@ -279,6 +279,26 @@ const getNextToolCalls = async (params: {
   return { toolCalls };
 };
 
+const getTopLevelDomain = (url: string) => {
+  const parsedUrl = new URL(url);
+  const hostnameParts = parsedUrl.hostname.split(".");
+
+  if (hostnameParts.length > 1) {
+    return hostnameParts.slice(-2).join(".");
+  }
+};
+
+const haveSameTopLevelDomain = (url1: string, url2: string): boolean => {
+  const tld1 = getTopLevelDomain(url1);
+  const tld2 = getTopLevelDomain(url2);
+
+  if (tld1 && tld2) {
+    return tld1 === tld2;
+  }
+
+  return false;
+};
+
 export const inferFactsFromWebPageWorkerAgent = async (params: {
   prompt: string;
   entityTypes: DereferencedEntityType[];
@@ -384,6 +404,17 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
             const { url: toolCallUrl } =
               toolCall.input as ToolCallArguments["getWebPageInnerHtml"];
 
+            if (!haveSameTopLevelDomain(toolCallUrl, input.url)) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  The URL provided is not from the same top level domain as the initial web page URL.
+                  You can only access web pages which are linked to by the initial web page and are hosted on the same top-level domain.
+                `),
+                isError: true,
+              };
+            }
+
             const urlHeadFetch = await fetch(toolCallUrl, { method: "HEAD" });
 
             if (!urlHeadFetch.ok) {
@@ -471,6 +502,20 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
                   You did not previously query the PDF file at the provided fileUrl: ${toolCallInput.fileUrl}.
                   You must first query the PDF file with the relevant query using the "queryPdf" tool,
                     before inferring entities from its text content.
+                `),
+                isError: true,
+              };
+            }
+
+            if (
+              "url" in toolCallInput &&
+              !haveSameTopLevelDomain(toolCallInput.url, input.url)
+            ) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  The URL provided is not from the same top level domain as the initial web page URL.
+                  You must only infer facts from web pages which are linked to by the initial web page and are hosted on the same top-level domain.
                 `),
                 isError: true,
               };
