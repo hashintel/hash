@@ -28,7 +28,6 @@ import type {
   EntityId,
   EntityPropertiesObject,
   EntityUuid,
-  LinkEntity,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
@@ -717,7 +716,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     linkEntityTypeId?: VersionedUrl;
     includeDrafts?: boolean;
   },
-  Promise<(GraphEntity & LinkEntity)[]>
+  Promise<GraphLinkEntity[]>
 > = async (context, authentication, params) => {
   const { entityId, includeDrafts = false } = params;
   const filter: Filter = {
