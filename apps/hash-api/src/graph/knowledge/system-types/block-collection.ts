@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, LinkEntity } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -60,8 +61,8 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
         : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     },
   )) as
-    | LinkEntity<HasSpatiallyPositionedContentProperties>[]
-    | LinkEntity<HasIndexedContentProperties>[];
+    | GraphLinkEntity<HasSpatiallyPositionedContentProperties>[]
+    | GraphLinkEntity<HasIndexedContentProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks

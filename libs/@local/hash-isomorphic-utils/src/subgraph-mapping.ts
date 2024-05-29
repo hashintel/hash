@@ -13,7 +13,6 @@ import { GraphEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
-  EntityMetadata,
   EntityPropertiesObject,
 } from "@local/hash-graph-types/entity";
 import type {
@@ -38,22 +37,9 @@ import { extractOwnedByIdFromEntityId, isEntityId } from "@local/hash-subgraph";
  * A mapping function that can be used to map entity metadata returned by the Graph API to the HASH `EntityMetadata`
  * definition.
  */
-export const mapGraphApiEntityMetadataToMetadata = (
+export const mapGraphApiEntityMetadataToEntityId = (
   metadata: GraphApiEntityMetadata,
-) => {
-  if (metadata.entityTypeIds.length !== 1) {
-    throw new Error(
-      `Expected entity metadata to have exactly one entity type id, but got ${metadata.entityTypeIds.length}`,
-    );
-  }
-  return {
-    recordId: metadata.recordId,
-    entityTypeId: metadata.entityTypeIds[0],
-    temporalVersioning: metadata.temporalVersioning,
-    provenance: metadata.provenance,
-    archived: metadata.archived,
-  } as EntityMetadata;
-};
+) => metadata.recordId.entityId as EntityId;
 
 const restrictedPropertyBaseUrls: string[] = [
   systemPropertyTypes.email.propertyTypeBaseUrl,

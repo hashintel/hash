@@ -15,9 +15,10 @@ import type {
   LinkEntity,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
+import { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { GraphEntity } from "@local/hash-graph-sdk/entity";
 import type { ImpureGraphFunction } from "../../context-types";
 import {
   getEntityTypeById,
@@ -42,8 +43,9 @@ export type CreateLinkEntityParams = {
   provenance?: ProvidedEntityEditionProvenance;
 };
 
-export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
-  !!entity.linkData;
+export const isEntityLinkEntity = (
+  entity: GraphEntity,
+): entity is GraphLinkEntity => !!entity.linkData;
 
 /**
  * Create a link entity between a left and a right entity.
@@ -56,7 +58,7 @@ export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
  */
 export const createLinkEntity: ImpureGraphFunction<
   CreateLinkEntityParams,
-  Promise<LinkEntity>
+  Promise<GraphLinkEntity>
 > = async (context, authentication, params) => {
   const {
     ownedById,
@@ -115,11 +117,11 @@ export const createLinkEntity: ImpureGraphFunction<
     },
   );
 
-  const linkEntity = {
-    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
+  const linkEntity = new GraphLinkEntity({
+    metadata,
     properties,
     linkData,
-  };
+  });
 
   for (const afterCreateHook of afterCreateEntityHooks) {
     if (afterCreateHook.entityTypeId === linkEntity.metadata.entityTypeId) {
@@ -148,7 +150,7 @@ export const updateLinkEntity: ImpureGraphFunction<
     draft?: boolean;
     provenance?: ProvidedEntityEditionProvenance;
   },
-  Promise<LinkEntity>
+  Promise<GraphLinkEntity>
 > = async ({ graphApi }, { actorId }, params) => {
   const { linkEntity } = params;
 
@@ -167,11 +169,11 @@ export const updateLinkEntity: ImpureGraphFunction<
     provenance: params.provenance,
   });
 
-  return {
-    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
+  return new GraphLinkEntity({
+    metadata,
     properties,
     linkData: linkEntity.linkData,
-  };
+  });
 };
 
 /**

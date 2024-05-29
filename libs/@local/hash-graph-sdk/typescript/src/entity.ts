@@ -5,10 +5,11 @@ import type {
   EntityMetadata,
   EntityPropertiesObject,
   LinkData,
+  LinkEntity,
 } from "@local/hash-graph-types/entity";
 
 export class GraphEntity<
-  Properties extends EntityPropertiesObject | null = EntityPropertiesObject,
+  Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > implements Entity<Properties>
 {
   #entity: {
@@ -51,5 +52,26 @@ export class GraphEntity<
 
   public get linkData(): LinkData | undefined {
     return this.#entity.linkData;
+  }
+}
+
+export class GraphLinkEntity<
+    Properties extends EntityPropertiesObject = EntityPropertiesObject,
+  >
+  extends GraphEntity<Properties>
+  implements LinkEntity<Properties>
+{
+  constructor(entity: GraphApiEntity) {
+    if (!entity.linkData) {
+      throw new Error(
+        `Expected link entity to have link data, but got \`${entity.linkData}\``,
+      );
+    }
+
+    super(entity);
+  }
+
+  public get linkData(): LinkData {
+    return super.linkData!;
   }
 }

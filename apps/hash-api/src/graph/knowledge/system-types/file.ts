@@ -29,6 +29,7 @@ import {
   getLatestEntityById,
   updateEntity,
 } from "../primitive/entity";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
 
 // 1800 seconds
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
@@ -164,7 +165,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       properties: initialProperties,
       entityTypeId,
       relationships: createDefaultAuthorizationRelationships(authentication),
-    })) as Entity<FileProperties>;
+    })) as GraphEntity<FileProperties>;
   }
 
   const editionIdentifier = generateUuid();
@@ -197,7 +198,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       entity: fileEntity,
       entityTypeId,
       properties,
-    })) as Entity<FileProperties>;
+    })) as GraphEntity<FileProperties>;
 
     return {
       presignedPut,
@@ -246,14 +247,14 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           entity: existingEntity,
           entityTypeId,
           properties,
-        })) as File)
+        })) as GraphEntity<FileProperties>)
       : ((await createEntity(ctx, authentication, {
           ownedById,
           properties,
           entityTypeId,
           relationships:
             createDefaultAuthorizationRelationships(authentication),
-        })) as File);
+        })) as GraphEntity<FileProperties>);
   } catch (error) {
     throw new Error(
       `There was an error creating the file entity from a link: ${error}`,

@@ -22,7 +22,7 @@ import {
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
-import type {
+import {
   HasDataProperties,
   HasIndexedContentProperties,
   PageProperties,
@@ -52,6 +52,7 @@ import type { Block } from "./block";
 import { getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
 import type { Comment } from "./comment";
+import type { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
 
 export type Page = {
   title: string;
@@ -456,8 +457,8 @@ export const getPageBlocks: ImpureGraphFunction<
               .linkEntityTypeId,
     },
   )) as
-    | LinkEntity<HasIndexedContentProperties>[]
-    | LinkEntity<HasSpatiallyPositionedContentProperties>[];
+    | GraphLinkEntity<HasIndexedContentProperties>[]
+    | GraphLinkEntity<HasSpatiallyPositionedContentProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks

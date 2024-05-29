@@ -27,7 +27,6 @@ import { getTextFromEntity } from "@apps/hash-api/src/graph/knowledge/system-typ
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { Entity } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   blockProtocolPropertyTypes,
@@ -45,6 +44,7 @@ import {
   createTestUser,
   waitForAfterHookTriggerToComplete,
 } from "../../../util";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
 
 const logger = new Logger({
   mode: "dev",
@@ -273,7 +273,7 @@ describe.skip("Page Mention Notification", () => {
           },
         ],
       },
-    )) as Entity<TextProperties>;
+    )) as GraphEntity<TextProperties>;
 
     /**
      * Notifications are created after the request is resolved, so we need to wait
@@ -332,7 +332,7 @@ describe.skip("Page Mention Notification", () => {
           },
         ],
       },
-    )) as Entity<TextProperties>;
+    )) as GraphEntity<TextProperties>;
 
     /**
      * Notifications are created after the request is resolved, so we need to wait
@@ -445,7 +445,7 @@ describe.skip("Page Mention Notification", () => {
           },
         ],
       },
-    )) as Entity<TextProperties>;
+    )) as GraphEntity<TextProperties>;
     commentText.textualContent = updatedCommentTextualContent;
 
     /**

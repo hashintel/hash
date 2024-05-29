@@ -51,7 +51,7 @@ export type EntityTypeVertex = Subtype<
 >;
 
 export type EntityVertex<
-  Properties extends EntityPropertiesObject | null = EntityPropertiesObject,
+  Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > = { kind: "entity"; inner: GraphEntity<Properties> };
 
 export type OntologyVertex = Subtype<

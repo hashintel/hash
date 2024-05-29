@@ -34,7 +34,7 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
     };
   }
 
-  const { entityMetadata, properties } = getFileEntityFromUrlStatus;
+  const { entity } = getFileEntityFromUrlStatus;
 
   // @todo look for an existing file with the same originalUrl in the graph, and update it if found?
   const operation = "create" as const;
@@ -42,10 +42,7 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
   logProgress([
     {
       persistedEntity: {
-        entity: {
-          metadata: entityMetadata,
-          properties,
-        } satisfies Entity,
+        entity,
         operation, // @todo update this to "update" if an existing entity was found
       },
       recordedAt: new Date().toISOString(),
@@ -65,8 +62,8 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
             payload: {
               kind: "Entity",
               value: {
-                metadata: entityMetadata,
-                properties,
+                metadata: entity.metadata,
+                properties: entity.properties,
               } satisfies Entity,
             },
           },

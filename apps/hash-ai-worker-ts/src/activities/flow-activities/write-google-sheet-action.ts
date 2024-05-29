@@ -16,7 +16,6 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { GoogleSheetsFileProperties } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
@@ -33,6 +32,7 @@ import { convertCsvToSheetRequests } from "./write-google-sheet-action/convert-c
 import { convertSubgraphToSheetRequests } from "./write-google-sheet-action/convert-subgraph-to-sheet-requests";
 import { getFilterFromBlockProtocolQueryEntity } from "./write-google-sheet-action/get-filter-from-bp-query-entity";
 import { getSubgraphFromFilter } from "./write-google-sheet-action/get-subgraph-from-filter";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
 
 const createSpreadsheet = async ({
   filename,
@@ -367,14 +367,14 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         })
         .then((resp) => resp.data);
 
-      entityToReturn = {
+      entityToReturn = new GraphEntity({
         ...existingEntity,
-        metadata: mapGraphApiEntityMetadataToMetadata(metadata),
+        metadata,
         properties: {
           ...existingEntity.properties,
           ...fileProperties,
         },
-      };
+      });
     }
   } else {
     const authRelationships = createDefaultAuthorizationRelationships({
@@ -410,10 +410,10 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       relationships: authRelationships,
     });
 
-    entityToReturn = {
+    entityToReturn = new GraphEntity({
       ...entityValues,
-      metadata: mapGraphApiEntityMetadataToMetadata(fileEntityMetadata),
-    };
+      metadata: fileEntityMetadata,
+    });
   }
 
   return {

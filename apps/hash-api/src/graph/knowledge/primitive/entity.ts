@@ -17,6 +17,7 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import { GraphEntity, GraphLinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -37,7 +38,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  mapGraphApiEntityMetadataToMetadata,
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
@@ -102,7 +102,7 @@ export type PropertyValue = EntityPropertiesObject[BaseUrl];
  */
 export const createEntity: ImpureGraphFunction<
   CreateEntityParams,
-  Promise<Entity>
+  Promise<GraphEntity>
 > = async (context, authentication, params) => {
   const {
     ownedById,
@@ -143,10 +143,10 @@ export const createEntity: ImpureGraphFunction<
     provenance,
   });
 
-  const entity = {
+  const entity = new GraphEntity({
     properties,
-    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
-  };
+    metadata,
+  });
 
   for (const createOutgoingLinkParams of outgoingLinks ?? []) {
     await createLinkEntity(context, authentication, {
@@ -172,7 +172,7 @@ export const getEntities: ImpureGraphFunction<
   GetEntitiesRequest & {
     temporalClient?: TemporalClient;
   },
-  Promise<Entity[]>
+  Promise<GraphEntity[]>
 > = async ({ graphApi }, { actorId }, { temporalClient, ...params }) => {
   await rewriteSemanticFilter(params.filter, temporalClient);
 
@@ -269,7 +269,7 @@ export const getLatestEntityById: ImpureGraphFunction<
   {
     entityId: EntityId;
   },
-  Promise<Entity>
+  Promise<GraphEntity>
 > = async (context, authentication, params) => {
   const { entityId } = params;
 
@@ -427,7 +427,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     draft?: boolean;
     provenance?: ProvidedEntityEditionProvenance;
   },
-  Promise<Entity>,
+  Promise<GraphEntity>,
   false,
   true
 > = async (context, authentication, params) => {
@@ -507,7 +507,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     }),
   );
 
-  let rootEntity: Entity;
+  let rootEntity: GraphEntity;
   if (entities[0]) {
     // First element will be the root entity.
     rootEntity = entities[0].entity;
@@ -560,7 +560,7 @@ export const updateEntity: ImpureGraphFunction<
     draft?: boolean;
     provenance?: ProvidedEntityEditionProvenance;
   },
-  Promise<Entity>,
+  Promise<GraphEntity>,
   false,
   true
 > = async (context, authentication, params) => {
@@ -605,11 +605,11 @@ export const updateEntity: ImpureGraphFunction<
     }
   }
 
-  return {
+  return new GraphEntity({
     ...entity,
-    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
+    metadata,
     properties,
-  };
+  });
 };
 
 export const archiveEntity: ImpureGraphFunction<
@@ -654,7 +654,7 @@ export const updateEntityProperties: ImpureGraphFunction<
     }[];
     provenance?: ProvidedEntityEditionProvenance;
   },
-  Promise<Entity>,
+  Promise<GraphEntity>,
   false,
   true
 > = async (ctx, authentication, params) => {
@@ -691,7 +691,7 @@ export const updateEntityProperty: ImpureGraphFunction<
     value: PropertyValue | undefined;
     provenance?: ProvidedEntityEditionProvenance;
   },
-  Promise<Entity>,
+  Promise<GraphEntity>,
   false,
   true
 > = async (ctx, authentication, params) => {
@@ -716,7 +716,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     linkEntityTypeId?: VersionedUrl;
     includeDrafts?: boolean;
   },
-  Promise<LinkEntity[]>
+  Promise<(GraphEntity & LinkEntity)[]>
 > = async (context, authentication, params) => {
   const { entityId, includeDrafts = false } = params;
   const filter: Filter = {
@@ -784,7 +784,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     rightEntityId?: EntityId;
     includeDrafts?: boolean;
   },
-  Promise<LinkEntity[]>
+  Promise<GraphLinkEntity[]>
 > = async (context, authentication, params) => {
   const {
     entityId,

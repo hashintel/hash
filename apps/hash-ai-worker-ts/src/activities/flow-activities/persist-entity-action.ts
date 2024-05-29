@@ -4,6 +4,7 @@ import type {
   CreateEntityRequest,
   EntityMetadata,
 } from "@local/hash-graph-client";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
 import type { Entity } from "@local/hash-graph-types/entity";
 import {
   getSimplifiedActionInputs,
@@ -11,7 +12,6 @@ import {
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -137,14 +137,9 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       };
     }
 
-    const { entityMetadata, properties: updatedProperties } =
-      getFileEntityFromUrlStatus;
+    const { entity: updatedEntity } = getFileEntityFromUrlStatus;
 
-    entity = {
-      metadata: entityMetadata,
-      ...entityValues,
-      properties: updatedProperties,
-    };
+    entity = updatedEntity;
   } else {
     existingEntity = await (linkData
       ? findExistingLinkEntity({
@@ -218,10 +213,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           .then((resp) => resp.data);
       }
 
-      entity = {
-        metadata: mapGraphApiEntityMetadataToMetadata(entityMetadata),
+      entity = new GraphEntity({
+        metadata: entityMetadata,
         ...entityValues,
-      };
+      });
     } catch (err) {
       return {
         code: StatusCode.Internal,

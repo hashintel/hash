@@ -115,8 +115,8 @@ export interface Entity<
   readonly linkData?: LinkData;
 }
 
-export type LinkEntity<
-  T extends EntityPropertiesObject = EntityPropertiesObject,
-> = Entity<T> & {
-  linkData: NonNullable<Entity["linkData"]>;
-};
+export interface LinkEntity<
+  Properties extends EntityPropertiesObject | null = EntityPropertiesObject,
+> extends Entity<Properties> {
+  readonly linkData: LinkData;
+}
