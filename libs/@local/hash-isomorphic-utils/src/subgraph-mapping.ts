@@ -43,12 +43,15 @@ export const mapGraphApiEntityMetadataToMetadata = (
       `Expected entity metadata to have exactly one entity type id, but got ${metadata.entityTypeIds.length}`,
     );
   }
+
   return {
     recordId: metadata.recordId,
     entityTypeId: metadata.entityTypeIds[0],
     temporalVersioning: metadata.temporalVersioning,
     provenance: metadata.provenance,
     archived: metadata.archived,
+    confidence: metadata.confidence,
+    properties: metadata.properties,
   } as EntityMetadata;
 };
 

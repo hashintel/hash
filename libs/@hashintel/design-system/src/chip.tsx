@@ -45,6 +45,7 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>(
                 color: palette[color][50],
               },
             }),
+            py: 0.1,
           }),
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
