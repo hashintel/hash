@@ -5,7 +5,7 @@ import type {
   PropertyProvenance,
   PropertyType,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-types/entity";
 
 type HistoryEventBase = {
   number: string;
