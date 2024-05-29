@@ -3,6 +3,8 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import type { GraphEntity } from "@local/hash-graph-sdk/entity";
+import { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -17,8 +19,6 @@ import type {
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
-import { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
-import type { GraphEntity } from "@local/hash-graph-sdk/entity";
 import type { ImpureGraphFunction } from "../../context-types";
 import {
   getEntityTypeById,

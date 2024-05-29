@@ -53,6 +53,14 @@ export class GraphEntity<
   public get linkData(): LinkData | undefined {
     return this.#entity.linkData;
   }
+
+  public asObject(): Entity<Properties> {
+    return {
+      metadata: this.metadata,
+      properties: this.properties,
+      linkData: this.linkData,
+    };
+  }
 }
 
 export class GraphLinkEntity<

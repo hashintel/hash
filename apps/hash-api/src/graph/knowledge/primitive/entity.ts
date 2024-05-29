@@ -17,7 +17,8 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
-import { GraphEntity, GraphLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,

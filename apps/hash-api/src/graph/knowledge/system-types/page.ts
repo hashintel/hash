@@ -1,4 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   Entity,
   EntityId,
@@ -22,7 +23,7 @@ import {
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
-import {
+import type {
   HasDataProperties,
   HasIndexedContentProperties,
   PageProperties,
@@ -52,7 +53,6 @@ import type { Block } from "./block";
 import { getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
 import type { Comment } from "./comment";
-import type { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
 
 export type Page = {
   title: string;

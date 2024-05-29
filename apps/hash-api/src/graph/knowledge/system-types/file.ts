@@ -4,6 +4,7 @@ import {
   formatFileUrl,
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
+import type { GraphEntity } from "@local/hash-graph-sdk/entity";
 import type { Entity } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -29,7 +30,6 @@ import {
   getLatestEntityById,
   updateEntity,
 } from "../primitive/entity";
-import { GraphEntity } from "@local/hash-graph-sdk/entity";
 
 // 1800 seconds
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;

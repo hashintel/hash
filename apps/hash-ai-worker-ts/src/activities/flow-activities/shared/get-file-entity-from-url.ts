@@ -26,6 +26,7 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -37,7 +38,6 @@ import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-
 import { logger } from "../../shared/activity-logger";
 import { getFlowContext } from "../../shared/get-flow-context";
 import { graphApiClient } from "../../shared/graph-api-client";
-import { GraphEntity } from "@local/hash-graph-sdk/entity";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

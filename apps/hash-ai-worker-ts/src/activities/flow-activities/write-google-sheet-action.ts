@@ -5,6 +5,7 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
+import { GraphEntity } from "@local/hash-graph-sdk/entity";
 import type { Entity } from "@local/hash-graph-types/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
@@ -32,7 +33,6 @@ import { convertCsvToSheetRequests } from "./write-google-sheet-action/convert-c
 import { convertSubgraphToSheetRequests } from "./write-google-sheet-action/convert-subgraph-to-sheet-requests";
 import { getFilterFromBlockProtocolQueryEntity } from "./write-google-sheet-action/get-filter-from-bp-query-entity";
 import { getSubgraphFromFilter } from "./write-google-sheet-action/get-subgraph-from-filter";
-import { GraphEntity } from "@local/hash-graph-sdk/entity";
 
 const createSpreadsheet = async ({
   filename,
