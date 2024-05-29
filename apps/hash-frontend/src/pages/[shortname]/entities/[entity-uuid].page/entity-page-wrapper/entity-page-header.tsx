@@ -11,6 +11,7 @@ import { useContext } from "react";
 import { NotificationsWithLinksContextProvider } from "../../../../shared/notifications-with-links-context";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
+import { EntityEditorTabs } from "../shared/entity-editor-tabs";
 import { DraftEntityBanner } from "./draft-entity-banner";
 
 export const EntityPageHeader = ({
@@ -22,6 +23,7 @@ export const EntityPageHeader = ({
   chip,
   editBar,
   isModifyingEntity,
+  showTabs,
 }: {
   entity?: Entity;
   entitySubgraph?: Subgraph<EntityRootType>;
@@ -31,6 +33,7 @@ export const EntityPageHeader = ({
   chip: ReactNode;
   editBar?: ReactNode;
   isModifyingEntity?: boolean;
+  showTabs?: boolean;
 }) => {
   const router = useRouter();
 
@@ -83,7 +86,8 @@ export const EntityPageHeader = ({
       {editBar}
 
       <Box
-        py={3.75}
+        pt={3.75}
+        pb={showTabs ? 0 : 3.75}
         sx={({ palette }) => ({ background: palette.common.white })}
       >
         <Container>
@@ -99,6 +103,11 @@ export const EntityPageHeader = ({
               {entityLabel}
             </Typography>
           </Stack>
+          {showTabs && (
+            <Box mt={6}>
+              <EntityEditorTabs />
+            </Box>
+          )}
         </Container>
       </Box>
     </>
