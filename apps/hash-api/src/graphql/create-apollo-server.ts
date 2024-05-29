@@ -70,6 +70,7 @@ export const createApolloServer = ({
         actorId: getActorIdFromRequest(ctx.req),
       },
       user: ctx.req.user,
+      userAgent: ctx.req.headers["user-agent"],
       emailTransporter,
       logger: logger.child({
         requestId: ctx.res.get("x-hash-request-id") ?? "",

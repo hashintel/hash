@@ -47,6 +47,8 @@ export class GraphEntity<
         temporalVersioning: entity.metadata.temporalVersioning,
         provenance: entity.metadata.provenance,
         archived: entity.metadata.archived,
+        confidence: entity.metadata.confidence,
+        properties: entity.metadata.properties,
       } as EntityMetadata,
       linkData: entity.linkData as LinkData,
     };

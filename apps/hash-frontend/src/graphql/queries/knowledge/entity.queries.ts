@@ -178,6 +178,15 @@ export const getEntityAuthorizationRelationshipsQuery = gql`
   }
 `;
 
+export const getEntityDiffsQuery = gql`
+  query getEntityDiffs($inputs: [DiffEntityInput!]!) {
+    getEntityDiffs(inputs: $inputs) {
+      input
+      diff
+    }
+  }
+`;
+
 export const startFlowMutation = gql`
   mutation startFlow(
     $flowTrigger: FlowTrigger!

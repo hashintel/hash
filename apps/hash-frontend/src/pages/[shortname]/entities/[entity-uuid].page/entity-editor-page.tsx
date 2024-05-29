@@ -94,6 +94,7 @@ export const EntityEditorPage = ({
                   path={`${owner}/entities/${entityUuid}`}
                 />
               }
+              showTabs
             />
           }
         >
