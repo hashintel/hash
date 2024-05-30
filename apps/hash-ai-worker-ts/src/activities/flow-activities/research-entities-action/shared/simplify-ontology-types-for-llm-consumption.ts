@@ -22,6 +22,7 @@ const simplifyPropertyTypeForLlmConsumption = (params: {
 
   return `
 -------------------- START OF "${title}" PROPERTY TYPE DEFINITION --------------------
+Property Type ID: "${propertyType.$id}"
 Title: ${title}
 Description: ${description}
 Possible Values: ${propertyType.oneOf.map((propertyTypeValue) => simplifyMinimalPropertyTypeValueForLlmConsumption({ propertyTypeValue })).join("\n")}
@@ -42,6 +43,7 @@ export const simplifyEntityTypeForLlmConsumption = (params: {
 
   return `
 -------------------- START OF "${title}" ENTITY TYPE DEFINITION --------------------
+Entity Type ID: "${entityType.$id}"
 Title: ${title}
 Description: ${description}
 Properties:
