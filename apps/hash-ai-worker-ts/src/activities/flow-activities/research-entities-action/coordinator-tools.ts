@@ -2,6 +2,7 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import dedent from "dedent";
 
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
+import type { CoordinatingAgentState } from "./coordinating-agent";
 
 const coordinatorToolNames = [
   "requestHumanInput",
@@ -10,6 +11,7 @@ const coordinatorToolNames = [
   "inferFactsFromWebPages",
   "proposeEntitiesFromFacts",
   "submitProposedEntities",
+  "startFactGatheringSubTasks",
   "complete",
   "terminate",
   "updatePlan",
@@ -34,9 +36,10 @@ const explanationDefinition = {
   `),
 } as const;
 
-export const generateToolCalls = (params: {
+export const generateToolDefinitions = (params: {
   humanInputCanBeRequested: boolean;
   canCompleteActivity: boolean;
+  state?: CoordinatingAgentState;
 }):
   | Record<CoordinatorToolName, LlmToolDefinition<CoordinatorToolName>>
   | Record<
@@ -74,6 +77,57 @@ export const generateToolCalls = (params: {
         },
       }
     : {}),
+  startFactGatheringSubTasks: {
+    name: "startFactGatheringSubTasks",
+    description: dedent(`
+      Start fact gathering sub-tasks to gather facts required to complete the research task.
+      Make use of this tool if the research task can be broken down into smaller sub-tasks.
+      For example: "Find the technical specifications of the product with name X, including specification x, y and z".
+    `),
+    inputSchema: {
+      type: "object",
+      properties: {
+        explanation: explanationDefinition,
+        subTasks: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              relevantEntityIds: {
+                type: "array",
+                items: {
+                  type: "string",
+                },
+                description: dedent(`
+                  The entity IDs of the entities which the sub-task is relevant to, for which existing
+                    facts have already been inferred.
+                  
+                  ${params.state?.inferredFactsAboutEntities.length ? `The possible values are: ${params.state.inferredFactsAboutEntities.map(({ localId }) => localId).join(", ")}` : ""}
+                `),
+              },
+              goal: {
+                type: "string",
+                description: dedent(`
+                  The goal of the sub-task, a detailed description of what is required to be achieved.
+                  For example "Find the technical specifications of the product with name X".
+                `),
+              },
+              explanation: {
+                type: "string",
+                description: dedent(`
+                  An explanation of why the sub-task will advance the research task, and how it will be used.
+                  You must also specify how the results of the sub-task will be used to populate specified
+                    properties and outgoing links on the provided entity types.
+                `),
+              },
+            },
+            required: ["goal", "explanation"],
+          },
+        },
+      },
+      required: ["subTasks"],
+    },
+  },
   webSearch: {
     name: "webSearch",
     description:
@@ -199,7 +253,10 @@ export const generateToolCalls = (params: {
     ? {
         complete: {
           name: "complete",
-          description: "Complete the research task.",
+          description: dedent(`
+            Complete the research task.
+            This tool should only be used when the 
+          `),
           inputSchema: {
             type: "object",
             properties: {
@@ -252,6 +309,10 @@ export const generateToolCalls = (params: {
       Propose entities from the inferred facts about the entities.
 
       All required facts must be obtained before proposing entities.
+
+      Before calling this tool, you must have made a significant effort to
+        find all the facts required to infer as many properties and outgoing links
+        as possible for each entity.
     `),
     inputSchema: {
       type: "object",
@@ -307,6 +368,13 @@ export type CoordinatorToolCallArguments = Subtype<
         prompt: string;
         entityTypeIds: string[];
         linkEntityTypeIds?: string[];
+      }[];
+    };
+    startFactGatheringSubTasks: {
+      subTasks: {
+        task: string;
+        explanation: string;
+        relevantEntityIds: string[];
       }[];
     };
     getSummariesOfWebPages: {
