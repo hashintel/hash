@@ -18,11 +18,13 @@ import type {
   LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message";
 import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
-import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
+import type {
+  LlmParams,
+  ParsedLlmToolCall,
+} from "../../shared/get-llm-response/types";
 import { graphApiClient } from "../../shared/graph-api-client";
 import { logProgress } from "../../shared/log-progress";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
-import type { PermittedOpenAiModel } from "../../shared/openai-client";
 import { stringify } from "../../shared/stringify";
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../shared/infer-facts-from-text/types";
@@ -30,16 +32,17 @@ import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./coordinator-tools";
-import { generateToolCalls } from "./coordinator-tools";
+import { generateToolDefinitions } from "./coordinator-tools";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { getAnswersFromHuman } from "./get-answers-from-human";
 import type { AccessedRemoteFile } from "./infer-facts-from-web-page-worker-agent/types";
+import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption";
 import type { ExistingEntitySummary } from "./summarize-existing-entities";
 import { summarizeExistingEntities } from "./summarize-existing-entities";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
-const model: PermittedOpenAiModel = "gpt-4-0125-preview";
+const model: LlmParams["model"] = "claude-3-opus-20240229";
 
 export type CoordinatingAgentInput = {
   humanInputCanBeRequested: boolean;
@@ -85,15 +88,20 @@ const generateSystemPromptPrefix = (params: {
 
     You must completely satisfy the research prompt, without any missing information.
 
+    You must carefully examine the properties on the provided entity types and link types, because you must provide values for
+      as many properties as possible.
+
+    This most likely will require:
+      - inferring facts from more than one web page
+      - conducting multiple web searches
+      - starting sub-tasks to find additional relevant facts about specific entities
+
+    If at any point the task can be split up into sub-tasks, you must do so.
+    
+    ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}` : ""}
+
     The "complete" tool for completing the research task will only be available once you have submitted
       proposed entities that satisfy the research prompt.
-
-    You must carefully inspect the properties on the provided entity types and link types,
-      and find all the relevant facts so that as many properties on the entity can be filled as possible.
-
-    You may need to conduct multiple web searches, to find all the relevant facts to propose the entities.
-
-    ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}` : ""}
   `);
 };
 
@@ -102,16 +110,18 @@ const generateInitialUserMessage = (params: {
 }): LlmUserMessage => {
   const { prompt, entityTypes, linkEntityTypes, existingEntities } =
     params.input;
+
   return {
     role: "user",
     content: [
       {
         type: "text",
         text: dedent(`
-        Prompt: ${prompt}
-        Entity Types: ${JSON.stringify(entityTypes)}
-        ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
-        ${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
+Prompt: ${prompt}
+Entity Types:
+${entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
+${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
+${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
       `),
       },
     ],
@@ -136,10 +146,11 @@ export type CoordinatingAgentState = {
 const getNextToolCalls = async (params: {
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
+  forcedToolCall?: CoordinatorToolName;
 }): Promise<{
   toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
 }> => {
-  const { input, state } = params;
+  const { input, state, forcedToolCall } = params;
 
   const submittedProposedEntities = state.proposedEntities.filter(
     (proposedEntity) =>
@@ -182,7 +193,8 @@ const getNextToolCalls = async (params: {
 
       You have previously proposed the following plan:
       ${state.plan}
-      If you want to deviate from this plan, update it using the "updatePlan" tool.
+
+      If you want to deviate from this plan or improve it, update it using the "updatePlan" tool.
       You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
     `);
 
@@ -192,7 +204,7 @@ const getNextToolCalls = async (params: {
   ];
 
   const tools = Object.values(
-    generateToolCalls({
+    generateToolDefinitions({
       humanInputCanBeRequested: input.humanInputCanBeRequested,
       canCompleteActivity: state.submittedEntityIds.length > 0,
     }),
@@ -206,6 +218,7 @@ const getNextToolCalls = async (params: {
       messages,
       model,
       tools,
+      toolChoice: forcedToolCall ?? "required",
     },
     {
       userAccountId: userAuthentication.actorId,
@@ -267,7 +280,7 @@ const createInitialPlan = async (params: {
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
   const tools = Object.values(
-    generateToolCalls({
+    generateToolDefinitions({
       humanInputCanBeRequested: input.humanInputCanBeRequested,
       canCompleteActivity: false,
     }),
@@ -282,7 +295,6 @@ const createInitialPlan = async (params: {
       ],
       model,
       tools,
-      seed: 1,
       toolChoice: input.humanInputCanBeRequested ? "required" : "updatePlan",
     },
     {

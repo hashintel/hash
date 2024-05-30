@@ -395,6 +395,11 @@ export const researchEntitiesAction: FlowActionActivity<{
               )}. ${content.suggestionForNextSteps}\n`;
             }
 
+            outputMessage += dedent(`
+              If further research is needed to fill more properties of the entities,
+                consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
+            `);
+
             /**
              * @todo: deduplicate the entity summaries from existing entities provided as input.
              */
