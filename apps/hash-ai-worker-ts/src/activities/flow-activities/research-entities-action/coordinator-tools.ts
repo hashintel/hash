@@ -7,7 +7,6 @@ import type { CoordinatingAgentState } from "./coordinating-agent";
 const coordinatorToolNames = [
   "requestHumanInput",
   "webSearch",
-  "getSummariesOfWebPages",
   "inferFactsFromWebPages",
   "proposeEntitiesFromFacts",
   "submitProposedEntities",
@@ -204,27 +203,6 @@ export const generateToolDefinitions = (params: {
       required: ["webPages", "explanation"],
     },
   },
-  getSummariesOfWebPages: {
-    name: "getSummariesOfWebPages",
-    description: dedent(`
-      Get short summaries of one or more web pages.
-      This may be useful to decide whether to read the full page, or choose between a set of web pages which may be relevant to complete a task.
-    `),
-    inputSchema: {
-      type: "object",
-      properties: {
-        explanation: explanationDefinition,
-        webPageUrls: {
-          type: "array",
-          items: {
-            type: "string",
-          },
-          description: "The URLs of the web pages to summarize",
-        },
-      },
-      required: ["webPageUrls", "explanation"],
-    },
-  },
   submitProposedEntities: {
     name: "submitProposedEntities",
     description:
@@ -376,10 +354,6 @@ export type CoordinatorToolCallArguments = Subtype<
         explanation: string;
         relevantEntityIds: string[];
       }[];
-    };
-    getSummariesOfWebPages: {
-      explanation: string;
-      webPageUrls: string[];
     };
     proposeEntitiesFromFacts: {
       explanation: string;
