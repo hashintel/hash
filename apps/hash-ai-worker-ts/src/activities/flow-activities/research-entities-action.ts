@@ -1,19 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  InputNameForAction,
-  OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  ProposedEntity,
-  StepInput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger";
@@ -21,7 +13,6 @@ import { getFlowContext } from "../shared/get-flow-context";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
 import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
-import { getWebPageSummaryAction } from "./get-web-page-summary-action";
 import type { CoordinatingAgentState } from "./research-entities-action/coordinating-agent";
 import { coordinatingAgent } from "./research-entities-action/coordinating-agent";
 import type {
@@ -31,6 +22,7 @@ import type {
 import type { DuplicateReport } from "./research-entities-action/deduplicate-entities";
 import { deduplicateEntities } from "./research-entities-action/deduplicate-entities";
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
+import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call";
 import { inferFactsFromWebPageWorkerAgent } from "./research-entities-action/infer-facts-from-web-page-worker-agent";
 import type { AccessedRemoteFile } from "./research-entities-action/infer-facts-from-web-page-worker-agent/types";
 import type { CompletedToolCall } from "./research-entities-action/types";
@@ -38,7 +30,6 @@ import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-enti
 import type { Fact } from "./shared/infer-facts-from-text/types";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
 import type { FlowActionActivity } from "./types";
-import { webSearchAction } from "./web-search-action";
 
 export const researchEntitiesAction: FlowActionActivity<{
   testingParams?: {
@@ -187,146 +178,14 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: `The entities with IDs ${JSON.stringify(entityIds)} were successfully submitted.`,
             };
           } else if (toolCall.name === "webSearch") {
-            const { query, explanation } =
-              toolCall.input as CoordinatorToolCallArguments["webSearch"];
-
-            const response = await webSearchAction({
-              inputs: [
-                {
-                  inputName: "query" satisfies InputNameForAction<"webSearch">,
-                  payload: { kind: "Text", value: query },
-                },
-                {
-                  inputName:
-                    "numberOfSearchResults" satisfies InputNameForAction<"webSearch">,
-                  payload: { kind: "Number", value: 5 },
-                },
-              ],
+            const { output } = await handleWebSearchToolCall({
+              input:
+                toolCall.input as CoordinatorToolCallArguments["webSearch"],
             });
-
-            if (response.code !== StatusCode.Ok) {
-              throw new Error(
-                `Failed to perform web search: ${JSON.stringify(response)}`,
-              );
-            }
-
-            logProgress([
-              {
-                type: "QueriedWeb",
-                query,
-                recordedAt: new Date().toISOString(),
-                stepId: Context.current().info.activityId,
-                explanation,
-              },
-            ]);
-
-            const { outputs: webSearchOutputs } = response.contents[0]!;
-
-            const webPageUrlsOutput = webSearchOutputs.find(
-              ({ outputName }) =>
-                outputName ===
-                ("webPageUrls" satisfies OutputNameForAction<"webSearch">),
-            );
-
-            if (!webPageUrlsOutput) {
-              throw new Error(
-                `No web page URLs output was found when calling "webSearch" for the query ${query}.`,
-              );
-            }
-
-            const webPageUrls = webPageUrlsOutput.payload.value as string[];
-
-            const webPageUrlsWithSummaries = await Promise.all(
-              webPageUrls.map(async (webPageUrl) => {
-                const webPageSummaryResponse = await getWebPageSummaryAction({
-                  inputs: [
-                    {
-                      inputName:
-                        "url" satisfies InputNameForAction<"getWebPageSummary">,
-                      payload: { kind: "Text", value: webPageUrl },
-                    },
-                    ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
-                      ({ name, default: defaultValue }) =>
-                        !defaultValue || name === "url"
-                          ? []
-                          : [{ inputName: name, payload: defaultValue }],
-                    ),
-                  ],
-                });
-
-                /**
-                 * @todo: potential optimization, if the content of the web page cannot be accessed it probably
-                 * isn't relevant to provide as a search result for the agent. We could consider filtering these
-                 * out, and instead returning additional other web search results.
-                 */
-                if (response.code !== StatusCode.Ok) {
-                  return {
-                    webPageUrl,
-                    summary: `An unexpected error occurred trying to summarize the web page at url ${webPageUrl}.`,
-                  };
-                }
-
-                const { outputs: webPageSummaryOutputs } =
-                  webPageSummaryResponse.contents[0]!;
-
-                const titleOutput = webPageSummaryOutputs.find(
-                  ({ outputName }) =>
-                    outputName ===
-                    ("title" satisfies OutputNameForAction<"getWebPageSummary">),
-                );
-
-                if (!titleOutput) {
-                  throw new Error(
-                    `No title output was found when calling "getSummariesOfWebPages" for the web page at url ${webPageUrl}.`,
-                  );
-                }
-
-                const title = titleOutput.payload.value as string;
-
-                const summaryOutput = webPageSummaryOutputs.find(
-                  ({ outputName }) =>
-                    outputName ===
-                    ("summary" satisfies OutputNameForAction<"getWebPageSummary">),
-                );
-
-                if (!summaryOutput) {
-                  throw new Error(
-                    `No summary output was found when calling "getSummariesOfWebPages" for the web page at url ${webPageUrl}.`,
-                  );
-                }
-
-                const summary = summaryOutput.payload.value as string;
-
-                /**
-                 * @todo: is this where we want to be logging whether the web page was visited?
-                 */
-                logProgress([
-                  {
-                    recordedAt: new Date().toISOString(),
-                    stepId: Context.current().info.activityId,
-                    type: "VisitedWebPage",
-                    webPage: { url: webPageUrl, title },
-                    explanation,
-                  },
-                ]);
-
-                return {
-                  webPageUrl,
-                  summary,
-                };
-              }),
-            );
 
             return {
               ...toolCall,
-              output: webPageUrlsWithSummaries
-                .map(
-                  ({ webPageUrl, summary }, index) => `
--------------------- SEARCH RESULT ${index + 1} --------------------
-URL: ${webPageUrl}
-Summary: ${summary}`,
-                )
-                .join("\n"),
+              output,
             };
           } else if (toolCall.name === "inferFactsFromWebPages") {
             const { webPages } =
