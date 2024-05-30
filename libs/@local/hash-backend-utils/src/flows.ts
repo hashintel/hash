@@ -1,6 +1,6 @@
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { GraphEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -34,7 +34,7 @@ export const getFlowRunEntityById = async (params: {
   flowRunId: EntityUuid;
   graphApiClient: GraphApi;
   userAuthentication: { actorId: AccountId };
-}): Promise<GraphEntity<FlowRunProperties> | null> => {
+}): Promise<Entity<FlowRunProperties> | null> => {
   const { flowRunId, graphApiClient, userAuthentication } = params;
 
   const [existingFlowEntity] = await graphApiClient
@@ -59,7 +59,7 @@ export const getFlowRunEntityById = async (params: {
           mapGraphApiEntityToEntity(
             entity,
             userAuthentication.actorId,
-          ) as GraphEntity<FlowRunProperties>,
+          ) as Entity<FlowRunProperties>,
       ),
     );
 

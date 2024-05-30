@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -62,7 +62,7 @@ export type {
   TextDataType,
 };
 
-export type QuickNote = Entity<QuickNoteProperties>;
+export type QuickNote = SimpleEntity<QuickNoteProperties>;
 
 export type QuickNoteHasIndexedContentLink = {
   linkEntity: HasIndexedContent;

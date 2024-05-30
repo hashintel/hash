@@ -1,8 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type {
-  Entity,
   EntityId,
   EntityPropertiesObject,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 
 import type {
@@ -16,7 +16,7 @@ export const updateEntity = (params: {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
   updatedProperties: EntityPropertiesObject;
-}): Promise<Entity> =>
+}): Promise<SimpleEntity> =>
   queryGraphQlApi<UpdateEntityMutation, UpdateEntityMutationVariables>(
     updateEntityMutation,
     {

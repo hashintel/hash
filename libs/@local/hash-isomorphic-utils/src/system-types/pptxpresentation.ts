@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type {
   BooleanDataType,
@@ -72,7 +72,7 @@ export type {
   UploadCompletedAtPropertyValue,
 };
 
-export type PPTXPresentation = Entity<PPTXPresentationProperties>;
+export type PPTXPresentation = SimpleEntity<PPTXPresentationProperties>;
 
 export type PPTXPresentationOutgoingLinkAndTarget = never;
 

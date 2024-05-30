@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
-  Entity,
   EntityPropertiesObject,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 
 import type { AuthenticationContext } from "../../../../graphql/authentication-context";
@@ -10,7 +10,7 @@ import type { ImpureGraphContext } from "../../../context-types";
 export type UpdateEntityHookCallback = (params: {
   context: ImpureGraphContext<false, true>;
   authentication: AuthenticationContext;
-  entity: Entity;
+  entity: SimpleEntity;
   updatedProperties: EntityPropertiesObject;
 }) => Promise<void>;
 

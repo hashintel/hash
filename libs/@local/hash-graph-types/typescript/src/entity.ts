@@ -107,7 +107,7 @@ export type EntityEditionProvenance = {
 
 export type EntityPropertiesObject = Record<BaseUrl, EntityPropertyValue>;
 
-export interface Entity<
+export interface SimpleEntity<
   Properties extends EntityPropertiesObject | null = EntityPropertiesObject,
 > {
   readonly properties: Properties;
@@ -115,8 +115,8 @@ export interface Entity<
   readonly linkData?: LinkData;
 }
 
-export interface LinkEntity<
+export interface SimpleLinkEntity<
   Properties extends EntityPropertiesObject | null = EntityPropertiesObject,
-> extends Entity<Properties> {
+> extends SimpleEntity<Properties> {
   readonly linkData: LinkData;
 }

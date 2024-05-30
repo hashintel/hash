@@ -26,7 +26,7 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
-import { GraphEntity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -130,7 +130,7 @@ export const getFileEntityFromUrl = async (params: {
 }): Promise<
   | {
       status: "ok";
-      entity: GraphEntity<FileProperties>;
+      entity: Entity<FileProperties>;
     }
   | {
       status: "error-uploading-file";
@@ -285,7 +285,7 @@ export const getFileEntityFromUrl = async (params: {
       ],
       provenance,
     })
-    .then((result) => new GraphEntity({ metadata: result.data, properties }));
+    .then((result) => new Entity({ metadata: result.data, properties }));
 
   try {
     await writeFileToS3URL({
@@ -305,6 +305,6 @@ export const getFileEntityFromUrl = async (params: {
 
   return {
     status: "ok",
-    entity: updatedEntity as GraphEntity<FileProperties>,
+    entity: updatedEntity as Entity<FileProperties>,
   };
 };

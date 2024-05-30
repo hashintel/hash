@@ -10,9 +10,9 @@ import type { PartialEntity } from "@local/hash-backend-utils/temporal-integrati
 import type { GraphApi } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
-  Entity,
   EntityId,
   EntityPropertiesObject,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -130,7 +130,7 @@ export const mapHashEntityToLinearUpdateInput = async <
   graphApiClient: GraphApi;
   authentication: { actorId: AccountId };
   linearType: T;
-  entity: Entity;
+  entity: SimpleEntity;
 }): Promise<SupportedLinearUpdateInput[T]> => {
   const { entity, linearType } = params;
 

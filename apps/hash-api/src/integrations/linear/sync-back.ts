@@ -7,9 +7,9 @@ import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type {
-  Entity,
   EntityUuid,
-  LinkEntity,
+  SimpleEntity,
+  SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -42,7 +42,7 @@ export const supportedLinearTypeIds = [
 ];
 
 export const processEntityChange = async (
-  entity: Entity,
+  entity: SimpleEntity,
   graphApi: GraphApi,
 ) => {
   const { entityTypeId } = entity.metadata;
@@ -82,7 +82,7 @@ export const processEntityChange = async (
     : await getLatestEntityById(
         graphContext,
         { actorId: linearMachineActorId },
-        { entityId: (entity as LinkEntity).linkData.leftEntityId },
+        { entityId: (entity as SimpleLinkEntity).linkData.leftEntityId },
       );
 
   const temporalClient = await createTemporalClient();

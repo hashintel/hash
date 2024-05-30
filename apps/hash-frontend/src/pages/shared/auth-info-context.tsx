@@ -3,7 +3,7 @@ import type { AccountGroupId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type {
   EntityMetadata,
-  LinkEntity,
+  SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
@@ -85,7 +85,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       (linkEntity) =>
         linkEntity.metadata.entityTypeId ===
         systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-    ) as LinkEntity<IsMemberOfProperties>[];
+    ) as SimpleLinkEntity<IsMemberOfProperties>[];
   }, [authenticatedUserSubgraph]);
 
   const { orgs: resolvedOrgs, refetch: refetchOrgs } = useOrgsWithLinks({

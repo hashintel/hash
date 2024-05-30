@@ -5,7 +5,7 @@ import type {
   GraphApi,
 } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { Entity, LinkData } from "@local/hash-graph-types/entity";
+import type { LinkData, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
@@ -43,7 +43,7 @@ export const findExistingEntity = async ({
   ownedById: OwnedById;
   proposedEntity: Pick<ProposedEntity, "entityTypeId" | "properties">;
   includeDrafts: boolean;
-}): Promise<Entity | undefined> => {
+}): Promise<SimpleEntity | undefined> => {
   const entityTypeId = proposedEntity.entityTypeId;
 
   const entityType: DereferencedEntityType | undefined =
@@ -180,7 +180,7 @@ export const findExistingEntity = async ({
       })
       .filter(<T>(filter: T): filter is NonNullable<T> => filter !== null);
 
-  let existingEntity: Entity | undefined;
+  let existingEntity: SimpleEntity | undefined;
 
   if (semanticDistanceFilters.length > 0) {
     existingEntity = await getEntityByFilter({

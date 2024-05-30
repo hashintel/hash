@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, LinkData } from "@local/hash-graph-types/entity";
+import type { LinkData, SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type {
   Actor,
@@ -272,7 +272,7 @@ export type {
   WebsiteURLPropertyValue,
 };
 
-export type LinearIntegration = Entity<LinearIntegrationProperties>;
+export type LinearIntegration = SimpleEntity<LinearIntegrationProperties>;
 
 export type LinearIntegrationOutgoingLinkAndTarget =
   | LinearIntegrationSyncLinearDataWithLink
@@ -310,7 +310,7 @@ export type LinearOrgIdPropertyValue = TextDataType;
  */
 export type LinearTeamIdPropertyValue = TextDataType;
 
-export type SyncLinearDataWith = Entity<SyncLinearDataWithProperties> & {
+export type SyncLinearDataWith = SimpleEntity<SyncLinearDataWithProperties> & {
   linkData: LinkData;
 };
 
@@ -329,7 +329,7 @@ export type SyncLinearDataWithProperties2 = {
   "https://hash.ai/@hash/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
 };
 
-export type UsesUserSecret = Entity<UsesUserSecretProperties> & {
+export type UsesUserSecret = SimpleEntity<UsesUserSecretProperties> & {
   linkData: LinkData;
 };
 

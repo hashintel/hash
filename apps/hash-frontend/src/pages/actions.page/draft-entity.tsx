@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Checkbox, Typography } from "@mui/material";
@@ -16,7 +16,7 @@ import { DraftEntityType } from "./draft-entity/draft-entity-type";
 import { DraftEntityWeb } from "./draft-entity/draft-entity-web";
 
 const generateEntityRootedSubgraph = (
-  entity: Entity,
+  entity: SimpleEntity,
   subgraph: Subgraph<EntityRootType>,
 ) => {
   const entityRoot = subgraph.roots.find(
@@ -35,7 +35,7 @@ const generateEntityRootedSubgraph = (
 
 export const DraftEntity: FunctionComponent<{
   subgraph: Subgraph<EntityRootType>;
-  entity: Entity;
+  entity: SimpleEntity;
   selected: boolean;
   toggleSelected: () => void;
 }> = ({ entity, subgraph, selected, toggleSelected }) => {
@@ -57,7 +57,7 @@ export const DraftEntity: FunctionComponent<{
   const previouslyEvaluatedSubgraph =
     useRef<Subgraph<EntityRootType>>(subgraph);
 
-  const previouslyEvaluatedEntity = useRef<Entity>(entity);
+  const previouslyEvaluatedEntity = useRef<SimpleEntity>(entity);
 
   /**
    * Only re-evaluate the entity rooted subgraph if the entity edition

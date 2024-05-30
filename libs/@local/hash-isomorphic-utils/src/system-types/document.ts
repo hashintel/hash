@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -86,7 +86,7 @@ export type {
   TitlePropertyValue,
 };
 
-export type Document = Entity<DocumentProperties>;
+export type Document = SimpleEntity<DocumentProperties>;
 
 export type DocumentHasIndexedContentLink = {
   linkEntity: HasIndexedContent;

@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, LinkData } from "@local/hash-graph-types/entity";
+import type { LinkData, SimpleEntity } from "@local/hash-graph-types/entity";
 
 /**
  * Whether the user account is active or disabled (suspended).
@@ -44,9 +44,10 @@ export type AutoClosedAtPropertyValue = TextDataType;
  */
 export type AvatarURLPropertyValue = TextDataType;
 
-export type BelongsToOrganization = Entity<BelongsToOrganizationProperties> & {
-  linkData: LinkData;
-};
+export type BelongsToOrganization =
+  SimpleEntity<BelongsToOrganizationProperties> & {
+    linkData: LinkData;
+  };
 
 export type BelongsToOrganizationOutgoingLinkAndTarget = never;
 
@@ -156,7 +157,7 @@ export type GitPublicLinkbackMessagesEnabledPropertyValue = BooleanDataType;
  */
 export type GuestPropertyValue = BooleanDataType;
 
-export type HasAssignee = Entity<HasAssigneeProperties> & {
+export type HasAssignee = SimpleEntity<HasAssigneeProperties> & {
   linkData: LinkData;
 };
 
@@ -173,7 +174,9 @@ export type HasAssigneeProperties1 = LinkProperties;
 
 export type HasAssigneeProperties2 = {};
 
-export type HasCreator = Entity<HasCreatorProperties> & { linkData: LinkData };
+export type HasCreator = SimpleEntity<HasCreatorProperties> & {
+  linkData: LinkData;
+};
 
 export type HasCreatorOutgoingLinkAndTarget = never;
 
@@ -188,7 +191,7 @@ export type HasCreatorProperties1 = LinkProperties;
 
 export type HasCreatorProperties2 = {};
 
-export type HasSubscriber = Entity<HasSubscriberProperties> & {
+export type HasSubscriber = SimpleEntity<HasSubscriberProperties> & {
   linkData: LinkData;
 };
 
@@ -230,7 +233,7 @@ export type InviteHashPropertyValue = TextDataType;
  */
 export type IsMePropertyValue = BooleanDataType;
 
-export type Issue = Entity<IssueProperties>;
+export type Issue = SimpleEntity<IssueProperties>;
 
 export type IssueHasAssigneeLink = {
   linkEntity: HasAssignee;
@@ -316,7 +319,7 @@ export type IssueURLPropertyValue = TextDataType;
  */
 export type LastSeenPropertyValue = TextDataType;
 
-export type Link = Entity<LinkProperties>;
+export type Link = SimpleEntity<LinkProperties>;
 
 export type LinkOutgoingLinkAndTarget = never;
 
@@ -344,7 +347,7 @@ export type NamePropertyValue = TextDataType;
  */
 export type NumberDataType = number;
 
-export type Organization = Entity<OrganizationProperties>;
+export type Organization = SimpleEntity<OrganizationProperties>;
 
 export type OrganizationOutgoingLinkAndTarget = never;
 
@@ -378,7 +381,7 @@ export type OrganizationProperties = {
   "https://hash.ai/@linear/types/property-type/user-count/": UserCountPropertyValue;
 };
 
-export type Parent = Entity<ParentProperties> & { linkData: LinkData };
+export type Parent = SimpleEntity<ParentProperties> & { linkData: LinkData };
 
 export type ParentOutgoingLinkAndTarget = never;
 
@@ -442,7 +445,9 @@ export type SAMLEnabledPropertyValue = BooleanDataType;
  */
 export type SCIMEnabledPropertyValue = BooleanDataType;
 
-export type SnoozedBy = Entity<SnoozedByProperties> & { linkData: LinkData };
+export type SnoozedBy = SimpleEntity<SnoozedByProperties> & {
+  linkData: LinkData;
+};
 
 export type SnoozedByOutgoingLinkAndTarget = never;
 
@@ -476,7 +481,7 @@ export type StartedAtPropertyValue = TextDataType;
  */
 export type StartedTriageAtPropertyValue = TextDataType;
 
-export type State = Entity<StateProperties> & { linkData: LinkData };
+export type State = SimpleEntity<StateProperties> & { linkData: LinkData };
 
 export type StateOutgoingLinkAndTarget = never;
 
@@ -550,7 +555,7 @@ export type URLKeyPropertyValue = TextDataType;
  */
 export type UpdatedAtPropertyValue = TextDataType;
 
-export type User = Entity<UserProperties>;
+export type User = SimpleEntity<UserProperties>;
 
 export type UserBelongsToOrganizationLink = {
   linkEntity: BelongsToOrganization;
@@ -596,7 +601,7 @@ export type UserProperties = {
   "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
 };
 
-export type WorkflowState = Entity<WorkflowStateProperties>;
+export type WorkflowState = SimpleEntity<WorkflowStateProperties>;
 
 export type WorkflowStateOutgoingLinkAndTarget = never;
 

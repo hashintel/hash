@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { EntityPropertyValue } from "@blockprotocol/graph/temporal";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   AutomaticInferenceArguments,
@@ -65,7 +65,7 @@ export type InferenceTokenUsage = {
 };
 
 type InferredEntityResultBase = {
-  entity?: Entity | null;
+  entity?: SimpleEntity | null;
   entityTypeId: VersionedUrl;
   operation: "create" | "update" | "already-exists-as-proposed";
   proposedEntity: ProposedEntity;
@@ -73,7 +73,7 @@ type InferredEntityResultBase = {
 };
 
 export type InferredEntityCreationSuccess = InferredEntityResultBase & {
-  entity: Entity;
+  entity: SimpleEntity;
   operation: "create";
   status: "success";
 };
@@ -86,19 +86,19 @@ export type InferredEntityCreationFailure = InferredEntityResultBase & {
 };
 
 export type InferredEntityMatchesExisting = InferredEntityResultBase & {
-  entity: Entity;
+  entity: SimpleEntity;
   operation: "already-exists-as-proposed";
   status: "success";
 };
 
 export type InferredEntityUpdateSuccess = InferredEntityResultBase & {
-  entity: Entity;
+  entity: SimpleEntity;
   operation: "update";
   status: "success";
 };
 
 export type InferredEntityUpdateFailure = InferredEntityResultBase & {
-  entity?: Entity;
+  entity?: SimpleEntity;
   failureReason: string;
   operation: "update";
   status: "failure";

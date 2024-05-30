@@ -1,5 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
@@ -30,7 +30,7 @@ export const useRows = () => {
   const getOwnerForEntity = useGetOwnerForEntity();
 
   const onEntityClick = useCallback(
-    (params: { entity: Entity }) => {
+    (params: { entity: SimpleEntity }) => {
       const { entity } = params;
 
       const { shortname } = getOwnerForEntity({ entity });

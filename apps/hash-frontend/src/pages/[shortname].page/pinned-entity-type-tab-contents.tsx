@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
@@ -40,7 +40,7 @@ import { InlineSelect } from "../shared/inline-select";
 import type { ProfilePageTab } from "./util";
 
 const EntityRow: FunctionComponent<{
-  entity: Entity;
+  entity: SimpleEntity;
   entityType?: EntityTypeWithMetadata;
   profile: User | Org;
   entitiesSubgraph: Subgraph<EntityRootType>;

@@ -1,4 +1,4 @@
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { Subgraph } from "@local/hash-subgraph";
 import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
@@ -81,7 +81,7 @@ export const getFirstEntityRevision = (
     throw new Error("Could not find entity revisions in subgraph");
   }
 
-  return entityRevisions.reduce<Entity>(
+  return entityRevisions.reduce<SimpleEntity>(
     (previousEarliestRevision, currentRevision) => {
       const currentCreatedAt = new Date(
         currentRevision.metadata.temporalVersioning.decisionTime.start.limit,

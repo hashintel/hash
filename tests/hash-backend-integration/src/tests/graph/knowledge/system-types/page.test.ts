@@ -20,7 +20,7 @@ import {
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { LinkEntity } from "@local/hash-graph-types/entity";
+import type { SimpleLinkEntity } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -192,13 +192,13 @@ describe("Page", () => {
   });
 
   let testBlock1: Block;
-  let testBlockLink1: LinkEntity<HasIndexedContentProperties>;
+  let testBlockLink1: SimpleLinkEntity<HasIndexedContentProperties>;
 
   let testBlock2: Block;
-  let testBlockLink2: LinkEntity<HasIndexedContentProperties>;
+  let testBlockLink2: SimpleLinkEntity<HasIndexedContentProperties>;
 
   let testBlock3: Block;
-  let testBlockLink3: LinkEntity<HasIndexedContentProperties>;
+  let testBlockLink3: SimpleLinkEntity<HasIndexedContentProperties>;
 
   let firstKey: string;
 
@@ -230,7 +230,7 @@ describe("Page", () => {
 
     testBlock1 = existingBlocks[0]!.rightEntity!;
     testBlockLink1 = existingBlocks[0]!
-      .linkEntity as LinkEntity<HasIndexedContentProperties>;
+      .linkEntity as SimpleLinkEntity<HasIndexedContentProperties>;
 
     [testBlock2, testBlock3] = await Promise.all([
       createTestBlock(),
@@ -257,7 +257,7 @@ describe("Page", () => {
           },
         },
       },
-    )) as unknown as LinkEntity<HasIndexedContentProperties>;
+    )) as unknown as SimpleLinkEntity<HasIndexedContentProperties>;
 
     testBlockLink3 = (await addBlockToBlockCollection(
       graphContext,
@@ -278,7 +278,7 @@ describe("Page", () => {
           },
         },
       },
-    )) as unknown as LinkEntity<HasIndexedContentProperties>;
+    )) as unknown as SimpleLinkEntity<HasIndexedContentProperties>;
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {

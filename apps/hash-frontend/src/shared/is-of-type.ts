@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -8,7 +8,7 @@ import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-typ
 
 export const isType = (
   item:
-    | Entity
+    | SimpleEntity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata,
@@ -31,5 +31,5 @@ export const isTypePropertyType = (
     | DataTypeWithMetadata,
 ) => type.schema.kind === "propertyType";
 
-export const isEntityPageEntity = (item: Entity) =>
+export const isEntityPageEntity = (item: SimpleEntity) =>
   isPageEntityTypeId(item.metadata.entityTypeId);

@@ -10,7 +10,7 @@ import {
   storageProviderLookup,
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -88,7 +88,9 @@ export const setupStorageProviders = (
   return getUploadStorageProvider();
 };
 
-const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
+const isFileEntity = (
+  entity: SimpleEntity,
+): entity is SimpleEntity<FileProperties> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
@@ -129,7 +131,7 @@ const getFileEntity = async (
   });
 
   const latestFileEntityRevision = fileEntityRevisions.reduce<
-    Entity | undefined
+    SimpleEntity | undefined
   >((previousLatestRevision, currentRevision) => {
     if (!previousLatestRevision) {
       return currentRevision;

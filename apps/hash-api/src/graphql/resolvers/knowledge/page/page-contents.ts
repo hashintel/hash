@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getPageBlocks } from "../../../../graph/knowledge/system-types/page";
@@ -9,7 +9,7 @@ import type { UnresolvedBlockGQL, UnresolvedPageGQL } from "../graphql-mapping";
 import { mapBlockToGQL, mapEntityToGQL } from "../graphql-mapping";
 
 export const pageContents: ResolverFn<
-  { linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[],
+  { linkEntity: SimpleEntity; rightEntity: UnresolvedBlockGQL }[],
   UnresolvedPageGQL,
   LoggedInGraphQLContext,
   Record<string, never>

@@ -1,5 +1,5 @@
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { GraphEntity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import {
   deserializeGraphVertices,
   serializeGraphVertices,
@@ -246,13 +246,23 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     },
   }),
 
+  SimpleEntity: new GraphQLScalarType({
+    name: "SimpleEntity",
+    serialize(value) {
+      return value instanceof Entity ? value.serialize() : value;
+    },
+    parseValue(value) {
+      return value;
+    },
+  }),
+
   Entity: new GraphQLScalarType({
     name: "Entity",
     serialize(value) {
-      return value instanceof GraphEntity ? value.serialize() : value;
+      return value instanceof Entity ? value.serialize() : value;
     },
     parseValue(value) {
-      return new GraphEntity(value as SerializedEntity);
+      return new Entity(value as SerializedEntity);
     },
   }),
 

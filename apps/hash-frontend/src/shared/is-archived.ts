@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -16,7 +16,7 @@ export const isTypeArchived = (
     | DataTypeWithMetadata,
 ) => type.metadata.temporalVersioning.transactionTime.end.kind === "exclusive";
 
-export const isPageArchived = (pageEntity: Entity) => {
+export const isPageArchived = (pageEntity: SimpleEntity) => {
   if (!isEntityPageEntity(pageEntity)) {
     throw new Error("Not a page entity");
   }
@@ -30,7 +30,7 @@ export const isPageArchived = (pageEntity: Entity) => {
 
 export const isItemArchived = (
   item:
-    | Entity
+    | SimpleEntity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata,

@@ -1,8 +1,8 @@
 import type { Entity as BpEntity } from "@blockprotocol/graph";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
-  Entity,
   EntityPropertiesObject,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import camelCase from "lodash/camelCase";
 
@@ -34,7 +34,10 @@ export type SimpleProperties<Properties extends EntityPropertiesObject> = {
   >]: Properties[Key];
 };
 
-export type Simplified<T extends Entity | BpEntity> = Omit<T, "properties"> & {
+export type Simplified<T extends SimpleEntity | BpEntity> = Omit<
+  T,
+  "properties"
+> & {
   properties: SimpleProperties<T["properties"]>;
 };
 

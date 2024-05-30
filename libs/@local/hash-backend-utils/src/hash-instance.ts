@@ -8,7 +8,7 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -20,13 +20,13 @@ import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph
 import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 export type HashInstance = {
-  entity: Entity;
+  entity: SimpleEntity;
 } & SimpleProperties<HASHInstanceProperties>;
 
 export const getHashInstanceFromEntity = ({
   entity,
 }: {
-  entity: Entity;
+  entity: SimpleEntity;
 }): HashInstance => {
   if (
     entity.metadata.entityTypeId !== systemEntityTypes.hashInstance.entityTypeId

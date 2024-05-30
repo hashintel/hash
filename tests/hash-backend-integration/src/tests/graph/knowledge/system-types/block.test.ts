@@ -13,7 +13,7 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { GraphEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -38,7 +38,7 @@ describe("Block", () => {
 
   const testBlockComponentId = "test-component-id";
 
-  let testBlockDataEntity: GraphEntity;
+  let testBlockDataEntity: Entity;
 
   let dummyEntityType: EntityTypeWithMetadata;
 

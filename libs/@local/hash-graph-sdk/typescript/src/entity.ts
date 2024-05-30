@@ -1,12 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
 import type {
-  Entity,
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
   LinkData,
-  LinkEntity,
+  SimpleEntity,
+  SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 
 export type SerializedEntity = {
@@ -15,9 +15,9 @@ export type SerializedEntity = {
   linkData?: LinkData;
 };
 
-export class GraphEntity<
+export class Entity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
-> implements Entity<Properties>
+> implements SimpleEntity<Properties>
 {
   #entity: {
     properties: Properties;
@@ -82,8 +82,8 @@ export class GraphEntity<
 export class GraphLinkEntity<
     Properties extends EntityPropertiesObject = EntityPropertiesObject,
   >
-  extends GraphEntity<Properties>
-  implements LinkEntity<Properties>
+  extends Entity<Properties>
+  implements SimpleLinkEntity<Properties>
 {
   constructor(entity: GraphApiEntity) {
     if (!entity.linkData) {

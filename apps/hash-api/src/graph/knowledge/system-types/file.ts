@@ -4,8 +4,8 @@ import {
   formatFileUrl,
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
-import type { GraphEntity } from "@local/hash-graph-sdk/entity";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -128,7 +128,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   MutationRequestFileUploadArgs,
   Promise<{
     presignedPut: PresignedPutUpload;
-    entity: Entity<FileProperties>;
+    entity: SimpleEntity<FileProperties>;
   }>,
   true,
   true
@@ -165,7 +165,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       properties: initialProperties,
       entityTypeId,
       relationships: createDefaultAuthorizationRelationships(authentication),
-    })) as GraphEntity<FileProperties>;
+    })) as Entity<FileProperties>;
   }
 
   const editionIdentifier = generateUuid();
@@ -198,7 +198,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       entity: fileEntity,
       entityTypeId,
       properties,
-    })) as GraphEntity<FileProperties>;
+    })) as Entity<FileProperties>;
 
     return {
       presignedPut,
@@ -247,14 +247,14 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           entity: existingEntity,
           entityTypeId,
           properties,
-        })) as GraphEntity<FileProperties>)
+        })) as Entity<FileProperties>)
       : ((await createEntity(ctx, authentication, {
           ownedById,
           properties,
           entityTypeId,
           relationships:
             createDefaultAuthorizationRelationships(authentication),
-        })) as GraphEntity<FileProperties>);
+        })) as Entity<FileProperties>);
   } catch (error) {
     throw new Error(
       `There was an error creating the file entity from a link: ${error}`,

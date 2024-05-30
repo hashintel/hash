@@ -1,7 +1,7 @@
 import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 
 export const createInferredEntityNotification = async ({
@@ -10,7 +10,7 @@ export const createInferredEntityNotification = async ({
   operation,
   notifiedUserAccountId,
 }: {
-  entity: Entity;
+  entity: SimpleEntity;
   graphApiClient: GraphApi;
   operation: "create" | "update";
   notifiedUserAccountId: AccountId;

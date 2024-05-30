@@ -1,4 +1,4 @@
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
@@ -32,7 +32,7 @@ import { getFromLocalStorage, setInLocalStorage } from "./storage";
 const getAvatarForEntity = (
   subgraph: Subgraph<EntityRootType>,
   entityId: EntityId,
-): Entity<ImageProperties> | undefined => {
+): SimpleEntity<ImageProperties> | undefined => {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     entityId,
@@ -43,7 +43,7 @@ const getAvatarForEntity = (
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
   );
   return avatarLinkAndEntities[0]?.rightEntity[0] as
-    | Entity<ImageProperties>
+    | SimpleEntity<ImageProperties>
     | undefined;
 };
 

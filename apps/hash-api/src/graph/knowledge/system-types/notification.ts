@@ -3,9 +3,9 @@ import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
 import type {
-  Entity,
   EntityId,
-  LinkEntity,
+  SimpleEntity,
+  SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -47,7 +47,7 @@ import type { User } from "./user";
 
 type Notification = {
   archived?: boolean;
-  entity: Entity<NotificationProperties>;
+  entity: SimpleEntity<NotificationProperties>;
 };
 
 export const archiveNotification: ImpureGraphFunction<
@@ -70,17 +70,17 @@ export const archiveNotification: ImpureGraphFunction<
 };
 
 export type MentionNotification = {
-  entity: Entity<MentionNotificationProperties>;
+  entity: SimpleEntity<MentionNotificationProperties>;
 } & Notification;
 
 export const isEntityMentionNotificationEntity = (
-  entity: Entity,
-): entity is Entity<MentionNotificationProperties> =>
+  entity: SimpleEntity,
+): entity is SimpleEntity<MentionNotificationProperties> =>
   entity.metadata.entityTypeId ===
   systemEntityTypes.mentionNotification.entityTypeId;
 
 export const getMentionNotificationFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: SimpleEntity },
   Notification
 > = ({ entity }) => {
   if (!isEntityMentionNotificationEntity(entity)) {
@@ -244,7 +244,7 @@ export const getMentionNotification: ImpureGraphFunction<
     const outgoingLinks = getOutgoingLinksForEntity(
       entitiesSubgraph,
       entity.metadata.recordId.entityId,
-    ) as LinkEntity[];
+    ) as SimpleLinkEntity[];
 
     const triggeredByUserLink = outgoingLinks.find(
       ({ metadata }) =>
@@ -313,17 +313,17 @@ export const getMentionNotification: ImpureGraphFunction<
 };
 
 export type CommentNotification = {
-  entity: Entity<MentionNotificationProperties>;
+  entity: SimpleEntity<MentionNotificationProperties>;
 } & Notification;
 
 export const isEntityCommentNotificationEntity = (
-  entity: Entity,
-): entity is Entity<CommentNotificationProperties> =>
+  entity: SimpleEntity,
+): entity is SimpleEntity<CommentNotificationProperties> =>
   entity.metadata.entityTypeId ===
   systemEntityTypes.commentNotification.entityTypeId;
 
 export const getCommentNotificationFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: SimpleEntity },
   Notification
 > = ({ entity }) => {
   if (!isEntityCommentNotificationEntity(entity)) {
@@ -515,7 +515,7 @@ export const getCommentNotification: ImpureGraphFunction<
     const outgoingLinks = getOutgoingLinksForEntity(
       entitiesSubgraph,
       entity.metadata.recordId.entityId,
-    ) as LinkEntity[];
+    ) as SimpleLinkEntity[];
 
     const triggeredByUserLink = outgoingLinks.find(
       ({ metadata }) =>

@@ -1,5 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -41,11 +41,11 @@ import { getCommentFromEntity } from "./comment";
 
 export type Block = {
   componentId: string;
-  entity: Entity;
+  entity: SimpleEntity;
 };
 
 export const getBlockFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: SimpleEntity },
   Block
 > = ({ entity }) => {
   if (entity.metadata.entityTypeId !== systemEntityTypes.block.entityTypeId) {
@@ -91,7 +91,7 @@ export const getBlockById: ImpureGraphFunction<
 export const createBlock: ImpureGraphFunction<
   Pick<CreateEntityParams, "ownedById"> & {
     componentId: string;
-    blockData: Entity;
+    blockData: SimpleEntity;
   },
   Promise<Block>
 > = async (ctx, authentication, params) => {
@@ -126,7 +126,7 @@ export const createBlock: ImpureGraphFunction<
  */
 export const getBlockData: ImpureGraphFunction<
   { block: Block },
-  Promise<Entity>
+  Promise<SimpleEntity>
 > = async (ctx, authentication, { block }) => {
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(
     ctx,
@@ -161,7 +161,7 @@ export const getBlockData: ImpureGraphFunction<
 export const updateBlockDataEntity: ImpureGraphFunction<
   {
     block: Block;
-    newBlockDataEntity: Entity;
+    newBlockDataEntity: SimpleEntity;
   },
   Promise<void>
 > = async (ctx, authentication, params) => {
@@ -247,7 +247,7 @@ export const getBlockComments: ImpureGraphFunction<
  */
 export const getBlockCollectionByBlock: ImpureGraphFunction<
   { block: Block; includeDrafts?: boolean },
-  Promise<Entity | null>
+  Promise<SimpleEntity | null>
 > = async (context, authentication, params) => {
   const { block, includeDrafts = false } = params;
 

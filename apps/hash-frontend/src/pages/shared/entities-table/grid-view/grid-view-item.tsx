@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -64,7 +64,7 @@ const entityTypeIdToIcon: Record<BaseUrl, ReactNode> = {
 const defaultFileIcon = <FileLightIcon />;
 
 export const GridViewItem: FunctionComponent<{
-  entity: Entity;
+  entity: SimpleEntity;
   numberOfItems: number;
   index: number;
 }> = ({ entity, numberOfItems, index }) => {
@@ -75,7 +75,7 @@ export const GridViewItem: FunctionComponent<{
       isSpecialEntityTypeLookup?.[entity.metadata.entityTypeId]?.isFile;
 
     if (isFileEntity) {
-      return entity as Entity<FileProperties>;
+      return entity as SimpleEntity<FileProperties>;
     }
   }, [isSpecialEntityTypeLookup, entity]);
 

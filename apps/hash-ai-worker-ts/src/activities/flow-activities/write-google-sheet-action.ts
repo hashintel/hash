@@ -5,8 +5,8 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import { GraphEntity } from "@local/hash-graph-sdk/entity";
-import type { Entity } from "@local/hash-graph-types/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   createDefaultAuthorizationRelationships,
@@ -348,7 +348,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     graphApiClient,
   });
 
-  let entityToReturn: Entity;
+  let entityToReturn: SimpleEntity;
   if (existingEntity) {
     const { existingEntityIsDraft, isExactMatch, patchOperations } =
       getEntityUpdate({
@@ -367,7 +367,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         })
         .then((resp) => resp.data);
 
-      entityToReturn = new GraphEntity({
+      entityToReturn = new Entity({
         ...existingEntity,
         metadata,
         properties: {
@@ -410,7 +410,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       relationships: authRelationships,
     });
 
-    entityToReturn = new GraphEntity({
+    entityToReturn = new Entity({
       ...entityValues,
       metadata: fileEntityMetadata,
     });

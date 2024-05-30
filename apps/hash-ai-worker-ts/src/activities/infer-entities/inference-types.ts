@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   InferredEntityChangeResult,
@@ -35,7 +35,7 @@ export type ProposedEntitySummary = {
 };
 
 export type UpdateCandidate = {
-  entity: Entity;
+  entity: SimpleEntity;
   proposedEntity: ProposedEntity;
   status: "update-candidate";
 };

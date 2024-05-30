@@ -4,7 +4,7 @@ import type {
   CreatedById,
   EditionCreatedById,
 } from "@local/hash-graph-types/account";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
@@ -43,7 +43,7 @@ export const createDraftLinkEntity = ({
   rightEntityId: EntityId;
   leftEntityId: EntityId;
   linkEntityTypeId: VersionedUrl;
-}): Entity => {
+}): SimpleEntity => {
   return {
     properties: {},
     linkData: { rightEntityId, leftEntityId },
@@ -100,7 +100,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   const entity = useMemo(() => getRoots(entitySubgraph)[0]!, [entitySubgraph]);
 
   const onSelect = (
-    selectedEntity: Entity,
+    selectedEntity: SimpleEntity,
     sourceSubgraph: Subgraph<EntityRootType> | null,
   ) => {
     const alreadyLinked = linkAndTargetEntities.find(

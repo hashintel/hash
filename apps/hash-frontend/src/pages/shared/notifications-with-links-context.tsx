@@ -2,7 +2,7 @@ import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type { Filter } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { TextProperties } from "@local/hash-isomorphic-utils/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
@@ -48,30 +48,30 @@ import { useNotificationEntities } from "../../shared/notification-entities-cont
 
 export type PageMentionNotification = {
   kind: "page-mention";
-  entity: Entity<MentionNotificationProperties>;
-  occurredInEntity: Entity<PageProperties>;
-  occurredInBlock: Entity<BlockProperties>;
-  occurredInText: Entity<TextProperties>;
+  entity: SimpleEntity<MentionNotificationProperties>;
+  occurredInEntity: SimpleEntity<PageProperties>;
+  occurredInBlock: SimpleEntity<BlockProperties>;
+  occurredInText: SimpleEntity<TextProperties>;
   triggeredByUser: MinimalUser;
 } & SimpleProperties<MentionNotificationProperties>;
 
 export type CommentMentionNotification = {
   kind: "comment-mention";
-  occurredInComment: Entity<CommentProperties>;
+  occurredInComment: SimpleEntity<CommentProperties>;
 } & Omit<PageMentionNotification, "kind">;
 
 export type NewCommentNotification = {
   kind: "new-comment";
-  entity: Entity<CommentNotificationProperties>;
-  occurredInEntity: Entity<PageProperties>;
-  occurredInBlock: Entity<BlockProperties>;
-  triggeredByComment: Entity<CommentProperties>;
+  entity: SimpleEntity<CommentNotificationProperties>;
+  occurredInEntity: SimpleEntity<PageProperties>;
+  occurredInBlock: SimpleEntity<BlockProperties>;
+  triggeredByComment: SimpleEntity<CommentProperties>;
   triggeredByUser: MinimalUser;
 } & SimpleProperties<CommentNotificationProperties>;
 
 export type CommentReplyNotification = {
   kind: "comment-reply";
-  repliedToComment: Entity<CommentProperties>;
+  repliedToComment: SimpleEntity<CommentProperties>;
 } & Omit<NewCommentNotification, "kind">;
 
 export type PageRelatedNotification =
@@ -81,11 +81,11 @@ export type PageRelatedNotification =
   | CommentReplyNotification;
 
 export type GraphChangeNotification = {
-  entity: Entity<GraphChangeNotificationProperties>;
+  entity: SimpleEntity<GraphChangeNotificationProperties>;
   kind: "graph-change";
   occurredInEntityEditionTimestamp: string | undefined;
   occurredInEntityLabel: string;
-  occurredInEntity: Entity;
+  occurredInEntity: SimpleEntity;
   operation: string;
 } & SimpleProperties<NotificationProperties>;
 
@@ -236,7 +236,7 @@ export const useNotificationsWithLinksContextValue =
             }
 
             const triggeredByUser = constructMinimalUser({
-              userEntity: triggeredByUserEntity as Entity<UserProperties>,
+              userEntity: triggeredByUserEntity as SimpleEntity<UserProperties>,
             });
 
             const occurredInComment = outgoingLinks.find(
@@ -250,12 +250,14 @@ export const useNotificationsWithLinksContextValue =
                 kind: "comment-mention",
                 readAt,
                 entity,
-                occurredInEntity: occurredInEntity as Entity<PageProperties>,
-                occurredInBlock: occurredInBlock as Entity<BlockProperties>,
-                occurredInText: occurredInText as Entity<TextProperties>,
+                occurredInEntity:
+                  occurredInEntity as SimpleEntity<PageProperties>,
+                occurredInBlock:
+                  occurredInBlock as SimpleEntity<BlockProperties>,
+                occurredInText: occurredInText as SimpleEntity<TextProperties>,
                 triggeredByUser,
                 occurredInComment:
-                  occurredInComment as Entity<CommentProperties>,
+                  occurredInComment as SimpleEntity<CommentProperties>,
               } satisfies CommentMentionNotification;
             }
 
@@ -263,9 +265,10 @@ export const useNotificationsWithLinksContextValue =
               kind: "page-mention",
               readAt,
               entity,
-              occurredInEntity: occurredInEntity as Entity<PageProperties>,
-              occurredInBlock: occurredInBlock as Entity<BlockProperties>,
-              occurredInText: occurredInText as Entity<TextProperties>,
+              occurredInEntity:
+                occurredInEntity as SimpleEntity<PageProperties>,
+              occurredInBlock: occurredInBlock as SimpleEntity<BlockProperties>,
+              occurredInText: occurredInText as SimpleEntity<TextProperties>,
               triggeredByUser,
             } satisfies PageMentionNotification;
           } else if (
@@ -307,7 +310,7 @@ export const useNotificationsWithLinksContextValue =
             }
 
             const triggeredByUser = constructMinimalUser({
-              userEntity: triggeredByUserEntity as Entity<UserProperties>,
+              userEntity: triggeredByUserEntity as SimpleEntity<UserProperties>,
             });
 
             const repliedToComment = outgoingLinks.find(
@@ -321,8 +324,10 @@ export const useNotificationsWithLinksContextValue =
                 kind: "comment-reply",
                 readAt,
                 entity,
-                occurredInEntity: occurredInEntity as Entity<PageProperties>,
-                occurredInBlock: occurredInBlock as Entity<BlockProperties>,
+                occurredInEntity:
+                  occurredInEntity as SimpleEntity<PageProperties>,
+                occurredInBlock:
+                  occurredInBlock as SimpleEntity<BlockProperties>,
                 triggeredByComment,
                 repliedToComment,
                 triggeredByUser,
@@ -333,8 +338,9 @@ export const useNotificationsWithLinksContextValue =
               kind: "new-comment",
               readAt,
               entity,
-              occurredInEntity: occurredInEntity as Entity<PageProperties>,
-              occurredInBlock: occurredInBlock as Entity<BlockProperties>,
+              occurredInEntity:
+                occurredInEntity as SimpleEntity<PageProperties>,
+              occurredInBlock: occurredInBlock as SimpleEntity<BlockProperties>,
               triggeredByComment,
               triggeredByUser,
             } satisfies NewCommentNotification;
@@ -359,7 +365,7 @@ export const useNotificationsWithLinksContextValue =
 
             const occurredInEntityEditionTimestamp = (
               occurredInEntityLink
-                .linkEntity[0] as Entity<OccurredInEntityProperties>
+                .linkEntity[0] as SimpleEntity<OccurredInEntityProperties>
             ).properties[
               "https://hash.ai/@hash/types/property-type/entity-edition-id/"
             ];
@@ -370,7 +376,7 @@ export const useNotificationsWithLinksContextValue =
               );
             }
 
-            let occurredInEntity: Entity | undefined;
+            let occurredInEntity: SimpleEntity | undefined;
             for (const [vertexKey, editionMap] of typedEntries(
               outgoingLinksSubgraph.vertices,
             )) {
@@ -410,7 +416,7 @@ export const useNotificationsWithLinksContextValue =
             }
 
             const graphChangeEntity =
-              entity as Entity<GraphChangeNotificationProperties>;
+              entity as SimpleEntity<GraphChangeNotificationProperties>;
 
             return {
               kind: "graph-change",

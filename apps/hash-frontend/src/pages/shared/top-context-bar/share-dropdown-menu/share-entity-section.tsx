@@ -3,7 +3,7 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { Box, Skeleton, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -41,7 +41,7 @@ type AccountAuthorizationRelationshipsByAccount = {
 };
 
 export const ShareEntitySection: FunctionComponent<{
-  entity: Entity;
+  entity: SimpleEntity;
   authorizationRelationships?: AuthorizationRelationship[];
 }> = ({ entity, authorizationRelationships }) => {
   const { entityId } = entity.metadata.recordId;

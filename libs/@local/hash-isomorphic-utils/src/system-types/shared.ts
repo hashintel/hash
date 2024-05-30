@@ -2,9 +2,9 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, LinkData } from "@local/hash-graph-types/entity";
+import type { LinkData, SimpleEntity } from "@local/hash-graph-types/entity";
 
-export type Actor = Entity<ActorProperties>;
+export type Actor = SimpleEntity<ActorProperties>;
 
 export type ActorOutgoingLinkAndTarget = never;
 
@@ -32,7 +32,9 @@ export type AppliesUntilPropertyValue = DateTimeDataType;
  */
 export type ArchivedPropertyValue = BooleanDataType;
 
-export type AuthoredBy = Entity<AuthoredByProperties> & { linkData: LinkData };
+export type AuthoredBy = SimpleEntity<AuthoredByProperties> & {
+  linkData: LinkData;
+};
 
 export type AuthoredByOutgoingLinkAndTarget = never;
 
@@ -52,9 +54,9 @@ export type AuthoredByProperties2 = {};
  */
 export type AutomaticInferenceConfigurationPropertyValue = ObjectDataType;
 
-export type Block = Entity<BlockProperties>;
+export type Block = SimpleEntity<BlockProperties>;
 
-export type BlockCollection = Entity<BlockCollectionProperties>;
+export type BlockCollection = SimpleEntity<BlockCollectionProperties>;
 
 export type BlockCollectionOutgoingLinkAndTarget = never;
 
@@ -65,7 +67,10 @@ export type BlockCollectionOutgoingLinksByLinkEntityTypeId = {};
  */
 export type BlockCollectionProperties = {};
 
-export type BlockHasDataLink = { linkEntity: HasData; rightEntity: Entity };
+export type BlockHasDataLink = {
+  linkEntity: HasData;
+  rightEntity: SimpleEntity;
+};
 
 export type BlockOutgoingLinkAndTarget = BlockHasDataLink;
 
@@ -85,7 +90,8 @@ export type BlockProperties = {
  */
 export type BooleanDataType = boolean;
 
-export type BrowserPluginSettings = Entity<BrowserPluginSettingsProperties>;
+export type BrowserPluginSettings =
+  SimpleEntity<BrowserPluginSettingsProperties>;
 
 export type BrowserPluginSettingsOutgoingLinkAndTarget = never;
 
@@ -106,7 +112,7 @@ export type BrowserPluginSettingsProperties = {
  */
 export type BrowserPluginTabPropertyValue = TextDataType;
 
-export type Comment = Entity<CommentProperties>;
+export type Comment = SimpleEntity<CommentProperties>;
 
 export type CommentAuthoredByLink = {
   linkEntity: AuthoredBy;
@@ -169,7 +175,7 @@ export type DescriptionPropertyValue = TextDataType;
  */
 export type DisplayNamePropertyValue = TextDataType;
 
-export type DocumentFile = Entity<DocumentFileProperties>;
+export type DocumentFile = SimpleEntity<DocumentFileProperties>;
 
 export type DocumentFileOutgoingLinkAndTarget = never;
 
@@ -216,7 +222,7 @@ export type ExpiredAtPropertyValue = TextDataType;
  */
 export type FeatureNamePropertyValue = TextDataType;
 
-export type File = Entity<FileProperties>;
+export type File = SimpleEntity<FileProperties>;
 
 /**
  * A unique signature derived from a file's contents
@@ -300,7 +306,7 @@ export type FileURLPropertyValue = TextDataType;
  */
 export type FlowDefinitionIDPropertyValue = TextDataType;
 
-export type FlowRun = Entity<FlowRunProperties>;
+export type FlowRun = SimpleEntity<FlowRunProperties>;
 
 export type FlowRunOutgoingLinkAndTarget = never;
 
@@ -322,9 +328,11 @@ export type FlowRunProperties = {
  */
 export type FractionalIndexPropertyValue = TextDataType;
 
-export type Has = Entity<HasProperties> & { linkData: LinkData };
+export type Has = SimpleEntity<HasProperties> & { linkData: LinkData };
 
-export type HasAvatar = Entity<HasAvatarProperties> & { linkData: LinkData };
+export type HasAvatar = SimpleEntity<HasAvatarProperties> & {
+  linkData: LinkData;
+};
 
 export type HasAvatarOutgoingLinkAndTarget = never;
 
@@ -338,7 +346,7 @@ export type HasAvatarProperties1 = LinkProperties;
 
 export type HasAvatarProperties2 = {};
 
-export type HasBio = Entity<HasBioProperties> & { linkData: LinkData };
+export type HasBio = SimpleEntity<HasBioProperties> & { linkData: LinkData };
 
 export type HasBioOutgoingLinkAndTarget = never;
 
@@ -352,7 +360,7 @@ export type HasBioProperties1 = LinkProperties;
 
 export type HasBioProperties2 = {};
 
-export type HasCoverImage = Entity<HasCoverImageProperties> & {
+export type HasCoverImage = SimpleEntity<HasCoverImageProperties> & {
   linkData: LinkData;
 };
 
@@ -369,7 +377,7 @@ export type HasCoverImageProperties1 = LinkProperties;
 
 export type HasCoverImageProperties2 = {};
 
-export type HasData = Entity<HasDataProperties> & { linkData: LinkData };
+export type HasData = SimpleEntity<HasDataProperties> & { linkData: LinkData };
 
 export type HasDataOutgoingLinkAndTarget = never;
 
@@ -383,7 +391,7 @@ export type HasDataProperties1 = LinkProperties;
 
 export type HasDataProperties2 = {};
 
-export type HasIndexedContent = Entity<HasIndexedContentProperties> & {
+export type HasIndexedContent = SimpleEntity<HasIndexedContentProperties> & {
   linkData: LinkData;
 };
 
@@ -406,7 +414,9 @@ export type HasOutgoingLinkAndTarget = never;
 
 export type HasOutgoingLinksByLinkEntityTypeId = {};
 
-export type HasParent = Entity<HasParentProperties> & { linkData: LinkData };
+export type HasParent = SimpleEntity<HasParentProperties> & {
+  linkData: LinkData;
+};
 
 export type HasParentOutgoingLinkAndTarget = never;
 
@@ -428,7 +438,7 @@ export type HasProperties1 = LinkProperties;
 
 export type HasProperties2 = {};
 
-export type HasServiceAccount = Entity<HasServiceAccountProperties> & {
+export type HasServiceAccount = SimpleEntity<HasServiceAccountProperties> & {
   linkData: LinkData;
 };
 
@@ -445,7 +455,7 @@ export type HasServiceAccountProperties1 = LinkProperties;
 
 export type HasServiceAccountProperties2 = {};
 
-export type HasText = Entity<HasTextProperties> & { linkData: LinkData };
+export type HasText = SimpleEntity<HasTextProperties> & { linkData: LinkData };
 
 export type HasTextOutgoingLinkAndTarget = never;
 
@@ -464,7 +474,7 @@ export type HasTextProperties2 = {};
  */
 export type IconPropertyValue = TextDataType;
 
-export type Image = Entity<ImageProperties>;
+export type Image = SimpleEntity<ImageProperties>;
 
 export type ImageOutgoingLinkAndTarget = never;
 
@@ -483,7 +493,9 @@ export type ImageProperties2 = {};
  */
 export type InputUnitCostPropertyValue = NumberDataType;
 
-export type IsMemberOf = Entity<IsMemberOfProperties> & { linkData: LinkData };
+export type IsMemberOf = SimpleEntity<IsMemberOfProperties> & {
+  linkData: LinkData;
+};
 
 export type IsMemberOfOutgoingLinkAndTarget = never;
 
@@ -503,7 +515,7 @@ export type IsMemberOfProperties2 = {};
  */
 export type KratosIdentityIdPropertyValue = TextDataType;
 
-export type Link = Entity<LinkProperties>;
+export type Link = SimpleEntity<LinkProperties>;
 
 export type LinkOutgoingLinkAndTarget = never;
 
@@ -533,7 +545,7 @@ export type ManualInferenceConfigurationPropertyValue = ObjectDataType;
  */
 export type NamePropertyValue = TextDataType;
 
-export type Notification = Entity<NotificationProperties>;
+export type Notification = SimpleEntity<NotificationProperties>;
 
 export type NotificationOutgoingLinkAndTarget = never;
 
@@ -557,7 +569,7 @@ export type NumberDataType = number;
  */
 export type ObjectDataType = {};
 
-export type OccurredInBlock = Entity<OccurredInBlockProperties> & {
+export type OccurredInBlock = SimpleEntity<OccurredInBlockProperties> & {
   linkData: LinkData;
 };
 
@@ -574,7 +586,7 @@ export type OccurredInBlockProperties1 = LinkProperties;
 
 export type OccurredInBlockProperties2 = {};
 
-export type OccurredInEntity = Entity<OccurredInEntityProperties> & {
+export type OccurredInEntity = SimpleEntity<OccurredInEntityProperties> & {
   linkData: LinkData;
 };
 
@@ -593,7 +605,7 @@ export type OccurredInEntityProperties2 = {
   "https://hash.ai/@hash/types/property-type/entity-edition-id/"?: EntityEditionIdPropertyValue;
 };
 
-export type Organization = Entity<OrganizationProperties>;
+export type Organization = SimpleEntity<OrganizationProperties>;
 
 export type OrganizationHasAvatarLink = {
   linkEntity: HasAvatar;
@@ -690,7 +702,7 @@ export type OutputUnitCostPropertyValue = NumberDataType;
  */
 export type OutputsPropertyValue = ObjectDataType[];
 
-export type Page = Entity<PageProperties>;
+export type Page = SimpleEntity<PageProperties>;
 
 export type PageHasParentLink = { linkEntity: HasParent; rightEntity: Page };
 
@@ -724,7 +736,7 @@ export type PinnedEntityTypeBaseURLPropertyValue = TextDataType;
  */
 export type PreferredPronounsPropertyValue = TextDataType;
 
-export type PresentationFile = Entity<PresentationFileProperties>;
+export type PresentationFile = SimpleEntity<PresentationFileProperties>;
 
 export type PresentationFileOutgoingLinkAndTarget = never;
 
@@ -741,7 +753,7 @@ export type PresentationFileProperties2 = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
 };
 
-export type ProfileBio = Entity<ProfileBioProperties>;
+export type ProfileBio = SimpleEntity<ProfileBioProperties>;
 
 export type ProfileBioHasIndexedContentLink = {
   linkEntity: HasIndexedContent;
@@ -778,7 +790,7 @@ export type ReadAtPropertyValue = TextDataType;
  */
 export type ResolvedAtPropertyValue = TextDataType;
 
-export type ServiceAccount = Entity<ServiceAccountProperties>;
+export type ServiceAccount = SimpleEntity<ServiceAccountProperties>;
 
 export type ServiceAccountOutgoingLinkAndTarget = never;
 
@@ -791,7 +803,7 @@ export type ServiceAccountProperties = {
   "https://hash.ai/@hash/types/property-type/profile-url/": ProfileURLPropertyValue;
 };
 
-export type ServiceFeature = Entity<ServiceFeatureProperties>;
+export type ServiceFeature = SimpleEntity<ServiceFeatureProperties>;
 
 export type ServiceFeatureOutgoingLinkAndTarget = never;
 
@@ -836,7 +848,7 @@ export type StepPropertyValue = ObjectDataType[];
  */
 export type SummaryPropertyValue = TextDataType;
 
-export type Text = Entity<TextProperties>;
+export type Text = SimpleEntity<TextProperties>;
 
 /**
  * An ordered sequence of characters
@@ -877,7 +889,7 @@ export type TriggerPropertyValue = {
   "https://hash.ai/@hash/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValue;
 };
 
-export type TriggeredByUser = Entity<TriggeredByUserProperties> & {
+export type TriggeredByUser = SimpleEntity<TriggeredByUserProperties> & {
   linkData: LinkData;
 };
 
@@ -899,7 +911,7 @@ export type TriggeredByUserProperties2 = {};
  */
 export type UploadCompletedAtPropertyValue = DateTimeDataType;
 
-export type User = Entity<UserProperties>;
+export type User = SimpleEntity<UserProperties>;
 
 export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
 
@@ -985,7 +997,7 @@ export type UserProperties2 = {
   "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValue;
 };
 
-export type UserSecret = Entity<UserSecretProperties>;
+export type UserSecret = SimpleEntity<UserSecretProperties>;
 
 export type UserSecretOutgoingLinkAndTarget = never;
 

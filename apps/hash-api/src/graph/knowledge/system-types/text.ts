@@ -1,5 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -34,17 +34,18 @@ import { getUserById } from "./user";
 
 export type Text = {
   textualContent: TextToken[];
-  entity: Entity<TextProperties>;
+  entity: SimpleEntity<TextProperties>;
 };
 
 export const isEntityTextEntity = (
-  entity: Entity,
-): entity is Entity<TextProperties> =>
+  entity: SimpleEntity,
+): entity is SimpleEntity<TextProperties> =>
   entity.metadata.entityTypeId === systemEntityTypes.text.entityTypeId;
 
-export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
-  entity,
-}) => {
+export const getTextFromEntity: PureGraphFunction<
+  { entity: SimpleEntity },
+  Text
+> = ({ entity }) => {
   if (!isEntityTextEntity(entity)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,

@@ -2,7 +2,7 @@ import type { MultiFilter } from "@blockprotocol/graph";
 import type { ModalProps } from "@hashintel/design-system";
 import { IconButton, Modal } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   blockProtocolEntityTypes,
@@ -71,7 +71,9 @@ export const BlockSelectDataModal: FunctionComponent<
           linkEntityRevisions[0]?.metadata.entityTypeId ===
           blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
       )
-      .map(({ rightEntity }) => rightEntity[0] as Entity<QueryProperties>);
+      .map(
+        ({ rightEntity }) => rightEntity[0] as SimpleEntity<QueryProperties>,
+      );
 
     return existingQueries[0];
   }, [blockSubgraph, blockDataEntity]);

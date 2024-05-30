@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
@@ -18,9 +18,9 @@ import type { DraftLinkState } from "./shared/use-draft-link-state";
 export interface EntityEditorProps extends DraftLinkState {
   isDirty: boolean;
   entitySubgraph: Subgraph<EntityRootType>;
-  setEntity: (entity: Entity) => void;
+  setEntity: (entity: SimpleEntity) => void;
   readonly: boolean;
-  onEntityUpdated: ((entity: Entity) => void) | null;
+  onEntityUpdated: ((entity: SimpleEntity) => void) | null;
 }
 
 export const EntityEditor = (props: EntityEditorProps) => {

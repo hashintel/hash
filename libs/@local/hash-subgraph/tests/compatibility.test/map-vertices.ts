@@ -27,7 +27,7 @@ import type {
   PropertyTypeMetadata as PropertyTypeMetadataGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
-import { GraphEntity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   CreatedById,
   EditionArchivedById,
@@ -363,7 +363,7 @@ const mapKnowledgeGraphVertex = (
     : undefined;
   return {
     kind: vertex.kind,
-    inner: new GraphEntity(vertex.inner),
+    inner: new Entity(vertex.inner),
   };
 };
 

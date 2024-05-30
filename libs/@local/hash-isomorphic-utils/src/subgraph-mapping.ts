@@ -9,7 +9,7 @@ import type {
   Subgraph as GraphApiSubgraph,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
-import { GraphEntity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
@@ -56,7 +56,7 @@ export const mapGraphApiEntityToEntity = (
   userAccountId: AccountId | null,
   preserveProperties: boolean = false,
 ) =>
-  new GraphEntity({
+  new Entity({
     ...entity,
     /**
      * Until cell-level permissions is implemented (H-814), remove user properties that shouldn't be generally visible
@@ -115,7 +115,7 @@ const deserializeKnowledgeGraphVertex = (
 ) => {
   return {
     kind: vertex.kind,
-    inner: new GraphEntity(vertex.inner),
+    inner: new Entity(vertex.inner),
   } as KnowledgeGraphVertex;
 };
 

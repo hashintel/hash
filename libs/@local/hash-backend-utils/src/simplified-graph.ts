@@ -4,7 +4,7 @@ import {
   typedKeys,
   typedValues,
 } from "@local/advanced-types/typed-entries";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { Subgraph } from "@local/hash-subgraph";
 import {
   extractDraftIdFromEntityId,
@@ -120,7 +120,7 @@ export type SimpleEntityWithoutHref = BaseSimpleEntityFields & {
 
 const createBaseSimpleEntityFields = (
   subgraph: Subgraph,
-  entity: Entity,
+  entity: SimpleEntity,
 ): BaseSimpleEntityFields => {
   const typeSchema = getEntityTypeById(subgraph, entity.metadata.entityTypeId);
   if (!typeSchema) {

@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   extractDraftIdFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -25,7 +25,7 @@ export const useApplyDraftLinkEntityChanges = () => {
   >(createEntityMutation);
 
   const applyDraftLinkEntityChanges = async (
-    leftEntity: Entity,
+    leftEntity: SimpleEntity,
     draftLinksToCreate: DraftLinksToCreate,
     draftLinksToArchive: DraftLinksToArchive,
   ) => {

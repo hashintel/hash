@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type {
   EmailPropertyValue,
@@ -22,7 +22,7 @@ export type CurrentApproachPropertyValue = TextDataType;
  */
 export type IntendedUsePropertyValue = TextDataType;
 
-export type ProspectiveUser = Entity<ProspectiveUserProperties>;
+export type ProspectiveUser = SimpleEntity<ProspectiveUserProperties>;
 
 export type ProspectiveUserOutgoingLinkAndTarget = never;
 

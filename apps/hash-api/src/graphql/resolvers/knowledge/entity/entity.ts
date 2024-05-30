@@ -9,10 +9,10 @@ import type {
   AccountId,
 } from "@local/hash-graph-types/account";
 import type {
-  Entity,
   EntityEditionProvenance,
   EntityId,
-  LinkEntity,
+  SimpleEntity,
+  SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -80,7 +80,7 @@ import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
 
 export const createEntityResolver: ResolverFn<
-  Promise<Entity>,
+  Promise<SimpleEntity>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreateEntityArgs
@@ -107,7 +107,7 @@ export const createEntityResolver: ResolverFn<
    * @see https://app.asana.com/0/1202805690238892/1203084714149803/f
    */
 
-  let entity: Entity | LinkEntity;
+  let entity: SimpleEntity | SimpleLinkEntity;
 
   const provenance: EntityEditionProvenance = {
     actorType: "human",
@@ -329,7 +329,7 @@ export const getEntityResolver: ResolverFn<
 };
 
 export const updateEntityResolver: ResolverFn<
-  Promise<Entity>,
+  Promise<SimpleEntity>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdateEntityArgs
@@ -356,7 +356,7 @@ export const updateEntityResolver: ResolverFn<
     entityId,
   });
 
-  let updatedEntity: Entity;
+  let updatedEntity: SimpleEntity;
 
   const provenance: EntityEditionProvenance = {
     actorType: "human",
@@ -388,7 +388,7 @@ export const updateEntityResolver: ResolverFn<
 };
 
 export const updateEntitiesResolver: ResolverFn<
-  Promise<Entity[]>,
+  Promise<SimpleEntity[]>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdateEntitiesArgs
@@ -433,7 +433,7 @@ export const archiveEntitiesResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const archivedEntities: Entity[] = [];
+  const archivedEntities: SimpleEntity[] = [];
 
   const entitiesThatCouldNotBeArchived: EntityId[] = [];
 

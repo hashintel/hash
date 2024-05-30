@@ -18,16 +18,16 @@ import type {
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
 import type { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
-import { GraphEntity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
 import type {
-  Entity,
   EntityId,
   EntityPropertiesObject,
   EntityUuid,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -102,7 +102,7 @@ export type PropertyValue = EntityPropertiesObject[BaseUrl];
  */
 export const createEntity: ImpureGraphFunction<
   CreateEntityParams,
-  Promise<GraphEntity>
+  Promise<Entity>
 > = async (context, authentication, params) => {
   const {
     ownedById,
@@ -143,7 +143,7 @@ export const createEntity: ImpureGraphFunction<
     provenance,
   });
 
-  const entity = new GraphEntity({
+  const entity = new Entity({
     properties,
     metadata,
   });
@@ -172,7 +172,7 @@ export const getEntities: ImpureGraphFunction<
   GetEntitiesRequest & {
     temporalClient?: TemporalClient;
   },
-  Promise<GraphEntity[]>
+  Promise<Entity[]>
 > = async ({ graphApi }, { actorId }, { temporalClient, ...params }) => {
   await rewriteSemanticFilter(params.filter, temporalClient);
 
@@ -269,7 +269,7 @@ export const getLatestEntityById: ImpureGraphFunction<
   {
     entityId: EntityId;
   },
-  Promise<GraphEntity>
+  Promise<Entity>
 > = async (context, authentication, params) => {
   const { entityId } = params;
 
@@ -427,7 +427,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     draft?: boolean;
     provenance?: ProvidedEntityEditionProvenance;
   },
-  Promise<GraphEntity>,
+  Promise<Entity>,
   false,
   true
 > = async (context, authentication, params) => {
@@ -507,7 +507,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     }),
   );
 
-  let rootEntity: GraphEntity;
+  let rootEntity: Entity;
   if (entities[0]) {
     // First element will be the root entity.
     rootEntity = entities[0].entity;
@@ -554,13 +554,13 @@ export const createEntityWithLinks: ImpureGraphFunction<
  */
 export const updateEntity: ImpureGraphFunction<
   {
-    entity: Entity;
+    entity: SimpleEntity;
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
     draft?: boolean;
     provenance?: ProvidedEntityEditionProvenance;
   },
-  Promise<GraphEntity>,
+  Promise<Entity>,
   false,
   true
 > = async (context, authentication, params) => {
@@ -605,7 +605,7 @@ export const updateEntity: ImpureGraphFunction<
     }
   }
 
-  return new GraphEntity({
+  return new Entity({
     ...entity,
     metadata,
     properties,
@@ -614,7 +614,7 @@ export const updateEntity: ImpureGraphFunction<
 
 export const archiveEntity: ImpureGraphFunction<
   {
-    entity: Entity;
+    entity: SimpleEntity;
   },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -627,7 +627,7 @@ export const archiveEntity: ImpureGraphFunction<
 
 export const unarchiveEntity: ImpureGraphFunction<
   {
-    entity: Entity;
+    entity: SimpleEntity;
   },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -647,14 +647,14 @@ export const unarchiveEntity: ImpureGraphFunction<
  */
 export const updateEntityProperties: ImpureGraphFunction<
   {
-    entity: Entity;
+    entity: SimpleEntity;
     updatedProperties: {
       propertyTypeBaseUrl: BaseUrl;
       value: PropertyValue | undefined;
     }[];
     provenance?: ProvidedEntityEditionProvenance;
   },
-  Promise<GraphEntity>,
+  Promise<Entity>,
   false,
   true
 > = async (ctx, authentication, params) => {
@@ -686,12 +686,12 @@ export const updateEntityProperties: ImpureGraphFunction<
  */
 export const updateEntityProperty: ImpureGraphFunction<
   {
-    entity: Entity;
+    entity: SimpleEntity;
     propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
     provenance?: ProvidedEntityEditionProvenance;
   },
-  Promise<GraphEntity>,
+  Promise<Entity>,
   false,
   true
 > = async (ctx, authentication, params) => {
@@ -873,7 +873,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
  */
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   {
-    entity: Entity;
+    entity: SimpleEntity;
     graphResolveDepths: Partial<GraphResolveDepths>;
   },
   Promise<Subgraph<EntityRootType>>,
@@ -979,7 +979,7 @@ export const checkEntityPermission: ImpureGraphFunction<
     .then(({ data }) => data.has_permission);
 
 export const checkPermissionsOnEntity: ImpureGraphFunction<
-  { entity: Pick<Entity, "metadata"> },
+  { entity: Pick<SimpleEntity, "metadata"> },
   Promise<UserPermissions>
 > = async (graphContext, { actorId }, params) => {
   const { entity } = params;
@@ -1028,7 +1028,7 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
 > = async (graphContext, authentication, params) => {
   const { subgraph } = params;
 
-  const entities: Entity[] = [];
+  const entities: SimpleEntity[] = [];
   for (const editionMap of Object.values(subgraph.vertices)) {
     const latestEditionTimestamp = Object.keys(editionMap).sort().pop()!;
     // @ts-expect-error -- subgraph needs revamping to make typing less annoying

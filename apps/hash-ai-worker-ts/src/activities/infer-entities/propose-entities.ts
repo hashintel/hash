@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
@@ -41,7 +41,7 @@ export const proposeEntities = async (params: {
   previousMessages?: LlmMessage[];
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
-  existingEntities?: Entity[];
+  existingEntities?: SimpleEntity[];
 }): Promise<Status<InferenceState>> => {
   const {
     maxTokens,

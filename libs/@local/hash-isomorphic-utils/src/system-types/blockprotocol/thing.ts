@@ -2,9 +2,9 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 
-export type Thing = Entity<ThingProperties>;
+export type Thing = SimpleEntity<ThingProperties>;
 
 export type ThingOutgoingLinkAndTarget = never;
 

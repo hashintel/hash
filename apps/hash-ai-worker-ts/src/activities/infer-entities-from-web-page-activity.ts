@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -24,7 +24,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   model: PermittedOpenAiModel;
   maxTokens?: number | null;
   temperature?: number;
-  existingEntities?: Entity[];
+  existingEntities?: SimpleEntity[];
 }) => {
   const {
     webPage,

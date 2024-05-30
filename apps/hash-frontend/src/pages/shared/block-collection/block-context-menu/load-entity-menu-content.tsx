@@ -6,7 +6,7 @@ import {
   LoadingSpinner,
   TextField,
 } from "@hashintel/design-system";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
@@ -92,7 +92,7 @@ export const LoadEntityMenuContent: FunctionComponent<
   }, [popupState]);
 
   const swapEntity = useCallback(
-    (targetEntity: Entity) => {
+    (targetEntity: SimpleEntity) => {
       if (!blockEntityId) {
         return;
       }

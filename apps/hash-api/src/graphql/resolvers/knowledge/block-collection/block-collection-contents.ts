@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 
 import { getBlockCollectionBlocks } from "../../../../graph/knowledge/system-types/block-collection";
 import type { ResolverFn } from "../../../api-types.gen";
@@ -8,8 +8,8 @@ import type { UnresolvedBlockGQL } from "../graphql-mapping";
 import { mapBlockToGQL, mapEntityToGQL } from "../graphql-mapping";
 
 export const blockCollectionContents: ResolverFn<
-  { linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[],
-  Entity,
+  { linkEntity: SimpleEntity; rightEntity: UnresolvedBlockGQL }[],
+  SimpleEntity,
   LoggedInGraphQLContext,
   Record<string, never>
 > = async (blockCollection, _, graphQLContext) => {

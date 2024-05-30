@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -382,7 +382,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeId: serviceFeatureEntityType.schema.$id,
     },
-  )) as Entity<ServiceFeatureProperties>[];
+  )) as SimpleEntity<ServiceFeatureProperties>[];
 
   for (const {
     serviceName,

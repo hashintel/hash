@@ -16,9 +16,9 @@ import type {
 } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
-  Entity,
   EntityId,
   LinkData,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -61,7 +61,7 @@ export type UpdateEntityData = {
 export type UpdateEntityMessageCallback = MessageCallback<
   UpdateEntityData,
   null,
-  MessageReturn<Entity>,
+  MessageReturn<SimpleEntity>,
   ReadOrModifyResourceError
 >;
 
@@ -104,7 +104,7 @@ export type CreateEntityRequest = {
 export type CreateEntityMessageCallback = MessageCallback<
   CreateEntityRequest,
   null,
-  MessageReturn<Entity>,
+  MessageReturn<SimpleEntity>,
   CreateResourceError
 >;
 

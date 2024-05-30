@@ -1,5 +1,5 @@
 import { FeatherRegularIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
@@ -33,10 +33,10 @@ const buttonSx: ButtonProps["sx"] = ({ palette }) => ({
 });
 
 export const DraftEntityBanner: FunctionComponent<{
-  draftEntity: Entity;
+  draftEntity: SimpleEntity;
   draftEntitySubgraph: Subgraph<EntityRootType>;
   isModifyingEntity?: boolean;
-  onAcceptedEntity: ((entity: Entity) => void) | null;
+  onAcceptedEntity: ((entity: SimpleEntity) => void) | null;
   owningShortname: string;
 }> = ({
   draftEntity,

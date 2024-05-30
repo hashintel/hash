@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   fullOntologyResolveDepths,
@@ -63,7 +63,8 @@ export const PersistedEntityGraph = ({
    * will help to detect where update / deduplication logic can be improved in the inference process.
    */
   const deduplicatedPersistedEntities = useMemo(() => {
-    const deduplicatedLatestEntitiesByEntityId: Record<EntityId, Entity> = {};
+    const deduplicatedLatestEntitiesByEntityId: Record<EntityId, SimpleEntity> =
+      {};
     for (const { entity } of persistedEntities) {
       if (!entity) {
         continue;

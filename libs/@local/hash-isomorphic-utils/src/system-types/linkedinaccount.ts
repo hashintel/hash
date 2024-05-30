@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type {
   ProfileURLPropertyValue,
@@ -22,7 +22,7 @@ export type {
   TextDataType,
 };
 
-export type LinkedInAccount = Entity<LinkedInAccountProperties>;
+export type LinkedInAccount = SimpleEntity<LinkedInAccountProperties>;
 
 export type LinkedInAccountOutgoingLinkAndTarget = never;
 

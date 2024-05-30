@@ -3,7 +3,7 @@ import type {
   CreatedById,
   EditionCreatedById,
 } from "@local/hash-graph-types/account";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
@@ -105,7 +105,7 @@ export const useDraftEntitySubgraph = (
                       },
                     },
                   },
-                } satisfies Entity,
+                } satisfies SimpleEntity,
               },
             },
           },

@@ -5,9 +5,9 @@ import type {
 } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
-  Entity,
   EntityId,
   EntityPropertiesObject,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -85,7 +85,7 @@ export const getLatestEntityById = async (params: {
 export const archiveEntity = async (params: {
   graphApiClient: GraphApi;
   authentication: { actorId: AccountId };
-  entity: Entity;
+  entity: SimpleEntity;
 }) => {
   const { graphApiClient, authentication, entity } = params;
   await graphApiClient.patchEntity(authentication.actorId, {
@@ -98,7 +98,7 @@ export const getEntityUpdate = <T extends EntityPropertiesObject>({
   existingEntity,
   newProperties,
 }: {
-  existingEntity: Entity;
+  existingEntity: SimpleEntity;
   newProperties: T;
 }) => {
   const patchOperations: PropertyPatchOperation[] = [];

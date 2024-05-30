@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, LinkData } from "@local/hash-graph-types/entity";
+import type { LinkData, SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type {
   ActivePropertyValue,
@@ -252,7 +252,7 @@ export type {
   WorkflowStateProperties,
 };
 
-export type Attachment = Entity<AttachmentProperties>;
+export type Attachment = SimpleEntity<AttachmentProperties>;
 
 export type AttachmentBelongsToIssueLink = {
   linkEntity: BelongsToIssue;
@@ -295,7 +295,7 @@ export type AttachmentProperties = {
  */
 export type AttachmentURLPropertyValue = TextDataType;
 
-export type BelongsToIssue = Entity<BelongsToIssueProperties> & {
+export type BelongsToIssue = SimpleEntity<BelongsToIssueProperties> & {
   linkData: LinkData;
 };
 

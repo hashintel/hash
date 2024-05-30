@@ -1,5 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
 import type { LinkEntityAndRightEntity, Subgraph } from "../../../main";
@@ -19,7 +19,7 @@ import {
 // Copied from `@blockprotocol/graph`
 const getUniqueEntitiesFilter = () => {
   const set = new Set();
-  return (entity: Entity) => {
+  return (entity: SimpleEntity) => {
     const recordIdString = JSON.stringify(entity.metadata.recordId);
     if (set.has(recordIdString)) {
       return false;
@@ -31,7 +31,7 @@ const getUniqueEntitiesFilter = () => {
 };
 
 /**
- * Get all outgoing link entities from a given {@link Entity}.
+ * Get all outgoing link entities from a given {@link SimpleEntity}.
  *
  * @param {Subgraph} subgraph
  * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from
@@ -40,8 +40,8 @@ const getUniqueEntitiesFilter = () => {
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
  *  the latest instant of time in the {@link Subgraph}
  *
- * @returns {Entity[]} - A flat list of all {@link Entity}s associated with {@link OutgoingLinkEdge}s from the specified
- *   {@link Entity}. This list may contain multiple revisions of the same {@link Entity}s, and it might be beneficial to
+ * @returns {SimpleEntity[]} - A flat list of all {@link SimpleEntity}s associated with {@link OutgoingLinkEdge}s from the specified
+ *   {@link SimpleEntity}. This list may contain multiple revisions of the same {@link SimpleEntity}s, and it might be beneficial to
  *   pair the output with {@link mapElementsIntoRevisions}.
  */
 // Copied from `@blockprotocol/graph`
@@ -49,7 +49,7 @@ export const getOutgoingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TimeInterval,
-): Entity[] => {
+): SimpleEntity[] => {
   const searchInterval =
     interval ??
     intervalForTimestamp(
@@ -107,7 +107,7 @@ export const getOutgoingLinksForEntity = (
 };
 
 /**
- * Get all incoming link entities from a given {@link Entity}.
+ * Get all incoming link entities from a given {@link SimpleEntity}.
  *
  * @param {Subgraph} subgraph
  * @param {EntityId} entityId - The ID of the source entity to search for incoming links to
@@ -116,15 +116,15 @@ export const getOutgoingLinksForEntity = (
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
  *  the latest instant of time in the {@link Subgraph}
  *
- * @returns {Entity[]} - A flat list of all {@link Entity}s associated with {@link IncomingLinkEdge}s from the specified
- *   {@link Entity}. This list may contain multiple revisions of the same {@link Entity}s, and it might be beneficial to
+ * @returns {SimpleEntity[]} - A flat list of all {@link SimpleEntity}s associated with {@link IncomingLinkEdge}s from the specified
+ *   {@link SimpleEntity}. This list may contain multiple revisions of the same {@link SimpleEntity}s, and it might be beneficial to
  *   pair the output with {@link mapElementsIntoRevisions}.
  */
 export const getIncomingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TimeInterval,
-): Entity[] => {
+): SimpleEntity[] => {
   const searchInterval =
     interval ??
     intervalForTimestamp(
@@ -190,7 +190,7 @@ export const getIncomingLinksForEntity = (
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
  *  the latest instant of time in the {@link Subgraph}
  *
- * @returns {Entity[] | undefined} - all revisions of the left {@link Entity} which was associated with a
+ * @returns {SimpleEntity[] | undefined} - all revisions of the left {@link SimpleEntity} which was associated with a
  *   {@link HasLeftEntityEdge}, if found, from the given {@link EntityId} within the {@link Subgraph}, otherwise
  *   `undefined`.
  */
@@ -198,7 +198,7 @@ export const getLeftEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TimeInterval,
-): Entity[] | undefined => {
+): SimpleEntity[] | undefined => {
   const searchInterval =
     interval ??
     intervalForTimestamp(
@@ -242,7 +242,7 @@ export const getLeftEntityForLinkEntity = (
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
  *  the latest instant of time in the {@link Subgraph}
  *
- * @returns {Entity[] | undefined} - all revisions of the right {@link Entity} which was associated with a
+ * @returns {SimpleEntity[] | undefined} - all revisions of the right {@link SimpleEntity} which was associated with a
  *   {@link HasRightEntityEdge}, if found, from the given {@link EntityId} within the {@link Subgraph}, otherwise
  *   `undefined`.
  */
@@ -250,7 +250,7 @@ export const getRightEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TimeInterval,
-): Entity[] | undefined => {
+): SimpleEntity[] | undefined => {
   const searchInterval =
     interval ??
     intervalForTimestamp(
@@ -286,8 +286,8 @@ export const getRightEntityForLinkEntity = (
 };
 
 /**
- * For a given {@link TimeInterval}, get all outgoing link {@link Entity} revisions, and their "target" {@link Entity}
- * revisions (by default this is the "right entity"), from a given {@link Entity}.
+ * For a given {@link TimeInterval}, get all outgoing link {@link SimpleEntity} revisions, and their "target" {@link SimpleEntity}
+ * revisions (by default this is the "right entity"), from a given {@link SimpleEntity}.
  *
  * @param subgraph
  * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from
@@ -324,7 +324,7 @@ export const getOutgoingLinkAndTargetEntities = <
 
       return revisionMap;
     },
-    {} as Record<EntityId, Entity[]>,
+    {} as Record<EntityId, SimpleEntity[]>,
   );
 
   return typedEntries(mappedRevisions).map(

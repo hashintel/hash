@@ -7,9 +7,9 @@ import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { DiffEntityParams } from "@local/hash-graph-client";
 import type {
-  Entity,
   EntityId,
   EntityRecordId,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 
@@ -48,8 +48,8 @@ export const isEntityRecordId: typeof isEntityRecordIdBp = (
 export type JsonValue = JsonValueBp;
 
 export type LinkEntityAndRightEntity = {
-  linkEntity: Entity[];
-  rightEntity: Entity[];
+  linkEntity: SimpleEntity[];
+  rightEntity: SimpleEntity[];
 };
 
 export type DiffEntityInput = Subtype<

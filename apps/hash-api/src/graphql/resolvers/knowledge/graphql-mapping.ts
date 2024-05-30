@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type { Block } from "../../../graph/knowledge/system-types/block";
 import type { Comment } from "../../../graph/knowledge/system-types/comment";
@@ -9,7 +9,7 @@ import type {
   Page as GQLPage,
 } from "../../api-types.gen";
 
-export const mapEntityToGQL = (entity: Entity): Entity => entity;
+export const mapEntityToGQL = (entity: SimpleEntity): SimpleEntity => entity;
 
 export type ExternalPageResolversGQL =
   | "contents"

@@ -5,9 +5,9 @@ import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type {
-  Entity,
   EntityId,
   EntityUuid,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -123,7 +123,7 @@ export const oAuthLinear: RequestHandler<
 
 export const oAuthLinearCallback: RequestHandler<
   Record<string, never>,
-  Entity | { error: string },
+  SimpleEntity | { error: string },
   never,
   { code: string; state?: string }
 > =

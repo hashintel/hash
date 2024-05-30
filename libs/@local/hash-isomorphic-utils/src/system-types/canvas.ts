@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, LinkData } from "@local/hash-graph-types/entity";
+import type { LinkData, SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -80,7 +80,7 @@ export type {
   TitlePropertyValue,
 };
 
-export type Canvas = Entity<CanvasProperties>;
+export type Canvas = SimpleEntity<CanvasProperties>;
 
 export type CanvasHasSpatiallyPositionedContentLink = {
   linkEntity: HasSpatiallyPositionedContent;
@@ -103,7 +103,9 @@ export type CanvasProperties1 = PageProperties;
 export type CanvasProperties2 = {};
 
 export type HasSpatiallyPositionedContent =
-  Entity<HasSpatiallyPositionedContentProperties> & { linkData: LinkData };
+  SimpleEntity<HasSpatiallyPositionedContentProperties> & {
+    linkData: LinkData;
+  };
 
 export type HasSpatiallyPositionedContentOutgoingLinkAndTarget = never;
 

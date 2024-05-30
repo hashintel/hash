@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   SimpleProperties,
   Simplified,
@@ -22,7 +22,7 @@ import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash
  */
 export const useHashInstance = (): {
   loading: boolean;
-  hashInstance?: Entity<SimpleProperties<HASHInstanceProperties>>;
+  hashInstance?: SimpleEntity<SimpleProperties<HASHInstanceProperties>>;
 } => {
   const { data, loading } = useQuery<
     GetHashInstanceEntityQueryQuery,
@@ -34,7 +34,7 @@ export const useHashInstance = (): {
   const { hashInstanceEntity } = data ?? {};
 
   const hashInstance = useMemo<
-    | (Omit<Entity, "properties"> & {
+    | (Omit<SimpleEntity, "properties"> & {
         properties: Simplified<HASHInstance>["properties"];
       })
     | undefined

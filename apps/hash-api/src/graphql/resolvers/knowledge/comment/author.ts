@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 
 import { getCommentAuthor } from "../../../../graph/knowledge/system-types/comment";
 import type { ResolverFn } from "../../../api-types.gen";
@@ -8,7 +8,7 @@ import type { UnresolvedCommentGQL } from "../graphql-mapping";
 import { mapEntityToGQL } from "../graphql-mapping";
 
 export const commentAuthorResolver: ResolverFn<
-  Promise<Entity>,
+  Promise<SimpleEntity>,
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   Record<string, never>

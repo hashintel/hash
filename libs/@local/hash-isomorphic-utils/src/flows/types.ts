@@ -6,10 +6,10 @@ import type {
 } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
-  Entity,
   EntityId,
   EntityPropertiesObject,
   EntityUuid,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
@@ -59,13 +59,13 @@ export type ProposedEntityWithResolvedLinks = Omit<
 };
 
 export type PersistedEntity = {
-  entity?: Entity;
-  existingEntity?: Entity;
+  entity?: SimpleEntity;
+  existingEntity?: SimpleEntity;
   operation: "create" | "update" | "already-exists-as-proposed";
 };
 
 export type FailedEntityProposal = {
-  existingEntity?: Entity;
+  existingEntity?: SimpleEntity;
   operation?: "create" | "update" | "already-exists-as-proposed";
   proposedEntity: ProposedEntityWithResolvedLinks;
   message: string;
@@ -98,7 +98,7 @@ export type GoogleSheet = { spreadsheetId: string } | { newSheetName: string };
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Boolean: boolean;
-  Entity: Entity;
+  Entity: SimpleEntity;
   EntityId: EntityId;
   FormattedText: FormattedText;
   GoogleAccountId: string;

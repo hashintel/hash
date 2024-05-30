@@ -1,5 +1,5 @@
 import { Skeleton } from "@hashintel/design-system";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -62,7 +62,7 @@ export const DraftEntities: FunctionComponent<{
 
   const previousDraftEntitiesWithCreators = useRef<
     | {
-        entity: Entity;
+        entity: SimpleEntity;
         creator: MinimalActor;
       }[]
     | null

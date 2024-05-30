@@ -6,7 +6,7 @@ import type {
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { EntityMetadata as GraphApiEntityMetadata } from "@local/hash-graph-client/api";
-import { GraphEntity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityPropertiesObject,
@@ -285,9 +285,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
           ...entityOrTypeEditionMap,
           [draftEntityEditionTimestamp as string]: {
             kind: "entity",
-            // TODO: `GraphEntity` should not be created here
+            // TODO: `Entity` should not be created here
             //   see https://linear.app/hash/issue/H-2786/avoid-constructing-graphentity-in-block-loader
-            inner: new GraphEntity({
+            inner: new Entity({
               metadata: {
                 recordId: entityInStore.metadata.recordId,
                 entityTypeIds: [entityInStore.metadata.entityTypeId],

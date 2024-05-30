@@ -1,10 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 
 type SimplifiedEntity = {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
-  properties: Entity["properties"];
+  properties: SimpleEntity["properties"];
   sourceEntityId?: EntityId;
   targetEntityId?: EntityId;
 };
@@ -12,7 +12,7 @@ type SimplifiedEntity = {
 /**
  * Simplify the definition of an entity for LLM consumption.
  */
-export const simplifyEntity = (entity: Entity): SimplifiedEntity => ({
+export const simplifyEntity = (entity: SimpleEntity): SimplifiedEntity => ({
   entityId: entity.metadata.recordId.entityId,
   entityTypeId: entity.metadata.entityTypeId,
   /**

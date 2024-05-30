@@ -2,9 +2,9 @@ import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
 import type {
-  Entity,
   EntityId,
   EntityUuid,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -46,12 +46,13 @@ export type Org = {
   accountGroupId: AccountGroupId;
   orgName: string;
   shortname: string;
-  entity: Entity;
+  entity: SimpleEntity;
 };
 
-export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
-  entity,
-}) => {
+export const getOrgFromEntity: PureGraphFunction<
+  { entity: SimpleEntity },
+  Org
+> = ({ entity }) => {
   const entityTypeBaseUrl = extractBaseUrl(entity.metadata.entityTypeId);
   if (entityTypeBaseUrl !== systemEntityTypes.organization.entityTypeBaseUrl) {
     throw new EntityTypeMismatchError(

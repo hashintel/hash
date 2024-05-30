@@ -1,5 +1,5 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -10,7 +10,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 const getLabelPropertyValue = (
-  entityToLabel: Entity,
+  entityToLabel: SimpleEntity,
   entityType: EntityTypeWithMetadata,
 ) => {
   if (entityType.metadata.labelProperty) {
@@ -29,7 +29,7 @@ const getFallbackLabel = ({
   entity,
 }: {
   entityType?: EntityTypeWithMetadata;
-  entity: Entity;
+  entity: SimpleEntity;
 }) => {
   // fallback to the entity type and a few characters of the entityUuid
   const entityId = entity.metadata.recordId.entityId;
@@ -49,12 +49,12 @@ const getFallbackLabel = ({
  */
 export const generateEntityLabel = (
   entitySubgraph: Subgraph<EntityRootType> | null,
-  entity?: Pick<Entity, "properties" | "metadata">,
+  entity?: Pick<SimpleEntity, "properties" | "metadata">,
 ): string => {
   if (!entitySubgraph && !entity) {
     throw new Error(`One of entitySubgraph or entity must be provided`);
   }
-  const entityToLabel: Entity = entity ?? getRoots(entitySubgraph!)[0]!;
+  const entityToLabel: SimpleEntity = entity ?? getRoots(entitySubgraph!)[0]!;
 
   let entityType: EntityTypeWithMetadata | undefined;
   if (entitySubgraph) {

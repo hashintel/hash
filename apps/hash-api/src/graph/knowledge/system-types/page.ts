@@ -1,9 +1,9 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
-  Entity,
   EntityId,
-  LinkEntity,
+  SimpleEntity,
+  SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
@@ -60,12 +60,13 @@ export type Page = {
   fractionalIndex?: string;
   icon?: string;
   archived?: boolean;
-  entity: Entity;
+  entity: SimpleEntity;
 };
 
-export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
-  entity,
-}) => {
+export const getPageFromEntity: PureGraphFunction<
+  { entity: SimpleEntity },
+  Page
+> = ({ entity }) => {
   if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -441,7 +442,9 @@ export const setPageParentPage: ImpureGraphFunction<
  */
 export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
-  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>,
+  Promise<
+    { linkEntity: SimpleLinkEntity<HasDataProperties>; rightEntity: Block }[]
+  >,
   false,
   true
 > = async (ctx, authentication, { pageEntityId, type }) => {

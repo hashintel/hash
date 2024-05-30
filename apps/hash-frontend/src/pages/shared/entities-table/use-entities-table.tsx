@@ -1,7 +1,7 @@
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
@@ -20,7 +20,7 @@ import { useActors } from "../../../shared/use-actors";
 export interface TypeEntitiesRow {
   rowId: string;
   entityId: EntityId;
-  entity: Entity;
+  entity: SimpleEntity;
   entityLabel: string;
   entityTypeVersion: string;
   namespace: string;
@@ -36,7 +36,7 @@ export interface TypeEntitiesRow {
 }
 
 export const useEntitiesTable = (params: {
-  entities?: Entity[];
+  entities?: SimpleEntity[];
   entityTypes?: EntityType[];
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;

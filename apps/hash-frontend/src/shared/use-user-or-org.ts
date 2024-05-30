@@ -3,7 +3,7 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -111,7 +111,9 @@ export const useUserOrOrg = (
 
     const rootEntity = subgraph
       ? getRoots(subgraph).reduce<
-          Entity<OrganizationProperties> | Entity<UserProperties> | undefined
+          | SimpleEntity<OrganizationProperties>
+          | SimpleEntity<UserProperties>
+          | undefined
         >((prev, currentEntity) => {
           if (
             !isEntityUserEntity(currentEntity) &&

@@ -1,7 +1,7 @@
 import { OntologyChip } from "@hashintel/design-system";
 import type {
-  Entity,
   EntityPropertiesObject,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -18,7 +18,7 @@ import { QueryEditorPage } from "./query-editor-page";
 import { QueryEditorToggle } from "./query-editor-toggle";
 
 interface EntityEditorPageProps extends EntityEditorProps {
-  entity?: Entity;
+  entity?: SimpleEntity;
   entityLabel: string;
   editBar: ReactNode;
   owner: string;

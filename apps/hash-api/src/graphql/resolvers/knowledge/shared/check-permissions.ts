@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { UserPermissions } from "@local/hash-isomorphic-utils/types";
 
 import {
@@ -11,7 +11,7 @@ import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const checkUserPermissionsOnEntity: ResolverFn<
   UserPermissions,
-  Pick<Entity, "metadata">,
+  Pick<SimpleEntity, "metadata">,
   GraphQLContext,
   Record<string, never>
 > = async (entity, _, graphQLContext) => {
@@ -26,7 +26,7 @@ export const checkUserPermissionsOnEntity: ResolverFn<
 
 export const canUserEdit: ResolverFn<
   boolean,
-  Pick<Entity, "metadata">,
+  Pick<SimpleEntity, "metadata">,
   LoggedInGraphQLContext,
   Record<string, never>
 > = async (entity, _, graphQLContext) => {

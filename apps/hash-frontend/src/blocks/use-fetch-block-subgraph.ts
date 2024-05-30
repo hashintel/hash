@@ -5,9 +5,9 @@ import type {
   EditionCreatedById,
 } from "@local/hash-graph-types/account";
 import type {
-  Entity,
   EntityId,
   EntityPropertiesObject,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type {
   CreatedAtDecisionTime,
@@ -76,7 +76,7 @@ export const useFetchBlockSubgraph = (): ((
         // @todo some better way of handling this – probably affected by revamped collab.
         //    or could simply not load a new block until the entity is created?
         const now = new Date().toISOString() as Timestamp;
-        const placeholderEntity: Entity = {
+        const placeholderEntity: SimpleEntity = {
           metadata: {
             recordId: {
               entityId: "placeholder-account~entity-id-not-set" as EntityId,

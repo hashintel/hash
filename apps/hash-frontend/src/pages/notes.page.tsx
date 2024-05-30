@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -75,7 +75,7 @@ const NotesPage: NextPageWithLayout = () => {
   const quickNotesSubgraph = (quickNotesData ?? previouslyFetchedQuickNotesData)
     ?.getEntitySubgraph.subgraph as Subgraph<EntityRootType> | undefined;
 
-  const latestQuickNoteEntities = useMemo<Entity[] | undefined>(() => {
+  const latestQuickNoteEntities = useMemo<SimpleEntity[] | undefined>(() => {
     if (!quickNotesSubgraph) {
       return undefined;
     }
@@ -96,7 +96,7 @@ const NotesPage: NextPageWithLayout = () => {
 
           return bCreatedAt.getTime() - aCreatedAt.getTime();
         })
-        .reduce<Record<string, Entity[]>>((acc, quickNoteEntity) => {
+        .reduce<Record<string, SimpleEntity[]>>((acc, quickNoteEntity) => {
           const createdAt = new Date(
             quickNoteEntity.metadata.provenance.createdAtDecisionTime,
           );

@@ -29,7 +29,7 @@ import type {
   GetPropertyTypesParams,
 } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
@@ -143,9 +143,9 @@ let graphContext: ImpureGraphContext;
 
 let friendshipEntityType: EntityTypeWithMetadata;
 
-let aliceEntities: Entity[];
-let bobEntities: Entity[];
-let linkEntities: Entity[];
+let aliceEntities: SimpleEntity[];
+let bobEntities: SimpleEntity[];
+let linkEntities: SimpleEntity[];
 
 const authentication = {
   actorId: "00000000-0001-0000-0000-000000000000" as AccountId,

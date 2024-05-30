@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -30,21 +30,21 @@ import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { pollInterval } from "./poll-interval";
 
 export type NotificationEntitiesContextValues = {
-  notificationEntities?: Entity<NotificationProperties>[];
+  notificationEntities?: SimpleEntity<NotificationProperties>[];
   numberOfUnreadNotifications?: number;
   loading: boolean;
   refetch: () => Promise<void>;
   markNotificationAsRead: (params: {
-    notificationEntity: Entity;
+    notificationEntity: SimpleEntity;
   }) => Promise<void>;
   markNotificationsAsRead: (params: {
-    notificationEntities: Entity[];
+    notificationEntities: SimpleEntity[];
   }) => Promise<void>;
   archiveNotification: (params: {
-    notificationEntity: Entity;
+    notificationEntity: SimpleEntity;
   }) => Promise<void>;
   archiveNotifications: (params: {
-    notificationEntities: Entity[];
+    notificationEntities: SimpleEntity[];
   }) => Promise<void>;
 };
 
@@ -113,7 +113,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
   );
 
   const notificationEntities = useMemo<
-    Entity<NotificationProperties>[] | undefined
+    SimpleEntity<NotificationProperties>[] | undefined
   >(
     () =>
       notificationEntitiesSubgraph
@@ -129,7 +129,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
   const markNotificationAsRead = useCallback(
-    async (params: { notificationEntity: Entity }) => {
+    async (params: { notificationEntity: SimpleEntity }) => {
       const { notificationEntity } = params;
 
       const now = new Date();
@@ -157,7 +157,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
   >(updateEntitiesMutation);
 
   const markNotificationsAsRead = useCallback(
-    async (params: { notificationEntities: Entity[] }) => {
+    async (params: { notificationEntities: SimpleEntity[] }) => {
       const now = new Date();
 
       await updateEntities({
@@ -182,7 +182,10 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
   );
 
   const archiveNotification = useCallback(
-    async (params: { notificationEntity: Entity; shouldRefetch?: boolean }) => {
+    async (params: {
+      notificationEntity: SimpleEntity;
+      shouldRefetch?: boolean;
+    }) => {
       const { notificationEntity, shouldRefetch = true } = params;
 
       await updateEntity({
@@ -204,7 +207,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
   );
 
   const archiveNotifications = useCallback(
-    async (params: { notificationEntities: Entity[] }) => {
+    async (params: { notificationEntities: SimpleEntity[] }) => {
       await updateEntities({
         variables: {
           entityUpdates: params.notificationEntities.map(

@@ -1,6 +1,6 @@
 import type { Timestamp } from "@blockprotocol/graph";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
 import type { EntityRevisionId, Subgraph, Vertices } from "../../../main";
@@ -14,13 +14,13 @@ import {
 } from "../../interval";
 
 /**
- * Returns all {@link Entity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their
+ * Returns all {@link SimpleEntity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their
  * latest revisions.
  *
  * @param subgraph
  * @param latest - whether or not to only return the latest revisions of each entity
  */
-export const getEntities = (subgraph: Subgraph): Entity[] =>
+export const getEntities = (subgraph: Subgraph): SimpleEntity[] =>
   typedValues(subgraph.vertices).flatMap((revisions) =>
     typedValues(revisions)
       .filter(isEntityVertex)
@@ -77,8 +77,8 @@ const getRevisionsForEntity = (
 };
 
 /**
- * Gets an {@link Entity} by its {@link EntityId} from within the vertices of the subgraph. If
- * `targetRevisionInformation` is not passed, then the latest version of the {@link Entity} will be returned.
+ * Gets an {@link SimpleEntity} by its {@link EntityId} from within the vertices of the subgraph. If
+ * `targetRevisionInformation` is not passed, then the latest version of the {@link SimpleEntity} will be returned.
  *
  * Returns `undefined` if the entity couldn't be found.
  *
@@ -93,7 +93,7 @@ export const getEntityRevision = (
   subgraph: Subgraph,
   entityId: EntityId,
   targetRevisionInformation?: EntityRevisionId | Timestamp | Date,
-): Entity | undefined => {
+): SimpleEntity | undefined => {
   const entityRevisions = getRevisionsForEntity(subgraph, entityId);
 
   if (entityRevisions === undefined) {
@@ -152,7 +152,7 @@ export const getEntityRevision = (
 };
 
 /**
- * Returns all {@link Entity} revisions within the vertices of the subgraph that match a given {@link EntityId}.
+ * Returns all {@link SimpleEntity} revisions within the vertices of the subgraph that match a given {@link EntityId}.
  *
  * When querying a subgraph with support for temporal versioning, it optionally constrains the search to a given
  * {@link TimeInterval}.
@@ -165,7 +165,7 @@ export const getEntityRevisionsByEntityId = (
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TimeInterval,
-): Entity[] => {
+): SimpleEntity[] => {
   const entityRevisions = getRevisionsForEntity(subgraph, entityId);
 
   if (entityRevisions === undefined) {

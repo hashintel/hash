@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
@@ -32,7 +32,7 @@ import type { FlowRun } from "../graphql/api-types.gen";
 import { setDisabledBadge, setEnabledBadge } from "./badge";
 import { updateEntity } from "./storage/update-entity";
 
-type SimplifiedUser = Entity & {
+type SimplifiedUser = SimpleEntity & {
   properties: Required<
     Pick<
       SimpleProperties<UserProperties>,
@@ -43,9 +43,9 @@ type SimplifiedUser = Entity & {
 };
 
 type UserAndLinkedData = SimplifiedUser & {
-  avatar?: Entity<ImageProperties>;
-  orgs: (Simplified<Entity<OrganizationProperties>> & {
-    avatar?: Entity<ImageProperties>;
+  avatar?: SimpleEntity<ImageProperties>;
+  orgs: (Simplified<SimpleEntity<OrganizationProperties>> & {
+    avatar?: SimpleEntity<ImageProperties>;
     webOwnedById: OwnedById;
   })[];
   settingsEntityId: EntityId;

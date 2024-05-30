@@ -4,7 +4,7 @@ import {
   type PropertyTypeRootType as PropertyTypeRootTypeBp,
 } from "@blockprotocol/graph/temporal";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -51,7 +51,7 @@ export type EntityTypeRootType = Subtype<
 
 export type EntityRootType = {
   vertexId: EntityVertexId;
-  element: Entity;
+  element: SimpleEntity;
 };
 
 export type SubgraphRootType =

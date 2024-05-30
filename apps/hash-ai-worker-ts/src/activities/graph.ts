@@ -13,7 +13,7 @@ import type {
 } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -233,7 +233,9 @@ export const createGraphActivities = ({
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async getSubgraphEntities(params: { subgraph: Subgraph }): Promise<Entity[]> {
+  async getSubgraphEntities(params: {
+    subgraph: Subgraph;
+  }): Promise<SimpleEntity[]> {
     return getEntities(params.subgraph);
   },
 

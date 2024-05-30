@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { Box, Container, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
@@ -24,7 +24,7 @@ import { Button, Link } from "../../../shared/ui";
 import { isItemEntityType } from "./util";
 
 type ArchivedItemBannerProps = {
-  item: Entity | EntityTypeWithMetadata;
+  item: SimpleEntity | EntityTypeWithMetadata;
   onUnarchived: () => void;
 };
 

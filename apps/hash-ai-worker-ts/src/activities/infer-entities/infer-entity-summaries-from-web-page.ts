@@ -1,6 +1,6 @@
 import type { GraphApi } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
@@ -21,7 +21,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
   temperature?: number;
   inferenceState: InferenceState;
   entityTypes: DereferencedEntityTypesByTypeId;
-  existingEntities?: Entity[];
+  existingEntities?: SimpleEntity[];
   /**
    * @todo: remove these parameters when the `inferEntities` activity has
    * been deprecated, and access them via `getFlowContext` instead.

@@ -1,7 +1,7 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type {
-  Entity,
   EntityPropertiesObject,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { JsonValue } from "@local/hash-subgraph";
@@ -63,7 +63,7 @@ const mapSimplifiedPropertyValueToPropertyValue = (params: {
         }),
       };
     },
-    {} as Entity["properties"],
+    {} as SimpleEntity["properties"],
   );
 };
 
@@ -73,10 +73,12 @@ export const mapSimplifiedPropertiesToProperties = (params: {
     EntityPropertyValueWithSimplifiedProperties
   >;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
-}): Entity["properties"] => {
+}): SimpleEntity["properties"] => {
   const { simplifiedProperties, simplifiedPropertyTypeMappings } = params;
 
-  return Object.entries(simplifiedProperties).reduce<Entity["properties"]>(
+  return Object.entries(simplifiedProperties).reduce<
+    SimpleEntity["properties"]
+  >(
     (acc, [simplifiedId, value]) => {
       const baseUrl = simplifiedPropertyTypeMappings[simplifiedId];
 
@@ -94,6 +96,6 @@ export const mapSimplifiedPropertiesToProperties = (params: {
         }),
       };
     },
-    {} as Entity["properties"],
+    {} as SimpleEntity["properties"],
   );
 };

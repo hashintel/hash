@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
@@ -17,7 +17,7 @@ export type ProfilePageTab =
       entityType?: EntityTypeWithMetadata;
       pluralTitle?: string;
       title?: string;
-      entities?: Entity[];
+      entities?: SimpleEntity[];
       entitiesSubgraph?: Subgraph<EntityRootType>;
     };
 

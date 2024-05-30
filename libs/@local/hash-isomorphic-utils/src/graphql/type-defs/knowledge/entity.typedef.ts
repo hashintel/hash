@@ -3,7 +3,8 @@ import { gql } from "apollo-server-express";
 export const entityTypedef = gql`
   scalar EntityId
   scalar EntityRecordId
-  scalar Entity
+  # scalar Entity
+  scalar SimpleEntity
   scalar EntityPropertiesObject
   scalar EntityMetadata
   scalar EntityRelationAndSubject
@@ -211,17 +212,17 @@ export const entityTypedef = gql`
       Set the permission relations on the entity
       """
       relationships: [EntityRelationAndSubject!]
-    ): Entity!
+    ): SimpleEntity!
 
     """
     Update an entity.
     """
-    updateEntity(entityUpdate: EntityUpdateDefinition!): Entity!
+    updateEntity(entityUpdate: EntityUpdateDefinition!): SimpleEntity!
 
     """
     Update multiple entities.
     """
-    updateEntities(entityUpdates: [EntityUpdateDefinition!]!): Entity!
+    updateEntities(entityUpdates: [EntityUpdateDefinition!]!): SimpleEntity!
 
     """
     Archive an entity.

@@ -1,7 +1,10 @@
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { Entity, EntityMetadata } from "@local/hash-graph-types/entity";
+import type {
+  EntityMetadata,
+  SimpleEntity,
+} from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -330,7 +333,7 @@ export const updateEntityEmbeddings = async (
     },
   } as const;
 
-  let entities: Entity[];
+  let entities: SimpleEntity[];
   let cursor: EntityQueryCursor | undefined | null = undefined;
 
   const usage: CreateEmbeddingResponse.Usage = {
@@ -357,7 +360,7 @@ export const updateEntityEmbeddings = async (
             provenance: entity.metadata.provenance,
             archived: entity.metadata.archived,
           } as EntityMetadata,
-        } as Entity;
+        } as SimpleEntity;
       });
     } else {
       const queryResponse = await graphActivities.getEntitySubgraph({

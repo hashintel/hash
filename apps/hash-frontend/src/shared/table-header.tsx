@@ -10,7 +10,7 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -120,13 +120,13 @@ type TableHeaderProps = {
   internalWebIds: (AccountId | AccountGroupId)[];
   itemLabelPlural: "entities" | "pages" | "types";
   items?: (
-    | Entity
+    | SimpleEntity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
   selectedItems?: (
-    | Entity
+    | SimpleEntity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata

@@ -1,4 +1,4 @@
-import type { Entity, EntityUuid } from "@local/hash-graph-types/entity";
+import type { EntityUuid, SimpleEntity } from "@local/hash-graph-types/entity";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
 import { simplifyProperties } from "../simplify-properties";
@@ -27,7 +27,7 @@ export const mapFlowDefinitionToEntityProperties = (
 });
 
 export const mapFlowDefinitionEntityToFlowDefinition = (
-  entity: Entity<FlowDefinitionProperties>,
+  entity: SimpleEntity<FlowDefinitionProperties>,
 ): FlowDefinition => {
   const {
     name,
@@ -75,7 +75,7 @@ export const mapFlowRunToEntityProperties = (
 });
 
 export const mapFlowEntityToFlow = (
-  entity: Entity<FlowRunProperties>,
+  entity: SimpleEntity<FlowRunProperties>,
 ): LocalFlowRun => {
   const {
     name,

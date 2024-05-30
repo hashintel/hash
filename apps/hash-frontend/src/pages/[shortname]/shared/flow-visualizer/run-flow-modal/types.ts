@@ -1,5 +1,5 @@
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
@@ -32,7 +32,7 @@ export const isSupportedPayloadKind = (
   !unsupportedPayloadKinds.includes(kind as UnsupportedPayloadKind);
 
 export type LocalInputValue =
-  | Entity
+  | SimpleEntity
   | EntityTypeWithMetadata
   | FormattedText
   | GoogleSheet
@@ -45,7 +45,7 @@ export type LocalInputValues = Subtype<
   Record<LocalPayloadKind, LocalInputValue>,
   {
     ActorType: ActorTypeDataType;
-    Entity: Entity;
+    Entity: SimpleEntity;
     FormattedText: FormattedText;
     GoogleAccountId: string;
     GoogleSheet: GoogleSheet;

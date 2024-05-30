@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
@@ -14,7 +14,7 @@ import { getEntityAuthorizationRelationshipsQuery } from "../../../graphql/queri
 import type { MinimalUser } from "../../../lib/user-and-org";
 
 export const DraftEntityViewers: FunctionComponent<{
-  entity: Entity;
+  entity: SimpleEntity;
 }> = ({ entity }) => {
   const { data } = useQuery<
     GetEntityAuthorizationRelationshipsQuery,

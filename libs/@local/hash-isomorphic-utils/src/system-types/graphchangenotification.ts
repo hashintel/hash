@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -44,11 +44,12 @@ export type {
   TextDataType,
 };
 
-export type GraphChangeNotification = Entity<GraphChangeNotificationProperties>;
+export type GraphChangeNotification =
+  SimpleEntity<GraphChangeNotificationProperties>;
 
 export type GraphChangeNotificationOccurredInEntityLink = {
   linkEntity: OccurredInEntity;
-  rightEntity: Entity;
+  rightEntity: SimpleEntity;
 };
 
 export type GraphChangeNotificationOutgoingLinkAndTarget =

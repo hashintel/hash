@@ -1,6 +1,6 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -72,9 +72,9 @@ export type SubMenuItem =
     }
   | {
       kind: "outgoing-link";
-      linkEntity: Entity;
+      linkEntity: SimpleEntity;
       linkEntityType: EntityTypeWithMetadata;
-      targetEntity?: Entity;
+      targetEntity?: SimpleEntity;
       targetEntityLabel?: string;
     };
 
@@ -85,7 +85,7 @@ export const MentionSuggesterEntity = forwardRef<
     setSortOrder: (sortOrder: SortOrder) => void;
     entitiesSubgraph: Subgraph<EntityRootType>;
     entityType: EntityTypeWithMetadata;
-    entity: Entity;
+    entity: SimpleEntity;
     displayTypeTitle?: boolean;
     displaySubMenu: boolean;
     subMenuIndex: number;

@@ -4,7 +4,7 @@ import type {
   TypeListSelectorDropdownProps,
 } from "@hashintel/design-system";
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
@@ -29,7 +29,7 @@ import type {
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 type EntitySelectorProps<Multiple extends boolean = false> = Omit<
-  SelectorAutocompleteProps<Entity, Multiple>,
+  SelectorAutocompleteProps<SimpleEntity, Multiple>,
   | "inputValue"
   | "loading"
   | "options"
@@ -44,10 +44,10 @@ type EntitySelectorProps<Multiple extends boolean = false> = Omit<
   includeDrafts: boolean;
   multiple?: Multiple;
   onSelect: (
-    event: Multiple extends true ? Entity[] : Entity,
+    event: Multiple extends true ? SimpleEntity[] : SimpleEntity,
     sourceSubgraph: Subgraph<EntityRootType> | null,
   ) => void;
-  value?: Multiple extends true ? Entity : Entity[];
+  value?: Multiple extends true ? SimpleEntity : SimpleEntity[];
 };
 
 export const EntitySelector = <Multiple extends boolean>({
@@ -162,7 +162,7 @@ export const EntitySelector = <Multiple extends boolean>({
   }, [entitiesSubgraph, entityIdsToFilterOut, includeDrafts]);
 
   return (
-    <SelectorAutocomplete<Entity, Multiple>
+    <SelectorAutocomplete<SimpleEntity, Multiple>
       loading={loading}
       onChange={(_, option) => {
         onSelect(option, entitiesSubgraph ?? null);

@@ -5,7 +5,10 @@ import {
   Chip,
   EyeSlashIconRegular,
 } from "@hashintel/design-system";
-import type { Entity, LinkEntity } from "@local/hash-graph-types/entity";
+import type {
+  SimpleEntity,
+  SimpleLinkEntity,
+} from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -57,7 +60,7 @@ const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
 };
 
 const LeftOrRightEntity: FunctionComponent<{
-  entity?: Entity;
+  entity?: SimpleEntity;
   subgraph: Subgraph<EntityRootType>;
   openInNew?: boolean;
   endAdornment?: ReactNode;
@@ -191,7 +194,7 @@ const LeftOrRightEntity: FunctionComponent<{
     ).reduce<
       {
         linkEntityType: EntityTypeWithMetadata;
-        rightEntities: Entity[];
+        rightEntities: SimpleEntity[];
       }[]
     >(
       (
@@ -357,7 +360,7 @@ const LeftOrRightEntity: FunctionComponent<{
 };
 
 export const LinkLabelWithSourceAndDestination: FunctionComponent<{
-  linkEntity: LinkEntity;
+  linkEntity: SimpleLinkEntity;
   subgraph: Subgraph<EntityRootType>;
   leftEntityEndAdornment?: ReactNode;
   rightEntityEndAdornment?: ReactNode;

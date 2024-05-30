@@ -1,5 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { ApolloError, UserInputError } from "apollo-server-errors";
@@ -139,7 +139,7 @@ export const handleCreateNewEntity = async (params: {
   createEntityWithPlaceholders: (
     originalDefinition: EntityDefinition,
     entityOwnedById: OwnedById,
-  ) => Promise<Entity>;
+  ) => Promise<SimpleEntity>;
 }): Promise<void> => {
   try {
     const {
@@ -181,7 +181,7 @@ export const handleInsertNewBlock = async (
     createEntityWithPlaceholders: (
       originalDefinition: EntityDefinition,
       entityOwnedById: OwnedById,
-    ) => Promise<Entity>;
+    ) => Promise<SimpleEntity>;
     placeholderResults: PlaceholderResultsMap;
   },
 ): Promise<Block> => {

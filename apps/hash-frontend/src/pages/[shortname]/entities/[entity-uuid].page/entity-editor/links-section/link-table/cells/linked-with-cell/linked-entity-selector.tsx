@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -27,7 +27,7 @@ import { useEntityEditor } from "../../../../entity-editor-context";
 interface EntitySelectorProps {
   includeDrafts: boolean;
   onSelect: (
-    option: Entity,
+    option: SimpleEntity,
     sourceSubgraph: Subgraph<EntityRootType> | null,
   ) => void;
   onFinishedEditing: () => void;
@@ -132,7 +132,7 @@ export const LinkedEntitySelector = ({
         makePublic: false,
         onComplete: (upload) =>
           onSelect(
-            upload.createdEntities.fileEntity as Entity,
+            upload.createdEntities.fileEntity as SimpleEntity,
             // the entity's subgraph should mostly contain the file's type, since we're choosing it based on the expected type
             // it will not if the expected type is File and we automatically choose a narrower type of e.g. Image based on the upload
             entitySubgraph,
@@ -172,7 +172,7 @@ export const LinkedEntitySelector = ({
     [isImage, onFileProvided],
   );
 
-  const highlightedRef = useRef<null | Entity>(null);
+  const highlightedRef = useRef<null | SimpleEntity>(null);
 
   return (
     <FileCreationContext.Provider value={fileCreationContextValue}>

@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -15,8 +15,11 @@ import { useBlockProtocolQueryEntities } from "../../../../components/hooks/bloc
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
 export type LinearIntegration = {
-  entity: Entity;
-  syncedWithWorkspaces: { workspaceEntity: Entity; linearTeamIds: string[] }[];
+  entity: SimpleEntity;
+  syncedWithWorkspaces: {
+    workspaceEntity: SimpleEntity;
+    linearTeamIds: string[];
+  }[];
 };
 
 export const useLinearIntegrations = () => {

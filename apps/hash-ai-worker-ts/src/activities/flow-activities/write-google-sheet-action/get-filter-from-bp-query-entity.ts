@@ -2,7 +2,7 @@ import type { MultiFilter } from "@blockprotocol/graph";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 
@@ -17,13 +17,13 @@ export const getFilterFromBlockProtocolQueryEntity = async ({
   graphApiClient: GraphApi;
   queryEntityId: EntityId;
 }) => {
-  let queryEntity: Entity<QueryProperties> | undefined;
+  let queryEntity: SimpleEntity<QueryProperties> | undefined;
   try {
     queryEntity = (await getLatestEntityById({
       graphApiClient,
       authentication,
       entityId: queryEntityId,
-    })) as Entity<QueryProperties>;
+    })) as SimpleEntity<QueryProperties>;
   } catch {
     throw new Error(`No query entity found with id ${queryEntityId}.`);
   }

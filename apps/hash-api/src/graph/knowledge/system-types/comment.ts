@@ -1,5 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -44,11 +44,11 @@ export type Comment = {
    */
   resolvedAt?: string;
   deletedAt?: string;
-  entity: Entity;
+  entity: SimpleEntity;
 };
 
 export const getCommentFromEntity: PureGraphFunction<
-  { entity: Entity },
+  { entity: SimpleEntity },
   Comment
 > = ({ entity }) => {
   if (entity.metadata.entityTypeId !== systemEntityTypes.comment.entityTypeId) {
@@ -287,7 +287,7 @@ export const deleteComment: ImpureGraphFunction<
  */
 export const getCommentParent: ImpureGraphFunction<
   { commentEntityId: EntityId },
-  Promise<Entity>
+  Promise<SimpleEntity>
 > = async (ctx, authentication, { commentEntityId }) => {
   const parentLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,

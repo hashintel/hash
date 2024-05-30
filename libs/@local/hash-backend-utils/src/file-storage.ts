@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity, EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -100,7 +100,7 @@ export interface PresignedStorageRequest {
 /** Parameters needed to allow the download of a stored file */
 export interface PresignedDownloadRequest {
   /** The file entity to provide a download URL for */
-  entity: Entity<FileProperties>;
+  entity: SimpleEntity<FileProperties>;
   /** File storage key * */
   key: string;
   /** Expiry delay for the download authorisation */

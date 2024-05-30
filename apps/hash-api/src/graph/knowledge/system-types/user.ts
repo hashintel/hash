@@ -3,9 +3,9 @@ import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/ha
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
-  Entity,
   EntityId,
   EntityUuid,
+  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
@@ -64,12 +64,13 @@ export type User = {
   shortname?: string;
   displayName?: string;
   isAccountSignupComplete: boolean;
-  entity: Entity;
+  entity: SimpleEntity;
 };
 
-export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
-  entity,
-}) => {
+export const getUserFromEntity: PureGraphFunction<
+  { entity: SimpleEntity },
+  User
+> = ({ entity }) => {
   if (entity.metadata.entityTypeId !== systemEntityTypes.user.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,

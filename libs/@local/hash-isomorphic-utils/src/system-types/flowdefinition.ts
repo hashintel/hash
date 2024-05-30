@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type {
   DescriptionPropertyValue,
@@ -20,7 +20,7 @@ export type {
   TriggerDefinitionIDPropertyValue,
 };
 
-export type FlowDefinition = Entity<FlowDefinitionProperties>;
+export type FlowDefinition = SimpleEntity<FlowDefinitionProperties>;
 
 export type FlowDefinitionOutgoingLinkAndTarget = never;
 

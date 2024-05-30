@@ -1,5 +1,5 @@
 import { Autocomplete, TextField } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
@@ -26,7 +26,9 @@ import { PageIcon } from "../../components/page-icon";
 import { Button, Modal } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 
-export type PageWithParentLink = SimplePage & { parentLinkEntity?: Entity };
+export type PageWithParentLink = SimplePage & {
+  parentLinkEntity?: SimpleEntity;
+};
 
 type ConvertToPageFormData = {
   title?: string;
@@ -37,7 +39,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {
     onClose: () => void;
     onConvertedToPage: (page: PageWithParentLink) => void;
-    quickNoteEntity: Entity;
+    quickNoteEntity: SimpleEntity;
   }
 > = ({ quickNoteEntity, onClose, onConvertedToPage, ...modalProps }) => {
   const { authenticatedUser } = useAuthenticatedUser();

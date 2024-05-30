@@ -16,7 +16,10 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { Entity, LinkEntity } from "@local/hash-graph-types/entity";
+import type {
+  SimpleEntity,
+  SimpleLinkEntity,
+} from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -42,9 +45,9 @@ describe("Link entity", () => {
   let testEntityType: EntityTypeWithMetadata;
   let friendLinkEntityType: EntityTypeWithMetadata;
   let acquaintanceLinkEntityType: EntityTypeWithMetadata;
-  let leftEntity: Entity;
-  let friendRightEntity: Entity;
-  let acquaintanceRightEntity: Entity;
+  let leftEntity: SimpleEntity;
+  let friendRightEntity: SimpleEntity;
+  let acquaintanceRightEntity: SimpleEntity;
 
   const createTestEntityType = (
     params: Omit<
@@ -201,8 +204,8 @@ describe("Link entity", () => {
     };
   });
 
-  let linkEntityFriend: LinkEntity;
-  let linkEntityAcquaintance: LinkEntity;
+  let linkEntityFriend: SimpleLinkEntity;
+  let linkEntityAcquaintance: SimpleLinkEntity;
 
   it("can link entities", async () => {
     const authentication = { actorId: testUser.accountId };

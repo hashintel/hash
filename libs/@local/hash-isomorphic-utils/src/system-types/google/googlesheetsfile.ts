@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, LinkData } from "@local/hash-graph-types/entity";
+import type { LinkData, SimpleEntity } from "@local/hash-graph-types/entity";
 
 import type {
   Account,
@@ -63,9 +63,10 @@ export type {
  */
 export type ActorTypeDataType = "human" | "machine";
 
-export type AssociatedWithAccount = Entity<AssociatedWithAccountProperties> & {
-  linkData: LinkData;
-};
+export type AssociatedWithAccount =
+  SimpleEntity<AssociatedWithAccountProperties> & {
+    linkData: LinkData;
+  };
 
 export type AssociatedWithAccountOutgoingLinkAndTarget = never;
 
@@ -100,7 +101,7 @@ export type DateTimeDataType = string;
  */
 export type DescriptionPropertyValue = TextDataType;
 
-export type File = Entity<FileProperties>;
+export type File = SimpleEntity<FileProperties>;
 
 /**
  * A unique signature derived from a file's contents
@@ -184,7 +185,7 @@ export type FileStorageRegionPropertyValue = TextDataType;
  */
 export type FileURLPropertyValue = TextDataType;
 
-export type GoogleSheetsFile = Entity<GoogleSheetsFileProperties>;
+export type GoogleSheetsFile = SimpleEntity<GoogleSheetsFileProperties>;
 
 export type GoogleSheetsFileAssociatedWithAccountLink = {
   linkEntity: AssociatedWithAccount;
@@ -237,7 +238,7 @@ export type OriginalSourcePropertyValue = TextDataType;
  */
 export type OriginalURLPropertyValue = TextDataType;
 
-export type SpreadsheetFile = Entity<SpreadsheetFileProperties>;
+export type SpreadsheetFile = SimpleEntity<SpreadsheetFileProperties>;
 
 export type SpreadsheetFileOutgoingLinkAndTarget = never;
 

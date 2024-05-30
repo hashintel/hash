@@ -1,5 +1,5 @@
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import type { Entity } from "@local/hash-graph-types/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -31,7 +31,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   const entity = useMemo(() => getRoots(entitySubgraph)[0]!, [entitySubgraph]);
 
   const onSelectForSingleLink = (
-    selectedEntity: Entity,
+    selectedEntity: SimpleEntity,
     sourceSubgraph: Subgraph<EntityRootType> | null,
   ) => {
     const { linkEntity: currentLink, rightEntity: currentLinkedEntity } =
