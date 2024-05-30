@@ -375,6 +375,8 @@ export const researchEntitiesAction: FlowActionActivity<{
             for (const { status, url } of statusesWithUrl) {
               if (status.code !== StatusCode.Ok) {
                 outputMessage += `An error occurred when inferring facts from the web page with url ${url}: ${status.message}\n`;
+
+                continue;
               }
 
               const content = status.contents[0]!;
