@@ -1,7 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   EntityId,
-  EntityMetadata,
   EntityPropertiesObject,
   EntityTemporalVersioningMetadata,
   LinkData,
@@ -22,13 +21,11 @@ export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
-    archived: boolean;
     recordId: {
       entityId: EntityId | null;
       editionId: string;
     };
     entityTypeId?: VersionedUrl | null;
-    provenance?: EntityMetadata["provenance"];
     temporalVersioning: EntityTemporalVersioningMetadata;
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */

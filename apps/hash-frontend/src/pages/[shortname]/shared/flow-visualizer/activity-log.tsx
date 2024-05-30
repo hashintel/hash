@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   EntityId,
-  EntityMetadata,
+  SimpleEntityMetadata,
   EntityRecordId,
 } from "@local/hash-graph-types/entity";
 import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
@@ -58,7 +58,7 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
         entityId: `ownedBy~${entityId}` as EntityId,
       } satisfies EntityRecordId,
       entityTypeId: entityTypeId satisfies VersionedUrl,
-    } as EntityMetadata,
+    } as SimpleEntityMetadata,
   });
 
   return entityLabel;

@@ -1,13 +1,24 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
-import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
+import type {
+  Entity as GraphApiEntity,
+  PropertyMetadataMap,
+} from "@local/hash-graph-client/api";
 import type {
   EntityId,
-  EntityMetadata,
   EntityPropertiesObject,
+  EntityProvenance,
   LinkData,
   SimpleEntity,
+  SimpleEntityMetadata,
   SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
+
+export type EntityMetadata = SimpleEntityMetadata & {
+  archived: boolean;
+  provenance: EntityProvenance;
+  confidence?: number;
+  properties?: PropertyMetadataMap;
+};
 
 export type SerializedEntity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
@@ -21,11 +32,7 @@ export class Entity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > implements SimpleEntity<Properties>
 {
-  #entity: {
-    properties: Properties;
-    metadata: EntityMetadata;
-    linkData?: LinkData;
-  };
+  #entity: SerializedEntity<Properties>;
 
   constructor(entity: GraphApiEntity | SerializedEntity) {
     let entityTypeId: VersionedUrl;
@@ -73,11 +80,7 @@ export class Entity<
   }
 
   public serialize(): SerializedEntity<Properties> {
-    return {
-      metadata: this.metadata,
-      properties: this.properties,
-      linkData: this.linkData,
-    };
+    return this.#entity;
   }
 }
 

@@ -376,7 +376,6 @@ const entityStoreReducer = (
 
         draftState.store.draft[action.payload.draftId] = {
           metadata: {
-            archived: false,
             recordId: {
               entityId: action.payload.entityId,
               editionId: now,

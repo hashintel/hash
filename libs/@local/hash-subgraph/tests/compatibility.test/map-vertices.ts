@@ -27,6 +27,7 @@ import type {
   PropertyTypeMetadata as PropertyTypeMetadataGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
+import type { EntityMetadata } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   CreatedById,
@@ -35,7 +36,6 @@ import type {
 } from "@local/hash-graph-types/account";
 import type {
   EntityId,
-  EntityMetadata,
   EntityProvenance,
   EntityRecordId,
   EntityTemporalVersioningMetadata,

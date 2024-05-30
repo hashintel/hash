@@ -1,7 +1,7 @@
 import type { Timestamp } from "@blockprotocol/graph";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
 import type { EntityRevisionId, Subgraph, Vertices } from "../../../main";
@@ -94,7 +94,7 @@ export const getEntityRevision = (
   subgraph: Subgraph,
   entityId: EntityId,
   targetRevisionInformation?: EntityRevisionId | Timestamp | Date,
-): SimpleEntity | undefined => {
+): Entity | undefined => {
   const entityRevisions = getRevisionsForEntity(subgraph, entityId);
 
   if (entityRevisions === undefined) {

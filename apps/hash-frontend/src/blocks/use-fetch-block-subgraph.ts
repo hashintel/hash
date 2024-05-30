@@ -1,19 +1,11 @@
 import { useLazyQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
-  CreatedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
-import type {
   EntityId,
   EntityPropertiesObject,
   SimpleEntity,
 } from "@local/hash-graph-types/entity";
-import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-  Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import type {
@@ -101,15 +93,6 @@ export const useFetchBlockSubgraph = (): ((
                 end: {
                   kind: "unbounded",
                 },
-              },
-            },
-            archived: false,
-            provenance: {
-              createdById: "placeholder-account" as CreatedById,
-              createdAtTransactionTime: now as CreatedAtTransactionTime,
-              createdAtDecisionTime: now as CreatedAtDecisionTime,
-              edition: {
-                createdById: "placeholder-account" as EditionCreatedById,
               },
             },
           },

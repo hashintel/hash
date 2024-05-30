@@ -31,7 +31,8 @@ export const scalars = {
   Entity: "@local/hash-graph-sdk/entity#Entity",
   SimpleEntity: "@local/hash-graph-types/entity#SimpleEntity",
   EntityRecordId: "@local/hash-graph-types/entity#EntityRecordId",
-  EntityMetadata: "@local/hash-graph-types/entity#EntityMetadata",
+  SimpleEntityMetadata: "@local/hash-graph-types/entity#SimpleEntityMetadata",
+  EntityMetadata: "@local/hash-graph-sdk/entity#EntityMetadata",
   EntityRelationAndSubject: "@local/hash-subgraph#EntityRelationAndSubject",
   GetEntitySubgraphRequest: "@local/hash-graph-client#GetEntitySubgraphRequest",
   EntityTemporalVersioningMetadata:

@@ -1,12 +1,8 @@
-import type { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type {
-  SimpleEntity,
-  SimpleLinkEntity,
-} from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -43,7 +39,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 export const constructMinimalOrg = (params: {
-  orgEntity: SimpleEntity<OrganizationProperties>;
+  orgEntity: Entity<OrganizationProperties>;
 }): MinimalOrg => {
   const { orgEntity } = params;
 
@@ -68,7 +64,7 @@ export const constructMinimalOrg = (params: {
 
 export type MinimalUser = {
   kind: "user";
-  entity: SimpleEntity<UserProperties>;
+  entity: Entity<UserProperties>;
   accountId: AccountId;
   accountSignupComplete: boolean;
   enabledFeatureFlags: FeatureFlag[];
@@ -81,12 +77,12 @@ export type MinimalUser = {
 };
 
 export const isEntityUserEntity = (
-  entity: SimpleEntity,
-): entity is SimpleEntity<UserProperties> =>
+  entity: Entity,
+): entity is Entity<UserProperties> =>
   entity.metadata.entityTypeId === systemEntityTypes.user.entityTypeId;
 
 export const constructMinimalUser = (params: {
-  userEntity: SimpleEntity<UserProperties>;
+  userEntity: Entity<UserProperties>;
 }): MinimalUser => {
   const { userEntity } = params;
 
@@ -120,22 +116,22 @@ export const constructMinimalUser = (params: {
 export type Org = MinimalOrg & {
   createdAt: Date;
   hasAvatar?: {
-    linkEntity: SimpleLinkEntity;
+    linkEntity: LinkEntity;
     imageEntity: Image;
   };
   hasBio?: {
-    linkEntity: SimpleLinkEntity;
-    profileBioEntity: SimpleEntity<ProfileBioProperties>;
+    linkEntity: LinkEntity;
+    profileBioEntity: Entity<ProfileBioProperties>;
   };
   memberships: {
-    linkEntity: SimpleEntity<IsMemberOfProperties>;
+    linkEntity: Entity<IsMemberOfProperties>;
     user: MinimalUser;
   }[];
 };
 
 export const isEntityOrgEntity = (
-  entity: SimpleEntity,
-): entity is SimpleEntity<OrganizationProperties> =>
+  entity: Entity,
+): entity is Entity<OrganizationProperties> =>
   entity.metadata.entityTypeId === systemEntityTypes.organization.entityTypeId;
 
 /**
@@ -151,7 +147,7 @@ export const isEntityOrgEntity = (
  */
 export const constructOrg = (params: {
   subgraph: Subgraph;
-  orgEntity: SimpleEntity<OrganizationProperties>;
+  orgEntity: Entity<OrganizationProperties>;
 }): Org => {
   const { subgraph, orgEntity } = params;
 
@@ -172,8 +168,8 @@ export const constructOrg = (params: {
   const hasAvatar = avatarLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: avatarLinkAndEntities[0].linkEntity[0] as SimpleLinkEntity,
-        imageEntity: avatarLinkAndEntities[0].rightEntity[0] as Image,
+        linkEntity: avatarLinkAndEntities[0].linkEntity[0]!,
+        imageEntity: avatarLinkAndEntities[0].rightEntity[0]! as Image,
       }
     : undefined;
 
@@ -190,7 +186,7 @@ export const constructOrg = (params: {
   const hasBio = hasBioLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasBioLinkAndEntities[0].linkEntity[0] as SimpleLinkEntity,
+        linkEntity: hasBioLinkAndEntities[0].linkEntity[0]!,
         profileBioEntity: hasBioLinkAndEntities[0].rightEntity[0]!,
       }
     : undefined;
@@ -260,8 +256,8 @@ export type ServiceAccountKind =
   | "githubAccount";
 
 export type UserServiceAccount = {
-  linkEntity: SimpleLinkEntity;
-  serviceAccountEntity: SimpleEntity;
+  linkEntity: LinkEntity;
+  serviceAccountEntity: Entity;
   kind: ServiceAccountKind;
   profileUrl: string;
 };
@@ -270,20 +266,20 @@ export type User = MinimalUser & {
   joinedAt: Date;
   emails: { address: string; primary: boolean; verified: boolean }[];
   hasAvatar?: {
-    linkEntity: SimpleLinkEntity;
+    linkEntity: LinkEntity;
     imageEntity: Image;
   };
   hasCoverImage?: {
-    linkEntity: SimpleLinkEntity;
+    linkEntity: LinkEntity;
     imageEntity: Image;
   };
   hasBio?: {
-    linkEntity: SimpleLinkEntity;
-    profileBioEntity: SimpleEntity<ProfileBioProperties>;
+    linkEntity: LinkEntity;
+    profileBioEntity: Entity<ProfileBioProperties>;
   };
   hasServiceAccounts: UserServiceAccount[];
   memberOf: {
-    linkEntity: SimpleEntity<IsMemberOfProperties>;
+    linkEntity: Entity<IsMemberOfProperties>;
     org: Org;
   }[];
 };
@@ -304,10 +300,10 @@ export type User = MinimalUser & {
  * @param params.orgMembershipLinks provides a minor optimization to avoid looking up membership links if they are already known
  */
 export const constructUser = (params: {
-  orgMembershipLinks?: SimpleLinkEntity[];
+  orgMembershipLinks?: LinkEntity[];
   subgraph: Subgraph<EntityRootType>;
   resolvedOrgs?: Org[];
-  userEntity: SimpleEntity<UserProperties>;
+  userEntity: Entity<UserProperties>;
 }): User => {
   const { orgMembershipLinks, resolvedOrgs, subgraph, userEntity } = params;
 
@@ -399,8 +395,8 @@ export const constructUser = (params: {
   const hasAvatar = avatarLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: avatarLinkAndEntities[0].linkEntity[0] as SimpleLinkEntity,
-        imageEntity: avatarLinkAndEntities[0].rightEntity[0] as Image,
+        linkEntity: avatarLinkAndEntities[0].linkEntity[0]!,
+        imageEntity: avatarLinkAndEntities[0].rightEntity[0]! as Image,
       }
     : undefined;
 
@@ -417,9 +413,8 @@ export const constructUser = (params: {
   const hasCoverImage = coverImageLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: coverImageLinkAndEntities[0]
-          .linkEntity[0] as SimpleLinkEntity,
-        imageEntity: coverImageLinkAndEntities[0].rightEntity[0] as Image,
+        linkEntity: coverImageLinkAndEntities[0].linkEntity[0]!,
+        imageEntity: coverImageLinkAndEntities[0].rightEntity[0]! as Image,
       }
     : undefined;
 
@@ -436,7 +431,7 @@ export const constructUser = (params: {
   const hasBio = hasBioLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasBioLinkAndEntities[0].linkEntity[0] as SimpleLinkEntity,
+        linkEntity: hasBioLinkAndEntities[0].linkEntity[0]!,
         profileBioEntity: hasBioLinkAndEntities[0].rightEntity[0]!,
       }
     : undefined;
@@ -464,7 +459,7 @@ export const constructUser = (params: {
       )?.[0] as ServiceAccountKind;
 
       return {
-        linkEntity: linkEntity[0] as SimpleLinkEntity,
+        linkEntity: linkEntity[0]!,
         serviceAccountEntity,
         kind,
         profileUrl,
@@ -495,7 +490,7 @@ export const constructUser = (params: {
 
 export type MinimalOrg = {
   kind: "org";
-  entity: SimpleEntity;
+  entity: Entity;
   accountGroupId: AccountGroupId;
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   description?: string;

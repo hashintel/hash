@@ -2,7 +2,7 @@ import { useApolloClient, useQuery } from "@apollo/client";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type {
-  EntityMetadata,
+  SimpleEntityMetadata,
   SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
@@ -170,7 +170,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
   >(checkUserPermissionsOnEntityQuery, {
     variables: {
       // The query is skipped if `hashInstance` is `undefined`
-      metadata: hashInstance?.metadata as EntityMetadata,
+      metadata: hashInstance?.metadata,
     },
     skip: !hashInstance || !authenticatedUser,
   });

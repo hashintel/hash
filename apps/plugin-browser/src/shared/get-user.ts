@@ -228,7 +228,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         enabledFeatureFlags,
         settingsEntityId,
         webOwnedById: getOwnedByIdFromEntityId(user.metadata.recordId.entityId),
-      } as LocalStorage["user"];
+      };
     })
     .catch(() => null);
 };

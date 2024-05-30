@@ -6,6 +6,7 @@ export const entityTypedef = gql`
   scalar Entity
   scalar SimpleEntity
   scalar EntityPropertiesObject
+  scalar SimpleEntityMetadata
   scalar EntityMetadata
   scalar EntityRelationAndSubject
   scalar GetEntitySubgraphRequest
@@ -144,7 +145,9 @@ export const entityTypedef = gql`
       entityId: EntityId!
     ): [EntityAuthorizationRelationship!]!
 
-    checkUserPermissionsOnEntity(metadata: EntityMetadata!): UserPermissions!
+    checkUserPermissionsOnEntity(
+      metadata: SimpleEntityMetadata!
+    ): UserPermissions!
 
     getEntityDiffs(inputs: [DiffEntityInput!]!): [EntityDiff!]!
   }

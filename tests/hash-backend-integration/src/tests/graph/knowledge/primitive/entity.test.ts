@@ -238,7 +238,7 @@ describe("Entity CRU", () => {
     );
   });
 
-  let updatedEntity: SimpleEntity;
+  let updatedEntity: Entity;
   it("can update an entity", async () => {
     expect(createdEntity.metadata.provenance.edition.createdById).toBe(
       testUser.accountId,

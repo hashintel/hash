@@ -35,7 +35,7 @@ export type SimpleProperties<Properties extends EntityPropertiesObject> = {
 };
 
 export type Simplified<T extends SimpleEntity | BpEntity> = Omit<
-  T,
+  SimpleEntity,
   "properties"
 > & {
   properties: SimpleProperties<T["properties"]>;

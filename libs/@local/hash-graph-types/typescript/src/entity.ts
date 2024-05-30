@@ -65,16 +65,12 @@ export type EntityTemporalVersioningMetadata = Subtype<
   Record<TemporalAxis, HalfClosedInterval>
 >;
 
-export type EntityMetadata = Subtype<
+export type SimpleEntityMetadata = Subtype<
   EntityMetadataBp,
   {
     recordId: EntityRecordId;
     entityTypeId: VersionedUrl;
     temporalVersioning: EntityTemporalVersioningMetadata;
-    archived: boolean;
-    provenance: EntityProvenance;
-    confidence?: number;
-    properties?: PropertyMetadataMap;
   }
 >;
 
@@ -111,7 +107,7 @@ export interface SimpleEntity<
   Properties extends EntityPropertiesObject | null = EntityPropertiesObject,
 > {
   readonly properties: Properties;
-  readonly metadata: EntityMetadata;
+  readonly metadata: SimpleEntityMetadata;
   readonly linkData?: LinkData;
 }
 

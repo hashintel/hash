@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -11,7 +12,7 @@ import type {
 } from "../../graphql/api-types.gen";
 import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash-instance.queries";
 
-type SimplifiedHASHInstance = SimpleEntity<
+type SimplifiedHASHInstance = SerializedEntity<
   SimpleProperties<HASHInstanceProperties>
 >;
 

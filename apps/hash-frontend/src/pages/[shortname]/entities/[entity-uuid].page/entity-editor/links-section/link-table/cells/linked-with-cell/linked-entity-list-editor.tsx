@@ -1,15 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import type {
-  CreatedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
 import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
-import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-  Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
@@ -48,15 +40,8 @@ export const createDraftLinkEntity = ({
     properties: {},
     linkData: { rightEntityId, leftEntityId },
     metadata: {
-      archived: false,
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
-      provenance: {
-        createdById: "" as CreatedById,
-        createdAtTransactionTime: "" as CreatedAtTransactionTime,
-        createdAtDecisionTime: "" as CreatedAtDecisionTime,
-        edition: { createdById: "" as EditionCreatedById },
-      },
       temporalVersioning: {
         decisionTime: {
           start: {

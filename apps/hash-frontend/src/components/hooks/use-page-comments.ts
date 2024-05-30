@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import type {
   EntityId,
-  EntityMetadata,
+  SimpleEntityMetadata,
   EntityTemporalVersioningMetadata,
   SimpleEntity,
 } from "@local/hash-graph-types/entity";
@@ -22,7 +22,7 @@ export type PageComment = {
   textUpdatedAt: EntityTemporalVersioningMetadata;
   author: SimpleEntity;
   parent: SimpleEntity;
-  metadata: EntityMetadata;
+  metadata: SimpleEntityMetadata;
 };
 
 export type PageCommentsInfo = {

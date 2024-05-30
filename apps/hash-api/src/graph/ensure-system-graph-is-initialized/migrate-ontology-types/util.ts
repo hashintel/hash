@@ -26,10 +26,8 @@ import type {
   DataTypeRelationAndSubject,
   UpdatePropertyType,
 } from "@local/hash-graph-client";
-import type {
-  EntityPropertiesObject,
-  SimpleEntity,
-} from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   ConstructDataTypeParams,
@@ -1159,7 +1157,7 @@ export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
 
 export const getEntitiesByType: ImpureGraphFunction<
   { entityTypeId: VersionedUrl },
-  Promise<SimpleEntity[]>
+  Promise<Entity[]>
 > = async (context, authentication, { entityTypeId }) =>
   getEntities(context, authentication, {
     filter: {
@@ -1179,7 +1177,7 @@ export const anyUserInstantiator: EntityTypeInstantiatorSubject = {
 
 export const getExistingUsersAndOrgs: ImpureGraphFunction<
   Record<string, never>,
-  Promise<{ users: SimpleEntity[]; orgs: SimpleEntity[] }>
+  Promise<{ users: Entity[]; orgs: Entity[] }>
 > = async (context, authentication) => {
   const [users, orgs] = await Promise.all([
     getEntities(context, authentication, {

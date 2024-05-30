@@ -10,6 +10,7 @@ import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityPropertiesObject,
+  EntityRecordId,
 } from "@local/hash-graph-types/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
@@ -25,7 +26,7 @@ import type {
   EntityVertex,
   Subgraph,
 } from "@local/hash-subgraph";
-import { isEntityId } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId, isEntityId } from "@local/hash-subgraph";
 import type { FunctionComponent } from "react";
 import {
   useCallback,
@@ -289,21 +290,29 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
             //   see https://linear.app/hash/issue/H-2786/avoid-constructing-graphentity-in-block-loader
             inner: new Entity({
               metadata: {
-                recordId: entityInStore.metadata.recordId,
-                entityTypeIds: [entityInStore.metadata.entityTypeId],
+                recordId: entityInStore.metadata.recordId as EntityRecordId,
+                entityTypeIds: [
+                  entityInStore.metadata.entityTypeId,
+                ] as VersionedUrl[],
                 temporalVersioning: entityInStore.metadata.temporalVersioning,
-                archived: entityInStore.metadata.archived,
-                provenance: entityInStore.metadata.provenance,
-                /**
-                 * This cast is necessary because the DraftEntity type has some missing fields (e.g. entityId)
-                 * to account for entities which are only in the local store, and not in the API.
-                 * Because this entity must exist in the API, since we have matched it on an entityId from the API,
-                 * we can safely cast it to the Entity type.
-                 *
-                 * Ideally the entity store would not have differences in the type to persisted entities,
-                 * which we should address when moving to a single global entity store – see H-1351.
-                 */
-              } as GraphApiEntityMetadata,
+                archived: false,
+                provenance: {
+                  createdAtDecisionTime:
+                    entityInStore.metadata.temporalVersioning.decisionTime.start
+                      .limit,
+                  createdAtTransactionTime:
+                    entityInStore.metadata.temporalVersioning.transactionTime
+                      .start.limit,
+                  createdById: extractOwnedByIdFromEntityId(
+                    entityInStore.metadata.recordId.entityId!,
+                  ),
+                  edition: {
+                    createdById: extractOwnedByIdFromEntityId(
+                      entityInStore.metadata.recordId.entityId!,
+                    ),
+                  },
+                },
+              },
               properties: isBlockEntity
                 ? entityInStore.properties
                 : rewrittenPropertiesForTextualContent(

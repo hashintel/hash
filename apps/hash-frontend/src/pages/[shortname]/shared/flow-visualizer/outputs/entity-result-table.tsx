@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   EntityId,
-  EntityMetadata,
+  SimpleEntityMetadata,
   EntityRecordId,
 } from "@local/hash-graph-types/entity";
 import type {
@@ -120,7 +120,7 @@ export const EntityResultTable = ({
             entityId: `ownedBy~${entityId}` as EntityId,
           } satisfies EntityRecordId,
           entityTypeId: entityTypeId satisfies VersionedUrl,
-        } as EntityMetadata,
+        } as SimpleEntityMetadata,
       });
 
       const entityTitle = entityTypeId.split("/").at(-3) ?? "";

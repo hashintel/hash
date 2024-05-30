@@ -1,5 +1,4 @@
 import { FeatherRegularIcon } from "@hashintel/design-system";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
@@ -11,6 +10,7 @@ import type { ButtonProps } from "../../../../../shared/ui";
 import { Link } from "../../../../../shared/ui";
 import { AcceptDraftEntityButton } from "../../../../shared/accept-draft-entity-button";
 import { DiscardDraftEntityButton } from "../../../../shared/discard-draft-entity-button";
+import { Entity } from "@local/hash-graph-sdk/entity";
 
 const buttonSx: ButtonProps["sx"] = ({ palette }) => ({
   minWidth: 0,
@@ -33,10 +33,10 @@ const buttonSx: ButtonProps["sx"] = ({ palette }) => ({
 });
 
 export const DraftEntityBanner: FunctionComponent<{
-  draftEntity: SimpleEntity;
+  draftEntity: Entity;
   draftEntitySubgraph: Subgraph<EntityRootType>;
   isModifyingEntity?: boolean;
-  onAcceptedEntity: ((entity: SimpleEntity) => void) | null;
+  onAcceptedEntity: ((entity: Entity) => void) | null;
   owningShortname: string;
 }> = ({
   draftEntity,

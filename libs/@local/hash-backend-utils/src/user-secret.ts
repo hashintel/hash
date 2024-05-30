@@ -1,6 +1,7 @@
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -29,8 +30,8 @@ export const getSecretEntitiesForIntegration = async ({
   integrationEntityId: EntityId;
 }): Promise<
   {
-    usesUserSecretLink: SimpleEntity<UsesUserSecretProperties>;
-    userSecret: SimpleEntity<UserSecretProperties>;
+    usesUserSecretLink: Entity<UsesUserSecretProperties>;
+    userSecret: Entity<UserSecretProperties>;
   }[]
 > => {
   return await graphApiClient
@@ -78,8 +79,8 @@ export const getSecretEntitiesForIntegration = async ({
       const linkEntities = getRoots(subgraph);
 
       const linkAndSecretPairs: {
-        usesUserSecretLink: SimpleEntity<UsesUserSecretProperties>;
-        userSecret: SimpleEntity<UserSecretProperties>;
+        usesUserSecretLink: Entity<UsesUserSecretProperties>;
+        userSecret: Entity<UserSecretProperties>;
       }[] = [];
 
       for (const link of linkEntities) {
@@ -117,7 +118,7 @@ export const getSecretEntitiesForIntegration = async ({
 
         linkAndSecretPairs.push({
           usesUserSecretLink: link,
-          userSecret: target as SimpleEntity<UserSecretProperties>,
+          userSecret: target as Entity<UserSecretProperties>,
         });
       }
 
