@@ -15,6 +15,7 @@ import { getFlowContext } from "../../shared/get-flow-context";
 import { getLlmResponse } from "../../shared/get-llm-response";
 import type {
   LlmMessage,
+  LlmMessageTextContent,
   LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message";
 import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
@@ -143,14 +144,11 @@ export type CoordinatingAgentState = {
   questionsAndAnswers: string | null;
 };
 
-const getNextToolCalls = async (params: {
+const generateProgressReport = (params: {
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
-  forcedToolCall?: CoordinatorToolName;
-}): Promise<{
-  toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
-}> => {
-  const { input, state, forcedToolCall } = params;
+}): LlmMessageTextContent => {
+  const { state } = params;
 
   const submittedProposedEntities = state.proposedEntities.filter(
     (proposedEntity) =>
@@ -164,10 +162,10 @@ const getNextToolCalls = async (params: {
       state.submittedEntityIds.includes(proposedEntity.localEntityId),
   );
 
-  const systemPrompt = dedent(`
-      ${generateSystemPromptPrefix({ input, questionsAndAnswers: state.questionsAndAnswers })}
-
-      Make as many tool calls as are required to progress towards completing the task.
+  return {
+    type: "text",
+    text: dedent(`
+      Here is a summary of the progress you've made so far.
 
       ${generatePreviouslyInferredFactsSystemPromptMessage(state)}
 
@@ -196,17 +194,76 @@ const getNextToolCalls = async (params: {
 
       If you want to deviate from this plan or improve it, update it using the "updatePlan" tool.
       You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
+      
+      ${
+        state.inferredFactsAboutEntities.length > 0
+          ? dedent(`
+        Before calling the "proposeEntitiesFromFacts" tool, ensure you have gathered facts for as many
+          properties for each entity as possible.
+
+        If there is additional research to be done for one or more of the entities, you should call the "startFactGatheringSubTasks" tool
+          for to gather the required facts on a per-entity basis.
+
+        Remember that the outputted information will only consist of the properties and links defined in the entity and link types,
+          so don't waste resources on gathering information that cannot be returned.
+      `)
+          : ""
+      }
+    `),
+  };
+};
+
+const getNextToolCalls = async (params: {
+  input: CoordinatingAgentInput;
+  state: CoordinatingAgentState;
+  forcedToolCall?: CoordinatorToolName;
+}): Promise<{
+  toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
+}> => {
+  const { input, state, forcedToolCall } = params;
+
+  const systemPrompt = dedent(`
+      ${generateSystemPromptPrefix({ input, questionsAndAnswers: state.questionsAndAnswers })}
+
+      Make as many tool calls as are required to progress towards completing the task.
     `);
+
+  const llmMessagesFromPreviousToolCalls = mapPreviousCallsToLlmMessages({
+    previousCalls: state.previousCalls,
+  });
+
+  const lastUserMessage = llmMessagesFromPreviousToolCalls.slice(-1)[0];
+
+  if (lastUserMessage && lastUserMessage.role !== "user") {
+    throw new Error(
+      `Expected last message to be a user message, but it was: ${stringify(
+        lastUserMessage,
+      )}`,
+    );
+  }
+
+  const progressReport = generateProgressReport({ input, state });
 
   const messages: LlmMessage[] = [
     generateInitialUserMessage({ input }),
-    ...mapPreviousCallsToLlmMessages({ previousCalls: state.previousCalls }),
-  ];
+    ...llmMessagesFromPreviousToolCalls.slice(0, -1),
+    lastUserMessage
+      ? ({
+          ...lastUserMessage,
+          content: [
+            ...lastUserMessage.content,
+            // Add the progress report to the most recent user message.
+            progressReport,
+          ],
+        } satisfies LlmUserMessage)
+      : [],
+  ].flat();
 
   const tools = Object.values(
     generateToolDefinitions({
       humanInputCanBeRequested: input.humanInputCanBeRequested,
       canCompleteActivity: state.submittedEntityIds.length > 0,
+      state,
     }),
   );
 
