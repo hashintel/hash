@@ -1,10 +1,6 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityId,
-  SimpleEntity,
-  SimpleLinkEntity,
-} from "@local/hash-graph-types/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
@@ -60,13 +56,12 @@ export type Page = {
   fractionalIndex?: string;
   icon?: string;
   archived?: boolean;
-  entity: SimpleEntity;
+  entity: Entity;
 };
 
-export const getPageFromEntity: PureGraphFunction<
-  { entity: SimpleEntity },
-  Page
-> = ({ entity }) => {
+export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
+  entity,
+}) => {
   if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -212,7 +207,7 @@ export const getPageParentPage: ImpureGraphFunction<
     linkEntity: parentPageLink,
   });
 
-  return getPageFromEntity({ entity: pageEntity });
+  return getPageFromEntity({ entity: pageEntity as Entity<PageProperties> });
 };
 
 /**
@@ -442,9 +437,7 @@ export const setPageParentPage: ImpureGraphFunction<
  */
 export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
-  Promise<
-    { linkEntity: SimpleLinkEntity<HasDataProperties>; rightEntity: Block }[]
-  >,
+  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>,
   false,
   true
 > = async (ctx, authentication, { pageEntityId, type }) => {
@@ -460,8 +453,8 @@ export const getPageBlocks: ImpureGraphFunction<
               .linkEntityTypeId,
     },
   )) as
-    | GraphLinkEntity<HasIndexedContentProperties>[]
-    | GraphLinkEntity<HasSpatiallyPositionedContentProperties>[];
+    | LinkEntity<HasIndexedContentProperties>[]
+    | LinkEntity<HasSpatiallyPositionedContentProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks

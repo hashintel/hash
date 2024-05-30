@@ -76,7 +76,6 @@ import {
 } from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
 
 export const createEntityResolver: ResolverFn<
@@ -156,7 +155,7 @@ export const createEntityResolver: ResolverFn<
     });
   }
 
-  return mapEntityToGQL(entity);
+  return entity;
 };
 
 export const queryEntitiesResolver: NonNullable<
@@ -384,7 +383,7 @@ export const updateEntityResolver: ResolverFn<
     });
   }
 
-  return mapEntityToGQL(updatedEntity);
+  return updatedEntity;
 };
 
 export const updateEntitiesResolver: ResolverFn<

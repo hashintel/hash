@@ -1,11 +1,8 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
-import type {
-  EntityId,
-  EntityUuid,
-  SimpleEntity,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -46,13 +43,12 @@ export type Org = {
   accountGroupId: AccountGroupId;
   orgName: string;
   shortname: string;
-  entity: SimpleEntity;
+  entity: Entity;
 };
 
-export const getOrgFromEntity: PureGraphFunction<
-  { entity: SimpleEntity },
-  Org
-> = ({ entity }) => {
+export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
+  entity,
+}) => {
   const entityTypeBaseUrl = extractBaseUrl(entity.metadata.entityTypeId);
   if (entityTypeBaseUrl !== systemEntityTypes.organization.entityTypeBaseUrl) {
     throw new EntityTypeMismatchError(

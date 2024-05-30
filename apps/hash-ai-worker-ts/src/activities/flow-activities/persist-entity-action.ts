@@ -4,8 +4,8 @@ import type {
   CreateEntityRequest,
   EntityMetadata,
 } from "@local/hash-graph-client";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -59,7 +59,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   const entityValues: Omit<
     CreateEntityRequest,
     "relationships" | "ownedById" | "draft" | "linkData"
-  > & { linkData: SimpleEntity["linkData"] } = {
+  > & { linkData: SerializedEntity["linkData"] } = {
     entityTypeIds: [entityTypeId],
     properties,
     linkData,
@@ -102,8 +102,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       ]
     : undefined;
 
-  let entity: SimpleEntity;
-  let existingEntity: SimpleEntity | undefined;
+  let entity: SerializedEntity;
+  let existingEntity: SerializedEntity | undefined;
   let operation: "create" | "update";
 
   if (isFileEntity && fileUrl) {

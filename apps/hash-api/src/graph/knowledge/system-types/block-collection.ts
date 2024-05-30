@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   SimpleLinkEntity,
@@ -45,9 +45,7 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
     blockCollectionEntityId: EntityId;
     blockCollectionEntityTypeId: VersionedUrl;
   },
-  Promise<
-    { linkEntity: SimpleLinkEntity<HasDataProperties>; rightEntity: Block }[]
-  >
+  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>
 > = async (
   ctx,
   authentication,
@@ -66,8 +64,8 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
         : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     },
   )) as
-    | GraphLinkEntity<HasSpatiallyPositionedContentProperties>[]
-    | GraphLinkEntity<HasIndexedContentProperties>[];
+    | LinkEntity<HasSpatiallyPositionedContentProperties>[]
+    | LinkEntity<HasIndexedContentProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
@@ -161,7 +159,7 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
 
   await updateLinkEntity(ctx, authentication, {
     properties: canvasPosition || indexPosition,
-    linkEntity: linkEntity as SimpleLinkEntity,
+    linkEntity: linkEntity as LinkEntity,
   });
 };
 

@@ -1,4 +1,4 @@
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ProposedEntity,
@@ -45,7 +45,7 @@ export type CoordinatingAgentInput = {
   allDereferencedEntityTypesById: DereferencedEntityTypesByTypeId;
   entityTypes: DereferencedEntityType<string>[];
   linkEntityTypes?: DereferencedEntityType<string>[];
-  existingEntities?: SimpleEntity[];
+  existingEntities?: SerializedEntity[];
   existingEntitySummaries?: ExistingEntitySummary[];
 };
 

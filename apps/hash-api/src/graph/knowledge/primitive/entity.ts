@@ -17,7 +17,7 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
-import type { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { LinkEntity } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
@@ -554,7 +554,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
  */
 export const updateEntity: ImpureGraphFunction<
   {
-    entity: SimpleEntity;
+    entity: Entity;
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
     draft?: boolean;
@@ -647,7 +647,7 @@ export const unarchiveEntity: ImpureGraphFunction<
  */
 export const updateEntityProperties: ImpureGraphFunction<
   {
-    entity: SimpleEntity;
+    entity: Entity;
     updatedProperties: {
       propertyTypeBaseUrl: BaseUrl;
       value: PropertyValue | undefined;
@@ -686,7 +686,7 @@ export const updateEntityProperties: ImpureGraphFunction<
  */
 export const updateEntityProperty: ImpureGraphFunction<
   {
-    entity: SimpleEntity;
+    entity: Entity;
     propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
     provenance?: ProvidedEntityEditionProvenance;
@@ -716,7 +716,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     linkEntityTypeId?: VersionedUrl;
     includeDrafts?: boolean;
   },
-  Promise<GraphLinkEntity[]>
+  Promise<LinkEntity[]>
 > = async (context, authentication, params) => {
   const { entityId, includeDrafts = false } = params;
   const filter: Filter = {
@@ -784,7 +784,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     rightEntityId?: EntityId;
     includeDrafts?: boolean;
   },
-  Promise<GraphLinkEntity[]>
+  Promise<LinkEntity[]>
 > = async (context, authentication, params) => {
   const {
     entityId,

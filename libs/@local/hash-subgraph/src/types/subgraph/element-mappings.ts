@@ -1,9 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type {
-  EntityId,
-  EntityRecordId,
-  SimpleEntity,
-} from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId, EntityRecordId } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -47,12 +44,12 @@ export type GraphElementIdentifiers =
     }
   | {
       identifier: EntityIdWithTimestamp | EntityVertexId | EntityRecordId;
-      element: SimpleEntity;
+      element: Entity;
       vertex: EntityVertex;
     }
   | {
       identifier: EntityId | EntityIdWithInterval;
-      element: SimpleEntity[];
+      element: Entity[];
       vertex: EntityVertex[];
     };
 

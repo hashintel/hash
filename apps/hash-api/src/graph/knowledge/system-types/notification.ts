@@ -2,6 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   SimpleEntity,
@@ -47,7 +48,7 @@ import type { User } from "./user";
 
 type Notification = {
   archived?: boolean;
-  entity: SimpleEntity<NotificationProperties>;
+  entity: Entity<NotificationProperties>;
 };
 
 export const archiveNotification: ImpureGraphFunction<
@@ -74,13 +75,13 @@ export type MentionNotification = {
 } & Notification;
 
 export const isEntityMentionNotificationEntity = (
-  entity: SimpleEntity,
-): entity is SimpleEntity<MentionNotificationProperties> =>
+  entity: Entity,
+): entity is Entity<MentionNotificationProperties> =>
   entity.metadata.entityTypeId ===
   systemEntityTypes.mentionNotification.entityTypeId;
 
 export const getMentionNotificationFromEntity: PureGraphFunction<
-  { entity: SimpleEntity },
+  { entity: Entity },
   Notification
 > = ({ entity }) => {
   if (!isEntityMentionNotificationEntity(entity)) {
@@ -317,13 +318,13 @@ export type CommentNotification = {
 } & Notification;
 
 export const isEntityCommentNotificationEntity = (
-  entity: SimpleEntity,
-): entity is SimpleEntity<CommentNotificationProperties> =>
+  entity: Entity,
+): entity is Entity<CommentNotificationProperties> =>
   entity.metadata.entityTypeId ===
   systemEntityTypes.commentNotification.entityTypeId;
 
 export const getCommentNotificationFromEntity: PureGraphFunction<
-  { entity: SimpleEntity },
+  { entity: Entity },
   Notification
 > = ({ entity }) => {
   if (!isEntityCommentNotificationEntity(entity)) {

@@ -18,10 +18,10 @@ import type {
   SimpleProperties,
   Simplified,
 } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { ImageProperties } from "@local/hash-isomorphic-utils/system-types/image";
+import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
 import type {
   BrowserPluginSettingsProperties,
-  OrganizationProperties,
+  Organization,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
@@ -43,9 +43,9 @@ type SimplifiedUser = SimpleEntity & {
 };
 
 type UserAndLinkedData = SimplifiedUser & {
-  avatar?: SimpleEntity<ImageProperties>;
-  orgs: (Simplified<SimpleEntity<OrganizationProperties>> & {
-    avatar?: SimpleEntity<ImageProperties>;
+  avatar?: Image;
+  orgs: (Simplified<Organization> & {
+    avatar?: Image;
     webOwnedById: OwnedById;
   })[];
   settingsEntityId: EntityId;

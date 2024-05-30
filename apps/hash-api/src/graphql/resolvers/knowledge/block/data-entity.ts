@@ -8,7 +8,6 @@ import type { ResolverFn } from "../../../api-types.gen";
 import type { GraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedBlockGQL } from "../graphql-mapping";
-import { mapEntityToGQL } from "../graphql-mapping";
 
 export const blockChildEntityResolver: ResolverFn<
   Promise<SimpleEntity>,
@@ -23,5 +22,5 @@ export const blockChildEntityResolver: ResolverFn<
     entityId: metadata.recordId.entityId,
   });
 
-  return mapEntityToGQL(await getBlockData(context, authentication, { block }));
+  return getBlockData(context, authentication, { block });
 };

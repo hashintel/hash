@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityPropertiesObject,
   LinkData,
@@ -47,7 +48,7 @@ export const getUser = async (requestContext: APIRequestContext) => {
   }).then(({ data }) => {
     return !data
       ? undefined
-      : (getRoots(data.me.subgraph)[0] as SimpleEntity<UserProperties>);
+      : (getRoots(data.me.subgraph)[0] as Entity<UserProperties>);
   });
 };
 

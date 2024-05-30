@@ -1,3 +1,4 @@
+import type { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -199,26 +200,21 @@ export const constructOrg = (params: {
     orgEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
   ).filter(
-    (linkEntity): linkEntity is SimpleEntity<IsMemberOfProperties> =>
+    (linkEntity): linkEntity is LinkEntity<IsMemberOfProperties> =>
       linkEntity.metadata.entityTypeId ===
       systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
   );
 
   const memberships = orgMemberships.map((linkEntity) => {
-    const { linkData, metadata } = linkEntity;
-
-    if (!linkData?.leftEntityId) {
-      throw new Error("Expected org membership to contain a left entity");
-    }
     const userEntityRevisions = getLeftEntityForLinkEntity(
       subgraph,
-      metadata.recordId.entityId,
+      linkEntity.metadata.recordId.entityId,
       intervalForTimestamp(new Date().toISOString() as Timestamp),
     );
 
     if (!userEntityRevisions || userEntityRevisions.length === 0) {
       throw new Error(
-        `Failed to find the current user entity associated with the membership with entity ID: ${metadata.recordId.entityId}`,
+        `Failed to find the current user entity associated with the membership with entity ID: ${linkEntity.metadata.recordId.entityId}`,
       );
     }
 

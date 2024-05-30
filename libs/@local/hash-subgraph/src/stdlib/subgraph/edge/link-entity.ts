@@ -1,5 +1,6 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
 import type { LinkEntityAndRightEntity, Subgraph } from "../../../main";
@@ -19,7 +20,7 @@ import {
 // Copied from `@blockprotocol/graph`
 const getUniqueEntitiesFilter = () => {
   const set = new Set();
-  return (entity: SimpleEntity) => {
+  return (entity: Entity) => {
     const recordIdString = JSON.stringify(entity.metadata.recordId);
     if (set.has(recordIdString)) {
       return false;
@@ -49,7 +50,7 @@ export const getOutgoingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TimeInterval,
-): SimpleEntity[] => {
+): Entity[] => {
   const searchInterval =
     interval ??
     intervalForTimestamp(
@@ -124,7 +125,7 @@ export const getIncomingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TimeInterval,
-): SimpleEntity[] => {
+): Entity[] => {
   const searchInterval =
     interval ??
     intervalForTimestamp(
@@ -198,7 +199,7 @@ export const getLeftEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TimeInterval,
-): SimpleEntity[] | undefined => {
+): Entity[] | undefined => {
   const searchInterval =
     interval ??
     intervalForTimestamp(
@@ -250,7 +251,7 @@ export const getRightEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TimeInterval,
-): SimpleEntity[] | undefined => {
+): Entity[] | undefined => {
   const searchInterval =
     interval ??
     intervalForTimestamp(
@@ -324,7 +325,7 @@ export const getOutgoingLinkAndTargetEntities = <
 
       return revisionMap;
     },
-    {} as Record<EntityId, SimpleEntity[]>,
+    {} as Record<EntityId, Entity[]>,
   );
 
   return typedEntries(mappedRevisions).map(

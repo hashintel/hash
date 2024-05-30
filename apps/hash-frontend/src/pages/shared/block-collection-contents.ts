@@ -1,9 +1,5 @@
-import type {
-  EntityId,
-  EntityUuid,
-  SimpleEntity,
-  SimpleLinkEntity,
-} from "@local/hash-graph-types/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
   currentTimeInstantTemporalAxes,
@@ -125,9 +121,9 @@ export const getBlockCollectionContents = (params: {
   const outgoingContentLinks = getOutgoingLinkAndTargetEntities<
     {
       linkEntity:
-        | SimpleLinkEntity<HasIndexedContentProperties>[]
-        | SimpleLinkEntity<HasSpatiallyPositionedContentProperties>[];
-      rightEntity: SimpleEntity<BlockProperties>[];
+        | LinkEntity<HasIndexedContentProperties>[]
+        | LinkEntity<HasSpatiallyPositionedContentProperties>[];
+      rightEntity: Entity<BlockProperties>[];
     }[]
   >(blockCollectionSubgraph, blockCollectionEntityId)
     .filter(
@@ -172,7 +168,8 @@ export const getBlockCollectionContents = (params: {
       return {
         linkEntity: containsLinkEntityRevisions[0]!,
         rightEntity: {
-          ...rightEntity,
+          metadata: rightEntity.metadata,
+          properties: rightEntity.properties,
           blockChildEntity,
           componentId,
         },

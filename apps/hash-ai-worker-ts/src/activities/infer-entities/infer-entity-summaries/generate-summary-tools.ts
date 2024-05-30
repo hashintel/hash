@@ -3,7 +3,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { validateVersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
@@ -30,7 +30,7 @@ export const validateEntitySummariesByType = (params: {
   parsedJson: JsonObject;
   entityTypesById: DereferencedEntityTypesByTypeId;
   existingSummaries: ProposedEntitySummary[];
-  existingEntities?: SimpleEntity[];
+  existingEntities?: SerializedEntity[];
 }): {
   errorMessage?: string;
   validSummaries: ProposedEntitySummary[];

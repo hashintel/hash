@@ -1,12 +1,12 @@
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type {
   PersistedEntities,
   PersistedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 export const mapActionInputEntitiesToEntities = (params: {
-  inputEntities: (SimpleEntity | PersistedEntity | PersistedEntities)[];
-}): SimpleEntity[] =>
+  inputEntities: (SerializedEntity | PersistedEntity | PersistedEntities)[];
+}): SerializedEntity[] =>
   params.inputEntities.flatMap((inputEntity) =>
     "metadata" in inputEntity
       ? inputEntity

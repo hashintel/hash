@@ -1,5 +1,6 @@
 import type { Timestamp } from "@blockprotocol/graph";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
@@ -20,7 +21,7 @@ import {
  * @param subgraph
  * @param latest - whether or not to only return the latest revisions of each entity
  */
-export const getEntities = (subgraph: Subgraph): SimpleEntity[] =>
+export const getEntities = (subgraph: Subgraph): Entity[] =>
   typedValues(subgraph.vertices).flatMap((revisions) =>
     typedValues(revisions)
       .filter(isEntityVertex)
@@ -165,7 +166,7 @@ export const getEntityRevisionsByEntityId = (
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TimeInterval,
-): SimpleEntity[] => {
+): Entity[] => {
   const entityRevisions = getRevisionsForEntity(subgraph, entityId);
 
   if (entityRevisions === undefined) {

@@ -4,7 +4,7 @@ import type {
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { GraphLinkEntity } from "@local/hash-graph-sdk/entity";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -13,8 +13,6 @@ import type {
   EntityId,
   EntityPropertiesObject,
   LinkData,
-  SimpleEntity,
-  SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
@@ -43,7 +41,7 @@ export type CreateLinkEntityParams = {
   provenance?: ProvidedEntityEditionProvenance;
 };
 
-export const isEntityLinkEntity = (entity: Entity): entity is GraphLinkEntity =>
+export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
   !!entity.linkData;
 
 /**
@@ -57,7 +55,7 @@ export const isEntityLinkEntity = (entity: Entity): entity is GraphLinkEntity =>
  */
 export const createLinkEntity: ImpureGraphFunction<
   CreateLinkEntityParams,
-  Promise<GraphLinkEntity>
+  Promise<LinkEntity>
 > = async (context, authentication, params) => {
   const {
     ownedById,
@@ -116,7 +114,7 @@ export const createLinkEntity: ImpureGraphFunction<
     },
   );
 
-  const linkEntity = new GraphLinkEntity({
+  const linkEntity = new LinkEntity({
     metadata,
     properties,
     linkData,
@@ -144,12 +142,12 @@ export const createLinkEntity: ImpureGraphFunction<
  */
 export const updateLinkEntity: ImpureGraphFunction<
   {
-    linkEntity: SimpleLinkEntity;
+    linkEntity: LinkEntity;
     properties?: EntityPropertiesObject;
     draft?: boolean;
     provenance?: ProvidedEntityEditionProvenance;
   },
-  Promise<GraphLinkEntity>
+  Promise<LinkEntity>
 > = async ({ graphApi }, { actorId }, params) => {
   const { linkEntity } = params;
 
@@ -168,7 +166,7 @@ export const updateLinkEntity: ImpureGraphFunction<
     provenance: params.provenance,
   });
 
-  return new GraphLinkEntity({
+  return new LinkEntity({
     metadata,
     properties,
     linkData: linkEntity.linkData,
@@ -181,8 +179,8 @@ export const updateLinkEntity: ImpureGraphFunction<
  * @param params.linkEntity - the link entity
  */
 export const getLinkEntityRightEntity: ImpureGraphFunction<
-  { linkEntity: SimpleLinkEntity },
-  Promise<SimpleEntity>
+  { linkEntity: LinkEntity },
+  Promise<Entity>
 > = async (ctx, authentication, { linkEntity }) => {
   const rightEntity = await getLatestEntityById(ctx, authentication, {
     entityId: linkEntity.linkData.rightEntityId,
@@ -197,8 +195,8 @@ export const getLinkEntityRightEntity: ImpureGraphFunction<
  * @param params.linkEntity - the link entity
  */
 export const getLinkEntityLeftEntity: ImpureGraphFunction<
-  { linkEntity: SimpleLinkEntity },
-  Promise<SimpleEntity>
+  { linkEntity: LinkEntity },
+  Promise<Entity>
 > = async (ctx, authentication, { linkEntity }) => {
   const leftEntity = await getLatestEntityById(ctx, authentication, {
     entityId: linkEntity.linkData.leftEntityId,

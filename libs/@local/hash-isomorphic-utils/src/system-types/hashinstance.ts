@@ -2,13 +2,13 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type { BooleanDataType } from "./shared";
 
 export type { BooleanDataType };
 
-export type HASHInstance = SimpleEntity<HASHInstanceProperties>;
+export type HASHInstance = Entity<HASHInstanceProperties>;
 
 export type HASHInstanceOutgoingLinkAndTarget = never;
 

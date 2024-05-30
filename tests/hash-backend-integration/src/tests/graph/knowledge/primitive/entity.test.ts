@@ -16,6 +16,7 @@ import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/en
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   EntityTypeWithMetadata,
@@ -206,7 +207,7 @@ describe("Entity CRU", () => {
     };
   });
 
-  let createdEntity: SimpleEntity;
+  let createdEntity: Entity;
   it("can create an entity", async () => {
     const authentication = { actorId: testUser.accountId };
     createdEntity = await createEntity(graphContext, authentication, {

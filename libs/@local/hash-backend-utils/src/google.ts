@@ -1,7 +1,8 @@
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -50,7 +51,7 @@ export const getGoogleAccountById = async ({
   userAccountId: AccountId;
   googleAccountId: string;
   graphApiClient: GraphApi;
-}): Promise<SimpleEntity<GoogleAccountProperties> | undefined> => {
+}): Promise<Entity<GoogleAccountProperties> | undefined> => {
   const entities = await graphApiClient
     .getEntitySubgraph(userAccountId, {
       filter: {
@@ -97,7 +98,7 @@ export const getGoogleAccountById = async ({
 
   const entity = entities[0];
 
-  return entity as SimpleEntity<GoogleAccountProperties> | undefined;
+  return entity as Entity<GoogleAccountProperties> | undefined;
 };
 
 export const getTokensForGoogleAccount = async ({

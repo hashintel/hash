@@ -1,4 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   createDefaultAuthorizationRelationships,
@@ -41,11 +42,11 @@ import { getCommentFromEntity } from "./comment";
 
 export type Block = {
   componentId: string;
-  entity: SimpleEntity;
+  entity: Entity;
 };
 
 export const getBlockFromEntity: PureGraphFunction<
-  { entity: SimpleEntity },
+  { entity: Entity },
   Block
 > = ({ entity }) => {
   if (entity.metadata.entityTypeId !== systemEntityTypes.block.entityTypeId) {
@@ -126,7 +127,7 @@ export const createBlock: ImpureGraphFunction<
  */
 export const getBlockData: ImpureGraphFunction<
   { block: Block },
-  Promise<SimpleEntity>
+  Promise<Entity>
 > = async (ctx, authentication, { block }) => {
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(
     ctx,
@@ -247,7 +248,7 @@ export const getBlockComments: ImpureGraphFunction<
  */
 export const getBlockCollectionByBlock: ImpureGraphFunction<
   { block: Block; includeDrafts?: boolean },
-  Promise<SimpleEntity | null>
+  Promise<Entity | null>
 > = async (context, authentication, params) => {
   const { block, includeDrafts = false } = params;
 

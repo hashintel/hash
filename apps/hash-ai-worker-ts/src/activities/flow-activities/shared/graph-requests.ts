@@ -3,11 +3,11 @@ import type {
   GraphApi,
   PropertyPatchOperation,
 } from "@local/hash-graph-client";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
   EntityPropertiesObject,
-  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -79,13 +79,13 @@ export const getLatestEntityById = async (params: {
     );
   }
 
-  return entity;
+  return entity.serialize();
 };
 
 export const archiveEntity = async (params: {
   graphApiClient: GraphApi;
   authentication: { actorId: AccountId };
-  entity: SimpleEntity;
+  entity: SerializedEntity;
 }) => {
   const { graphApiClient, authentication, entity } = params;
   await graphApiClient.patchEntity(authentication.actorId, {
@@ -98,7 +98,7 @@ export const getEntityUpdate = <T extends EntityPropertiesObject>({
   existingEntity,
   newProperties,
 }: {
-  existingEntity: SimpleEntity;
+  existingEntity: SerializedEntity;
   newProperties: T;
 }) => {
   const patchOperations: PropertyPatchOperation[] = [];

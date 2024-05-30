@@ -1,8 +1,6 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type {
-  EntityId,
-  SimpleLinkEntity,
-} from "@local/hash-graph-types/entity";
+import type { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -32,11 +30,11 @@ import type { User } from "./user";
 import { getUserFromEntity } from "./user";
 
 export type OrgMembership = {
-  linkEntity: SimpleLinkEntity<IsMemberOfProperties>;
+  linkEntity: LinkEntity<IsMemberOfProperties>;
 };
 
 export const getOrgMembershipFromLinkEntity: PureGraphFunction<
-  { linkEntity: SimpleLinkEntity },
+  { linkEntity: LinkEntity },
   OrgMembership
 > = ({ linkEntity }) => {
   if (

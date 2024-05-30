@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import dedent from "dedent";
 
 import { getFlowContext } from "../../shared/get-flow-context";
@@ -68,7 +69,7 @@ const registerEntitySummariesToolDefinition: LlmToolDefinition<
 };
 
 export const summarizeExistingEntities = async (params: {
-  existingEntities: SimpleEntity[];
+  existingEntities: SerializedEntity[];
 }): Promise<{ existingEntitySummaries: ExistingEntitySummary[] }> => {
   const { existingEntities } = params;
 

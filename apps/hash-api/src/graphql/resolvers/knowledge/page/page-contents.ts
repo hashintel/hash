@@ -1,15 +1,15 @@
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { HasData } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { getPageBlocks } from "../../../../graph/knowledge/system-types/page";
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedBlockGQL, UnresolvedPageGQL } from "../graphql-mapping";
-import { mapBlockToGQL, mapEntityToGQL } from "../graphql-mapping";
+import { mapBlockToGQL } from "../graphql-mapping";
 
 export const pageContents: ResolverFn<
-  { linkEntity: SimpleEntity; rightEntity: UnresolvedBlockGQL }[],
+  { linkEntity: HasData; rightEntity: UnresolvedBlockGQL }[],
   UnresolvedPageGQL,
   LoggedInGraphQLContext,
   Record<string, never>
@@ -26,7 +26,7 @@ export const pageContents: ResolverFn<
   });
 
   return contentItems.map(({ linkEntity, rightEntity }) => ({
-    linkEntity: mapEntityToGQL(linkEntity),
+    linkEntity,
     rightEntity: mapBlockToGQL(rightEntity),
   }));
 };

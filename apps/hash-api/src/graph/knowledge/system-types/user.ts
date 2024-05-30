@@ -1,12 +1,9 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type {
-  EntityId,
-  EntityUuid,
-  SimpleEntity,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
@@ -64,13 +61,12 @@ export type User = {
   shortname?: string;
   displayName?: string;
   isAccountSignupComplete: boolean;
-  entity: SimpleEntity;
+  entity: Entity;
 };
 
-export const getUserFromEntity: PureGraphFunction<
-  { entity: SimpleEntity },
-  User
-> = ({ entity }) => {
+export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
+  entity,
+}) => {
   if (entity.metadata.entityTypeId !== systemEntityTypes.user.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,

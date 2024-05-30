@@ -58,8 +58,9 @@ export const useCreateOnCellEdited = () => {
         );
 
         setEntity({
-          ...entity,
           properties: updatedProperties,
+          metadata: entity.metadata,
+          linkData: entity.linkData,
         });
       };
 

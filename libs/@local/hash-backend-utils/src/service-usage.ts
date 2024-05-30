@@ -1,7 +1,8 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityUuid, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -120,7 +121,7 @@ export const getUserServiceUsage = async (
     }
 
     const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
-      .rightEntity[0]! as SimpleEntity<ServiceFeatureProperties>;
+      .rightEntity[0]! as Entity<ServiceFeatureProperties>;
 
     const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
       serviceFeatureEntity.properties,

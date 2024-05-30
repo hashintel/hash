@@ -1,10 +1,7 @@
 import type { ApolloClient } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  EntityId,
-  SimpleEntity,
-  SimpleLinkEntity,
-} from "@local/hash-graph-types/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
@@ -77,7 +74,7 @@ const calculateSaveActions = (
   ownedById: OwnedById,
   blocksAndLinks: {
     blockEntity: BlockEntity;
-    contentLinkEntity: SimpleLinkEntity<HasIndexedContentProperties>;
+    contentLinkEntity: LinkEntity<HasIndexedContentProperties>;
   }[],
   doc: Node,
   getEntityTypeForComponent: (componentId: string) => VersionedUrl,
@@ -423,7 +420,7 @@ const getDraftEntityIds = (
 };
 
 const mapEntityToGqlBlock = (
-  entity: SimpleEntity<BlockProperties>,
+  entity: Entity<BlockProperties>,
   entitySubgraph: Subgraph<EntityRootType>,
 ): GqlBlock => {
   if (entity.metadata.entityTypeId !== systemEntityTypes.block.entityTypeId) {
@@ -497,8 +494,8 @@ export const save = async ({
 
       const blocksAndLinks = getOutgoingLinkAndTargetEntities<
         {
-          linkEntity: SimpleLinkEntity<HasIndexedContentProperties>[];
-          rightEntity: SimpleEntity<BlockProperties>[];
+          linkEntity: LinkEntity<HasIndexedContentProperties>[];
+          rightEntity: Entity<BlockProperties>[];
         }[]
       >(subgraph, blockCollectionEntity!.metadata.recordId.entityId)
         .filter(

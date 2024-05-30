@@ -1,4 +1,3 @@
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { UserInputError } from "apollo-server-errors";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
@@ -62,6 +61,6 @@ export const requestFileUpload: ResolverFn<
 
   return {
     presignedPut,
-    entity: entity as SimpleEntity,
+    entity,
   };
 };

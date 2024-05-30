@@ -4,7 +4,7 @@ import {
   type PropertyTypeRootType as PropertyTypeRootTypeBp,
 } from "@blockprotocol/graph/temporal";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -17,6 +17,7 @@ import type { SubgraphTemporalAxes } from "./subgraph/temporal-axes";
 import type {
   EntityVertexId,
   OntologyTypeVertexId,
+  SerializedVertices,
   Vertices,
 } from "./subgraph/vertices";
 
@@ -51,7 +52,7 @@ export type EntityTypeRootType = Subtype<
 
 export type EntityRootType = {
   vertexId: EntityVertexId;
-  element: SimpleEntity;
+  element: Entity;
 };
 
 export type SubgraphRootType =
@@ -74,6 +75,13 @@ export type SubgraphRootType =
 export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
   roots: RootType["vertexId"][];
   vertices: Vertices;
+  edges: Edges;
+  depths: GraphResolveDepths;
+  temporalAxes: SubgraphTemporalAxes;
+};
+export type SerializedSubgraph = {
+  roots: SubgraphRootType["vertexId"][];
+  vertices: SerializedVertices;
   edges: Edges;
   depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;

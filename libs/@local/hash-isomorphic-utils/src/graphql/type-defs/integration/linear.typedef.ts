@@ -69,6 +69,6 @@ export const linearTypedef = gql`
     syncLinearIntegrationWithWorkspaces(
       linearIntegrationEntityId: EntityId!
       syncWithWorkspaces: [SyncWithWorkspace!]!
-    ): SimpleEntity
+    ): Entity
   }
 `;

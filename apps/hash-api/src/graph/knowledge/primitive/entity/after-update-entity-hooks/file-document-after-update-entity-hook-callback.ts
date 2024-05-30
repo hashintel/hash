@@ -4,7 +4,7 @@ import {
   storageProviderLookup,
 } from "@local/hash-backend-utils/file-storage";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -33,7 +33,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
   async ({ entity, updatedProperties, context, authentication }) => {
     const { temporalClient } = context;
 
-    const fileEntity = entity as SimpleEntity<FileEntityToParseProperties>;
+    const fileEntity = entity as Entity<FileEntityToParseProperties>;
 
     const {
       textualContent,
@@ -85,10 +85,10 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
           args: [
             {
               presignedFileDownloadUrl,
-              fileEntity: {
-                ...fileEntity,
+              fileEntity: new Entity<FileProperties>({
+                metadata: fileEntity.metadata,
                 properties: updatedProperties as FileProperties,
-              },
+              }),
               webMachineActorId,
             },
           ],

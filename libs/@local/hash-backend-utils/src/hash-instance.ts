@@ -4,11 +4,11 @@ import {
 } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -20,13 +20,13 @@ import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph
 import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 export type HashInstance = {
-  entity: SimpleEntity;
+  entity: Entity;
 } & SimpleProperties<HASHInstanceProperties>;
 
 export const getHashInstanceFromEntity = ({
   entity,
 }: {
-  entity: SimpleEntity;
+  entity: Entity;
 }): HashInstance => {
   if (
     entity.metadata.entityTypeId !== systemEntityTypes.hashInstance.entityTypeId

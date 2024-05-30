@@ -9,9 +9,11 @@ import type {
   SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 
-export type SerializedEntity = {
+export type SerializedEntity<
+  Properties extends EntityPropertiesObject = EntityPropertiesObject,
+> = {
   metadata: EntityMetadata;
-  properties: EntityPropertiesObject;
+  properties: Properties;
   linkData?: LinkData;
 };
 
@@ -70,7 +72,7 @@ export class Entity<
     return this.#entity.linkData;
   }
 
-  public serialize(): SerializedEntity {
+  public serialize(): SerializedEntity<Properties> {
     return {
       metadata: this.metadata,
       properties: this.properties,
@@ -79,7 +81,7 @@ export class Entity<
   }
 }
 
-export class GraphLinkEntity<
+export class LinkEntity<
     Properties extends EntityPropertiesObject = EntityPropertiesObject,
   >
   extends Entity<Properties>

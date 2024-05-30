@@ -28,6 +28,7 @@ import {
 import type {
   KnowledgeGraphVertex,
   SerializedKnowledgeGraphVertex,
+  SerializedSubgraph,
   SerializedVertices,
   Subgraph,
   SubgraphRootType,
@@ -196,6 +197,24 @@ export const mapGraphApiSubgraphToSubgraph = <
     ),
   } as Subgraph<RootType>;
 };
+
+export const serializeSubgraph = (subgraph: Subgraph): SerializedSubgraph => ({
+  roots: subgraph.roots,
+  vertices: serializeGraphVertices(subgraph.vertices),
+  edges: subgraph.edges,
+  depths: subgraph.depths,
+  temporalAxes: subgraph.temporalAxes,
+});
+
+export const deserializeSubgraph = (
+  subgraph: SerializedSubgraph,
+): Subgraph => ({
+  roots: subgraph.roots,
+  vertices: deserializeGraphVertices(subgraph.vertices),
+  edges: subgraph.edges,
+  depths: subgraph.depths,
+  temporalAxes: subgraph.temporalAxes,
+});
 
 export const mapGraphApiEntityTypeToEntityType = (
   entityTypes: GraphApiEntityTypeWithMetadata[],

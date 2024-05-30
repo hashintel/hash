@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -67,7 +68,7 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
       : undefined;
 
     const accounts = subgraph
-      ? (getRoots(subgraph) as SimpleEntity<GoogleAccountProperties>[])
+      ? (getRoots(subgraph) as Entity<GoogleAccountProperties>[])
       : [];
 
     return {
