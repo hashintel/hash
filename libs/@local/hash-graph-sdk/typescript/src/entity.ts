@@ -14,25 +14,27 @@ const typeId: unique symbol = Symbol.for(
 type TypeId = typeof typeId;
 
 export interface SerializedEntity<
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > {
   [typeId]: TypeId;
-  readonly __serialized: {
-    readonly metadata: EntityMetadata;
-    readonly properties: Properties;
-    readonly linkData?: LinkData;
-  };
 }
+
+type EntityData<Properties extends EntityPropertiesObject> = {
+  metadata: EntityMetadata;
+  properties: Properties;
+  linkData?: LinkData;
+};
 
 export class Entity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > implements SimpleEntity<Properties>
 {
-  #entity: Omit<SerializedEntity<Properties>, TypeId>["__serialized"];
+  #entity: EntityData<Properties>;
 
   constructor(entity: GraphApiEntity | SerializedEntity<Properties>) {
     if (typeId in entity) {
-      this.#entity = entity.__serialized;
+      this.#entity = entity as unknown as EntityData<Properties>;
     } else {
       if (entity.metadata.entityTypeIds.length !== 1) {
         throw new Error(
@@ -73,7 +75,7 @@ export class Entity<
   }
 
   public serialize(): SerializedEntity<Properties> {
-    return { [typeId]: typeId, __serialized: this.#entity };
+    return { [typeId]: typeId, ...this.#entity };
   }
 }
 

@@ -1,8 +1,8 @@
 import { useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
 import type {
   EntityId,
+  EntityMetadata,
   EntityTemporalVersioningMetadata,
 } from "@local/hash-graph-types/entity";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
