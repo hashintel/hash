@@ -2,8 +2,8 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
+  EntityMetadata,
   EntityRecordId,
-  SimpleEntityMetadata,
 } from "@local/hash-graph-types/entity";
 import type {
   PersistedEntity,
@@ -126,7 +126,7 @@ export const EntityResultTable = ({
             entityId: `ownedBy~${entityId}` as EntityId,
           } satisfies EntityRecordId,
           entityTypeId: entityTypeId satisfies VersionedUrl,
-        } as SimpleEntityMetadata,
+        } as EntityMetadata,
       });
 
       const entityTitle = entityTypeId.split("/").at(-3) ?? "";

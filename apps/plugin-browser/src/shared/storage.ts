@@ -1,9 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type {
-  EntityId,
-  SimpleEntityMetadata,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, EntityMetadata } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
@@ -36,7 +33,7 @@ import { setDisabledBadge, setEnabledBadge } from "./badge";
 import { updateEntity } from "./storage/update-entity";
 
 type SimplifiedUser = {
-  metadata: SimpleEntityMetadata;
+  metadata: EntityMetadata;
   properties: Required<
     Pick<
       SimpleProperties<UserProperties>,

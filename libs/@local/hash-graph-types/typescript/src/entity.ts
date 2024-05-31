@@ -65,34 +65,28 @@ export type EntityTemporalVersioningMetadata = Subtype<
   Record<TemporalAxis, HalfClosedInterval>
 >;
 
-export type SimpleEntityMetadata = Subtype<
+export type EntityMetadata = Subtype<
   EntityMetadataBp,
   {
     recordId: EntityRecordId;
     entityTypeId: VersionedUrl;
     temporalVersioning: EntityTemporalVersioningMetadata;
+    archived: boolean;
+    provenance: EntityProvenance;
+    confidence?: number;
+    properties?: PropertyMetadataMap;
   }
 >;
 
-export type EntityMetadata = SimpleEntityMetadata & {
-  archived: boolean;
-  provenance: EntityProvenance;
-  confidence?: number;
-  properties?: PropertyMetadataMap;
-};
-
-export type SimpleLinkData = Subtype<
+export type LinkData = Subtype<
   LinkDataBp,
   {
     leftEntityId: EntityId;
     rightEntityId: EntityId;
+    leftEntityConfidence?: number;
+    rightEntityConfidence?: number;
   }
 >;
-
-export type LinkData = SimpleLinkData & {
-  leftEntityConfidence?: number;
-  rightEntityConfidence?: number;
-};
 
 export type EntityProvenance = {
   createdById: CreatedById;
@@ -112,17 +106,3 @@ export type EntityEditionProvenance = {
 };
 
 export type EntityPropertiesObject = Record<BaseUrl, EntityPropertyValue>;
-
-// export interface SimpleEntity<
-//   Properties extends EntityPropertiesObject | null = EntityPropertiesObject,
-// > {
-//   readonly properties: Properties;
-//   readonly metadata: SimpleEntityMetadata;
-//   readonly linkData?: LinkData;
-// }
-
-// export interface SimpleLinkEntity<
-//   Properties extends EntityPropertiesObject | null = EntityPropertiesObject,
-// > extends SimpleEntity<Properties> {
-//   readonly linkData: SimpleLinkData;
-// }
