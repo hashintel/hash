@@ -1,9 +1,9 @@
 import { useLazyQuery } from "@apollo/client";
+import type { Entity as EntityBp } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   EntityId,
   EntityPropertiesObject,
-  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
@@ -68,7 +68,7 @@ export const useFetchBlockSubgraph = (): ((
         // @todo some better way of handling this – probably affected by revamped collab.
         //    or could simply not load a new block until the entity is created?
         const now = new Date().toISOString() as Timestamp;
-        const placeholderEntity: SimpleEntity = {
+        const placeholderEntity: EntityBp = {
           metadata: {
             recordId: {
               entityId: "placeholder-account~entity-id-not-set" as EntityId,
@@ -123,7 +123,7 @@ export const useFetchBlockSubgraph = (): ((
           edges: {},
           roots: [
             {
-              baseId: placeholderEntity.metadata.recordId.entityId,
+              baseId: placeholderEntity.metadata.recordId.entityId as EntityId,
               revisionId: now as EntityRevisionId,
             },
           ],

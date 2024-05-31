@@ -368,7 +368,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         .then((resp) => resp.data);
 
       entityToReturn = new Entity({
-        ...existingEntity,
+        ...existingEntity.serialize(),
         metadata,
         properties: {
           ...existingEntity.properties,

@@ -3,7 +3,6 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityPropertiesObject,
   LinkData,
-  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
@@ -62,7 +61,7 @@ export const createEntity = async (
     linkedEntities?: LinkedEntityDefinition[];
     ownedById: OwnedById;
   },
-): Promise<SimpleEntity> => {
+): Promise<Entity> => {
   return callGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
     requestContext,
     {

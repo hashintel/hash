@@ -1,4 +1,3 @@
-import type { SimpleLinkEntity } from "@local/hash-graph-types/entity";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
@@ -6,6 +5,7 @@ import { useMemo } from "react";
 import { LinkLabelWithSourceAndDestination } from "../../../../shared/link-label-with-source-and-destination";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
 
 export const LinkSection: FunctionComponent = () => {
   const { entitySubgraph } = useEntityEditor();
@@ -21,7 +21,7 @@ export const LinkSection: FunctionComponent = () => {
       throw new Error("Link entity has no link data.");
     }
 
-    return rootEntity as SimpleLinkEntity;
+    return rootEntity as LinkEntity;
   }, [entitySubgraph]);
 
   return (

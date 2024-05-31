@@ -1,5 +1,6 @@
 import type { EditableGridCell, Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import cloneDeep from "lodash/cloneDeep";
 import set from "lodash/set";
@@ -57,11 +58,12 @@ export const useCreateOnCellEdited = () => {
           valueCell.data.propertyRow.value,
         );
 
-        setEntity({
-          properties: updatedProperties,
-          metadata: entity.metadata,
-          linkData: entity.linkData,
-        });
+        setEntity(
+          new Entity({
+            ...entity.serialize(),
+            properties: updatedProperties,
+          }),
+        );
       };
 
       return onCellEdited;

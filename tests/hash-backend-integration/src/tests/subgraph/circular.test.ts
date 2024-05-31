@@ -3,8 +3,8 @@ import path from "node:path";
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type { GetEntitySubgraphRequest } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -68,18 +68,18 @@ const createRequest = (
 };
 let graphContext: ImpureGraphContext;
 
-let entity_a: SimpleEntity;
-let entity_b: SimpleEntity;
-let entity_c: SimpleEntity;
-let entity_d: SimpleEntity;
-let link_ab: SimpleEntity;
-let link_bc: SimpleEntity;
-let link_cd: SimpleEntity;
-let link_da: SimpleEntity;
-let link_ba: SimpleEntity;
-let link_cb: SimpleEntity;
-let link_dc: SimpleEntity;
-let link_ad: SimpleEntity;
+let entity_a: Entity;
+let entity_b: Entity;
+let entity_c: Entity;
+let entity_d: Entity;
+let link_ab: Entity;
+let link_bc: Entity;
+let link_cd: Entity;
+let link_da: Entity;
+let link_ba: Entity;
+let link_cb: Entity;
+let link_dc: Entity;
+let link_ad: Entity;
 
 const authentication = {
   actorId: "00000000-0001-0000-0000-000000000000" as AccountId,
@@ -101,7 +101,7 @@ beforeAll(async () => {
 
   expect(entities.length).toBe(12);
 
-  const findEntity = (name: string): SimpleEntity => {
+  const findEntity = (name: string): Entity => {
     return entities.find((entity) => {
       return (
         (entity.metadata.recordId.entityId as string).toLowerCase() ===
@@ -132,7 +132,7 @@ afterAll(async () => {
 
 const verticesEquals = (
   subgraph: Subgraph<EntityRootType>,
-  entities: SimpleEntity[],
+  entities: Entity[],
 ): boolean => {
   const vertexIds = getEntitiesSubgraph(subgraph)
     .map((vertex) => vertex.metadata.recordId.entityId)
@@ -150,10 +150,10 @@ const verticesEquals = (
 const edgesEquals = (
   subgraph: Subgraph<EntityRootType>,
   edges: {
-    source: SimpleEntity;
+    source: Entity;
     edges: {
       kind: KnowledgeGraphEdgeKind;
-      target: SimpleEntity;
+      target: Entity;
       direction: "forward" | "backward";
     }[];
   }[],

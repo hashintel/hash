@@ -1,10 +1,10 @@
 import { useLazyQuery } from "@apollo/client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   DraftId,
   EntityId,
   EntityPropertiesObject,
   EntityUuid,
-  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
@@ -240,7 +240,7 @@ const Page: NextPageWithLayout = () => {
   };
 
   const onEntityUpdated = useCallback(
-    (entity: SimpleEntity) => {
+    (entity: Entity) => {
       if (!routeNamespace?.shortname) {
         return;
       }

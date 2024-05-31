@@ -4,9 +4,8 @@ export const entityTypedef = gql`
   scalar EntityId
   scalar EntityRecordId
   scalar Entity
-  scalar SimpleEntity
+  scalar BpEntity
   scalar EntityPropertiesObject
-  scalar SimpleEntityMetadata
   scalar EntityMetadata
   scalar EntityRelationAndSubject
   scalar GetEntitySubgraphRequest

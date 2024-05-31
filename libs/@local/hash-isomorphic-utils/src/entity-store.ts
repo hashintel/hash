@@ -1,9 +1,12 @@
+import type {
+  EntityId as BpEntityId,
+  EntityTemporalVersioningMetadata as BpEntityTemporalVersioningMetadata,
+  LinkData as BpLinkData,
+} from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   EntityId,
   EntityPropertiesObject,
-  EntityTemporalVersioningMetadata,
-  LinkData,
 } from "@local/hash-graph-types/entity";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { Draft } from "immer";
@@ -22,16 +25,16 @@ export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
     recordId: {
-      entityId: EntityId | null;
+      entityId: BpEntityId | null;
       editionId: string;
     };
     entityTypeId?: VersionedUrl | null;
-    temporalVersioning: EntityTemporalVersioningMetadata;
+    temporalVersioning: BpEntityTemporalVersioningMetadata;
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
   properties: EntityPropertiesObject;
-  linkData?: LinkData;
+  linkData?: BpLinkData;
 
   componentId?: string;
 
@@ -78,7 +81,7 @@ export const isDraftBlockEntity = (
  */
 export const getDraftEntityByEntityId = (
   draft: EntityStore["draft"],
-  entityId: EntityId,
+  entityId: BpEntityId,
 ): DraftEntity | undefined =>
   Object.values(draft).find(
     (entity) => entity.metadata.recordId.entityId === entityId,

@@ -8,7 +8,8 @@ import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -365,7 +366,7 @@ export const EntitiesTable: FunctionComponent<{
   const handleEntityClick = useCallback(
     (entity: BpEntity) => {
       const { shortname: entityNamespace } = getOwnerForEntity({
-        entity: entity as SimpleEntity,
+        entity: entity as Entity,
       });
 
       if (entityNamespace === "") {

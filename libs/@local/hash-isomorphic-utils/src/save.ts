@@ -113,7 +113,7 @@ const calculateSaveActions = (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.metadata.recordId.entityId,
+          entityId: draftEntity.metadata.recordId.entityId as EntityId,
           properties: draftEntity.properties,
         },
       });

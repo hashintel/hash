@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -57,7 +58,7 @@ import { MenuItem } from "../ui";
 
 export const BulkActionsDropdown: FunctionComponent<{
   selectedItems: (
-    | SimpleEntity
+    | Entity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata

@@ -1,8 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
@@ -23,7 +23,7 @@ export const getEntitiesByLinearId = async (params: {
   entityTypeId?: VersionedUrl;
   webOwnedById?: OwnedById;
   includeDrafts?: boolean;
-}): Promise<SimpleEntity[]> =>
+}): Promise<Entity[]> =>
   params.graphApiClient
     .getEntities(params.authentication.actorId, {
       filter: {
@@ -169,7 +169,7 @@ export const getLatestEntityById = async (params: {
 export const archiveEntity = async (params: {
   graphApiClient: GraphApi;
   authentication: { actorId: AccountId };
-  entity: SimpleEntity;
+  entity: Entity;
 }) => {
   const { graphApiClient, authentication, entity } = params;
   await graphApiClient.patchEntity(authentication.actorId, {

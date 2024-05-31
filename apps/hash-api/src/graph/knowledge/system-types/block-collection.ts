@@ -1,9 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityId,
-  SimpleLinkEntity,
-} from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -104,21 +101,17 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     throw new Error(`One of indexPosition or canvasPosition must be defined`);
   }
 
-  const linkEntity: SimpleLinkEntity = await createLinkEntity(
-    ctx,
-    authentication,
-    {
-      leftEntityId: blockCollectionEntityId,
-      rightEntityId: block.entity.metadata.recordId.entityId,
-      linkEntityTypeId: canvasPosition
-        ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
-        : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
-      // assume that link to block is owned by the same account as the blockCollection
-      ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
-      properties: canvasPosition || indexPosition,
-      relationships: createDefaultAuthorizationRelationships(authentication),
-    },
-  );
+  const linkEntity: LinkEntity = await createLinkEntity(ctx, authentication, {
+    leftEntityId: blockCollectionEntityId,
+    rightEntityId: block.entity.metadata.recordId.entityId,
+    linkEntityTypeId: canvasPosition
+      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
+      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+    // assume that link to block is owned by the same account as the blockCollection
+    ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
+    properties: canvasPosition || indexPosition,
+    relationships: createDefaultAuthorizationRelationships(authentication),
+  });
 
   return linkEntity as
     | HasSpatiallyPositionedContent

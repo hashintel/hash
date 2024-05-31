@@ -1,4 +1,5 @@
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { Box, Checkbox, Fade, styled, Typography } from "@mui/material";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useCallback } from "react";
@@ -25,9 +26,9 @@ export const DraftEntitiesContextBar: FunctionComponent<{
   isDefaultFilterState: boolean;
   selectedDraftEntityIds: EntityId[];
   setSelectedDraftEntityIds: Dispatch<SetStateAction<EntityId[]>>;
-  draftEntities?: SimpleEntity[];
-  displayedDraftEntities?: SimpleEntity[];
-  matchingDraftEntities?: SimpleEntity[];
+  draftEntities?: Entity[];
+  displayedDraftEntities?: Entity[];
+  matchingDraftEntities?: Entity[];
 }> = ({
   isDefaultFilterState,
   draftEntities,

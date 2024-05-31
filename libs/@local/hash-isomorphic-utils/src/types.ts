@@ -2,6 +2,8 @@ import type { EntityType, PropertyType } from "@blockprotocol/type-system/slim";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
+export type { Entity as BpEntity } from "@blockprotocol/graph/temporal";
+
 export type TextToken =
   | {
       tokenType: "text";

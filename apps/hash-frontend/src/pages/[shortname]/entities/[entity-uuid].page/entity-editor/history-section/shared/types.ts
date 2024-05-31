@@ -5,7 +5,7 @@ import type {
   PropertyProvenance,
   PropertyType,
 } from "@local/hash-graph-client";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 type HistoryEventBase = {
   number: string;
@@ -14,7 +14,7 @@ type HistoryEventBase = {
 
 type CreationEvent = HistoryEventBase & {
   type: "created";
-  entity: SimpleEntity;
+  entity: Entity;
   entityType: EntityType;
   provenance: {
     edition: EntityEditionProvenance;

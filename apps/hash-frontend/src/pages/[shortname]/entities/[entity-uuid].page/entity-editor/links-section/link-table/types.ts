@@ -1,12 +1,13 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 
 export type LinkAndTargetEntity = {
-  rightEntity: SimpleEntity;
-  linkEntity: SimpleEntity;
+  rightEntity: Entity;
+  linkEntity: Entity;
 };
 
 export type LinkRow = {
@@ -26,7 +27,7 @@ export type LinkRow = {
   })[];
   entitySubgraph: Subgraph<EntityRootType>;
   markLinkAsArchived: (linkEntityId: EntityId) => void;
-  onEntityClick: (params: { entity: SimpleEntity }) => void;
+  onEntityClick: (params: { entity: Entity }) => void;
   retryErroredUpload?: () => void;
 };
 

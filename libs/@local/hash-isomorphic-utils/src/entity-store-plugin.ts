@@ -1,3 +1,4 @@
+import type { EntityId as BpEntityId } from "@blockprotocol/graph/temporal";
 import type {
   EntityId,
   EntityPropertiesObject,
@@ -84,7 +85,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
       payload: {
         ownedById: OwnedById;
         draftId: string;
-        entityId: EntityId | null;
+        entityId: BpEntityId | null;
       };
     }
   | {
@@ -143,7 +144,7 @@ export const entityStorePluginStateFromTransaction = (
  * Do NOT change the entity's draftId mid-session - leave it as fake.
  * If you need to recall the entity's draftId, use mustGetDraftEntityForEntityId
  */
-export const generateDraftIdForEntity = (entityId: EntityId | null) =>
+export const generateDraftIdForEntity = (entityId: BpEntityId | null) =>
   entityId ? `draft-${entityId}-${uuid()}` : `fake-${uuid()}`;
 
 /**
@@ -486,7 +487,7 @@ export const subscribeToEntityStore = (
  */
 export const mustGetDraftEntityByEntityId = (
   draftStore: EntityStore["draft"],
-  entityId: EntityId,
+  entityId: BpEntityId,
 ) => {
   const existingEntity = getDraftEntityByEntityId(draftStore, entityId);
 

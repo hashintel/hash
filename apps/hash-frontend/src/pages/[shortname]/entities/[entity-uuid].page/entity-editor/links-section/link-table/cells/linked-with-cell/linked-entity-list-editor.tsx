@@ -1,7 +1,21 @@
+import type {
+  Entity as BpEntity,
+  EntityId as BpEntityId,
+} from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  CreatedById,
+  EditionCreatedById,
+} from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  Timestamp,
+} from "@local/hash-graph-types/temporal-versioning";
+import { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
@@ -35,13 +49,20 @@ export const createDraftLinkEntity = ({
   rightEntityId: EntityId;
   leftEntityId: EntityId;
   linkEntityTypeId: VersionedUrl;
-}): SimpleEntity => {
-  return {
+}): Entity =>
+  new Entity({
     properties: {},
     linkData: { rightEntityId, leftEntityId },
     metadata: {
+      archived: false,
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
-      entityTypeId: linkEntityTypeId,
+      entityTypeIds: [linkEntityTypeId],
+      provenance: {
+        createdById: "" as CreatedById,
+        createdAtTransactionTime: "" as CreatedAtTransactionTime,
+        createdAtDecisionTime: "" as CreatedAtDecisionTime,
+        edition: { createdById: "" as EditionCreatedById },
+      },
       temporalVersioning: {
         decisionTime: {
           start: {
@@ -63,8 +84,7 @@ export const createDraftLinkEntity = ({
         },
       },
     },
-  };
-};
+  });
 
 export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
@@ -85,7 +105,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   const entity = useMemo(() => getRoots(entitySubgraph)[0]!, [entitySubgraph]);
 
   const onSelect = (
-    selectedEntity: SimpleEntity,
+    selectedEntity: Entity,
     sourceSubgraph: Subgraph<EntityRootType> | null,
   ) => {
     const alreadyLinked = linkAndTargetEntities.find(

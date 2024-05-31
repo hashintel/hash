@@ -1,9 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
-import type {
-  SimpleEntity,
-  SimpleLinkEntity,
-} from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
@@ -41,10 +38,10 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
 
   const fetchOutgoingLinksOfEntities = useCallback(
     async (params: {
-      leftEntities: SimpleEntity[];
+      leftEntities: Entity[];
     }): Promise<
       {
-        linkEntity: SimpleLinkEntity;
+        linkEntity: LinkEntity;
         linkEntityType: EntityTypeWithMetadata;
       }[]
     > => {
@@ -88,7 +85,7 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
 
       const outgoingLinkEntities = getRoots(
         outgoingLinksSubgraph,
-      ) as SimpleLinkEntity[];
+      ) as LinkEntity[];
 
       return outgoingLinkEntities
         .map((linkEntity) => {

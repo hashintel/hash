@@ -2,6 +2,7 @@ import type {
   BlockGraphProperties,
   GraphEmbedderMessageCallbacks,
   Subgraph as BpSubgraph,
+  EntityId as BpEntityId,
 } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -303,11 +304,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
                     entityInStore.metadata.temporalVersioning.transactionTime
                       .start.limit,
                   createdById: extractOwnedByIdFromEntityId(
-                    entityInStore.metadata.recordId.entityId!,
+                    entityInStore.metadata.recordId.entityId as EntityId,
                   ),
                   edition: {
                     createdById: extractOwnedByIdFromEntityId(
-                      entityInStore.metadata.recordId.entityId!,
+                      entityInStore.metadata.recordId.entityId as EntityId,
                     ),
                   },
                 },

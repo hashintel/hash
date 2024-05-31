@@ -1,6 +1,6 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -92,7 +92,7 @@ export const getBlockById: ImpureGraphFunction<
 export const createBlock: ImpureGraphFunction<
   Pick<CreateEntityParams, "ownedById"> & {
     componentId: string;
-    blockData: SimpleEntity;
+    blockData: Entity;
   },
   Promise<Block>
 > = async (ctx, authentication, params) => {
@@ -162,7 +162,7 @@ export const getBlockData: ImpureGraphFunction<
 export const updateBlockDataEntity: ImpureGraphFunction<
   {
     block: Block;
-    newBlockDataEntity: SimpleEntity;
+    newBlockDataEntity: Entity;
   },
   Promise<void>
 > = async (ctx, authentication, params) => {

@@ -1,4 +1,4 @@
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
@@ -11,7 +11,7 @@ import { Link } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { DraftEntityChip } from "./draft-entity-chip";
 
-export const DraftEntityWeb: FunctionComponent<{ entity: SimpleEntity }> = ({
+export const DraftEntityWeb: FunctionComponent<{ entity: Entity }> = ({
   entity,
 }) => {
   const ownedById = useMemo(

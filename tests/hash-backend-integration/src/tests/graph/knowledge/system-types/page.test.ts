@@ -21,7 +21,6 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { SimpleLinkEntity } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -193,13 +192,13 @@ describe("Page", () => {
   });
 
   let testBlock1: Block;
-  let testBlockLink1: SimpleLinkEntity<HasIndexedContentProperties>;
+  let testBlockLink1: LinkEntity<HasIndexedContentProperties>;
 
   let testBlock2: Block;
-  let testBlockLink2: SimpleLinkEntity<HasIndexedContentProperties>;
+  let testBlockLink2: LinkEntity<HasIndexedContentProperties>;
 
   let testBlock3: Block;
-  let testBlockLink3: SimpleLinkEntity<HasIndexedContentProperties>;
+  let testBlockLink3: LinkEntity<HasIndexedContentProperties>;
 
   let firstKey: string;
 
@@ -258,7 +257,7 @@ describe("Page", () => {
           },
         },
       },
-    )) as unknown as SimpleLinkEntity<HasIndexedContentProperties>;
+    )) as unknown as LinkEntity<HasIndexedContentProperties>;
 
     testBlockLink3 = (await addBlockToBlockCollection(
       graphContext,
@@ -279,7 +278,7 @@ describe("Page", () => {
           },
         },
       },
-    )) as unknown as SimpleLinkEntity<HasIndexedContentProperties>;
+    )) as unknown as LinkEntity<HasIndexedContentProperties>;
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {

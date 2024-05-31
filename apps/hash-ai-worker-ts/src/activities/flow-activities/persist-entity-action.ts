@@ -5,7 +5,6 @@ import type {
   EntityMetadata,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -60,7 +59,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   const entityValues: Omit<
     CreateEntityRequest,
     "relationships" | "ownedById" | "draft" | "linkData"
-  > & { linkData: SimpleEntity["linkData"] } = {
+  > & { linkData: Entity["linkData"] } = {
     entityTypeIds: [entityTypeId],
     properties,
     linkData,

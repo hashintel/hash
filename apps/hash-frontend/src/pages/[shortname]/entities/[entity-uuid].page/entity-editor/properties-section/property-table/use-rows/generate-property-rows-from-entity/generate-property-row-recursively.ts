@@ -2,7 +2,8 @@ import type {
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getPropertyTypeById } from "@local/hash-subgraph/stdlib";
@@ -59,7 +60,7 @@ export const generatePropertyRowRecursively = ({
 }: {
   propertyTypeBaseUrl: BaseUrl;
   propertyKeyChain: BaseUrl[];
-  entity: SimpleEntity;
+  entity: Entity;
   entitySubgraph: Subgraph<EntityRootType>;
   requiredPropertyTypes: BaseUrl[];
   depth?: number;

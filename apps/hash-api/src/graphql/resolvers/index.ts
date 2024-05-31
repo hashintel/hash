@@ -246,16 +246,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     },
   }),
 
-  SimpleEntity: new GraphQLScalarType({
-    name: "SimpleEntity",
-    serialize(value) {
-      return value instanceof Entity ? value.serialize() : value;
-    },
-    parseValue(value) {
-      return value;
-    },
-  }),
-
   Entity: new GraphQLScalarType({
     name: "Entity",
     serialize(value) {

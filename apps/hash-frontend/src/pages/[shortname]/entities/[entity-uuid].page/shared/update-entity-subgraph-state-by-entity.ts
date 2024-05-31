@@ -1,4 +1,4 @@
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityRevisionId,
   EntityRootType,
@@ -7,7 +7,7 @@ import type {
 import type { Dispatch, SetStateAction } from "react";
 
 export const updateEntitySubgraphStateByEntity = (
-  entity: SimpleEntity,
+  entity: Entity,
   setStateAction: Dispatch<
     SetStateAction<Subgraph<EntityRootType> | undefined>
   >,
@@ -19,11 +19,10 @@ export const updateEntitySubgraphStateByEntity = (
      *   For places where we mutate elements, we should probably store them separately from the subgraph to
      *   allow for optimistic updates without being incorrect.
      */
-    const newEntity = JSON.parse(JSON.stringify(entity)) as SimpleEntity;
     const newEntityRevisionId = new Date().toISOString() as EntityRevisionId;
-    newEntity.metadata.temporalVersioning.decisionTime.start.limit =
+    entity.metadata.temporalVersioning.decisionTime.start.limit =
       newEntityRevisionId;
-    newEntity.metadata.temporalVersioning.transactionTime.start.limit =
+    entity.metadata.temporalVersioning.transactionTime.start.limit =
       newEntityRevisionId;
 
     return subgraph
@@ -31,17 +30,17 @@ export const updateEntitySubgraphStateByEntity = (
           ...subgraph,
           roots: [
             {
-              baseId: newEntity.metadata.recordId.entityId,
+              baseId: entity.metadata.recordId.entityId,
               revisionId: newEntityRevisionId,
             },
           ],
           vertices: {
             ...subgraph.vertices,
-            [newEntity.metadata.recordId.entityId]: {
-              ...subgraph.vertices[newEntity.metadata.recordId.entityId],
+            [entity.metadata.recordId.entityId]: {
+              ...subgraph.vertices[entity.metadata.recordId.entityId],
               [newEntityRevisionId]: {
                 kind: "entity",
-                inner: newEntity,
+                inner: entity,
               },
             },
           },

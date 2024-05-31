@@ -4,8 +4,6 @@ import type {
   EntityMetadata,
   EntityPropertiesObject,
   LinkData,
-  SimpleEntity,
-  SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 
 const typeId: unique symbol = Symbol.for(
@@ -26,22 +24,31 @@ type EntityData<Properties extends EntityPropertiesObject> = {
   linkData?: LinkData;
 };
 
+type EntityInput<Properties extends EntityPropertiesObject> =
+  | GraphApiEntity
+  | SerializedEntity<Properties>;
+
+const isSerializedEntity = <Properties extends EntityPropertiesObject>(
+  entity: EntityInput<Properties>,
+): entity is SerializedEntity => {
+  return typeId in entity;
+};
+
+const isGraphApiEntity = <Properties extends EntityPropertiesObject>(
+  entity: EntityInput<Properties>,
+): entity is GraphApiEntity => {
+  return (entity as GraphApiEntity).metadata.entityTypeIds !== undefined;
+};
+
 export class Entity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
-> implements SimpleEntity<Properties>
-{
+> {
   #entity: EntityData<Properties>;
 
-  constructor(entity: GraphApiEntity | SerializedEntity<Properties>) {
-    if (typeId in entity) {
+  constructor(entity: EntityInput<Properties>) {
+    if (isSerializedEntity(entity)) {
       this.#entity = entity as unknown as EntityData<Properties>;
-    } else {
-      if (entity.metadata.entityTypeIds.length !== 1) {
-        throw new Error(
-          `Expected entity metadata to have exactly one entity type id, but got ${entity.metadata.entityTypeIds.length}`,
-        );
-      }
-
+    } else if (isGraphApiEntity(entity)) {
       this.#entity = {
         properties: entity.properties as Properties,
         metadata: {
@@ -55,6 +62,10 @@ export class Entity<
         } as EntityMetadata,
         linkData: entity.linkData as LinkData,
       };
+    } else {
+      throw new Error(
+        `Expected entity to be either a serialized entity, or a graph api entity, but got ${JSON.stringify(entity, null, 2)}`,
+      );
     }
   }
 
@@ -80,11 +91,8 @@ export class Entity<
 }
 
 export class LinkEntity<
-    Properties extends EntityPropertiesObject = EntityPropertiesObject,
-  >
-  extends Entity<Properties>
-  implements SimpleLinkEntity<Properties>
-{
+  Properties extends EntityPropertiesObject = EntityPropertiesObject,
+> extends Entity<Properties> {
   constructor(entity: GraphApiEntity) {
     if (!entity.linkData) {
       throw new Error(

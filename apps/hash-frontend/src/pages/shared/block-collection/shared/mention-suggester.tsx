@@ -1,7 +1,8 @@
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
@@ -96,8 +97,8 @@ export interface MentionSuggesterProps {
 
 type EntitiesByType = {
   entityType: EntityTypeWithMetadata;
-  displayedEntities: SimpleEntity[];
-  allEntities: SimpleEntity[];
+  displayedEntities: Entity[];
+  allEntities: Entity[];
 }[];
 
 const numberOfEntitiesDisplayedPerSection = 4;
@@ -495,7 +496,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   const handleSubmit = useCallback(
-    (params?: { entity?: SimpleEntity; subMenuIndex?: number }) => {
+    (params?: { entity?: Entity; subMenuIndex?: number }) => {
       const { subMenuIndex } = params ?? {};
       if (!searchedEntities) {
         return;

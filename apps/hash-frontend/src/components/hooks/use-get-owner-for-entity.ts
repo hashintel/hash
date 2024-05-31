@@ -1,4 +1,4 @@
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
@@ -19,7 +19,7 @@ export const useGetOwnerForEntity = () => {
   const loading = usersLoading || orgsLoading;
 
   return useCallback(
-    (params: { entity: SimpleEntity } | { ownedById: OwnedById }) => {
+    (params: { entity: Entity } | { ownedById: OwnedById }) => {
       const ownedById =
         "entity" in params
           ? extractOwnedByIdFromEntityId(

@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -21,7 +21,7 @@ import {
 } from "../../shared/top-context-bar";
 
 export const ArchiveMenuItem: FunctionComponent<{
-  item: SimpleEntity | EntityTypeWithMetadata;
+  item: Entity | EntityTypeWithMetadata;
 }> = ({ item }) => {
   const refetchEntityTypes = useFetchEntityTypes();
 
