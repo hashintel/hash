@@ -1,4 +1,3 @@
-import type { EntityId as BpEntityId } from "@blockprotocol/graph/temporal";
 import type {
   EntityId,
   EntityPropertiesObject,
@@ -16,7 +15,7 @@ import type { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 
 import type { BlockEntity } from "./entity";
-import { getEntityChildEntity, isRichTextContainingEntity } from "./entity";
+import { getEntityChildEntity, isRichTextProperties } from "./entity";
 import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
 import {
   createEntityStore,
@@ -85,7 +84,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
       payload: {
         ownedById: OwnedById;
         draftId: string;
-        entityId: BpEntityId | null;
+        entityId: EntityId | null;
       };
     }
   | {
@@ -144,7 +143,7 @@ export const entityStorePluginStateFromTransaction = (
  * Do NOT change the entity's draftId mid-session - leave it as fake.
  * If you need to recall the entity's draftId, use mustGetDraftEntityForEntityId
  */
-export const generateDraftIdForEntity = (entityId: BpEntityId | null) =>
+export const generateDraftIdForEntity = (entityId: EntityId | null) =>
   entityId ? `draft-${entityId}-${uuid()}` : `fake-${uuid()}`;
 
 /**
@@ -196,21 +195,22 @@ const setBlockChildEntity = (
   blockEntityDraftId: string,
   targetEntity: EntityStoreType,
 ) => {
-  let targetDraftEntity = getDraftEntityByEntityId(
-    draftEntityStore,
-    targetEntity.metadata.recordId.entityId,
+  let targetDraftEntity = Object.values(draftEntityStore).find(
+    (entity) =>
+      entity.metadata.recordId.entityId ===
+      targetEntity.metadata.recordId.entityId,
   );
 
   // Add target entity to draft store if it is not present there
   // @todo consider moving this to ProseMirrorSchemaManager.updateBlockData
-  if (!targetDraftEntity) {
+  if (targetDraftEntity === undefined) {
     const targetEntityDraftId = generateDraftIdForEntity(
       targetEntity.metadata.recordId.entityId,
     );
     targetDraftEntity = {
       metadata: targetEntity.metadata,
       draftId: targetEntityDraftId,
-      properties: targetEntity.properties,
+      properties: castDraft(targetEntity.properties),
       /** @todo use the actual updated date here https://app.asana.com/0/0/1203099452204542/f */
       // updatedAt: targetEntity.updatedAt,
     };
@@ -487,7 +487,7 @@ export const subscribeToEntityStore = (
  */
 export const mustGetDraftEntityByEntityId = (
   draftStore: EntityStore["draft"],
-  entityId: BpEntityId,
+  entityId: EntityId,
 ) => {
   const existingEntity = getDraftEntityByEntityId(draftStore, entityId);
 
@@ -643,7 +643,7 @@ class ProsemirrorStateChangeHandler {
     // and we'd like to update the child entity's text contents appropriately.
 
     if (
-      isRichTextContainingEntity(childEntity) &&
+      isRichTextProperties(childEntity.properties) &&
       node.firstChild &&
       node.firstChild.firstChild &&
       // Check if the next entity node's child is a component node

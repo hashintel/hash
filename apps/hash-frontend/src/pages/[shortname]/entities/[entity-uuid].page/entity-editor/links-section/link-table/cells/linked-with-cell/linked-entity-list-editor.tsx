@@ -1,7 +1,3 @@
-import type {
-  Entity as BpEntity,
-  EntityId as BpEntityId,
-} from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -15,7 +11,6 @@ import type {
   CreatedAtTransactionTime,
   Timestamp,
 } from "@local/hash-graph-types/temporal-versioning";
-import { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";

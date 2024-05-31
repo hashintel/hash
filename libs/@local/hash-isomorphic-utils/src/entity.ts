@@ -21,18 +21,13 @@ export type TextEntityType = Omit<EntityStoreType, "properties"> & {
   properties: TextProperties;
 };
 
-const isRichTextProperties = (
+export const isRichTextProperties = (
   properties: Record<string, unknown>,
 ): properties is TextEntityType["properties"] =>
   textualContentPropertyTypeBaseUrl in properties &&
   Array.isArray(
     properties[textualContentPropertyTypeBaseUrl as keyof typeof properties],
   );
-
-export const isRichTextContainingEntity = (
-  entity: EntityStoreType | DraftEntity,
-): entity is TextEntityType =>
-  "properties" in entity && isRichTextProperties(entity.properties);
 
 export const getEntityChildEntity = (
   draftId: string,

@@ -1,7 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,

@@ -1,7 +1,6 @@
 import type { EntityPropertyValue } from "@blockprotocol/graph";
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,

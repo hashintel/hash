@@ -1,12 +1,9 @@
-import type {
-  EntityId as BpEntityId,
-  EntityTemporalVersioningMetadata as BpEntityTemporalVersioningMetadata,
-  LinkData as BpLinkData,
-} from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   EntityId,
   EntityPropertiesObject,
+  EntityTemporalVersioningMetadata,
+  LinkData,
 } from "@local/hash-graph-types/entity";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { Draft } from "immer";
@@ -25,16 +22,16 @@ export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
     recordId: {
-      entityId: BpEntityId | null;
+      entityId: EntityId | null;
       editionId: string;
     };
     entityTypeId?: VersionedUrl | null;
-    temporalVersioning: BpEntityTemporalVersioningMetadata;
+    temporalVersioning: EntityTemporalVersioningMetadata;
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
   properties: EntityPropertiesObject;
-  linkData?: BpLinkData;
+  linkData?: LinkData;
 
   componentId?: string;
 
@@ -81,7 +78,7 @@ export const isDraftBlockEntity = (
  */
 export const getDraftEntityByEntityId = (
   draft: EntityStore["draft"],
-  entityId: BpEntityId,
+  entityId: EntityId,
 ): DraftEntity | undefined =>
   Object.values(draft).find(
     (entity) => entity.metadata.recordId.entityId === entityId,
@@ -173,7 +170,11 @@ export const createEntityStore = (
      * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
      */
     draft[draftId] = produce<DraftEntity>(
-      { ...entity, draftId },
+      {
+        properties: entity.properties,
+        metadata: entity.metadata,
+        draftId,
+      },
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
           /**

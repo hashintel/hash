@@ -3,7 +3,6 @@ import type { EntityType } from "@blockprotocol/type-system";
 import { Chip, IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,

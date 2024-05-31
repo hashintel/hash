@@ -37,7 +37,7 @@ const isSerializedEntity = <Properties extends EntityPropertiesObject>(
 const isGraphApiEntity = <Properties extends EntityPropertiesObject>(
   entity: EntityInput<Properties>,
 ): entity is GraphApiEntity => {
-  return (entity as GraphApiEntity).metadata.entityTypeIds !== undefined;
+  return !isSerializedEntity(entity);
 };
 
 export class Entity<

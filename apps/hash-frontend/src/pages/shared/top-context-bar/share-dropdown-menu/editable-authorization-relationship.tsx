@@ -2,7 +2,6 @@ import type { MutationHookOptions } from "@apollo/client";
 import { useMutation } from "@apollo/client";
 import { Avatar } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-
 import {
   Box,
   buttonClasses,

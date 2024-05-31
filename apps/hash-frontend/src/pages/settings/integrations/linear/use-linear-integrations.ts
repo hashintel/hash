@@ -1,5 +1,4 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
-
 import {
   systemEntityTypes,
   systemLinkEntityTypes,

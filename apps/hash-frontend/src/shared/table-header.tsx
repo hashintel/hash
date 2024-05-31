@@ -6,12 +6,11 @@ import {
   EyeSlashIconRegular,
   IconButton,
 } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,

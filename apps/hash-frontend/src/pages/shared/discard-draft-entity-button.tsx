@@ -1,7 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";

@@ -5,7 +5,7 @@ export const blockTypedef = gql`
     """
     The block's linked child entity.
     """
-    blockChildEntity: BpEntity!
+    blockChildEntity: Entity!
     """
     The component id of the block.
     """

@@ -4,7 +4,6 @@ import { Matrix2d, toDomPrecision } from "@tldraw/primitives";
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
 import { BlockContextProvider } from "../../../shared/block-collection/block-context";
 import type { CanvasProps } from "./shared";
-import { EntityId } from "@local/hash-graph-types/entity";
 
 /**
  * Display blocks at a given x/y position, with width, height and rotation, with no ability to edit position.

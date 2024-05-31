@@ -1,6 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
