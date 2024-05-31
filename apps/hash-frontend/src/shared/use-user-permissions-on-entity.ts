@@ -1,8 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type {
-  SimpleEntityMetadata,
-  SimpleEntity,
-} from "@local/hash-graph-types/entity";
+import type { Entity, EntityMetadata } from "@local/hash-graph-sdk/entity";
 import type {
   CheckUserPermissionsOnEntityQuery,
   CheckUserPermissionsOnEntityQueryVariables,
@@ -11,14 +8,14 @@ import { checkUserPermissionsOnEntityQuery } from "@local/hash-isomorphic-utils/
 import { useMemo } from "react";
 
 export const useUserPermissionsOnEntity = (
-  entity?: Pick<SimpleEntity, "metadata">,
+  entity?: Pick<Entity, "metadata">,
 ) => {
   const { data, ...rest } = useQuery<
     CheckUserPermissionsOnEntityQuery,
     CheckUserPermissionsOnEntityQueryVariables
   >(checkUserPermissionsOnEntityQuery, {
     variables: {
-      metadata: entity?.metadata as SimpleEntityMetadata, // query will not be called if there is no entity
+      metadata: entity?.metadata as EntityMetadata, // query will not be called if there is no entity
     },
     skip: !entity,
   });

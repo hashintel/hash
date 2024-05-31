@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   BooleanDataType,
@@ -60,7 +60,7 @@ export type {
   UploadCompletedAtPropertyValue,
 };
 
-export type SpreadsheetFile = SimpleEntity<SpreadsheetFileProperties>;
+export type SpreadsheetFile = Entity<SpreadsheetFileProperties>;
 
 export type SpreadsheetFileOutgoingLinkAndTarget = never;
 

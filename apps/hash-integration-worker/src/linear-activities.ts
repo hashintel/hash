@@ -8,6 +8,7 @@ import type {
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -418,7 +419,7 @@ export const createLinearIntegrationActivities = ({
       graphApiClient,
       authentication,
       linearType: mapping.linearType,
-      entity,
+      entity: new Entity(entity),
     });
 
     if (Object.entries(linearUpdateInput).length > 0) {

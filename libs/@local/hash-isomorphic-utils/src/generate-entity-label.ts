@@ -49,12 +49,12 @@ const getFallbackLabel = ({
  */
 export const generateEntityLabel = (
   entitySubgraph: Subgraph<EntityRootType> | null,
-  entity?: Pick<SimpleEntity, "properties" | "metadata">,
+  entity?: SimpleEntity,
 ): string => {
   if (!entitySubgraph && !entity) {
     throw new Error(`One of entitySubgraph or entity must be provided`);
   }
-  const entityToLabel: SimpleEntity = entity ?? getRoots(entitySubgraph!)[0]!;
+  const entityToLabel = entity ?? getRoots(entitySubgraph!)[0]!;
 
   let entityType: EntityTypeWithMetadata | undefined;
   if (entitySubgraph) {

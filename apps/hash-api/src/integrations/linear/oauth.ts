@@ -2,13 +2,10 @@ import crypto from "node:crypto";
 
 import { LinearClient } from "@linear/sdk";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
-import type {
-  EntityId,
-  EntityUuid,
-  SimpleEntity,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   apiOrigin,
@@ -123,7 +120,7 @@ export const oAuthLinear: RequestHandler<
 
 export const oAuthLinearCallback: RequestHandler<
   Record<string, never>,
-  SimpleEntity | { error: string },
+  Entity | { error: string },
   never,
   { code: string; state?: string }
 > =

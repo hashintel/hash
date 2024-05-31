@@ -1,8 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   EntityId,
-  SimpleEntityMetadata,
   EntityRecordId,
+  SimpleEntityMetadata,
 } from "@local/hash-graph-types/entity";
 import type {
   PersistedEntity,
@@ -113,7 +113,7 @@ export const EntityResultTable = ({
           : entity.metadata.entityTypeId;
 
       const entityLabel = generateEntityLabel(null, {
-        ...entity,
+        properties: entity.properties,
         metadata: {
           recordId: {
             editionId: "irrelevant-here",

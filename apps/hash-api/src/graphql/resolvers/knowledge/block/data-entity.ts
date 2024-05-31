@@ -1,4 +1,4 @@
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import {
   getBlockById,
@@ -10,7 +10,7 @@ import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedBlockGQL } from "../graphql-mapping";
 
 export const blockChildEntityResolver: ResolverFn<
-  Promise<SimpleEntity>,
+  Promise<Entity>,
   UnresolvedBlockGQL,
   GraphQLContext,
   Record<string, never>

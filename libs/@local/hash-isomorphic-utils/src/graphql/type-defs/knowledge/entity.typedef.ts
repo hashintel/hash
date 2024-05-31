@@ -145,9 +145,7 @@ export const entityTypedef = gql`
       entityId: EntityId!
     ): [EntityAuthorizationRelationship!]!
 
-    checkUserPermissionsOnEntity(
-      metadata: SimpleEntityMetadata!
-    ): UserPermissions!
+    checkUserPermissionsOnEntity(metadata: EntityMetadata!): UserPermissions!
 
     getEntityDiffs(inputs: [DiffEntityInput!]!): [EntityDiff!]!
   }

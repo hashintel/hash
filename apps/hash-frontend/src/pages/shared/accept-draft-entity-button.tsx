@@ -1,9 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
-import type {
-  SimpleEntity,
-  SimpleLinkEntity,
-} from "@local/hash-graph-types/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
@@ -74,9 +71,9 @@ const getRightOrLeftEntitySx = (params: {
 
 export const AcceptDraftEntityButton: FunctionComponent<
   {
-    draftEntity: SimpleEntity;
+    draftEntity: Entity;
     draftEntitySubgraph: Subgraph<EntityRootType>;
-    onAcceptedEntity: ((acceptedEntity: SimpleEntity) => void) | null;
+    onAcceptedEntity: ((acceptedEntity: Entity) => void) | null;
   } & ButtonProps
 > = ({
   draftEntity,
@@ -149,7 +146,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
    * Can be removed in the future – change to stop notifs for draft entities made in March 2024.
    */
   const markRelatedGraphChangeNotificationsAsRead = useCallback(
-    async (params: { draftEntity: SimpleEntity }) => {
+    async (params: { draftEntity: Entity }) => {
       const relatedGraphChangeNotifications =
         notifications?.filter(
           ({ kind, occurredInEntity }) =>
@@ -168,7 +165,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
   );
 
   const acceptDraftEntity = useCallback(
-    async (params: { draftEntity: SimpleEntity }) => {
+    async (params: { draftEntity: Entity }) => {
       await markRelatedGraphChangeNotificationsAsRead(params);
 
       const response = await updateEntity({
@@ -266,7 +263,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
               maxWidth: "100%",
             }}
             openInNew
-            linkEntity={draftEntity as SimpleLinkEntity}
+            linkEntity={draftEntity as LinkEntity}
             subgraph={draftEntitySubgraph}
             leftEntityEndAdornment={
               <LeftOrRightEntityEndAdornment isDraft={!!draftLeftEntity} />

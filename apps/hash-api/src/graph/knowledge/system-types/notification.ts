@@ -5,7 +5,6 @@ import { createNotificationEntityPermissions } from "@local/hash-backend-utils/n
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
-  SimpleEntity,
   SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 import {
@@ -71,7 +70,7 @@ export const archiveNotification: ImpureGraphFunction<
 };
 
 export type MentionNotification = {
-  entity: SimpleEntity<MentionNotificationProperties>;
+  entity: Entity<MentionNotificationProperties>;
 } & Notification;
 
 export const isEntityMentionNotificationEntity = (
@@ -314,7 +313,7 @@ export const getMentionNotification: ImpureGraphFunction<
 };
 
 export type CommentNotification = {
-  entity: SimpleEntity<MentionNotificationProperties>;
+  entity: Entity<MentionNotificationProperties>;
 } & Notification;
 
 export const isEntityCommentNotificationEntity = (

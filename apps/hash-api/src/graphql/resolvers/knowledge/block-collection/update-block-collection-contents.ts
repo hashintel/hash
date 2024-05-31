@@ -1,4 +1,4 @@
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { UserInputError } from "apollo-server-errors";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
@@ -35,7 +35,7 @@ import {
 export const updateBlockCollectionContents: ResolverFn<
   Promise<
     Omit<UpdateBlockCollectionContentsResult, "blockCollection"> & {
-      blockCollection: SimpleEntity;
+      blockCollection: Entity;
     }
   >,
   Record<string, never>,

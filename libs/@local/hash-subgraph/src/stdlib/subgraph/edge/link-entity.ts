@@ -32,7 +32,7 @@ const getUniqueEntitiesFilter = () => {
 };
 
 /**
- * Get all outgoing link entities from a given {@link SimpleEntity}.
+ * Get all outgoing link entities from a given {@link Entity}.
  *
  * @param {Subgraph} subgraph
  * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from
@@ -41,8 +41,8 @@ const getUniqueEntitiesFilter = () => {
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
  *  the latest instant of time in the {@link Subgraph}
  *
- * @returns {SimpleEntity[]} - A flat list of all {@link SimpleEntity}s associated with {@link OutgoingLinkEdge}s from the specified
- *   {@link SimpleEntity}. This list may contain multiple revisions of the same {@link SimpleEntity}s, and it might be beneficial to
+ * @returns {Entity[]} - A flat list of all {@link Entity}s associated with {@link OutgoingLinkEdge}s from the specified
+ *   {@link Entity}. This list may contain multiple revisions of the same {@link Entity}s, and it might be beneficial to
  *   pair the output with {@link mapElementsIntoRevisions}.
  */
 // Copied from `@blockprotocol/graph`
@@ -108,7 +108,7 @@ export const getOutgoingLinksForEntity = (
 };
 
 /**
- * Get all incoming link entities from a given {@link SimpleEntity}.
+ * Get all incoming link entities from a given {@link Entity}.
  *
  * @param {Subgraph} subgraph
  * @param {EntityId} entityId - The ID of the source entity to search for incoming links to
@@ -117,8 +117,8 @@ export const getOutgoingLinksForEntity = (
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
  *  the latest instant of time in the {@link Subgraph}
  *
- * @returns {SimpleEntity[]} - A flat list of all {@link SimpleEntity}s associated with {@link IncomingLinkEdge}s from the specified
- *   {@link SimpleEntity}. This list may contain multiple revisions of the same {@link SimpleEntity}s, and it might be beneficial to
+ * @returns {Entity[]} - A flat list of all {@link Entity}s associated with {@link IncomingLinkEdge}s from the specified
+ *   {@link Entity}. This list may contain multiple revisions of the same {@link Entity}s, and it might be beneficial to
  *   pair the output with {@link mapElementsIntoRevisions}.
  */
 export const getIncomingLinksForEntity = (
@@ -191,7 +191,7 @@ export const getIncomingLinksForEntity = (
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
  *  the latest instant of time in the {@link Subgraph}
  *
- * @returns {SimpleEntity[] | undefined} - all revisions of the left {@link SimpleEntity} which was associated with a
+ * @returns {Entity[] | undefined} - all revisions of the left {@link Entity} which was associated with a
  *   {@link HasLeftEntityEdge}, if found, from the given {@link EntityId} within the {@link Subgraph}, otherwise
  *   `undefined`.
  */
@@ -243,7 +243,7 @@ export const getLeftEntityForLinkEntity = (
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
  *  the latest instant of time in the {@link Subgraph}
  *
- * @returns {SimpleEntity[] | undefined} - all revisions of the right {@link SimpleEntity} which was associated with a
+ * @returns {Entity[] | undefined} - all revisions of the right {@link Entity} which was associated with a
  *   {@link HasRightEntityEdge}, if found, from the given {@link EntityId} within the {@link Subgraph}, otherwise
  *   `undefined`.
  */
@@ -287,8 +287,8 @@ export const getRightEntityForLinkEntity = (
 };
 
 /**
- * For a given {@link TimeInterval}, get all outgoing link {@link SimpleEntity} revisions, and their "target" {@link SimpleEntity}
- * revisions (by default this is the "right entity"), from a given {@link SimpleEntity}.
+ * For a given {@link TimeInterval}, get all outgoing link {@link Entity} revisions, and their "target" {@link Entity}
+ * revisions (by default this is the "right entity"), from a given {@link Entity}.
  *
  * @param subgraph
  * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from

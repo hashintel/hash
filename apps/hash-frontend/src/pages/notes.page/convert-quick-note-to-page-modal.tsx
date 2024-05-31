@@ -1,5 +1,5 @@
 import { Autocomplete, TextField } from "@hashintel/design-system";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
@@ -27,7 +27,7 @@ import { Button, Modal } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 
 export type PageWithParentLink = SimplePage & {
-  parentLinkEntity?: SimpleEntity;
+  parentLinkEntity?: Entity;
 };
 
 type ConvertToPageFormData = {
@@ -39,7 +39,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {
     onClose: () => void;
     onConvertedToPage: (page: PageWithParentLink) => void;
-    quickNoteEntity: SimpleEntity;
+    quickNoteEntity: Entity;
   }
 > = ({ quickNoteEntity, onClose, onConvertedToPage, ...modalProps }) => {
   const { authenticatedUser } = useAuthenticatedUser();
@@ -119,7 +119,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
       fractionalIndex,
       parentPage,
       type: "document",
-      ...pageEntity,
+      metadata: pageEntity.metadata,
     });
     onClose();
   });

@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   BooleanDataType,
@@ -72,7 +72,7 @@ export type {
   UploadCompletedAtPropertyValue,
 };
 
-export type PDFDocument = SimpleEntity<PDFDocumentProperties>;
+export type PDFDocument = Entity<PDFDocumentProperties>;
 
 export type PDFDocumentOutgoingLinkAndTarget = never;
 

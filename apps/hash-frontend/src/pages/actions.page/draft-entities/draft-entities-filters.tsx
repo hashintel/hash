@@ -1,8 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
@@ -78,7 +78,7 @@ export type DraftEntityFilterState = {
 };
 
 export const getDraftEntityTypes = (params: {
-  draftEntities: SimpleEntity[];
+  draftEntities: Entity[];
   draftEntitiesSubgraph: Subgraph<EntityRootType>;
 }): EntityTypeWithMetadata[] =>
   params.draftEntities
@@ -121,7 +121,7 @@ export const getDraftEntityTypes = (params: {
 
 const getDraftEntitySources = (params: {
   draftEntitiesWithCreators: {
-    entity: SimpleEntity;
+    entity: Entity;
     creator: MinimalActor;
   }[];
 }): MinimalActor[] =>
@@ -134,7 +134,7 @@ const getDraftEntitySources = (params: {
     );
 
 const getDraftEntityWebOwnedByIds = (params: {
-  draftEntities: SimpleEntity[];
+  draftEntities: Entity[];
 }): OwnedById[] =>
   params.draftEntities
     .map(({ metadata }) =>
@@ -144,7 +144,7 @@ const getDraftEntityWebOwnedByIds = (params: {
 
 export const generateDefaultFilterState = (params: {
   draftEntitiesWithCreators: {
-    entity: SimpleEntity;
+    entity: Entity;
     creator: MinimalActor;
   }[];
   draftEntitiesSubgraph: Subgraph<EntityRootType>;
@@ -177,7 +177,7 @@ export const generateDefaultFilterState = (params: {
 export const isFilerStateDefaultFilterState =
   (params: {
     draftEntitiesWithCreators: {
-      entity: SimpleEntity;
+      entity: Entity;
       creator: MinimalActor;
     }[];
     draftEntitiesSubgraph: Subgraph<EntityRootType>;
@@ -242,7 +242,7 @@ type DraftEntityFilterKind = (typeof draftEntityFilterKinds)[number];
 
 export const filterDraftEntities = (params: {
   draftEntitiesWithCreators: {
-    entity: SimpleEntity;
+    entity: Entity;
     creator: MinimalActor;
   }[];
   filterState: DraftEntityFilterState;
@@ -274,7 +274,7 @@ export const filterDraftEntities = (params: {
 
 export const DraftEntitiesFilters: FunctionComponent<{
   draftEntitiesWithCreators?: {
-    entity: SimpleEntity;
+    entity: Entity;
     creator: MinimalActor;
   }[];
   draftEntitiesSubgraph?: Subgraph<EntityRootType>;
@@ -378,7 +378,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
             Record<
               DraftEntityFilterKind,
               {
-                entity: SimpleEntity;
+                entity: Entity;
                 creator: MinimalActor;
               }[]
             >

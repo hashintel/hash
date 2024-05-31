@@ -3,8 +3,9 @@ import {
   NotFoundError,
 } from "@local/hash-backend-utils/error";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
@@ -33,11 +34,11 @@ import type {
 export type LinearUserSecret = {
   connectionSourceName: string;
   vaultPath: string;
-  entity: SimpleEntity;
+  entity: Entity;
 };
 
 export const getLinearUserSecretFromEntity: PureGraphFunction<
-  { entity: SimpleEntity },
+  { entity: Entity },
   LinearUserSecret
 > = ({ entity }) => {
   if (

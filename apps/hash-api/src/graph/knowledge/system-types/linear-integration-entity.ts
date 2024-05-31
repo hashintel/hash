@@ -1,6 +1,7 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -42,11 +43,11 @@ import { createLinkEntity } from "../primitive/link-entity";
 
 export type LinearIntegration = {
   linearOrgId: string;
-  entity: SimpleEntity;
+  entity: Entity;
 };
 
 export const getLinearIntegrationFromEntity: PureGraphFunction<
-  { entity: SimpleEntity },
+  { entity: Entity },
   LinearIntegration
 > = ({ entity }) => {
   if (
@@ -185,8 +186,8 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
   { linearIntegrationEntityId: EntityId; includeDrafts?: boolean },
   Promise<
     {
-      syncLinearDataWithLinkEntity: SimpleEntity;
-      workspaceEntity: SimpleEntity;
+      syncLinearDataWithLinkEntity: Entity;
+      workspaceEntity: Entity;
     }[]
   >
 > = async (

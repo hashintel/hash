@@ -1,5 +1,5 @@
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { Box, styled, Typography } from "@mui/material";
 import { format } from "date-fns";
 import type { FunctionComponent } from "react";
@@ -20,7 +20,7 @@ const DraftEntityTypography = styled(Typography)(({ theme }) => ({
 }));
 
 export const DraftEntityProvenance: FunctionComponent<{
-  entity: SimpleEntity;
+  entity: Entity;
 }> = ({ entity }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 

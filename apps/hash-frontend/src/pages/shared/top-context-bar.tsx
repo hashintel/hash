@@ -1,6 +1,6 @@
 import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SxProps, Theme } from "@mui/material";
@@ -104,7 +104,7 @@ export const TOP_CONTEXT_BAR_HEIGHT = 50;
 type TopContextBarProps = {
   actionMenuItems?: ReactElement[];
   crumbs: BreadcrumbsProps["crumbs"];
-  item?: SimpleEntity | EntityTypeWithMetadata;
+  item?: Entity | EntityTypeWithMetadata;
   defaultCrumbIcon?: ReactNode;
   scrollToTop?: () => void;
   sx?: SxProps<Theme>;

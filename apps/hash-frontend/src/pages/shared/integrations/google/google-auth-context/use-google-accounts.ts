@@ -1,6 +1,5 @@
 import { useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -21,7 +20,7 @@ import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge
 import { useAuthenticatedUser } from "../../../auth-info-context";
 
 type UseGoogleAccountsResult = {
-  accounts: SimpleEntity<GoogleAccountProperties>[];
+  accounts: Entity<GoogleAccountProperties>[];
   loading: boolean;
   refetch: () => void;
 };

@@ -1,6 +1,6 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
@@ -26,9 +26,9 @@ export const EntityPageHeader = ({
   isModifyingEntity,
   showTabs,
 }: {
-  entity?: SimpleEntity;
+  entity?: Entity;
   entitySubgraph?: Subgraph<EntityRootType>;
-  onEntityUpdated: ((entity: SimpleEntity) => void) | null;
+  onEntityUpdated: ((entity: Entity) => void) | null;
   entityLabel: string;
   lightTitle?: boolean;
   chip: ReactNode;

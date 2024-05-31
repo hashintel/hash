@@ -15,11 +15,8 @@ import type {
   UploadFileData as BpUploadFileData,
 } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  EntityId,
-  LinkData,
-  SimpleEntity,
-} from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId, LinkData } from "@local/hash-graph-types/entity";
 import type { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 
@@ -61,7 +58,7 @@ export type UpdateEntityData = {
 export type UpdateEntityMessageCallback = MessageCallback<
   UpdateEntityData,
   null,
-  MessageReturn<SimpleEntity>,
+  MessageReturn<Entity>,
   ReadOrModifyResourceError
 >;
 
@@ -104,7 +101,7 @@ export type CreateEntityRequest = {
 export type CreateEntityMessageCallback = MessageCallback<
   CreateEntityRequest,
   null,
-  MessageReturn<SimpleEntity>,
+  MessageReturn<Entity>,
   CreateResourceError
 >;
 

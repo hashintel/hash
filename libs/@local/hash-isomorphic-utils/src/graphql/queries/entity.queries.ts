@@ -40,7 +40,7 @@ export const getEntityQuery = gql`
 `;
 
 export const checkUserPermissionsOnEntityQuery = gql`
-  query checkUserPermissionsOnEntity($metadata: SimpleEntityMetadata!) {
+  query checkUserPermissionsOnEntity($metadata: EntityMetadata!) {
     checkUserPermissionsOnEntity(metadata: $metadata)
   }
 `;

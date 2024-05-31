@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   Actor,
@@ -22,7 +22,7 @@ export type {
   TextDataType,
 };
 
-export type Machine = SimpleEntity<MachineProperties>;
+export type Machine = Entity<MachineProperties>;
 
 /**
  * A unique identifier for a machine

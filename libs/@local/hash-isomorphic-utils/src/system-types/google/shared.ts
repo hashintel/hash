@@ -2,9 +2,9 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { LinkData, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
-export type Account = SimpleEntity<AccountProperties>;
+export type Account = Entity<AccountProperties>;
 
 /**
  * A unique identifier for a Google account.
@@ -51,7 +51,7 @@ export type EmailPropertyValue = TextDataType;
  */
 export type ExpiredAtPropertyValue = TextDataType;
 
-export type Link = SimpleEntity<LinkProperties>;
+export type Link = Entity<LinkProperties>;
 
 export type LinkOutgoingLinkAndTarget = never;
 
@@ -64,7 +64,7 @@ export type LinkProperties = {};
  */
 export type TextDataType = string;
 
-export type UserSecret = SimpleEntity<UserSecretProperties>;
+export type UserSecret = Entity<UserSecretProperties>;
 
 export type UserSecretOutgoingLinkAndTarget = never;
 
@@ -79,9 +79,7 @@ export type UserSecretProperties = {
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
 };
 
-export type UsesUserSecret = SimpleEntity<UsesUserSecretProperties> & {
-  linkData: LinkData;
-};
+export type UsesUserSecret = LinkEntity<UsesUserSecretProperties>;
 
 export type UsesUserSecretOutgoingLinkAndTarget = never;
 

@@ -27,7 +27,6 @@ import type {
   EntityId,
   EntityPropertiesObject,
   EntityUuid,
-  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -614,7 +613,7 @@ export const updateEntity: ImpureGraphFunction<
 
 export const archiveEntity: ImpureGraphFunction<
   {
-    entity: SimpleEntity;
+    entity: Entity;
   },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -627,7 +626,7 @@ export const archiveEntity: ImpureGraphFunction<
 
 export const unarchiveEntity: ImpureGraphFunction<
   {
-    entity: SimpleEntity;
+    entity: Entity;
   },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -873,7 +872,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
  */
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   {
-    entity: SimpleEntity;
+    entity: Entity;
     graphResolveDepths: Partial<GraphResolveDepths>;
   },
   Promise<Subgraph<EntityRootType>>,
@@ -979,7 +978,7 @@ export const checkEntityPermission: ImpureGraphFunction<
     .then(({ data }) => data.has_permission);
 
 export const checkPermissionsOnEntity: ImpureGraphFunction<
-  { entity: Pick<SimpleEntity, "metadata"> },
+  { entity: Pick<Entity, "metadata"> },
   Promise<UserPermissions>
 > = async (graphContext, { actorId }, params) => {
   const { entity } = params;
@@ -1028,7 +1027,7 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
 > = async (graphContext, authentication, params) => {
   const { subgraph } = params;
 
-  const entities: SimpleEntity[] = [];
+  const entities: Entity[] = [];
   for (const editionMap of Object.values(subgraph.vertices)) {
     const latestEditionTimestamp = Object.keys(editionMap).sort().pop()!;
     // @ts-expect-error -- subgraph needs revamping to make typing less annoying

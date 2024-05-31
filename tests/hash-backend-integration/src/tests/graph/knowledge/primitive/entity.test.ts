@@ -17,7 +17,6 @@ import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,

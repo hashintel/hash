@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { LinkData, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   AppliesFromPropertyValue,
@@ -68,7 +68,7 @@ export type {
   TriggerPropertyValue,
 };
 
-export type Created = SimpleEntity<CreatedProperties> & { linkData: LinkData };
+export type Created = LinkEntity<CreatedProperties>;
 
 export type CreatedOutgoingLinkAndTarget = never;
 
@@ -82,9 +82,7 @@ export type CreatedProperties1 = LinkProperties;
 
 export type CreatedProperties2 = {};
 
-export type IncurredIn = SimpleEntity<IncurredInProperties> & {
-  linkData: LinkData;
-};
+export type IncurredIn = LinkEntity<IncurredInProperties>;
 
 export type IncurredInOutgoingLinkAndTarget = never;
 
@@ -109,9 +107,7 @@ export type InputUnitCountPropertyValue = NumberDataType;
  */
 export type OutputUnitCountPropertyValue = NumberDataType;
 
-export type RecordsUsageOf = SimpleEntity<RecordsUsageOfProperties> & {
-  linkData: LinkData;
-};
+export type RecordsUsageOf = LinkEntity<RecordsUsageOfProperties>;
 
 export type RecordsUsageOfOutgoingLinkAndTarget = never;
 
@@ -126,7 +122,7 @@ export type RecordsUsageOfProperties1 = LinkProperties;
 
 export type RecordsUsageOfProperties2 = {};
 
-export type Updated = SimpleEntity<UpdatedProperties> & { linkData: LinkData };
+export type Updated = LinkEntity<UpdatedProperties>;
 
 export type UpdatedOutgoingLinkAndTarget = never;
 
@@ -140,11 +136,11 @@ export type UpdatedProperties1 = LinkProperties;
 
 export type UpdatedProperties2 = {};
 
-export type UsageRecord = SimpleEntity<UsageRecordProperties>;
+export type UsageRecord = Entity<UsageRecordProperties>;
 
 export type UsageRecordCreatedLink = {
   linkEntity: Created;
-  rightEntity: SimpleEntity;
+  rightEntity: Entity;
 };
 
 export type UsageRecordIncurredInLink = {
@@ -180,5 +176,5 @@ export type UsageRecordRecordsUsageOfLink = {
 
 export type UsageRecordUpdatedLink = {
   linkEntity: Updated;
-  rightEntity: SimpleEntity;
+  rightEntity: Entity;
 };

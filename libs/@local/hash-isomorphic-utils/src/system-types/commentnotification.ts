@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { LinkData, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   Actor,
@@ -364,7 +364,7 @@ export type {
   WebsiteURLPropertyValue,
 };
 
-export type CommentNotification = SimpleEntity<CommentNotificationProperties>;
+export type CommentNotification = Entity<CommentNotificationProperties>;
 
 export type CommentNotificationOccurredInBlockLink = {
   linkEntity: OccurredInBlock;
@@ -415,9 +415,7 @@ export type CommentNotificationTriggeredByUserLink = {
   rightEntity: User;
 };
 
-export type RepliedToComment = SimpleEntity<RepliedToCommentProperties> & {
-  linkData: LinkData;
-};
+export type RepliedToComment = LinkEntity<RepliedToCommentProperties>;
 
 export type RepliedToCommentOutgoingLinkAndTarget = never;
 
@@ -432,9 +430,7 @@ export type RepliedToCommentProperties1 = LinkProperties;
 
 export type RepliedToCommentProperties2 = {};
 
-export type TriggeredByComment = SimpleEntity<TriggeredByCommentProperties> & {
-  linkData: LinkData;
-};
+export type TriggeredByComment = LinkEntity<TriggeredByCommentProperties>;
 
 export type TriggeredByCommentOutgoingLinkAndTarget = never;
 

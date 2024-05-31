@@ -1,6 +1,6 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { SimpleEntityMetadata } from "@local/hash-graph-types/entity";
+import type { EntityMetadata } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -26,8 +26,8 @@ import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 import { useHashInstance } from "./use-hash-instance";
 
 export type SimplePage = SimpleProperties<PageProperties> & {
-  metadata: SimpleEntityMetadata;
-  parentPage?: { metadata: SimpleEntityMetadata } | null;
+  metadata: EntityMetadata;
+  parentPage?: { metadata: EntityMetadata } | null;
   type: "canvas" | "document";
 };
 

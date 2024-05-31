@@ -7,7 +7,7 @@ export const blockCollectionTypedef = gql`
   """
   type BlockCollectionContentItem {
     rightEntity: Block!
-    linkEntity: SimpleEntity!
+    linkEntity: Entity!
   }
 
   type BlockCollection {

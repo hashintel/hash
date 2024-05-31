@@ -12,7 +12,7 @@ import wasm from "@blockprotocol/type-system/type-system.wasm";
 import type { EmotionCache } from "@emotion/react";
 import { CacheProvider } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
@@ -255,7 +255,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
 
   const userEntity = initialAuthenticatedUserSubgraph
     ? (getRoots<EntityRootType>(initialAuthenticatedUserSubgraph)[0] as
-        | SimpleEntity<UserProperties>
+        | Entity<UserProperties>
         | undefined)
     : undefined;
 

@@ -8,10 +8,7 @@ import type {
   UpdateOrganizationInput,
   UpdateUserInput,
 } from "@linear/sdk/dist/_generated_documents";
-import type {
-  SimpleEntity,
-  SimpleLinkEntity,
-} from "@local/hash-graph-types/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   blockProtocolPropertyTypes,
@@ -42,7 +39,7 @@ export type SupportedLinearUpdateInput = {
 
 export type SupportedLinearTypeNames = keyof SupportedLinearTypes;
 
-const getLinearIdFromEntity = (entity: SimpleEntity): string => {
+const getLinearIdFromEntity = (entity: Entity): string => {
   const linearId =
     entity.properties[linearPropertyTypes.id.propertyTypeBaseUrl as BaseUrl];
 
@@ -84,8 +81,8 @@ type OutgoingLinkMapping<
   addToLinearUpdateInput?: (
     updateInput: SupportedLinearUpdateInput[LinearType],
     matchingOutgoingLinks: {
-      linkEntity: SimpleLinkEntity;
-      rightEntity: SimpleEntity;
+      linkEntity: LinkEntity;
+      rightEntity: Entity;
     }[],
   ) => SupportedLinearUpdateInput[LinearType];
   linkEntityTypeId: VersionedUrl;

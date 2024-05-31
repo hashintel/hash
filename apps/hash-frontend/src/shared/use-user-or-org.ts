@@ -1,9 +1,9 @@
 import { useQuery } from "@apollo/client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -111,9 +111,7 @@ export const useUserOrOrg = (
 
     const rootEntity = subgraph
       ? getRoots(subgraph).reduce<
-          | SimpleEntity<OrganizationProperties>
-          | SimpleEntity<UserProperties>
-          | undefined
+          Entity<OrganizationProperties> | Entity<UserProperties> | undefined
         >((prev, currentEntity) => {
           if (
             !isEntityUserEntity(currentEntity) &&

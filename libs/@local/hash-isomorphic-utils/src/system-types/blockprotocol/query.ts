@@ -2,14 +2,14 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 /**
  * An opaque, untyped JSON object
  */
 export type ObjectDataType = {};
 
-export type Query = SimpleEntity<QueryProperties>;
+export type Query = Entity<QueryProperties>;
 
 export type QueryOutgoingLinkAndTarget = never;
 

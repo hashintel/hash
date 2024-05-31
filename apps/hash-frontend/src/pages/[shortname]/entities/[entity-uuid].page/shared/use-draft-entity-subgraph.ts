@@ -1,14 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  CreatedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
-import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-  Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type {
   EntityRevisionId,
   EntityRootType,
@@ -75,15 +67,6 @@ export const useDraftEntitySubgraph = (
                       editionId: now,
                     },
                     entityTypeId,
-                    provenance: {
-                      createdById: "" as CreatedById,
-                      createdAtDecisionTime: now as CreatedAtDecisionTime,
-                      createdAtTransactionTime: now as CreatedAtTransactionTime,
-                      edition: {
-                        createdById: "" as EditionCreatedById,
-                      },
-                    },
-                    archived: false,
                     temporalVersioning: {
                       decisionTime: {
                         start: {
@@ -105,7 +88,7 @@ export const useDraftEntitySubgraph = (
                       },
                     },
                   },
-                } satisfies SimpleEntity,
+                },
               },
             },
           },

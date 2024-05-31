@@ -2,7 +2,7 @@ import {
   ArrowUpRegularIcon,
   AsteriskRegularIcon,
 } from "@hashintel/design-system";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
@@ -14,7 +14,7 @@ import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 const iconSx = { fontSize: 14, marginRight: 0.5 };
 
 export const DraftEntityType: FunctionComponent<{
-  entity: SimpleEntity;
+  entity: Entity;
   subgraph: Subgraph<EntityRootType>;
 }> = ({ entity, subgraph }) => {
   const entityType = useMemo(() => {

@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   ProfileURLPropertyValue,
@@ -22,7 +22,7 @@ export type {
   TextDataType,
 };
 
-export type TwitterAccount = SimpleEntity<TwitterAccountProperties>;
+export type TwitterAccount = Entity<TwitterAccountProperties>;
 
 export type TwitterAccountOutgoingLinkAndTarget = never;
 

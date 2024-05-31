@@ -4,6 +4,7 @@ import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -11,8 +12,6 @@ import type {
 import type {
   EntityEditionProvenance,
   EntityId,
-  SimpleEntity,
-  SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -79,7 +78,7 @@ import { graphQLContextToImpureGraphContext } from "../../util";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
 
 export const createEntityResolver: ResolverFn<
-  Promise<SimpleEntity>,
+  Promise<Entity>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreateEntityArgs
@@ -106,7 +105,7 @@ export const createEntityResolver: ResolverFn<
    * @see https://app.asana.com/0/1202805690238892/1203084714149803/f
    */
 
-  let entity: SimpleEntity | SimpleLinkEntity;
+  let entity: Entity;
 
   const provenance: EntityEditionProvenance = {
     actorType: "human",
@@ -328,7 +327,7 @@ export const getEntityResolver: ResolverFn<
 };
 
 export const updateEntityResolver: ResolverFn<
-  Promise<SimpleEntity>,
+  Promise<Entity>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdateEntityArgs
@@ -355,7 +354,7 @@ export const updateEntityResolver: ResolverFn<
     entityId,
   });
 
-  let updatedEntity: SimpleEntity;
+  let updatedEntity: Entity;
 
   const provenance: EntityEditionProvenance = {
     actorType: "human",
@@ -387,7 +386,7 @@ export const updateEntityResolver: ResolverFn<
 };
 
 export const updateEntitiesResolver: ResolverFn<
-  Promise<SimpleEntity[]>,
+  Promise<Entity[]>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdateEntitiesArgs
@@ -432,7 +431,7 @@ export const archiveEntitiesResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const archivedEntities: SimpleEntity[] = [];
+  const archivedEntities: Entity[] = [];
 
   const entitiesThatCouldNotBeArchived: EntityId[] = [];
 

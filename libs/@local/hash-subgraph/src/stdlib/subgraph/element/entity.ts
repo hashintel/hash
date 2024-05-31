@@ -15,7 +15,7 @@ import {
 } from "../../interval";
 
 /**
- * Returns all {@link SimpleEntity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their
+ * Returns all {@link Entity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their
  * latest revisions.
  *
  * @param subgraph
@@ -78,8 +78,8 @@ const getRevisionsForEntity = (
 };
 
 /**
- * Gets an {@link SimpleEntity} by its {@link EntityId} from within the vertices of the subgraph. If
- * `targetRevisionInformation` is not passed, then the latest version of the {@link SimpleEntity} will be returned.
+ * Gets an {@link Entity} by its {@link EntityId} from within the vertices of the subgraph. If
+ * `targetRevisionInformation` is not passed, then the latest version of the {@link Entity} will be returned.
  *
  * Returns `undefined` if the entity couldn't be found.
  *
@@ -153,7 +153,7 @@ export const getEntityRevision = (
 };
 
 /**
- * Returns all {@link SimpleEntity} revisions within the vertices of the subgraph that match a given {@link EntityId}.
+ * Returns all {@link Entity} revisions within the vertices of the subgraph that match a given {@link EntityId}.
  *
  * When querying a subgraph with support for temporal versioning, it optionally constrains the search to a given
  * {@link TimeInterval}.

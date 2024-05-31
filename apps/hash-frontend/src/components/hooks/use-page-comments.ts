@@ -1,9 +1,8 @@
 import { useQuery } from "@apollo/client";
+import type { Entity, EntityMetadata } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
-  SimpleEntityMetadata,
   EntityTemporalVersioningMetadata,
-  SimpleEntity,
 } from "@local/hash-graph-types/entity";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
@@ -20,9 +19,9 @@ export type PageThread = PageComment & {
 export type PageComment = {
   hasText: Array<TextToken>;
   textUpdatedAt: EntityTemporalVersioningMetadata;
-  author: SimpleEntity;
-  parent: SimpleEntity;
-  metadata: SimpleEntityMetadata;
+  author: Entity;
+  parent: Entity;
+  metadata: EntityMetadata;
 };
 
 export type PageCommentsInfo = {

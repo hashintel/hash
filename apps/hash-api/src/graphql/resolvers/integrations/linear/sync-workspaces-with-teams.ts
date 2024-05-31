@@ -2,9 +2,9 @@ import {
   getMachineActorId,
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
-import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
@@ -33,7 +33,7 @@ import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
-  Promise<SimpleEntity>,
+  Promise<Entity>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationSyncLinearIntegrationWithWorkspacesArgs

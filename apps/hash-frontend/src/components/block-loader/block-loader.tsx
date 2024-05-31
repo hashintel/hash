@@ -5,7 +5,6 @@ import type {
 } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { EntityMetadata as GraphApiEntityMetadata } from "@local/hash-graph-client/api";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,

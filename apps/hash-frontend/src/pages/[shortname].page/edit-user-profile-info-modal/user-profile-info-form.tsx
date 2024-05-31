@@ -1,8 +1,5 @@
 import { Select, TextField } from "@hashintel/design-system";
-import type {
-  SimpleEntity,
-  SimpleLinkEntity,
-} from "@local/hash-graph-types/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -30,8 +27,8 @@ import { ServiceAccountsInput } from "./service-accounts-input";
 import { urlRegex } from "./util";
 
 export type UserProfileFormServiceAccount = {
-  existingLinkEntity?: SimpleLinkEntity;
-  existingServiceAccountEntity?: SimpleEntity;
+  existingLinkEntity?: LinkEntity;
+  existingServiceAccountEntity?: Entity;
   kind: ServiceAccountKind;
   profileUrl: string;
 };

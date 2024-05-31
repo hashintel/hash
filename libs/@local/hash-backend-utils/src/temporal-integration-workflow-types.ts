@@ -1,11 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Team } from "@linear/sdk";
+import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, SimpleEntity } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 export type PartialEntity = {
-  properties: Partial<SimpleEntity["properties"]>;
+  properties: Partial<Entity["properties"]>;
   entityTypeId: VersionedUrl;
 };
 
@@ -49,7 +50,7 @@ export type UpdateLinearDataWorkflow = (params: {
   authentication: { actorId: AccountId };
   linearId: string;
   entityTypeId: VersionedUrl;
-  entity: SimpleEntity;
+  entity: SerializedEntity;
 }) => Promise<void>;
 
 export type SyncQueryToGoogleSheetWorkflow = (params: {
