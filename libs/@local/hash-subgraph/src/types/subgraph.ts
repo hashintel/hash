@@ -4,7 +4,7 @@ import {
   type PropertyTypeRootType as PropertyTypeRootTypeBp,
 } from "@blockprotocol/graph/temporal";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -61,6 +61,17 @@ export type SubgraphRootType =
   | EntityTypeRootType
   | EntityRootType;
 
+export type SerializedEntityRootType = {
+  vertexId: EntityVertexId;
+  element: SerializedEntity;
+};
+
+export type SerializedSubgraphRootType =
+  | DataTypeRootType
+  | PropertyTypeRootType
+  | EntityTypeRootType
+  | SerializedEntityRootType;
+
 /** @todo - Figure out the incompatible vertices/edges is it the `&` instead of `|`? */
 // export type Subgraph<
 //   RootType extends SubgraphRootType = SubgraphRootType,
@@ -79,8 +90,10 @@ export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
   depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;
 };
-export type SerializedSubgraph = {
-  roots: SubgraphRootType["vertexId"][];
+export type SerializedSubgraph<
+  RootType extends SerializedSubgraphRootType = SerializedSubgraphRootType,
+> = {
+  roots: RootType["vertexId"][];
   vertices: SerializedVertices;
   edges: Edges;
   depths: GraphResolveDepths;

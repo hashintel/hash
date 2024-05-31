@@ -5,7 +5,6 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
@@ -153,9 +152,10 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     const queryFilter = isPersistedEntities
       ? {
           any: dataToWrite.persistedEntities
-            .map(
-              (persistedEntity) =>
-                persistedEntity.entity?.metadata.recordId.entityId,
+            .map((persistedEntity) =>
+              persistedEntity.entity
+                ? new Entity(persistedEntity.entity).metadata.recordId.entityId
+                : undefined,
             )
             .filter(isNotNullish)
             .map((entityId) =>
@@ -348,7 +348,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     graphApiClient,
   });
 
-  let entityToReturn: SerializedEntity;
+  let entityToReturn: Entity;
   if (existingEntity) {
     const { existingEntityIsDraft, isExactMatch, patchOperations } =
       getEntityUpdate({
@@ -386,7 +386,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       properties: fileProperties,
     };
 
-    const fileEntityMetadata = await graphApiClient
+    entityToReturn = await graphApiClient
       .createEntity(webBotActorId, {
         draft: false,
         entityTypeIds: entityValues.entityTypeIds,
@@ -394,7 +394,13 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         properties: entityValues.properties,
         relationships: authRelationships,
       })
-      .then((resp) => resp.data);
+      .then(
+        (resp) =>
+          new Entity({
+            properties: entityValues.properties,
+            metadata: resp.data,
+          }),
+      );
 
     await graphApiClient.createEntity(webBotActorId, {
       draft: false,
@@ -403,16 +409,11 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       ],
       ownedById: webId,
       linkData: {
-        leftEntityId: fileEntityMetadata.recordId.entityId,
+        leftEntityId: entityToReturn.metadata.recordId.entityId,
         rightEntityId: googleAccount.metadata.recordId.entityId,
       },
       properties: {},
       relationships: authRelationships,
-    });
-
-    entityToReturn = new Entity({
-      ...entityValues,
-      metadata: fileEntityMetadata,
     });
   }
 
@@ -425,7 +426,10 @@ export const writeGoogleSheetAction: FlowActionActivity<{
             outputName: "googleSheetEntity",
             payload: {
               kind: "PersistedEntity",
-              value: { entity: entityToReturn, operation: "create" },
+              value: {
+                entity: entityToReturn.serialize(),
+                operation: "create",
+              },
             },
           },
         ],

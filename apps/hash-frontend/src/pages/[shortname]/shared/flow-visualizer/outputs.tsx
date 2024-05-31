@@ -1,5 +1,6 @@
 import { IconButton } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   PersistedEntity,
   ProposedEntity,
@@ -30,11 +31,10 @@ export const getDeliverables = (
     const { payload } = output;
 
     if (payload.kind === "PersistedEntity" && !Array.isArray(payload.value)) {
-      const entity = payload.value.entity;
-
-      if (!entity) {
+      if (!payload.value.entity) {
         continue;
       }
+      const entity = new Entity(payload.value.entity);
 
       const { displayName, fileName, fileUrl } = getFileProperties(
         entity.properties,

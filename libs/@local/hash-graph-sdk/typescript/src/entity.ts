@@ -1,66 +1,59 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
-import type {
-  Entity as GraphApiEntity,
-  PropertyMetadataMap,
-} from "@local/hash-graph-client/api";
+import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
 import type {
   EntityId,
+  EntityMetadata,
   EntityPropertiesObject,
-  EntityProvenance,
   LinkData,
   SimpleEntity,
-  SimpleEntityMetadata,
   SimpleLinkEntity,
 } from "@local/hash-graph-types/entity";
 
-export type EntityMetadata = SimpleEntityMetadata & {
-  archived: boolean;
-  provenance: EntityProvenance;
-  confidence?: number;
-  properties?: PropertyMetadataMap;
-};
+const typeId: unique symbol = Symbol.for(
+  "@local/hash-graph-sdk/entity/SerializedEntity",
+);
+type TypeId = typeof typeId;
 
-export type SerializedEntity<
+export interface SerializedEntity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
-> = {
-  metadata: EntityMetadata;
-  properties: Properties;
-  linkData?: LinkData;
-};
+> {
+  [typeId]: TypeId;
+  readonly __serialized: {
+    readonly metadata: EntityMetadata;
+    readonly properties: Properties;
+    readonly linkData?: LinkData;
+  };
+}
 
 export class Entity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > implements SimpleEntity<Properties>
 {
-  #entity: SerializedEntity<Properties>;
+  #entity: Omit<SerializedEntity<Properties>, TypeId>["__serialized"];
 
-  constructor(entity: GraphApiEntity | SerializedEntity) {
-    let entityTypeId: VersionedUrl;
-
-    if ("entityTypeId" in entity.metadata) {
-      entityTypeId = entity.metadata.entityTypeId;
+  constructor(entity: GraphApiEntity | SerializedEntity<Properties>) {
+    if (typeId in entity) {
+      this.#entity = entity.__serialized;
     } else {
       if (entity.metadata.entityTypeIds.length !== 1) {
         throw new Error(
           `Expected entity metadata to have exactly one entity type id, but got ${entity.metadata.entityTypeIds.length}`,
         );
       }
-      entityTypeId = entity.metadata.entityTypeIds[0] as VersionedUrl;
-    }
 
-    this.#entity = {
-      properties: entity.properties as Properties,
-      metadata: {
-        recordId: entity.metadata.recordId,
-        entityTypeId,
-        temporalVersioning: entity.metadata.temporalVersioning,
-        provenance: entity.metadata.provenance,
-        archived: entity.metadata.archived,
-        confidence: entity.metadata.confidence,
-        properties: entity.metadata.properties,
-      } as EntityMetadata,
-      linkData: entity.linkData as LinkData,
-    };
+      this.#entity = {
+        properties: entity.properties as Properties,
+        metadata: {
+          recordId: entity.metadata.recordId,
+          entityTypeId: entity.metadata.entityTypeIds[0],
+          temporalVersioning: entity.metadata.temporalVersioning,
+          provenance: entity.metadata.provenance,
+          archived: entity.metadata.archived,
+          confidence: entity.metadata.confidence,
+          properties: entity.metadata.properties,
+        } as EntityMetadata,
+        linkData: entity.linkData as LinkData,
+      };
+    }
   }
 
   public get metadata(): EntityMetadata {
@@ -80,7 +73,7 @@ export class Entity<
   }
 
   public serialize(): SerializedEntity<Properties> {
-    return this.#entity;
+    return { [typeId]: typeId, __serialized: this.#entity };
   }
 }
 

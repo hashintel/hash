@@ -4,12 +4,13 @@ import type {
   CreateEntityRequest,
   EntityMetadata,
 } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
+import type { SimpleEntity } from "@local/hash-graph-types/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -59,7 +60,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   const entityValues: Omit<
     CreateEntityRequest,
     "relationships" | "ownedById" | "draft" | "linkData"
-  > & { linkData: SerializedEntity["linkData"] } = {
+  > & { linkData: SimpleEntity["linkData"] } = {
     entityTypeIds: [entityTypeId],
     properties,
     linkData,
@@ -102,8 +103,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       ]
     : undefined;
 
-  let entity: SerializedEntity;
-  let existingEntity: SerializedEntity | undefined;
+  let entity: Entity;
+  let existingEntity: Entity | undefined;
   let operation: "create" | "update";
 
   if (isFileEntity && fileUrl) {
@@ -169,6 +170,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
             newProperties: properties,
           });
 
+        const serializedEntity = existingEntity.serialize();
+
         if (isExactMatch) {
           return {
             code: StatusCode.Ok,
@@ -181,8 +184,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
                     payload: {
                       kind: "PersistedEntity",
                       value: {
-                        entity: existingEntity,
-                        existingEntity,
+                        entity: serializedEntity,
+                        existingEntity: serializedEntity,
                         operation: "already-exists-as-proposed",
                       },
                     },
@@ -229,7 +232,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
                   "persistedEntity" as OutputNameForAction<"persistEntity">,
                 payload: {
                   kind: "PersistedEntity",
-                  value: { existingEntity, operation },
+                  value: {
+                    existingEntity: existingEntity?.serialize(),
+                    operation,
+                  },
                 },
               },
             ],
@@ -239,13 +245,15 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     }
   }
 
+  const persistedEntity = {
+    entity: entity.serialize(),
+    existingEntity: existingEntity?.serialize(),
+    operation,
+  } satisfies PersistedEntity;
+
   logProgress([
     {
-      persistedEntity: {
-        entity,
-        existingEntity: existingEntity ?? undefined,
-        operation,
-      },
+      persistedEntity,
       recordedAt: new Date().toISOString(),
       stepId: Context.current().info.activityId,
       type: "PersistedEntity",
@@ -269,7 +277,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
               "persistedEntity" as OutputNameForAction<"persistEntity">,
             payload: {
               kind: "PersistedEntity",
-              value: { operation, entity, existingEntity },
+              value: persistedEntity,
             },
           },
         ],

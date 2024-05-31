@@ -1,11 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 
 type SimplifiedEntity = {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
-  properties: SerializedEntity["properties"];
+  properties: Entity["properties"];
   sourceEntityId?: EntityId;
   targetEntityId?: EntityId;
 };
@@ -13,7 +13,7 @@ type SimplifiedEntity = {
 /**
  * Simplify the definition of an entity for LLM consumption.
  */
-export const simplifyEntity = (entity: SerializedEntity): SimplifiedEntity => ({
+export const simplifyEntity = (entity: Entity): SimplifiedEntity => ({
   entityId: entity.metadata.recordId.entityId,
   entityTypeId: entity.metadata.entityTypeId,
   /**

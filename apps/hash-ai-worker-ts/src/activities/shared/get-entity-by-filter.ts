@@ -1,5 +1,5 @@
 import type { Filter, GraphApi } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
@@ -14,7 +14,7 @@ export const getEntityByFilter = async ({
   graphApiClient: GraphApi;
   filter: Filter;
   includeDrafts: boolean;
-}): Promise<SerializedEntity | undefined> => {
+}): Promise<Entity | undefined> => {
   const matchedEntities = await graphApiClient
     .getEntities(actorId, {
       filter,

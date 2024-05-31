@@ -4,7 +4,7 @@ import type {
   CosineDistanceFilter,
   GraphApi,
 } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { LinkData } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -44,7 +44,7 @@ export const findExistingEntity = async ({
   ownedById: OwnedById;
   proposedEntity: Pick<ProposedEntity, "entityTypeId" | "properties">;
   includeDrafts: boolean;
-}): Promise<SerializedEntity | undefined> => {
+}): Promise<Entity | undefined> => {
   const entityTypeId = proposedEntity.entityTypeId;
 
   const entityType: DereferencedEntityType | undefined =
@@ -181,7 +181,7 @@ export const findExistingEntity = async ({
       })
       .filter(<T>(filter: T): filter is NonNullable<T> => filter !== null);
 
-  let existingEntity: SerializedEntity | undefined;
+  let existingEntity: Entity | undefined;
 
   if (semanticDistanceFilters.length > 0) {
     existingEntity = await getEntityByFilter({

@@ -1,6 +1,6 @@
 import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 
@@ -10,7 +10,7 @@ export const createInferredEntityNotification = async ({
   operation,
   notifiedUserAccountId,
 }: {
-  entity: SerializedEntity;
+  entity: Entity;
   graphApiClient: GraphApi;
   operation: "create" | "update";
   notifiedUserAccountId: AccountId;

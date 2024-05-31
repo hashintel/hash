@@ -10,6 +10,7 @@ import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ActorType,
+  PropertyMetadataMap,
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
 } from "@local/hash-graph-client";
@@ -73,15 +74,25 @@ export type SimpleEntityMetadata = Subtype<
   }
 >;
 
-export type LinkData = Subtype<
+export type EntityMetadata = SimpleEntityMetadata & {
+  archived: boolean;
+  provenance: EntityProvenance;
+  confidence?: number;
+  properties?: PropertyMetadataMap;
+};
+
+export type SimpleLinkData = Subtype<
   LinkDataBp,
   {
     leftEntityId: EntityId;
     rightEntityId: EntityId;
-    leftEntityConfidence?: number;
-    rightEntityConfidence?: number;
   }
 >;
+
+export type LinkData = SimpleLinkData & {
+  leftEntityConfidence?: number;
+  rightEntityConfidence?: number;
+};
 
 export type EntityProvenance = {
   createdById: CreatedById;
@@ -113,5 +124,5 @@ export interface SimpleEntity<
 export interface SimpleLinkEntity<
   Properties extends EntityPropertiesObject | null = EntityPropertiesObject,
 > extends SimpleEntity<Properties> {
-  readonly linkData: LinkData;
+  readonly linkData: SimpleLinkData;
 }

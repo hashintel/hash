@@ -1,3 +1,4 @@
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FailedEntityProposal,
@@ -39,8 +40,14 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     },
   );
 
-  const failedEntitiesByLocalId: Record<string, FailedEntityProposal> = {};
-  const persistedEntitiesByLocalId: Record<string, PersistedEntity> = {};
+  const failedEntitiesByLocalId: Record<
+    string,
+    Omit<FailedEntityProposal, "existingEntity"> & { existingEntity?: Entity }
+  > = {};
+  const persistedEntitiesByLocalId: Record<
+    string,
+    Omit<PersistedEntity, "entity"> & { entity?: Entity }
+  > = {};
 
   /**
    * We could potentially parallelize the creation of (a) non-link entities and (b) link entities,
@@ -132,6 +139,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     if (persistedEntityOutputs.code !== StatusCode.Ok) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
         ...(output?.value ?? {}),
+        existingEntity: output?.value.existingEntity
+          ? new Entity(output.value.existingEntity)
+          : undefined,
         proposedEntity: entityWithResolvedLinks,
         message: `${persistedEntityOutputs.code}: ${persistedEntityOutputs.message ?? `no further details available`}`,
       };
@@ -146,11 +156,24 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
       continue;
     }
 
-    persistedEntitiesByLocalId[unresolvedEntity.localEntityId] = output.value;
+    persistedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+      ...output.value,
+      entity: output.value.entity ? new Entity(output.value.entity) : undefined,
+    };
   }
 
-  const persistedEntities = Object.values(persistedEntitiesByLocalId);
-  const failedEntityProposals = Object.values(failedEntitiesByLocalId);
+  const persistedEntities = Object.values(persistedEntitiesByLocalId).map(
+    (persisted) => ({
+      ...persisted,
+      entity: persisted.entity?.serialize(),
+    }),
+  );
+  const failedEntityProposals = Object.values(failedEntitiesByLocalId).map(
+    (failed) => ({
+      ...failed,
+      existingEntity: failed.existingEntity?.serialize(),
+    }),
+  );
 
   return {
     /** @todo H-2604 have some kind of 'partially completed' status when reworking flow return codes */

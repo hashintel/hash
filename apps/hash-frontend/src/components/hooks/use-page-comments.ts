@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
-import type { Entity, EntityMetadata } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityMetadata } from "@local/hash-graph-types/entity";
 import type {
   EntityId,
   EntityTemporalVersioningMetadata,

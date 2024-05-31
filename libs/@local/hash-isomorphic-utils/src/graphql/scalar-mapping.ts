@@ -32,7 +32,7 @@ export const scalars = {
   SimpleEntity: "@local/hash-graph-types/entity#SimpleEntity",
   EntityRecordId: "@local/hash-graph-types/entity#EntityRecordId",
   SimpleEntityMetadata: "@local/hash-graph-types/entity#SimpleEntityMetadata",
-  EntityMetadata: "@local/hash-graph-sdk/entity#EntityMetadata",
+  EntityMetadata: "@local/hash-graph-types/entity#EntityMetadata",
   EntityRelationAndSubject: "@local/hash-subgraph#EntityRelationAndSubject",
   GetEntitySubgraphRequest: "@local/hash-graph-client#GetEntitySubgraphRequest",
   EntityTemporalVersioningMetadata:
@@ -59,6 +59,7 @@ export const scalars = {
   Edges: "@local/hash-subgraph#Edges",
   Vertices: "@local/hash-subgraph#Vertices",
   LinkData: "@local/hash-graph-types/entity#LinkData",
+  SimpleLinkData: "@local/hash-graph-types/entity#SimpleLinkData",
   SubgraphTemporalAxes: "@local/hash-subgraph#SubgraphTemporalAxes",
 
   OwnedById: "@local/hash-graph-types/web#OwnedById",

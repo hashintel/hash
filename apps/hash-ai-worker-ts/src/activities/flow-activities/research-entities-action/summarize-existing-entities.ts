@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import dedent from "dedent";
 
@@ -69,7 +69,7 @@ const registerEntitySummariesToolDefinition: LlmToolDefinition<
 };
 
 export const summarizeExistingEntities = async (params: {
-  existingEntities: SerializedEntity[];
+  existingEntities: Entity[];
 }): Promise<{ existingEntitySummaries: ExistingEntitySummary[] }> => {
   const { existingEntities } = params;
 

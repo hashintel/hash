@@ -134,7 +134,7 @@ export const processEntityChange = async (
           linearId: linearId as string,
           authentication: { actorId: linearMachineActorId },
           entityTypeId: linearEntityToUpdate.metadata.entityTypeId,
-          entity: linearEntityToUpdate,
+          entity: linearEntityToUpdate.serialize(),
         },
       ],
     },

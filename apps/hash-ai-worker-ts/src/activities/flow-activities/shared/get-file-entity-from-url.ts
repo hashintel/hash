@@ -26,7 +26,7 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
-import { Entity, type SerializedEntity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -130,7 +130,7 @@ export const getFileEntityFromUrl = async (params: {
 }): Promise<
   | {
       status: "ok";
-      entity: SerializedEntity<FileProperties>;
+      entity: Entity<FileProperties>;
     }
   | {
       status: "error-uploading-file";
@@ -285,11 +285,12 @@ export const getFileEntityFromUrl = async (params: {
       ],
       provenance,
     })
-    .then((result) =>
-      new Entity<FileProperties>({
-        metadata: result.data,
-        properties,
-      }).serialize(),
+    .then(
+      (result) =>
+        new Entity<FileProperties>({
+          metadata: result.data,
+          properties,
+        }),
     );
 
   try {

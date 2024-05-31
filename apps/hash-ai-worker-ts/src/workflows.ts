@@ -376,7 +376,8 @@ export const updateEntityEmbeddings = async (
       break;
     }
 
-    for (const entity of entities) {
+    for (const serializedEntity of entities) {
+      const entity = new Entity(serializedEntity);
       /**
        * Don't try to create embeddings for `FlowRun` entities, due to the size
        * of their property values.

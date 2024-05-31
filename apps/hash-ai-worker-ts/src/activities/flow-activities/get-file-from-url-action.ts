@@ -1,4 +1,3 @@
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -34,15 +33,15 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
     };
   }
 
-  const { entity } = getFileEntityFromUrlStatus;
-
   // @todo look for an existing file with the same originalUrl in the graph, and update it if found?
   const operation = "create" as const;
+
+  const fileEntity = getFileEntityFromUrlStatus.entity.serialize();
 
   logProgress([
     {
       persistedEntity: {
-        entity,
+        entity: fileEntity,
         operation, // @todo update this to "update" if an existing entity was found
       },
       recordedAt: new Date().toISOString(),
@@ -61,10 +60,7 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
               "fileEntity" satisfies OutputNameForAction<"getFileFromUrl">,
             payload: {
               kind: "Entity",
-              value: {
-                metadata: entity.metadata,
-                properties: entity.properties,
-              } satisfies SerializedEntity,
+              value: fileEntity,
             },
           },
         ],

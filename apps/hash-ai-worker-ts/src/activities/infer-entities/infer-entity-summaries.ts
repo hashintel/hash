@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -39,7 +39,7 @@ export const inferEntitySummaries = async (params: {
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   providedOrRerequestedEntityTypes: Set<VersionedUrl>;
-  existingEntities?: SerializedEntity[];
+  existingEntities?: Entity[];
   /**
    * @todo: remove these parameters when the `inferEntities` activity has
    * been deprecated, and access them via `getFlowContext` instead.

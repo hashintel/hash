@@ -3,7 +3,7 @@ import type {
   GraphApi,
   PropertyPatchOperation,
 } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
@@ -79,13 +79,13 @@ export const getLatestEntityById = async (params: {
     );
   }
 
-  return entity.serialize();
+  return entity;
 };
 
 export const archiveEntity = async (params: {
   graphApiClient: GraphApi;
   authentication: { actorId: AccountId };
-  entity: SerializedEntity;
+  entity: Entity;
 }) => {
   const { graphApiClient, authentication, entity } = params;
   await graphApiClient.patchEntity(authentication.actorId, {
@@ -98,7 +98,7 @@ export const getEntityUpdate = <T extends EntityPropertiesObject>({
   existingEntity,
   newProperties,
 }: {
-  existingEntity: SerializedEntity;
+  existingEntity: Entity;
   newProperties: T;
 }) => {
   const patchOperations: PropertyPatchOperation[] = [];

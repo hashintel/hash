@@ -1,6 +1,7 @@
-import type { EntityPropertyValue } from "@blockprotocol/graph";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type {
+  EntityPropertiesObject,
+  SimpleEntity,
+} from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { JsonValue } from "@local/hash-subgraph";
 
@@ -15,7 +16,7 @@ export type EntityPropertiesObjectWithSimplifiedProperties = {
 const mapSimplifiedPropertyValueToPropertyValue = (params: {
   simplifiedPropertyValue: EntityPropertyValueWithSimplifiedProperties;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
-}): EntityPropertyValue => {
+}): SimpleEntity["properties"][BaseUrl] => {
   const { simplifiedPropertyValue, simplifiedPropertyTypeMappings } = params;
 
   if (
@@ -61,7 +62,7 @@ const mapSimplifiedPropertyValueToPropertyValue = (params: {
         }),
       };
     },
-    {} as SerializedEntity["properties"],
+    {} as SimpleEntity["properties"],
   );
 };
 
@@ -71,11 +72,11 @@ export const mapSimplifiedPropertiesToProperties = (params: {
     EntityPropertyValueWithSimplifiedProperties
   >;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
-}): SerializedEntity["properties"] => {
+}): SimpleEntity["properties"] => {
   const { simplifiedProperties, simplifiedPropertyTypeMappings } = params;
 
   return Object.entries(simplifiedProperties).reduce<
-    SerializedEntity["properties"]
+    SimpleEntity["properties"]
   >(
     (acc, [simplifiedId, value]) => {
       const baseUrl = simplifiedPropertyTypeMappings[simplifiedId];
@@ -94,6 +95,6 @@ export const mapSimplifiedPropertiesToProperties = (params: {
         }),
       };
     },
-    {} as SerializedEntity["properties"],
+    {} as SimpleEntity["properties"],
   );
 };
