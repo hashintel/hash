@@ -16176,10 +16176,10 @@ https-proxy-agent@^7.0.0, https-proxy-agent@^7.0.1, https-proxy-agent@^7.0.2, ht
     agent-base "^7.0.2"
     debug "4"
 
-httpyac@6.13.3:
-  version "6.13.3"
-  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.13.3.tgz#06f2683c57d1c005710b407713c1175450b370bf"
-  integrity sha512-HlI6i5N6//+a465z+liThgaonKaZLXqWr/7Si28riakRs1L1WqWE+y+6BDx8aRq7XNzPI6R7x7RrBgZmpQj3PQ==
+httpyac@6.14.0:
+  version "6.14.0"
+  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.14.0.tgz#009299e8069937867a5406b996029161d3972920"
+  integrity sha512-B9fpiR0VyKGr1XPo0DnjBZtaOBfyv5J/D5A/Wx/G6pu5euyJaM9vTTPReYCWHM3dpY+wJ2Kyc7NLZEnRCi9SNA==
   dependencies:
     "@cloudamqp/amqp-client" "^2.1.1"
     "@grpc/grpc-js" "^1.10.7"
