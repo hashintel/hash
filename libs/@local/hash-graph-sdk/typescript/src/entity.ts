@@ -1,10 +1,21 @@
-import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
+import type { VersionedUrl } from "@blockprotocol/graph";
+import type {
+  Entity as GraphApiEntity,
+  PropertyMetadata,
+  PropertyMetadataMap,
+  PropertyPath,
+  PropertyProvenance,
+} from "@local/hash-graph-client/api";
 import type {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
+  EntityProvenance,
+  EntityRecordId,
+  EntityTemporalVersioningMetadata,
   LinkData,
 } from "@local/hash-graph-types/entity";
+import { isEqual } from "lodash";
 
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
@@ -20,9 +31,17 @@ export interface SerializedEntity<
 }
 
 type EntityData<Properties extends EntityPropertiesObject> = {
-  metadata: EntityMetadata;
+  metadata: EntityMetadata & {
+    confidence?: number;
+    properties?: PropertyMetadataMap;
+  };
   properties: Properties;
-  linkData?: LinkData;
+  linkData?: LinkData & {
+    leftEntityConfidence?: number;
+    rightEntityConfidence?: number;
+    leftEntityProvenance?: PropertyProvenance;
+    rightEntityProvenance?: PropertyProvenance;
+  };
 };
 
 type EntityInput<Properties extends EntityPropertiesObject> =
@@ -59,14 +78,15 @@ export class Entity<
       this.#entity = {
         properties: entity.properties as Properties,
         metadata: {
-          recordId: entity.metadata.recordId,
-          entityTypeId: entity.metadata.entityTypeIds[0],
-          temporalVersioning: entity.metadata.temporalVersioning,
-          provenance: entity.metadata.provenance,
+          recordId: entity.metadata.recordId as EntityRecordId,
+          entityTypeId: entity.metadata.entityTypeIds[0] as VersionedUrl,
+          temporalVersioning: entity.metadata
+            .temporalVersioning as EntityTemporalVersioningMetadata,
+          provenance: entity.metadata.provenance as EntityProvenance,
           archived: entity.metadata.archived,
           confidence: entity.metadata.confidence,
           properties: entity.metadata.properties,
-        } as EntityMetadata,
+        },
         linkData: entity.linkData as LinkData,
       };
     } else {
@@ -86,6 +106,12 @@ export class Entity<
 
   public get properties(): Properties {
     return this.#entity.properties;
+  }
+
+  public propertyMetadata(path: PropertyPath): PropertyMetadata | undefined {
+    return this.#entity.metadata.properties?.find((map) =>
+      isEqual(map.path, path),
+    )?.metadata;
   }
 
   public get linkData(): LinkData | undefined {
