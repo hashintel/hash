@@ -102,14 +102,16 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
   }
 
   const linkEntity: LinkEntity = await createLinkEntity(ctx, authentication, {
-    leftEntityId: blockCollectionEntityId,
-    rightEntityId: block.entity.metadata.recordId.entityId,
-    linkEntityTypeId: canvasPosition
-      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
-      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
-    properties: canvasPosition || indexPosition,
+    properties: (canvasPosition || indexPosition) ?? {},
+    linkData: {
+      leftEntityId: blockCollectionEntityId,
+      rightEntityId: block.entity.metadata.recordId.entityId,
+    },
+    entityTypeId: canvasPosition
+      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
+      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 

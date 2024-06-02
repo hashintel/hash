@@ -1,21 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import type {
-  LinkData as GraphApiLinkData,
-  PropertyMetadataMap,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+  CreateEntityParameters,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
-  AccountGroupId,
-  AccountId,
-} from "@local/hash-graph-types/account";
-import type {
-  EntityId,
   EntityPropertiesObject,
+  LinkData,
 } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import {
@@ -24,22 +16,6 @@ import {
 } from "../../ontology/primitive/entity-type";
 import { getLatestEntityById } from "./entity";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
-
-export type CreateLinkEntityParams = {
-  ownedById: OwnedById;
-  properties?: EntityPropertiesObject;
-  linkEntityTypeId: VersionedUrl;
-  owner?: AccountId | AccountGroupId;
-  draft?: boolean;
-  leftEntityId: EntityId;
-  leftEntityConfidence?: number;
-  rightEntityId: EntityId;
-  rightEntityConfidence?: number;
-  relationships: EntityRelationAndSubject[];
-  confidence?: number;
-  propertyMetadata?: PropertyMetadataMap;
-  provenance?: ProvidedEntityEditionProvenance;
-};
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
   !!entity.linkData;
@@ -54,26 +30,24 @@ export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
  * @param params.actorId - the id of the account that is creating the link
  */
 export const createLinkEntity: ImpureGraphFunction<
-  CreateLinkEntityParams,
+  CreateEntityParameters & {
+    linkData: LinkData;
+  },
   Promise<LinkEntity>
 > = async (context, authentication, params) => {
   const {
     ownedById,
-    linkEntityTypeId,
-    leftEntityId,
-    rightEntityId,
+    linkData,
     properties = {},
     draft = false,
     relationships,
-    leftEntityConfidence,
-    rightEntityConfidence,
     confidence,
     propertyMetadata,
     provenance,
   } = params;
 
   const linkEntityType = await getEntityTypeById(context, authentication, {
-    entityTypeId: linkEntityTypeId,
+    entityTypeId: params.entityTypeId,
   });
 
   /**
@@ -91,13 +65,6 @@ export const createLinkEntity: ImpureGraphFunction<
       `Entity type with ID "${linkEntityType.schema.$id}" is not a link entity type.`,
     );
   }
-
-  const linkData: GraphApiLinkData = {
-    leftEntityId,
-    rightEntityId,
-    leftEntityConfidence,
-    rightEntityConfidence,
-  };
 
   const { data: metadata } = await context.graphApi.createEntity(
     authentication.actorId,

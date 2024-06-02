@@ -163,9 +163,12 @@ export const createUserSecret = async <
   /** Link the user secret to the Google Account */
   await createLinkEntity({ graphApi }, authentication, {
     ownedById: userAccountId as OwnedById,
-    linkEntityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-    leftEntityId: sourceIntegrationEntityId,
-    rightEntityId: userSecretEntity.metadata.recordId.entityId,
+    properties: {},
+    linkData: {
+      leftEntityId: sourceIntegrationEntityId,
+      rightEntityId: userSecretEntity.metadata.recordId.entityId,
+    },
+    entityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
     relationships: botEditorUserViewerOnly,
   });
 

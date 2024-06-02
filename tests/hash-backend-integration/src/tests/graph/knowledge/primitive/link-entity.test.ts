@@ -209,9 +209,12 @@ describe("Link entity", () => {
 
     linkEntityFriend = await createLinkEntity(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
-      leftEntityId: leftEntity.metadata.recordId.entityId,
-      linkEntityTypeId: friendLinkEntityType.schema.$id,
-      rightEntityId: friendRightEntity.metadata.recordId.entityId,
+      properties: {},
+      linkData: {
+        leftEntityId: leftEntity.metadata.recordId.entityId,
+        rightEntityId: friendRightEntity.metadata.recordId.entityId,
+      },
+      entityTypeId: friendLinkEntityType.schema.$id,
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
 
@@ -220,9 +223,12 @@ describe("Link entity", () => {
       authentication,
       {
         ownedById: testUser.accountId as OwnedById,
-        leftEntityId: leftEntity.metadata.recordId.entityId,
-        linkEntityTypeId: acquaintanceLinkEntityType.schema.$id,
-        rightEntityId: acquaintanceRightEntity.metadata.recordId.entityId,
+        properties: {},
+        linkData: {
+          leftEntityId: leftEntity.metadata.recordId.entityId,
+          rightEntityId: acquaintanceRightEntity.metadata.recordId.entityId,
+        },
+        entityTypeId: acquaintanceLinkEntityType.schema.$id,
         relationships: createDefaultAuthorizationRelationships(authentication),
       },
     );

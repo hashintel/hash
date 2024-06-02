@@ -14,10 +14,13 @@ import type {
   GetEntitySubgraphRequest,
   GraphResolveDepths,
   ModifyRelationshipOperation,
-  PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  CreateEntityParameters,
+  LinkEntity,
+} from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -25,7 +28,7 @@ import type {
 import type {
   EntityId,
   EntityPropertiesObject,
-  EntityUuid,
+  LinkData,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -70,21 +73,7 @@ import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
-import type { CreateLinkEntityParams } from "./link-entity";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
-
-export type CreateEntityParams = {
-  ownedById: OwnedById;
-  properties: EntityPropertiesObject;
-  entityTypeId: VersionedUrl;
-  outgoingLinks?: Omit<CreateLinkEntityParams, "leftEntityId">[];
-  entityUuid?: EntityUuid;
-  draft?: boolean;
-  relationships: EntityRelationAndSubject[];
-  confidence?: number;
-  propertyMetadata?: PropertyMetadataMap;
-  provenance?: ProvidedEntityEditionProvenance;
-};
 
 /** @todo: potentially directly export this from the subgraph package */
 export type PropertyValue = EntityPropertiesObject[BaseUrl];
@@ -99,7 +88,11 @@ export type PropertyValue = EntityPropertiesObject[BaseUrl];
  * @param params.entityUuid (optional) - the uuid of the entity, automatically generated if left undefined
  */
 export const createEntity: ImpureGraphFunction<
-  CreateEntityParams,
+  Omit<CreateEntityParameters, "linkData"> & {
+    outgoingLinks?: (Omit<CreateEntityParameters, "linkData"> & {
+      linkData: Omit<LinkData, "leftEntityId">;
+    })[];
+  },
   Promise<Entity>
 > = async (context, authentication, params) => {
   const {
@@ -149,7 +142,10 @@ export const createEntity: ImpureGraphFunction<
   for (const createOutgoingLinkParams of outgoingLinks ?? []) {
     await createLinkEntity(context, authentication, {
       ...createOutgoingLinkParams,
-      leftEntityId: entity.metadata.recordId.entityId,
+      linkData: {
+        ...createOutgoingLinkParams.linkData,
+        leftEntityId: entity.metadata.recordId.entityId,
+      },
     });
   }
 
@@ -526,10 +522,13 @@ export const createEntityWithLinks: ImpureGraphFunction<
 
         // links are created as an outgoing link from the parent entity to the children.
         await createLinkEntity(context, authentication, {
-          linkEntityTypeId: link.meta.linkEntityTypeId,
-          leftEntityId: parentEntity.entity.metadata.recordId.entityId,
-          rightEntityId: entity.metadata.recordId.entityId,
           ownedById,
+          properties: {},
+          linkData: {
+            leftEntityId: parentEntity.entity.metadata.recordId.entityId,
+            rightEntityId: entity.metadata.recordId.entityId,
+          },
+          entityTypeId: link.meta.linkEntityTypeId,
           relationships,
           draft:
             /** If either side of the link is a draft entity, the link entity must be draft also */

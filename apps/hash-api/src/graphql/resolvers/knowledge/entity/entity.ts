@@ -131,11 +131,13 @@ export const createEntityResolver: ResolverFn<
     ]);
 
     entity = await createLinkEntity(context, authentication, {
-      leftEntityId,
-      rightEntityId,
-      properties,
-      linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
+      properties,
+      linkData: {
+        leftEntityId,
+        rightEntityId,
+      },
+      entityTypeId,
       relationships:
         relationships ??
         createDefaultAuthorizationRelationships(authentication),

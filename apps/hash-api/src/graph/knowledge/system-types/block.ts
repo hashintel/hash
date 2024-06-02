@@ -1,5 +1,8 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  CreateEntityParameters,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   createDefaultAuthorizationRelationships,
@@ -22,7 +25,6 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import type { CreateEntityParams } from "../primitive/entity";
 import {
   archiveEntity,
   createEntity,
@@ -90,7 +92,7 @@ export const getBlockById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createBlock: ImpureGraphFunction<
-  Pick<CreateEntityParams, "ownedById"> & {
+  Pick<CreateEntityParameters, "ownedById"> & {
     componentId: string;
     blockData: Entity;
   },
@@ -110,10 +112,13 @@ export const createBlock: ImpureGraphFunction<
   });
 
   await createLinkEntity(ctx, authentication, {
-    linkEntityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
-    leftEntityId: entity.metadata.recordId.entityId,
-    rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
+    properties: {},
+    linkData: {
+      leftEntityId: entity.metadata.recordId.entityId,
+      rightEntityId: blockData.metadata.recordId.entityId,
+    },
+    entityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
@@ -207,12 +212,15 @@ export const updateBlockDataEntity: ImpureGraphFunction<
   });
 
   await createLinkEntity(ctx, authentication, {
-    linkEntityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
-    leftEntityId: block.entity.metadata.recordId.entityId,
-    rightEntityId: newBlockDataEntity.metadata.recordId.entityId,
     ownedById: extractOwnedByIdFromEntityId(
       block.entity.metadata.recordId.entityId,
     ),
+    properties: {},
+    linkData: {
+      leftEntityId: block.entity.metadata.recordId.entityId,
+      rightEntityId: newBlockDataEntity.metadata.recordId.entityId,
+    },
+    entityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 };

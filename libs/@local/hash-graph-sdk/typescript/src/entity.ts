@@ -1,10 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type {
   Entity as GraphApiEntity,
+  EntityRelationAndSubject,
   PropertyMetadata,
   PropertyMetadataMap,
   PropertyPath,
   PropertyProvenance,
+  ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client/api";
 import type {
   EntityId,
@@ -13,9 +15,24 @@ import type {
   EntityProvenance,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
+  EntityUuid,
   LinkData,
 } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { isEqual } from "lodash";
+
+export type CreateEntityParameters = {
+  ownedById: OwnedById;
+  properties: EntityPropertiesObject;
+  linkData?: LinkData;
+  entityTypeId: VersionedUrl;
+  entityUuid?: EntityUuid;
+  draft?: boolean;
+  confidence?: number;
+  propertyMetadata?: PropertyMetadataMap;
+  provenance?: ProvidedEntityEditionProvenance;
+  relationships: EntityRelationAndSubject[];
+};
 
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",

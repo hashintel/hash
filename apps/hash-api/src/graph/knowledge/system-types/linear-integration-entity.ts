@@ -321,14 +321,15 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
   } else {
     await createLinkEntity(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
-      linkEntityTypeId:
-        systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-      leftEntityId: linearIntegrationEntityId,
-      rightEntityId: workspaceEntityId,
       properties: {
         "https://hash.ai/@hash/types/property-type/linear-team-id/":
           linearTeamIds,
       } as SyncLinearDataWithProperties,
+      linkData: {
+        leftEntityId: linearIntegrationEntityId,
+        rightEntityId: workspaceEntityId,
+      },
+      entityTypeId: systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
       relationships: [
         ...createDefaultAuthorizationRelationships(authentication),
         {
