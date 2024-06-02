@@ -122,22 +122,21 @@ export const createEntity: ImpureGraphFunction<
     }
   }
 
-  const { data: metadata } = await graphApi.createEntity(actorId, {
-    ownedById,
-    entityTypeIds: [entityTypeId],
-    properties,
-    entityUuid: overrideEntityUuid,
-    draft,
-    relationships: params.relationships,
-    confidence: params.confidence,
-    propertyMetadata: params.propertyMetadata,
-    provenance,
-  });
-
-  const entity = new Entity({
-    properties,
-    metadata,
-  });
+  const entity = await Entity.create(
+    graphApi,
+    { actorId },
+    {
+      ownedById,
+      entityTypeId,
+      properties,
+      entityUuid: overrideEntityUuid,
+      draft,
+      relationships: params.relationships,
+      confidence: params.confidence,
+      propertyMetadata: params.propertyMetadata,
+      provenance,
+    },
+  );
 
   for (const createOutgoingLinkParams of outgoingLinks ?? []) {
     await createLinkEntity(context, authentication, {

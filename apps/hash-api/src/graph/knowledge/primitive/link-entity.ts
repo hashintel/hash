@@ -66,25 +66,16 @@ export const createLinkEntity: ImpureGraphFunction<
     );
   }
 
-  const { data: metadata } = await context.graphApi.createEntity(
-    authentication.actorId,
-    {
-      ownedById,
-      linkData,
-      entityTypeIds: [linkEntityType.schema.$id],
-      properties,
-      draft,
-      relationships,
-      confidence,
-      propertyMetadata,
-      provenance,
-    },
-  );
-
-  const linkEntity = new LinkEntity({
-    metadata,
-    properties,
+  const linkEntity = await LinkEntity.create(context.graphApi, authentication, {
+    ownedById,
     linkData,
+    entityTypeId: linkEntityType.schema.$id,
+    properties,
+    draft,
+    relationships,
+    confidence,
+    propertyMetadata,
+    provenance,
   });
 
   for (const afterCreateHook of afterCreateEntityHooks) {

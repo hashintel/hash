@@ -2,7 +2,6 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   DataTypeWithMetadata as GraphApiDataTypeWithMetadata,
   Entity as GraphApiEntity,
-  EntityMetadata as GraphApiEntityMetadata,
   EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   PropertyTypeWithMetadata as GraphApiPropertyTypeWithMetadata,
@@ -39,14 +38,6 @@ import {
   isEntityId,
   isEntityVertex,
 } from "@local/hash-subgraph";
-
-/**
- * A mapping function that can be used to map entity metadata returned by the Graph API to the HASH `EntityMetadata`
- * definition.
- */
-export const mapGraphApiEntityMetadataToEntityId = (
-  metadata: GraphApiEntityMetadata,
-) => metadata.recordId.entityId as EntityId;
 
 const restrictedPropertyBaseUrls: string[] = [
   systemPropertyTypes.email.propertyTypeBaseUrl,

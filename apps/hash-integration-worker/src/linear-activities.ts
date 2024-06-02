@@ -37,46 +37,46 @@ const createHashEntity = async (params: {
   ownedById: OwnedById;
 }): Promise<void> => {
   const { graphApiClient, ownedById } = params;
-  const { data: entity } = await graphApiClient.createEntity(
-    params.authentication.actorId,
-    {
-      ownedById,
-      draft: false,
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: params.authentication.actorId,
-          },
+  const entity = await Entity.create(graphApiClient, params.authentication, {
+    ownedById,
+    draft: false,
+    relationships: [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: params.authentication.actorId,
         },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "administratorFromWeb" },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "updateFromWeb" },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "viewFromWeb" },
-        },
-      ],
-      ...params.partialEntity,
-      entityTypeIds: [params.partialEntity.entityTypeId],
-    },
-  );
+      },
+      {
+        relation: "setting",
+        subject: { kind: "setting", subjectId: "administratorFromWeb" },
+      },
+      {
+        relation: "setting",
+        subject: { kind: "setting", subjectId: "updateFromWeb" },
+      },
+      {
+        relation: "setting",
+        subject: { kind: "setting", subjectId: "viewFromWeb" },
+      },
+    ],
+    properties:
+      (params.partialEntity.properties as Entity["properties"] | undefined) ??
+      {},
+    entityTypeId: params.partialEntity.entityTypeId,
+  });
 
-  await graphApiClient.createEntities(
-    params.authentication.actorId,
+  await Entity.createMultiple(
+    graphApiClient,
+    { actorId: params.authentication.actorId },
     params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => ({
       ownedById,
       linkData: {
-        leftEntityId: entity.recordId.entityId,
+        leftEntityId: entity.metadata.recordId.entityId,
         rightEntityId: destinationEntityId,
       },
-      entityTypeIds: [linkEntityTypeId],
+      entityTypeId: linkEntityTypeId,
       properties: {},
       draft: false,
       relationships: [
@@ -169,8 +169,8 @@ const createOrUpdateHashEntity = async (params: {
         archiveEntity({ ...params, entity: linkEntity }),
       ),
       ...addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
-        graphApiClient.createEntity(params.authentication.actorId, {
-          entityTypeIds: [linkEntityTypeId],
+        Entity.create(graphApiClient, params.authentication, {
+          entityTypeId: linkEntityTypeId,
           linkData: {
             leftEntityId: existingEntity.metadata.recordId.entityId,
             rightEntityId: destinationEntityId,

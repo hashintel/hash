@@ -1,9 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type {
-  CreateEntityRequest,
-  EntityMetadata,
-} from "@local/hash-graph-client";
+import type { EntityMetadata } from "@local/hash-graph-client";
+import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
@@ -57,10 +55,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     proposedEntityWithResolvedLinks;
 
   const entityValues: Omit<
-    CreateEntityRequest,
+    CreateEntityParameters,
     "relationships" | "ownedById" | "draft" | "linkData"
   > & { linkData: Entity["linkData"] } = {
-    entityTypeIds: [entityTypeId],
+    entityTypeId,
     properties,
     linkData,
     provenance,
@@ -202,23 +200,24 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
             properties: patchOperations,
           })
           .then((resp) => resp.data);
+        entity = new Entity({
+          metadata: entityMetadata,
+          ...entityValues,
+        });
       } else {
-        entityMetadata = await graphApiClient
-          .createEntity(webBotActorId, {
+        entity = await Entity.create(
+          graphApiClient,
+          { actorId: webBotActorId },
+          {
             ...entityValues,
             draft: createEditionAsDraft,
             ownedById,
             relationships: createDefaultAuthorizationRelationships({
               actorId,
             }),
-          })
-          .then((resp) => resp.data);
+          },
+        );
       }
-
-      entity = new Entity({
-        metadata: entityMetadata,
-        ...entityValues,
-      });
     } catch (err) {
       return {
         code: StatusCode.Internal,

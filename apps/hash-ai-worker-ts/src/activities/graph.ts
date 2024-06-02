@@ -11,7 +11,12 @@ import type {
   UpdateEntityTypeEmbeddingParams,
   UpdatePropertyTypeEmbeddingParams,
 } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import type {
+  CreateEntityParameters,
+  SerializedEntity,
+} from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type {
@@ -255,9 +260,10 @@ export const createGraphActivities = ({
   },
 
   async createEntity(
-    ...params: Parameters<typeof graphApiClient.createEntity>
+    authentication: AuthenticationContext,
+    params: CreateEntityParameters,
   ) {
-    return graphApiClient.createEntity(...params).then((result) => result.data);
+    return Entity.create(graphApiClient, authentication, params);
   },
 
   async getHashInstanceAdminAccountGroupId(authentication: {
