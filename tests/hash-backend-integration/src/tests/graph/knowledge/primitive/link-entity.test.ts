@@ -3,7 +3,6 @@ import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-
 import type { EntityTypeDefinition } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import {
-  archiveEntity,
   createEntity,
   getEntityOutgoingLinks,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
@@ -278,9 +277,7 @@ describe("Link entity", () => {
   it("can archive a link", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    await archiveEntity(graphContext, authentication, {
-      entity: linkEntityAcquaintance,
-    });
+    await linkEntityAcquaintance.archive(graphContext.graphApi, authentication);
 
     const links = await getEntityOutgoingLinks(graphContext, authentication, {
       entityId: leftEntity.metadata.recordId.entityId,

@@ -26,7 +26,6 @@ import type {
   PureGraphFunction,
 } from "../../context-types";
 import {
-  archiveEntity,
   createEntity,
   getEntities,
   getEntityIncomingLinks,
@@ -207,9 +206,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     );
   }
 
-  await archiveEntity(ctx, authentication, {
-    entity: outgoingBlockDataLink,
-  });
+  await outgoingBlockDataLink.archive(ctx.graphApi, authentication);
 
   await createLinkEntity(ctx, authentication, {
     ownedById: extractOwnedByIdFromEntityId(

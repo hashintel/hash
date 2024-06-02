@@ -576,19 +576,16 @@ export const updateEntity: ImpureGraphFunction<
   const { graphApi } = context;
   const { actorId } = authentication;
 
-  const { data: metadata } = await graphApi.patchEntity(actorId, {
-    entityId: entity.metadata.recordId.entityId,
-    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-    draft: params.draft,
-    properties: [
-      {
-        op: "replace",
-        path: [],
-        value: params.properties,
-      },
-    ],
-    provenance,
-  });
+  const updatedEntity = await entity.update(
+    graphApi,
+    { actorId },
+    {
+      entityTypeId,
+      draft: params.draft,
+      properties: params.properties,
+      provenance,
+    },
+  );
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
     if (afterUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
@@ -601,37 +598,7 @@ export const updateEntity: ImpureGraphFunction<
     }
   }
 
-  return new Entity({
-    ...entity,
-    metadata,
-    properties,
-  });
-};
-
-export const archiveEntity: ImpureGraphFunction<
-  {
-    entity: Entity;
-  },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  const { entity } = params;
-  await graphApi.patchEntity(actorId, {
-    entityId: entity.metadata.recordId.entityId,
-    archived: true,
-  });
-};
-
-export const unarchiveEntity: ImpureGraphFunction<
-  {
-    entity: Entity;
-  },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  const { entity } = params;
-  await graphApi.patchEntity(actorId, {
-    entityId: entity.metadata.recordId.entityId,
-    archived: false,
-  });
+  return updatedEntity;
 };
 
 /**

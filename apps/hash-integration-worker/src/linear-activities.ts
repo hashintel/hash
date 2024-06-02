@@ -222,15 +222,8 @@ const createOrUpdateHashEntity = async (params: {
       ),
     };
 
-    await graphApiClient.patchEntity(params.authentication.actorId, {
-      entityId: existingEntity.metadata.recordId.entityId,
-      properties: [
-        {
-          op: "replace",
-          path: [],
-          value: mergedProperties,
-        },
-      ],
+    await existingEntity.update(graphApiClient, params.authentication, {
+      properties: mergedProperties,
     });
   }
 

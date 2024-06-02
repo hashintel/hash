@@ -82,18 +82,6 @@ export const getLatestEntityById = async (params: {
   return entity;
 };
 
-export const archiveEntity = async (params: {
-  graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
-  entity: Entity;
-}) => {
-  const { graphApiClient, authentication, entity } = params;
-  await graphApiClient.patchEntity(authentication.actorId, {
-    entityId: entity.metadata.recordId.entityId,
-    archived: true,
-  });
-};
-
 export const getEntityUpdate = <T extends EntityPropertiesObject>({
   existingEntity,
   newProperties,

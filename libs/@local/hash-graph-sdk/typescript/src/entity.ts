@@ -5,6 +5,7 @@ import type {
   GraphApi,
   PropertyMetadata,
   PropertyMetadataMap,
+  PropertyPatchOperation,
   PropertyPath,
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
@@ -50,7 +51,9 @@ export interface SerializedEntity<
   [typeId]: TypeId;
 }
 
-type EntityData<Properties extends EntityPropertiesObject> = {
+type EntityData<
+  Properties extends EntityPropertiesObject = EntityPropertiesObject,
+> = {
   metadata: EntityMetadata & {
     confidence?: number;
     properties?: PropertyMetadataMap;
@@ -86,6 +89,19 @@ const isGraphApiEntity = <Properties extends EntityPropertiesObject>(
   );
 };
 
+const mapEntityMetadata = (
+  metadata: GraphApiEntity["metadata"],
+): EntityData["metadata"] => ({
+  recordId: metadata.recordId as EntityRecordId,
+  entityTypeId: metadata.entityTypeIds[0] as VersionedUrl,
+  temporalVersioning:
+    metadata.temporalVersioning as EntityTemporalVersioningMetadata,
+  provenance: metadata.provenance as EntityProvenance,
+  archived: metadata.archived,
+  confidence: metadata.confidence,
+  properties: metadata.properties,
+});
+
 export class Entity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > {
@@ -97,16 +113,7 @@ export class Entity<
     } else if (isGraphApiEntity(entity)) {
       this.#entity = {
         properties: entity.properties as Properties,
-        metadata: {
-          recordId: entity.metadata.recordId as EntityRecordId,
-          entityTypeId: entity.metadata.entityTypeIds[0] as VersionedUrl,
-          temporalVersioning: entity.metadata
-            .temporalVersioning as EntityTemporalVersioningMetadata,
-          provenance: entity.metadata.provenance as EntityProvenance,
-          archived: entity.metadata.archived,
-          confidence: entity.metadata.confidence,
-          properties: entity.metadata.properties,
-        },
+        metadata: mapEntityMetadata(entity.metadata),
         linkData: entity.linkData as LinkData,
       };
     } else {
@@ -124,6 +131,86 @@ export class Entity<
     return (
       await Entity.createMultiple(graphAPI, authentication, [params])
     )[0]!;
+  }
+
+  public async update(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: {
+      properties?: Properties;
+      entityTypeId?: VersionedUrl;
+      draft?: boolean;
+      confidence?: number;
+      provenance?: ProvidedEntityEditionProvenance;
+    },
+  ): Promise<Entity<Properties>> {
+    const { data: metadata } = await graphAPI.patchEntity(
+      authentication.actorId,
+      {
+        entityId: this.entityId,
+        properties: params.properties
+          ? [
+              {
+                op: "replace",
+                path: [],
+                value: params.properties,
+              },
+            ]
+          : undefined,
+      },
+    );
+
+    return new Entity<Properties>({
+      metadata,
+      linkData: this.#entity.linkData,
+      properties: params.properties ?? this.#entity.properties,
+    });
+  }
+
+  public async patch(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: {
+      properties?: PropertyPatchOperation[];
+      entityTypeId?: VersionedUrl;
+      draft?: boolean;
+      confidence?: number;
+      provenance?: ProvidedEntityEditionProvenance;
+    },
+  ): Promise<EntityMetadata> {
+    const { data: metadata } = await graphAPI.patchEntity(
+      authentication.actorId,
+      {
+        entityId: this.entityId,
+        properties: params.properties,
+        entityTypeIds: params.entityTypeId ? [params.entityTypeId] : undefined,
+        draft: params.draft,
+        confidence: params.confidence,
+        provenance: params.provenance,
+      },
+    );
+
+    return mapEntityMetadata(metadata);
+  }
+
+  public async archive(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+  ): Promise<void> {
+    await graphAPI.patchEntity(authentication.actorId, {
+      entityId: this.entityId,
+      archived: true,
+    });
+  }
+
+  public async unarchive(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+  ): Promise<void> {
+    await graphAPI.patchEntity(authentication.actorId, {
+      entityId: this.entityId,
+      archived: false,
+    });
   }
 
   public static async createMultiple(

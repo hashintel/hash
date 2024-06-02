@@ -274,25 +274,14 @@ export const getFileEntityFromUrl = async (params: {
     ...fileStorageProperties,
   };
 
-  const updatedEntity = await graphApiClient
-    .patchEntity(webBotActorId, {
-      entityId: incompleteFileEntity.metadata.recordId.entityId,
-      properties: [
-        {
-          op: "replace",
-          path: [],
-          value: properties,
-        },
-      ],
+  const updatedEntity = (await incompleteFileEntity.update(
+    graphApiClient,
+    { actorId: webBotActorId },
+    {
+      properties,
       provenance,
-    })
-    .then(
-      (result) =>
-        new Entity<FileProperties>({
-          metadata: result.data,
-          properties,
-        }),
-    );
+    },
+  )) as Entity<FileProperties>;
 
   try {
     await writeFileToS3URL({

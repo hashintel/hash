@@ -20,7 +20,6 @@ import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import type { PositionInput } from "../../../graphql/api-types.gen";
 import type { ImpureGraphFunction } from "../../context-types";
 import {
-  archiveEntity,
   getEntityOutgoingLinks,
   getLatestEntityById,
 } from "../primitive/entity";
@@ -171,5 +170,5 @@ export const removeBlockFromBlockCollection: ImpureGraphFunction<
     entityId: linkEntityId,
   });
 
-  await archiveEntity(ctx, authentication, { entity: linkEntity });
+  await linkEntity.archive(ctx.graphApi, authentication);
 };

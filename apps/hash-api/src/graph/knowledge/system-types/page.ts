@@ -37,7 +37,6 @@ import type {
   PureGraphFunction,
 } from "../../context-types";
 import {
-  archiveEntity,
   createEntity,
   getEntities,
   getEntityOutgoingLinks,
@@ -359,7 +358,7 @@ export const removeParentPage: ImpureGraphFunction<
     );
   }
 
-  await archiveEntity(ctx, authentication, { entity: parentPageLink });
+  await parentPageLink.archive(ctx.graphApi, authentication);
 };
 
 /**

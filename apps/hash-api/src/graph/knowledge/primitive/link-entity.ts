@@ -111,24 +111,15 @@ export const updateLinkEntity: ImpureGraphFunction<
 
   const properties = params.properties ?? linkEntity.properties;
 
-  const { data: metadata } = await graphApi.patchEntity(actorId, {
-    entityId: linkEntity.metadata.recordId.entityId,
-    properties: [
-      {
-        op: "replace",
-        path: [],
-        value: properties,
-      },
-    ],
-    draft: params.draft,
-    provenance: params.provenance,
-  });
-
-  return new LinkEntity({
-    metadata,
-    properties,
-    linkData: linkEntity.linkData,
-  });
+  return (await linkEntity.update(
+    graphApi,
+    { actorId },
+    {
+      properties,
+      draft: params.draft,
+      provenance: params.provenance,
+    },
+  )) as LinkEntity;
 };
 
 /**
