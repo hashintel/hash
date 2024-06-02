@@ -1,4 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -28,7 +29,6 @@ import type {
   UpdateBlockCollectionAction,
   UpdateEntityAction,
 } from "../../../api-types.gen";
-import type { AuthenticationContext } from "../../../authentication-context";
 
 export const createEntityWithPlaceholdersFn =
   (
