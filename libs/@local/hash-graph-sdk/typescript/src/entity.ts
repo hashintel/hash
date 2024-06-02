@@ -2,6 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/graph";
 import type {
   Entity as GraphApiEntity,
   EntityRelationAndSubject,
+  GraphApi,
   PropertyMetadata,
   PropertyMetadataMap,
   PropertyPath,
@@ -19,7 +20,9 @@ import type {
   LinkData,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { isEqual } from "lodash";
+import { isEqual, zip } from "lodash";
+
+import type { AuthenticationContext } from "./authentication-context";
 
 export type CreateEntityParameters = {
   ownedById: OwnedById;
@@ -113,6 +116,49 @@ export class Entity<
     }
   }
 
+  public static async create(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: CreateEntityParameters,
+  ): Promise<Entity> {
+    return (
+      await Entity.createMultiple(graphAPI, authentication, [params])
+    )[0]!;
+  }
+
+  public static async createMultiple(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: CreateEntityParameters[],
+  ): Promise<Entity[]> {
+    return graphAPI
+      .createEntities(
+        authentication.actorId,
+        params.map((request) => ({
+          ownedById: request.ownedById,
+          properties: request.properties,
+          linkData: request.linkData,
+          entityTypeIds: [request.entityTypeId],
+          entityUuid: request.entityUuid,
+          draft: request.draft ?? false,
+          confidence: request.confidence,
+          propertyMetadata: request.propertyMetadata,
+          provenance: request.provenance,
+          relationships: request.relationships,
+        })),
+      )
+      .then(({ data }) =>
+        zip(params, data).map(
+          ([request, metadata]) =>
+            new Entity({
+              metadata: metadata!,
+              properties: request!.properties,
+              linkData: request!.linkData,
+            }),
+        ),
+      );
+  }
+
   public get metadata(): EntityMetadata {
     return this.#entity.metadata;
   }
@@ -159,6 +205,30 @@ export class LinkEntity<
     }
 
     super(input as EntityInput<Properties>);
+  }
+
+  public static async createMultiple(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: (CreateEntityParameters & { linkData: LinkData })[],
+  ): Promise<LinkEntity[]> {
+    return (await Entity.createMultiple(
+      graphAPI,
+      authentication,
+      params,
+    )) as LinkEntity[];
+  }
+
+  public static async create(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: CreateEntityParameters & { linkData: LinkData },
+  ): Promise<LinkEntity> {
+    return (await Entity.create(
+      graphAPI,
+      authentication,
+      params,
+    )) as LinkEntity;
   }
 
   public get linkData(): LinkData {
