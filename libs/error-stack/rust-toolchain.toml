@@ -1,4 +1,4 @@
 [toolchain]
 # Please also update the badges in `README.md`s (`error-stack` and `error-stack-macros`), and `src/lib.rs`
-channel = "nightly-2024-05-27"
+channel = "nightly-2024-06-03"
 components = ['rustfmt', 'clippy', 'llvm-tools-preview', 'miri', 'rust-src', 'rust-analyzer']
