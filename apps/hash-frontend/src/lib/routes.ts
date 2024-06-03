@@ -1,4 +1,4 @@
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 
 import { getBlockDomId } from "../shared/get-block-dom-id";
 

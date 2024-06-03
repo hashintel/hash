@@ -60,12 +60,16 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
               easing: theme.transitions.easing.easeOut,
               duration: theme.transitions.duration.enteringScreen,
             }),
-            ...(sidebarOpen && {
+            ...((sidebarOpen || isReadonlyMode) && {
               marginLeft: 0,
             }),
           })}
         >
-          <Collapse orientation="horizontal" timeout={100} in={!sidebarOpen}>
+          <Collapse
+            orientation="horizontal"
+            timeout={100}
+            in={!isReadonlyMode && !sidebarOpen}
+          >
             <Stack
               alignItems="center"
               sx={({ palette, zIndex }) => ({

@@ -1,4 +1,4 @@
-import type { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import isPlainObject from "lodash/isPlainObject";
 
 import type { EditorType } from "./types";

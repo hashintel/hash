@@ -31,12 +31,11 @@
     "@rust/graph": "0.0.0-private",
     "@rust/graph-api": "0.0.0-private",
     "@rust/hash-graph": "0.0.0-private",
-    "@rust/repo-chores": "0.0.0-private",
     "@rust/type-fetcher": "0.0.0-private"
   },
   "devDependencies": {
     "@rust/graph-test-data": "0.0.0-private",
-    "httpyac": "6.13.3",
+    "httpyac": "6.14.0",
     "quicktype": "^16.0.43",
     "tsx": "3.13.0",
     "typescript": "5.1.6"

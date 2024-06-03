@@ -7,8 +7,9 @@ import {
   extractVersion,
   validateVersionedUrl,
 } from "@blockprotocol/type-system/slim";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
-import type { BaseUrl, Entity, EntityPropertiesObject } from "../types";
+import type { Entity, EntityPropertiesObject } from "../types";
 
 export const extractBaseUrl = (versionedUrl: VersionedUrl): BaseUrl =>
   extractBaseUrlBp(versionedUrl) as BaseUrl;

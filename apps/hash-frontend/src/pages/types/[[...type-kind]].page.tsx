@@ -1,7 +1,5 @@
-import type {
-  DataTypeRootType,
-  DataTypeWithMetadata,
-} from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { DataTypeRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Container, Typography } from "@mui/material";
 import type { GetServerSideProps } from "next";

@@ -11,6 +11,13 @@ import type {
   UpdateEntityTypeEmbeddingParams,
   UpdatePropertyTypeEmbeddingParams,
 } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { Uuid } from "@local/hash-graph-types/branded";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
@@ -18,17 +25,12 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
-  AccountId,
   DataTypeRootType,
-  DataTypeWithMetadata,
   Entity,
   EntityRootType,
   EntityTypeRootType,
-  EntityTypeWithMetadata,
   PropertyTypeRootType,
-  PropertyTypeWithMetadata,
   Subgraph,
-  Uuid,
 } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {

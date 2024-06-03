@@ -5,14 +5,10 @@ import {
   getEntityRevision as getEntityRevisionBp,
   getEntityRevisionsByEntityId as getEntityRevisionsByEntityIdBp,
 } from "@blockprotocol/graph/temporal/stdlib";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
-import type {
-  Entity,
-  EntityId,
-  EntityRevisionId,
-  Subgraph,
-  TimeInterval,
-} from "../../../main";
+import type { Entity, EntityRevisionId, Subgraph } from "../../../main";
 
 /**
  * Returns all {@link Entity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their

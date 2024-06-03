@@ -92,7 +92,7 @@ export const GoalsList = () => {
         /**
          * @todo H-2722 – decide how to store an informative name per goal / flow run
          */
-        name: goalFlowDefinition.name,
+        name: run.name,
         status,
         web,
       };

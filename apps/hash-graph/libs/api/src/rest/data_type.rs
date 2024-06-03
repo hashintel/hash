@@ -1,7 +1,5 @@
 //! Web routes for CRU operations on Data Types.
 
-#![expect(clippy::str_to_string)]
-
 use std::sync::Arc;
 
 use authorization::{
@@ -267,10 +265,11 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(untagged)]
+#[serde(deny_unknown_fields, untagged)]
 enum LoadExternalDataTypeRequest {
     #[serde(rename_all = "camelCase")]
     Fetch { data_type_id: VersionedUrl },
+    #[serde(rename_all = "camelCase")]
     Create {
         #[schema(value_type = VAR_DATA_TYPE)]
         schema: DataType,

@@ -25,6 +25,16 @@ import type { Subtype } from "@local/advanced-types/subtype";
  */
 export type Timestamp = Brand<TimestampBp, "Timestamp">;
 
+/** The transaction time when the record was inserted into the database the first time */
+export type CreatedAtTransactionTime = Brand<
+  Timestamp,
+  "CreatedAtTransactionTime"
+>;
+
+/** The decision time when the record was inserted into the database the first time. This does not take into account
+ *  if an updated later happened with a decision time before the initial decision time. */
+export type CreatedAtDecisionTime = Brand<Timestamp, "CreatedAtDecisionTime">;
+
 export type TemporalAxis = TemporalAxisBp;
 export type Unbounded = UnboundedBp;
 

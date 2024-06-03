@@ -1,0 +1,36 @@
+{
+  "name": "@local/hash-graph-sdk",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "SDK for the HASH Graph.",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./src/*.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "test:unit": "vitest --run"
+  },
+  "dependencies": {
+    "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-graph-types": "0.0.0-private"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@vitest/coverage-istanbul": "1.6.0",
+    "eslint": "8.57.0",
+    "typescript": "5.1.6",
+    "vitest": "1.6.0"
+  }
+}

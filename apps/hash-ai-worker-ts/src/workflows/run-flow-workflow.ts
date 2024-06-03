@@ -1,4 +1,5 @@
 import { sleep } from "@local/hash-backend-utils/utils";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   RunFlowWorkflowParams,
@@ -11,7 +12,6 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
-import type { EntityUuid } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import {
@@ -219,8 +219,24 @@ export const runFlowWorkflow = async (
     flowDefinition,
     flowTrigger,
     flowRunId: workflowId as EntityUuid,
+    /** use the flow definition's name as a placeholder – we need the Flow persisted to link the generating name usage to it */
+    name: flowDefinition.name,
   });
 
+  await persistFlowActivity({ flow, userAuthentication, webId });
+
+  const generateFlowRunNameActivity = proxyFlowActivity({
+    actionId: "generateFlowRunName",
+    maximumAttempts: 1,
+    activityId: "generate-flow-run-name",
+  });
+
+  const generatedName = await generateFlowRunNameActivity({
+    flowDefinition,
+    flowTrigger,
+  });
+
+  flow.name = generatedName;
   await persistFlowActivity({ flow, userAuthentication, webId });
 
   setQueryAndSignalHandlers();

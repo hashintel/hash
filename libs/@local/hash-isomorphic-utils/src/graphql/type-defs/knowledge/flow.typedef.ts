@@ -133,6 +133,11 @@ export const flowTypedef = gql`
     """
     flowDefinitionId: String!
     """
+    A user-facing name for the flow run to distinguish it from other runs of its kind,
+    which might include a key input or a summary of its key inputs.
+    """
+    name: String!
+    """
     The web this flow run is associated with
     """
     webId: OwnedById!

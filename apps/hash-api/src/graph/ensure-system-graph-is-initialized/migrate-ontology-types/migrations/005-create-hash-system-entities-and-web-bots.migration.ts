@@ -4,7 +4,7 @@ import {
   createWebMachineActor,
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
-import type { AccountId } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-graph-types/account";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { logger } from "../../../../logger";

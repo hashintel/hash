@@ -140,6 +140,7 @@ declare module "@mui/material/Button" {
     secondary_quiet: true;
     tertiary: true;
     tertiary_quiet: true;
+    white_cta: true;
     warning: true;
     danger: true;
     // Disable defaults

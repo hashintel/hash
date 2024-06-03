@@ -2,7 +2,6 @@ cargo-features = ["edition2024"]
 
 [workspace]
 members = [
-    "apps/hash-graph/bench",
     "apps/hash-graph/bins/cli",
     "apps/hash-graph/libs/*",
     "libs/@blockprotocol/type-system/rust",
@@ -15,6 +14,7 @@ members = [
     "libs/@local/repo-chores/rust",
     "libs/@local/temporal-client",
     "libs/@local/temporal-versioning",
+    "tests/hash-graph-benches",
     "tests/hash-graph-integration",
     "tests/hash-graph-test-data/rust",
     "libs/@local/harpc/wire-protocol",
@@ -81,6 +81,3 @@ uuid = { version = "1.8.0", default-features = false }
 inherits = "release"
 lto = "fat"
 strip = "none"
-
-[patch.crates-io]
-crc32c = { git = "https://github.com/zowens/crc32c", rev = "04eabbc6ef33e0afe529da729e65916c48f9d032" }

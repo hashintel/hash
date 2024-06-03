@@ -10,6 +10,10 @@ test.beforeEach(async () => {
 
 test("guest user navigation to login and signup pages", async ({ page }) => {
   await page.goto("/");
+
+  await expect(page.locator("text=Create an account")).toBeVisible();
+  await page.click("text=Sign in");
+
   await page.waitForURL("**/signin");
 
   await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();

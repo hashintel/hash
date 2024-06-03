@@ -1,18 +1,18 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ActionStep,
   ActionStepDefinition,
   ArrayPayload,
-  Flow,
   FlowDefinition,
   FlowStep,
   FlowTrigger,
+  LocalFlowRun,
   ParallelGroupStep,
   ParallelGroupStepDefinition,
   Payload,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { EntityUuid } from "@local/hash-subgraph";
 
 import { getAllStepsInFlow } from "./get-all-steps-in-flow";
 
@@ -25,7 +25,7 @@ export const initializeActionStep = (params: {
         kind: "parallel-group-input";
       }>;
   overrideStepId?: string;
-  existingFlow?: Flow;
+  existingFlow?: LocalFlowRun;
   parallelGroupInputPayload?: Payload;
 }): ActionStep => {
   const {
@@ -175,10 +175,12 @@ export const initializeFlow = (params: {
   flowRunId: EntityUuid;
   flowDefinition: FlowDefinition;
   flowTrigger: FlowTrigger;
-}): Flow => {
-  const { flowRunId, flowDefinition, flowTrigger } = params;
+  name: string;
+}): LocalFlowRun => {
+  const { flowRunId, flowDefinition, flowTrigger, name } = params;
 
   return {
+    name,
     flowRunId,
     trigger: {
       triggerDefinitionId: flowTrigger.triggerDefinitionId,

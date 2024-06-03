@@ -7,6 +7,9 @@ test.beforeEach(async () => {
 
 test("user can sign up", async ({ page }) => {
   await page.goto("/");
+
+  await page.click("text=Sign in");
+
   await page.waitForURL("**/signin");
 
   await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();

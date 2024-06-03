@@ -100,8 +100,9 @@ where
 {
     type Reflection = BoundReflection<T::Reflection>;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_enum(BoundEnumVisitor(PhantomData))
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_enum(BoundEnumVisitor(PhantomData))
             .change_context(DeserializeError)
     }
 }

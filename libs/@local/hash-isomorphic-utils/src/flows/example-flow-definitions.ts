@@ -1,4 +1,4 @@
-import type { EntityUuid } from "@local/hash-subgraph";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 
 import type {
   InputNameForAction,
@@ -7,7 +7,7 @@ import type {
 import type { FlowDefinition } from "./types";
 
 export const researchTaskFlowDefinition: FlowDefinition = {
-  name: "Research Task",
+  name: "Research task",
   flowDefinitionId: "research-task" as EntityUuid,
   description:
     "Conduct research on a given topic, and provide expert analysis on the discovered data",
@@ -197,7 +197,7 @@ export const researchTaskFlowDefinition: FlowDefinition = {
 };
 
 export const researchEntitiesFlowDefinition: FlowDefinition = {
-  name: "Research Entities",
+  name: "Research entities",
   flowDefinitionId: "research-entities" as EntityUuid,
   description:
     "Discover entities according to a research brief, save them to HASH and Google Sheets",
@@ -351,7 +351,7 @@ export const researchEntitiesFlowDefinition: FlowDefinition = {
 };
 
 export const ftseInvestorsFlowDefinition: FlowDefinition = {
-  name: "FTSE350 Investors",
+  name: "FTSE350 investors",
   flowDefinitionId: "ftse-350-investors" as EntityUuid,
   description:
     "Research the FTSE350 index, its constituents, and the top investors in the index",
@@ -569,7 +569,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
 };
 
 export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
-  name: "Infer User Entities from Web Page",
+  name: "Analyze webpage entities",
   flowDefinitionId: "infer-user-entities-from-web-page" as EntityUuid,
   description:
     "Infer entities from a web page, based on the user's provided entity types",
@@ -672,7 +672,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition = {
 };
 
 export const answerQuestionFlow: FlowDefinition = {
-  name: "Answer Question Flow",
+  name: "Answer question",
   flowDefinitionId: "answer-question-flow" as EntityUuid,
   description: "Answer a question based on the provided context",
   trigger: {
@@ -819,7 +819,7 @@ export const answerQuestionFlow: FlowDefinition = {
 };
 
 export const saveFileFromUrl: FlowDefinition = {
-  name: "Save File From Url",
+  name: "Save file from URL",
   flowDefinitionId: "save-file-from-url" as EntityUuid,
   description: "Save file from URL to HASH",
   trigger: {
@@ -896,7 +896,7 @@ export type GoalFlowTriggerInput =
   | "Create as draft";
 
 export const goalFlowDefinition: FlowDefinition = {
-  name: "Research Goal",
+  name: "Research goal",
   flowDefinitionId: "research-goal" as EntityUuid,
   description:
     "Discover entities according to a research brief, save them to HASH",

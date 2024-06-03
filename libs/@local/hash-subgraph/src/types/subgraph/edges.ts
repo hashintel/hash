@@ -4,9 +4,11 @@ import {
   type OntologyRootedEdges as OntologyRootedEdgesBp,
 } from "@blockprotocol/graph/temporal";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 
 import type { OntologyTypeRevisionId } from "../element";
-import type { BaseUrl, EntityId, Timestamp } from "../shared";
 import type {
   KnowledgeGraphOutwardEdge,
   OntologyOutwardEdge,

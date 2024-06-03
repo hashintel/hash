@@ -1,14 +1,15 @@
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
-import { mapFlowToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
-import type { Flow } from "@local/hash-isomorphic-utils/flows/types";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
+import type { LocalFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountId, OwnedById } from "@local/hash-subgraph";
 
 import { graphApiClient } from "../shared/graph-api-client";
 
 type PersistFlowActivityParams = {
-  flow: Flow;
+  flow: LocalFlowRun;
   userAuthentication: { actorId: AccountId };
   webId: OwnedById;
 };
@@ -20,7 +21,7 @@ export const persistFlowActivity = async (
 
   const { flowRunId } = flow;
 
-  const flowProperties = mapFlowToEntityProperties(flow);
+  const flowRunProperties = mapFlowRunToEntityProperties(flow);
 
   const existingFlowEntity = await getFlowRunEntityById({
     flowRunId,
@@ -35,7 +36,7 @@ export const persistFlowActivity = async (
         {
           op: "replace",
           path: [],
-          value: flowProperties,
+          value: flowRunProperties,
         },
       ],
     });
@@ -43,8 +44,8 @@ export const persistFlowActivity = async (
     await graphApiClient.createEntity(userAuthentication.actorId, {
       ownedById: webId,
       entityUuid: flowRunId,
-      entityTypeIds: [systemEntityTypes.flow.entityTypeId],
-      properties: flowProperties,
+      entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
+      properties: flowRunProperties,
       draft: false,
       relationships:
         createDefaultAuthorizationRelationships(userAuthentication),

@@ -1,3 +1,10 @@
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
@@ -16,14 +23,9 @@ import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/u
 import type {
   AccountEntityId,
   AccountGroupEntityId,
-  AccountGroupId,
-  AccountId,
-  BaseUrl,
   Entity,
   EntityRootType,
-  OwnedById,
   Subgraph,
-  Timestamp,
 } from "@local/hash-subgraph";
 import { extractAccountGroupId, extractAccountId } from "@local/hash-subgraph";
 import {

@@ -49,6 +49,7 @@ import {
   updateEntitiesResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
+import { getEntityDiffsResolver } from "./knowledge/entity/get-entity-diffs";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
 import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { hashInstanceEntityResolver } from "./knowledge/hash-instance/hash-instance";
@@ -65,9 +66,11 @@ import {
   checkUserPermissionsOnEntity,
 } from "./knowledge/shared/check-permissions";
 import { getUsageRecordsResolver } from "./knowledge/user/get-usage-records";
+import { getWaitlistPositionResolver } from "./knowledge/user/get-waitlist-position";
 import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
+import { submitEarlyAccessFormResolver } from "./knowledge/user/submit-early-access-form";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
 import { getDataType, queryDataTypes } from "./ontology/data-type";
@@ -98,6 +101,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
     // Logged in users only
     me: loggedInMiddleware(meResolver),
+    getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
     // Admins
     getUsageRecords: loggedInMiddleware(getUsageRecordsResolver),
     // Any user
@@ -114,6 +118,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
     getEntity: getEntityResolver,
+    getEntityDiffs: getEntityDiffsResolver,
     getFlowRuns: loggedInAndSignedUpMiddleware(getFlowRunsResolver),
     getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
     queryEntities: queryEntitiesResolver,
@@ -174,6 +179,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
 
     createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
+
+    submitEarlyAccessForm: loggedInMiddleware(submitEarlyAccessFormResolver),
 
     addEntityOwner: loggedInAndSignedUpMiddleware(addEntityOwnerResolver),
     removeEntityOwner: loggedInAndSignedUpMiddleware(removeEntityOwnerResolver),

@@ -1,3 +1,4 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   automaticBrowserInferenceFlowDefinition,
   manualBrowserInferenceFlowDefinition,
@@ -12,7 +13,6 @@ import {
   saveFileFromUrl,
 } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import type { EntityUuid } from "@local/hash-subgraph";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 

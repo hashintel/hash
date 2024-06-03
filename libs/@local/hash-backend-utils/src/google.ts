@@ -1,5 +1,7 @@
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -8,12 +10,7 @@ import {
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
-import type {
-  AccountId,
-  Entity,
-  EntityId,
-  EntityRootType,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { Auth } from "googleapis";
 import { google } from "googleapis";
