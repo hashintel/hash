@@ -1,10 +1,11 @@
+import type { OmitValue } from "@local/advanced-types/omit-value";
 import type { Subtype } from "@local/advanced-types/subtype";
 import dedent from "dedent";
 
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
 import type { CoordinatingAgentState } from "./coordinating-agent";
 
-const coordinatorToolNames = [
+export const coordinatorToolNames = [
   "requestHumanInput",
   "webSearch",
   "inferFactsFromWebPages",
@@ -18,8 +19,6 @@ const coordinatorToolNames = [
 ] as const;
 
 export type CoordinatorToolName = (typeof coordinatorToolNames)[number];
-
-type OmitValue<T, K> = T extends K ? never : T;
 
 export const isCoordinatorToolName = (
   value: string,
@@ -228,7 +227,6 @@ export const generateToolDefinitions = <
       name: "complete",
       description: dedent(`
             Complete the research task.
-            This tool should only be used when the 
           `),
       inputSchema: {
         type: "object",
