@@ -261,8 +261,12 @@ const getNextToolCalls = async (params: {
 
   const tools = Object.values(
     generateToolDefinitions({
-      humanInputCanBeRequested: input.humanInputCanBeRequested,
-      canCompleteActivity: state.submittedEntityIds.length > 0,
+      omitTools: [
+        ...(input.humanInputCanBeRequested
+          ? []
+          : ["requestHumanInput" as const]),
+        ...(state.submittedEntityIds.length > 0 ? [] : ["complete" as const]),
+      ],
       state,
     }),
   );
@@ -337,9 +341,10 @@ const createInitialPlan = async (params: {
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
   const tools = Object.values(
-    generateToolDefinitions({
-      humanInputCanBeRequested: input.humanInputCanBeRequested,
-      canCompleteActivity: false,
+    generateToolDefinitions<["complete"]>({
+      omitTools: input.humanInputCanBeRequested
+        ? ["complete"]
+        : (["complete", "requestHumanInput"] as unknown as ["complete"]),
     }),
   );
 
