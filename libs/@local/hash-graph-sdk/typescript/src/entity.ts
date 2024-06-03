@@ -133,6 +133,39 @@ export class Entity<
     )[0]!;
   }
 
+  public static async createMultiple(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: CreateEntityParameters[],
+  ): Promise<Entity[]> {
+    return graphAPI
+      .createEntities(
+        authentication.actorId,
+        params.map((request) => ({
+          ownedById: request.ownedById,
+          properties: request.properties,
+          linkData: request.linkData,
+          entityTypeIds: [request.entityTypeId],
+          entityUuid: request.entityUuid,
+          draft: request.draft ?? false,
+          confidence: request.confidence,
+          propertyMetadata: request.propertyMetadata,
+          provenance: request.provenance,
+          relationships: request.relationships,
+        })),
+      )
+      .then(({ data }) =>
+        zip(params, data).map(
+          ([request, metadata]) =>
+            new Entity({
+              metadata: metadata!,
+              properties: request!.properties,
+              linkData: request!.linkData,
+            }),
+        ),
+      );
+  }
+
   public async update(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
@@ -211,39 +244,6 @@ export class Entity<
       entityId: this.entityId,
       archived: false,
     });
-  }
-
-  public static async createMultiple(
-    graphAPI: GraphApi,
-    authentication: AuthenticationContext,
-    params: CreateEntityParameters[],
-  ): Promise<Entity[]> {
-    return graphAPI
-      .createEntities(
-        authentication.actorId,
-        params.map((request) => ({
-          ownedById: request.ownedById,
-          properties: request.properties,
-          linkData: request.linkData,
-          entityTypeIds: [request.entityTypeId],
-          entityUuid: request.entityUuid,
-          draft: request.draft ?? false,
-          confidence: request.confidence,
-          propertyMetadata: request.propertyMetadata,
-          provenance: request.provenance,
-          relationships: request.relationships,
-        })),
-      )
-      .then(({ data }) =>
-        zip(params, data).map(
-          ([request, metadata]) =>
-            new Entity({
-              metadata: metadata!,
-              properties: request!.properties,
-              linkData: request!.linkData,
-            }),
-        ),
-      );
   }
 
   public get metadata(): EntityMetadata {
