@@ -13,7 +13,10 @@ import { getFlowContext } from "../shared/get-flow-context";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
 import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
-import type { CoordinatingAgentState } from "./research-entities-action/coordinating-agent";
+import type {
+  CoordinatingAgentInput,
+  CoordinatingAgentState,
+} from "./research-entities-action/coordinating-agent";
 import { coordinatingAgent } from "./research-entities-action/coordinating-agent";
 import type {
   CoordinatorToolCallArguments,
@@ -25,11 +28,100 @@ import { getAnswersFromHuman } from "./research-entities-action/get-answers-from
 import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call";
 import { inferFactsFromWebPageWorkerAgent } from "./research-entities-action/infer-facts-from-web-page-worker-agent";
 import type { AccessedRemoteFile } from "./research-entities-action/infer-facts-from-web-page-worker-agent/types";
+import { runSubTaskAgent } from "./research-entities-action/sub-task-agent";
 import type { CompletedToolCall } from "./research-entities-action/types";
 import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "./shared/infer-facts-from-text/types";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
 import type { FlowActionActivity } from "./types";
+
+const updateStateFromInferredFacts = async (params: {
+  input: CoordinatingAgentInput;
+  state: CoordinatingAgentState;
+  inferredFacts: Fact[];
+  inferredFactsAboutEntities: LocalEntitySummary[];
+  filesUsedToInferFacts: AccessedRemoteFile[];
+}) => {
+  const {
+    input,
+    state,
+    inferredFactsAboutEntities,
+    inferredFacts,
+    filesUsedToInferFacts,
+  } = params;
+
+  const { duplicates } = await deduplicateEntities({
+    entities: [
+      ...(input.existingEntitySummaries ?? []),
+      ...inferredFactsAboutEntities,
+      ...state.inferredFactsAboutEntities,
+    ],
+  });
+
+  const existingEntityIds = (input.existingEntitySummaries ?? []).map(
+    ({ entityId }) => entityId,
+  );
+
+  const adjustedDuplicates = duplicates.map<DuplicateReport>(
+    ({ canonicalId, duplicateIds }) => {
+      if (existingEntityIds.includes(canonicalId as EntityId)) {
+        return { canonicalId, duplicateIds };
+      }
+
+      const existingEntityIdMarkedAsDuplicate = duplicateIds.find((id) =>
+        existingEntityIds.includes(id as EntityId),
+      );
+
+      /**
+       * @todo: this doesn't account for when there are duplicates
+       * detected in the existing entities.
+       */
+      if (existingEntityIdMarkedAsDuplicate) {
+        return {
+          canonicalId: existingEntityIdMarkedAsDuplicate,
+          duplicateIds: [
+            ...duplicateIds.filter(
+              (id) => id !== existingEntityIdMarkedAsDuplicate,
+            ),
+            canonicalId,
+          ],
+        };
+      }
+
+      return { canonicalId, duplicateIds };
+    },
+  );
+
+  const inferredFactsWithDeduplicatedEntities = inferredFacts.map((fact) => {
+    const { subjectEntityLocalId, objectEntityLocalId } = fact;
+    const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
+      duplicateIds.includes(subjectEntityLocalId),
+    );
+
+    const objectDuplicate = objectEntityLocalId
+      ? duplicates.find(({ duplicateIds }) =>
+          duplicateIds.includes(objectEntityLocalId),
+        )
+      : undefined;
+
+    return {
+      ...fact,
+      subjectEntityLocalId:
+        subjectDuplicate?.canonicalId ?? fact.subjectEntityLocalId,
+      objectEntityLocalId: objectDuplicate?.canonicalId ?? objectEntityLocalId,
+    };
+  });
+
+  state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
+  state.inferredFactsAboutEntities = [
+    ...state.inferredFactsAboutEntities,
+    ...inferredFactsAboutEntities,
+  ].filter(
+    ({ localId }) =>
+      !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
+  );
+  state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
+};
 
 export const researchEntitiesAction: FlowActionActivity<{
   testingParams?: {
@@ -300,91 +392,14 @@ export const researchEntitiesAction: FlowActionActivity<{
                 consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
             `);
 
-            /**
-             * @todo: deduplicate the entity summaries from existing entities provided as input.
-             */
-
             if (inferredFactsAboutEntities.length > 0) {
-              const { duplicates } = await deduplicateEntities({
-                entities: [
-                  ...(input.existingEntitySummaries ?? []),
-                  ...inferredFactsAboutEntities,
-                  ...state.inferredFactsAboutEntities,
-                ],
+              await updateStateFromInferredFacts({
+                input,
+                state,
+                inferredFacts,
+                inferredFactsAboutEntities,
+                filesUsedToInferFacts,
               });
-
-              const existingEntityIds = (
-                input.existingEntitySummaries ?? []
-              ).map(({ entityId }) => entityId);
-
-              const adjustedDuplicates = duplicates.map<DuplicateReport>(
-                ({ canonicalId, duplicateIds }) => {
-                  if (existingEntityIds.includes(canonicalId as EntityId)) {
-                    return { canonicalId, duplicateIds };
-                  }
-
-                  const existingEntityIdMarkedAsDuplicate = duplicateIds.find(
-                    (id) => existingEntityIds.includes(id as EntityId),
-                  );
-
-                  /**
-                   * @todo: this doesn't account for when there are duplicates
-                   * detected in the existing entities.
-                   */
-                  if (existingEntityIdMarkedAsDuplicate) {
-                    return {
-                      canonicalId: existingEntityIdMarkedAsDuplicate,
-                      duplicateIds: [
-                        ...duplicateIds.filter(
-                          (id) => id !== existingEntityIdMarkedAsDuplicate,
-                        ),
-                        canonicalId,
-                      ],
-                    };
-                  }
-
-                  return { canonicalId, duplicateIds };
-                },
-              );
-
-              const inferredFactsWithDeduplicatedEntities = inferredFacts.map(
-                (fact) => {
-                  const { subjectEntityLocalId, objectEntityLocalId } = fact;
-                  const subjectDuplicate = adjustedDuplicates.find(
-                    ({ duplicateIds }) =>
-                      duplicateIds.includes(subjectEntityLocalId),
-                  );
-
-                  const objectDuplicate = objectEntityLocalId
-                    ? duplicates.find(({ duplicateIds }) =>
-                        duplicateIds.includes(objectEntityLocalId),
-                      )
-                    : undefined;
-
-                  return {
-                    ...fact,
-                    subjectEntityLocalId:
-                      subjectDuplicate?.canonicalId ??
-                      fact.subjectEntityLocalId,
-                    objectEntityLocalId:
-                      objectDuplicate?.canonicalId ?? objectEntityLocalId,
-                  };
-                },
-              );
-
-              state.inferredFacts.push(
-                ...inferredFactsWithDeduplicatedEntities,
-              );
-              state.inferredFactsAboutEntities = [
-                ...state.inferredFactsAboutEntities,
-                ...inferredFactsAboutEntities,
-              ].filter(
-                ({ localId }) =>
-                  !duplicates.some(({ duplicateIds }) =>
-                    duplicateIds.includes(localId),
-                  ),
-              );
-              state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
 
               return {
                 ...toolCall,
@@ -423,6 +438,83 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: dedent(`
                 ${proposedEntities.length} entities were successfully proposed.
               `),
+            };
+          } else if (toolCall.name === "startFactGatheringSubTasks") {
+            const { subTasks } =
+              toolCall.input as CoordinatorToolCallArguments["startFactGatheringSubTasks"];
+
+            const responsesWithSubTask = await Promise.all(
+              subTasks.map(async (subTask) => {
+                const {
+                  goal,
+                  relevantEntityIds,
+                  entityTypeIds,
+                  linkEntityTypeIds,
+                } = subTask;
+
+                const entityTypes = input.entityTypes.filter(({ $id }) =>
+                  entityTypeIds.includes($id),
+                );
+
+                const linkEntityTypes = input.linkEntityTypes?.filter(
+                  ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
+                );
+
+                const relevantEntities =
+                  state.inferredFactsAboutEntities.filter(({ localId }) =>
+                    relevantEntityIds.includes(localId),
+                  );
+
+                const existingFactsAboutRelevantEntities =
+                  state.inferredFacts.filter(({ subjectEntityLocalId }) =>
+                    relevantEntityIds.includes(subjectEntityLocalId),
+                  );
+
+                const response = await runSubTaskAgent({
+                  input: {
+                    goal,
+                    relevantEntities,
+                    existingFactsAboutRelevantEntities,
+                    entityTypes,
+                    linkEntityTypes,
+                  },
+                });
+
+                return { response, subTask };
+              }),
+            );
+
+            const inferredFacts: Fact[] = [];
+            const inferredFactsAboutEntities: LocalEntitySummary[] = [];
+            const filesUsedToInferFacts: AccessedRemoteFile[] = [];
+
+            let output: string = "";
+
+            for (const { response, subTask } of responsesWithSubTask) {
+              inferredFactsAboutEntities.push(...response.discoveredEntities);
+              inferredFacts.push(...response.discoveredFacts);
+              filesUsedToInferFacts.push(...response.filesUsedToInferFacts);
+
+              if (response.status === "ok") {
+                output += `The sub-task with goal "${subTask.goal}" resulted in ${response.discoveredFacts.length} new facts. ${response.explanation}\n`;
+              } else {
+                output += `An error was encountered when completing the sub-task with goal "${subTask.goal}": ${response.reason}\n`;
+              }
+            }
+
+            if (inferredFactsAboutEntities.length > 0) {
+              await updateStateFromInferredFacts({
+                input,
+                state,
+                inferredFacts,
+                inferredFactsAboutEntities,
+                filesUsedToInferFacts,
+              });
+            }
+
+            return {
+              ...toolCall,
+              output,
             };
           } else if (toolCall.name === "complete") {
             if (!state.hasConductedCheckStep) {

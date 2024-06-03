@@ -100,6 +100,25 @@ export const generateToolDefinitions = <
                   ${params.state?.inferredFactsAboutEntities.length ? `The possible values are: ${params.state.inferredFactsAboutEntities.map(({ localId }) => localId).join(", ")}` : ""}
                 `),
                 },
+                entityTypeIds: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                  },
+                  description: dedent(`
+                    The entity type IDs of the kind of entities the sub-task must gather facts about.
+                    You must specify at least one.
+                `),
+                },
+                linkEntityTypeIds: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                  },
+                  description: dedent(`
+                    The link entity type IDs of the kind of link entities the sub-task must gather facts about.
+                `),
+                },
                 goal: {
                   type: "string",
                   description: dedent(`
@@ -116,7 +135,7 @@ export const generateToolDefinitions = <
                 `),
                 },
               },
-              required: ["goal", "explanation"],
+              required: ["goal", "explanation", "entityTypeIds"],
             },
           },
         },
@@ -353,9 +372,11 @@ export type CoordinatorToolCallArguments = Subtype<
     };
     startFactGatheringSubTasks: {
       subTasks: {
-        task: string;
+        goal: string;
         explanation: string;
         relevantEntityIds: string[];
+        entityTypeIds: string[];
+        linkEntityTypeIds?: string[];
       }[];
     };
     proposeEntitiesFromFacts: {

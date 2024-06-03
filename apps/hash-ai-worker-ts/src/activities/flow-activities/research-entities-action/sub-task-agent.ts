@@ -381,12 +381,14 @@ export const runSubTaskAgent = async (params: {
   | {
       status: "ok";
       explanation: string;
+      filesUsedToInferFacts: AccessedRemoteFile[];
       discoveredEntities: LocalEntitySummary[];
       discoveredFacts: Fact[];
     }
   | {
       status: "terminated";
       reason: string;
+      filesUsedToInferFacts: AccessedRemoteFile[];
       discoveredEntities: LocalEntitySummary[];
       discoveredFacts: Fact[];
     }
@@ -716,6 +718,7 @@ export const runSubTaskAgent = async (params: {
 
   return {
     ...result,
+    filesUsedToInferFacts: state.filesUsedToInferFacts,
     discoveredEntities: state.inferredFactsAboutEntities,
     discoveredFacts: state.inferredFacts,
   };
