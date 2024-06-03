@@ -1,5 +1,5 @@
 import { Autocomplete, MenuItem } from "@hashintel/design-system";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { Stack, Typography } from "@mui/material";
 import type { ReactElement } from "react";
 

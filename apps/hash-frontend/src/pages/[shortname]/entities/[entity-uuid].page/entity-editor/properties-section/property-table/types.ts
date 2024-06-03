@@ -1,5 +1,5 @@
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { DataTypeWithMetadata } from "@local/hash-subgraph";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 import type { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 

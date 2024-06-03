@@ -3,14 +3,15 @@ import type { Embedding, PropertyType } from "@local/hash-graph-client";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
-  EntityPropertiesObject,
-  EntityPropertyValue,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type {
+  EntityPropertiesObject,
+  EntityPropertyValue,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import OpenAI from "openai";
-
 import Usage = OpenAI.CreateEmbeddingResponse.Usage;
 
 const openai = new OpenAI({

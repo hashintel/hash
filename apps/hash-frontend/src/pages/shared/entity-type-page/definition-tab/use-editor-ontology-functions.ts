@@ -5,9 +5,9 @@ import type {
 } from "@hashintel/type-editor";
 import type {
   EntityTypeWithMetadata,
-  OwnedById,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   getEntityTypeById,
   getPropertyTypeById,

@@ -1,9 +1,9 @@
 import { TextField } from "@hashintel/design-system";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { OwnedById } from "@local/hash-subgraph";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useState } from "react";

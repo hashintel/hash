@@ -86,9 +86,9 @@ where
         &self,
         schema: &ClosedEntityType,
         components: ValidateEntityComponents,
-        provider: &P,
+        context: &P,
     ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, components, provider).await
+        schema.validate_value(self, components, context).await
     }
 }
 
@@ -106,7 +106,7 @@ where
         &self,
         schema: &ClosedEntityType,
         components: ValidateEntityComponents,
-        provider: &P,
+        context: &P,
     ) -> Result<(), Report<Self::Error>> {
         if !components.link_data {
             return Ok(());
@@ -131,10 +131,7 @@ where
                 extend_report!(status, EntityValidationError::UnexpectedLinkData);
             }
 
-            if let Err(error) = schema
-                .validate_value(*link_data, components, provider)
-                .await
-            {
+            if let Err(error) = schema.validate_value(*link_data, components, context).await {
                 extend_report!(status, error);
             }
         } else if is_link {
@@ -159,20 +156,20 @@ where
         &self,
         schema: &ClosedEntityType,
         components: ValidateEntityComponents,
-        provider: &P,
+        context: &P,
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
         if self.metadata.entity_type_ids.is_empty() {
             extend_report!(status, EntityValidationError::EmptyEntityTypes);
         }
-        if let Err(error) = self.properties.validate(schema, components, provider).await {
+        if let Err(error) = self.properties.validate(schema, components, context).await {
             extend_report!(status, error);
         }
         if let Err(error) = self
             .link_data
             .as_ref()
-            .validate(schema, components, provider)
+            .validate(schema, components, context)
             .await
         {
             extend_report!(status, error);
@@ -180,7 +177,7 @@ where
         if let Err(error) = self
             .metadata
             .properties
-            .validate(&self.properties, components, provider)
+            .validate(&self.properties, components, context)
             .await
         {
             extend_report!(status, error);
@@ -200,17 +197,17 @@ where
     //   see https://linear.app/hash/issue/H-972
     async fn validate_value<'a>(
         &'a self,
-        link_data: &'a LinkData,
+        value: &'a LinkData,
         _: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
         let left_entity = provider
-            .provide_entity(link_data.left_entity_id)
+            .provide_entity(value.left_entity_id)
             .await
             .change_context_lazy(|| EntityValidationError::EntityRetrieval {
-                id: link_data.left_entity_id,
+                id: value.left_entity_id,
             })?;
 
         let left_entity_type = stream::iter(&left_entity.borrow().metadata.entity_type_ids)
@@ -230,10 +227,10 @@ where
             .await?;
 
         let right_entity = provider
-            .provide_entity(link_data.right_entity_id)
+            .provide_entity(value.right_entity_id)
             .await
             .change_context_lazy(|| EntityValidationError::EntityRetrieval {
-                id: link_data.right_entity_id,
+                id: value.right_entity_id,
             })?;
 
         let right_entity_type = stream::iter(&right_entity.borrow().metadata.entity_type_ids)

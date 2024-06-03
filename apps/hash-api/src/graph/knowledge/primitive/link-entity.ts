@@ -3,16 +3,17 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   AccountGroupId,
   AccountId,
+} from "@local/hash-graph-types/account";
+import type { EntityId, LinkData } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type {
   Entity,
-  EntityId,
   EntityPropertiesObject,
   EntityRelationAndSubject,
-  LinkData,
-  OwnedById,
 } from "@local/hash-subgraph";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 

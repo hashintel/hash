@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { type OwnedById } from "@local/hash-subgraph";
+import { type OwnedById } from "@local/hash-graph-types/web";
 
 import { getLlmResponse } from "../src/activities/shared/get-llm-response";
 import type {

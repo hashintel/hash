@@ -146,6 +146,10 @@ impl PropertyObject {
             .collect::<Result<Vec<_>, Report<PatchError>>>()?;
 
         // TODO: Implement more efficient patching without serialization
+        #[expect(
+            clippy::needless_borrows_for_generic_args,
+            reason = "Would move `self`"
+        )]
         let mut this = serde_json::to_value(&self).change_context(PatchError)?;
         json_patch::patch(&mut this, &patches).change_context(PatchError)?;
         *self = serde_json::from_value(this).change_context(PatchError)?;

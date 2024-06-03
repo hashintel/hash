@@ -20,8 +20,8 @@ pub trait EdgeEndpointSet: IntoIterator<Item = Self::EdgeEndpoint> {
 impl<S: BuildHasher, E: EdgeEndpoint + Eq + Hash> EdgeEndpointSet for HashSet<E, S> {
     type EdgeEndpoint = E;
 
-    fn insert(&mut self, edge_target_id: Self::EdgeEndpoint) {
-        Self::insert(self, edge_target_id);
+    fn insert(&mut self, target_id: Self::EdgeEndpoint) {
+        Self::insert(self, target_id);
     }
 }
 
@@ -89,10 +89,10 @@ impl IntoIterator for EntityIdWithIntervalSet {
 impl EdgeEndpointSet for EntityIdWithIntervalSet {
     type EdgeEndpoint = EntityIdWithInterval;
 
-    fn insert(&mut self, edge_target_id: Self::EdgeEndpoint) {
+    fn insert(&mut self, target_id: Self::EdgeEndpoint) {
         self.inner
-            .entry(edge_target_id.entity_id)
+            .entry(target_id.entity_id)
             .or_default()
-            .insert(edge_target_id.interval);
+            .insert(target_id.interval);
     }
 }

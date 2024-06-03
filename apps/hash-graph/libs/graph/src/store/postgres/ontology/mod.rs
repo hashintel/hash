@@ -148,10 +148,10 @@ pub struct VersionedUrlIndices {
 macro_rules! impl_ontology_cursor {
     ($ty:ty, $query_path:ty) => {
         impl QueryRecordDecode for VertexIdSorting<$ty> {
-            type CompilationArtifacts = VersionedUrlIndices;
+            type Indices = VersionedUrlIndices;
             type Output = <$ty as SubgraphRecord>::VertexId;
 
-            fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self::Output {
+            fn decode(row: &Row, indices: &Self::Indices) -> Self::Output {
                 Self::Output {
                     base_id: BaseUrl::new(row.get(indices.base_url))
                         .expect("invalid base URL returned from Postgres"),
@@ -176,7 +176,7 @@ macro_rules! impl_ontology_cursor {
                 compiler: &mut SelectCompiler<'p, 'q, $ty>,
                 parameters: Option<&'p Self::CompilationParameters>,
                 _: &QueryTemporalAxes,
-            ) -> Self::CompilationArtifacts {
+            ) -> Self::Indices {
                 if let Some(parameters) = parameters {
                     let base_url_expression = compiler.compile_parameter(&parameters.base_url).0;
                     let version_expression = compiler.compile_parameter(&parameters.version).0;

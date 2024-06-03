@@ -1,3 +1,4 @@
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
   ExternalInputRequest,
   ExternalInputRequestSignal,
@@ -12,7 +13,6 @@ import type {
   StepRun,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type { OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import type { Client as TemporalClient } from "@temporalio/client";
 import proto from "@temporalio/proto";

@@ -1,4 +1,5 @@
-import type { BaseUrl, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getRoots,

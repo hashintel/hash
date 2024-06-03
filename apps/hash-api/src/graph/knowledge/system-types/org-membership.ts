@@ -1,12 +1,12 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   AccountEntityId,
   AccountGroupEntityId,
-  EntityId,
-  OwnedById,
 } from "@local/hash-subgraph";
 import {
   extractAccountGroupId,

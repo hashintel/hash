@@ -1,13 +1,11 @@
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FlowRunProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  type AccountId,
-  type EntityId,
-  extractEntityUuidFromEntityId,
-  type OwnedById,
-} from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { Context } from "@temporalio/activity";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { vi } from "vitest";

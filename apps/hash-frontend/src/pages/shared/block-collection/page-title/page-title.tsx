@@ -1,4 +1,4 @@
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { styled, TextareaAutosize } from "@mui/material";
 import type {
   ChangeEventHandler,

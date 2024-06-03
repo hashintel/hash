@@ -3,15 +3,15 @@ import type {
   GraphApi,
   PropertyPatchOperation,
 } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
-  AccountId,
   Entity,
-  EntityId,
   EntityPropertiesObject,
   EntityRootType,
 } from "@local/hash-subgraph";

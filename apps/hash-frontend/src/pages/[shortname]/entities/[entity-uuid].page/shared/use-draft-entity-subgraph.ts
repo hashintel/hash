@@ -1,16 +1,20 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
   CreatedById,
   EditionCreatedById,
+} from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  Timestamp,
+} from "@local/hash-graph-types/temporal-versioning";
+import type {
   Entity,
-  EntityId,
   EntityRevisionId,
   EntityRootType,
   EntityVertexId,
   Subgraph,
-  Timestamp,
 } from "@local/hash-subgraph";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";

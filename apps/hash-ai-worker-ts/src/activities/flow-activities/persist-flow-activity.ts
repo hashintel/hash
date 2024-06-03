@@ -1,9 +1,10 @@
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { LocalFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountId, OwnedById } from "@local/hash-subgraph";
 
 import { graphApiClient } from "../shared/graph-api-client";
 

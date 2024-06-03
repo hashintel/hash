@@ -1,6 +1,7 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,

@@ -31,8 +31,9 @@ We will add a link to the user guide for the plugin here, when it is available.
      1. [about:debugging#/runtime/this-firefox](about:debugging#/runtime/this-firefox)
      1. Click 'Load Temporary Add-on...' and select the `manifest.json` file in the `build` folder
 
-**Pages** will reload (the `popup` and `options` screens).
+**Pages** (the `popup` and `options` screens) will reload automatically when changes are made.
 **Scripts** (`background`, `content`) require clicking 'Update' in [Chrome](chrome://extensions) or 'Reload' in [Firefox](about:debugging#/runtime/this-firefox)
+– if it seems that a change is not taking effect, 'Remove' and then 'Load unpacked' or 'Load Temporary Add-on...' again.
 
 You can **change the target API** in development in the 'Automated' tab (to become 'Settings'). This will override the value set by environment variable.
 The target frontend URL is **not** configurable in this way, because it would involve introducing asynchronous code to generate links,
