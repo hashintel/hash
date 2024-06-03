@@ -1,6 +1,6 @@
 {
   "name": "@apps/plugin-browser",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "private": true,
   "description": "A browser extension for gathering info from the web into your HASH account.",
   "repository": {
