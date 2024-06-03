@@ -12,13 +12,19 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test } from "vitest";
 
+import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
+import { getFlowContext } from "../../shared/get-flow-context";
+import { graphApiClient } from "../../shared/graph-api-client";
 import type { SubTaskAgentState } from "./sub-task-agent";
 import { runSubTaskAgent } from "./sub-task-agent";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const baseDirectoryPath = join(__dirname, "/var/persisted-state");
+const baseDirectoryPath = join(
+  __dirname,
+  "/var/sub-task-agent/persisted-state",
+);
 
 export const retrievePreviousState = (params: {
   testName: string;
@@ -63,10 +69,27 @@ const persistState = (params: {
 test(
   "Test runSubTaskAgent: Find Ben Werner's Github profile URL",
   async () => {
+    const { userAuthentication } = await getFlowContext();
+
+    const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
+      entityTypeIds: ["https://hash.ai/@ftse/types/entity-type/person/v/1"],
+      actorId: userAuthentication.actorId,
+      graphApiClient,
+      simplifyPropertyKeys: true,
+    });
+
+    const entityTypes = Object.values(dereferencedEntityTypes).map(
+      ({ schema }) => schema,
+    );
+
     const status = await runSubTaskAgent({
-      goal: "Find Ben Werner's Github profile URL",
-      relevantEntities: [],
-      existingFactsAboutRelevantEntities: [],
+      input: {
+        goal: "Find Ben Werner's Github profile URL",
+        relevantEntities: [],
+        existingFactsAboutRelevantEntities: [],
+        entityTypes,
+        linkEntityTypes: [],
+      },
       testingParams: {
         persistState: (state) =>
           persistState({ state, testName: "github-url" }),

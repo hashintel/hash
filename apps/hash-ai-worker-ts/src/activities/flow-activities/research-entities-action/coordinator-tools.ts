@@ -178,9 +178,9 @@ export const generateToolDefinitions = <
                   items: {
                     type: "string",
                     description: dedent(`
-                  The entity type IDs of the kind of entities to infer from the web page.
-                  You must specify at least one.
-                `),
+                      The entity type IDs of the kind of entities to infer facts about on the web page.
+                      You must specify at least one.
+                    `),
                   },
                 },
                 linkEntityTypeIds: {
@@ -188,7 +188,7 @@ export const generateToolDefinitions = <
                   items: {
                     type: "string",
                     description:
-                      "The link entity type IDs of the kind of link entities to infer from the web page",
+                      "The link entity type IDs of the kind of link entities to infer facts about on the web page",
                   },
                 },
               },

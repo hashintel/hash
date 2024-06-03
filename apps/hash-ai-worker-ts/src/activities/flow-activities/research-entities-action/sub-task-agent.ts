@@ -1,7 +1,10 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OmitValue } from "@local/advanced-types/omit-value";
 import type { Subtype } from "@local/advanced-types/subtype";
+import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { getFlowContext } from "../../shared/get-flow-context";
 import { getLlmResponse } from "../../shared/get-llm-response";
 import type {
@@ -24,8 +27,13 @@ import type {
   CoordinatorToolName,
 } from "./coordinator-tools";
 import { generateToolDefinitions as generateCoordinatorToolDefinitions } from "./coordinator-tools";
+import type { DuplicateReport } from "./deduplicate-entities";
+import { deduplicateEntities } from "./deduplicate-entities";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { handleWebSearchToolCall } from "./handle-web-search-tool-call";
+import { inferFactsFromWebPageWorkerAgent } from "./infer-facts-from-web-page-worker-agent";
+import type { AccessedRemoteFile } from "./infer-facts-from-web-page-worker-agent/types";
+import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
@@ -123,13 +131,19 @@ export type SubTaskAgentToolCallArguments = Subtype<
 >;
 
 const generateSystemPromptPrefix = (params: { input: SubTaskAgentInput }) => {
-  const { relevantEntities, existingFactsAboutRelevantEntities } = params.input;
+  const {
+    relevantEntities,
+    existingFactsAboutRelevantEntities,
+    linkEntityTypes,
+  } = params.input;
 
   return dedent(`
     You are a sub-task agent for a research task.
 
     The user will provide you with:
       - Goal: the research goal you need to satisfy to complete the research task
+      - Entity Types: a list of entity types of the entities that you may need to discover facts about
+      ${linkEntityTypes ? `- Link Entity Types: a list of link entity types of the entities that you may need to discover facts about` : ""}
       ${relevantEntities.length > 0 ? `- Relevant Entities: a list entities which have already been discovered and may be relevant to the research goal` : ""}
       ${existingFactsAboutRelevantEntities.length > 0 ? `- Existing Facts About Relevant Entities: a list of facts that have already been discovered about the relevant entities` : ""}
 
@@ -145,6 +159,8 @@ export type SubTaskAgentInput = {
   goal: string;
   relevantEntities: LocalEntitySummary[];
   existingFactsAboutRelevantEntities: Fact[];
+  entityTypes: DereferencedEntityType[];
+  linkEntityTypes?: DereferencedEntityType[];
 };
 
 export type SubTaskAgentState = {
@@ -154,13 +170,19 @@ export type SubTaskAgentState = {
   previousCalls: {
     completedToolCalls: CompletedToolCall<SubTaskAgentToolName>[];
   }[];
+  filesUsedToInferFacts: AccessedRemoteFile[];
 };
 
 const generateInitialUserMessage = (params: {
   input: SubTaskAgentInput;
 }): LlmUserMessage => {
-  const { goal, relevantEntities, existingFactsAboutRelevantEntities } =
-    params.input;
+  const {
+    goal,
+    relevantEntities,
+    existingFactsAboutRelevantEntities,
+    entityTypes,
+    linkEntityTypes,
+  } = params.input;
 
   return {
     role: "user",
@@ -169,6 +191,9 @@ const generateInitialUserMessage = (params: {
         type: "text",
         text: dedent(`
 Goal: ${goal}
+Entity Types:
+${entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
+${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
 ${relevantEntities.length > 0 ? `Relevant Entities: ${JSON.stringify(relevantEntities)}` : ""}
 ${existingFactsAboutRelevantEntities.length > 0 ? `Existing Facts About Relevant Entities: ${JSON.stringify(existingFactsAboutRelevantEntities)}` : ""}
       `),
@@ -347,9 +372,7 @@ const getNextToolCalls = async (params: {
 };
 
 export const runSubTaskAgent = async (params: {
-  goal: string;
-  relevantEntities: LocalEntitySummary[];
-  existingFactsAboutRelevantEntities: Fact[];
+  input: SubTaskAgentInput;
   testingParams?: {
     persistState: (state: SubTaskAgentState) => void;
     resumeFromState?: SubTaskAgentState;
@@ -368,7 +391,7 @@ export const runSubTaskAgent = async (params: {
       discoveredFacts: Fact[];
     }
 > => {
-  const { testingParams, ...input } = params;
+  const { testingParams, input } = params;
 
   let state: SubTaskAgentState;
 
@@ -382,6 +405,7 @@ export const runSubTaskAgent = async (params: {
       inferredFacts: [],
       inferredFactsAboutEntities: [],
       previousCalls: [],
+      filesUsedToInferFacts: [],
     };
   }
 
@@ -416,33 +440,251 @@ export const runSubTaskAgent = async (params: {
     }
 
     const completedToolCalls = await Promise.all(
-      toolCalls.map(
-        async (toolCall): Promise<CompletedToolCall<SubTaskAgentToolName>> => {
-          if (toolCall.name === "updatePlan") {
-            const { plan } =
-              toolCall.input as SubTaskAgentToolCallArguments["updatePlan"];
+      toolCalls
+        .filter(({ name }) => name !== "complete")
+        .map(
+          async (
+            toolCall,
+          ): Promise<CompletedToolCall<SubTaskAgentToolName>> => {
+            if (toolCall.name === "updatePlan") {
+              const { plan } =
+                toolCall.input as SubTaskAgentToolCallArguments["updatePlan"];
 
-            state.plan = plan;
+              state.plan = plan;
 
-            return {
-              ...toolCall,
-              output: `The plan has been successfully updated.`,
-            };
-          } else if (toolCall.name === "webSearch") {
-            const { output } = await handleWebSearchToolCall({
-              input:
-                toolCall.input as SubTaskAgentToolCallArguments["webSearch"],
-            });
+              return {
+                ...toolCall,
+                output: `The plan has been successfully updated.`,
+              };
+            } else if (toolCall.name === "webSearch") {
+              const { output } = await handleWebSearchToolCall({
+                input:
+                  toolCall.input as SubTaskAgentToolCallArguments["webSearch"],
+              });
 
-            return {
-              ...toolCall,
-              output,
-            };
-          }
+              return {
+                ...toolCall,
+                output,
+              };
+            } else if (toolCall.name === "inferFactsFromWebPages") {
+              const { webPages } =
+                toolCall.input as CoordinatorToolCallArguments["inferFactsFromWebPages"];
 
-          throw new Error(`Unexpected tool call: ${stringify(toolCall)}`);
-        },
-      ),
+              const validEntityTypeIds = input.entityTypes.map(
+                ({ $id }) => $id,
+              );
+
+              const invalidEntityTypeIds = webPages
+                .flatMap(({ entityTypeIds }) => entityTypeIds)
+                .filter(
+                  (entityTypeId) =>
+                    !validEntityTypeIds.includes(entityTypeId as VersionedUrl),
+                );
+
+              const validLinkEntityTypeIds =
+                input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
+
+              const invalidLinkEntityTypeIds = webPages
+                .flatMap(({ linkEntityTypeIds }) => linkEntityTypeIds ?? [])
+                .filter(
+                  (entityTypeId) =>
+                    !validLinkEntityTypeIds.includes(
+                      entityTypeId as VersionedUrl,
+                    ),
+                );
+
+              if (
+                invalidEntityTypeIds.length > 0 ||
+                invalidLinkEntityTypeIds.length > 0
+              ) {
+                return {
+                  ...toolCall,
+                  output: dedent(`
+                  ${
+                    invalidEntityTypeIds.length > 0
+                      ? dedent(`
+                        The following entity type IDs are invalid: ${JSON.stringify(
+                          invalidEntityTypeIds,
+                        )}
+
+                        Valid entity type IDs are: ${JSON.stringify(validEntityTypeIds)}
+                      `)
+                      : ""
+                  }
+                  ${
+                    invalidLinkEntityTypeIds.length > 0
+                      ? dedent(`
+                        The following link entity type IDs are invalid: ${JSON.stringify(
+                          invalidLinkEntityTypeIds,
+                        )}
+                        
+                        The valid link entity types type IDs are: ${JSON.stringify(validLinkEntityTypeIds)}
+                      `)
+                      : ""
+                  }
+
+                `),
+                  isError: true,
+                };
+              }
+
+              const statusesWithUrl = await Promise.all(
+                webPages.map(
+                  async ({ url, prompt, entityTypeIds, linkEntityTypeIds }) => {
+                    const status = await inferFactsFromWebPageWorkerAgent({
+                      prompt,
+                      entityTypes: input.entityTypes.filter(({ $id }) =>
+                        entityTypeIds.includes($id),
+                      ),
+                      linkEntityTypes: input.linkEntityTypes?.filter(
+                        ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
+                      ),
+                      url,
+                    });
+
+                    return { status, url };
+                  },
+                ),
+              );
+
+              let outputMessage = "";
+
+              const inferredFacts: Fact[] = [];
+              const inferredFactsAboutEntities: LocalEntitySummary[] = [];
+              const filesUsedToInferFacts: AccessedRemoteFile[] = [];
+
+              for (const { status, url } of statusesWithUrl) {
+                if (status.code !== StatusCode.Ok) {
+                  outputMessage += `An error occurred when inferring facts from the web page with url ${url}: ${status.message}\n`;
+
+                  continue;
+                }
+
+                const content = status.contents[0]!;
+
+                inferredFacts.push(...content.inferredFacts);
+                inferredFactsAboutEntities.push(
+                  ...content.inferredFactsAboutEntities,
+                );
+                filesUsedToInferFacts.push(...content.filesUsedToInferFacts);
+
+                outputMessage += `Inferred ${content.inferredFacts.length} facts on the web page with url ${url} for the following entities: ${stringify(
+                  content.inferredFactsAboutEntities.map(
+                    ({ name, summary }) => ({
+                      name,
+                      summary,
+                    }),
+                  ),
+                )}. ${content.suggestionForNextSteps}\n`;
+              }
+
+              outputMessage += dedent(`
+              If further research is needed to fill more properties of the entities,
+                consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
+            `);
+
+              /**
+               * @todo: deduplicate the entity summaries from existing entities provided as input.
+               */
+
+              if (inferredFactsAboutEntities.length > 0) {
+                const { duplicates } = await deduplicateEntities({
+                  entities: [
+                    ...input.relevantEntities,
+                    ...inferredFactsAboutEntities,
+                    ...state.inferredFactsAboutEntities,
+                  ],
+                });
+
+                const existingEntityIds = input.relevantEntities.map(
+                  ({ localId }) => localId,
+                );
+
+                const adjustedDuplicates = duplicates.map<DuplicateReport>(
+                  ({ canonicalId, duplicateIds }) => {
+                    if (existingEntityIds.includes(canonicalId)) {
+                      return { canonicalId, duplicateIds };
+                    }
+
+                    const existingEntityIdMarkedAsDuplicate = duplicateIds.find(
+                      (id) => existingEntityIds.includes(id),
+                    );
+
+                    /**
+                     * @todo: this doesn't account for when there are duplicates
+                     * detected in the input relevant entities.
+                     */
+                    if (existingEntityIdMarkedAsDuplicate) {
+                      return {
+                        canonicalId: existingEntityIdMarkedAsDuplicate,
+                        duplicateIds: [
+                          ...duplicateIds.filter(
+                            (id) => id !== existingEntityIdMarkedAsDuplicate,
+                          ),
+                          canonicalId,
+                        ],
+                      };
+                    }
+
+                    return { canonicalId, duplicateIds };
+                  },
+                );
+
+                const inferredFactsWithDeduplicatedEntities = inferredFacts.map(
+                  (fact) => {
+                    const { subjectEntityLocalId, objectEntityLocalId } = fact;
+                    const subjectDuplicate = adjustedDuplicates.find(
+                      ({ duplicateIds }) =>
+                        duplicateIds.includes(subjectEntityLocalId),
+                    );
+
+                    const objectDuplicate = objectEntityLocalId
+                      ? duplicates.find(({ duplicateIds }) =>
+                          duplicateIds.includes(objectEntityLocalId),
+                        )
+                      : undefined;
+
+                    return {
+                      ...fact,
+                      subjectEntityLocalId:
+                        subjectDuplicate?.canonicalId ??
+                        fact.subjectEntityLocalId,
+                      objectEntityLocalId:
+                        objectDuplicate?.canonicalId ?? objectEntityLocalId,
+                    };
+                  },
+                );
+
+                state.inferredFacts.push(
+                  ...inferredFactsWithDeduplicatedEntities,
+                );
+                state.inferredFactsAboutEntities = [
+                  ...state.inferredFactsAboutEntities,
+                  ...inferredFactsAboutEntities,
+                ].filter(
+                  ({ localId }) =>
+                    !duplicates.some(({ duplicateIds }) =>
+                      duplicateIds.includes(localId),
+                    ),
+                );
+
+                state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
+
+                return {
+                  ...toolCall,
+                  output: outputMessage,
+                };
+              }
+
+              return {
+                ...toolCall,
+                output: "No facts were inferred about any relevant entities.",
+              };
+            }
+
+            throw new Error(`Unexpected tool call: ${stringify(toolCall)}`);
+          },
+        ),
     );
 
     const completeToolCall = toolCalls.find(
