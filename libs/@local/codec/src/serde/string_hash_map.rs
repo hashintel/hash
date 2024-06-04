@@ -56,8 +56,7 @@ use crate::serde::size_hint;
 #[inline]
 pub fn serialize<K, V, H, S>(map: &HashMap<K, V, H>, serializer: S) -> Result<S::Ok, S::Error>
 where
-    K: Eq + Hash + Serialize,
-    H: BuildHasher,
+    K: Serialize,
     V: Serialize,
     S: Serializer,
 {
