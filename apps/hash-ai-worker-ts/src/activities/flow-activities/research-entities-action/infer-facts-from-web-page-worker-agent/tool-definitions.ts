@@ -336,6 +336,7 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
     name: "updatePlan",
     description: dedent(`
       Update the plan for the research task.
+      This should be a list of steps in plain English.
       You should call this alongside other tool calls to progress towards completing the task.
     `),
     inputSchema: {

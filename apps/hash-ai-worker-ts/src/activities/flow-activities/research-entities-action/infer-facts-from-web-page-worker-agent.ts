@@ -15,10 +15,7 @@ import type {
   LlmMessageToolResultContent,
   LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message";
-import {
-  getTextContentFromLlmMessage,
-  getToolCallsFromLlmAssistantMessage,
-} from "../../shared/get-llm-response/llm-message";
+import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
 import type {
   LlmParams,
   ParsedLlmToolCall,
@@ -119,10 +116,8 @@ const createInitialPlan = async (params: {
   const systemPrompt = dedent(`
       ${generateSystemMessagePrefix({ input })}
 
-      Do not make *any* tool calls. You must first provide a plan of how you will use
-        the tools to progress towards completing the task.
-
-      This should be a list of steps in plain English.
+      You must now make an "updatePlan" tool call, to provide your initial plan for
+        how you will use the tools to progress towards completing the task.
 
       Remember that you may need to navigate to other web pages which are linked on the
         initial web page, to find all the facts about entities required to satisfy the prompt.
@@ -141,6 +136,7 @@ const createInitialPlan = async (params: {
       messages,
       model,
       tools: Object.values(toolDefinitions),
+      toolChoice: "updatePlan",
     },
     {
       userAccountId: userAuthentication.actorId,
@@ -156,7 +152,9 @@ const createInitialPlan = async (params: {
     );
   }
 
-  const { message, stopReason } = llmResponse;
+  const { message } = llmResponse;
+
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
   const retry = (retryParams: {
     retryMessageContent: LlmUserMessage["content"];
@@ -180,35 +178,43 @@ const createInitialPlan = async (params: {
     });
   };
 
-  if (stopReason === "tool_use") {
-    const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
-    return retry({
-      retryMessageContent: [
-        ...toolCalls.map<LlmMessageToolResultContent>((toolCall) => ({
-          type: "tool_result",
-          tool_use_id: toolCall.id,
-          content:
-            "You must not make any tool calls yet. Provide your initial plan as plain text instead.",
-          is_error: true,
-        })),
-      ],
-    });
+  const updatePlanToolCall = toolCalls.find(
+    (toolCall) => toolCall.name === "updatePlan",
+  );
+
+  if (!updatePlanToolCall) {
+    if (toolCalls.length > 0) {
+      return retry({
+        retryMessageContent: [
+          ...toolCalls.map<LlmMessageToolResultContent>((toolCall) => ({
+            type: "tool_result",
+            tool_use_id: toolCall.id,
+            content: dedent(`
+              You cannot make this tool call yet.
+              You must first make a single tool call to the "updatePlan" tool with your initial plan.
+            `),
+            is_error: true,
+          })),
+        ],
+      });
+    } else {
+      return retry({
+        retryMessageContent: [
+          {
+            type: "text",
+            text: dedent(`
+              You didn't make a "updatePlan" tool call.
+              You must make a single "updatePlan" tool call with your initial plan, before doing anything else.
+            `),
+          },
+        ],
+      });
+    }
   }
 
-  const messageText = getTextContentFromLlmMessage({ message });
+  const { plan } = updatePlanToolCall.input as ToolCallArguments["updatePlan"];
 
-  if (!messageText) {
-    return retry({
-      retryMessageContent: [
-        {
-          type: "text",
-          text: "You did not provide a plan in your response.",
-        },
-      ],
-    });
-  }
-
-  return { plan: messageText };
+  return { plan };
 };
 
 const getNextToolCalls = async (params: {
