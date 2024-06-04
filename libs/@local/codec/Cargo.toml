@@ -21,6 +21,9 @@ time = { workspace = true, features = [
 ], optional = true }
 harpc-wire-protocol = { workspace = true, optional = true }
 
+[dev-dependencies]
+serde = { workspace = true, features = ["derive"] }
+
 [features]
 bytes = [
     "dep:serde",
