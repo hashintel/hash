@@ -38,7 +38,6 @@ import type {
   InferFactsFromWebPageWorkerAgentState,
   ToolName,
 } from "./infer-facts-from-web-page-worker-agent/types";
-// import { retrievePreviousState, writeStateToFile } from "./testing-utils";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
