@@ -51,6 +51,7 @@ services:
       SPICEDB_SCHEMA_PREFIXES_REQUIRED: "True"
       SPICEDB_TELEMETRY_ENDPOINT: ""
       SPICEDB_LOG_FORMAT: "console"
+      SPICEDB_DATASTORE_CONN_POOL_READ_MAX_OPEN: "100"
     command: serve
     read_only: true
     security_opt:
