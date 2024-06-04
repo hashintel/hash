@@ -10,18 +10,17 @@ sidebarIcon: https://app.hash.ai/icons/docs/flows-overview.svg
 
 # Overview
 
-**Flows** are sequences of steps which can be mapped out within HASH, and executed by HASH on your behalf.
+**Flows** are fixed sequences of steps which can be mapped out within HASH, and executed by [workers](/guide/workers) on your behalf.
 
-- **Fixed flows** consist of steps that are defined ahead of time. Every time they these flows are run, the same logic is executed.
-- **Goal-directed flows** are actively managed by AI [workers](/guide/workers), in accordance with [user-provided goals](/guide/workers/goals). Each time they are run, your worker determines the best way to achieve your goal. Initially, your worker may "plan" the steps it intends to take, but these are not fixed ahead of runtime, and the worker will continuously evaluate whether steps need to be added, updated, or removed to fulfil the goal.
+Flows allow for the reliable, predictable execution of specific actions, in contrast to [goals](/guide/workers/goals), which workers may attempt to satisfy according to their own best judgement.
 
 # Triggers
 
-[Triggers](/guide/flows/triggers) result in the execution of a flow's steps.
+[Triggers](/guide/flows/triggers) result in the execution of a flow. A single flow may have multiple different possible triggers.
 
 # Steps
 
-Once triggered, flows consist of different kinds of steps:
+Once triggered, flows consist of different kinds of steps, including:
 
 - [Actions](/guide/flows/actions), which do things as part of a flow. These are the most common kind of step.
 - [Filters](/guide/flows/filters), which allow for conditional execution of different actions. These allow for branching logic, and the construction of more powerful, responsive flows.
@@ -29,7 +28,7 @@ Once triggered, flows consist of different kinds of steps:
 
 # Runs
 
-- **One-off:** flows can be run upon creation, and subsequently re-run manually or "ad hoc" by a user, as required, from their [Flows](https://app.hash.ai/flows) page in HASH;
+- **One-off:** flows can be run ad-hoc or manually by a user, as required, upon creation or from the [Flows](https://app.hash.ai/flows) page in HASH;
 - **Automatic:** flows can also be run without user input, on autopilot, by satisfying a [trigger](/guide/flows/triggers) present within a flow;
 - **Programmatic:** flows can be triggered by external software or function-calling agents using the [HASH API](https://hash.dev/docs/flows/api).
 
