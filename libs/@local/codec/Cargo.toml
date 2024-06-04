@@ -9,7 +9,7 @@ publish = false
 
 [dependencies]
 derive-where = { workspace = true, optional = true }
-error-stack = { workspace = true, optional = true }
+error-stack = { workspace = true, optional = true, features = ["std"] }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 tokio-util = { workspace = true, features = ["codec"], optional = true }
