@@ -253,66 +253,6 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
             If the you've encountered URLs for web pages which may be relevant, you must include them in the suggestion.
           `),
         },
-        // missingFacts: {
-        //   type: "array",
-        //   items: {
-        //     type: "object",
-        //     properties: {
-        //       entityId: {
-        //         type: "string",
-        //         description:
-        //           "The ID of the entity for which facts are missing.",
-        //       },
-
-        //       missingProperties: {
-        //         type: "array",
-        //         description:
-        //           "The properties which are missing for each entity facts were discoverd for.",
-        //         items: {
-        //           type: "object",
-        //           properties: {
-        //             propertyType: {
-        //               type: "string",
-        //               description:
-        //                 "The name of the property which is missing (as specified in the entity type's schema).",
-        //             },
-        //             strategyForObtainingValue: {
-        //               type: "string",
-        //               description: dedent(`
-        //                 A strategy for obtaining the value of the missing property.
-        //                 This should be a detailed explanation of how you would go about finding the missing value from online resources.
-        //               `),
-        //             },
-        //           },
-        //           required: ["propertyType", "strategyForObtainingValue"],
-        //         },
-        //       },
-        //       // missingProperties: {
-        //       //   type: "array",
-        //       //   description:
-        //       //     "The properties which are missing for each entity facts were discoverd for.",
-        //       //   items: {
-        //       //     type: "object",
-        //       //     properties: {
-        //       //       propertyTypeId: {
-        //       //         type: "string",
-        //       //         description:
-        //       //           "The ID of the property which is missing (as specified in the entity type's schema).",
-        //       //       },
-        //       //       strategyForObtainingValue: {
-        //       //         type: "string",
-        //       //         description: dedent(`
-        //       //           A strategy for obtaining the value of the missing property.
-        //       //           This should be a detailed explanation of how you would go about finding the missing value from online resources.
-        //       //         `),
-        //       //       },
-        //       //     },
-        //       //   },
-        //       // },
-        //     },
-        //     required: ["entityId", "missingProperties"],
-        //   },
-        // },
       },
       required: ["explanation", "suggestionForNextSteps"],
     },
