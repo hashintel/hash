@@ -141,11 +141,6 @@ where
                 //
                 // by first acquiring a permit, instead of sending, we can ensure that we won't
                 // spawn a transaction if we can't deliver it.
-                #[expect(
-                    clippy::significant_drop_in_scrutinee,
-                    reason = "This simply returns a drop guard, that is carried through the \
-                              transaction lifetime."
-                )]
                 let transaction_permit = match tokio::time::timeout(
                     self.config.transaction_delivery_deadline,
                     self.output.reserve(),
