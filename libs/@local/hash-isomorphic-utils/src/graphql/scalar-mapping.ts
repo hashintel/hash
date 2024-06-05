@@ -28,7 +28,7 @@ export const scalars = {
   ConstructPropertyTypeParams:
     "@local/hash-isomorphic-utils/types#ConstructPropertyTypeParams",
 
-  Entity: "@local/hash-graph-sdk/entity#Entity",
+  SerializedEntity: "@local/hash-graph-sdk/entity#SerializedEntity",
   EntityRecordId: "@local/hash-graph-types/entity#EntityRecordId",
   EntityMetadata: "@local/hash-graph-types/entity#EntityMetadata",
   EntityRelationAndSubject: "@local/hash-subgraph#EntityRelationAndSubject",
@@ -55,7 +55,7 @@ export const scalars = {
 
   GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
   Edges: "@local/hash-subgraph#Edges",
-  Vertices: "@local/hash-subgraph#Vertices",
+  SerializedVertices: "@local/hash-subgraph#SerializedVertices",
   LinkData: "@local/hash-graph-types/entity#LinkData",
   SubgraphTemporalAxes: "@local/hash-subgraph#SubgraphTemporalAxes",
 
