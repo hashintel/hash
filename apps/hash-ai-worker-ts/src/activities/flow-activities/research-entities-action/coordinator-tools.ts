@@ -15,7 +15,6 @@ export const coordinatorToolNames = [
   "complete",
   "terminate",
   "updatePlan",
-  // "discardProposedEntities",
 ] as const;
 
 export type CoordinatorToolName = (typeof coordinatorToolNames)[number];
@@ -301,6 +300,8 @@ export const generateToolDefinitions = <
       Before calling this tool, you must have made a significant effort to
         find all the facts required to infer as many properties and outgoing links
         as possible for each entity.
+
+      If you propose an entity more than once, the latest proposal will be used.
     `),
       inputSchema: {
         type: "object",
@@ -318,24 +319,6 @@ export const generateToolDefinitions = <
         required: ["entityIds", "explanation"],
       },
     },
-    // discardProposedEntities: {
-    //   name: "discardProposedEntities",
-    //   description: "Discard previously submitted proposed entities.",
-    //   inputSchema: {
-    //     type: "object",
-    //     properties: {
-    //       entityIds: {
-    //         type: "array",
-    //         items: {
-    //           type: "string",
-    //         },
-    //         description:
-    //           "An array of entity IDs of the previously submitted entities which should be discarded.",
-    //       },
-    //     },
-    //     required: ["entityIds"],
-    //   },
-    // },
   };
 
   const filteredTools = Object.fromEntries(
