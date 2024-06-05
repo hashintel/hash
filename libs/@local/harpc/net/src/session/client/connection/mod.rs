@@ -275,7 +275,7 @@ impl Connection {
     ) -> Self
     where
         S: Sink<Request, Error: Send> + Send + 'static,
-        T: Stream<Item = error_stack::Result<Response, io::Error>> + Send + 'static,
+        T: Stream<Item = Result<Response, Report<io::Error>>> + Send + 'static,
     {
         let (tx, rx) = mpsc::channel(config.per_connection_request_buffer_size.get());
 

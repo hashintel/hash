@@ -128,9 +128,10 @@ where
                     match self.transactions.acquire(request_id).await {
                         Ok((permit, tx, rx)) => (permit, tx, rx),
                         Err(error) => {
-                            tracing::info!("transaction limit reached, dropping transaction");
+                            tracing::warn!("transaction limit reached, dropping transaction");
 
-                            return self.respond_error(request_id, error, &tx).await;
+                            self.respond_error(request_id, error, &tx).await;
+                            return;
                         }
                     };
 
@@ -283,7 +284,7 @@ where
                             tx.take();
                         }
                         Some(Ok(request)) => {
-                            let tx = tx.clone().expect("infallible; sender is only unavailble once the stream is exhausted");
+                            let tx = tx.clone().unwrap_or_else(|| unreachable!("sender is only unavailble once the stream is exhausted"));
 
                             self.handle_request(tx, &tasks, request).await;
                         },
