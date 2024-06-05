@@ -342,9 +342,7 @@ export const updateEntityEmbeddings = async (
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     if ("entities" in params) {
-      entities = params.entities.map((entity) =>
-        new Entity(entity).serialize(),
-      );
+      entities = params.entities.map((entity) => new Entity(entity).toJSON());
     } else {
       const queryResponse = await graphActivities.getEntitySubgraph({
         authentication: params.authentication,

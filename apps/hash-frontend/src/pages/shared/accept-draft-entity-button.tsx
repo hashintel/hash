@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
@@ -263,7 +264,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
               maxWidth: "100%",
             }}
             openInNew
-            linkEntity={draftEntity as LinkEntity}
+            linkEntity={new LinkEntity(draftEntity)}
             subgraph={draftEntitySubgraph}
             leftEntityEndAdornment={
               <LeftOrRightEntityEndAdornment isDraft={!!draftLeftEntity} />

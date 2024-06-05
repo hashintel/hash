@@ -143,8 +143,8 @@ describe("Block", () => {
       },
     );
 
-    expect(newBlockDataEntity.serialize()).not.toEqual(
-      testBlockDataEntity.serialize(),
+    expect(newBlockDataEntity.toJSON()).not.toEqual(
+      testBlockDataEntity.toJSON(),
     );
     expect(
       await getBlockData(graphContext, authentication, { block: testBlock }),

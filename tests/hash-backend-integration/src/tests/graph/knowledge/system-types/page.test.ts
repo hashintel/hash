@@ -20,7 +20,7 @@ import {
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { LinkEntity } from "@local/hash-graph-sdk/entity";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -229,8 +229,9 @@ describe("Page", () => {
     expect(existingBlocks).toHaveLength(1);
 
     testBlock1 = existingBlocks[0]!.rightEntity!;
-    testBlockLink1 = existingBlocks[0]!
-      .linkEntity as LinkEntity<HasIndexedContentProperties>;
+    testBlockLink1 = new LinkEntity<HasIndexedContentProperties>(
+      existingBlocks[0]!.linkEntity,
+    );
 
     [testBlock2, testBlock3] = await Promise.all([
       createTestBlock(),

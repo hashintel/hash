@@ -1,5 +1,5 @@
 import { useApolloClient, useQuery } from "@apollo/client";
-import type { LinkEntity } from "@local/hash-graph-sdk/entity";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type { EntityMetadata } from "@local/hash-graph-types/entity";
@@ -79,11 +79,13 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       authenticatedUserSubgraph,
       userEntity.metadata.recordId.entityId,
       intervalForTimestamp(new Date().toISOString() as Timestamp),
-    ).filter(
-      (linkEntity) =>
-        linkEntity.metadata.entityTypeId ===
-        systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-    ) as LinkEntity<IsMemberOfProperties>[];
+    )
+      .filter(
+        (linkEntity) =>
+          linkEntity.metadata.entityTypeId ===
+          systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+      )
+      .map((linkEntity) => new LinkEntity<IsMemberOfProperties>(linkEntity));
   }, [authenticatedUserSubgraph]);
 
   const { orgs: resolvedOrgs, refetch: refetchOrgs } = useOrgsWithLinks({

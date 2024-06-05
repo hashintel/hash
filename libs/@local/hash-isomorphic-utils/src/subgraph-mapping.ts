@@ -107,7 +107,7 @@ const mapKnowledgeGraphVertex = (
 const serializeKnowledgeGraphVertex = (vertex: KnowledgeGraphVertex) => {
   return {
     kind: vertex.kind,
-    inner: vertex.inner.serialize(),
+    inner: vertex.inner.toJSON(),
   } as SerializedKnowledgeGraphVertex;
 };
 

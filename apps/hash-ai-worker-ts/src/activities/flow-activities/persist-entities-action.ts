@@ -165,13 +165,13 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
   const persistedEntities = Object.values(persistedEntitiesByLocalId).map(
     (persisted) => ({
       ...persisted,
-      entity: persisted.entity?.serialize(),
+      entity: persisted.entity?.toJSON(),
     }),
   );
   const failedEntityProposals = Object.values(failedEntitiesByLocalId).map(
     (failed) => ({
       ...failed,
-      existingEntity: failed.existingEntity?.serialize(),
+      existingEntity: failed.existingEntity?.toJSON(),
     }),
   );
 

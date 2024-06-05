@@ -86,9 +86,9 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
             {
               presignedFileDownloadUrl,
               fileEntity: new Entity({
-                ...fileEntity.serialize(),
+                ...fileEntity.toJSON(),
                 properties: updatedProperties as FileProperties,
-              }).serialize(),
+              }).toJSON(),
               webMachineActorId,
             },
           ],

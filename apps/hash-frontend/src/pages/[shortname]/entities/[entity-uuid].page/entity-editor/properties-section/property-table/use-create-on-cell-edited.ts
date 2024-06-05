@@ -60,7 +60,7 @@ export const useCreateOnCellEdited = () => {
 
         setEntity(
           new Entity({
-            ...entity.serialize(),
+            ...entity.toJSON(),
             properties: updatedProperties,
           }),
         );

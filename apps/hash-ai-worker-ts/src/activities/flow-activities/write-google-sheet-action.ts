@@ -368,7 +368,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         .then((resp) => resp.data);
 
       entityToReturn = new Entity({
-        ...existingEntity.serialize(),
+        ...existingEntity.toJSON(),
         metadata,
         properties: {
           ...existingEntity.properties,
@@ -427,7 +427,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
             payload: {
               kind: "PersistedEntity",
               value: {
-                entity: entityToReturn.serialize(),
+                entity: entityToReturn.toJSON(),
                 operation: "create",
               },
             },

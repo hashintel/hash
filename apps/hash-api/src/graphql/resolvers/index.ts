@@ -249,7 +249,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   Entity: new GraphQLScalarType({
     name: "Entity",
     serialize(value) {
-      return value instanceof Entity ? value.serialize() : value;
+      return value instanceof Entity ? value.toJSON() : value;
     },
     parseValue(value) {
       return new Entity(value as SerializedEntity);

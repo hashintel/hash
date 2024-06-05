@@ -17,11 +17,7 @@ export const LinkSection: FunctionComponent = () => {
       throw new Error("No root entity found in entity editor subgraph.");
     }
 
-    if (!rootEntity.linkData) {
-      throw new Error("Link entity has no link data.");
-    }
-
-    return rootEntity as LinkEntity;
+    return new LinkEntity(rootEntity);
   }, [entitySubgraph]);
 
   return (

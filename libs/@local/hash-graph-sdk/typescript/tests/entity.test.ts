@@ -1,6 +1,7 @@
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
 import { expect, test } from "vitest";
 
+import type { LinkEntity } from "../src/entity";
 import { Entity } from "../src/entity";
 
 test("Entity can be created from Graph API", () => {
@@ -51,6 +52,7 @@ test("Entity can be created from Graph API", () => {
   } satisfies GraphApiEntity;
 
   const entityInstance = new Entity(graph_api_entity);
+  console.log(JSON.stringify(entityInstance));
 
   expect(entityInstance.entityId).toBe(
     graph_api_entity.metadata.recordId.entityId,

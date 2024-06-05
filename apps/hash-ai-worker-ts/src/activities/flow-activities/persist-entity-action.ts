@@ -169,7 +169,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
             newProperties: properties,
           });
 
-        const serializedEntity = existingEntity.serialize();
+        const serializedEntity = existingEntity.toJSON();
 
         if (isExactMatch) {
           return {
@@ -232,7 +232,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
                 payload: {
                   kind: "PersistedEntity",
                   value: {
-                    existingEntity: existingEntity?.serialize(),
+                    existingEntity: existingEntity?.toJSON(),
                     operation,
                   },
                 },
@@ -245,8 +245,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   }
 
   const persistedEntity = {
-    entity: entity.serialize(),
-    existingEntity: existingEntity?.serialize(),
+    entity: entity.toJSON(),
+    existingEntity: existingEntity?.toJSON(),
     operation,
   } satisfies PersistedEntity;
 

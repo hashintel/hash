@@ -26,7 +26,7 @@ export const updateEntitySubgraphStateByEntity = (
     metadata.temporalVersioning.transactionTime.start.limit =
       newEntityRevisionId;
     const newEntity = new Entity({
-      ...entity.serialize(),
+      ...entity.toJSON(),
       metadata,
     } as SerializedEntity);
 

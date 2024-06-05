@@ -15,6 +15,7 @@ export interface SerializedEntity<
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > {
+  // Prevents the type from being created from outside the module
   [typeId]: TypeId;
 }
 
@@ -31,13 +32,19 @@ type EntityInput<Properties extends EntityPropertiesObject> =
 const isSerializedEntity = <Properties extends EntityPropertiesObject>(
   entity: EntityInput<Properties>,
 ): entity is SerializedEntity => {
-  return typeId in entity;
+  return (
+    "entityTypeId" in
+    (entity as GraphApiEntity | EntityData<Properties>).metadata
+  );
 };
 
 const isGraphApiEntity = <Properties extends EntityPropertiesObject>(
   entity: EntityInput<Properties>,
 ): entity is GraphApiEntity => {
-  return !isSerializedEntity(entity);
+  return (
+    "entityTypeIds" in
+    (entity as GraphApiEntity | EntityData<Properties>).metadata
+  );
 };
 
 export class Entity<
@@ -85,22 +92,30 @@ export class Entity<
     return this.#entity.linkData;
   }
 
-  public serialize(): SerializedEntity<Properties> {
+  public toJSON(): SerializedEntity<Properties> {
     return { [typeId]: typeId, ...this.#entity };
+  }
+
+  public get [Symbol.toStringTag](): string {
+    return this.constructor.name;
   }
 }
 
 export class LinkEntity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > extends Entity<Properties> {
-  constructor(entity: GraphApiEntity) {
-    if (!entity.linkData) {
+  constructor(entity: EntityInput<Properties> | Entity) {
+    const input = (entity instanceof Entity ? entity.toJSON() : entity) as
+      | GraphApiEntity
+      | EntityData<Properties>;
+
+    if (!input.linkData) {
       throw new Error(
-        `Expected link entity to have link data, but got \`${entity.linkData}\``,
+        `Expected link entity to have link data, but got \`${input.linkData}\``,
       );
     }
 
-    super(entity);
+    super(input as EntityInput<Properties>);
   }
 
   public get linkData(): LinkData {

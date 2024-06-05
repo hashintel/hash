@@ -1,6 +1,7 @@
 import { useLazyQuery } from "@apollo/client";
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
@@ -83,9 +84,9 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
         throw new Error("Could not fetch outgoing links of entities");
       }
 
-      const outgoingLinkEntities = getRoots(
-        outgoingLinksSubgraph,
-      ) as LinkEntity[];
+      const outgoingLinkEntities = getRoots(outgoingLinksSubgraph).map(
+        (linkEntity) => new LinkEntity(linkEntity),
+      );
 
       return outgoingLinkEntities
         .map((linkEntity) => {

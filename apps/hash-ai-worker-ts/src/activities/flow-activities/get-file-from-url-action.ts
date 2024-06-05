@@ -36,7 +36,7 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
   // @todo look for an existing file with the same originalUrl in the graph, and update it if found?
   const operation = "create" as const;
 
-  const fileEntity = getFileEntityFromUrlStatus.entity.serialize();
+  const fileEntity = getFileEntityFromUrlStatus.entity.toJSON();
 
   logProgress([
     {
