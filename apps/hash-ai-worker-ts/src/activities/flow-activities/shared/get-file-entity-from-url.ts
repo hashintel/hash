@@ -274,11 +274,17 @@ export const getFileEntityFromUrl = async (params: {
     ...fileStorageProperties,
   };
 
-  const updatedEntity = (await incompleteFileEntity.update(
+  const updatedEntity = (await incompleteFileEntity.patch(
     graphApiClient,
     { actorId: webBotActorId },
     {
-      properties,
+      properties: [
+        {
+          op: "replace",
+          path: [],
+          value: properties,
+        },
+      ],
       provenance,
     },
   )) as Entity<FileProperties>;

@@ -21,7 +21,6 @@ import {
   mapLinearDataToEntityWithOutgoingLinks,
 } from "./linear-activities/mappings";
 import {
-  archiveEntity,
   getEntitiesByLinearId,
   getEntityOutgoingLinks,
 } from "./shared/graph-requests";
@@ -166,7 +165,7 @@ const createOrUpdateHashEntity = async (params: {
 
     await Promise.all([
       ...removedOutgoingLinks.map((linkEntity) =>
-        archiveEntity({ ...params, entity: linkEntity }),
+        linkEntity.archive(params.graphApiClient, params.authentication),
       ),
       ...addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
         Entity.create(graphApiClient, params.authentication, {
@@ -222,8 +221,14 @@ const createOrUpdateHashEntity = async (params: {
       ),
     };
 
-    await existingEntity.update(graphApiClient, params.authentication, {
-      properties: mergedProperties,
+    await existingEntity.patch(graphApiClient, params.authentication, {
+      properties: [
+        {
+          op: "replace",
+          path: [],
+          value: mergedProperties,
+        },
+      ],
     });
   }
 

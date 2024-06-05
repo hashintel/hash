@@ -576,13 +576,19 @@ export const updateEntity: ImpureGraphFunction<
   const { graphApi } = context;
   const { actorId } = authentication;
 
-  const updatedEntity = await entity.update(
+  const updatedEntity = await entity.patch(
     graphApi,
     { actorId },
     {
       entityTypeId,
       draft: params.draft,
-      properties: params.properties,
+      properties: [
+        {
+          op: "replace",
+          path: [],
+          value: params.properties,
+        },
+      ],
       provenance,
     },
   );

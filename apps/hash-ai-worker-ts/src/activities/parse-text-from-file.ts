@@ -55,10 +55,18 @@ export const parseTextFromFile = async (
         textualContent,
     } as DOCXDocumentProperties;
 
-    await fileEntity.update(
+    await fileEntity.patch(
       graphApiClient,
       { actorId: webMachineActorId },
-      { properties: updatedProperties },
+      {
+        properties: [
+          {
+            op: "replace",
+            path: [],
+            value: updatedProperties,
+          },
+        ],
+      },
     );
   }
 };

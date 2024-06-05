@@ -31,8 +31,14 @@ export const persistFlowActivity = async (
   });
 
   if (existingFlowEntity) {
-    await existingFlowEntity.update(graphApiClient, userAuthentication, {
-      properties: flowRunProperties,
+    await existingFlowEntity.patch(graphApiClient, userAuthentication, {
+      properties: [
+        {
+          op: "replace",
+          path: [],
+          value: flowRunProperties,
+        },
+      ],
     });
   } else {
     await Entity.create(graphApiClient, userAuthentication, {

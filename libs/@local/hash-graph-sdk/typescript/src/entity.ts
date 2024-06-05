@@ -166,30 +166,6 @@ export class Entity<
       );
   }
 
-  public async update(
-    graphAPI: GraphApi,
-    authentication: AuthenticationContext,
-    params: {
-      properties?: Properties;
-      entityTypeId?: VersionedUrl;
-      draft?: boolean;
-      confidence?: number;
-      provenance?: ProvidedEntityEditionProvenance;
-    },
-  ): Promise<Entity<Properties>> {
-    return this.patch(graphAPI, authentication, {
-      properties: params.properties
-        ? [
-            {
-              op: "replace",
-              path: [],
-              value: params.properties,
-            },
-          ]
-        : undefined,
-    });
-  }
-
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
@@ -322,30 +298,6 @@ export class LinkEntity<
     return (
       await LinkEntity.createMultiple(graphAPI, authentication, [params])
     )[0]!;
-  }
-
-  public async update(
-    graphAPI: GraphApi,
-    authentication: AuthenticationContext,
-    params: {
-      properties?: Properties;
-      entityTypeId?: VersionedUrl;
-      draft?: boolean;
-      confidence?: number;
-      provenance?: ProvidedEntityEditionProvenance;
-    },
-  ): Promise<LinkEntity<Properties>> {
-    return this.patch(graphAPI, authentication, {
-      properties: params.properties
-        ? [
-            {
-              op: "replace",
-              path: [],
-              value: params.properties,
-            },
-          ]
-        : undefined,
-    });
   }
 
   public async patch(
