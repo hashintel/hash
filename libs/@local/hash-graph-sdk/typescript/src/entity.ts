@@ -299,11 +299,32 @@ export class LinkEntity<
     authentication: AuthenticationContext,
     params: (CreateEntityParameters & { linkData: LinkData })[],
   ): Promise<LinkEntity[]> {
-    return (await Entity.createMultiple(
-      graphAPI,
-      authentication,
-      params,
-    )) as LinkEntity[];
+    return graphAPI
+      .createEntities(
+        authentication.actorId,
+        params.map((request) => ({
+          ownedById: request.ownedById,
+          properties: request.properties,
+          linkData: request.linkData,
+          entityTypeIds: [request.entityTypeId],
+          entityUuid: request.entityUuid,
+          draft: request.draft ?? false,
+          confidence: request.confidence,
+          propertyMetadata: request.propertyMetadata,
+          provenance: request.provenance,
+          relationships: request.relationships,
+        })),
+      )
+      .then(({ data }) =>
+        zip(params, data).map(
+          ([request, metadata]) =>
+            new LinkEntity({
+              metadata: metadata!,
+              properties: request!.properties,
+              linkData: request!.linkData,
+            }),
+        ),
+      );
   }
 
   public static async create(
@@ -311,11 +332,43 @@ export class LinkEntity<
     authentication: AuthenticationContext,
     params: CreateEntityParameters & { linkData: LinkData },
   ): Promise<LinkEntity> {
-    return (await Entity.create(
-      graphAPI,
-      authentication,
-      params,
-    )) as LinkEntity;
+    return (
+      await LinkEntity.createMultiple(graphAPI, authentication, [params])
+    )[0]!;
+  }
+
+  public async update(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: {
+      properties?: Properties;
+      entityTypeId?: VersionedUrl;
+      draft?: boolean;
+      confidence?: number;
+      provenance?: ProvidedEntityEditionProvenance;
+    },
+  ): Promise<LinkEntity<Properties>> {
+    const { data: metadata } = await graphAPI.patchEntity(
+      authentication.actorId,
+      {
+        entityId: this.entityId,
+        properties: params.properties
+          ? [
+              {
+                op: "replace",
+                path: [],
+                value: params.properties,
+              },
+            ]
+          : undefined,
+      },
+    );
+
+    return new LinkEntity<Properties>({
+      metadata,
+      linkData: this.linkData,
+      properties: params.properties ?? this.properties,
+    });
   }
 
   public get linkData(): LinkData {

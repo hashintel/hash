@@ -111,7 +111,7 @@ export const updateLinkEntity: ImpureGraphFunction<
 
   const properties = params.properties ?? linkEntity.properties;
 
-  return (await linkEntity.update(
+  return await linkEntity.update(
     graphApi,
     { actorId },
     {
@@ -119,7 +119,7 @@ export const updateLinkEntity: ImpureGraphFunction<
       draft: params.draft,
       provenance: params.provenance,
     },
-  )) as LinkEntity;
+  );
 };
 
 /**
