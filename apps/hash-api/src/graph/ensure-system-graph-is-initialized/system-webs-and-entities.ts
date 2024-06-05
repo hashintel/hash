@@ -5,13 +5,13 @@ import {
   createMachineActorEntity,
   getMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
-import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import type {
   AccountGroupId,
   AccountId,
-  OwnedById,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/account";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";

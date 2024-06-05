@@ -1,11 +1,12 @@
 import { useQuery } from "@apollo/client";
 import { PenRegularIcon } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityId, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   Box,

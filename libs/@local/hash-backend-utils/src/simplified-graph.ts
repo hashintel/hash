@@ -4,7 +4,8 @@ import {
   typedKeys,
   typedValues,
 } from "@local/advanced-types/typed-entries";
-import type { Entity, EntityId, Subgraph } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Entity, Subgraph } from "@local/hash-subgraph";
 import {
   extractDraftIdFromEntityId,
   extractOwnedByIdFromEntityId,

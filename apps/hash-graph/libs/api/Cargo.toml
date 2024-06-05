@@ -37,7 +37,7 @@ include_dir = "0.7.3"
 mime = "0.3.17"
 opentelemetry = "0.22.0"
 opentelemetry_sdk = { version = "0.22.1", features = ["rt-tokio"] }
-sentry = { version = "0.32.3", features = [
+sentry = { version = "0.33.0", features = [
     "tracing",
     "tower",
     "tower-http",

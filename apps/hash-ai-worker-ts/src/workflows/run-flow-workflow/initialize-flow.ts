@@ -1,3 +1,4 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ActionStep,
@@ -12,7 +13,6 @@ import type {
   Payload,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { EntityUuid } from "@local/hash-subgraph";
 
 import { getAllStepsInFlow } from "./get-all-steps-in-flow";
 

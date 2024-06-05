@@ -50,8 +50,8 @@ impl<'de> Visitor<'de> for CharVisitor {
         Ok(value)
     }
 
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        let mut chars = v.chars();
+    fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+        let mut chars = value.chars();
 
         let first = chars.next();
         let second = chars.next();

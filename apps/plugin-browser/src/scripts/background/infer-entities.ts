@@ -30,9 +30,11 @@ const setExternalInputRequestsValue = getSetFromLocalStorageValue(
 );
 
 const getCookieString = async () => {
+  const apiOrigin = await getFromLocalStorage("apiOrigin");
+
   const cookies = await browser.cookies
     .getAll({
-      url: API_ORIGIN,
+      url: apiOrigin ?? API_ORIGIN,
     })
     .then((options) =>
       options.filter(
@@ -64,7 +66,9 @@ const getWebSocket = async () => {
     return ws;
   }
 
-  const { host, protocol } = new URL(API_ORIGIN);
+  const apiOrigin = await getFromLocalStorage("apiOrigin");
+
+  const { host, protocol } = new URL(apiOrigin ?? API_ORIGIN);
   const websocketUrl = `${protocol === "https:" ? "wss" : "ws"}://${host}`;
 
   ws = new WebSocket(websocketUrl);

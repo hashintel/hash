@@ -1,6 +1,7 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityUuid, OwnedById } from "@local/hash-subgraph";
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 

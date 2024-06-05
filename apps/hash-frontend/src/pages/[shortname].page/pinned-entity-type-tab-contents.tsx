@@ -1,13 +1,9 @@
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type {
-  Entity,
-  EntityRootType,
-  EntityTypeWithMetadata,
-  OwnedById,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   Box,

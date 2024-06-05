@@ -26,6 +26,7 @@ export interface GraphQLContext {
   authentication: AuthenticationContext;
   user?: User;
   temporal: TemporalClient;
+  userAgent?: string;
   vault?: VaultClient;
 }
 

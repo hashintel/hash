@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
-import type { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityRevision,

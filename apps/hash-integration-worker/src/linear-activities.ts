@@ -8,13 +8,11 @@ import type {
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  AccountId,
-  BaseUrl,
-  EntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
 
 import {
   mapHashEntityToLinearUpdateInput,

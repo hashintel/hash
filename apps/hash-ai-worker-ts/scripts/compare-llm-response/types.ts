@@ -1,4 +1,4 @@
-import type { AccountId } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-graph-types/account";
 
 import type {
   AnthropicLlmParams,

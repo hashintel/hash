@@ -1,5 +1,9 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
+import type { AccountGroupId } from "@local/hash-graph-types/account";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -8,15 +12,7 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  AccountGroupEntityId,
-  AccountGroupId,
-  BaseUrl,
-  Entity,
-  EntityId,
-  EntityUuid,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { AccountGroupEntityId, Entity } from "@local/hash-subgraph";
 import { extractAccountGroupId } from "@local/hash-subgraph";
 import {
   extractBaseUrl,

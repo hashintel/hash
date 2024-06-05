@@ -1,12 +1,8 @@
 import { Skeleton } from "@hashintel/design-system";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type {
-  BaseUrl,
-  Entity,
-  EntityId,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";

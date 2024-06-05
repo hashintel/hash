@@ -1,4 +1,5 @@
-import type { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 

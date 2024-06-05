@@ -1,7 +1,8 @@
 import type { BlockVariant, JsonObject } from "@blockprotocol/core";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityId, OwnedById } from "@local/hash-subgraph";
 import type { Node, Schema } from "prosemirror-model";
 import type { EditorState, Transaction } from "prosemirror-state";
 import type { EditorProps, EditorView } from "prosemirror-view";

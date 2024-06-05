@@ -7,13 +7,13 @@ import type {
   OntologyOutwardEdge as OntologyOutwardEdgeGraphApi,
   OntologyTypeVertexId as OntologyTypeVertexIdGraphApi,
 } from "@local/hash-graph-client";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type {
-  BaseUrl,
   Edges,
-  EntityId,
   OntologyTypeRevisionId,
   OutwardEdge,
-  Timestamp,
 } from "@local/hash-subgraph";
 import {
   isEntityId,

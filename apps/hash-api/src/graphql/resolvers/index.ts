@@ -49,6 +49,7 @@ import {
   updateEntitiesResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
+import { getEntityDiffsResolver } from "./knowledge/entity/get-entity-diffs";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
 import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { hashInstanceEntityResolver } from "./knowledge/hash-instance/hash-instance";
@@ -117,6 +118,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
     getEntity: getEntityResolver,
+    getEntityDiffs: getEntityDiffsResolver,
     getFlowRuns: loggedInAndSignedUpMiddleware(getFlowRunsResolver),
     getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
     queryEntities: queryEntitiesResolver,

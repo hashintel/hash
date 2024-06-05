@@ -6,6 +6,7 @@ import type {
   UpdateOrganizationInput,
   UpdateUserInput,
 } from "@linear/sdk/dist/_generated_documents";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   blockProtocolPropertyTypes,
   linearEntityTypes,
@@ -13,11 +14,7 @@ import {
   linearPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  BaseUrl,
-  Entity,
-  EntityPropertyValue,
-} from "@local/hash-subgraph";
+import type { Entity, EntityPropertyValue } from "@local/hash-subgraph";
 import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 const mapLinearDateToIsoString = (date: string | Date): string => {

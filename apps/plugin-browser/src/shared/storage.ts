@@ -1,5 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
   ExternalInputWebsocketRequestMessage,
   InferenceModelName,
@@ -23,10 +26,7 @@ import type {
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
   Entity,
-  EntityId,
   EntityTypeRootType,
-  EntityTypeWithMetadata,
-  OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import debounce from "lodash.debounce";
@@ -113,6 +113,7 @@ export type FlowFromBrowserOrWithPageRequest = MinimalFlowRun & {
  * Cleared if the extension is loaded with no user present.
  */
 export type LocalStorage = PersistedUserSettings & {
+  apiOrigin?: string;
   flowRuns: FlowFromBrowserOrWithPageRequest[];
   entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
   entityTypes: EntityTypeWithMetadata[];

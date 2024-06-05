@@ -1,16 +1,13 @@
 import { useApolloClient, useQuery } from "@apollo/client";
+import type { AccountGroupId } from "@local/hash-graph-types/account";
+import type { Uuid } from "@local/hash-graph-types/branded";
+import type { EntityMetadata } from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { checkUserPermissionsOnEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  AccountGroupId,
-  EntityMetadata,
-  EntityRootType,
-  Subgraph,
-  Timestamp,
-  Uuid,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
