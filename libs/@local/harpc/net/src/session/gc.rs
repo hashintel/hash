@@ -6,7 +6,7 @@ use scc::HashIndex;
 use tokio::select;
 use tokio_util::sync::CancellationToken;
 
-pub(crate) trait Cancellable {
+pub(crate) trait IsCancelled {
     fn is_cancelled(&self) -> bool;
 }
 
@@ -21,7 +21,7 @@ pub(crate) struct ConnectionGarbageCollectorTask<C> {
 
 impl<C> ConnectionGarbageCollectorTask<C>
 where
-    C: Cancellable + Clone + Send + Sync + 'static,
+    C: IsCancelled + Clone + Send + Sync + 'static,
 {
     #[expect(
         clippy::integer_division_remainder_used,

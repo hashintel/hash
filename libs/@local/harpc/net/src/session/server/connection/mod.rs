@@ -26,7 +26,7 @@ use super::{
     SessionConfig, SessionEvent,
 };
 use crate::{
-    codec::{ErrorEncoder, PlainError},
+    codec::{ErrorEncoder, WriteError},
     session::{
         error::{
             ConnectionGracefulShutdownError, InstanceTransactionLimitReachedError, TransactionError,
@@ -83,7 +83,7 @@ where
 {
     async fn respond_error<T>(&self, id: RequestId, error: T, tx: &mpsc::Sender<Response>)
     where
-        T: PlainError + Send + Sync,
+        T: WriteError + Send + Sync,
     {
         let TransactionError { code, bytes } = self.encoder.encode_error(error).await;
 
@@ -234,7 +234,7 @@ where
         pin!(stream);
 
         let finished = Semaphore::new(0);
-        let notify = Arc::clone(self.transactions.notify());
+        let transactions_empty_notify = Arc::clone(self.transactions.notify());
 
         let cancel_gc = cancel.child_token();
         tasks.spawn(
@@ -257,7 +257,7 @@ where
         // We solve this by dropping the `tx` once the stream has finished, because we know that we
         // won't be able to create any more transactions.
         let (tx, rx) = mpsc::channel(self.config.per_connection_response_buffer_size.get());
-        let mut handle = tasks
+        let mut connection_task_handle = tasks
             .spawn(ConnectionDelegateTask { rx, sink }.run(cancel.clone()))
             .fuse();
 
@@ -292,7 +292,7 @@ where
                         }
                     }
                 },
-                result = &mut handle => {
+                result = &mut connection_task_handle => {
                     match result {
                         Ok(Ok(())) => {},
                         Ok(Err(error)) => {
@@ -305,7 +305,7 @@ where
 
                     finished.add_permits(1);
                 },
-                () = notify.notified() => {
+                () = transactions_empty_notify.notified() => {
                     // we've been notified that an item has been removed and that the collection is now empty (at the time of notification)
 
                     // double check if `is_empty` (otherwise we might run into a race-condition)

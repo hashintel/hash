@@ -10,7 +10,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::session::{
     client::{config::SessionConfig, transaction::ClientTransactionPermit},
-    gc::Cancellable,
+    gc::IsCancelled,
 };
 
 #[derive(Debug, Clone)]
@@ -19,7 +19,7 @@ pub(crate) struct TransactionState {
     pub(crate) cancel: CancellationToken,
 }
 
-impl Cancellable for TransactionState {
+impl IsCancelled for TransactionState {
     fn is_cancelled(&self) -> bool {
         self.cancel.is_cancelled()
     }
@@ -60,7 +60,7 @@ impl TransactionCollection {
         &self.notify
     }
 
-    pub(crate) async fn acquire(&self) -> (Arc<TransactionPermit>, tachyonix::Receiver<Response>) {
+    pub(crate) async fn acquire(&self) -> (TransactionPermit, tachyonix::Receiver<Response>) {
         let cancel = self.cancel.child_token();
         let permit = TransactionPermit::new(self, cancel.clone());
 
@@ -79,7 +79,7 @@ impl TransactionCollection {
                 // connection that never terminated
                 // This is **highly** unlikely, in case it happens we cancel the old task and
                 // replace it with the new one.
-                tracing::warn!("Transaction ID collision detected, cancelling old transaction");
+                tracing::warn!(id=%entry.key(), "Transaction ID collision detected, cancelling old transaction");
 
                 entry.sender.close();
                 entry.cancel.cancel();
@@ -107,15 +107,15 @@ pub(crate) struct TransactionPermit {
 }
 
 impl TransactionPermit {
-    fn new(collection: &TransactionCollection, cancel: CancellationToken) -> Arc<Self> {
+    fn new(collection: &TransactionCollection, cancel: CancellationToken) -> Self {
         let id = collection.producer.produce();
 
-        Arc::new(Self {
+        Self {
             id,
             storage: Arc::clone(&collection.storage),
             cancel,
             notify: Arc::clone(&collection.notify),
-        })
+        }
     }
 }
 

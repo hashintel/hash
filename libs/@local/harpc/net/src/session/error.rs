@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use harpc_wire_protocol::response::kind::ErrorCode;
 
-use crate::codec::PlainError;
+use crate::codec::WriteError;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[error("The session layer has encountered an error, the connection has been closed")]
@@ -22,7 +22,7 @@ pub struct ConnectionTransactionLimitReachedError {
     pub limit: usize,
 }
 
-impl PlainError for ConnectionTransactionLimitReachedError {
+impl WriteError for ConnectionTransactionLimitReachedError {
     fn code(&self) -> ErrorCode {
         ErrorCode::CONNECTION_TRANSACTION_LIMIT_REACHED
     }
@@ -32,7 +32,7 @@ impl PlainError for ConnectionTransactionLimitReachedError {
 #[error("transaction has been dropped, because it is unable to receive more request packets")]
 pub struct TransactionLaggingError;
 
-impl PlainError for TransactionLaggingError {
+impl WriteError for TransactionLaggingError {
     fn code(&self) -> ErrorCode {
         ErrorCode::TRANSACTION_LAGGING
     }
@@ -42,7 +42,7 @@ impl PlainError for TransactionLaggingError {
 #[error("transaction has been dropped, because the server is unable to process more transactions")]
 pub struct InstanceTransactionLimitReachedError;
 
-impl PlainError for InstanceTransactionLimitReachedError {
+impl WriteError for InstanceTransactionLimitReachedError {
     fn code(&self) -> ErrorCode {
         ErrorCode::INSTANCE_TRANSACTION_LIMIT_REACHED
     }
@@ -52,7 +52,7 @@ impl PlainError for InstanceTransactionLimitReachedError {
 #[error("session has been clossed")]
 pub struct ConnectionClosedError;
 
-impl PlainError for ConnectionClosedError {
+impl WriteError for ConnectionClosedError {
     fn code(&self) -> ErrorCode {
         ErrorCode::CONNECTION_CLOSED
     }
@@ -64,7 +64,7 @@ impl PlainError for ConnectionClosedError {
 )]
 pub struct ConnectionGracefulShutdownError;
 
-impl PlainError for ConnectionGracefulShutdownError {
+impl WriteError for ConnectionGracefulShutdownError {
     fn code(&self) -> ErrorCode {
         ErrorCode::CONNECTION_SHUTDOWN
     }

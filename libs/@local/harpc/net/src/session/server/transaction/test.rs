@@ -1352,7 +1352,7 @@ async fn setup_recv() -> (tachyonix::Sender<Request>, TransactionStream) {
     let (permit, tx, rx) =
         make_transaction_permit(SessionConfig::default(), mock_request_id(0x00)).await;
 
-    let stream = TransactionStream::new(rx, permit);
+    let stream = TransactionStream::new(rx, Arc::new(permit));
 
     (tx, stream)
 }

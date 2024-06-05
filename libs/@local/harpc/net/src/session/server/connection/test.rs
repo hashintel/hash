@@ -59,7 +59,7 @@ pub(crate) async fn make_transaction_permit(
     config: SessionConfig,
     id: RequestId,
 ) -> (
-    Arc<TransactionPermit>,
+    TransactionPermit,
     tachyonix::Sender<Request>,
     tachyonix::Receiver<Request>,
 ) {

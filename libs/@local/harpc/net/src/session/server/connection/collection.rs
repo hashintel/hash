@@ -9,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::session::{
     error::{ConnectionTransactionLimitReachedError, TransactionLaggingError},
-    gc::Cancellable,
+    gc::IsCancelled,
     server::{transaction::ServerTransactionPermit, SessionConfig},
 };
 
@@ -48,7 +48,7 @@ pub(crate) struct TransactionState {
     pub(crate) cancel: CancellationToken,
 }
 
-impl Cancellable for TransactionState {
+impl IsCancelled for TransactionState {
     fn is_cancelled(&self) -> bool {
         self.cancel.is_cancelled()
     }
@@ -96,7 +96,7 @@ impl TransactionCollection {
         id: RequestId,
     ) -> Result<
         (
-            Arc<TransactionPermit>,
+            TransactionPermit,
             tachyonix::Sender<Request>,
             tachyonix::Receiver<Request>,
         ),
@@ -279,7 +279,7 @@ impl TransactionPermit {
         collection: &TransactionCollection,
         id: RequestId,
         cancel: CancellationToken,
-    ) -> Result<Arc<Self>, ConnectionTransactionLimitReachedError> {
+    ) -> Result<Self, ConnectionTransactionLimitReachedError> {
         let permit = collection.limit.acquire()?;
         let storage = Arc::clone(&collection.storage);
         let notify = Arc::clone(&collection.notify);
@@ -290,14 +290,14 @@ impl TransactionPermit {
         // about the order of those increments.
         let generation = collection.generation.fetch_add(1, Ordering::Relaxed);
 
-        Ok(Arc::new(Self {
+        Ok(Self {
             id,
             storage,
             generation,
             notify,
             _permit: permit,
             cancel,
-        }))
+        })
     }
 }
 

@@ -248,7 +248,7 @@ where
 
 pub(crate) struct TransactionTask<S, P> {
     pub(crate) config: SessionConfig,
-    pub(crate) permit: Arc<P>,
+    pub(crate) permit: P,
 
     pub(crate) service: ServiceDescriptor,
     pub(crate) procedure: ProcedureDescriptor,
@@ -266,16 +266,14 @@ where
     P: ClientTransactionPermit,
 {
     pub(crate) fn spawn(self, tasks: &TaskTracker) {
-        // TODO: notify the other end if we failed prematurely.
-        //  This will work either way, but it's just good to know.
-        // The only problem is: over which channel do we send this?!
-        // We'd need to have a future of some sort, or an AtomicBool that we set.
+        let permit = Arc::new(self.permit);
+
         tasks.spawn(
             TransactionReceiveTask {
                 config: self.config,
                 rx: self.response_rx,
                 tx: self.response_tx,
-                permit: Arc::clone(&self.permit),
+                permit: Arc::clone(&permit),
             }
             .run(),
         );
@@ -290,7 +288,7 @@ where
                 rx: self.request_rx,
                 tx: self.request_tx,
 
-                permit: self.permit,
+                permit,
             }
             .run(),
         );

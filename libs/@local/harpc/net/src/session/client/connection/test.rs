@@ -103,6 +103,7 @@ async fn transaction_permit_drop_removes_entry() {
     let collection = TransactionCollection::new(SessionConfig::default(), CancellationToken::new());
 
     let (permit, _) = collection.acquire().await;
+    let permit = Arc::new(permit);
     let cloned = Arc::clone(&permit);
 
     drop(permit);
@@ -259,7 +260,7 @@ async fn response_delegate() {
         config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
-        notify: Arc::new(Notify::new()),
+        storage_empty_notify: Arc::new(Notify::new()),
         parent: CancellationToken::new(),
         _guard: CancellationToken::new().drop_guard(),
     };
@@ -287,7 +288,7 @@ async fn response_delegate_ignore_errors() {
         config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
-        notify: Arc::new(Notify::new()),
+        storage_empty_notify: Arc::new(Notify::new()),
         parent: CancellationToken::new(),
         _guard: CancellationToken::new().drop_guard(),
     };
@@ -320,7 +321,7 @@ async fn response_delegate_stream_closed() {
         config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
-        notify: Arc::new(Notify::new()),
+        storage_empty_notify: Arc::new(Notify::new()),
         parent: CancellationToken::new(),
         _guard: CancellationToken::new().drop_guard(),
     };
@@ -347,7 +348,7 @@ async fn response_delegate_tx_closed() {
         config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
-        notify: Arc::new(Notify::new()),
+        storage_empty_notify: Arc::new(Notify::new()),
         parent: CancellationToken::new(),
         _guard: CancellationToken::new().drop_guard(),
     };
@@ -378,7 +379,7 @@ async fn response_delegate_unknown_request_id() {
         config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
-        notify: Arc::new(Notify::new()),
+        storage_empty_notify: Arc::new(Notify::new()),
         parent: CancellationToken::new(),
         _guard: CancellationToken::new().drop_guard(),
     };
@@ -405,7 +406,7 @@ async fn response_delegate_cancel() {
         config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
-        notify: Arc::new(Notify::new()),
+        storage_empty_notify: Arc::new(Notify::new()),
         parent: CancellationToken::new(),
         _guard: CancellationToken::new().drop_guard(),
     };
@@ -430,7 +431,7 @@ async fn response_delegate_cancels_running_senders_on_shutdown() {
         config: SessionConfig::default(),
         stream: ReceiverStream::new(stream_rx),
         storage: Arc::clone(collection.storage()),
-        notify: Arc::new(Notify::new()),
+        storage_empty_notify: Arc::new(Notify::new()),
         parent: CancellationToken::new(),
         _guard: CancellationToken::new().drop_guard(),
     };

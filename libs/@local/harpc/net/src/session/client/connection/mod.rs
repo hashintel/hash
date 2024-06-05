@@ -53,11 +53,6 @@ where
         let sink = self.sink;
         pin!(sink);
 
-        // on TCP: if we send too much data too fast, the sink get's "stuck", meaning it makes
-        // seamingly no progress anymore and will block indefinitely.
-        // This is quite flaky and I am unsure where the bug lies.
-        // This could be a problem with libp2p.
-        // TODO: this seems to be a race-condition in yamux::on_read.
         let forward = ReceiverStream::new(self.rx).map(Ok).forward(sink).fuse();
 
         select! {
@@ -78,7 +73,7 @@ struct ConnectionResponseDelegateTask<S> {
 
     storage: TransactionStorage,
 
-    notify: Arc<Notify>,
+    storage_empty_notify: Arc<Notify>,
     parent: CancellationToken,
 
     _guard: DropGuard,
@@ -156,17 +151,41 @@ where
 
         let mut parent_cancelled = false;
 
+        tracing::debug!("starting response delegate task");
+
         loop {
             let response = select! {
                 response = stream.next().fuse() => response,
-                () = self.notify.notified() => {
-                    // We have been notified that there are no more transactions to handle,
-                    // check if the parent connection has been dropped, in that case,
-                    // there are no more transactions that can be created, so we can shutdown.
-                    // The receiver will automatically shutdown when the connection is dropped,
-                    // as we drop the only `sender` that we use to handout transactions.
-                    // We also need to check if we're really empty, as in the meantime a new transaction
-                    // could have been created just as the last one was completed and the connection was dropped.
+                () = self.storage_empty_notify.notified() => {
+                    // This logic might seem counterintuitive, but it relies on the following
+                    // semantics:
+                    //
+                    // - The parent here is the `Connection` struct, which cannot be cloned.
+                    // - Once the `Connection` is dropped, we know that we're in the process
+                    //   of shutting down.
+                    // - The only way a new transaction, used to route tasks, is created
+                    //   is through `Connection::call`.
+                    //
+                    // This means if we have no more transactions (the storage is empty) and
+                    // the parent is cancelled, we can safely shut down, as any incoming
+                    // response won't have a transaction to route to.
+                    //
+                    // The storage is never cleared by the `Connection` itself, but rather by
+                    // the transaction once it is finished. Thus, it is safe to assume that
+                    // if the storage is empty, we are done.
+                    //
+                    // While the notification indicates that the storage has been cleared,
+                    // in a highly concurrent environment, the storage might be cleared but
+                    // a new transaction could be created after the notification.
+                    //
+                    // This scenario could lead to a premature shutdown:
+                    // 1. Storage is empty (notification is fired)
+                    // 2. `Connection::call` is invoked
+                    // 3. `Connection` (parent) is dropped
+                    // 4. We are notified
+                    //
+                    // As seen, simply checking if we have been notified but the parent hasn't
+                    // terminated yet is not sufficient.
                     if self.parent.is_cancelled() && self.storage.is_empty() {
                         break;
                     }
@@ -207,12 +226,19 @@ where
 
         // we need to cancel any remaining transactions, as we won't be able to route to them
         // anymore
+        // This code path is hoisted here as a defensive measure to ensure that we don't leak
+        // any tasks, we only expect that there are any remaining transactions if the response
+        // stream has been suddenly closed.
         let guard = Guard::new();
         for (_, state) in self.storage.iter(&guard) {
+            // Receiver will shutdown automatically, removingthe transaction from the storage
+            // once it is done (which happens when the rx is closed)
+            // This allows us to still process any buffered responses, without suddently
+            // closing all transactions.
             state.sender.close();
         }
 
-        tracing::debug!("response delegate task has been shut down");
+        tracing::debug!("response delegate task has been terminated");
     }
 }
 
@@ -268,7 +294,7 @@ impl Connection {
                 config,
                 stream,
                 storage: Arc::clone(transactions.storage()),
-                notify: Arc::clone(transactions.notify()),
+                storage_empty_notify: Arc::clone(transactions.notify()),
                 parent: guard_this.clone(),
                 _guard: guard_gc.clone().drop_guard(),
             }

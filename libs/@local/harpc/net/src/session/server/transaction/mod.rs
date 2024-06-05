@@ -166,7 +166,7 @@ pub(crate) struct TransactionParts<P> {
     pub(crate) rx: tachyonix::Receiver<Request>,
     pub(crate) tx: mpsc::Sender<Response>,
 
-    pub(crate) permit: Arc<P>,
+    pub(crate) permit: P,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -217,6 +217,10 @@ pub struct Transaction {
 }
 
 impl Transaction {
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "TransactionPermit is used to track the transaction lifetime, false-positive"
+    )]
     pub(crate) fn from_request(
         body: &RequestBegin,
         TransactionParts {
@@ -228,6 +232,8 @@ impl Transaction {
             permit,
         }: TransactionParts<TransactionPermit>,
     ) -> (Self, TransactionTask<TransactionPermit>) {
+        let permit = Arc::new(permit);
+
         let (response_tx, response_rx) = mpsc::channel(
             config
                 .per_transaction_response_byte_stream_buffer_size
