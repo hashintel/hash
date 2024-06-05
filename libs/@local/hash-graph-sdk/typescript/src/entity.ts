@@ -1,43 +1,57 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type {
+  CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
-  EntityRelationAndSubject,
   GraphApi,
+  PatchEntityParams as GraphApiPatchEntityParams,
   PropertyMetadata,
   PropertyMetadataMap,
-  PropertyPatchOperation,
   PropertyPath,
   PropertyProvenance,
-  ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client/api";
+import type {
+  CreatedById,
+  EditionArchivedById,
+  EditionCreatedById,
+} from "@local/hash-graph-types/account";
 import type {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
-  EntityProvenance,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
   EntityUuid,
   LinkData,
 } from "@local/hash-graph-types/entity";
+import type {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+} from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { isEqual, zip } from "lodash";
+import isEqual from "lodash/isEqual";
+import zip from "lodash/zip";
 
 import type { AuthenticationContext } from "./authentication-context";
 
-export type CreateEntityParameters = {
+export type CreateEntityParameters = Omit<
+  GraphApiCreateEntityRequest,
+  "entityTypeIds" | "decisionTime" | "draft"
+> & {
   ownedById: OwnedById;
   properties: EntityPropertiesObject;
   linkData?: LinkData;
   entityTypeId: VersionedUrl;
   entityUuid?: EntityUuid;
-  draft?: boolean;
-  confidence?: number;
   propertyMetadata?: PropertyMetadataMap;
-  provenance?: ProvidedEntityEditionProvenance;
-  relationships: EntityRelationAndSubject[];
+  draft?: boolean;
 };
 
+export type PatchEntityParameters = Omit<
+  GraphApiPatchEntityParams,
+  "entityId" | "entityTypeIds" | "decisionTime"
+> & {
+  entityTypeId?: VersionedUrl;
+};
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
 );
@@ -89,19 +103,6 @@ const isGraphApiEntity = <Properties extends EntityPropertiesObject>(
   );
 };
 
-const mapEntityMetadata = (
-  metadata: GraphApiEntity["metadata"],
-): EntityData["metadata"] => ({
-  recordId: metadata.recordId as EntityRecordId,
-  entityTypeId: metadata.entityTypeIds[0] as VersionedUrl,
-  temporalVersioning:
-    metadata.temporalVersioning as EntityTemporalVersioningMetadata,
-  provenance: metadata.provenance as EntityProvenance,
-  archived: metadata.archived,
-  confidence: metadata.confidence,
-  properties: metadata.properties,
-});
-
 export class Entity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > {
@@ -112,9 +113,39 @@ export class Entity<
       this.#entity = entity as unknown as EntityData<Properties>;
     } else if (isGraphApiEntity(entity)) {
       this.#entity = {
+        ...entity,
         properties: entity.properties as Properties,
-        metadata: mapEntityMetadata(entity.metadata),
-        linkData: entity.linkData as LinkData,
+        metadata: {
+          ...entity.metadata,
+          recordId: entity.metadata.recordId as EntityRecordId,
+          entityTypeId: entity.metadata.entityTypeIds[0] as VersionedUrl,
+          temporalVersioning: entity.metadata
+            .temporalVersioning as EntityTemporalVersioningMetadata,
+          provenance: {
+            ...entity.metadata.provenance,
+            createdById: entity.metadata.provenance.createdById as CreatedById,
+            createdAtDecisionTime: entity.metadata.provenance
+              .createdAtDecisionTime as CreatedAtDecisionTime,
+            createdAtTransactionTime: entity.metadata.provenance
+              .createdAtTransactionTime as CreatedAtTransactionTime,
+            firstNonDraftCreatedAtDecisionTime: entity.metadata.provenance
+              .firstNonDraftCreatedAtDecisionTime as CreatedAtDecisionTime,
+            firstNonDraftCreatedAtTransactionTime: entity.metadata.provenance
+              .firstNonDraftCreatedAtTransactionTime as CreatedAtTransactionTime,
+            edition: {
+              ...entity.metadata.provenance.edition,
+              createdById: entity.metadata.provenance.edition
+                .createdById as EditionCreatedById,
+              archivedById: entity.metadata.provenance.edition
+                .archivedById as EditionArchivedById,
+            },
+          },
+        },
+        linkData: {
+          ...entity.linkData,
+          leftEntityId: entity.linkData?.leftEntityId as EntityId,
+          rightEntityId: entity.linkData?.rightEntityId as EntityId,
+        },
       };
     } else {
       throw new Error(
@@ -141,17 +172,10 @@ export class Entity<
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map((request) => ({
-          ownedById: request.ownedById,
-          properties: request.properties,
-          linkData: request.linkData,
-          entityTypeIds: [request.entityTypeId],
-          entityUuid: request.entityUuid,
-          draft: request.draft ?? false,
-          confidence: request.confidence,
-          propertyMetadata: request.propertyMetadata,
-          provenance: request.provenance,
-          relationships: request.relationships,
+        params.map(({ entityTypeId, draft, ...rest }) => ({
+          entityTypeIds: [entityTypeId],
+          draft: draft ?? false,
+          ...rest,
         })),
       )
       .then(({ data }) =>
@@ -169,22 +193,13 @@ export class Entity<
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: {
-      properties?: PropertyPatchOperation[];
-      entityTypeId?: VersionedUrl;
-      draft?: boolean;
-      confidence?: number;
-      provenance?: ProvidedEntityEditionProvenance;
-    },
+    { entityTypeId, ...params }: PatchEntityParameters,
   ): Promise<Entity<Properties>> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
-        properties: params.properties,
-        entityTypeIds: params.entityTypeId ? [params.entityTypeId] : undefined,
-        draft: params.draft,
-        confidence: params.confidence,
-        provenance: params.provenance,
+        entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+        ...params,
       })
       .then(({ data }) => new Entity<Properties>(data));
   }
@@ -265,17 +280,10 @@ export class LinkEntity<
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map((request) => ({
-          ownedById: request.ownedById,
-          properties: request.properties,
-          linkData: request.linkData,
-          entityTypeIds: [request.entityTypeId],
-          entityUuid: request.entityUuid,
-          draft: request.draft ?? false,
-          confidence: request.confidence,
-          propertyMetadata: request.propertyMetadata,
-          provenance: request.provenance,
-          relationships: request.relationships,
+        params.map(({ entityTypeId, draft, ...rest }) => ({
+          entityTypeIds: [entityTypeId],
+          draft: draft ?? false,
+          ...rest,
         })),
       )
       .then(({ data }) =>
@@ -303,22 +311,13 @@ export class LinkEntity<
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: {
-      properties?: PropertyPatchOperation[];
-      entityTypeId?: VersionedUrl;
-      draft?: boolean;
-      confidence?: number;
-      provenance?: ProvidedEntityEditionProvenance;
-    },
+    { entityTypeId, ...params }: PatchEntityParameters,
   ): Promise<LinkEntity<Properties>> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
-        properties: params.properties,
-        entityTypeIds: params.entityTypeId ? [params.entityTypeId] : undefined,
-        draft: params.draft,
-        confidence: params.confidence,
-        provenance: params.provenance,
+        entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+        ...params,
       })
       .then(({ data }) => new LinkEntity<Properties>(data));
   }
