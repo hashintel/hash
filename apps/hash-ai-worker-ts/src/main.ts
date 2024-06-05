@@ -8,6 +8,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
+import * as child_process from "node:child_process";
 import * as http from "node:http";
 import { createRequire } from "node:module";
 import * as path from "node:path";
@@ -24,7 +25,6 @@ import { config } from "dotenv-flow";
 
 import { createAiActivities, createGraphActivities } from "./activities";
 import { createFlowActivities } from "./activities/flow-activities";
-import { logger } from "./activities/shared/activity-logger";
 import { logToConsole } from "./shared/logger";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -72,17 +72,51 @@ const workflowOption = () =>
     : { workflowsPath: require.resolve("./workflows") };
 
 async function run() {
-  logToConsole.info("Starting AI worker...");
+  // eslint-disable-next-line no-console
+  console.info("Starting AI worker...");
+
+  // eslint-disable-next-line no-console
+  console.info(`Pinging Temporal server at ${TEMPORAL_HOST}...`);
+  await new Promise<void>((resolve) => {
+    child_process.exec(
+      `ping -c 3 ${TEMPORAL_HOST}`,
+      (processError, stdout, stderr) => {
+        if (processError) {
+          // eslint-disable-next-line no-console
+          console.error(`error spawning ping process: ${processError.message}`);
+          resolve();
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.error(`ping stderr: ${stderr}`);
+        // eslint-disable-next-line no-console
+        console.log(`ping stdout: ${stdout}`);
+        resolve();
+      },
+    );
+  });
 
   const graphApiClient = createGraphClient(logToConsole, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
   });
 
+  // eslint-disable-next-line no-console
+  console.info("Created Graph client");
+
   const vaultClient = createVaultClient();
   if (!vaultClient) {
     throw new Error("Vault client not created");
   }
+
+  // eslint-disable-next-line no-console
+  console.info("Created Vault client");
+
+  const connection = await NativeConnection.connect({
+    address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
+  });
+  // eslint-disable-next-line no-console
+  console.info("Created Temporal connection");
 
   const worker = await Worker.create({
     ...workflowOption(),
@@ -97,9 +131,7 @@ async function run() {
         vaultClient,
       }),
     },
-    connection: await NativeConnection.connect({
-      address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
-    }),
+    connection,
     namespace: "HASH",
     taskQueue: "ai",
     sinks: { ...defaultSinks(), ...sentrySinks() },
@@ -117,21 +149,25 @@ async function run() {
   const port = 4100;
   httpServer.listen({ host: "::", port });
 
-  logger.info(`HTTP server listening on port ${port}`);
+  // eslint-disable-next-line no-console
+  console.info(`HTTP server listening on port ${port}`);
 
   await worker.run();
 }
 
 process.on("SIGINT", () => {
-  logToConsole.info("Received SIGINT, exiting...");
+  // eslint-disable-next-line no-console
+  console.info("Received SIGINT, exiting...");
   process.exit(1);
 });
 process.on("SIGTERM", () => {
-  logToConsole.info("Received SIGTERM, exiting...");
+  // eslint-disable-next-line no-console
+  console.info("Received SIGTERM, exiting...");
   process.exit(1);
 });
 
 run().catch((err) => {
-  logToConsole.error(err);
+  // eslint-disable-next-line no-console
+  console.error(err);
   process.exit(1);
 });
