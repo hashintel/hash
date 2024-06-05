@@ -1,7 +1,5 @@
 //! Web routes for CRU operations on Entity types.
 
-#![expect(clippy::str_to_string)]
-
 use std::{collections::hash_map, sync::Arc};
 
 use authorization::{

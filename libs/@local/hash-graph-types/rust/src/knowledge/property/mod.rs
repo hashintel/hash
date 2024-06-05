@@ -225,17 +225,17 @@ impl fmt::Display for Property {
 }
 
 impl PartialEq<JsonValue> for Property {
-    fn eq(&self, rhs: &JsonValue) -> bool {
+    fn eq(&self, other: &JsonValue) -> bool {
         match self {
             Self::Array(lhs) => {
-                let JsonValue::Array(rhs) = rhs else {
+                let JsonValue::Array(rhs) = other else {
                     return false;
                 };
 
                 lhs == rhs
             }
             Self::Object(lhs) => {
-                let JsonValue::Object(rhs) = rhs else {
+                let JsonValue::Object(rhs) = other else {
                     return false;
                 };
 
@@ -245,7 +245,7 @@ impl PartialEq<JsonValue> for Property {
                             .map_or(false, |other_value| value == other_value)
                     })
             }
-            Self::Value(lhs) => lhs == rhs,
+            Self::Value(lhs) => lhs == other,
         }
     }
 }

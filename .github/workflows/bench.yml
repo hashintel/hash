@@ -93,7 +93,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@c2bb13fe14454ce1be6b630075c6abb37d14be12 # v2.33.33
+        uses: taiki-e/install-action@4e38715ddc7c4e1fd3e44ab4c124a2dcca7306fd # v2.34.0
         with:
           tool: just@1.13.0,critcmp@0.1.8
 
@@ -241,7 +241,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@c2bb13fe14454ce1be6b630075c6abb37d14be12 # v2.33.33
+        uses: taiki-e/install-action@4e38715ddc7c4e1fd3e44ab4c124a2dcca7306fd # v2.34.0
         with:
           tool: just@1.13.0,critcmp@0.1.8
 

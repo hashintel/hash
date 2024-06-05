@@ -92,9 +92,9 @@ where
         &self,
         schema: &PropertyType,
         components: ValidateEntityComponents,
-        provider: &P,
+        context: &P,
     ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, components, provider).await
+        schema.validate_value(self, components, context).await
     }
 }
 
@@ -151,7 +151,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        values: &'a [V],
+        value: &'a [V],
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
@@ -159,11 +159,11 @@ where
 
         if components.num_items {
             if let Some(min) = self.min_items() {
-                if values.len() < min {
+                if value.len() < min {
                     extend_report!(
                         status,
                         PropertyValidationError::TooFewItems {
-                            actual: values.len(),
+                            actual: value.len(),
                             min,
                         },
                     );
@@ -171,11 +171,11 @@ where
             }
 
             if let Some(max) = self.max_items().map(NonZero::get) {
-                if values.len() > max {
+                if value.len() > max {
                     extend_report!(
                         status,
                         PropertyValidationError::TooManyItems {
-                            actual: values.len(),
+                            actual: value.len(),
                             max,
                         },
                     );
@@ -183,7 +183,7 @@ where
             }
         }
 
-        for value in values {
+        for value in value {
             if let Err(report) = self
                 .items()
                 .validate_value(value, components, provider)

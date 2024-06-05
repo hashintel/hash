@@ -724,7 +724,7 @@ where
     ) -> Result<
         (
             Self::ReadPaginatedStream,
-            <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+            <Self::QueryResult as QueryResult<R, S>>::Indices,
         ),
         QueryError,
     > {

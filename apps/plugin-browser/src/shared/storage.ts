@@ -110,6 +110,7 @@ export type FlowFromBrowserOrWithPageRequest = MinimalFlowRun & {
  * Cleared if the extension is loaded with no user present.
  */
 export type LocalStorage = PersistedUserSettings & {
+  apiOrigin?: string;
   flowRuns: FlowFromBrowserOrWithPageRequest[];
   entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
   entityTypes: EntityTypeWithMetadata[];
