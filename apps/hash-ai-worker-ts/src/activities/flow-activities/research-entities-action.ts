@@ -429,6 +429,10 @@ export const researchEntitiesAction: FlowActionActivity<{
             outputMessage += dedent(`
               If further research is needed to fill more properties of the entities,
                 consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
+
+              Do not sequentially conduct additional web searches for each of the entities,
+                instead start multiple sub-tasks via the "startFactGatheringSubTasks" tool to
+                conduct additional research per entity in parallel.
             `);
 
             if (inferredFactsAboutEntities.length > 0) {
