@@ -17,15 +17,15 @@ import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { Logger } from "@local/hash-backend-utils/logger";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
-import { createVaultClient } from "@local/hash-backend-utils/vault";
+// import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import { createAiActivities, createGraphActivities } from "./activities";
-import { createFlowActivities } from "./activities/flow-activities";
-import { logToConsole } from "./shared/logger";
+// import { createFlowActivities } from "./activities/flow-activities";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,6 +35,11 @@ const require = createRequire(import.meta.url);
 export const monorepoRootDir = path.resolve(__dirname, "../../..");
 
 config({ silent: true, path: monorepoRootDir });
+
+export const logger = new Logger({
+  mode: process.env.NODE_ENV === "production" ? "prod" : "dev",
+  serviceName: "ai_worker",
+});
 
 const TEMPORAL_HOST = new URL(
   process.env.HASH_TEMPORAL_SERVER_HOST ?? "http://localhost",
@@ -96,7 +101,7 @@ async function run() {
     );
   });
 
-  const graphApiClient = createGraphClient(logToConsole, {
+  const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
   });
@@ -104,13 +109,13 @@ async function run() {
   // eslint-disable-next-line no-console
   console.info("Created Graph client");
 
-  const vaultClient = createVaultClient();
-  if (!vaultClient) {
-    throw new Error("Vault client not created");
-  }
+  // const vaultClient = createVaultClient();
+  // if (!vaultClient) {
+  //   throw new Error("Vault client not created");
+  // }
 
   // eslint-disable-next-line no-console
-  console.info("Created Vault client");
+  // console.info("Created Vault client");
 
   const connection = await NativeConnection.connect({
     address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
@@ -127,9 +132,9 @@ async function run() {
       ...createGraphActivities({
         graphApiClient,
       }),
-      ...createFlowActivities({
-        vaultClient,
-      }),
+      // ...createFlowActivities({
+      //   vaultClient,
+      // }),
     },
     connection,
     namespace: "HASH",
