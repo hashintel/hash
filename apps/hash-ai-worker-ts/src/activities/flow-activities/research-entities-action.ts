@@ -216,6 +216,8 @@ export const researchEntitiesAction: FlowActionActivity<{
       state.submittedEntityIds.includes(localEntityId),
     );
 
+  const { flowEntityId, stepId } = await getFlowContext();
+
   const processToolCalls = async (params: {
     toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
   }) => {
@@ -505,6 +507,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                   relevantEntityIds,
                   entityTypeIds,
                   linkEntityTypeIds,
+                  explanation,
                 } = subTask;
 
                 const entityTypes = input.entityTypes.filter(({ $id }) =>
@@ -524,6 +527,16 @@ export const researchEntitiesAction: FlowActionActivity<{
                   state.inferredFacts.filter(({ subjectEntityLocalId }) =>
                     relevantEntityIds.includes(subjectEntityLocalId),
                   );
+
+                logProgress([
+                  {
+                    type: "StartedSubTask",
+                    explanation,
+                    goal,
+                    recordedAt: new Date().toISOString(),
+                    stepId,
+                  },
+                ]);
 
                 const response = await runSubTaskAgent({
                   input: {
@@ -706,8 +719,6 @@ export const researchEntitiesAction: FlowActionActivity<{
       ({ url }, index, all) =>
         all.findIndex((file) => file.url === url) === index,
     );
-
-  const { flowEntityId, stepId } = await getFlowContext();
 
   const fileEditionProvenance: ProposedEntity["provenance"] = {
     actorType: "ai",

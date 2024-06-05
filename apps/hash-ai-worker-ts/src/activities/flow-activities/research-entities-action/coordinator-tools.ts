@@ -81,7 +81,6 @@ export const generateToolDefinitions = <
       inputSchema: {
         type: "object",
         properties: {
-          explanation: explanationDefinition,
           subTasks: {
             type: "array",
             items: {
