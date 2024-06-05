@@ -121,7 +121,15 @@ const generateInitialUserMessage = (params: {
 Prompt: ${prompt}
 Entity Types:
 ${entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
-${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
+${
+  /**
+   * @todo: simplify link type definitions, potentially by moving them to an "Outgoing Links" field
+   * on the simplified entity type definition.
+   *
+   * @see https://linear.app/hash/issue/H-2826/simplify-property-values-for-llm-consumption
+   */
+  linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""
+}
 ${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
       `),
       },

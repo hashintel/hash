@@ -9,7 +9,11 @@ const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
 }) => {
   const { propertyTypeValue } = params;
 
-  /** @todo: devise a simplified format for property values */
+  /**
+   * @todo: devise a simplified format for property values
+   *
+   * @see https://linear.app/hash/issue/H-2826/simplify-property-values-for-llm-consumption
+   */
   return JSON.stringify(propertyTypeValue);
 };
 
@@ -52,7 +56,6 @@ ${propertyTypes
     simplifyPropertyTypeForLlmConsumption({ propertyType }),
   )
   .join("\n")}
-Outgoing Links:
 -------------------- END OF "${title}" ENTITY TYPE DEFINITION --------------------
   `;
 };
