@@ -5,8 +5,10 @@
 //   facilities to indicate end of stream easily?
 pub mod client;
 pub mod error;
-mod gc;
 pub mod server;
+
+mod gc;
+mod writer;
+
 #[cfg(test)]
 mod test;
-mod writer;

@@ -107,15 +107,13 @@ pub(crate) struct TransactionPermit {
 }
 
 impl TransactionPermit {
-    fn new(collection: &TransactionCollection, cancel: CancellationToken) -> Arc<Self> {
-        let id = collection.producer.produce();
-
-        Arc::new(Self {
-            id,
+    fn new(collection: &TransactionCollection, cancel: CancellationToken) -> Self {
+        Self {
+            id: collection.producer.produce();,
             storage: Arc::clone(&collection.storage),
             cancel,
             notify: Arc::clone(&collection.notify),
-        })
+        }
     }
 }
 
