@@ -58,18 +58,28 @@ const updateStateFromInferredFacts = async (params: {
     ],
   });
 
-  const existingEntityIds = (input.existingEntitySummaries ?? []).map(
-    ({ entityId }) => entityId,
-  );
+  /**
+   * There are some entities that shouldn't be marked as the duplicates, and
+   * should instead always be the canonical entity.
+   */
+  const entityIdsWhichCannotBeDeduplicated = [
+    /**
+     * We don't want to deduplicate any entities that are already persisted in
+     * the graph (i.e. the `existingEntities` passed in as input to the action)
+     */
+    ...(input.existingEntitySummaries ?? []).map(({ entityId }) => entityId),
+  ];
 
   const adjustedDuplicates = duplicates.map<DuplicateReport>(
     ({ canonicalId, duplicateIds }) => {
-      if (existingEntityIds.includes(canonicalId as EntityId)) {
+      if (
+        entityIdsWhichCannotBeDeduplicated.includes(canonicalId as EntityId)
+      ) {
         return { canonicalId, duplicateIds };
       }
 
       const existingEntityIdMarkedAsDuplicate = duplicateIds.find((id) =>
-        existingEntityIds.includes(id as EntityId),
+        entityIdsWhichCannotBeDeduplicated.includes(id as EntityId),
       );
 
       /**
@@ -121,6 +131,33 @@ const updateStateFromInferredFacts = async (params: {
       !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
   );
   state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
+  /**
+   * Account for any previously proposed entities with a local ID which has
+   * been marked as a duplicate.
+   */
+  state.proposedEntities = state.proposedEntities.map((proposedEntity) => {
+    const duplicate = duplicates.find(({ duplicateIds }) =>
+      duplicateIds.includes(proposedEntity.localEntityId),
+    );
+
+    return duplicate
+      ? {
+          ...proposedEntity,
+          localEntityId: duplicate.canonicalId,
+        }
+      : proposedEntity;
+  });
+  /**
+   * Account for any previously submitted entity ID which has been marked
+   * as a duplicate.
+   */
+  state.submittedEntityIds = state.submittedEntityIds.map((entityId) => {
+    const duplicate = duplicates.find(({ duplicateIds }) =>
+      duplicateIds.includes(entityId),
+    );
+
+    return duplicate ? duplicate.canonicalId : entityId;
+  });
 };
 
 export const researchEntitiesAction: FlowActionActivity<{
@@ -424,19 +461,37 @@ export const researchEntitiesAction: FlowActionActivity<{
                 entityIds.includes(subjectEntityLocalId),
             );
 
-            const { proposedEntities } = await proposeEntitiesFromFacts({
-              dereferencedEntityTypes: input.allDereferencedEntityTypesById,
-              entitySummaries,
-              existingEntitySummaries: input.existingEntitySummaries,
-              facts: relevantFacts,
-            });
+            const { proposedEntities: newProposedEntities } =
+              await proposeEntitiesFromFacts({
+                dereferencedEntityTypes: input.allDereferencedEntityTypesById,
+                entitySummaries,
+                existingEntitySummaries: input.existingEntitySummaries,
+                facts: relevantFacts,
+              });
 
-            state.proposedEntities.push(...proposedEntities);
+            state.proposedEntities = [
+              /**
+               * Filter out any previous proposed entities that have been re-proposed
+               * with new facts.
+               *
+               * This may occur when the coordinator agent identifies that entities are
+               * missing some properties after having proposed them, and conducts further
+               * fact gathering research to fill in the missing properties.
+               */
+              ...state.proposedEntities.filter(
+                ({ localEntityId }) =>
+                  !newProposedEntities.some(
+                    (newProposedEntity) =>
+                      newProposedEntity.localEntityId === localEntityId,
+                  ),
+              ),
+              ...newProposedEntities,
+            ];
 
             return {
               ...toolCall,
               output: dedent(`
-                ${proposedEntities.length} entities were successfully proposed.
+                ${newProposedEntities.length} entities were successfully proposed.
               `),
             };
           } else if (toolCall.name === "startFactGatheringSubTasks") {
