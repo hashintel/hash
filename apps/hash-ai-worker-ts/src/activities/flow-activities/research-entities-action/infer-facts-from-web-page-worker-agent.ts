@@ -422,26 +422,25 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
 
             const urlHeadFetch = await fetch(toolCallUrl, { method: "HEAD" });
 
-            if (!urlHeadFetch.ok) {
-              return {
-                ...toolCall,
-                output: `Failed to fetch the page at the provided URL: ${toolCallUrl}`,
-                isError: true,
-              };
-            }
+            /**
+             * Only check the content type of the URL if the HEAD request was successful.
+             *
+             * This may be because the web page requires an authenticated user to access it.
+             */
+            if (urlHeadFetch.ok) {
+              const contentType = urlHeadFetch.headers.get("Content-Type");
 
-            const contentType = urlHeadFetch.headers.get("Content-Type");
-
-            if (contentType && contentType.includes("application/pdf")) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  The URL provided is a PDF file.
-                  You must use the "queryPdf" tool to extract the text content from the PDF.
-                  Detected Content-Type: ${contentType}
-                `),
-                isError: true,
-              };
+              if (contentType && contentType.includes("application/pdf")) {
+                return {
+                  ...toolCall,
+                  output: dedent(`
+                    The URL provided is a PDF file.
+                    You must use the "queryPdf" tool to extract the text content from the PDF.
+                    Detected Content-Type: ${contentType}
+                  `),
+                  isError: true,
+                };
+              }
             }
 
             const { htmlContent } = await getWebPageActivity({
