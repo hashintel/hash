@@ -451,7 +451,7 @@ pub trait EntityStore {
         &mut self,
         actor_id: AccountId,
         params: PatchEntityParams,
-    ) -> impl Future<Output = Result<EntityMetadata, Report<UpdateError>>> + Send;
+    ) -> impl Future<Output = Result<Entity, Report<UpdateError>>> + Send;
 
     fn diff_entity(
         &self,

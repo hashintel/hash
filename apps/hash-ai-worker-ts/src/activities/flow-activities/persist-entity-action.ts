@@ -1,6 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { EntityMetadata } from "@local/hash-graph-client";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -158,8 +157,6 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     operation = existingEntity ? "update" : "create";
 
     try {
-      let entityMetadata: EntityMetadata;
-
       if (existingEntity) {
         const { existingEntityIsDraft, isExactMatch, patchOperations } =
           getEntityUpdate({
@@ -193,17 +190,14 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           };
         }
 
-        entityMetadata = await graphApiClient
-          .patchEntity(webBotActorId, {
+        entity = await existingEntity.patch(
+          graphApiClient,
+          { actorId: webBotActorId },
+          {
             draft: existingEntityIsDraft ? true : createEditionAsDraft,
-            entityId: existingEntity.metadata.recordId.entityId,
             properties: patchOperations,
-          })
-          .then((resp) => resp.data);
-        entity = new Entity({
-          metadata: entityMetadata,
-          ...entityValues,
-        });
+          },
+        );
       } else {
         entity = await Entity.create(
           graphApiClient,

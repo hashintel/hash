@@ -177,26 +177,16 @@ export class Entity<
       provenance?: ProvidedEntityEditionProvenance;
     },
   ): Promise<Entity<Properties>> {
-    const { data: metadata } = await graphAPI.patchEntity(
-      authentication.actorId,
-      {
-        entityId: this.entityId,
-        properties: params.properties
-          ? [
-              {
-                op: "replace",
-                path: [],
-                value: params.properties,
-              },
-            ]
-          : undefined,
-      },
-    );
-
-    return new Entity<Properties>({
-      metadata,
-      linkData: this.#entity.linkData,
-      properties: params.properties ?? this.#entity.properties,
+    return this.patch(graphAPI, authentication, {
+      properties: params.properties
+        ? [
+            {
+              op: "replace",
+              path: [],
+              value: params.properties,
+            },
+          ]
+        : undefined,
     });
   }
 
@@ -210,20 +200,17 @@ export class Entity<
       confidence?: number;
       provenance?: ProvidedEntityEditionProvenance;
     },
-  ): Promise<EntityMetadata> {
-    const { data: metadata } = await graphAPI.patchEntity(
-      authentication.actorId,
-      {
+  ): Promise<Entity<Properties>> {
+    return graphAPI
+      .patchEntity(authentication.actorId, {
         entityId: this.entityId,
         properties: params.properties,
         entityTypeIds: params.entityTypeId ? [params.entityTypeId] : undefined,
         draft: params.draft,
         confidence: params.confidence,
         provenance: params.provenance,
-      },
-    );
-
-    return mapEntityMetadata(metadata);
+      })
+      .then(({ data }) => new Entity<Properties>(data));
   }
 
   public async archive(
@@ -348,27 +335,40 @@ export class LinkEntity<
       provenance?: ProvidedEntityEditionProvenance;
     },
   ): Promise<LinkEntity<Properties>> {
-    const { data: metadata } = await graphAPI.patchEntity(
-      authentication.actorId,
-      {
-        entityId: this.entityId,
-        properties: params.properties
-          ? [
-              {
-                op: "replace",
-                path: [],
-                value: params.properties,
-              },
-            ]
-          : undefined,
-      },
-    );
-
-    return new LinkEntity<Properties>({
-      metadata,
-      linkData: this.linkData,
-      properties: params.properties ?? this.properties,
+    return this.patch(graphAPI, authentication, {
+      properties: params.properties
+        ? [
+            {
+              op: "replace",
+              path: [],
+              value: params.properties,
+            },
+          ]
+        : undefined,
     });
+  }
+
+  public async patch(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: {
+      properties?: PropertyPatchOperation[];
+      entityTypeId?: VersionedUrl;
+      draft?: boolean;
+      confidence?: number;
+      provenance?: ProvidedEntityEditionProvenance;
+    },
+  ): Promise<LinkEntity<Properties>> {
+    return graphAPI
+      .patchEntity(authentication.actorId, {
+        entityId: this.entityId,
+        properties: params.properties,
+        entityTypeIds: params.entityTypeId ? [params.entityTypeId] : undefined,
+        draft: params.draft,
+        confidence: params.confidence,
+        provenance: params.provenance,
+      })
+      .then(({ data }) => new LinkEntity<Properties>(data));
   }
 
   public get linkData(): LinkData {

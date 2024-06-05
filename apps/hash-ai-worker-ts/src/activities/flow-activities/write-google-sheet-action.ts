@@ -359,22 +359,14 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     if (isExactMatch) {
       entityToReturn = existingEntity;
     } else {
-      const metadata = await graphApiClient
-        .patchEntity(webBotActorId, {
+      entityToReturn = await existingEntity.patch(
+        graphApiClient,
+        { actorId: webBotActorId },
+        {
           draft: existingEntityIsDraft,
-          entityId: existingEntity.metadata.recordId.entityId,
           properties: patchOperations,
-        })
-        .then((resp) => resp.data);
-
-      entityToReturn = new Entity({
-        ...existingEntity.toJSON(),
-        metadata,
-        properties: {
-          ...existingEntity.properties,
-          ...fileProperties,
         },
-      });
+      );
     }
   } else {
     const authRelationships = createDefaultAuthorizationRelationships({

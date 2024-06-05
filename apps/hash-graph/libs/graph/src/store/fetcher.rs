@@ -1233,7 +1233,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: PatchEntityParams,
-    ) -> Result<EntityMetadata, UpdateError> {
+    ) -> Result<Entity, UpdateError> {
         for entity_type_id in &params.entity_type_ids {
             self.insert_external_types_by_reference(
                 actor_id,
