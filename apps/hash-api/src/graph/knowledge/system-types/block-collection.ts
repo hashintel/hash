@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -15,7 +16,6 @@ import type {
   HasIndexedContentProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import type { PositionInput } from "../../../graphql/api-types.gen";
 import type { ImpureGraphFunction } from "../../context-types";
@@ -113,7 +113,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
-  return linkEntity as unknown as
+  return linkEntity as
     | HasSpatiallyPositionedContent
     | HasIndexedContentProperties;
 };
@@ -146,13 +146,9 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
     entityId: linkEntityId,
   });
 
-  if (!linkEntity.linkData) {
-    throw new Error(`Entity with id ${linkEntityId} is not a link entity`);
-  }
-
   await updateLinkEntity(ctx, authentication, {
     properties: canvasPosition || indexPosition,
-    linkEntity: linkEntity as LinkEntity,
+    linkEntity: new LinkEntity(linkEntity),
   });
 };
 

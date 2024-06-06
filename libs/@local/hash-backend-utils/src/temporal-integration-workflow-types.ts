@@ -1,9 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Team } from "@linear/sdk";
+import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { Entity } from "@local/hash-subgraph";
 
 export type PartialEntity = {
   properties: Partial<Entity["properties"]>;
@@ -50,7 +50,7 @@ export type UpdateLinearDataWorkflow = (params: {
   authentication: { actorId: AccountId };
   linearId: string;
   entityTypeId: VersionedUrl;
-  entity: Entity;
+  entity: SerializedEntity;
 }) => Promise<void>;
 
 export type SyncQueryToGoogleSheetWorkflow = (params: {

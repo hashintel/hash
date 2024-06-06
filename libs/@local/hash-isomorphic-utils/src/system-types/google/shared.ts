@@ -2,8 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { LinkData } from "@local/hash-graph-types/entity";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 export type Account = Entity<AccountProperties>;
 
@@ -80,9 +79,7 @@ export type UserSecretProperties = {
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
 };
 
-export type UsesUserSecret = Entity<UsesUserSecretProperties> & {
-  linkData: LinkData;
-};
+export type UsesUserSecret = LinkEntity<UsesUserSecretProperties>;
 
 export type UsesUserSecretOutgoingLinkAndTarget = never;
 

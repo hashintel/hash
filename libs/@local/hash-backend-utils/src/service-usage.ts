@@ -1,5 +1,6 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
@@ -24,7 +25,6 @@ import {
 import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type {
-  Entity,
   EntityRelationAndSubject,
   EntityRootType,
 } from "@local/hash-subgraph";

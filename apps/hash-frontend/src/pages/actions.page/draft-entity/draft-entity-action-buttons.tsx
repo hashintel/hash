@@ -1,5 +1,6 @@
 import { CloseIcon } from "@hashintel/design-system";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, buttonClasses } from "@mui/material";
 import type { FunctionComponent } from "react";
 

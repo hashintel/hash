@@ -1,9 +1,13 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
-import type { LinkData } from "@local/hash-graph-types/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  EntityPropertiesObject,
+  LinkData,
+} from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";
@@ -44,7 +48,9 @@ export const getUser = async (requestContext: APIRequestContext) => {
   }).then(({ data }) => {
     return !data
       ? undefined
-      : (getRoots(data.me.subgraph)[0] as Entity<UserProperties>);
+      : (getRoots(
+          deserializeSubgraph(data.me.subgraph),
+        )[0] as Entity<UserProperties>);
   });
 };
 
@@ -76,6 +82,6 @@ export const createEntity = async (
     if (!data) {
       throw new Error("Entity not created");
     }
-    return data.createEntity;
+    return new Entity(data.createEntity);
   });
 };

@@ -2,6 +2,8 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -18,12 +20,10 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import type { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
-import type { Entity } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
@@ -242,7 +242,7 @@ export const getMentionNotification: ImpureGraphFunction<
     const outgoingLinks = getOutgoingLinksForEntity(
       entitiesSubgraph,
       entity.metadata.recordId.entityId,
-    ) as LinkEntity[];
+    ).map((linkEntity) => new LinkEntity(linkEntity));
 
     const triggeredByUserLink = outgoingLinks.find(
       ({ metadata }) =>
@@ -513,7 +513,7 @@ export const getCommentNotification: ImpureGraphFunction<
     const outgoingLinks = getOutgoingLinksForEntity(
       entitiesSubgraph,
       entity.metadata.recordId.entityId,
-    ) as LinkEntity[];
+    ).map((linkEntity) => new LinkEntity(linkEntity));
 
     const triggeredByUserLink = outgoingLinks.find(
       ({ metadata }) =>

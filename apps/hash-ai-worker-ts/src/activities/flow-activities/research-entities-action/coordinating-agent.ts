@@ -1,9 +1,9 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity } from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
@@ -90,9 +90,9 @@ const generateSystemPromptPrefix = (params: {
 
     You must carefully inspect the properties on the provided entity types and link types,
       and find all the relevant facts so that as many properties on the entity can be filled as possible.
-      
+
     You may need to conduct multiple web searches, to find all the relevant facts to propose the entities.
-    
+
     ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}` : ""}
   `);
 };
@@ -155,7 +155,7 @@ const getNextToolCalls = async (params: {
 
   const systemPrompt = dedent(`
       ${generateSystemPromptPrefix({ input, questionsAndAnswers: state.questionsAndAnswers })}
-      
+
       Make as many tool calls as are required to progress towards completing the task.
 
       ${generatePreviouslyInferredFactsSystemPromptMessage(state)}
@@ -243,16 +243,16 @@ const createInitialPlan = async (params: {
     ${
       input.humanInputCanBeRequested
         ? dedent(`
-          You must ${questionsAndAnswers ? "now" : "first"} do one of: 
+          You must ${questionsAndAnswers ? "now" : "first"} do one of:
           1. Ask the user ${questionsAndAnswers ? "further" : ""} questions to help clarify the research brief. You should ask questions if:
             - The scope of the research is unclear (e.g. how much information is desired in response)
             - The scope of the research task is very broad (e.g. the prompt is vague)
             - The research brief or terms within it are ambiguous
             - You can think of any other questions that will help you deliver a better response to the user
           If in doubt, ask!
-          
+
           2. Provide a plan of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
-          
+
           Please now either ask the user your questions, or produce the initial plan if there are no ${questionsAndAnswers ? "more " : ""}useful questions to ask.
           
           You must now make either a "requestHumanInput" or a "updatePlan" tool call – definitions for the other tools are only provided to help you produce a plan.

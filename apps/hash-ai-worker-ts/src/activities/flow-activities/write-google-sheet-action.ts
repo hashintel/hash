@@ -5,6 +5,7 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   createDefaultAuthorizationRelationships,
@@ -15,10 +16,8 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { GoogleSheetsFileProperties } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
-import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import type { sheets_v4 } from "googleapis";
@@ -153,9 +152,10 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     const queryFilter = isPersistedEntities
       ? {
           any: dataToWrite.persistedEntities
-            .map(
-              (persistedEntity) =>
-                persistedEntity.entity?.metadata.recordId.entityId,
+            .map((persistedEntity) =>
+              persistedEntity.entity
+                ? new Entity(persistedEntity.entity).metadata.recordId.entityId
+                : undefined,
             )
             .filter(isNotNullish)
             .map((entityId) =>
@@ -367,14 +367,14 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         })
         .then((resp) => resp.data);
 
-      entityToReturn = {
-        ...existingEntity,
-        metadata: mapGraphApiEntityMetadataToMetadata(metadata),
+      entityToReturn = new Entity({
+        ...existingEntity.toJSON(),
+        metadata,
         properties: {
           ...existingEntity.properties,
           ...fileProperties,
         },
-      };
+      });
     }
   } else {
     const authRelationships = createDefaultAuthorizationRelationships({
@@ -386,7 +386,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       properties: fileProperties,
     };
 
-    const fileEntityMetadata = await graphApiClient
+    entityToReturn = await graphApiClient
       .createEntity(webBotActorId, {
         draft: false,
         entityTypeIds: entityValues.entityTypeIds,
@@ -394,7 +394,13 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         properties: entityValues.properties,
         relationships: authRelationships,
       })
-      .then((resp) => resp.data);
+      .then(
+        (resp) =>
+          new Entity({
+            properties: entityValues.properties,
+            metadata: resp.data,
+          }),
+      );
 
     await graphApiClient.createEntity(webBotActorId, {
       draft: false,
@@ -403,17 +409,12 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       ],
       ownedById: webId,
       linkData: {
-        leftEntityId: fileEntityMetadata.recordId.entityId,
+        leftEntityId: entityToReturn.metadata.recordId.entityId,
         rightEntityId: googleAccount.metadata.recordId.entityId,
       },
       properties: {},
       relationships: authRelationships,
     });
-
-    entityToReturn = {
-      ...entityValues,
-      metadata: mapGraphApiEntityMetadataToMetadata(fileEntityMetadata),
-    };
   }
 
   return {
@@ -425,7 +426,10 @@ export const writeGoogleSheetAction: FlowActionActivity<{
             outputName: "googleSheetEntity",
             payload: {
               kind: "PersistedEntity",
-              value: { entity: entityToReturn, operation: "create" },
+              value: {
+                entity: entityToReturn.toJSON(),
+                operation: "create",
+              },
             },
           },
         ],

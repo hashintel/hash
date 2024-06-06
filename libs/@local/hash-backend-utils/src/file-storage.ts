@@ -1,9 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity } from "@local/hash-subgraph";
 import type { DataSource } from "apollo-datasource";
 
 export const storageTypes = ["AWS_S3", "LOCAL_FILE_SYSTEM"] as const;

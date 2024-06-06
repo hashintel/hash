@@ -153,7 +153,7 @@ export const CreateOrEditSheetsSync = ({
     }
 
     // @todo requires pulling from existing Flow instead, if this UI is retained
-    let queryEntityId = null;
+    const queryEntityId = null;
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!queryEntityId) {
       const { data } = await createEntity({
@@ -167,8 +167,8 @@ export const CreateOrEditSheetsSync = ({
         },
       });
 
-      queryEntityId = data?.createEntity.metadata.recordId.entityId;
-      if (!queryEntityId) {
+      const serializedEntity = data?.createEntity;
+      if (!serializedEntity) {
         throw new Error("Query entity not created");
       }
     }

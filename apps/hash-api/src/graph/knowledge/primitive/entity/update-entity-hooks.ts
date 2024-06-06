@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
 
 import type { AuthenticationContext } from "../../../../graphql/authentication-context";
 import type { ImpureGraphContext } from "../../../context-types";

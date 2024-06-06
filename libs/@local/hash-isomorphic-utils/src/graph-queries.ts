@@ -11,6 +11,7 @@ import type {
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   EntityRelationAndSubject,
   EntityTypeRelationAndSubject,
@@ -273,7 +274,7 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
   RootType extends SubgraphRootType,
 >(
   subgraph: SubgraphFieldsFragment,
-) => subgraph as Subgraph<RootType>;
+) => deserializeSubgraph(subgraph) as Subgraph<RootType>;
 
 export const createDefaultAuthorizationRelationships = (params: {
   actorId: AccountId;

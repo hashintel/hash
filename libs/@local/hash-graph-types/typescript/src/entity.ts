@@ -1,3 +1,4 @@
+import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type {
   EntityMetadata as EntityMetadataBp,
   EntityRecordId as EntityRecordIdBp,
@@ -20,6 +21,7 @@ import type {
   EditionCreatedById,
 } from "./account";
 import type { Uuid } from "./branded";
+import type { BaseUrl } from "./ontology";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
@@ -102,3 +104,5 @@ export type EntityEditionProvenance = {
   origin?: ProvidedEntityEditionProvenanceOrigin;
   sources?: Array<SourceProvenance>;
 };
+
+export type EntityPropertiesObject = Record<BaseUrl, EntityPropertyValue>;

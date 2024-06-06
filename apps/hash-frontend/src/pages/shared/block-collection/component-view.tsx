@@ -4,7 +4,7 @@ import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {
   getBlockChildEntity,
-  isRichTextContainingEntity,
+  isRichTextProperties,
 } from "@local/hash-isomorphic-utils/entity";
 import type {
   DraftEntity,
@@ -45,7 +45,9 @@ const getChildEntity = (
       throw new Error("Cannot prepare non-block entity for ProseMirror");
     }
 
-    return entity.blockChildEntity as DraftEntity;
+    return entity.blockChildEntity as DraftEntity<
+      BlockEntity["blockChildEntity"]
+    >;
   }
 
   return null;
@@ -308,7 +310,7 @@ export class ComponentView implements NodeView {
         throw new Error("Block not ready to become editable");
       }
 
-      if (!isRichTextContainingEntity(childEntity)) {
+      if (!isRichTextProperties(childEntity.properties)) {
         tr ??= state.tr;
 
         addEntityStoreAction(state, tr, {

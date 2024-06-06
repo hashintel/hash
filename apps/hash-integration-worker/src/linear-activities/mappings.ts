@@ -1,3 +1,4 @@
+import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   SupportedLinearTypeNames,
@@ -7,13 +8,12 @@ import type {
 import { getLinearMappingByLinearType } from "@local/hash-backend-utils/linear-type-mappings";
 import type { PartialEntity } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
-  Entity,
+  EntityId,
   EntityPropertiesObject,
-  EntityPropertyValue,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/entity";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {

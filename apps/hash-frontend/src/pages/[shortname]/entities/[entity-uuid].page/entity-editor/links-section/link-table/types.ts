@@ -1,10 +1,14 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 
-export type LinkAndTargetEntity = { rightEntity: Entity; linkEntity: Entity };
+export type LinkAndTargetEntity = {
+  rightEntity: Entity;
+  linkEntity: Entity;
+};
 
 export type LinkRow = {
   rowId: string;

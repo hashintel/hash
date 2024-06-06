@@ -11,7 +11,7 @@ import {
 } from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
 
-import { getBlockChildEntity, isRichTextContainingEntity } from "./entity";
+import { getBlockChildEntity, isRichTextProperties } from "./entity";
 import { isComponentNode, isEntityNode } from "./prosemirror";
 
 type WrapperNodes = [number, Node[]];
@@ -180,7 +180,7 @@ const prepareCommandForWrappedEntities =
 
           if (
             inNode ||
-            (childEntity && isRichTextContainingEntity(childEntity))
+            (childEntity && isRichTextProperties(childEntity.properties))
           ) {
             const range = getRangeForNodeAtMappedPosition(pos, node, tr);
 

@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import { LinearClient } from "@linear/sdk";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
@@ -13,7 +14,6 @@ import {
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { Entity } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
 

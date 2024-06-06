@@ -1,20 +1,14 @@
 import { useLazyQuery } from "@apollo/client";
+import type { Entity as EntityBp } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
-  CreatedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-  Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
+  EntityId,
+  EntityPropertiesObject,
+} from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import type {
-  Entity,
-  EntityPropertiesObject,
   EntityRevisionId,
   EntityRootType,
   GraphResolveDepths,
@@ -26,8 +20,12 @@ import { useCallback } from "react";
 import type {
   GetEntityQuery,
   GetEntityQueryVariables,
-  SubgraphAndPermissions,
+  SubgraphAndPermissions as SubgraphAndPermissionsGQL,
 } from "../graphql/api-types.gen";
+
+type SubgraphAndPermissions = Omit<SubgraphAndPermissionsGQL, "subgraph"> & {
+  subgraph: Subgraph<EntityRootType>;
+};
 
 export const useFetchBlockSubgraph = (): ((
   blockEntityTypeId: VersionedUrl,
@@ -74,7 +72,7 @@ export const useFetchBlockSubgraph = (): ((
         // @todo some better way of handling this – probably affected by revamped collab.
         //    or could simply not load a new block until the entity is created?
         const now = new Date().toISOString() as Timestamp;
-        const placeholderEntity: Entity = {
+        const placeholderEntity: EntityBp = {
           metadata: {
             recordId: {
               entityId: "placeholder-account~entity-id-not-set" as EntityId,
@@ -99,15 +97,6 @@ export const useFetchBlockSubgraph = (): ((
                 end: {
                   kind: "unbounded",
                 },
-              },
-            },
-            archived: false,
-            provenance: {
-              createdById: "placeholder-account" as CreatedById,
-              createdAtTransactionTime: now as CreatedAtTransactionTime,
-              createdAtDecisionTime: now as CreatedAtDecisionTime,
-              edition: {
-                createdById: "placeholder-account" as EditionCreatedById,
               },
             },
           },
@@ -138,7 +127,7 @@ export const useFetchBlockSubgraph = (): ((
           edges: {},
           roots: [
             {
-              baseId: placeholderEntity.metadata.recordId.entityId,
+              baseId: placeholderEntity.metadata.recordId.entityId as EntityId,
               revisionId: now as EntityRevisionId,
             },
           ],

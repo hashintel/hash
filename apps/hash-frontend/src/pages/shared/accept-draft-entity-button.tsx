@@ -1,10 +1,10 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
+import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { getEntityRevision } from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import type { BoxProps } from "@mui/material";
 import { Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -184,7 +184,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
         throw new Error("An error occurred accepting the draft entity.");
       }
 
-      return response.data.updateEntity;
+      return new Entity(response.data.updateEntity);
     },
     [
       updateEntity,
@@ -263,7 +263,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
               maxWidth: "100%",
             }}
             openInNew
-            linkEntity={draftEntity as LinkEntity}
+            linkEntity={new LinkEntity(draftEntity)}
             subgraph={draftEntitySubgraph}
             leftEntityEndAdornment={
               <LeftOrRightEntityEndAdornment isDraft={!!draftLeftEntity} />

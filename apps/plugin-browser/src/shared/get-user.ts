@@ -1,3 +1,4 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -14,7 +15,7 @@ import type {
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -42,7 +43,7 @@ const getAvatarForEntity = (
       linkEntity[0]?.metadata.entityTypeId ===
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
   );
-  return avatarLinkAndEntities[0]?.rightEntity[0] as unknown as
+  return avatarLinkAndEntities[0]?.rightEntity[0] as
     | Entity<ImageProperties>
     | undefined;
 };
@@ -200,11 +201,11 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
           org.metadata.recordId.entityId,
         );
         return {
-          ...org,
-          avatar: orgAvatar,
+          metadata: org.metadata,
           properties: simplifyProperties(
             org.properties as OrganizationProperties,
           ),
+          avatar: orgAvatar,
           webOwnedById: getOwnedByIdFromEntityId(
             org.metadata.recordId.entityId,
           ),
@@ -216,7 +217,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         [];
 
       return {
-        ...user,
+        metadata: user.metadata,
         avatar: userAvatar,
         orgs,
         properties: {
@@ -227,7 +228,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         enabledFeatureFlags,
         settingsEntityId,
         webOwnedById: getOwnedByIdFromEntityId(user.metadata.recordId.entityId),
-      };
+      } as LocalStorage["user"];
     })
     .catch(() => null);
 };

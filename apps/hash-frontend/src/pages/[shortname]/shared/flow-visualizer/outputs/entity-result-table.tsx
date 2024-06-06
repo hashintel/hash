@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityMetadata,
@@ -96,7 +97,12 @@ export const EntityResultTable = ({
     for (const record of persistedEntities.length
       ? persistedEntities
       : proposedEntities) {
-      const entity = "operation" in record ? record.entity : record;
+      const entity =
+        "operation" in record
+          ? record.entity
+            ? new Entity(record.entity)
+            : undefined
+          : record;
 
       if (!entity) {
         continue;
@@ -113,7 +119,7 @@ export const EntityResultTable = ({
           : entity.metadata.entityTypeId;
 
       const entityLabel = generateEntityLabel(null, {
-        ...entity,
+        properties: entity.properties,
         metadata: {
           recordId: {
             editionId: "irrelevant-here",

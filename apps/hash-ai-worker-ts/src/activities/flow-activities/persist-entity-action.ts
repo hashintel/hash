@@ -4,15 +4,15 @@ import type {
   CreateEntityRequest,
   EntityMetadata,
 } from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
@@ -137,14 +137,9 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       };
     }
 
-    const { entityMetadata, properties: updatedProperties } =
-      getFileEntityFromUrlStatus;
+    const { entity: updatedEntity } = getFileEntityFromUrlStatus;
 
-    entity = {
-      metadata: entityMetadata,
-      ...entityValues,
-      properties: updatedProperties,
-    };
+    entity = updatedEntity;
   } else {
     /**
      * @todo: improve the logic for finding existing entities, to
@@ -178,6 +173,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
             newProperties: properties,
           });
 
+        const serializedEntity = existingEntity.toJSON();
+
         if (isExactMatch) {
           return {
             code: StatusCode.Ok,
@@ -190,8 +187,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
                     payload: {
                       kind: "PersistedEntity",
                       value: {
-                        entity: existingEntity,
-                        existingEntity,
+                        entity: serializedEntity,
+                        existingEntity: serializedEntity,
                         operation: "already-exists-as-proposed",
                       },
                     },
@@ -222,10 +219,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           .then((resp) => resp.data);
       }
 
-      entity = {
-        metadata: mapGraphApiEntityMetadataToMetadata(entityMetadata),
+      entity = new Entity({
+        metadata: entityMetadata,
         ...entityValues,
-      };
+      });
     } catch (err) {
       return {
         code: StatusCode.Internal,
@@ -238,7 +235,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
                   "persistedEntity" as OutputNameForAction<"persistEntity">,
                 payload: {
                   kind: "PersistedEntity",
-                  value: { existingEntity, operation },
+                  value: {
+                    existingEntity: existingEntity?.toJSON(),
+                    operation,
+                  },
                 },
               },
             ],
@@ -248,13 +248,15 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     }
   }
 
+  const persistedEntity = {
+    entity: entity.toJSON(),
+    existingEntity: existingEntity?.toJSON(),
+    operation,
+  } satisfies PersistedEntity;
+
   logProgress([
     {
-      persistedEntity: {
-        entity,
-        existingEntity: existingEntity ?? undefined,
-        operation,
-      },
+      persistedEntity,
       recordedAt: new Date().toISOString(),
       stepId: Context.current().info.activityId,
       type: "PersistedEntity",
@@ -278,7 +280,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
               "persistedEntity" as OutputNameForAction<"persistEntity">,
             payload: {
               kind: "PersistedEntity",
-              value: { operation, entity, existingEntity },
+              value: persistedEntity,
             },
           },
         ],

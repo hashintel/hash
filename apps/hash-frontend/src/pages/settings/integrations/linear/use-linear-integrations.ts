@@ -1,10 +1,10 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { SyncLinearDataWithProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { Entity } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -16,7 +16,10 @@ import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
 export type LinearIntegration = {
   entity: Entity;
-  syncedWithWorkspaces: { workspaceEntity: Entity; linearTeamIds: string[] }[];
+  syncedWithWorkspaces: {
+    workspaceEntity: Entity;
+    linearTeamIds: string[];
+  }[];
 };
 
 export const useLinearIntegrations = () => {

@@ -1,4 +1,5 @@
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import {
@@ -13,7 +14,7 @@ import {
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UsesUserSecretProperties } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 

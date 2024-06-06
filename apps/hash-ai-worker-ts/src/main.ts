@@ -8,7 +8,6 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
-import * as child_process from "node:child_process";
 import * as http from "node:http";
 import { createRequire } from "node:module";
 import * as path from "node:path";
@@ -20,12 +19,12 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
-// import { createVaultClient } from "@local/hash-backend-utils/vault";
+import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import { createAiActivities, createGraphActivities } from "./activities";
-// import { createFlowActivities } from "./activities/flow-activities";
+import { createFlowActivities } from "./activities/flow-activities";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -80,27 +79,6 @@ async function run() {
   // eslint-disable-next-line no-console
   console.info("Starting AI worker...");
 
-  // eslint-disable-next-line no-console
-  console.info(`Pinging Temporal server at ${TEMPORAL_HOST}...`);
-  await new Promise<void>((resolve) => {
-    child_process.exec(
-      `ping -c 3 ${TEMPORAL_HOST}`,
-      (processError, stdout, stderr) => {
-        if (processError) {
-          // eslint-disable-next-line no-console
-          console.error(`error spawning ping process: ${processError.message}`);
-          resolve();
-          return;
-        }
-        // eslint-disable-next-line no-console
-        console.error(`ping stderr: ${stderr}`);
-        // eslint-disable-next-line no-console
-        console.log(`ping stdout: ${stdout}`);
-        resolve();
-      },
-    );
-  });
-
   const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
@@ -109,10 +87,13 @@ async function run() {
   // eslint-disable-next-line no-console
   console.info("Created Graph client");
 
-  // const vaultClient = createVaultClient();
-  // if (!vaultClient) {
-  //   throw new Error("Vault client not created");
-  // }
+  const vaultClient = createVaultClient();
+  if (!vaultClient) {
+    throw new Error("Vault client not created");
+  }
+
+  // eslint-disable-next-line no-console
+  console.info("Created Vault client");
 
   const connection = await NativeConnection.connect({
     address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
@@ -129,9 +110,9 @@ async function run() {
       ...createGraphActivities({
         graphApiClient,
       }),
-      // ...createFlowActivities({
-      //   vaultClient,
-      // }),
+      ...createFlowActivities({
+        vaultClient,
+      }),
     },
     connection,
     namespace: "HASH",

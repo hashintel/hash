@@ -1,21 +1,15 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  CreatedById,
-  EditionCreatedById,
-} from "@local/hash-graph-types/account";
+import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type {
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
-  Timestamp,
-} from "@local/hash-graph-types/temporal-versioning";
-import type {
-  Entity,
   EntityRevisionId,
   EntityRootType,
   EntityVertexId,
   Subgraph,
 } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 
@@ -59,6 +53,9 @@ export const useDraftEntitySubgraph = (
           baseId: "draft~draft" as EntityId,
           revisionId: now as EntityRevisionId,
         };
+        const creator = extractOwnedByIdFromEntityId(
+          draftEntityVertexId.baseId,
+        );
 
         setDraftEntitySubgraph({
           ...subgraph,
@@ -68,23 +65,14 @@ export const useDraftEntitySubgraph = (
             [draftEntityVertexId.baseId]: {
               [draftEntityVertexId.revisionId]: {
                 kind: "entity",
-                inner: {
+                inner: new Entity({
                   properties: {},
                   metadata: {
                     recordId: {
                       entityId: draftEntityVertexId.baseId,
                       editionId: now,
                     },
-                    entityTypeId,
-                    provenance: {
-                      createdById: "" as CreatedById,
-                      createdAtDecisionTime: now as CreatedAtDecisionTime,
-                      createdAtTransactionTime: now as CreatedAtTransactionTime,
-                      edition: {
-                        createdById: "" as EditionCreatedById,
-                      },
-                    },
-                    archived: false,
+                    entityTypeIds: [entityTypeId],
                     temporalVersioning: {
                       decisionTime: {
                         start: {
@@ -105,8 +93,17 @@ export const useDraftEntitySubgraph = (
                         },
                       },
                     },
+                    archived: false,
+                    provenance: {
+                      createdAtDecisionTime: now,
+                      createdAtTransactionTime: now,
+                      createdById: creator,
+                      edition: {
+                        createdById: creator,
+                      },
+                    },
                   },
-                } satisfies Entity,
+                } satisfies GraphApiEntity),
               },
             },
           },

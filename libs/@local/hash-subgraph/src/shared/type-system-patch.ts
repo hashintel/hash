@@ -9,8 +9,6 @@ import {
 } from "@blockprotocol/type-system/slim";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
-import type { Entity, EntityPropertiesObject } from "../types";
-
 export const extractBaseUrl = (versionedUrl: VersionedUrl): BaseUrl =>
   extractBaseUrlBp(versionedUrl) as BaseUrl;
 
@@ -73,10 +71,4 @@ export const versionedUrlFromComponents = (
   } else {
     return validationResult.inner;
   }
-};
-
-export type LinkEntity<
-  T extends EntityPropertiesObject = EntityPropertiesObject,
-> = Entity<T> & {
-  linkData: NonNullable<Entity["linkData"]>;
 };

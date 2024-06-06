@@ -1,4 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
@@ -23,8 +24,6 @@ import type {
   HasIndexedContentProperties,
   PageProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
@@ -208,7 +207,7 @@ export const getPageParentPage: ImpureGraphFunction<
     linkEntity: parentPageLink,
   });
 
-  return getPageFromEntity({ entity: pageEntity });
+  return getPageFromEntity({ entity: pageEntity as Entity<PageProperties> });
 };
 
 /**

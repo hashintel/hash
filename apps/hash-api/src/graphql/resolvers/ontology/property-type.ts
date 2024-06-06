@@ -7,8 +7,14 @@ import {
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { PropertyTypeRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  mapGraphApiSubgraphToSubgraph,
+  serializeSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type {
+  PropertyTypeRootType,
+  SerializedSubgraph,
+} from "@local/hash-subgraph";
 
 import {
   archivePropertyType,
@@ -55,7 +61,7 @@ export const createPropertyTypeResolver: ResolverFn<
 };
 
 export const queryPropertyTypesResolver: ResolverFn<
-  Promise<Subgraph>,
+  Promise<SerializedSubgraph>,
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryQueryPropertyTypesArgs
@@ -98,16 +104,16 @@ export const queryPropertyTypesResolver: ResolverFn<
     },
   );
 
-  const subgraph = mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(
-    response.subgraph,
-    authentication.actorId,
+  return serializeSubgraph(
+    mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(
+      response.subgraph,
+      authentication.actorId,
+    ),
   );
-
-  return subgraph;
 };
 
 export const getPropertyTypeResolver: ResolverFn<
-  Promise<Subgraph>,
+  Promise<SerializedSubgraph>,
   Record<string, never>,
   GraphQLContext,
   QueryGetPropertyTypeArgs
@@ -122,20 +128,22 @@ export const getPropertyTypeResolver: ResolverFn<
   graphQLContext,
   __,
 ) =>
-  getPropertyTypeSubgraphById(
-    graphQLContextToImpureGraphContext(graphQLContext),
-    graphQLContext.authentication,
-    {
-      propertyTypeId,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
+  serializeSubgraph(
+    await getPropertyTypeSubgraphById(
+      graphQLContextToImpureGraphContext(graphQLContext),
+      graphQLContext.authentication,
+      {
+        propertyTypeId,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn,
+          constrainsPropertiesOn,
+        },
+        temporalAxes: includeArchived
+          ? fullTransactionTimeAxis
+          : currentTimeInstantTemporalAxes,
       },
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
-    },
+    ),
   );
 
 export const updatePropertyTypeResolver: ResolverFn<

@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -16,7 +17,6 @@ import {
 import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
-  Entity,
   EntityRootType,
   GraphResolveDepths,
   QueryTemporalAxesUnresolved,
