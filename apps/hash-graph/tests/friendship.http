@@ -2092,6 +2092,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
        "subjectId": "administratorFromWeb"
     }
   }],
+  "propertyMetadata": {
+    "http://localhost:3000/@alice/types/property-type/name/": {
+      "metadata": {
+        "confidence": 0.99
+      }
+    }
+  },
   "decisionTime": "2020-01-01T00:00:00.000Z"
 }
 

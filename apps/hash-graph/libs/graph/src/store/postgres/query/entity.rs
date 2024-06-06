@@ -5,8 +5,8 @@ use crate::{
     store::postgres::query::{
         table::{
             Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
-            EntityIds, EntityIsOfTypeIds, EntityProperties, EntityTemporalMetadata, JsonField,
-            ReferenceTable, Relation,
+            EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, ReferenceTable,
+            Relation,
         },
         PostgresQueryPath,
     },
@@ -30,13 +30,11 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::RightEntityConfidence | Self::RightEntityProvenance => {
                 vec![Relation::RightEntity]
             }
-            Self::PropertyPaths | Self::PropertyConfidences | Self::PropertyProvenance(_) => {
-                vec![Relation::EntityProperties]
-            }
             Self::Properties(_)
             | Self::EditionProvenance(_)
             | Self::Archived
-            | Self::EntityConfidence => {
+            | Self::EntityConfidence
+            | Self::PropertyMetadata(_) => {
                 vec![Relation::EntityEditions]
             }
             Self::TypeBaseUrls | Self::TypeVersions => vec![Relation::EntityIsOfTypes],
@@ -89,7 +87,6 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
         }
     }
 
-    #[expect(clippy::too_many_lines)]
     fn terminating_column(&self) -> (Column, Option<JsonField<'_>>) {
         match self {
             Self::OwnedById => (
@@ -166,8 +163,8 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityEditions(EntityEditions::Provenance),
                 path.as_ref().map(JsonField::JsonPath),
             ),
-            Self::PropertyProvenance(path) => (
-                Column::EntityProperties(EntityProperties::Provenances),
+            Self::PropertyMetadata(path) => (
+                Column::EntityEditions(EntityEditions::PropertyMetadata),
                 path.as_ref().map(JsonField::JsonPath),
             ),
             Self::EntityConfidence => (Column::EntityEditions(EntityEditions::Confidence), None),
@@ -185,14 +182,6 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             ),
             Self::RightEntityProvenance => (
                 Column::EntityHasRightEntity(EntityHasRightEntity::Provenance),
-                None,
-            ),
-            Self::PropertyPaths => (
-                Column::EntityProperties(EntityProperties::PropertyPaths),
-                None,
-            ),
-            Self::PropertyConfidences => (
-                Column::EntityProperties(EntityProperties::Confidences),
                 None,
             ),
         }

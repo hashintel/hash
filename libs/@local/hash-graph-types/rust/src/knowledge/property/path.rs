@@ -90,7 +90,7 @@ impl<'k> PropertyPath<'k> {
         self.elements.is_empty()
     }
 
-    pub fn iter(&'k self) -> impl Iterator<Item = &'k PropertyPathElement<'k>> {
+    pub fn iter(&'k self) -> impl Iterator<Item = PropertyPathElement<'k>> {
         <&Self as IntoIterator>::into_iter(self)
     }
 
@@ -164,11 +164,15 @@ impl<'k> IntoIterator for PropertyPath<'k> {
 }
 
 impl<'k> IntoIterator for &'k PropertyPath<'k> {
-    type IntoIter = core::slice::Iter<'k, PropertyPathElement<'k>>;
-    type Item = &'k PropertyPathElement<'k>;
+    type Item = PropertyPathElement<'k>;
+
+    type IntoIter = impl ExactSizeIterator<Item = Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.elements.iter()
+        self.elements.iter().map(|element| match element {
+            PropertyPathElement::Property(key) => PropertyPathElement::Property(Cow::Borrowed(key)),
+            PropertyPathElement::Index(index) => PropertyPathElement::Index(*index),
+        })
     }
 }
 

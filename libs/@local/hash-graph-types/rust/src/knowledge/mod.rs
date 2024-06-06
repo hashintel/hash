@@ -4,8 +4,9 @@ pub mod link;
 pub use self::{
     confidence::Confidence,
     property::{
-        Property, PropertyDiff, PropertyMetadata, PropertyMetadataMap, PropertyObject,
-        PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
+        Property, PropertyDiff, PropertyMetadata, PropertyMetadataMap, PropertyMetadataMapElement,
+        PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
+        PropertyPathError, PropertyProvenance,
     },
 };
 

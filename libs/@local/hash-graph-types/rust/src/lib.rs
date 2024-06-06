@@ -1,5 +1,7 @@
 #![feature(lint_reasons)]
 #![feature(gen_blocks)]
+#![feature(impl_trait_in_assoc_type)]
+#![feature(hash_raw_entry)]
 
 extern crate alloc;
 

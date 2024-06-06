@@ -191,7 +191,7 @@ pub struct CreateEntityParams<R> {
     pub confidence: Option<Confidence>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
-    pub property_metadata: PropertyMetadataMap<'static>,
+    pub property_metadata: PropertyMetadataMap,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
@@ -211,7 +211,7 @@ pub struct ValidateEntityParams<'a> {
     pub properties: Cow<'a, PropertyObject>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(borrow, default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
-    pub property_metadata: Cow<'a, PropertyMetadataMap<'a>>,
+    pub property_metadata: Cow<'a, PropertyMetadataMap>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,

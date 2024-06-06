@@ -6655,21 +6655,20 @@
         }
       },
       "PropertyMetadataMap": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "path",
-            "metadata"
-          ],
-          "properties": {
-            "metadata": {
-              "$ref": "#/components/schemas/PropertyMetadata"
-            },
-            "path": {
-              "$ref": "#/components/schemas/PropertyPath"
-            }
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/PropertyMetadataMapElement"
+        }
+      },
+      "PropertyMetadataMapElement": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/PropertyMetadata"
           }
+        },
+        "additionalProperties": {
+          "$ref": "#/components/schemas/PropertyMetadataMapElement"
         }
       },
       "PropertyObject": {
@@ -6764,100 +6763,6 @@
                     "$ref": "#/components/schemas/PropertyProvenance"
                   }
                 ]
-              },
-              "value": {
-                "$ref": "#/components/schemas/Property"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "from",
-              "path",
-              "op"
-            ],
-            "properties": {
-              "confidence": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Confidence"
-                  }
-                ]
-              },
-              "from": {
-                "$ref": "#/components/schemas/PropertyPath"
-              },
-              "op": {
-                "type": "string",
-                "enum": [
-                  "move"
-                ]
-              },
-              "path": {
-                "$ref": "#/components/schemas/PropertyPath"
-              },
-              "provenance": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/PropertyProvenance"
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "from",
-              "path",
-              "op"
-            ],
-            "properties": {
-              "confidence": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Confidence"
-                  }
-                ]
-              },
-              "from": {
-                "$ref": "#/components/schemas/PropertyPath"
-              },
-              "op": {
-                "type": "string",
-                "enum": [
-                  "copy"
-                ]
-              },
-              "path": {
-                "$ref": "#/components/schemas/PropertyPath"
-              },
-              "provenance": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/PropertyProvenance"
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "path",
-              "value",
-              "op"
-            ],
-            "properties": {
-              "op": {
-                "type": "string",
-                "enum": [
-                  "test"
-                ]
-              },
-              "path": {
-                "$ref": "#/components/schemas/PropertyPath"
               },
               "value": {
                 "$ref": "#/components/schemas/Property"

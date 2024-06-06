@@ -98,7 +98,7 @@ pub struct EntityMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
     #[serde(default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
-    pub properties: PropertyMetadataMap<'static>,
+    pub properties: PropertyMetadataMap,
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -125,7 +125,7 @@ impl Entity {
         operations: &[PropertyPatchOperation],
     ) -> Result<(), Report<PatchError>> {
         self.properties.patch(operations)?;
-        self.metadata.properties.patch(operations);
+        self.metadata.properties.patch(operations)?;
 
         Ok(())
     }

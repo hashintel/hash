@@ -5,8 +5,7 @@ import type {
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
   PropertyMetadata,
-  PropertyMetadataMap,
-  PropertyPath,
+  PropertyMetadataMap as GraphApiPropertyMetadataMap,
   PropertyProvenance,
 } from "@local/hash-graph-client/api";
 import type {
@@ -22,20 +21,23 @@ import type {
   EntityTemporalVersioningMetadata,
   EntityUuid,
   LinkData,
+  PropertyMetadataElement,
+  PropertyMetadataMap,
+  PropertyPath,
 } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import isEqual from "lodash/isEqual";
 import zip from "lodash/zip";
 
 import type { AuthenticationContext } from "./authentication-context";
 
 export type CreateEntityParameters = Omit<
   GraphApiCreateEntityRequest,
-  "entityTypeIds" | "decisionTime" | "draft"
+  "entityTypeIds" | "decisionTime" | "draft" | "propertyMetadata"
 > & {
   ownedById: OwnedById;
   properties: EntityPropertiesObject;
@@ -101,6 +103,49 @@ const isGraphApiEntity = <Properties extends EntityPropertiesObject>(
     "entityTypeIds" in
     (entity as GraphApiEntity | EntityData<Properties>).metadata
   );
+};
+
+const propertyMetadataEntries = (
+  element: PropertyMetadataElement,
+): [BaseUrl | number, PropertyMetadataElement][] =>
+  Object.entries(element).map(([key, value]) => {
+    // We could use `isBaseUrl` here, but we know that the keys are either
+    // base urls or numbers, so checking for a trailing slash is sufficient.
+    if (key.endsWith("/")) {
+      return [key as BaseUrl, value];
+    } else {
+      return [parseInt(key, 10), value];
+    }
+  });
+
+export const flattenedPropertyMetadataMap = (
+  metadata: PropertyMetadataMap,
+): {
+  path: PropertyPath;
+  metadata: PropertyMetadata;
+}[] => {
+  const flattened: {
+    path: PropertyPath;
+    metadata: PropertyMetadata;
+  }[] = [];
+
+  const visitElement = (
+    path: PropertyPath,
+    element: PropertyMetadataElement,
+  ): void => {
+    for (const [key, value] of propertyMetadataEntries(element)) {
+      visitElement([...path, key], value);
+    }
+    if (element.metadata) {
+      flattened.push({ path, metadata: element.metadata });
+    }
+  };
+
+  for (const [baseUrl, value] of propertyMetadataEntries(metadata)) {
+    visitElement([baseUrl as BaseUrl], value);
+  }
+
+  return flattened;
 };
 
 export class Entity<
@@ -172,9 +217,10 @@ export class Entity<
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(({ entityTypeId, draft, ...rest }) => ({
+        params.map(({ entityTypeId, draft, propertyMetadata, ...rest }) => ({
           entityTypeIds: [entityTypeId],
           draft: draft ?? false,
+          propertyMetadata: propertyMetadata as GraphApiPropertyMetadataMap,
           ...rest,
         })),
       )
@@ -237,9 +283,32 @@ export class Entity<
   }
 
   public propertyMetadata(path: PropertyPath): PropertyMetadata | undefined {
-    return this.#entity.metadata.properties?.find((map) =>
-      isEqual(map.path, path),
-    )?.metadata;
+    const element = path.reduce(
+      (map, key) => {
+        if (!map) {
+          return undefined;
+        }
+        if (typeof key === "number") {
+          return (map as Record<`${number}`, PropertyMetadataMap[BaseUrl]>)[
+            `${key}`
+          ];
+        } else {
+          return (map as Record<BaseUrl, PropertyMetadataMap[BaseUrl]>)[key];
+        }
+      },
+      this.#entity.metadata.properties as
+        | PropertyMetadataMap[BaseUrl]
+        | undefined,
+    );
+
+    return element?.metadata;
+  }
+
+  public flattenedProperties(): {
+    path: PropertyPath;
+    metadata: PropertyMetadata;
+  }[] {
+    return flattenedPropertyMetadataMap(this.#entity.metadata.properties ?? {});
   }
 
   public get linkData(): LinkData | undefined {
@@ -280,9 +349,10 @@ export class LinkEntity<
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(({ entityTypeId, draft, ...rest }) => ({
+        params.map(({ entityTypeId, draft, propertyMetadata, ...rest }) => ({
           entityTypeIds: [entityTypeId],
           draft: draft ?? false,
+          propertyMetadata: propertyMetadata as GraphApiPropertyMetadataMap,
           ...rest,
         })),
       )

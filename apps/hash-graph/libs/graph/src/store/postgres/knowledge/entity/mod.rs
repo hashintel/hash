@@ -60,7 +60,7 @@ use crate::{
             query::{
                 rows::{
                     EntityDraftRow, EntityEditionRow, EntityHasLeftEntityRow,
-                    EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityPropertyRow,
+                    EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow,
                     EntityTemporalMetadataRow,
                 },
                 InsertStatementBuilder, ReferenceTable, Table,
@@ -297,7 +297,6 @@ where
                 "
                     DELETE FROM entity_has_left_entity;
                     DELETE FROM entity_has_right_entity;
-                    DELETE FROM entity_property;
                     DELETE FROM entity_is_of_type;
                     DELETE FROM entity_temporal_metadata;
                     DELETE FROM entity_editions;
@@ -490,7 +489,6 @@ where
         let mut entity_draft_rows = Vec::new();
         let mut entity_edition_rows = Vec::with_capacity(params.len());
         let mut entity_temporal_metadata_rows = Vec::with_capacity(params.len());
-        let mut entity_property_rows = Vec::new();
         let mut entity_is_of_type_rows = Vec::with_capacity(params.len());
         let mut entity_has_left_entity_rows = Vec::new();
         let mut entity_has_right_entity_rows = Vec::new();
@@ -553,6 +551,7 @@ where
                 archived: false,
                 confidence: params.confidence,
                 provenance: entity_provenance.edition.clone(),
+                property_metadata: params.property_metadata.clone(),
             });
 
             let temporal_versioning = EntityTemporalMetadata {
@@ -573,15 +572,6 @@ where
                 decision_time: temporal_versioning.decision_time,
                 transaction_time: temporal_versioning.transaction_time,
             });
-
-            for (property_path, metadata) in &params.property_metadata {
-                entity_property_rows.push(EntityPropertyRow {
-                    entity_edition_id,
-                    property_path: property_path.clone(),
-                    confidence: metadata.confidence,
-                    provenance: metadata.provenance.clone(),
-                });
-            }
 
             for entity_type_url in &params.entity_type_ids {
                 let entity_type_id = EntityTypeId::from_url(entity_type_url);
@@ -729,7 +719,6 @@ where
                 Table::EntityTemporalMetadata,
                 &entity_temporal_metadata_rows,
             ),
-            InsertStatementBuilder::from_rows(Table::EntityProperty, &entity_property_rows),
             InsertStatementBuilder::from_rows(Table::EntityIsOfType, &entity_is_of_type_rows),
             InsertStatementBuilder::from_rows(
                 Table::EntityHasLeftEntity,
@@ -1332,12 +1321,8 @@ where
                 &properties,
                 params.confidence,
                 &edition_provenance,
+                &property_metadata,
             )
-            .await
-            .change_context(UpdateError)?;
-
-        transaction
-            .insert_properties(edition_id, &property_metadata)
             .await
             .change_context(UpdateError)?;
 
@@ -1640,6 +1625,7 @@ where
         properties: &PropertyObject,
         confidence: Option<Confidence>,
         provenance: &EntityEditionProvenance,
+        metadata: &PropertyMetadataMap,
     ) -> Result<(EntityEditionId, ClosedEntityType), InsertionError> {
         let edition_id: EntityEditionId = self
             .as_client()
@@ -1650,11 +1636,12 @@ where
                         archived,
                         properties,
                         confidence,
-                        provenance
-                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4)
+                        provenance,
+                        property_metadata
+                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
                     RETURNING entity_edition_id;
                 ",
-                &[&archived, &properties, &confidence, provenance],
+                &[&archived, &properties, &confidence, provenance, metadata],
             )
             .await
             .change_context(InsertionError)?
@@ -1692,49 +1679,6 @@ where
             .change_context(InsertionError)?;
 
         Ok((edition_id, entity_type))
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    async fn insert_properties(
-        &self,
-        entity_edition_id: EntityEditionId,
-        metadata: &PropertyMetadataMap<'_>,
-    ) -> Result<(), InsertionError> {
-        let mut property_paths = Vec::with_capacity(metadata.len());
-        let mut confidences = Vec::with_capacity(property_paths.len());
-        let mut provenances = Vec::with_capacity(property_paths.len());
-
-        for (property_path, metadata) in metadata {
-            property_paths.push(property_path);
-            confidences.push(metadata.confidence);
-            provenances.push(&metadata.provenance);
-        }
-
-        self.as_client()
-            .query(
-                "
-                    INSERT INTO entity_property (
-                        entity_edition_id,
-                        property_path,
-                        confidence,
-                        provenance
-                    ) VALUES (
-                        $1,
-                        UNNEST($2::TEXT[]),
-                        UNNEST($3::DOUBLE PRECISION[]),
-                        UNNEST($4::JSONB[])
-                    );
-                ",
-                &[
-                    &entity_edition_id,
-                    &property_paths,
-                    &confidences,
-                    &provenances,
-                ],
-            )
-            .await
-            .change_context(InsertionError)?;
-        Ok(())
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

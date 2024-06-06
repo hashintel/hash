@@ -135,16 +135,6 @@ pub enum EntityQueryPath<'p> {
     ///
     /// It's currently not possible to query for the list of property pointers directly.
     RightEntityProvenance,
-    /// The provenance for the [`Entity`]'s right entity link.
-    ///
-    /// It's currently not possible to query for the link provenance value directly.
-    PropertyPaths,
-    /// The list of all confidence values belonging to [`PropertyPaths`]' properties.
-    ///
-    /// It's currently not possible to query for the list of confidence values directly.
-    ///
-    /// [`PropertyPaths`]: Self::PropertyPaths
-    PropertyConfidences,
     /// Whether or not the [`Entity`] is in a draft state.
     ///
     /// ```rust
@@ -362,10 +352,10 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     EditionProvenance(Option<JsonPath<'p>>),
-    /// Corresponds to the provenance data of the properties of the [`Entity`].
+    /// Corresponds to the metadata data of the properties of the [`Entity`].
     ///
     /// It's currently not possible to query for the list of property provenance values directly.
-    PropertyProvenance(Option<JsonPath<'p>>),
+    PropertyMetadata(Option<JsonPath<'p>>),
     /// The embedding for the whole entity blob.
     ///
     /// Deserializes from `["embedding"]`:
@@ -399,8 +389,8 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Provenance(None) => fmt.write_str("provenance"),
             Self::EditionProvenance(Some(path)) => write!(fmt, "editionProvenance.{path}"),
             Self::EditionProvenance(None) => fmt.write_str("editionProvenance"),
-            Self::PropertyProvenance(Some(path)) => write!(fmt, "propertyProvenance.{path}"),
-            Self::PropertyProvenance(None) => fmt.write_str("propertyProvenance"),
+            Self::PropertyMetadata(Some(path)) => write!(fmt, "propertyMetadata.{path}"),
+            Self::PropertyMetadata(None) => fmt.write_str("propertyMetadata"),
             Self::Embedding => fmt.write_str("embedding"),
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
@@ -437,8 +427,6 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::LeftEntityProvenance => fmt.write_str("leftEntityProvenance"),
             Self::RightEntityConfidence => fmt.write_str("rightEntityConfidence"),
             Self::RightEntityProvenance => fmt.write_str("rightEntityProvenance"),
-            Self::PropertyPaths => fmt.write_str("propertyPaths"),
-            Self::PropertyConfidences => fmt.write_str("propertyConfidences"),
         }
     }
 }
@@ -455,16 +443,13 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::Properties(_)
             | Self::Provenance(_)
             | Self::EditionProvenance(_)
-            | Self::PropertyProvenance(_)
+            | Self::PropertyMetadata(_)
             | Self::LeftEntityProvenance
             | Self::RightEntityProvenance => ParameterType::Any,
             Self::EntityConfidence | Self::LeftEntityConfidence | Self::RightEntityConfidence => {
                 ParameterType::F64
             }
-            Self::PropertyPaths => ParameterType::Vector(Box::new(ParameterType::Text)),
-            Self::PropertyConfidences | Self::Embedding => {
-                ParameterType::Vector(Box::new(ParameterType::F64))
-            }
+            Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::Archived => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
@@ -756,14 +741,12 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::LeftEntityProvenance => EntityQueryPath::LeftEntityProvenance,
             Self::RightEntityConfidence => EntityQueryPath::RightEntityConfidence,
             Self::RightEntityProvenance => EntityQueryPath::RightEntityProvenance,
-            Self::PropertyPaths => EntityQueryPath::PropertyPaths,
-            Self::PropertyConfidences => EntityQueryPath::PropertyConfidences,
             Self::Provenance(path) => EntityQueryPath::Provenance(path.map(JsonPath::into_owned)),
             Self::EditionProvenance(path) => {
                 EntityQueryPath::EditionProvenance(path.map(JsonPath::into_owned))
             }
-            Self::PropertyProvenance(path) => {
-                EntityQueryPath::PropertyProvenance(path.map(JsonPath::into_owned))
+            Self::PropertyMetadata(path) => {
+                EntityQueryPath::PropertyMetadata(path.map(JsonPath::into_owned))
             }
         }
     }

@@ -1,6 +1,5 @@
 use alloc::borrow::Cow;
 use core::{iter::once, str::FromStr};
-use std::collections::HashMap;
 
 use authorization::AuthorizationApi;
 use graph::store::{
@@ -136,18 +135,19 @@ fn confidence(value: f64) -> Confidence {
 
 fn property_metadata<'a>(
     value: impl IntoIterator<Item = (&'a str, f64, PropertyProvenance)>,
-) -> PropertyMetadataMap<'a> {
-    let mut map = HashMap::new();
+) -> PropertyMetadataMap {
+    let mut map = PropertyMetadataMap::default();
     for (key, value, provenance) in value {
-        map.insert(
-            PropertyPath::from_json_pointer(key).expect("could not parse path"),
+        map.set(
+            &PropertyPath::from_json_pointer(key).expect("could not parse path"),
             PropertyMetadata {
                 confidence: Some(confidence(value)),
                 provenance,
             },
-        );
+        )
+        .expect("could not set metadata");
     }
-    PropertyMetadataMap::new(map)
+    map
 }
 
 #[tokio::test]
@@ -155,7 +155,11 @@ async fn initial_metadata() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
-    let entity_property_metadata = property_metadata([("", 0.5, property_provenance_a())]);
+    let path: PropertyPath = once(PropertyPathElement::from(name_property_type_id())).collect();
+    let path_pointer = path.to_json_pointer();
+
+    let entity_property_metadata =
+        property_metadata([(path_pointer.as_str(), 0.5, property_provenance_a())]);
     let entity_metadata = api
         .create_entity(
             api.account_id,
@@ -504,5 +508,8 @@ async fn properties_remove() {
         .await
         .expect("could not patch entity");
 
-    assert!(updated_entity.metadata.properties.is_empty());
+    assert_eq!(
+        updated_entity.metadata.properties,
+        PropertyMetadataMap::default()
+    );
 }

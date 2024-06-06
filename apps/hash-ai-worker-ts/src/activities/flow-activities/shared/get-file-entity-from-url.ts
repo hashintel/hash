@@ -23,10 +23,10 @@ import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type {
   OriginProvenance,
-  PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
+import type { PropertyMetadataMap } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";

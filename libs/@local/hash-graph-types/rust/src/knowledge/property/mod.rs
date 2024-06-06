@@ -1,6 +1,5 @@
 mod diff;
 mod metadata;
-mod object;
 mod patch;
 mod path;
 mod provenance;
@@ -16,8 +15,10 @@ use type_system::{url::BaseUrl, JsonSchemaValueType};
 
 pub use self::{
     diff::PropertyDiff,
-    metadata::{PropertyMetadata, PropertyMetadataMap},
-    object::PropertyObject,
+    metadata::{
+        PropertyMetadata, PropertyMetadataMap, PropertyMetadataMapElement, PropertyObject,
+        PropertyPathError,
+    },
     patch::PropertyPatchOperation,
     path::{PropertyPath, PropertyPathElement},
     provenance::PropertyProvenance,
@@ -74,20 +75,20 @@ impl Property {
     #[must_use]
     pub fn get<'a>(
         &self,
-        path: impl IntoIterator<Item = &'a PropertyPathElement<'a>>,
+        path: impl IntoIterator<Item = PropertyPathElement<'a>>,
     ) -> Option<&Self> {
         let mut value = self;
         for element in path {
             match element {
                 PropertyPathElement::Property(key) => {
                     value = match value {
-                        Self::Object(object) => object.properties().get(key)?,
+                        Self::Object(object) => object.properties().get(&key)?,
                         _ => return None,
                     };
                 }
                 PropertyPathElement::Index(index) => {
                     value = match value {
-                        Self::Array(array) => array.get(*index)?,
+                        Self::Array(array) => array.get(index)?,
                         _ => return None,
                     };
                 }
