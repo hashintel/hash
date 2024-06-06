@@ -101,6 +101,8 @@ export const isUserHashInstanceAdmin = async (
     },
   );
   // eslint-disable-next-line no-console
+  console.info(`[${userAccountId}] SUCCESS Fetching HASH Instance entity`);
+  // eslint-disable-next-line no-console
   console.info(`[${userAccountId}] Checking permission on instance`);
   return ctx.graphApi
     .checkEntityPermission(
@@ -108,7 +110,13 @@ export const isUserHashInstanceAdmin = async (
       hashInstance.entity.metadata.recordId.entityId,
       "update",
     )
-    .then(({ data }) => data.has_permission)
+    .then(({ data }) => {
+      // eslint-disable-next-line no-console
+      console.info(
+        `[${userAccountId}] SUCCESS Checking permission on instance`,
+      );
+      return data.has_permission;
+    })
     .catch((err) => {
       // eslint-disable-next-line no-console
       console.error(
