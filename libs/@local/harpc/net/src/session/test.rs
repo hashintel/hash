@@ -176,6 +176,10 @@ where
             .await
             .expect("should be able to listen on TCP");
 
+        // Give the swarm some time to acquire the external address
+        // This is necessary for CI, as otherwise the tests are a bit flaky.
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+
         let address = server_ipc
             .external_addresses()
             .await
