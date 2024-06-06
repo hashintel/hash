@@ -51,7 +51,7 @@ pub(crate) enum Command {
     },
 }
 
-pub(crate) struct Task {
+pub(crate) struct TransportTask {
     peer_id: PeerId,
     swarm: TransportSwarm,
 
@@ -67,7 +67,7 @@ pub(crate) struct Task {
     peers_address_lookup: HashMap<ConnectionId, Multiaddr>,
 }
 
-impl Task {
+impl TransportTask {
     pub(crate) fn new(
         config: TransportConfig,
         transport: impl Transport,

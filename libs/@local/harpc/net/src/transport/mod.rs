@@ -23,7 +23,7 @@ use self::{
     client::ClientCodec,
     connection::{IncomingConnections, OutgoingConnection},
     error::{OpenStreamError, TransportError},
-    task::Task,
+    task::TransportTask,
 };
 pub use self::{
     config::{SwarmConfig, TransportConfig, YamuxConfig},
@@ -65,7 +65,7 @@ impl TransportLayer {
         transport: impl Transport,
         cancel: CancellationToken,
     ) -> Result<Self, TransportError> {
-        let task = Task::new(config, transport)?;
+        let task = TransportTask::new(config, transport)?;
         let id = task.peer_id();
         let ipc = task.ipc();
         let registry = task.registry();
