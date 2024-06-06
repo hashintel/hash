@@ -1,8 +1,11 @@
+import { APIError, RateLimitError } from "@anthropic-ai/sdk";
 import dedent from "dedent";
+import { backOff } from "exponential-backoff";
 
 import { logger } from "../activity-logger";
 import { stringify } from "../stringify";
 import type {
+  AnthropicMessagesCreateParams,
   AnthropicMessagesCreateResponse,
   AnthropicToolDefinition,
 } from "./anthropic-client";
@@ -11,12 +14,16 @@ import {
   createAnthropicMessagesWithTools,
   isAnthropicContentToolUseContent,
 } from "./anthropic-client";
+import {
+  defaultBackoffStartingDelay,
+  maximumRateLimitRetries,
+  maxRetryCount,
+} from "./constants";
 import type { LlmMessageToolUseContent, LlmUserMessage } from "./llm-message";
 import {
   mapAnthropicMessageToLlmMessage,
   mapLlmMessageToAnthropicMessage,
 } from "./llm-message";
-import { maxRetryCount } from "./max-retry-count";
 import type {
   AnthropicLlmParams,
   AnthropicResponse,
@@ -63,6 +70,75 @@ const mapAnthropicStopReasonToLlmStopReason = (
   }
 };
 
+const convertAnthropicRateLimitRequestsResetTimestampToMilliseconds = ({
+  anthropicRateLimitRequestsResetTimestamp,
+}: {
+  anthropicRateLimitRequestsResetTimestamp: string;
+}) => {
+  const now = new Date();
+  const rateLimitEndsAt = new Date(anthropicRateLimitRequestsResetTimestamp);
+
+  const rateLimitEndInMilliseconds = rateLimitEndsAt.getTime() - now.getTime();
+
+  if (rateLimitEndInMilliseconds < 0) {
+    return undefined;
+  }
+
+  return rateLimitEndInMilliseconds;
+};
+
+/**
+ * Method for retrying Anthropic request, retrying
+ * only if subsequent rate limit errors are encountered.
+ */
+const createAnthropicMessagesWithToolsWithBackoff = async (params: {
+  payload: AnthropicMessagesCreateParams;
+  startingDelay?: number;
+  retryCount?: number;
+}): Promise<AnthropicMessagesCreateResponse> => {
+  const { payload, startingDelay, retryCount } = params;
+  try {
+    return await backOff(
+      () => {
+        return createAnthropicMessagesWithTools(payload);
+      },
+      {
+        startingDelay: startingDelay ?? defaultBackoffStartingDelay,
+        /**
+         * We only want to retry once per call to the `backoff` method, because we
+         * don't want to retry the request if a non-rate-limit related error is
+         * returned.
+         */
+        numOfAttempts: 1,
+      },
+    );
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      /**
+       * If we've reached the maximum number of retries, throw the rate limit error.
+       */
+      if (params.retryCount === maximumRateLimitRetries) {
+        throw error;
+      }
+
+      const anthropicRateLimitRequestsResetTimestamp =
+        error.headers?.["anthropic-ratelimit-requests-reset"] ?? undefined;
+
+      return createAnthropicMessagesWithToolsWithBackoff({
+        payload,
+        startingDelay: anthropicRateLimitRequestsResetTimestamp
+          ? convertAnthropicRateLimitRequestsResetTimestampToMilliseconds({
+              anthropicRateLimitRequestsResetTimestamp,
+            })
+          : undefined,
+        retryCount: (retryCount ?? 0) + 1,
+      });
+    }
+
+    throw error;
+  }
+};
+
 export const getAnthropicResponse = async <ToolName extends string>(
   params: AnthropicLlmParams<ToolName>,
 ): Promise<LlmResponse<AnthropicLlmParams>> => {
@@ -94,26 +170,48 @@ export const getAnthropicResponse = async <ToolName extends string>(
 
   const timeBeforeRequest = Date.now();
 
+  const payload: AnthropicMessagesCreateParams = {
+    ...remainingParams,
+    system: systemPrompt,
+    messages: anthropicMessages,
+    max_tokens: maxTokens,
+    tools: anthropicTools,
+    tool_choice: toolChoice
+      ? toolChoice === "required"
+        ? { type: "any" }
+        : { type: "tool", name: toolChoice }
+      : undefined,
+  };
+
   try {
-    anthropicResponse = await createAnthropicMessagesWithTools({
-      ...remainingParams,
-      system: systemPrompt,
-      messages: anthropicMessages,
-      max_tokens: maxTokens,
-      tools: anthropicTools,
-      tool_choice: toolChoice
-        ? toolChoice === "required"
-          ? { type: "any" }
-          : { type: "tool", name: toolChoice }
-        : undefined,
-    });
+    anthropicResponse = await createAnthropicMessagesWithTools(payload);
 
     logger.debug(`Anthropic API response: ${stringify(anthropicResponse)}`);
   } catch (error) {
     logger.error(`Anthropic API error: ${stringify(error)}`);
 
+    if (error instanceof RateLimitError) {
+      const headers = error.headers;
+
+      /**
+       * This is in the format of a RFC 3339 timestamp.
+       */
+      const anthropicRateLimitRequestsResetTimestamp =
+        headers?.["anthropic-ratelimit-requests-reset"] ?? undefined;
+
+      anthropicResponse = await createAnthropicMessagesWithToolsWithBackoff({
+        payload,
+        startingDelay: anthropicRateLimitRequestsResetTimestamp
+          ? convertAnthropicRateLimitRequestsResetTimestampToMilliseconds({
+              anthropicRateLimitRequestsResetTimestamp,
+            })
+          : undefined,
+      });
+    }
+
     return {
       status: "api-error",
+      anthropicApiError: error instanceof APIError ? error : undefined,
     };
   }
 

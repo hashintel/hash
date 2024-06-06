@@ -18,12 +18,16 @@ import { promptTokensEstimate } from "openai-chat-tokens";
 import { logger } from "../activity-logger";
 import { modelToContextWindow, openai } from "../openai-client";
 import { stringify } from "../stringify";
+import {
+  defaultBackoffStartingDelay,
+  maximumRateLimitRetries,
+  maxRetryCount,
+} from "./constants";
 import type { LlmMessageToolUseContent, LlmUserMessage } from "./llm-message";
 import {
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
 } from "./llm-message";
-import { maxRetryCount } from "./max-retry-count";
 import type {
   LlmResponse,
   LlmStopReason,
@@ -89,10 +93,6 @@ const convertOpenAiTimeStringToMilliseconds = (timeString: string): number => {
       throw new Error(`Unsupported time unit: ${unit}`);
   }
 };
-
-const maximumRateLimitRetries = 5;
-
-const defaultBackoffStartingDelay = 5_000;
 
 /**
  * Method for retrying OpenAI chat completions with a backoff, retrying
