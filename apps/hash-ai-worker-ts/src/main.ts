@@ -19,7 +19,7 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
-import { createVaultClient } from "@local/hash-backend-utils/vault";
+// import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
@@ -35,7 +35,7 @@ export const monorepoRootDir = path.resolve(__dirname, "../../..");
 
 config({ silent: true, path: monorepoRootDir });
 
-export const logger = new Logger({
+const logger = new Logger({
   mode: process.env.NODE_ENV === "production" ? "prod" : "dev",
   serviceName: "ai_worker",
 });
@@ -87,10 +87,10 @@ async function run() {
   // eslint-disable-next-line no-console
   console.info("Created Graph client");
 
-  const vaultClient = createVaultClient();
-  if (!vaultClient) {
-    throw new Error("Vault client not created");
-  }
+  // const vaultClient = createVaultClient();
+  // if (!vaultClient) {
+  //   throw new Error("Vault client not created");
+  // }
 
   // eslint-disable-next-line no-console
   console.info("Created Vault client");
@@ -110,9 +110,7 @@ async function run() {
       ...createGraphActivities({
         graphApiClient,
       }),
-      ...createFlowActivities({
-        vaultClient,
-      }),
+      ...createFlowActivities(),
     },
     connection,
     namespace: "HASH",
@@ -151,6 +149,6 @@ process.on("SIGTERM", () => {
 
 run().catch((err) => {
   // eslint-disable-next-line no-console
-  console.error(err);
+  console.error(`Error running worker: ${err}`);
   process.exit(1);
 });
