@@ -287,7 +287,6 @@ export const runFlowWorkflow = async (
       try {
         // @ts-expect-error -- temporarily disabled
         actionResponse = await actionActivity({
-          // @ts-expect-error -- temporarily disabled
           inputs: currentStep.inputs ?? [],
         });
       } catch (error) {
