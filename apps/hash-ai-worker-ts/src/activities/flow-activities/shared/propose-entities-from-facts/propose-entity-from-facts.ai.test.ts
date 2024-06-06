@@ -42,8 +42,8 @@ const huntingPlcEntityFacts = [
   },
 ];
 
-test(
-  "Test proposeEntityFromFacts",
+test.skip(
+  "Test proposeEntityFromFacts: HUNTING PLC ORD 25P",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -78,6 +78,143 @@ test(
     const proposeEntityFromFactsStatus = await proposeEntityFromFacts({
       entitySummary: huntingPlcEntitySummary,
       facts: huntingPlcEntityFactsWithSources,
+      dereferencedEntityType,
+      simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
+      proposeOutgoingLinkEntityTypes: [],
+      possibleOutgoingLinkTargetEntitySummaries: [],
+    });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ proposeEntityFromFactsStatus }, null, 2));
+
+    expect(proposeEntityFromFactsStatus).toBeDefined();
+  },
+  {
+    timeout: 5 * 60 * 1000,
+  },
+);
+
+const graphicsCardEntitySummary: LocalEntitySummary = {
+  localId: "d705527d-59ed-462c-92c4-507b92095c22",
+  name: "NVIDIA GeForce RTX 2080 Ti",
+  summary:
+    "The GeForce RTX 2080 Ti is a PC GPU based on the TU102 graphics processor with 11GB of memory, 352-bit memory bus, and approximately 120 teraflops of performance.",
+  entityTypeId: "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
+};
+
+const factsAboutGraphicsCard: Fact[] = [
+  {
+    factId: "5294b951-fbe0-4b31-b287-130036c1f551",
+    text: "NVIDIA GeForce RTX 2080 Ti provides 11GB of memory",
+    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    prepositionalPhrases: [],
+    sources: [
+      {
+        type: "webpage",
+        location: {
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+        },
+        loadedAt: "2024-05-29T15:59:55.606Z",
+      },
+    ],
+  },
+  {
+    factId: "e2ef33ee-d23e-4fba-aded-944067013515",
+    text: "NVIDIA GeForce RTX 2080 Ti has a 352-bit memory bus",
+    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    prepositionalPhrases: [],
+    sources: [
+      {
+        type: "webpage",
+        location: {
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+        },
+        loadedAt: "2024-05-29T15:59:55.606Z",
+      },
+    ],
+  },
+  {
+    factId: "710c911e-7641-4f7a-908e-dd5d162399d5",
+    text: "NVIDIA GeForce RTX 2080 Ti has a 6MB cache",
+    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    prepositionalPhrases: [],
+    sources: [
+      {
+        type: "webpage",
+        location: {
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+        },
+        loadedAt: "2024-05-29T15:59:55.606Z",
+      },
+    ],
+  },
+  {
+    factId: "b8547d6c-dbdc-4765-8e40-326c39b87e6c",
+    text: "NVIDIA GeForce RTX 2080 Ti provides roughly 120 teraflops of performance",
+    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    prepositionalPhrases: [],
+    sources: [
+      {
+        type: "webpage",
+        location: {
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+        },
+        loadedAt: "2024-05-29T15:59:55.606Z",
+      },
+    ],
+  },
+  {
+    factId: "06e3ae80-e7c7-4762-877b-36241edf8b55",
+    text: "NVIDIA GeForce RTX 2080 Ti is a PC GPU",
+    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    prepositionalPhrases: [],
+    sources: [
+      {
+        type: "webpage",
+        location: {
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+        },
+        loadedAt: "2024-05-29T15:59:55.606Z",
+      },
+    ],
+  },
+  {
+    factId: "e9fa4dba-a4d0-421d-b907-7b534fb0eae0",
+    text: "NVIDIA GeForce RTX 2080 Ti is based on the TU102 graphics processor",
+    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    prepositionalPhrases: [],
+    sources: [
+      {
+        type: "webpage",
+        location: {
+          uri: "https://www.run.ai/guides/gpu-deep-learning/best-gpu-for-deep-learning",
+        },
+        loadedAt: "2024-05-29T15:59:55.606Z",
+      },
+    ],
+  },
+];
+
+test(
+  "Test proposeEntityFromFacts with graphics card entity",
+  async () => {
+    const { userAuthentication } = await getFlowContext();
+
+    const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
+      entityTypeIds: [
+        "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
+      ],
+      actorId: userAuthentication.actorId,
+      graphApiClient,
+      simplifyPropertyKeys: true,
+    });
+
+    const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
+      Object.values(dereferencedEntityTypes)[0]!;
+
+    const proposeEntityFromFactsStatus = await proposeEntityFromFacts({
+      entitySummary: graphicsCardEntitySummary,
+      facts: factsAboutGraphicsCard,
       dereferencedEntityType,
       simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
       proposeOutgoingLinkEntityTypes: [],

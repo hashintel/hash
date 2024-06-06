@@ -164,9 +164,14 @@ const sanitizeInputBeforeValidation = (params: {
   return input;
 };
 
-const ajv = new Ajv({
-  strict: false,
-});
+const ajv = new Ajv();
+
+/**
+ * @todo: filter out `label` keyword from dereferenced entity types
+ *
+ * @see https://linear.app/hash/issue/H-2840/filter-out-label-property-from-dereferenced-entity-types
+ */
+ajv.addKeyword("label");
 
 addFormats(ajv);
 
