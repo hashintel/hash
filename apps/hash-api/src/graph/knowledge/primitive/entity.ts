@@ -23,7 +23,6 @@ import type {
 } from "@local/hash-graph-types/account";
 import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
@@ -40,6 +39,7 @@ import type {
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
 import type {
+  DiffEntityInput,
   Entity,
   EntityAuthorizationRelationship,
   EntityPropertiesObject,
@@ -224,7 +224,7 @@ export const getEntitySubgraph: ImpureGraphFunction<
       if (
         // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
         //                    the latest revision
-        (editionMap[latestEditionTimestamp]!.inner.metadata as EntityMetadata)
+        (editionMap[latestEditionTimestamp].inner.metadata as EntityMetadata)
           .archived &&
         // if the vertex is in the roots of the query, then it is intentionally included
         !subgraph.roots.find((root) => root.baseId === entityId)
@@ -1069,14 +1069,7 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
     );
 
 export const calculateEntityDiff: ImpureGraphFunction<
-  {
-    firstEntityId: EntityId;
-    firstTransactionTime: Timestamp | null;
-    firstDecisionTime: Timestamp | null;
-    secondEntityId: EntityId;
-    secondDecisionTime: Timestamp | null;
-    secondTransactionTime: Timestamp | null;
-  },
+  DiffEntityInput,
   Promise<DiffEntityResult>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi.diffEntity(actorId, params).then(({ data }) => data);

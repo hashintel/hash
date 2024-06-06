@@ -9,6 +9,7 @@ import type {
 } from "@blockprotocol/graph/temporal";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { DiffEntityParams } from "@local/hash-graph-client";
 import type {
   EntityId,
   EntityMetadata,
@@ -79,5 +80,17 @@ export type LinkEntityAndRightEntity = Subtype<
   {
     linkEntity: Entity[];
     rightEntity: Entity[];
+  }
+>;
+
+export type DiffEntityInput = Subtype<
+  DiffEntityParams,
+  {
+    firstEntityId: EntityId;
+    firstTransactionTime: Timestamp | null;
+    firstDecisionTime: Timestamp | null;
+    secondEntityId: EntityId;
+    secondDecisionTime: Timestamp | null;
+    secondTransactionTime: Timestamp | null;
   }
 >;

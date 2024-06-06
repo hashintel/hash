@@ -203,7 +203,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         }
 
         entityMetadata = await graphApiClient
-          .patchEntity(actorId, {
+          .patchEntity(webBotActorId, {
             draft: existingEntityIsDraft ? true : createEditionAsDraft,
             entityId: existingEntity.metadata.recordId.entityId,
             properties: patchOperations,

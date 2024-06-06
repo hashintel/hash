@@ -57,8 +57,8 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 Self::Value::reflection()
             }
 
-            fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-                match v {
+            fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+                match value {
                     "a" => Ok(ExampleFieldDiscriminator::A),
                     "b" => Ok(ExampleFieldDiscriminator::B),
                     "c" => Ok(ExampleFieldDiscriminator::C),
@@ -71,8 +71,8 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 }
             }
 
-            fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-                match v {
+            fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+                match value {
                     b"a" => Ok(ExampleFieldDiscriminator::A),
                     b"b" => Ok(ExampleFieldDiscriminator::B),
                     b"c" => Ok(ExampleFieldDiscriminator::C),
@@ -91,8 +91,8 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 }
             }
 
-            fn visit_u64(self, v: u64) -> Result<Self::Value, VisitorError> {
-                match v {
+            fn visit_u64(self, value: u64) -> Result<Self::Value, VisitorError> {
+                match value {
                     0 => Ok(ExampleFieldDiscriminator::A),
                     1 => Ok(ExampleFieldDiscriminator::B),
                     2 => Ok(ExampleFieldDiscriminator::C),

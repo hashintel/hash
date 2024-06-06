@@ -32,7 +32,7 @@ env:
 
   HASH_TEMPORAL_SETUP_RESOURCE_NAME: h-temporal-prod-usea1-setup
   HASH_TEMPORAL_MIGRATE_RESOURCE_NAME: h-temporal-prod-usea1-migrate
-  HASH_TEMPORAL_VERSION: 1.21.0.0
+  HASH_TEMPORAL_VERSION: 1.23.1.0
 
   HASH_ECS_CLUSTER_NAME: h-hash-prod-usea1-ecs
   HASH_APP_SERVICE_NAME: h-hash-prod-usea1-appsvc

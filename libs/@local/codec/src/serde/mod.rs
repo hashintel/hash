@@ -1,3 +1,7 @@
+pub mod string_hash_map;
+
+mod size_hint;
+
 use ::time::format_description::well_known::{iso8601, Iso8601};
 
 const CONFIG: iso8601::EncodedConfig = iso8601::Config::DEFAULT
