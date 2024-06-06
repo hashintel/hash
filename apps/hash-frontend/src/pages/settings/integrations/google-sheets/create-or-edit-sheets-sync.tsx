@@ -2,7 +2,6 @@ import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
 import { CheckIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
-import { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";

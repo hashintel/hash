@@ -2,7 +2,6 @@ import { useMutation } from "@apollo/client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 import { useCallback } from "react";
 
 import type {
