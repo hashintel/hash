@@ -301,6 +301,10 @@ module "application" {
   ])
   api_env_vars = concat(var.hash_api_env_vars, [
     {
+      name  = "ACCESS_FORM_SLACK_WEBHOOK_URL", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["access_form_slack_webhook_url"])
+    },
+    {
       name  = "MAILCHIMP_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["mailchimp_api_key"])
     },
