@@ -88,16 +88,35 @@ export const isUserHashInstanceAdmin = async (
   ctx: { graphApi: GraphApi },
   authentication: { actorId: AccountId },
   { userAccountId }: { userAccountId: AccountId },
-) =>
-  getHashInstance(ctx, authentication).then((hashInstance) =>
-    ctx.graphApi
-      .checkEntityPermission(
-        userAccountId,
-        hashInstance.entity.metadata.recordId.entityId,
-        "update",
-      )
-      .then(({ data }) => data.has_permission),
+) => {
+  // eslint-disable-next-line no-console
+  console.info(`[${userAccountId}] Fetching HASH Instance entity`);
+  const hashInstance = await getHashInstance(ctx, authentication).catch(
+    (err) => {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[${userAccountId}] ERROR Fetching HASH Instance entity: ${err}`,
+      );
+      throw err;
+    },
   );
+  // eslint-disable-next-line no-console
+  console.info(`[${userAccountId}] Checking permission on instance`);
+  return ctx.graphApi
+    .checkEntityPermission(
+      userAccountId,
+      hashInstance.entity.metadata.recordId.entityId,
+      "update",
+    )
+    .then(({ data }) => data.has_permission)
+    .catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[${userAccountId}] ERROR Checking permission on instance: ${err}`,
+      );
+      throw err;
+    });
+};
 
 /**
  * Retrieves the accountGroupId of the instance admin account group.
