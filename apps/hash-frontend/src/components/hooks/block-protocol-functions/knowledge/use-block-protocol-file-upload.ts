@@ -1,6 +1,8 @@
 import { useMutation } from "@apollo/client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 import { useCallback } from "react";
 
 import type {
@@ -77,7 +79,7 @@ export const useBlockProtocolFileUpload = (
 
         const { createFileFromUrl: fileEntity } = result.data;
 
-        return { data: fileEntity as FileEntityType };
+        return { data: new Entity<FileProperties>(fileEntity) };
       }
 
       if (!("file" in fileUploadData)) {
@@ -130,7 +132,7 @@ export const useBlockProtocolFileUpload = (
 
       await uploadFileToStorageProvider(presignedPut, file);
 
-      return { data: uploadedFileEntity as FileEntityType };
+      return { data: new Entity<FileProperties>(uploadedFileEntity) };
     },
     [createFileFromUrlFn, ownedById, requestFileUploadFn],
   );

@@ -17,8 +17,7 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
-import type { LinkEntity } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -859,7 +858,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
           `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
         );
       }
-      return linkEntity;
+      return new LinkEntity(linkEntity);
     }),
   );
 };

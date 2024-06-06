@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
 import {
   getBlockById,
@@ -10,7 +10,7 @@ import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedBlockGQL } from "../graphql-mapping";
 
 export const blockChildEntityResolver: ResolverFn<
-  Promise<Entity>,
+  Promise<SerializedEntity>,
   UnresolvedBlockGQL,
   GraphQLContext,
   Record<string, never>
@@ -22,5 +22,7 @@ export const blockChildEntityResolver: ResolverFn<
     entityId: metadata.recordId.entityId,
   });
 
-  return getBlockData(context, authentication, { block });
+  return getBlockData(context, authentication, { block }).then((blockData) =>
+    blockData.toJSON(),
+  );
 };

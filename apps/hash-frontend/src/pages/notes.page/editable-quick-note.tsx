@@ -5,12 +5,14 @@ import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
+import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { QuickNoteProperties } from "@local/hash-isomorphic-utils/system-types/quicknote";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -24,7 +26,6 @@ import { useAccountPages } from "../../components/hooks/use-account-pages";
 import type {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
-  BlockCollectionContentItem,
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../graphql/api-types.gen";
@@ -130,8 +131,9 @@ export const EditableQuickNote: FunctionComponent<{
       data?.getEntity
         ? getBlockCollectionContents({
             blockCollectionEntityId,
-            blockCollectionSubgraph: data.getEntity
-              .subgraph as Subgraph<EntityRootType>,
+            blockCollectionSubgraph: deserializeSubgraph(
+              data.getEntity.subgraph,
+            ) as Subgraph<EntityRootType>,
           })
         : undefined,
     [blockCollectionEntityId, data],

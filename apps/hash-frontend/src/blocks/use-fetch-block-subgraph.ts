@@ -20,8 +20,12 @@ import { useCallback } from "react";
 import type {
   GetEntityQuery,
   GetEntityQueryVariables,
-  SubgraphAndPermissions,
+  SubgraphAndPermissions as SubgraphAndPermissionsGQL,
 } from "../graphql/api-types.gen";
+
+type SubgraphAndPermissions = Omit<SubgraphAndPermissionsGQL, "subgraph"> & {
+  subgraph: Subgraph<EntityRootType>;
+};
 
 export const useFetchBlockSubgraph = (): ((
   blockEntityTypeId: VersionedUrl,

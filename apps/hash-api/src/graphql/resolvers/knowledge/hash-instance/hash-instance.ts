@@ -1,12 +1,12 @@
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
 import type { ResolverFn } from "../../../api-types.gen";
 import type { GraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const hashInstanceEntityResolver: ResolverFn<
-  Promise<Entity>,
+  Promise<SerializedEntity>,
   Record<string, never>,
   GraphQLContext,
   Record<string, never>
@@ -16,5 +16,5 @@ export const hashInstanceEntityResolver: ResolverFn<
 
   const hashInstance = await getHashInstance(context, authentication);
 
-  return hashInstance.entity;
+  return hashInstance.entity.toJSON();
 };

@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityPropertiesObject,
@@ -27,5 +27,5 @@ export const updateEntity = (params: {
       },
     },
   ).then(({ data }) => {
-    return data.updateEntity;
+    return new Entity(data.updateEntity);
   });

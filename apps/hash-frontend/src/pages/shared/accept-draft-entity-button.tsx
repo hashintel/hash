@@ -1,7 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
@@ -185,7 +184,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
         throw new Error("An error occurred accepting the draft entity.");
       }
 
-      return response.data.updateEntity;
+      return new Entity(response.data.updateEntity);
     },
     [
       updateEntity,

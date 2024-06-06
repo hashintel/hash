@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityPropertiesObject,
@@ -13,7 +14,7 @@ import type { BlockEntity } from "./entity";
 import { generateDraftIdForEntity } from "./entity-store-plugin";
 import { blockProtocolPropertyTypes } from "./ontology-type-ids";
 
-export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
+export type EntityStoreType = BlockEntity | Entity;
 
 export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
   blockProtocolPropertyTypes.textualContent.propertyTypeId,

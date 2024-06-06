@@ -1,11 +1,3 @@
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import {
-  deserializeGraphVertices,
-  serializeGraphVertices,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { SerializedVertices, Vertices } from "@local/hash-subgraph";
-import { GraphQLScalarType } from "graphql";
 import { JSONObjectResolver } from "graphql-scalars";
 
 import {
@@ -235,27 +227,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
     contents: blockCollectionContents,
   },
-
-  Vertices: new GraphQLScalarType({
-    name: "Vertices",
-    serialize(value) {
-      return serializeGraphVertices(value as Vertices);
-    },
-    parseValue(value) {
-      return deserializeGraphVertices(value as SerializedVertices);
-    },
-  }),
-
-  Entity: new GraphQLScalarType({
-    name: "Entity",
-    serialize(value) {
-      return value instanceof Entity ? value.toJSON() : value;
-    },
-    parseValue(value) {
-      return new Entity(value as SerializedEntity);
-    },
-  }),
-
   Comment: {
     canUserEdit,
     hasText: commentHasTextResolver,

@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityMetadata,
@@ -42,5 +42,20 @@ export const usePageComments = (pageEntityId?: EntityId): PageCommentsInfo => {
     skip: !pageEntityId,
   });
 
-  return { data: data?.pageComments ?? emptyComments, loading };
+  const pageComments = data?.pageComments;
+  return {
+    data: pageComments
+      ? pageComments.map((comment) => ({
+          ...comment,
+          author: new Entity(comment.author),
+          parent: new Entity(comment.parent),
+          replies: comment.replies.map((reply) => ({
+            ...reply,
+            author: new Entity(reply.author),
+            parent: new Entity(reply.parent),
+          })),
+        }))
+      : emptyComments,
+    loading,
+  };
 };

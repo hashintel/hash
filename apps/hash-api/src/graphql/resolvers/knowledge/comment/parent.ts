@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
 import { getCommentParent } from "../../../../graph/knowledge/system-types/comment";
 import type { ResolverFn } from "../../../api-types.gen";
@@ -7,7 +7,7 @@ import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const commentParentResolver: ResolverFn<
-  Promise<Entity>,
+  Promise<SerializedEntity>,
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   Record<string, never>
@@ -17,5 +17,5 @@ export const commentParentResolver: ResolverFn<
 
   return getCommentParent(context, authentication, {
     commentEntityId: metadata.recordId.entityId,
-  });
+  }).then((parent) => parent.toJSON());
 };

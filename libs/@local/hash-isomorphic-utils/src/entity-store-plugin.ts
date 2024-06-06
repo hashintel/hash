@@ -4,7 +4,6 @@ import type {
 } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { Block } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type { Draft } from "immer";
 import { castDraft, produce } from "immer";
 import isEqual from "lodash/isEqual";
@@ -284,7 +283,7 @@ const entityStoreReducer = (
                 action.payload.blockEntityMetadata.componentId;
               draftEntity.blockChildEntity = action.payload.blockEntityMetadata
                 .blockChildEntity as Draft<
-                Block & { draftId?: string | undefined }
+                BlockEntity & { draftId?: string | undefined }
               >;
             }
 

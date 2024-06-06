@@ -61,6 +61,6 @@ export const requestFileUpload: ResolverFn<
 
   return {
     presignedPut,
-    entity,
+    entity: entity.toJSON(),
   };
 };

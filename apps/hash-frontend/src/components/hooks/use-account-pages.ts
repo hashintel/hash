@@ -9,6 +9,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType } from "@local/hash-subgraph";
 import {
@@ -67,7 +68,7 @@ export const useAccountPages = (
 
     return getRoots(typedSubgraph).map((latestPage) => {
       const pageOutgoingLinks = getOutgoingLinkAndTargetEntities(
-        subgraph,
+        deserializeSubgraph(subgraph),
         latestPage.metadata.recordId.entityId,
       );
 

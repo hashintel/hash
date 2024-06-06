@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
@@ -34,11 +35,13 @@ export const useHashInstance = (): {
       return undefined;
     }
 
+    const deserializedHashInstanceEntity = new Entity<HASHInstanceProperties>(
+      hashInstanceEntity,
+    );
+
     return {
-      metadata: hashInstanceEntity.metadata,
-      properties: simplifyProperties(
-        hashInstanceEntity.properties as HASHInstanceProperties,
-      ),
+      metadata: deserializedHashInstanceEntity.metadata,
+      properties: simplifyProperties(deserializedHashInstanceEntity.properties),
     };
   }, [hashInstanceEntity]);
 

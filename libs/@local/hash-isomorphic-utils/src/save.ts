@@ -1,6 +1,7 @@
 import type { ApolloClient } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { LinkEntity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
@@ -73,7 +74,7 @@ const calculateSaveActions = (
   store: EntityStore,
   ownedById: OwnedById,
   blocksAndLinks: {
-    blockEntity: BlockEntity;
+    blockEntity: GqlBlock;
     contentLinkEntity: LinkEntity<HasIndexedContentProperties>;
   }[],
   doc: Node,
@@ -451,7 +452,7 @@ const mapEntityToGqlBlock = (
     ];
 
   return {
-    blockChildEntity,
+    blockChildEntity: blockChildEntity.toJSON(),
     componentId,
     metadata: entity.metadata,
     properties: entity.properties,
@@ -545,7 +546,10 @@ export const save = async ({
     },
   );
 
-  let currentBlocks = blockAndLinkList.map(({ blockEntity }) => blockEntity);
+  let currentBlocks = blockAndLinkList.map(({ blockEntity }) => ({
+    ...blockEntity,
+    blockChildEntity: new Entity(blockEntity.blockChildEntity),
+  }));
 
   let placeholders: UpdateBlockCollectionContentsResultPlaceholder[] = [];
 
@@ -564,7 +568,12 @@ export const save = async ({
 
     currentBlocks =
       res.data.updateBlockCollectionContents.blockCollection.contents.map(
-        (contentItem) => contentItem.rightEntity,
+        (contentItem) => ({
+          ...contentItem.rightEntity,
+          blockChildEntity: new Entity(
+            contentItem.rightEntity.blockChildEntity,
+          ),
+        }),
       );
     placeholders = res.data.updateBlockCollectionContents.placeholders;
   }

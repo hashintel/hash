@@ -8,6 +8,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   EntityRootType,
   EntityTypeRootType,
@@ -268,12 +269,14 @@ export const SearchBar: FunctionComponent = () => {
     skip: !submittedQuery,
   });
 
+  const deserializedEntitySubgraph = entityResultData
+    ? deserializeSubgraph(entityResultData.getEntitySubgraph.subgraph)
+    : undefined;
   const entitySubgraph =
-    entityResultData &&
-    isEntityRootedSubgraph(entityResultData.getEntitySubgraph.subgraph)
-      ? entityResultData.getEntitySubgraph.subgraph
+    deserializedEntitySubgraph &&
+    isEntityRootedSubgraph(deserializedEntitySubgraph)
+      ? deserializedEntitySubgraph
       : undefined;
-
   const entityResults = entitySubgraph ? getRoots(entitySubgraph) : [];
 
   const entityTypeSubgraph =
@@ -284,7 +287,9 @@ export const SearchBar: FunctionComponent = () => {
      * Either the types in @blockprotocol/graph or the value delivered by HASH needs to change
      * H-2489
      */
-    (entityTypeResultData.queryEntityTypes as Subgraph<EntityTypeRootType>);
+    (deserializeSubgraph(
+      entityTypeResultData.queryEntityTypes,
+    ) as Subgraph<EntityTypeRootType>);
 
   const entityTypeResults = entityTypeSubgraph
     ? getRoots(entityTypeSubgraph)

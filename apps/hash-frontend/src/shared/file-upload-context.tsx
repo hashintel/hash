@@ -1,7 +1,6 @@
 import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityPropertiesObject,
@@ -277,7 +276,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             throw new Error(errors?.[0]?.message ?? "unknown error");
           }
 
-          fileEntity = data.createFileFromUrl as Entity<FileProperties>;
+          fileEntity = new Entity<FileProperties>(data.createFileFromUrl);
 
           if (makePublic) {
             /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -339,8 +338,9 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
               throw new Error(errors?.[0]?.message ?? "unknown error");
             }
 
-            fileEntity = data.requestFileUpload
-              .entity as Entity<FileProperties>;
+            fileEntity = new Entity<FileProperties>(
+              data.requestFileUpload.entity,
+            );
 
             if (makePublic) {
               /** @todo: make entity public as part of `createEntity` query once this is supported */

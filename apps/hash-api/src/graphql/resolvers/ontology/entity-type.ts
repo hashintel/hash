@@ -10,8 +10,9 @@ import {
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserPermissionsOnEntityType } from "@local/hash-isomorphic-utils/types";
-import type { Subgraph } from "@local/hash-subgraph";
+import type { SerializedSubgraph } from "@local/hash-subgraph";
 
 import {
   archiveEntityType,
@@ -58,7 +59,7 @@ export const createEntityTypeResolver: ResolverFn<
 };
 
 export const queryEntityTypesResolver: ResolverFn<
-  Promise<Subgraph>,
+  Promise<SerializedSubgraph>,
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryQueryEntityTypesArgs
@@ -83,31 +84,31 @@ export const queryEntityTypesResolver: ResolverFn<
     equal: [{ path: ["version"] }, { parameter: "latest" }],
   };
 
-  const subgraph = await getEntityTypeSubgraph({ graphApi }, authentication, {
-    filter: latestOnly
-      ? filter
-        ? { all: [filter, latestOnlyFilter] }
-        : latestOnlyFilter
-      : { all: [] },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-      constrainsLinksOn,
-      constrainsLinkDestinationsOn,
-      inheritsFrom,
-    },
-    temporalAxes: includeArchived
-      ? fullTransactionTimeAxis
-      : currentTimeInstantTemporalAxes,
-    temporalClient: temporal,
-  });
-
-  return subgraph;
+  return serializeSubgraph(
+    await getEntityTypeSubgraph({ graphApi }, authentication, {
+      filter: latestOnly
+        ? filter
+          ? { all: [filter, latestOnlyFilter] }
+          : latestOnlyFilter
+        : { all: [] },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
+      },
+      temporalAxes: includeArchived
+        ? fullTransactionTimeAxis
+        : currentTimeInstantTemporalAxes,
+      temporalClient: temporal,
+    }),
+  );
 };
 
 export const getEntityTypeResolver: ResolverFn<
-  Promise<Subgraph>,
+  Promise<SerializedSubgraph>,
   Record<string, never>,
   GraphQLContext,
   QueryGetEntityTypeArgs
@@ -125,23 +126,25 @@ export const getEntityTypeResolver: ResolverFn<
   graphQLContext,
   __,
 ) =>
-  getEntityTypeSubgraphById(
-    graphQLContextToImpureGraphContext(graphQLContext),
-    graphQLContext.authentication,
-    {
-      entityTypeId,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        inheritsFrom,
+  serializeSubgraph(
+    await getEntityTypeSubgraphById(
+      graphQLContextToImpureGraphContext(graphQLContext),
+      graphQLContext.authentication,
+      {
+        entityTypeId,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn,
+          constrainsPropertiesOn,
+          constrainsLinksOn,
+          constrainsLinkDestinationsOn,
+          inheritsFrom,
+        },
+        temporalAxes: includeArchived
+          ? fullTransactionTimeAxis
+          : currentTimeInstantTemporalAxes,
       },
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
-    },
+    ),
   );
 
 export const updateEntityTypeResolver: ResolverFn<

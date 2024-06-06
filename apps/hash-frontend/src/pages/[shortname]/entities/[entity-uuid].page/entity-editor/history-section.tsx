@@ -7,6 +7,7 @@ import {
   fullOntologyResolveDepths,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { DiffEntityInput } from "@local/hash-subgraph";
 import { splitEntityId } from "@local/hash-subgraph";
 import { useMemo } from "react";
@@ -111,10 +112,12 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
 
     const { subgraph } = editionsData.getEntitySubgraph;
 
-    return getHistoryEvents(diffs ?? [], subgraph);
+    return getHistoryEvents(diffs ?? [], deserializeSubgraph(subgraph));
   }, [diffsData, diffsLoading, diffPairs, editionsData, editionsLoading]);
 
-  const subgraph = editionsData?.getEntitySubgraph.subgraph;
+  const subgraph = editionsData?.getEntitySubgraph.subgraph
+    ? deserializeSubgraph(editionsData.getEntitySubgraph.subgraph)
+    : undefined;
 
   const loading = editionsLoading || diffsLoading;
 

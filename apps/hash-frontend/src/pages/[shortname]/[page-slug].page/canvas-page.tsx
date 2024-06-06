@@ -3,6 +3,7 @@ import "@tldraw/tldraw/ui.css";
 
 import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
 import { fetchBlock } from "@local/hash-isomorphic-utils/blocks";
+import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import { Box } from "@mui/material";
 import { TldrawEditorConfig } from "@tldraw/editor";
@@ -12,7 +13,6 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { useUserBlocks } from "../../../blocks/user-blocks";
-import type { BlockCollectionContentItem } from "../../../graphql/api-types.gen";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import { BlockCreationDialog } from "./canvas-page/block-creation-dialog";
@@ -105,7 +105,7 @@ export const CanvasPageBlock = ({
               readonly: false,
             },
             linkEntityId: linkEntity.metadata.recordId.entityId,
-            pageEntityId: linkEntity.linkData?.leftEntityId,
+            pageEntityId: linkEntity.linkData.leftEntityId,
             h: height,
             w: width,
           },
