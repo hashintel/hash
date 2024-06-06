@@ -45,7 +45,7 @@ export const sanitizeHtmlForLlmConsumption = (params: {
     /**
      * Assume that each token is 4 characters long.
      *
-     * @todo: use `js-token` to more accurately determine the number of tokens.
+     * @todo: use `js-tiktoken` to more accurately determine the number of tokens.
      */
     maximumNumberOfTokens * 4,
   );
