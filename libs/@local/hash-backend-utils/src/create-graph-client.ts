@@ -83,6 +83,7 @@ export const createGraphClient = (
   const axiosInstance = axios.create({
     httpAgent,
     httpsAgent,
+    timeout: 10_000,
   });
 
   axiosInstance.interceptors.response.use(
