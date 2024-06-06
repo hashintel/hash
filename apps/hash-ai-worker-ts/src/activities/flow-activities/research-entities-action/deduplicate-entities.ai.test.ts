@@ -305,7 +305,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
 ];
 
 test(
-  "Test deduplicate entities with FTSE350 companies",
+  "Test deduplicate LLM providers",
   async () => {
     const { duplicates } = await deduplicateEntities({
       entities: llmProviderExistingEntitySummaries,
