@@ -114,9 +114,6 @@ async function run() {
   //   throw new Error("Vault client not created");
   // }
 
-  // eslint-disable-next-line no-console
-  // console.info("Created Vault client");
-
   const connection = await NativeConnection.connect({
     address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
   });
