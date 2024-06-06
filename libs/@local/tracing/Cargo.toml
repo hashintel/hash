@@ -13,7 +13,7 @@ error-stack = { workspace = true }
 opentelemetry_sdk = { version = "0.22.1", features = ["rt-tokio"] }
 opentelemetry = "0.22.0"
 opentelemetry-otlp = "0.15.0"
-sentry = { version = "0.33.0", features = [
+sentry = { version = "0.34.0", features = [
     "backtrace",
     "contexts",
     "debug-images",
