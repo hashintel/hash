@@ -1,6 +1,7 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -17,7 +18,7 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { AccountEntityId, Entity } from "@local/hash-subgraph";
+import type { AccountEntityId } from "@local/hash-subgraph";
 import {
   extractAccountId,
   extractEntityUuidFromEntityId,

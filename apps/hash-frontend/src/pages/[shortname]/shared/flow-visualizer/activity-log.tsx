@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityMetadata,
@@ -34,6 +35,8 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
 
   const entity = isPersistedEntity
     ? log.persistedEntity.entity
+      ? new Entity(log.persistedEntity.entity)
+      : undefined
     : log.proposedEntity;
 
   if (!entity) {
@@ -51,7 +54,7 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
       : entity.metadata.entityTypeId;
 
   const entityLabel = generateEntityLabel(null, {
-    ...entity,
+    properties: entity.properties,
     metadata: {
       recordId: {
         editionId: "irrelevant-here",

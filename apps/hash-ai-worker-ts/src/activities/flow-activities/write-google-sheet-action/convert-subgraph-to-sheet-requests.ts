@@ -580,7 +580,7 @@ export const convertSubgraphToSheetRequests = ({
              */
             entityCells.push(
               createCellFromValue({
-                value: entity.linkData?.leftEntityId ?? "",
+                value: entity.linkData.leftEntityId,
               }),
             );
           }
@@ -609,7 +609,7 @@ export const convertSubgraphToSheetRequests = ({
           } else {
             entityCells.push(
               createCellFromValue({
-                value: entity.linkData?.rightEntityId ?? "",
+                value: entity.linkData.rightEntityId,
               }),
             );
           }

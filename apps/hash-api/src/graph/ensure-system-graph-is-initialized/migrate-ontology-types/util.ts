@@ -26,6 +26,8 @@ import type {
   DataTypeRelationAndSubject,
   UpdatePropertyType,
 } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   ConstructDataTypeParams,
@@ -56,8 +58,6 @@ import {
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import type {
-  Entity,
-  EntityPropertiesObject,
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,

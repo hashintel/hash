@@ -28,6 +28,7 @@ import type {
   GetEntityTypesParams,
   GetPropertyTypesParams,
 } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   BaseUrl,
@@ -40,7 +41,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
-  Entity,
   OntologyTypeVertexId,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-subgraph";

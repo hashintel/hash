@@ -78,7 +78,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
         throw new Error(res.errors?.[0]?.message ?? "Unknown error");
       }
 
-      return getRoots(res.data.results) as unknown as EntityBp[];
+      return getRoots(res.data.results) as EntityBp[];
     },
     [queryEntities],
   );

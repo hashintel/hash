@@ -48,12 +48,11 @@ export const processAutomaticBrowsingSettingsAction: FlowActionActivity =
       throw new Error("User has no browser plugin settings configured");
     }
 
-    const {
-      properties: {
-        "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
-          automaticInferenceConfig,
-      },
-    } = userBrowserPluginSettings as BrowserPluginSettings;
+    const automaticInferenceConfig = (
+      userBrowserPluginSettings as BrowserPluginSettings
+    ).properties[
+      "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/"
+    ];
 
     if (Object.keys(automaticInferenceConfig).length === 0) {
       throw new Error(

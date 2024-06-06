@@ -1,4 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import {
@@ -21,7 +22,7 @@ import type {
   LinearIntegrationProperties,
   SyncLinearDataWithProperties,
 } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { Entity, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -183,7 +184,12 @@ export const getLinearIntegrationById: ImpureGraphFunction<
 
 export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
   { linearIntegrationEntityId: EntityId; includeDrafts?: boolean },
-  Promise<{ syncLinearDataWithLinkEntity: Entity; workspaceEntity: Entity }[]>
+  Promise<
+    {
+      syncLinearDataWithLinkEntity: Entity;
+      workspaceEntity: Entity;
+    }[]
+  >
 > = async (
   { graphApi },
   { actorId },

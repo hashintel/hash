@@ -2,7 +2,8 @@ import {
   ArrowUpRegularIcon,
   AsteriskRegularIcon,
 } from "@hashintel/design-system";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";

@@ -25,6 +25,7 @@ import { stringify } from "../shared/stringify";
 import type { FlowActionActivity } from "./types";
 import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
 import ChatCompletionToolMessageParam = OpenAI.ChatCompletionToolMessageParam;
+
 import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import {
@@ -34,6 +35,7 @@ import {
 } from "../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types";
 import { graphApiClient } from "../shared/graph-api-client";
+import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities";
 import { openAiSeed } from "../shared/open-ai-seed";
 
 const answerTools: LlmToolDefinition[] = [
@@ -128,7 +130,7 @@ const systemPrompt = dedent(`
 
   Your boss will ask you to answer a question based on the data provided to you. They might have asked for a specific output format,
   e.g. 'Markdown', 'JSON', or 'CSV'. If it isn't specified, you use your best judgment. Either way your response specifies the format used.
-  
+
   Your boss plans to use your answer to make a decision, so you make sure that it is accurate, concise, and clear.
   If you can't provide an answer based on the available data, you explain why, and request more data if it would help.
 
@@ -401,13 +403,7 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
   });
 
   const entities = inputEntities
-    ? inputEntities.flatMap((inputEntity) =>
-        "metadata" in inputEntity
-          ? inputEntity
-          : inputEntity.persistedEntities.flatMap(
-              ({ entity, existingEntity }) => entity ?? existingEntity ?? [],
-            ),
-      )
+    ? mapActionInputEntitiesToEntities({ inputEntities })
     : undefined;
 
   let contextFilePath;

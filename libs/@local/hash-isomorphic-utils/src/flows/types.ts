@@ -4,12 +4,16 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  EntityPropertiesObject,
+  EntityUuid,
+} from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
-import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 
 import type { ActionDefinitionId } from "./action-definitions";
@@ -55,13 +59,13 @@ export type ProposedEntityWithResolvedLinks = Omit<
 };
 
 export type PersistedEntity = {
-  entity?: Entity;
-  existingEntity?: Entity;
+  entity?: SerializedEntity;
+  existingEntity?: SerializedEntity;
   operation: "create" | "update" | "already-exists-as-proposed";
 };
 
 export type FailedEntityProposal = {
-  existingEntity?: Entity;
+  existingEntity?: SerializedEntity;
   operation?: "create" | "update" | "already-exists-as-proposed";
   proposedEntity: ProposedEntityWithResolvedLinks;
   message: string;
@@ -94,7 +98,7 @@ export type GoogleSheet = { spreadsheetId: string } | { newSheetName: string };
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Boolean: boolean;
-  Entity: Entity;
+  Entity: SerializedEntity;
   EntityId: EntityId;
   FormattedText: FormattedText;
   GoogleAccountId: string;

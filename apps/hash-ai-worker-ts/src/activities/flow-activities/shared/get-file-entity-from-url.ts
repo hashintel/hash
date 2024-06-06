@@ -26,11 +26,11 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGraphApiEntityMetadataToEntityId } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import mime from "mime-types";
 
@@ -130,8 +130,7 @@ export const getFileEntityFromUrl = async (params: {
 }): Promise<
   | {
       status: "ok";
-      entityMetadata: EntityMetadata;
-      properties: FileProperties;
+      entity: Entity<FileProperties>;
     }
   | {
       status: "error-uploading-file";
@@ -232,7 +231,7 @@ export const getFileEntityFromUrl = async (params: {
     } satisfies OriginProvenance,
   };
 
-  const incompleteFileEntityMetadata = await graphApiClient
+  const incompleteFileEntityId = await graphApiClient
     .createEntity(webBotActorId, {
       draft: false,
       ownedById: webId,
@@ -243,7 +242,7 @@ export const getFileEntityFromUrl = async (params: {
         createDefaultAuthorizationRelationships(userAuthentication),
       provenance,
     })
-    .then((result) => mapGraphApiEntityMetadataToMetadata(result.data));
+    .then((result) => mapGraphApiEntityMetadataToEntityId(result.data));
 
   const s3Config = getAwsS3Config();
 
@@ -252,7 +251,7 @@ export const getFileEntityFromUrl = async (params: {
   const editionIdentifier = generateUuid();
 
   const key = uploadProvider.getFileEntityStorageKey({
-    entityId: incompleteFileEntityMetadata.recordId.entityId,
+    entityId: incompleteFileEntityId,
     editionIdentifier,
     filename,
   });
@@ -274,9 +273,9 @@ export const getFileEntityFromUrl = async (params: {
     ...fileStorageProperties,
   };
 
-  const updatedEntityMetadata = await graphApiClient
+  const updatedEntity = await graphApiClient
     .patchEntity(webBotActorId, {
-      entityId: incompleteFileEntityMetadata.recordId.entityId,
+      entityId: incompleteFileEntityId,
       properties: [
         {
           op: "replace",
@@ -286,7 +285,13 @@ export const getFileEntityFromUrl = async (params: {
       ],
       provenance,
     })
-    .then((result) => mapGraphApiEntityMetadataToMetadata(result.data));
+    .then(
+      (result) =>
+        new Entity<FileProperties>({
+          metadata: result.data,
+          properties,
+        }),
+    );
 
   try {
     await writeFileToS3URL({
@@ -306,7 +311,6 @@ export const getFileEntityFromUrl = async (params: {
 
   return {
     status: "ok",
-    entityMetadata: updatedEntityMetadata,
-    properties,
+    entity: updatedEntity,
   };
 };

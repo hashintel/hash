@@ -1,14 +1,11 @@
 import { useQuery } from "@apollo/client";
-import type {
-  SimpleProperties,
-  Simplified,
-} from "@local/hash-isomorphic-utils/simplify-properties";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   HASHInstance,
   HASHInstanceProperties,
 } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import type { Entity } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import type {
@@ -22,7 +19,7 @@ import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash
  */
 export const useHashInstance = (): {
   loading: boolean;
-  hashInstance?: Entity<SimpleProperties<HASHInstanceProperties>>;
+  hashInstance?: Simplified<HASHInstance>;
 } => {
   const { data, loading } = useQuery<
     GetHashInstanceEntityQueryQuery,
@@ -33,21 +30,18 @@ export const useHashInstance = (): {
 
   const { hashInstanceEntity } = data ?? {};
 
-  const hashInstance = useMemo<
-    | (Omit<Entity, "properties"> & {
-        properties: Simplified<HASHInstance>["properties"];
-      })
-    | undefined
-  >(() => {
+  const hashInstance = useMemo<Simplified<HASHInstance> | undefined>(() => {
     if (!hashInstanceEntity) {
       return undefined;
     }
 
+    const deserializedHashInstanceEntity = new Entity<HASHInstanceProperties>(
+      hashInstanceEntity,
+    );
+
     return {
-      ...hashInstanceEntity,
-      properties: simplifyProperties(
-        hashInstanceEntity.properties as HASHInstanceProperties,
-      ),
+      metadata: deserializedHashInstanceEntity.metadata,
+      properties: simplifyProperties(deserializedHashInstanceEntity.properties),
     };
   }, [hashInstanceEntity]);
 

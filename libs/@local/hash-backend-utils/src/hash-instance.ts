@@ -4,6 +4,7 @@ import {
 } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -17,7 +18,6 @@ import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-pro
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import type { Entity } from "@local/hash-subgraph";
 
 export type HashInstance = {
   entity: Entity;

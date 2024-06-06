@@ -30,6 +30,7 @@
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
     "@local/advanced-types": "0.0.0-private",
+    "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-graph-types": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",

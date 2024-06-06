@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, EntityMetadata } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
@@ -18,17 +18,13 @@ import type {
   SimpleProperties,
   Simplified,
 } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { ImageProperties } from "@local/hash-isomorphic-utils/system-types/image";
+import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
 import type {
   BrowserPluginSettingsProperties,
-  OrganizationProperties,
+  Organization,
+  UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type {
-  Entity,
-  EntityTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 import debounce from "lodash.debounce";
 import browser from "webextension-polyfill";
 
@@ -36,7 +32,8 @@ import type { FlowRun } from "../graphql/api-types.gen";
 import { setDisabledBadge, setEnabledBadge } from "./badge";
 import { updateEntity } from "./storage/update-entity";
 
-type SimplifiedUser = Entity & {
+type SimplifiedUser = {
+  metadata: EntityMetadata;
   properties: Required<
     Pick<
       SimpleProperties<UserProperties>,
@@ -47,9 +44,9 @@ type SimplifiedUser = Entity & {
 };
 
 type UserAndLinkedData = SimplifiedUser & {
-  avatar?: Entity<ImageProperties>;
-  orgs: (Simplified<Entity<OrganizationProperties>> & {
-    avatar?: Entity<ImageProperties>;
+  avatar?: Image;
+  orgs: (Simplified<Organization> & {
+    avatar?: Image;
     webOwnedById: OwnedById;
   })[];
   settingsEntityId: EntityId;

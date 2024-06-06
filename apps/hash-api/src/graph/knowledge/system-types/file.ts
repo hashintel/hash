@@ -4,6 +4,7 @@ import {
   formatFileUrl,
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -11,7 +12,6 @@ import type {
   File,
   FileProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import mime from "mime-types";
 
@@ -246,14 +246,14 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           entity: existingEntity,
           entityTypeId,
           properties,
-        })) as unknown as File)
+        })) as Entity<FileProperties>)
       : ((await createEntity(ctx, authentication, {
           ownedById,
           properties,
           entityTypeId,
           relationships:
             createDefaultAuthorizationRelationships(authentication),
-        })) as unknown as File);
+        })) as Entity<FileProperties>);
   } catch (error) {
     throw new Error(
       `There was an error creating the file entity from a link: ${error}`,

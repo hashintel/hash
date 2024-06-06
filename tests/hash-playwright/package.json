@@ -13,6 +13,7 @@
   "dependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
+    "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",

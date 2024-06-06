@@ -1,6 +1,5 @@
 import type { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
-  getRoots as getRootsBp,
   isDataTypeRootedSubgraph as isDataTypeRootedSubgraphBp,
   isEntityRootedSubgraph as isEntityRootedSubgraphBp,
   isEntityTypeRootedSubgraph as isEntityTypeRootedSubgraphBp,
@@ -14,7 +13,9 @@ import type {
   PropertyTypeRootType,
   Subgraph,
   SubgraphRootType,
+  Vertex,
 } from "../../main";
+import { mustBeDefined } from "../../shared/invariant";
 
 /**
  * Returns all root elements.
@@ -30,7 +31,22 @@ import type {
 export const getRoots = <RootType extends SubgraphRootType>(
   subgraph: Subgraph<RootType>,
 ): RootType["element"][] =>
-  getRootsBp(subgraph as unknown as SubgraphBp<RootType>);
+  subgraph.roots.map((rootVertexId) => {
+    const root = mustBeDefined(
+      // @ts-expect-error - We could use type-guards here to convince TS that it's safe, but that
+      //                    would be slower, it's currently not smart enough to realise this can
+      //                    produce a value of type `Vertex` as it struggles with discriminating
+      //                    `EntityId` and `BaseUrl`
+      subgraph.vertices[rootVertexId.baseId]?.[
+        rootVertexId.revisionId
+      ] as Vertex,
+      `roots should have corresponding vertices but ${JSON.stringify(
+        rootVertexId,
+      )} was missing`,
+    );
+
+    return root.inner as RootType["element"];
+  });
 
 /**
  * A type-guard that can be used to constrain the generic parameter of `Subgraph` to `DataTypeWithMetadata`.

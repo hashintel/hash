@@ -2,8 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { LinkData } from "@local/hash-graph-types/entity";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   Actor,
@@ -416,9 +415,7 @@ export type CommentNotificationTriggeredByUserLink = {
   rightEntity: User;
 };
 
-export type RepliedToComment = Entity<RepliedToCommentProperties> & {
-  linkData: LinkData;
-};
+export type RepliedToComment = LinkEntity<RepliedToCommentProperties>;
 
 export type RepliedToCommentOutgoingLinkAndTarget = never;
 
@@ -433,9 +430,7 @@ export type RepliedToCommentProperties1 = LinkProperties;
 
 export type RepliedToCommentProperties2 = {};
 
-export type TriggeredByComment = Entity<TriggeredByCommentProperties> & {
-  linkData: LinkData;
-};
+export type TriggeredByComment = LinkEntity<TriggeredByCommentProperties>;
 
 export type TriggeredByCommentOutgoingLinkAndTarget = never;
 

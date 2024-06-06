@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
@@ -34,7 +35,8 @@ export const parseTextFromFile = async (
 ) => {
   const { graphApiClient } = context;
 
-  const { presignedFileDownloadUrl, fileEntity, webMachineActorId } = params;
+  const { presignedFileDownloadUrl, webMachineActorId } = params;
+  const fileEntity = new Entity(params.fileEntity);
 
   const fileBuffer = await fetchFileFromUrl(presignedFileDownloadUrl);
 

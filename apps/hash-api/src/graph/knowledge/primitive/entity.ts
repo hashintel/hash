@@ -17,11 +17,16 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  EntityPropertiesObject,
+  EntityUuid,
+} from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -30,7 +35,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  mapGraphApiEntityMetadataToMetadata,
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
@@ -40,9 +44,7 @@ import type {
 } from "@local/hash-isomorphic-utils/types";
 import type {
   DiffEntityInput,
-  Entity,
   EntityAuthorizationRelationship,
-  EntityPropertiesObject,
   EntityRelationAndSubject,
   EntityRootType,
   Subgraph,
@@ -54,7 +56,6 @@ import {
   isEntityVertex,
   splitEntityId,
 } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
 import type {
@@ -140,10 +141,10 @@ export const createEntity: ImpureGraphFunction<
     provenance,
   });
 
-  const entity = {
+  const entity = new Entity({
     properties,
-    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
-  };
+    metadata,
+  });
 
   for (const createOutgoingLinkParams of outgoingLinks ?? []) {
     await createLinkEntity(context, authentication, {
@@ -602,11 +603,11 @@ export const updateEntity: ImpureGraphFunction<
     }
   }
 
-  return {
+  return new Entity({
     ...entity,
-    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
+    metadata,
     properties,
-  };
+  });
 };
 
 export const archiveEntity: ImpureGraphFunction<
@@ -857,7 +858,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
           `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
         );
       }
-      return linkEntity;
+      return new LinkEntity(linkEntity);
     }),
   );
 };

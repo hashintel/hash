@@ -1,4 +1,5 @@
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Collapse, Divider } from "@mui/material";
 import { format } from "date-fns";
 import { forwardRef, Fragment, useMemo, useState } from "react";
@@ -89,7 +90,7 @@ export const TodaySection = forwardRef<
         />
         <Box flexGrow={1}>
           <NotesWrapper sx={{ padding: ({ spacing }) => spacing(3.25, 4.5) }}>
-            {/* 
+            {/*
             If the last created quick note is empty, we re-use it to populate the
             create quick note form. This prevents the quick notes page from creating
             a new quick note on every page load.

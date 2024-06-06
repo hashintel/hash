@@ -2,7 +2,6 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -10,10 +9,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  mapGraphApiEntityMetadataToMetadata,
-  mapGraphApiEntityToEntity,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -120,7 +116,7 @@ export const createMachineActorEntity = async (
     systemAccountId: AccountId;
     machineEntityTypeId?: VersionedUrl;
   },
-): Promise<EntityMetadata> => {
+): Promise<void> => {
   // Give the machine actor permissions to instantiate its own entity (entities of type Machine)
   await context.graphApi.modifyEntityTypeAuthorizationRelationships(
     systemAccountId,
@@ -139,36 +135,34 @@ export const createMachineActorEntity = async (
     ],
   );
 
-  const metadata = await context.graphApi
-    .createEntity(machineAccountId, {
-      draft: false,
-      entityTypeIds: [
-        machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
-      ],
-      ownedById,
-      properties: {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          displayName,
-        "https://hash.ai/@hash/types/property-type/machine-identifier/":
-          identifier,
-      } as MachineProperties,
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: machineAccountId,
-          },
+  await context.graphApi.createEntity(machineAccountId, {
+    draft: false,
+    entityTypeIds: [
+      machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
+    ],
+    ownedById,
+    properties: {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+        displayName,
+      "https://hash.ai/@hash/types/property-type/machine-identifier/":
+        identifier,
+    } as MachineProperties,
+    relationships: [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: machineAccountId,
         },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
+      },
+      {
+        relation: "viewer",
+        subject: {
+          kind: "public",
         },
-      ],
-    })
-    .then((resp) => mapGraphApiEntityMetadataToMetadata(resp.data));
+      },
+    ],
+  });
 
   if (!shouldBeAbleToCreateMoreMachineEntities) {
     await context.graphApi.modifyEntityTypeAuthorizationRelationships(
@@ -189,8 +183,6 @@ export const createMachineActorEntity = async (
       ],
     );
   }
-
-  return metadata;
 };
 
 /**

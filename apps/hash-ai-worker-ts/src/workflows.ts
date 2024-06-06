@@ -1,7 +1,8 @@
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -13,7 +14,6 @@ import type {
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type { Entity } from "@local/hash-subgraph";
 import {
   ActivityCancellationType,
   proxyActivities,
@@ -331,7 +331,7 @@ export const updateEntityEmbeddings = async (
     },
   } as const;
 
-  let entities: Entity[];
+  let entities: SerializedEntity[];
   let cursor: EntityQueryCursor | undefined | null = undefined;
 
   const usage: CreateEmbeddingResponse.Usage = {
@@ -342,24 +342,7 @@ export const updateEntityEmbeddings = async (
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     if ("entities" in params) {
-      entities = params.entities.map((entity) => {
-        // We should use `mapGraphApiEntityToEntity` but due to Temporal this function is not available in workflows
-        if (entity.metadata.entityTypeIds.length !== 1) {
-          throw new Error(
-            `Expected entity metadata to have exactly one entity type id, but got ${entity.metadata.entityTypeIds.length}`,
-          );
-        }
-        return {
-          ...entity,
-          metadata: {
-            recordId: entity.metadata.recordId,
-            entityTypeId: entity.metadata.entityTypeIds[0],
-            temporalVersioning: entity.metadata.temporalVersioning,
-            provenance: entity.metadata.provenance,
-            archived: entity.metadata.archived,
-          } as EntityMetadata,
-        } as Entity;
-      });
+      entities = params.entities.map((entity) => new Entity(entity).toJSON());
     } else {
       const queryResponse = await graphActivities.getEntitySubgraph({
         authentication: params.authentication,
@@ -391,7 +374,8 @@ export const updateEntityEmbeddings = async (
       break;
     }
 
-    for (const entity of entities) {
+    for (const serializedEntity of entities) {
+      const entity = new Entity(serializedEntity);
       /**
        * Don't try to create embeddings for `FlowRun` entities, due to the size
        * of their property values.

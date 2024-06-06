@@ -3,19 +3,19 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { EntityId, LinkData } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
-  Entity,
+  EntityId,
   EntityPropertiesObject,
-  EntityRelationAndSubject,
-} from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+  LinkData,
+} from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import {
@@ -114,11 +114,11 @@ export const createLinkEntity: ImpureGraphFunction<
     },
   );
 
-  const linkEntity = {
-    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
+  const linkEntity = new LinkEntity({
+    metadata,
     properties,
     linkData,
-  };
+  });
 
   for (const afterCreateHook of afterCreateEntityHooks) {
     if (afterCreateHook.entityTypeId === linkEntity.metadata.entityTypeId) {
@@ -166,11 +166,11 @@ export const updateLinkEntity: ImpureGraphFunction<
     provenance: params.provenance,
   });
 
-  return {
-    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
+  return new LinkEntity({
+    metadata,
     properties,
     linkData: linkEntity.linkData,
-  };
+  });
 };
 
 /**

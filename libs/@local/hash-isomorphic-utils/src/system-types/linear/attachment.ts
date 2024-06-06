@@ -2,8 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { LinkData } from "@local/hash-graph-types/entity";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   ActivePropertyValue,
@@ -296,9 +295,7 @@ export type AttachmentProperties = {
  */
 export type AttachmentURLPropertyValue = TextDataType;
 
-export type BelongsToIssue = Entity<BelongsToIssueProperties> & {
-  linkData: LinkData;
-};
+export type BelongsToIssue = LinkEntity<BelongsToIssueProperties>;
 
 export type BelongsToIssueOutgoingLinkAndTarget = never;
 
