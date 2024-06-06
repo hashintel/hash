@@ -9,9 +9,10 @@ import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-typ
 import { StatusCode } from "@local/status";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
-import { isAxiosError } from "axios";
 import dedent from "dedent";
+import { backOff } from "exponential-backoff";
 import type OpenAI from "openai";
+import { APIError, RateLimitError } from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
   ChatCompletion,
@@ -491,6 +492,85 @@ const getAnthropicResponse = async <ToolName extends string>(
   };
 };
 
+/**
+ * Converts a string into milliseconds, supporting strings in the formats: `5ms`, `5s`, `5m`, `5h`.
+ */
+const convertOpenAiTimeStringToMilliseconds = (timeString: string): number => {
+  const timeValue = parseFloat(timeString);
+  const unit = timeString.match(/[a-zA-Z]+/)?.[0];
+
+  if (!unit) {
+    throw new Error("Invalid time format");
+  }
+
+  switch (unit) {
+    case "ms":
+      return timeValue;
+    case "s":
+      return timeValue * 1000;
+    case "m":
+      return timeValue * 1000 * 60;
+    case "h":
+      return timeValue * 1000 * 60 * 60;
+    default:
+      throw new Error(`Unsupported time unit: ${unit}`);
+  }
+};
+
+const maximumRateLimitRetries = 5;
+
+const defaultBackoffStartingDelay = 5_000;
+
+/**
+ * Method for retrying OpenAI chat completions with a backoff, retrying
+ * only if subsequent rate limit errors are encountered.
+ */
+const openAiChatCompletionWithBackoff = async (params: {
+  completionPayload: ChatCompletionCreateParamsNonStreaming;
+  startingDelay?: number;
+  retryCount?: number;
+}): Promise<ChatCompletion> => {
+  const { completionPayload, startingDelay, retryCount } = params;
+  try {
+    return await backOff(
+      () => {
+        return openai.chat.completions.create(completionPayload);
+      },
+      {
+        startingDelay: startingDelay ?? defaultBackoffStartingDelay,
+        /**
+         * We only want to retry once per call to the `backoff` method, because we
+         * don't want to retry the request if a non-rate-limit related error is
+         * returned.
+         */
+        numOfAttempts: 1,
+      },
+    );
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      /**
+       * If we've reached the maximum number of retries, throw the rate limit error.
+       */
+      if (params.retryCount === maximumRateLimitRetries) {
+        throw error;
+      }
+
+      const rateLimitResetRequests =
+        error.headers?.["x-ratelimit-reset-requests"];
+
+      return openAiChatCompletionWithBackoff({
+        completionPayload,
+        startingDelay: rateLimitResetRequests
+          ? convertOpenAiTimeStringToMilliseconds(rateLimitResetRequests)
+          : undefined,
+        retryCount: (retryCount ?? 0) + 1,
+      });
+    }
+
+    throw error;
+  }
+};
+
 const getOpenAiResponse = async <ToolName extends string>(
   params: OpenAiLlmParams<ToolName>,
 ): Promise<LlmResponse<OpenAiLlmParams>> => {
@@ -589,28 +669,42 @@ const getOpenAiResponse = async <ToolName extends string>(
 
   try {
     openAiResponse = await openai.chat.completions.create(completionPayload);
+  } catch (error: unknown) {
+    if (error instanceof RateLimitError) {
+      logger.error(
+        `Encountered OpenAi Rate Limit API error: ${stringify(error)}`,
+      );
 
-    /**
-     * Avoid logging logprobs, as they clutter the output. The `logprobs` will
-     * be persisted in the LLM Request logs instead.
-     */
-    const choicesWithoutLogProbs = openAiResponse.choices.map(
-      ({ logprobs: _logprobs, ...choice }) => choice,
-    );
+      const rateLimitResetRequests =
+        error.headers?.["x-ratelimit-reset-requests"];
 
-    logger.debug(
-      `OpenAI response: ${stringify({ ...openAiResponse, choices: choicesWithoutLogProbs })}`,
-    );
-  } catch (error) {
+      openAiResponse = await openAiChatCompletionWithBackoff({
+        completionPayload,
+        startingDelay: rateLimitResetRequests
+          ? convertOpenAiTimeStringToMilliseconds(rateLimitResetRequests)
+          : undefined,
+      });
+    }
+
     logger.error(`OpenAI API error: ${stringify(error)}`);
-
-    const axiosError = isAxiosError(error) ? error : undefined;
 
     return {
       status: "api-error",
-      axiosError,
+      openAiApiError: error instanceof APIError ? error : undefined,
     };
   }
+
+  /**
+   * Avoid logging logprobs, as they clutter the output. The `logprobs` will
+   * be persisted in the LLM Request logs instead.
+   */
+  const choicesWithoutLogProbs = openAiResponse.choices.map(
+    ({ logprobs: _logprobs, ...choice }) => choice,
+  );
+
+  logger.debug(
+    `OpenAI response: ${stringify({ ...openAiResponse, choices: choicesWithoutLogProbs })}`,
+  );
 
   const currentRequestTime = Date.now() - timeBeforeRequest;
 

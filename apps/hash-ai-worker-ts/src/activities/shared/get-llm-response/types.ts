@@ -1,4 +1,4 @@
-import type { AxiosError } from "axios";
+import type { APIError } from "openai/error";
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
   ChatCompletion as OpenAiChatCompletion,
@@ -127,7 +127,7 @@ export type LlmErrorResponse =
     }
   | {
       status: "api-error";
-      axiosError?: AxiosError;
+      openAiApiError?: APIError;
     }
   | {
       status: "exceeded-usage-limit";
