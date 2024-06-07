@@ -109,6 +109,11 @@ blocks/**/.env
 **/.mypy_cache
 **/.pytest_cache
 **/.hypothesis
+**/wheels/
+
+# venv
+.venv
+
 
 # generated files
 *.gen.*

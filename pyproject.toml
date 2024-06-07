@@ -1,11 +1,14 @@
 [project]
 name = "HASH"
+version = "0.0.0+private"
 
 [tool.rye]
 virtual = true
 
+# an empty key is here by no mistake, it enables workspaces
+# and enables automatic detection of workspace members
+# see: https://rye.astral.sh/guide/pyproject/#toolryeworkspace
 [tool.rye.workspace]
-members = ["apps/lm-prompt-optimization"]
 
 [tool.ruff]
 target-version = "py311"

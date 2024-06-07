@@ -1,8 +1,8 @@
 [project]
 name = "lm-prompt-optimization"
-version = "0.1.0"
+version = "0.0.0+private"
 description = "Add your description here"
-authors = []
+authors = [{ name = "HASH" }]
 dependencies = ["dspy-ai>=2.4.9"]
 readme = "README.md"
 requires-python = ">= 3.11"
