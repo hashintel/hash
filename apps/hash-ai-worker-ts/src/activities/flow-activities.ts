@@ -6,9 +6,9 @@ import { generateFlowRunName } from "./flow-activities/generate-flow-run-name-ac
 import { generateWebQueriesAction } from "./flow-activities/generate-web-queries-action";
 // import { getFileFromUrlAction } from "./flow-activities/get-file-from-url-action";
 import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action";
-import { getWebPageSummaryAction } from "./flow-activities/get-web-page-summary-action";
+// import { getWebPageSummaryAction } from "./flow-activities/get-web-page-summary-action";
 import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action";
-import { persistEntitiesAction } from "./flow-activities/persist-entities-action";
+// import { persistEntitiesAction } from "./flow-activities/persist-entities-action";
 // import { persistEntityAction } from "./flow-activities/persist-entity-action";
 import { persistFlowActivity } from "./flow-activities/persist-flow-activity";
 import { processAutomaticBrowsingSettingsAction } from "./flow-activities/process-automatic-browsing-settings-action";
@@ -29,10 +29,10 @@ export const createFlowActionActivities = ({
   processAutomaticBrowsingSettingsAction,
   inferEntitiesFromContentAction,
   // persistEntityAction,
-  persistEntitiesAction,
+  // persistEntitiesAction,
   // getFileFromUrlAction,
   // researchEntitiesAction,
-  getWebPageSummaryAction,
+  // getWebPageSummaryAction,
   answerQuestionAction,
   writeGoogleSheetAction(
     params: Omit<Parameters<typeof writeGoogleSheetAction>[0], "vaultClient">,
