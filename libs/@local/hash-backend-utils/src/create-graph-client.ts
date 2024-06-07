@@ -16,10 +16,10 @@ import axios from "axios";
 type GraphApi = GraphApiClient & DataSource;
 
 const agentConfig = {
-  maxSockets: 128,
+  maxSockets: 256,
   maxFreeSockets: 20,
-  timeout: 60 * 1000, // ms
-  freeSocketTimeout: 30 * 1000, // ms
+  timeout: 90 * 1000, // ms
+  freeSocketTimeout: 45 * 1000, // ms
 };
 const httpAgent = new HttpAgent(agentConfig);
 const httpsAgent = new HttpsAgent(agentConfig);
