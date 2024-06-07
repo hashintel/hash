@@ -1,5 +1,5 @@
 <b>invalid input parameter</b>
-├╴at <i>src/fmt/hook.rs:20:14</i>
+├╴at <i>libs/error-stack/src/fmt/hook.rs:20:14</i>
 ├╴backtrace (1)
 ├╴suggestion: try better next time
 ╰╴sorry for the inconvenience!
