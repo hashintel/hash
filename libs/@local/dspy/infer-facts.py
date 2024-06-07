@@ -1,5 +1,6 @@
 import dspy
 import json
+import random
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
@@ -18,15 +19,32 @@ class FactInferrer(dspy.Signature):
     """Infer facts about named entities from a piece of context"""
     
     context: str = dspy.InputField()
-    subjectEntity: EntitySummary = dspy.InputField(description="The entity that must be the subject of the facts")
-    potentialObjectEntities: List[EntitySummary] = dspy.InputField(description="The entities that could be the object of the facts")
+    # subjectEntity: EntitySummary = dspy.InputField(description="The entity that must be the subject of the facts", format=dict)
+    subjectEntity: str = dspy.InputField(desc="The entity that must be the subject of the facts")
+    # potentialObjectEntities: List[EntitySummary] = dspy.InputField(description="The entities that could be the object of the facts", required=False, format=list)
 
-    facts: list[Fact] = dspy.OutputField()
+    facts = dspy.OutputField(desc=f"a list of Fact objects, each of which should confirm to the schema {Fact.model_json_schema()}", format=list)
   
 # Load the language model to use
-gpt4o = dspy.OpenAI(model='gpt-4o', max_tokens=80_000)
+gpt4o = dspy.OpenAI(model='gpt-4o', max_tokens=4_000)
 dspy.settings.configure(lm=gpt4o)
 
 with open("input.json") as f:
     input_data = json.load(f)
-    print(input_data)
+
+def cache_busting_config():
+    return dict(temperature=0.7 + 0.0001 * random.uniform(-1, 1))
+
+predictor = dspy.Predict(FactInferrer)
+
+pred = predictor(**input_data)
+
+print("Simple predictor answer:")
+print(f"{pred.facts}")
+
+cot = dspy.ChainOfThought(FactInferrer, **cache_busting_config())
+
+pred = cot(**input_data)
+
+print("Chain of Thought answer:")
+print(f"{pred.facts}")
