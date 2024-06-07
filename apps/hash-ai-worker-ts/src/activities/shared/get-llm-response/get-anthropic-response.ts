@@ -87,6 +87,18 @@ const convertAnthropicRateLimitRequestsResetTimestampToMilliseconds = ({
   return rateLimitEndInMilliseconds;
 };
 
+const throttledStartingDelay = 15_000; // 15 seconds
+
+const isErrorAnthropicThrottlingError = (error: unknown): boolean =>
+  error instanceof APIError &&
+  !!error.status &&
+  /**
+   * @todo: This is a temporary solution until we have a better way to
+   * determine if the error is caused by throttling.
+   */
+  error.status >= 500 &&
+  error.status < 600;
+
 /**
  * Method for retrying Anthropic request, retrying
  * only if subsequent rate limit errors are encountered.
@@ -140,6 +152,17 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
               anthropicRateLimitRequestsResetTimestamp,
             })
           : undefined,
+        retryCount: retryCount + 1,
+      });
+    } else if (isErrorAnthropicThrottlingError(error)) {
+      /**
+       * If we receive an error which may have been caused by throttling,
+       * we should retry the request with a delay (we can't know exactly how long
+       * we'll be throttled for, so need to guess).
+       */
+      return createAnthropicMessagesWithToolsWithBackoff({
+        payload,
+        startingDelay: throttledStartingDelay,
         retryCount: retryCount + 1,
       });
     }
@@ -215,6 +238,11 @@ export const getAnthropicResponse = async <ToolName extends string>(
               anthropicRateLimitRequestsResetTimestamp,
             })
           : undefined,
+      });
+    } else if (isErrorAnthropicThrottlingError(error)) {
+      anthropicResponse = await createAnthropicMessagesWithToolsWithBackoff({
+        payload,
+        startingDelay: throttledStartingDelay,
       });
     }
 
