@@ -16,10 +16,10 @@ import { processAutomaticBrowsingSettingsAction } from "./flow-activities/proces
 import type { FlowActionActivity } from "./flow-activities/types";
 import { userHasPermissionToRunFlowInWebActivity } from "./flow-activities/user-has-permission-to-run-flow-in-web-activity";
 import { webSearchAction } from "./flow-activities/web-search-action";
-import { writeGoogleSheetAction } from "./flow-activities/write-google-sheet-action";
+// import { writeGoogleSheetAction } from "./flow-activities/write-google-sheet-action";
 
 export const createFlowActionActivities = ({
-  vaultClient,
+  vaultClient: _vaultClient,
 }: {
   vaultClient: VaultClient;
 }): Record<string, FlowActionActivity> => ({
@@ -34,11 +34,11 @@ export const createFlowActionActivities = ({
   // researchEntitiesAction,
   // getWebPageSummaryAction,
   // answerQuestionAction,
-  writeGoogleSheetAction(
-    params: Omit<Parameters<typeof writeGoogleSheetAction>[0], "vaultClient">,
-  ) {
-    return writeGoogleSheetAction({ ...params, vaultClient });
-  },
+  // writeGoogleSheetAction(
+  //   params: Omit<Parameters<typeof writeGoogleSheetAction>[0], "vaultClient">,
+  // ) {
+  //   return writeGoogleSheetAction({ ...params, vaultClient });
+  // },
 });
 
 export const createFlowActivities = ({
