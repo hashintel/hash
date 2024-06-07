@@ -8,8 +8,8 @@ import { generateWebQueriesAction } from "./flow-activities/generate-web-queries
 import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action";
 // import { getWebPageSummaryAction } from "./flow-activities/get-web-page-summary-action";
 import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action";
-// import { persistEntitiesAction } from "./flow-activities/persist-entities-action";
-// import { persistEntityAction } from "./flow-activities/persist-entity-action";
+import { persistEntitiesAction } from "./flow-activities/persist-entities-action";
+import { persistEntityAction } from "./flow-activities/persist-entity-action";
 import { persistFlowActivity } from "./flow-activities/persist-flow-activity";
 import { processAutomaticBrowsingSettingsAction } from "./flow-activities/process-automatic-browsing-settings-action";
 // import { researchEntitiesAction } from "./flow-activities/research-entities-action";
@@ -28,8 +28,8 @@ export const createFlowActionActivities = ({
   getWebPageByUrlAction,
   processAutomaticBrowsingSettingsAction,
   inferEntitiesFromContentAction,
-  // persistEntityAction,
-  // persistEntitiesAction,
+  persistEntityAction,
+  persistEntitiesAction,
   // getFileFromUrlAction,
   // researchEntitiesAction,
   // getWebPageSummaryAction,
