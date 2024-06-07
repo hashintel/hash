@@ -86,7 +86,7 @@ impl ConsoleStream {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::Args))]
+#[cfg_attr(feature = "clap", derive(clap::Args), clap(next_help_heading = Some("Console logging")))]
 pub struct ConsoleConfig {
     /// Whether to enable logging to stdout/stderr
     #[cfg_attr(
@@ -246,7 +246,7 @@ impl FileRotation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::Args))]
+#[cfg_attr(feature = "clap", derive(clap::Args), clap(next_help_heading = Some("File logging")))]
 pub struct FileConfig {
     /// Whether to enable logging to a file
     #[cfg_attr(

@@ -13,7 +13,7 @@ use tracing_subscriber::{registry::LookupSpan, Layer};
 
 /// Arguments for configuring the logging setup
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "clap", derive(clap::Args))]
+#[cfg_attr(feature = "clap", derive(clap::Args), clap(next_help_heading = Some("Open Telemetry")))]
 pub struct OpenTelemetryConfig {
     /// The OpenTelemetry protocol endpoint for sending traces.
     #[cfg_attr(
