@@ -287,7 +287,7 @@ async fn no_initial_metadata() {
         .expect("could not update entity");
 
     assert_eq!(updated_entity.metadata.confidence, Some(confidence(0.5)));
-    assert!(updated_entity.properties.is_empty());
+    assert!(updated_entity.metadata.properties.is_empty());
 
     let path: PropertyPath = once(PropertyPathElement::from(name_property_type_id())).collect();
     let path_pointer = path.to_json_pointer();
@@ -502,5 +502,5 @@ async fn properties_remove() {
         .await
         .expect("could not patch entity");
 
-    assert!(updated_entity.properties.is_empty());
+    assert!(updated_entity.metadata.properties.is_empty());
 }
