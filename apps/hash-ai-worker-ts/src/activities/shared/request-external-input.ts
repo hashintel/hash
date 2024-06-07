@@ -5,18 +5,21 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { Context } from "@temporalio/activity";
+import type { Client as TemporalClient } from "@temporalio/client";
 
 import { getExternalInputResponseQuery } from "../../shared/queries";
 import { externalInputRequestSignal } from "../../shared/signals";
 import { logger } from "./activity-logger";
 
-const temporalClient = await createTemporalClient();
+let temporalClient: TemporalClient | undefined;
 
 export const requestExternalInput = async <
   Request extends ExternalInputRequestSignal,
 >(
   request: Request,
 ): Promise<ExternalInputResponseSignal<Request["type"]>> => {
+  temporalClient = temporalClient ?? (await createTemporalClient());
+
   const workflowId = Context.current().info.workflowExecution.workflowId;
 
   const handle = temporalClient.workflow.getHandle(workflowId);
