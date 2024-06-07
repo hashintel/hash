@@ -220,7 +220,7 @@ async fn update() {
         .await
         .expect("could not create entity");
 
-    let v2_metadata = api
+    let v2 = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
@@ -246,7 +246,7 @@ async fn update() {
         .count_entities(
             api.account_id,
             CountEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(v2.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -265,7 +265,7 @@ async fn update() {
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(v2.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(None, None),
@@ -318,12 +318,12 @@ async fn update() {
     assert_eq!(entity_v1.properties.properties(), page_v1.properties());
 
     let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
-        *v2_metadata.temporal_versioning.decision_time.start();
+        *v2.metadata.temporal_versioning.decision_time.start();
     let mut response_v2 = api
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v2_metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(v2.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(

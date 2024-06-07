@@ -30,7 +30,6 @@ import { Entity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityMetadataToEntityId } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import mime from "mime-types";
 
@@ -231,18 +230,20 @@ export const getFileEntityFromUrl = async (params: {
     } satisfies OriginProvenance,
   };
 
-  const incompleteFileEntityId = await graphApiClient
-    .createEntity(webBotActorId, {
+  const incompleteFileEntity = await Entity.create(
+    graphApiClient,
+    { actorId: webBotActorId },
+    {
       draft: false,
       ownedById: webId,
       propertyMetadata,
       properties: initialProperties,
-      entityTypeIds: [entityTypeId],
+      entityTypeId,
       relationships:
         createDefaultAuthorizationRelationships(userAuthentication),
       provenance,
-    })
-    .then((result) => mapGraphApiEntityMetadataToEntityId(result.data));
+    },
+  );
 
   const s3Config = getAwsS3Config();
 
@@ -251,7 +252,7 @@ export const getFileEntityFromUrl = async (params: {
   const editionIdentifier = generateUuid();
 
   const key = uploadProvider.getFileEntityStorageKey({
-    entityId: incompleteFileEntityId,
+    entityId: incompleteFileEntity.metadata.recordId.entityId,
     editionIdentifier,
     filename,
   });
@@ -273,9 +274,10 @@ export const getFileEntityFromUrl = async (params: {
     ...fileStorageProperties,
   };
 
-  const updatedEntity = await graphApiClient
-    .patchEntity(webBotActorId, {
-      entityId: incompleteFileEntityId,
+  const updatedEntity = (await incompleteFileEntity.patch(
+    graphApiClient,
+    { actorId: webBotActorId },
+    {
       properties: [
         {
           op: "replace",
@@ -284,14 +286,8 @@ export const getFileEntityFromUrl = async (params: {
         },
       ],
       provenance,
-    })
-    .then(
-      (result) =>
-        new Entity<FileProperties>({
-          metadata: result.data,
-          properties,
-        }),
-    );
+    },
+  )) as Entity<FileProperties>;
 
   try {
     await writeFileToS3URL({

@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { GraphApi } from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -135,34 +136,37 @@ export const createMachineActorEntity = async (
     ],
   );
 
-  await context.graphApi.createEntity(machineAccountId, {
-    draft: false,
-    entityTypeIds: [
-      machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
-    ],
-    ownedById,
-    properties: {
-      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-        displayName,
-      "https://hash.ai/@hash/types/property-type/machine-identifier/":
-        identifier,
-    } as MachineProperties,
-    relationships: [
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: machineAccountId,
+  await Entity.create(
+    context.graphApi,
+    { actorId: machineAccountId },
+    {
+      draft: false,
+      entityTypeId:
+        machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
+      ownedById,
+      properties: {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+          displayName,
+        "https://hash.ai/@hash/types/property-type/machine-identifier/":
+          identifier,
+      } as MachineProperties,
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: machineAccountId,
+          },
         },
-      },
-      {
-        relation: "viewer",
-        subject: {
-          kind: "public",
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
         },
-      },
-    ],
-  });
+      ],
+    },
+  );
 
   if (!shouldBeAbleToCreateMoreMachineEntities) {
     await context.graphApi.modifyEntityTypeAuthorizationRelationships(

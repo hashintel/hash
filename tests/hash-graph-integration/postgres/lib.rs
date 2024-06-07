@@ -790,7 +790,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: PatchEntityParams,
-    ) -> Result<EntityMetadata, UpdateError> {
+    ) -> Result<Entity, UpdateError> {
         self.store.patch_entity(actor_id, params).await
     }
 

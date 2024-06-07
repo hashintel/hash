@@ -20,7 +20,6 @@ import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import type { PositionInput } from "../../../graphql/api-types.gen";
 import type { ImpureGraphFunction } from "../../context-types";
 import {
-  archiveEntity,
   getEntityOutgoingLinks,
   getLatestEntityById,
 } from "../primitive/entity";
@@ -102,14 +101,16 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
   }
 
   const linkEntity: LinkEntity = await createLinkEntity(ctx, authentication, {
-    leftEntityId: blockCollectionEntityId,
-    rightEntityId: block.entity.metadata.recordId.entityId,
-    linkEntityTypeId: canvasPosition
-      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
-      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
-    properties: canvasPosition || indexPosition,
+    properties: (canvasPosition || indexPosition) ?? {},
+    linkData: {
+      leftEntityId: blockCollectionEntityId,
+      rightEntityId: block.entity.metadata.recordId.entityId,
+    },
+    entityTypeId: canvasPosition
+      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
+      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
@@ -169,5 +170,5 @@ export const removeBlockFromBlockCollection: ImpureGraphFunction<
     entityId: linkEntityId,
   });
 
-  await archiveEntity(ctx, authentication, { entity: linkEntity });
+  await linkEntity.archive(ctx.graphApi, authentication);
 };

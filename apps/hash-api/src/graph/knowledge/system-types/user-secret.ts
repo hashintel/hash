@@ -16,7 +16,7 @@ import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-t
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 import type { Auth } from "googleapis";
 
-import { archiveEntity, createEntity } from "../primitive/entity";
+import { createEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
 type CreateUserSecretParams<T extends object> = {
@@ -143,12 +143,8 @@ export const createUserSecret = async <
 
     await Promise.all(
       linkAndSecretPairs.flatMap(({ userSecret, usesUserSecretLink }) => [
-        archiveEntity({ graphApi }, managingBotAuthentication, {
-          entity: userSecret,
-        }),
-        archiveEntity({ graphApi }, managingBotAuthentication, {
-          entity: usesUserSecretLink,
-        }),
+        userSecret.archive(graphApi, managingBotAuthentication),
+        usesUserSecretLink.archive(graphApi, managingBotAuthentication),
       ]),
     );
   }
@@ -163,9 +159,12 @@ export const createUserSecret = async <
   /** Link the user secret to the Google Account */
   await createLinkEntity({ graphApi }, authentication, {
     ownedById: userAccountId as OwnedById,
-    linkEntityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-    leftEntityId: sourceIntegrationEntityId,
-    rightEntityId: userSecretEntity.metadata.recordId.entityId,
+    properties: {},
+    linkData: {
+      leftEntityId: sourceIntegrationEntityId,
+      rightEntityId: userSecretEntity.metadata.recordId.entityId,
+    },
+    entityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
     relationships: botEditorUserViewerOnly,
   });
 

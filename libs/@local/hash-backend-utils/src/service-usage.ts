@@ -1,6 +1,6 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
@@ -304,40 +304,41 @@ export const createUsageRecord = async (
     usageRecordEntityUuid,
   );
 
-  const createdEntitiesMetadata = await context.graphApi
-    .createEntities(authentication.actorId, [
+  const createdEntities = await Entity.createMultiple(
+    context.graphApi,
+    { actorId: authentication.actorId },
+    [
       {
+        ownedById: userAccountId as OwnedById,
         draft: false,
         entityUuid: usageRecordEntityUuid,
-        ownedById: userAccountId,
         properties,
-        entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
+        entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
         relationships: entityRelationships,
       },
       {
+        ownedById: userAccountId as OwnedById,
         draft: false,
-        ownedById: userAccountId,
         properties: {},
         linkData: {
           leftEntityId: usageRecordEntityId,
           rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
         },
-        entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
+        entityTypeId: systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
         relationships: entityRelationships,
       },
-    ])
-    .then(({ data }) => data);
-
-  const usageRecordEntityMetadata = createdEntitiesMetadata.find(
-    (entityMetadata) =>
-      entityMetadata.recordId.entityId === usageRecordEntityId,
+    ],
   );
 
-  if (!usageRecordEntityMetadata) {
+  const usageRecordEntity = createdEntities.find(
+    (entity) => entity.metadata.recordId.entityId === usageRecordEntityId,
+  );
+
+  if (!usageRecordEntity) {
     throw new Error(
       `Failed to create usage record entity for user ${userAccountId}.`,
     );
   }
 
-  return usageRecordEntityMetadata;
+  return usageRecordEntity;
 };

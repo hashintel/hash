@@ -735,7 +735,7 @@ where
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = EntityMetadata),
+        (status = 200, content_type = "application/json", description = "The updated entity", body = Entity),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
         (status = 423, content_type = "text/plain", description = "The entity that should be updated was unexpectedly updated at the same time"),
 
@@ -754,7 +754,7 @@ async fn patch_entity<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(params): Json<PatchEntityParams>,
-) -> Result<Json<EntityMetadata>, Response>
+) -> Result<Json<Entity>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,

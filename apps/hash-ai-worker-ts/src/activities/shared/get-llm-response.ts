@@ -1,6 +1,7 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
-import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -938,10 +939,10 @@ export const getLlmResponse = async <T extends LlmParams>(
   ) {
     const { usage } = llmResponse;
 
-    let usageRecordEntityMetadata: EntityMetadata;
+    let usageRecordEntity: Entity;
 
     try {
-      usageRecordEntityMetadata = await createUsageRecord(
+      usageRecordEntity = await createUsageRecord(
         { graphApi: graphApiClient },
         { actorId: aiAssistantAccountId },
         {
@@ -972,41 +973,43 @@ export const getLlmResponse = async <T extends LlmParams>(
       const errors = await Promise.all(
         incurredInEntities.map(async ({ entityId }) => {
           try {
-            await graphApiClient.createEntity(aiAssistantAccountId, {
-              draft: false,
-              properties: {},
-              ownedById: webId,
-              entityTypeIds: [
-                systemLinkEntityTypes.incurredIn.linkEntityTypeId,
-              ],
-              linkData: {
-                leftEntityId: usageRecordEntityMetadata.recordId.entityId,
-                rightEntityId: entityId,
+            await Entity.create(
+              graphApiClient,
+              { actorId: aiAssistantAccountId },
+              {
+                draft: false,
+                properties: {},
+                ownedById: webId,
+                entityTypeId: systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+                linkData: {
+                  leftEntityId: usageRecordEntity.metadata.recordId.entityId,
+                  rightEntityId: entityId,
+                },
+                relationships: [
+                  {
+                    relation: "administrator",
+                    subject: {
+                      kind: "account",
+                      subjectId: aiAssistantAccountId,
+                    },
+                  },
+                  {
+                    relation: "viewer",
+                    subject: {
+                      kind: "account",
+                      subjectId: userAccountId,
+                    },
+                  },
+                  {
+                    relation: "viewer",
+                    subject: {
+                      kind: "accountGroup",
+                      subjectId: hashInstanceAdminGroupId,
+                    },
+                  },
+                ],
               },
-              relationships: [
-                {
-                  relation: "administrator",
-                  subject: {
-                    kind: "account",
-                    subjectId: aiAssistantAccountId,
-                  },
-                },
-                {
-                  relation: "viewer",
-                  subject: {
-                    kind: "account",
-                    subjectId: userAccountId,
-                  },
-                },
-                {
-                  relation: "viewer",
-                  subject: {
-                    kind: "accountGroup",
-                    subjectId: hashInstanceAdminGroupId,
-                  },
-                },
-              ],
-            });
+            );
 
             return [];
           } catch (error) {

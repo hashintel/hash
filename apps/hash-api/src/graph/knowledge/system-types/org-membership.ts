@@ -83,10 +83,12 @@ export const createOrgMembership: ImpureGraphFunction<
   try {
     linkEntity = await createLinkEntity(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
-      linkEntityTypeId: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-      leftEntityId: userEntityId,
-      rightEntityId: orgEntityId,
       properties: {},
+      linkData: {
+        leftEntityId: userEntityId,
+        rightEntityId: orgEntityId,
+      },
+      entityTypeId: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
       relationships: createOrgMembershipAuthorizationRelationships({
         memberAccountId: userAccountId,
       }),

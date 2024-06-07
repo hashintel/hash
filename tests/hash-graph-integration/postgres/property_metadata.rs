@@ -154,7 +154,7 @@ async fn initial_metadata() {
     let mut api = seed(&mut database).await;
 
     let entity_property_metadata = property_metadata([("", 0.5, property_provenance_a())]);
-    let entity = api
+    let entity_metadata = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -174,14 +174,14 @@ async fn initial_metadata() {
         .await
         .expect("could not create entity");
 
-    assert_eq!(entity.confidence, Some(confidence(0.5)));
-    assert_eq!(entity.properties, entity_property_metadata);
+    assert_eq!(entity_metadata.confidence, Some(confidence(0.5)));
+    assert_eq!(entity_metadata.properties, entity_property_metadata);
 
     let updated_entity = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
+                entity_id: entity_metadata.record_id.entity_id,
                 properties: Vec::new(),
                 entity_type_ids: vec![],
                 archived: None,
@@ -194,13 +194,13 @@ async fn initial_metadata() {
         .await
         .expect("could not update entity");
 
-    assert_eq!(updated_entity, entity);
+    assert_eq!(updated_entity.metadata, entity_metadata);
 
     let updated_entity = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
+                entity_id: entity_metadata.record_id.entity_id,
                 properties: Vec::new(),
                 entity_type_ids: vec![],
                 archived: None,
@@ -213,10 +213,10 @@ async fn initial_metadata() {
         .await
         .expect("could not update entity");
 
-    assert!(updated_entity.confidence.is_none());
-    assert_eq!(updated_entity.properties, entity_property_metadata);
+    assert!(updated_entity.metadata.confidence.is_none());
+    assert_eq!(updated_entity.metadata.properties, entity_property_metadata);
     assert_eq!(
-        updated_entity.provenance.edition.provided,
+        updated_entity.metadata.provenance.edition.provided,
         edition_provenance()
     );
 }
@@ -227,7 +227,7 @@ async fn no_initial_metadata() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
-    let entity = api
+    let entity_metadata = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -247,14 +247,14 @@ async fn no_initial_metadata() {
         .await
         .expect("could not create entity");
 
-    assert!(entity.confidence.is_none());
-    assert!(entity.properties.is_empty());
+    assert!(entity_metadata.confidence.is_none());
+    assert!(entity_metadata.properties.is_empty());
 
     let updated_entity = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
+                entity_id: entity_metadata.record_id.entity_id,
                 properties: Vec::new(),
                 entity_type_ids: vec![],
                 archived: None,
@@ -267,13 +267,13 @@ async fn no_initial_metadata() {
         .await
         .expect("could not update entity");
 
-    assert_eq!(entity, updated_entity);
+    assert_eq!(entity_metadata, updated_entity.metadata);
 
     let updated_entity = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
+                entity_id: entity_metadata.record_id.entity_id,
                 properties: Vec::new(),
                 entity_type_ids: vec![],
                 archived: None,
@@ -286,8 +286,8 @@ async fn no_initial_metadata() {
         .await
         .expect("could not update entity");
 
-    assert_eq!(updated_entity.confidence, Some(confidence(0.5)));
-    assert!(updated_entity.properties.is_empty());
+    assert_eq!(updated_entity.metadata.confidence, Some(confidence(0.5)));
+    assert!(updated_entity.metadata.properties.is_empty());
 
     let path: PropertyPath = once(PropertyPathElement::from(name_property_type_id())).collect();
     let path_pointer = path.to_json_pointer();
@@ -295,7 +295,7 @@ async fn no_initial_metadata() {
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
+                entity_id: entity_metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                     value: Property::Value(json!("Alice")),
@@ -313,9 +313,9 @@ async fn no_initial_metadata() {
         .await
         .expect("could not update entity");
 
-    assert!(updated_entity.confidence.is_none());
+    assert!(updated_entity.metadata.confidence.is_none());
     assert_eq!(
-        updated_entity.properties,
+        updated_entity.metadata.properties,
         property_metadata([(path_pointer.as_str(), 0.5, property_provenance_a())])
     );
 
@@ -323,7 +323,7 @@ async fn no_initial_metadata() {
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
+                entity_id: entity_metadata.record_id.entity_id,
                 properties: Vec::new(),
                 entity_type_ids: vec![],
                 archived: None,
@@ -336,13 +336,13 @@ async fn no_initial_metadata() {
         .await
         .expect("could not update entity");
 
-    assert_eq!(updated_entity.confidence, Some(confidence(0.5)));
+    assert_eq!(updated_entity.metadata.confidence, Some(confidence(0.5)));
     assert_eq!(
-        updated_entity.properties,
+        updated_entity.metadata.properties,
         property_metadata([(path_pointer.as_str(), 0.5, property_provenance_a())])
     );
     assert_eq!(
-        updated_entity.provenance.edition.provided,
+        updated_entity.metadata.provenance.edition.provided,
         edition_provenance()
     );
 }
@@ -398,7 +398,7 @@ async fn properties_add() {
 
     let path_pointer = path.to_json_pointer();
     assert_eq!(
-        updated_entity.properties,
+        updated_entity.metadata.properties,
         property_metadata([(path_pointer.as_str(), 0.5, property_provenance_a())])
     );
 }
@@ -472,7 +472,7 @@ async fn properties_remove() {
     let film_path_pointer = film_path.to_json_pointer();
     let interests_path_pointer = interests_path.to_json_pointer();
     assert_eq!(
-        updated_entity.properties,
+        updated_entity.metadata.properties,
         property_metadata([
             (
                 interests_path_pointer.as_str(),
@@ -502,5 +502,5 @@ async fn properties_remove() {
         .await
         .expect("could not patch entity");
 
-    assert!(updated_entity.properties.is_empty());
+    assert!(updated_entity.metadata.properties.is_empty());
 }

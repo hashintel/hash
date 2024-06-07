@@ -5,12 +5,12 @@ import { migrateOntologyTypes } from "@apps/hash-api/src/graph/ensure-system-gra
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import type { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { vi } from "vitest";
 
 export const textDataTypeId =

@@ -1,7 +1,9 @@
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -94,19 +96,23 @@ export const createGraphChangeNotification = async (
   /**
    * We create the notification entity with the user's web bot, as we know it has the necessary permissions in the user's web
    */
-  const notificationEntityMetadata = await graphApi
-    .createEntity(webMachineActorId, {
+  const notificationEntity = await Entity.create(
+    graphApi,
+    { actorId: webMachineActorId },
+    {
       draft: false,
-      entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
-      ownedById: notifiedUserAccountId,
+      entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
+      ownedById: notifiedUserAccountId as OwnedById,
       properties: {
-        [systemPropertyTypes.graphChangeType.propertyTypeBaseUrl]: operation,
+        [systemPropertyTypes.graphChangeType.propertyTypeBaseUrl as BaseUrl]:
+          operation,
       },
       relationships: notificationEntityRelationships,
-    })
-    .then((resp) => resp.data);
+    },
+  );
 
-  await graphApi.createEntity(
+  await Entity.create(
+    graphApi,
     /**
      * We use the user's authority to create the link to the entity because it might be in a different web, e.g. an org's,
      * and we can't be sure that any single bot has access to both the user's web and the web of the changed entity,
@@ -114,17 +120,17 @@ export const createGraphChangeNotification = async (
      *
      * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
      */
-    notifiedUserAccountId,
+    { actorId: notifiedUserAccountId },
     {
       draft: false,
-      entityTypeIds: [systemLinkEntityTypes.occurredInEntity.linkEntityTypeId],
-      ownedById: notifiedUserAccountId,
+      entityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+      ownedById: notifiedUserAccountId as OwnedById,
       linkData: {
-        leftEntityId: notificationEntityMetadata.recordId.entityId,
+        leftEntityId: notificationEntity.metadata.recordId.entityId,
         rightEntityId: changedEntityId,
       },
       properties: {
-        [systemPropertyTypes.entityEditionId.propertyTypeBaseUrl]:
+        [systemPropertyTypes.entityEditionId.propertyTypeBaseUrl as BaseUrl]:
           changedEntityEditionId,
       },
       relationships: linkEntityRelationships,

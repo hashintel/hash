@@ -888,11 +888,11 @@
         },
         "responses": {
           "200": {
-            "description": "The metadata of the updated entity",
+            "description": "The updated entity",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EntityMetadata"
+                  "$ref": "#/components/schemas/Entity"
                 }
               }
             }
