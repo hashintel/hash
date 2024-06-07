@@ -238,7 +238,7 @@ export const EntityTypePage = ({
     const res = await updateEntityType(
       {
         ...schema,
-        allOf: [{ $ref: linkEntityTypeUrl }],
+        allOf: [{ $ref: linkEntityTypeUrl }, ...schema.allOf],
       },
       { icon, labelProperty: labelProperty as BaseUrl },
     );
