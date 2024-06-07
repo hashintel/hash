@@ -111,10 +111,6 @@ blocks/**/.env
 **/.hypothesis
 **/wheels
 
-# venv
-.venv
-
-
 # generated files
 *.gen.*
 *.tsbuildinfo
