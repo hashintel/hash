@@ -9,7 +9,7 @@ import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-act
 // import { getWebPageSummaryAction } from "./flow-activities/get-web-page-summary-action";
 import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action";
 import { persistEntitiesAction } from "./flow-activities/persist-entities-action";
-import { persistEntityAction } from "./flow-activities/persist-entity-action";
+// import { persistEntityAction } from "./flow-activities/persist-entity-action";
 import { persistFlowActivity } from "./flow-activities/persist-flow-activity";
 import { processAutomaticBrowsingSettingsAction } from "./flow-activities/process-automatic-browsing-settings-action";
 // import { researchEntitiesAction } from "./flow-activities/research-entities-action";
@@ -28,7 +28,7 @@ export const createFlowActionActivities = ({
   getWebPageByUrlAction,
   processAutomaticBrowsingSettingsAction,
   inferEntitiesFromContentAction,
-  persistEntityAction,
+  // persistEntityAction,
   persistEntitiesAction,
   // getFileFromUrlAction,
   // researchEntitiesAction,
