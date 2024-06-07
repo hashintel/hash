@@ -19,7 +19,7 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
-// import { createVaultClient } from "@local/hash-backend-utils/vault";
+import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
@@ -87,10 +87,10 @@ async function run() {
   // eslint-disable-next-line no-console
   console.info("Created Graph client");
 
-  // const vaultClient = createVaultClient();
-  // if (!vaultClient) {
-  //   throw new Error("Vault client not created");
-  // }
+  const vaultClient = createVaultClient();
+  if (!vaultClient) {
+    throw new Error("Vault client not created");
+  }
 
   // eslint-disable-next-line no-console
   console.info("Created Vault client");
@@ -110,7 +110,7 @@ async function run() {
       ...createGraphActivities({
         graphApiClient,
       }),
-      ...createFlowActivities(),
+      ...createFlowActivities({ vaultClient }),
     },
     connection,
     namespace: "HASH",
