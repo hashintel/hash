@@ -28,6 +28,9 @@ graph-test-data = { workspace = true }
 postgres = ["dep:postgres-types"]
 utoipa = ["dep:utoipa"]
 
+[lints]
+workspace = true
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.92", features = ["serde-serialize"] }
 # The `console_error_panic_hook` crate provides better debugging of panics by

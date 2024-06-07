@@ -84,3 +84,70 @@ uuid = { version = "1.8.0", default-features = false }
 inherits = "release"
 lto = "fat"
 strip = "none"
+
+[workspace.lints.rust]
+nonstandard_style = { level = "warn", priority = -1 }
+future_incompatible = { level = "warn", priority = -1 }
+
+unsafe_code = "deny"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+restriction = { level = "warn", priority = -1 }
+
+# Should be enabled:
+allow_attributes_without_reason = "allow"
+arithmetic_side_effects = "allow"
+as_conversions = "allow"
+else_if_without_else = "allow"
+enum_variant_names = "allow"
+expect_used = "allow"
+infinite_loop = "allow"
+indexing_slicing = "allow"
+let_underscore_must_use = "allow"
+let_underscore_untyped = "allow" # Conflicts with `clippy::no_effect_underscore_binding` in function bindings
+missing_assert_message = "allow"
+multiple_inherent_impl = "allow"
+panic = "allow"
+partial_pub_fields = "allow"
+unwrap_in_result = "allow"
+wildcard_enum_match_arm = "allow"
+
+# Consider enabling:
+absolute_paths = "allow"
+default_numeric_fallback = "allow"
+impl_trait_in_params = "allow"
+iter_over_hash_type = "allow"
+min_ident_chars = "allow"
+multiple_unsafe_ops_per_block = "allow"
+pattern_type_mismatch = "allow"
+shadow_unrelated = "allow"
+single_call_fn = "allow"
+single_char_lifetime_names = "allow"
+tests_outside_test_module = "allow"
+unimplemented = "allow"
+unreachable = "allow"
+
+# Does not apply to us:
+blanket_clippy_restriction_lints = "allow"
+exhaustive_enums = "allow"
+exhaustive_structs = "allow"
+implicit_return = "allow"
+missing_docs_in_private_items = "allow"
+missing_inline_in_public_items = "allow"
+missing_trait_methods = "allow" # Should be enabled per `impl` instead of globally
+mod_module_files = "allow" # opposite of `clippy::self_named_module_files`
+module_name_repetitions = "allow"
+pub_use = "allow"
+pub_with_shorthand = "allow" # # opposite of `clippy::pub_without_shorthand`
+question_mark_used = "allow"
+ref_patterns = "allow"
+redundant_pub_crate = "allow" # opposite of `unreachable_pub`
+semicolon_outside_block = "allow" # opposite of `clippy::semicolon_inside_block`
+separated_literal_suffix = "allow" # opposite of `clippy::unseparated_literal_suffix`
+shadow_reuse = "allow"
+shadow_same = "allow"
+unneeded_field_pattern = "allow"

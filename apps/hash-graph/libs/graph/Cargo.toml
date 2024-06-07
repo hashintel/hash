@@ -73,3 +73,6 @@ utoipa = [
     "temporal-versioning/utoipa",
     "authorization/utoipa",
 ]
+
+[lints]
+workspace = true

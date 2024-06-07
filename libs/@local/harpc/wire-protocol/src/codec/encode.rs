@@ -112,7 +112,7 @@ pub(crate) mod test {
     }
 
     #[track_caller]
-    #[allow(clippy::needless_pass_by_value)]
+    #[expect(clippy::needless_pass_by_value)]
     pub(crate) fn assert_encode<T>(value: &T, expected: Expect)
     where
         T: Encode + Sync,

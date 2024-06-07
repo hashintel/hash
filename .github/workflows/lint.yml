@@ -154,8 +154,6 @@ jobs:
         if: always() && steps.lints.outputs.has-clippy == 'true'
         working-directory: ${{ matrix.directory }}
         run: |
-          just lint-toml "check"
-
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
