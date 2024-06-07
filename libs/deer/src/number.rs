@@ -1,7 +1,5 @@
 #[cfg(all(not(feature = "std"), feature = "arbitrary-precision"))]
-use alloc::string::String;
-#[cfg(all(not(feature = "std"), feature = "arbitrary-precision"))]
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 use core::fmt::{Display, Formatter};
 #[cfg(not(feature = "arbitrary-precision"))]
 use core::ops::Neg;

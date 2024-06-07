@@ -11,17 +11,7 @@ use std::{
 };
 
 #[cfg(feature = "clap")]
-use clap::builder::TypedValueParser;
-#[cfg(feature = "clap")]
-use clap::error::ErrorKind;
-#[cfg(feature = "clap")]
-use clap::Arg;
-#[cfg(feature = "clap")]
-use clap::Command;
-#[cfg(feature = "clap")]
-use clap::Error;
-#[cfg(feature = "clap")]
-use clap::Parser;
+use clap::{builder::TypedValueParser, error::ErrorKind, Arg, Command, Error, Parser};
 use error_stack::Report;
 pub use sentry::release_name;
 use sentry::{

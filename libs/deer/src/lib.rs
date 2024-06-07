@@ -21,9 +21,7 @@
 //  only be generated through `*Access` implementations.
 
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::string::String;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use core::marker::PhantomData;
 
 use error_stack::{Report, Result, ResultExt};
@@ -804,11 +802,7 @@ impl<T> DeserializeOwned for T where T: for<'de> Deserialize<'de> {}
 #[cfg(test)]
 pub(crate) mod test {
     #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::format;
-    #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::string::String;
-    #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::vec::Vec;
+    use alloc::{format, string::String, vec::Vec};
     use core::{
         fmt::{Display, Formatter},
         marker::PhantomData,

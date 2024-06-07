@@ -1,9 +1,7 @@
 use alloc::{borrow::Cow, vec::Vec};
 
 #[cfg(feature = "serde")]
-use serde::Deserialize;
-#[cfg(feature = "serde")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::schema::{PropertyBag, ReportingDescriptor};
 

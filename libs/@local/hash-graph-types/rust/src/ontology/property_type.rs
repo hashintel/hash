@@ -1,19 +1,12 @@
 #[cfg(feature = "postgres")]
-use postgres_types::FromSql;
-#[cfg(feature = "postgres")]
-use postgres_types::ToSql;
+use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 use type_system::{url::VersionedUrl, PropertyType};
 #[cfg(feature = "utoipa")]
-use utoipa::openapi::schema;
-#[cfg(feature = "utoipa")]
-use utoipa::openapi::Ref;
-#[cfg(feature = "utoipa")]
-use utoipa::openapi::RefOr;
-#[cfg(feature = "utoipa")]
-use utoipa::openapi::Schema;
-#[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
+use utoipa::{
+    openapi::{schema, Ref, RefOr, Schema},
+    ToSchema,
+};
 use uuid::Uuid;
 
 use crate::{

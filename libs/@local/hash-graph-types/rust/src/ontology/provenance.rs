@@ -4,15 +4,7 @@ use std::error::Error;
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
-use postgres_types::FromSql;
-#[cfg(feature = "postgres")]
-use postgres_types::IsNull;
-#[cfg(feature = "postgres")]
-use postgres_types::Json;
-#[cfg(feature = "postgres")]
-use postgres_types::ToSql;
-#[cfg(feature = "postgres")]
-use postgres_types::Type;
+use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 
 use crate::{

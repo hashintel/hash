@@ -1,7 +1,5 @@
 #[cfg(nightly)]
-use core::error::Error;
-#[cfg(nightly)]
-use core::error::Request;
+use core::error::{Error, Request};
 use core::fmt;
 #[cfg(all(not(nightly), feature = "std"))]
 use std::error::Error;

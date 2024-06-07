@@ -1,9 +1,7 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::boxed::Box;
 #[cfg(nightly)]
-use core::error::Error;
-#[cfg(nightly)]
-use core::error::Request;
+use core::error::{Error, Request};
 use core::{any::Any, fmt};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind};

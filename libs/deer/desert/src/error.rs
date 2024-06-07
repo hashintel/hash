@@ -1,8 +1,6 @@
 use alloc::borrow::Cow;
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::vec;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 use core::ops::Deref;
 
 use serde_json::Value;

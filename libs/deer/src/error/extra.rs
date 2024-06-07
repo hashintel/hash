@@ -1,7 +1,5 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::string::String;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use core::{
     fmt,
     fmt::{Display, Formatter},
@@ -248,9 +246,7 @@ impl Display for ArrayLengthError {
 #[cfg(test)]
 mod tests {
     #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::borrow::ToOwned;
-    #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::vec;
+    use alloc::{borrow::ToOwned, vec};
 
     use serde_json::json;
 

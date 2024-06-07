@@ -4,16 +4,12 @@ use core::{fmt, str::FromStr};
 
 use error_stack::Report;
 #[cfg(feature = "postgres")]
-use postgres_types::FromSql;
-#[cfg(feature = "postgres")]
-use postgres_types::ToSql;
+use postgres_types::{FromSql, ToSql};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
 use type_system::url::{BaseUrl, VersionedUrl};
 #[cfg(feature = "utoipa")]
-use utoipa::openapi;
-#[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
+use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
 pub use self::provenance::{

@@ -6,19 +6,11 @@ use std::error::Error;
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
-use postgres_types::FromSql;
-#[cfg(feature = "postgres")]
-use postgres_types::IsNull;
-#[cfg(feature = "postgres")]
-use postgres_types::ToSql;
-#[cfg(feature = "postgres")]
-use postgres_types::Type;
+use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use type_system::url::{BaseUrl, ParseBaseUrlError};
 #[cfg(feature = "utoipa")]
-use utoipa::openapi;
-#[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
+use utoipa::{openapi, ToSchema};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

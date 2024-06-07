@@ -63,10 +63,7 @@ pub mod __private {
     // false-positive lint
     #[allow(unreachable_pub)]
     // Import anonymously to allow calling `__kind` but forbid implementing the tag-traits.
-    pub use self::specialization::ContextTag as _;
-    #[allow(unreachable_pub)]
-    // Import anonymously to allow calling `__kind` but forbid implementing the tag-traits.
-    pub use self::specialization::ReportTag as _;
+    pub use self::specialization::{ContextTag as _, ReportTag as _};
 }
 
 /// Creates a [`Report`] from the given parameters.

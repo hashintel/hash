@@ -1,10 +1,8 @@
 #![cfg_attr(nightly, feature(sync_unsafe_cell))]
 #![allow(clippy::ignored_unit_patterns)] // Reason: `proptest` does not match against `Ok(())` but `Ok(_)`
-#[cfg(nightly)]
-use core::cell::OnceCell;
-#[cfg(nightly)]
-use core::cell::SyncUnsafeCell;
 use core::cell::{Cell, RefCell, UnsafeCell};
+#[cfg(nightly)]
+use core::cell::{OnceCell, SyncUnsafeCell};
 
 use deer::{Deserialize, Number};
 use deer_desert::{assert_tokens, assert_tokens_with_assertion, Token};

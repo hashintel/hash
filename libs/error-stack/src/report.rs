@@ -1,30 +1,20 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::boxed::Box;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::vec;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec, vec::Vec};
 #[cfg(nightly)]
 use core::error::Error;
 use core::{fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
-use std::backtrace::Backtrace;
-#[cfg(all(rust_1_65, feature = "std"))]
-use std::backtrace::BacktraceStatus;
+use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(all(not(nightly), feature = "std"))]
 use std::error::Error;
 #[cfg(feature = "std")]
 use std::process::ExitCode;
 
 #[cfg(feature = "spantrace")]
-use tracing_error::SpanTrace;
-#[cfg(feature = "spantrace")]
-use tracing_error::SpanTraceStatus;
+use tracing_error::{SpanTrace, SpanTraceStatus};
 
 #[cfg(nightly)]
-use crate::iter::RequestRef;
-#[cfg(nightly)]
-use crate::iter::RequestValue;
+use crate::iter::{RequestRef, RequestValue};
 use crate::{
     iter::{Frames, FramesMut},
     Context, Frame,

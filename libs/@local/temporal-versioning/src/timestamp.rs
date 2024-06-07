@@ -6,17 +6,11 @@ use std::error::Error;
 use bytes::BytesMut;
 use derivative::Derivative;
 #[cfg(feature = "postgres")]
-use postgres_types::FromSql;
-#[cfg(feature = "postgres")]
-use postgres_types::ToSql;
-#[cfg(feature = "postgres")]
-use postgres_types::Type;
+use postgres_types::{FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use time::{format_description::well_known::Iso8601, OffsetDateTime};
 #[cfg(feature = "utoipa")]
-use utoipa::openapi;
-#[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
+use utoipa::{openapi, ToSchema};
 
 use crate::TemporalTagged;
 

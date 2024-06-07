@@ -4,11 +4,7 @@
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::boxed::Box;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::string::String;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::vec::Vec;
+use alloc::{boxed::Box, string::String, vec::Vec};
 use core::{any::TypeId, mem};
 
 pub(crate) use default::install_builtin_hooks;

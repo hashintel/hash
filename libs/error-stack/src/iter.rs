@@ -1,9 +1,7 @@
 //! Iterators over [`Frame`]s.
 
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::vec;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 #[cfg(nightly)]
 use core::marker::PhantomData;
 use core::{

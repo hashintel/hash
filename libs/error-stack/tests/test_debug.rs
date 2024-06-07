@@ -253,10 +253,13 @@ mod full {
     //!
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
-    use core::fmt::{Display, Formatter};
     #[cfg(nightly)]
     use std::error::Request;
-    use std::{error::Error, panic::Location};
+    use std::{
+        error::Error,
+        fmt::{Display, Formatter},
+        panic::Location,
+    };
 
     #[allow(clippy::wildcard_imports)]
     use super::*;

@@ -1,13 +1,5 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::boxed::Box;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::format;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::string::String;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::vec;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::vec::Vec;
+use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
 use core::{
     cell::Cell,
     fmt,
@@ -282,11 +274,7 @@ impl<C: Context> Serialize for Export<C> {
 #[cfg(test)]
 mod tests {
     #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::format;
-    #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::vec;
-    #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::vec::Vec;
+    use alloc::{format, vec, vec::Vec};
     use core::fmt::{Display, Formatter};
 
     use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report};

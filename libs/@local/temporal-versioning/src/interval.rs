@@ -12,20 +12,12 @@ use std::error::Error;
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
-use postgres_protocol::types::timestamp_from_sql;
+use postgres_protocol::types::{timestamp_from_sql, RangeBound};
 #[cfg(feature = "postgres")]
-use postgres_protocol::types::RangeBound;
-#[cfg(feature = "postgres")]
-use postgres_types::FromSql;
-#[cfg(feature = "postgres")]
-use postgres_types::ToSql;
-#[cfg(feature = "postgres")]
-use postgres_types::Type;
+use postgres_types::{FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
-use utoipa::openapi;
-#[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
+use utoipa::{openapi, ToSchema};
 
 use crate::bounds::{compare_bounds, BoundType, IntervalBound, IntervalBoundHelper};
 #[cfg(feature = "postgres")]

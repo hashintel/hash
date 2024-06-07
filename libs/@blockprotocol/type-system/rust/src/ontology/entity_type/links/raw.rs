@@ -3,9 +3,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]
-use tsify::Tsify;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
+use {tsify::Tsify, wasm_bindgen::prelude::*};
 
 use crate::{
     raw, url::VersionedUrl, EntityTypeReference, OneOf, ParseEntityTypeReferenceArrayError,

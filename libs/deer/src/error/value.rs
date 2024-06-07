@@ -1,7 +1,5 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::boxed::Box;
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::format;
+use alloc::{boxed::Box, format};
 use core::{
     fmt,
     fmt::{Display, Formatter},

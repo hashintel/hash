@@ -4,23 +4,13 @@ use std::error::Error;
 
 pub use error::{ParseBaseUrlError, ParseVersionedUrlError};
 #[cfg(feature = "postgres")]
-use postgres_types::private::BytesMut;
-#[cfg(feature = "postgres")]
-use postgres_types::FromSql;
-#[cfg(feature = "postgres")]
-use postgres_types::IsNull;
-#[cfg(feature = "postgres")]
-use postgres_types::ToSql;
-#[cfg(feature = "postgres")]
-use postgres_types::Type;
+use postgres_types::{private::BytesMut, FromSql, IsNull, ToSql, Type};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 #[cfg(target_arch = "wasm32")]
 use tsify::Tsify;
 use url::Url;
 #[cfg(feature = "utoipa")]
-use utoipa::openapi;
-#[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
+use utoipa::{openapi, ToSchema};
 
 mod error;
 #[cfg(target_arch = "wasm32")]

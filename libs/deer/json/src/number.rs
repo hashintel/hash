@@ -6,11 +6,7 @@ use error_stack::Report;
 use error_stack::Result;
 use justjson::JsonNumber;
 #[cfg(not(feature = "arbitrary-precision"))]
-use lexical::parse_float_options::JSON;
-#[cfg(not(feature = "arbitrary-precision"))]
-use lexical::parse_integer_options::STANDARD;
-#[cfg(not(feature = "arbitrary-precision"))]
-use lexical::FromLexicalWithOptions;
+use lexical::{parse_float_options::JSON, parse_integer_options::STANDARD, FromLexicalWithOptions};
 
 #[cfg(not(feature = "arbitrary-precision"))]
 use crate::error::NumberError;

@@ -11,17 +11,14 @@ pub fn create_report() -> Report<RootError> {
 
 extern crate alloc;
 
-#[allow(unused_imports)]
-use core::fmt;
-#[allow(unused_imports)]
-use core::future::Future;
-#[allow(unused_imports)]
-use core::iter;
-#[allow(unused_imports)]
-use core::sync::atomic::AtomicI8;
-#[allow(unused_imports)]
-use core::sync::atomic::Ordering;
 use core::{any::TypeId, panic::Location};
+#[allow(unused_imports)]
+use core::{
+    fmt,
+    future::Future,
+    iter,
+    sync::atomic::{AtomicI8, Ordering},
+};
 #[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::Backtrace;
 

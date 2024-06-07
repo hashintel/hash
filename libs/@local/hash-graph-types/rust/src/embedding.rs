@@ -3,17 +3,9 @@ use alloc::borrow::Cow;
 use std::error::Error;
 
 #[cfg(feature = "postgres")]
-use bytes::BufMut;
+use bytes::{BufMut, BytesMut};
 #[cfg(feature = "postgres")]
-use bytes::BytesMut;
-#[cfg(feature = "postgres")]
-use postgres_types::FromSql;
-#[cfg(feature = "postgres")]
-use postgres_types::IsNull;
-#[cfg(feature = "postgres")]
-use postgres_types::ToSql;
-#[cfg(feature = "postgres")]
-use postgres_types::Type;
+use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
