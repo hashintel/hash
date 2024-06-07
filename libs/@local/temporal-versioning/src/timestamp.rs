@@ -1,7 +1,6 @@
-use core::fmt;
+use core::{cmp::Ordering, fmt, marker::PhantomData, str::FromStr};
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{cmp::Ordering, marker::PhantomData, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;

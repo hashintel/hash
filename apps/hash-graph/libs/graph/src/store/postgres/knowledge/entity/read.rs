@@ -1,4 +1,5 @@
-use std::{borrow::Cow, mem::swap};
+use alloc::borrow::Cow;
+use core::mem::swap;
 
 use error_stack::{Result, ResultExt};
 use graph_types::{

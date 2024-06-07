@@ -1,4 +1,9 @@
-use std::ops::Bound;
+#![expect(
+    clippy::allow_attributes,
+    reason = "derivative does not support expect"
+)]
+
+use core::ops::Bound;
 
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};

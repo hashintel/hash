@@ -1,44 +1,44 @@
 ---
-source: tests/test_debug.rs
+source: libs/error-stack/tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 context A
-├╴at tests/test_debug.rs:206:10
+├╴at libs/error-stack/tests/test_debug.rs:206:10
 ├╴2
 ├╴1
 │
 ╰┬▶ context A
- │  ├╴at tests/test_debug.rs:200:10
+ │  ├╴at libs/error-stack/tests/test_debug.rs:200:10
  │  ├╴4
  │  ├╴3
  │  │
  │  ╰─▶ root error
- │      ├╴at tests/common.rs:9:5
+ │      ├╴at libs/error-stack/tests/common.rs:9:5
  │      ├╴backtrace (1)
  │      ├╴span trace with 2 frames (1)
  │      ╰╴6
  │
  ╰▶ context A
-    ├╴at tests/test_debug.rs:195:10
+    ├╴at libs/error-stack/tests/test_debug.rs:195:10
     ├╴5
     ├╴3
     │
     ├─▶ context A
-    │   ├╴at tests/test_debug.rs:193:10
+    │   ├╴at libs/error-stack/tests/test_debug.rs:193:10
     │   ╰╴7
     │
     ╰┬▶ context A
-     │  ├╴at tests/test_debug.rs:184:34
+     │  ├╴at libs/error-stack/tests/test_debug.rs:184:34
      │  ├╴9
      │  ├╴8
      │  │
      │  ╰─▶ root error
-     │      ├╴at tests/common.rs:9:5
+     │      ├╴at libs/error-stack/tests/common.rs:9:5
      │      ├╴backtrace (2)
      │      ╰╴span trace with 2 frames (2)
      │
      ├▶ context A
-     │  ├╴at tests/test_debug.rs:178:10
+     │  ├╴at libs/error-stack/tests/test_debug.rs:178:10
      │  ├╴13
      │  ├╴10
      │  ├╴16
@@ -46,12 +46,12 @@ context A
      │  ├╴8
      │  │
      │  ╰─▶ root error
-     │      ├╴at tests/common.rs:9:5
+     │      ├╴at libs/error-stack/tests/common.rs:9:5
      │      ├╴backtrace (3)
      │      ╰╴span trace with 2 frames (3)
      │
      ├▶ context A
-     │  ├╴at tests/test_debug.rs:164:10
+     │  ├╴at libs/error-stack/tests/test_debug.rs:164:10
      │  ├╴15
      │  ├╴14
      │  ├╴10
@@ -60,32 +60,32 @@ context A
      │  ├╴8
      │  │
      │  ╰─▶ root error
-     │      ├╴at tests/common.rs:9:5
+     │      ├╴at libs/error-stack/tests/common.rs:9:5
      │      ├╴backtrace (4)
      │      ╰╴span trace with 2 frames (4)
      │
      ├▶ context A
-     │  ├╴at tests/test_debug.rs:174:10
+     │  ├╴at libs/error-stack/tests/test_debug.rs:174:10
      │  ├╴11
      │  ├╴9
      │  ├╴8
      │  │
      │  ╰─▶ root error
-     │      ├╴at tests/common.rs:9:5
+     │      ├╴at libs/error-stack/tests/common.rs:9:5
      │      ├╴backtrace (5)
      │      ╰╴span trace with 2 frames (5)
      │
      ╰▶ context A
-        ├╴at tests/test_debug.rs:170:10
+        ├╴at libs/error-stack/tests/test_debug.rs:170:10
         ├╴12
         ├╴9
         ├╴8
         │
         ├─▶ context A
-        │   ╰╴at tests/test_debug.rs:169:10
+        │   ╰╴at libs/error-stack/tests/test_debug.rs:169:10
         │
         ╰─▶ root error
-            ├╴at tests/common.rs:9:5
+            ├╴at libs/error-stack/tests/common.rs:9:5
             ├╴backtrace (6)
             ╰╴span trace with 2 frames (6)
 

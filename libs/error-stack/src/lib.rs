@@ -482,6 +482,8 @@
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
 )]
 #![allow(unsafe_code)]
+// This is an error handling library producing Results, not Errors
+#![allow(clippy::missing_errors_doc)]
 
 extern crate alloc;
 

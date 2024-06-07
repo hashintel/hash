@@ -1,4 +1,5 @@
-use std::collections::{hash_map::Entry, BTreeMap, HashMap};
+use alloc::collections::BTreeMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 use graph::subgraph::temporal_axes::VariableAxis;
 use graph_types::knowledge::entity::EntityId;

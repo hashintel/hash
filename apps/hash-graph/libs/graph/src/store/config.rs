@@ -1,5 +1,4 @@
-use core::fmt;
-use std::num::NonZero;
+use core::{fmt, num::NonZero};
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]

@@ -1,9 +1,9 @@
 ---
-source: tests/test_debug.rs
+source: libs/error-stack/tests/test_debug.rs
 expression: "format!(\"{report:#?}\")"
 ---
 root error
-├╴at tests/common.rs:9:5
+├╴at libs/error-stack/tests/common.rs:9:5
 ├╴backtrace (1)
 ├╴span trace with 2 frames (1)
 ╰╴Empty

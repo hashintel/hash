@@ -9,6 +9,8 @@
     reason = "This should be enabled but it's currently too noisy"
 )]
 
+extern crate alloc;
+
 mod data_type;
 mod drafts;
 mod entity;

@@ -3,10 +3,8 @@ pub mod identifier;
 pub mod temporal_axes;
 pub mod vertices;
 
-use std::{
-    collections::hash_map::{RandomState, RawEntryMut},
-    hash::Hash,
-};
+use core::hash::Hash;
+use std::collections::hash_map::{RandomState, RawEntryMut};
 
 use self::{
     edges::{Edges, GraphResolveDepths},

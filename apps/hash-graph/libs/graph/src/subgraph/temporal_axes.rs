@@ -1,3 +1,8 @@
+#![expect(
+    clippy::allow_attributes,
+    reason = "derivative does not support expect"
+)]
+
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{

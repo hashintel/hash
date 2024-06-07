@@ -1,8 +1,6 @@
-use std::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-    iter::once,
-};
+use alloc::borrow::Cow;
+use core::iter::once;
+use std::collections::{HashMap, HashSet};
 
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;

@@ -17,7 +17,7 @@ mod ontology;
 mod restore;
 mod web;
 
-use std::future::ready;
+use core::future::ready;
 
 use async_scoped::TokioScope;
 use async_trait::async_trait;

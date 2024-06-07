@@ -31,13 +31,13 @@
 //! # Ok::<_, serde_json::Error>(())
 //! ```
 
-use std::{
-    collections::HashMap,
+use core::{
     fmt::{self, Display},
     hash::{BuildHasher, Hash},
     marker::PhantomData,
     str::FromStr,
 };
+use std::collections::HashMap;
 
 use serde::{
     de::{self, Deserialize, DeserializeSeed, Deserializer, MapAccess, Visitor},

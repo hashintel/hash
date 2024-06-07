@@ -1,3 +1,5 @@
+#![allow(clippy::panic_in_result_fn)]
+
 use deer::{
     error::{ArrayAccessError, DeserializeError, ObjectAccessError, VisitorError},
     schema::Reference,

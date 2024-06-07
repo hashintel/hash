@@ -1,4 +1,5 @@
-use std::{fs, mem::ManuallyDrop, path::Path};
+use core::mem::ManuallyDrop;
+use std::{fs, path::Path};
 
 use authorization::{
     schema::{
@@ -43,6 +44,7 @@ pub struct StoreWrapper<A: AuthorizationApi> {
     source_db_pool: Pool,
     pool: ManuallyDrop<Pool>,
     pub store: ManuallyDrop<Store<A>>,
+    #[expect(clippy::allow_attributes, reason = "False positive")]
     #[allow(dead_code, reason = "False positive")]
     pub account_id: AccountId,
 }
@@ -247,7 +249,7 @@ where
         if !(self.delete_on_drop) {
             return;
         }
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         // We're in the process of dropping the parent struct, we just need to ensure we release
         // the connections of this pool before deleting the database
         // SAFETY: The values of `store` and `pool` are not accessed after dropping

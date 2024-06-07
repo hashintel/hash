@@ -1,8 +1,3 @@
-[workspace]
-members = [".", "macros"]
-default-members = ["."]
-exclude = ["package.json", ".config/lints.toml"]
-
 [package]
 name = "error-stack"
 version = "0.4.1"
@@ -16,6 +11,7 @@ readme = "README.md"
 repository = "https://github.com/hashintel/hash/tree/main/libs/error-stack"
 keywords = ["error", "errorstack", "error-handling", "report", "no_std"]
 categories = ["rust-patterns", "no-std"]
+exclude = ["package.json", ".config/lints.toml"]
 
 [dependencies]
 tracing-error = { version = "0.2", optional = true, default-features = false }
@@ -52,6 +48,9 @@ std = ["anyhow?/std"]
 eyre = ["dep:eyre", "std"]
 serde = ["dep:serde"]
 hooks = ['dep:spin']
+
+[lints]
+workspace = true
 
 [package.metadata.docs.rs]
 all-features = true

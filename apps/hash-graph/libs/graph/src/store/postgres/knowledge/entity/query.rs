@@ -1,4 +1,4 @@
-use std::convert::identity;
+use core::convert::identity;
 
 use graph_types::{
     knowledge::{

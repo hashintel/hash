@@ -1,6 +1,6 @@
 // From `serde::de::size_hint`
 
-use std::{cmp, mem};
+use core::{cmp, mem};
 
 const MAX_PREALLOCATED_BYTES: usize = 1024 * 1024;
 

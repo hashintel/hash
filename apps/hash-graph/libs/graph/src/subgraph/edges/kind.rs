@@ -1,4 +1,5 @@
-use std::{collections::HashSet, convert::identity};
+use core::convert::identity;
+use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]

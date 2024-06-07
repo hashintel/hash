@@ -1,4 +1,5 @@
-use std::{borrow::Cow, fmt, mem, str::FromStr};
+use alloc::borrow::Cow;
+use core::{fmt, mem, str::FromStr};
 
 use derivative::Derivative;
 use error_stack::{bail, Context, Report, ResultExt};

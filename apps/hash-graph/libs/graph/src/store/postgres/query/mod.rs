@@ -13,12 +13,12 @@ pub(crate) mod rows;
 mod statement;
 pub(crate) mod table;
 
-use std::{
-    borrow::Cow,
+use alloc::borrow::Cow;
+use core::{
     convert::identity,
-    error::Error,
     fmt::{self, Display, Formatter},
 };
+use std::error::Error;
 
 use bytes::BytesMut;
 use error_stack::Context;
@@ -87,7 +87,7 @@ pub trait Transpile: 'static {
     fn transpile_to_string(&self) -> String {
         struct Transpiler<'a, T: ?Sized>(&'a T);
         impl<T: Transpile + ?Sized> Display for Transpiler<'_, T> {
-            fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+            fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
                 self.0.transpile(fmt)
             }
         }

@@ -5,7 +5,9 @@ mod patch;
 mod path;
 mod provenance;
 
-use std::{borrow::Cow, cmp::Ordering, collections::HashMap, fmt, io};
+use alloc::borrow::Cow;
+use core::{cmp::Ordering, fmt};
+use std::{collections::HashMap, io};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;

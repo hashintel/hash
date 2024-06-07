@@ -29,6 +29,9 @@ uuid = { version = "1.8.0", features = ["v4", "serde"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
+[lints]
+workspace = true
+
 [[test]]
 name = "postgres"
 path = "postgres/lib.rs"

@@ -18,7 +18,9 @@ mod entity_type;
 mod property_type;
 mod web;
 
-use std::{borrow::Cow, fs, io, str::FromStr, sync::Arc};
+use alloc::{borrow::Cow, sync::Arc};
+use core::str::FromStr;
+use std::{fs, io};
 
 use async_trait::async_trait;
 use authorization::AuthorizationApiPool;

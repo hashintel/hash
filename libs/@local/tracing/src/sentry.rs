@@ -1,14 +1,14 @@
+use alloc::{borrow::Cow, sync::Arc};
+#[cfg(feature = "clap")]
+use core::str::FromStr;
+use core::{fmt, panic::Location};
+#[cfg(feature = "clap")]
+use std::ffi::OsStr;
 use std::{
-    borrow::Cow,
-    fmt,
     fs::File,
     io::{BufRead, BufReader},
-    panic::Location,
     path::Path,
-    sync::Arc,
 };
-#[cfg(feature = "clap")]
-use std::{ffi::OsStr, str::FromStr};
 
 #[cfg(feature = "clap")]
 use clap::{builder::TypedValueParser, error::ErrorKind, Arg, Command, Error, Parser};

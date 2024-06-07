@@ -1,7 +1,9 @@
 use core::fmt;
 
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, ToSql};
+use postgres_types::FromSql;
+#[cfg(feature = "postgres")]
+use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

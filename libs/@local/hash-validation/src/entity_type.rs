@@ -1,4 +1,4 @@
-use std::borrow::Borrow;
+use core::borrow::Borrow;
 
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};

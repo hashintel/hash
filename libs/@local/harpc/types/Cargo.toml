@@ -13,3 +13,6 @@ test-strategy = { version = "0.3.1", optional = true }
 
 [features]
 proptest = ["dep:proptest", "dep:test-strategy"]
+
+[lints]
+workspace = true

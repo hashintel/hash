@@ -82,7 +82,7 @@ impl io::Write for ConsoleWriter {
     }
 
     #[inline]
-    fn write_fmt(&mut self, fmt: std::fmt::Arguments<'_>) -> io::Result<()> {
+    fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) -> io::Result<()> {
         match self {
             Self::Stdout(w) => w.write_fmt(fmt),
             Self::Stderr(w) => w.write_fmt(fmt),

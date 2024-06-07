@@ -1,4 +1,5 @@
-use std::{fmt::Debug, num::NonZero, sync::Arc, time::Duration};
+use alloc::sync::Arc;
+use core::{fmt::Debug, num::NonZero, time::Duration};
 
 use async_trait::async_trait;
 use authorization::AuthorizationApi;

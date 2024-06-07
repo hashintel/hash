@@ -35,6 +35,9 @@ tracing-flame = "0.2.0"
 tracing-subscriber = "0.3.18"
 uuid = { version = "1.8.0", features = ["v4", "serde"] }
 
+[lints]
+workspace = true
+
 [[bench]]
 name = "read_scaling"
 path = "read_scaling/lib.rs"

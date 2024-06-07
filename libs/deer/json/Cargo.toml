@@ -34,3 +34,6 @@ rustc_version = "0.4.0"
 default = ['std']
 std = ["justjson/std", "deer/std"]
 arbitrary-precision = ['deer/arbitrary-precision']
+
+[lints]
+workspace = true

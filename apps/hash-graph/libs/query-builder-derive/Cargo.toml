@@ -15,3 +15,6 @@ syn = "2.0.60"
 
 [dev-dependencies]
 trybuild = "1.0.93"
+
+[lints]
+workspace = true

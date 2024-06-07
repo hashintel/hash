@@ -84,7 +84,7 @@ pub enum OntologyTypeClassificationMetadata {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[allow(clippy::enum_variant_names)]
+#[expect(clippy::enum_variant_names)]
 pub enum OntologyTypeReference<'a> {
     EntityTypeReference(&'a EntityTypeReference),
     PropertyTypeReference(&'a PropertyTypeReference),
@@ -103,7 +103,7 @@ impl OntologyTypeReference<'_> {
 }
 
 #[derive(Debug)]
-#[allow(clippy::enum_variant_names)]
+#[expect(clippy::enum_variant_names)]
 pub enum OntologyTypeMetadata {
     DataType(DataTypeMetadata),
     PropertyType(PropertyTypeMetadata),

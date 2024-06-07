@@ -1,6 +1,6 @@
 mod provenance;
 
-use std::{fmt, str::FromStr};
+use core::{fmt, str::FromStr};
 
 use error_stack::Report;
 #[cfg(feature = "postgres")]
@@ -323,7 +323,8 @@ mod tests {
     }
 
     mod diff {
-        use std::{borrow::Cow, iter::once};
+        use alloc::borrow::Cow;
+        use core::iter::once;
 
         use type_system::url::BaseUrl;
 

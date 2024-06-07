@@ -1,6 +1,7 @@
 //! Web routes for CRU operations on Entity types.
 
-use std::{collections::hash_map, sync::Arc};
+use alloc::sync::Arc;
+use std::collections::hash_map;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},

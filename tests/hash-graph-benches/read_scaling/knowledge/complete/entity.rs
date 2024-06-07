@@ -1,4 +1,4 @@
-use std::{iter::repeat, str::FromStr};
+use core::{iter::repeat, str::FromStr};
 
 use authorization::{schema::WebOwnerSubject, AuthorizationApi, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};

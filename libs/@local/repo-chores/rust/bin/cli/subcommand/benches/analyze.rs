@@ -1,6 +1,6 @@
+use core::fmt::{Display, Formatter};
 use std::{
     error::Error,
-    fmt::{Display, Formatter},
     fs::File,
     io,
     io::{BufWriter, Write},
@@ -44,7 +44,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
     struct BenchFormatter<'b>(&'b [BenchmarkAnalysis], &'b str);
 
     impl Display for BenchFormatter<'_> {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
             criterion::format_github_markdown(f, self.0, self.1)
         }
     }

@@ -14,7 +14,7 @@ mod entity_type;
 mod property;
 mod property_type;
 
-use std::borrow::Borrow;
+use core::borrow::Borrow;
 
 use error_stack::{Context, Report};
 use graph_types::knowledge::entity::{Entity, EntityId};

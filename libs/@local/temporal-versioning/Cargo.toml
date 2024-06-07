@@ -23,3 +23,6 @@ postgres-protocol = { version = "0.6.6", default-features = false, optional = tr
 [features]
 postgres = ["dep:bytes", "dep:postgres-types", "dep:postgres-protocol", "dep:tracing"]
 utoipa = ["dep:utoipa"]
+
+[lints]
+workspace = true

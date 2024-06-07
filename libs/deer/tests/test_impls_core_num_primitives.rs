@@ -1,4 +1,9 @@
 #![allow(clippy::ignored_unit_patterns)] // Reason: `proptest` does not match against `Ok(())` but `Ok(_)`
+#![allow(
+    clippy::cast_lossless,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation
+)]
 mod common;
 
 use approx::assert_relative_eq;

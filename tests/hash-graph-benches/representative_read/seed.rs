@@ -1,8 +1,5 @@
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    iter::repeat,
-    str::FromStr,
-};
+use core::{iter::repeat, str::FromStr};
+use std::collections::{hash_map::Entry, HashMap};
 
 use authorization::{schema::WebOwnerSubject, AuthorizationApi};
 use graph::store::{
