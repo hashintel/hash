@@ -1,7 +1,7 @@
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 
 // import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { answerQuestionAction } from "./flow-activities/answer-question-action";
+// import { answerQuestionAction } from "./flow-activities/answer-question-action";
 import { generateFlowRunName } from "./flow-activities/generate-flow-run-name-activity";
 import { generateWebQueriesAction } from "./flow-activities/generate-web-queries-action";
 // import { getFileFromUrlAction } from "./flow-activities/get-file-from-url-action";
@@ -33,7 +33,7 @@ export const createFlowActionActivities = ({
   // getFileFromUrlAction,
   // researchEntitiesAction,
   // getWebPageSummaryAction,
-  answerQuestionAction,
+  // answerQuestionAction,
   writeGoogleSheetAction(
     params: Omit<Parameters<typeof writeGoogleSheetAction>[0], "vaultClient">,
   ) {
