@@ -1,0 +1,8 @@
+[project]
+name = "HASH"
+
+[tool.rye]
+virtual = true
+
+[tool.rye.workspace]
+members = ["apps/lm-prompt-optimization"]

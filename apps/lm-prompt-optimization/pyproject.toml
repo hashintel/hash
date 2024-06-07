@@ -1,0 +1,21 @@
+[project]
+name = "lm-prompt-optimization"
+version = "0.1.0"
+description = "Add your description here"
+authors = []
+dependencies = []
+readme = "README.md"
+requires-python = ">= 3.11"
+license = { text = "AGPL-3.0" }
+classifiers = ["Private :: Do Not Upload"]
+
+[project.scripts]
+"lm-prompt-optimization" = "lm_prompt_optimization:main"
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
