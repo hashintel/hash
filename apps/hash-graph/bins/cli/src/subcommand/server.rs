@@ -15,7 +15,9 @@ use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
 use graph::{
     ontology::domain_validator::DomainValidator,
-    store::{DatabaseConnectionInfo, FetchingPool, PostgresStorePool, StorePool},
+    store::{
+        DatabaseConnectionInfo, DatabasePoolConfig, FetchingPool, PostgresStorePool, StorePool,
+    },
 };
 use graph_api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies};
 use regex::Regex;
@@ -61,6 +63,9 @@ impl TryFrom<ApiAddress> for SocketAddr {
 pub struct ServerArgs {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
+
+    #[clap(flatten)]
+    pub pool_config: DatabasePoolConfig,
 
     /// The address the REST client is listening at.
     #[clap(flatten)]
@@ -158,7 +163,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         return Ok(());
     }
 
-    let pool = PostgresStorePool::new(&args.db_info, NoTls)
+    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
         .await
         .change_context(GraphError)
         .map_err(|report| {

@@ -7,7 +7,7 @@ use clap::Parser;
 use error_stack::{Result, ResultExt};
 use graph::{
     snapshot::{SnapshotEntry, SnapshotStore},
-    store::{DatabaseConnectionInfo, PostgresStorePool, StorePool},
+    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool},
 };
 use tokio::io;
 use tokio_postgres::NoTls;
@@ -40,6 +40,9 @@ pub struct SnapshotArgs {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
+    #[clap(flatten)]
+    pub pool_config: DatabasePoolConfig,
+
     /// The host the Spice DB server is listening at.
     #[clap(long, env = "HASH_SPICEDB_HOST")]
     pub spicedb_host: String,
@@ -56,7 +59,7 @@ pub struct SnapshotArgs {
 pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
     SnapshotEntry::install_error_stack_hook();
 
-    let pool = PostgresStorePool::new(&args.db_info, NoTls)
+    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
         .await
         .change_context(GraphError)
         .map_err(|report| {

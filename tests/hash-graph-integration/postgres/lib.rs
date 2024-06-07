@@ -54,9 +54,9 @@ use graph::{
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
             UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
-        AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityStore, EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool,
-        PropertyTypeStore, QueryError, StorePool, UpdateError,
+        AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig,
+        DatabaseType, EntityStore, EntityTypeStore, InsertionError, PostgresStore,
+        PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
     Environment,
 };
@@ -161,7 +161,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
             database,
         );
 
-        let pool = PostgresStorePool::new(&connection_info, NoTls)
+        let pool = PostgresStorePool::new(&connection_info, &DatabasePoolConfig::default(), NoTls)
             .await
             .expect("could not connect to database");
 
