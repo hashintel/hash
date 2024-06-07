@@ -117,7 +117,7 @@ To run HASH locally, please follow these steps:
 1. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
 
    ```sh
-   yarn external-services --wait
+   yarn external-services up --wait
    ```
 
    1. You can optionally force a rebuild of the Docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
