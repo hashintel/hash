@@ -28,8 +28,8 @@ import type {
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import isEqual from "lodash.isEqual";
-import zip from "lodash.zip";
+import isEqual from "lodash/isEqual";
+import zip from "lodash/zip";
 
 import type { AuthenticationContext } from "./authentication-context";
 
