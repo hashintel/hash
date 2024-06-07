@@ -16,7 +16,7 @@ pub struct DatabaseConnectionInfo {
         feature = "clap",
         clap(long, default_value = "postgres", value_enum, global = true)
     )]
-    pub database_type: DatabaseType,
+    database_type: DatabaseType,
 
     /// Database username.
     #[cfg_attr(
@@ -28,7 +28,7 @@ pub struct DatabaseConnectionInfo {
             global = true
         )
     )]
-    pub user: String,
+    user: String,
 
     /// Database password for authentication.
     #[cfg_attr(
@@ -40,7 +40,7 @@ pub struct DatabaseConnectionInfo {
             global = true
         )
     )]
-    pub password: String,
+    password: String,
 
     /// The host to connect to.
     #[cfg_attr(
@@ -52,7 +52,7 @@ pub struct DatabaseConnectionInfo {
             global = true
         )
     )]
-    pub host: String,
+    host: String,
 
     /// The port to connect to.
     #[cfg_attr(
@@ -64,7 +64,7 @@ pub struct DatabaseConnectionInfo {
             global = true
         )
     )]
-    pub port: u16,
+    port: u16,
 
     /// The database name to use.
     #[cfg_attr(
@@ -76,7 +76,7 @@ pub struct DatabaseConnectionInfo {
             global = true
         )
     )]
-    pub database: String,
+    database: String,
 }
 
 impl fmt::Debug for DatabaseConnectionInfo {
