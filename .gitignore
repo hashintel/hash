@@ -109,7 +109,7 @@ blocks/**/.env
 **/.mypy_cache
 **/.pytest_cache
 **/.hypothesis
-**/wheels/
+**/wheels
 
 # venv
 .venv
