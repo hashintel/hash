@@ -3,14 +3,15 @@ name = "lm-prompt-optimization"
 version = "0.1.0"
 description = "Add your description here"
 authors = []
-dependencies = []
+dependencies = ["dspy-ai>=2.4.9"]
 readme = "README.md"
 requires-python = ">= 3.11"
 license = { text = "AGPL-3.0" }
 classifiers = ["Private :: Do Not Upload"]
 
 [project.scripts]
-"lm-prompt-optimization" = "lm_prompt_optimization:main"
+"main" = "lm_prompt_optimization:main"
+"async-example" = "lm_prompt_optimization:async_example"
 
 [build-system]
 requires = ["pdm-backend"]
@@ -18,4 +19,7 @@ build-backend = "pdm.backend"
 
 [tool.rye]
 managed = true
-dev-dependencies = []
+dev-dependencies = ["mypy>=1.10.0"]
+
+[tool.rye.scripts]
+typecheck = { cmd = "mypy --strict src/" }

@@ -6,3 +6,28 @@ virtual = true
 
 [tool.rye.workspace]
 members = ["apps/lm-prompt-optimization"]
+
+[tool.ruff]
+target-version = "py311"
+fix = true               # when linting always include safe fixes
+
+[tool.ruff.lint]
+preview = true
+select = ["ALL"]
+ignore = [
+    "D203",    # this conflicts with `D211`
+    "D213",    # this conflicts with `D212`
+    "D401",    # Relates to PEP-257 but also conflicts with Google Python Style Guide, generally gets in the way.
+    "ANN101",  # most type checkers infer the type of `self` automatically.
+    "ANN102",  # most type checkers infer the type of `cls` automatically.
+    "FIX002",  # TODOs should be fixed, not removed
+    "TD002",   # We don't add authors to TODO strings
+    "PLC0414", # Conflicts with `no_implicit_reexport = true`
+    "COM812",  # Conflicts with formatter
+    "ISC001",  # Conflicts with formatter
+]
+
+[tool.ruff.format]
+preview = true
+
+docstring-code-format = true
