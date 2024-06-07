@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
+  LinkData as GraphApiLinkData,
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
@@ -12,7 +13,6 @@ import type {
 import type {
   EntityId,
   EntityPropertiesObject,
-  LinkData,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
@@ -92,7 +92,7 @@ export const createLinkEntity: ImpureGraphFunction<
     );
   }
 
-  const linkData: LinkData = {
+  const linkData: GraphApiLinkData = {
     leftEntityId,
     rightEntityId,
     leftEntityConfidence,

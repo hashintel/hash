@@ -106,7 +106,7 @@ const NewGoalPageContent = () => {
   const createGoal = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!called || !goal.trim()) {
+    if (called || !goal.trim()) {
       return;
     }
 

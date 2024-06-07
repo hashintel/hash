@@ -349,8 +349,6 @@ const mapEntityMetadata = (
     ),
     provenance: mapEntityProvenance(metadata.provenance),
     archived: metadata.archived,
-    confidence: metadata.confidence,
-    properties: metadata.properties,
   };
 };
 

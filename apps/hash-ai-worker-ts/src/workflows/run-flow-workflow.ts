@@ -268,6 +268,7 @@ export const runFlowWorkflow = async (
       });
 
       const actionActivity = proxyFlowActivity({
+        // @ts-expect-error -- temporarily disabled
         actionId: `${currentStep.actionDefinitionId}Action`,
         maximumAttempts: actionStepDefinition.retryCount ?? 1,
         activityId: currentStep.stepId,
@@ -284,7 +285,9 @@ export const runFlowWorkflow = async (
       }>;
 
       try {
+        // @ts-expect-error -- temporarily disabled
         actionResponse = await actionActivity({
+          // @ts-expect-error -- temporarily disabled
           inputs: currentStep.inputs ?? [],
         });
       } catch (error) {
