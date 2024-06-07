@@ -15,7 +15,7 @@ import type {
   EntityTemporalVersioningMetadata,
   LinkData,
 } from "@local/hash-graph-types/entity";
-import { isEqual } from "lodash";
+import isEqual from "lodash/isEqual";
 
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
