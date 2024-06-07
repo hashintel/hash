@@ -98,6 +98,8 @@ const generateSystemPromptPrefix = (params: {
       - starting sub-tasks to find additional relevant facts about specific entities
 
     If at any point the task can be split up into sub-tasks, you must do so.
+
+    Do not waste resources and time trying to produce a table, report or any other form of output that isn't the proposed entities with all their properties.
     
     ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}` : ""}
 
