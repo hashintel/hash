@@ -1,4 +1,4 @@
-use std::time::Duration;
+use core::time::Duration;
 
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;

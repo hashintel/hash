@@ -1,15 +1,24 @@
+use alloc::borrow::Cow;
+use core::iter::once;
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{borrow::Cow, iter::once};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, IsNull, ToSql, Type};
+use postgres_types::FromSql;
+#[cfg(feature = "postgres")]
+use postgres_types::IsNull;
+#[cfg(feature = "postgres")]
+use postgres_types::ToSql;
+#[cfg(feature = "postgres")]
+use postgres_types::Type;
 use serde::{Deserialize, Serialize};
 use type_system::url::{BaseUrl, ParseBaseUrlError};
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::openapi;
+#[cfg(feature = "utoipa")]
+use utoipa::ToSchema;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -154,7 +163,7 @@ impl<'k> FromIterator<PropertyPathElement<'k>> for PropertyPath<'k> {
 }
 
 impl<'k> IntoIterator for PropertyPath<'k> {
-    type IntoIter = std::vec::IntoIter<Self::Item>;
+    type IntoIter = alloc::vec::IntoIter<Self::Item>;
     type Item = PropertyPathElement<'k>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -163,7 +172,7 @@ impl<'k> IntoIterator for PropertyPath<'k> {
 }
 
 impl<'k> IntoIterator for &'k PropertyPath<'k> {
-    type IntoIter = std::slice::Iter<'k, PropertyPathElement<'k>>;
+    type IntoIter = core::slice::Iter<'k, PropertyPathElement<'k>>;
     type Item = &'k PropertyPathElement<'k>;
 
     fn into_iter(self) -> Self::IntoIter {

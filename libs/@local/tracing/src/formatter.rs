@@ -26,7 +26,7 @@ where
         ctx: &FmtContext<'_, S, N>,
         writer: Writer<'_>,
         event: &Event<'_>,
-    ) -> std::fmt::Result {
+    ) -> core::fmt::Result {
         match self {
             Self::Full(fmt) => fmt.format_event(ctx, writer, event),
             Self::Pretty(fmt) => fmt.format_event(ctx, writer, event),

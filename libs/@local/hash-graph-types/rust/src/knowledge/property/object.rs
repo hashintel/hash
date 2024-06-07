@@ -11,7 +11,13 @@ use json_patch::{
 };
 use jsonptr::Pointer;
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, IsNull, ToSql, Type};
+use postgres_types::FromSql;
+#[cfg(feature = "postgres")]
+use postgres_types::IsNull;
+#[cfg(feature = "postgres")]
+use postgres_types::ToSql;
+#[cfg(feature = "postgres")]
+use postgres_types::Type;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use type_system::url::BaseUrl;

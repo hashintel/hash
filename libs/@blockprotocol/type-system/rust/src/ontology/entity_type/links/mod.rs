@@ -3,10 +3,8 @@ pub(in crate::ontology) mod raw;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    num::NonZero,
-};
+use core::num::NonZero;
+use std::collections::{hash_map::Entry, HashMap};
 
 pub use error::ParseLinksError;
 use serde::{Deserialize, Serialize};

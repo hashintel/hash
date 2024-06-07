@@ -10,7 +10,7 @@
 // This is the same example also used in the README.md. When updating this, don't forget updating
 // the README.md as well. This is mainly used to test the code and generate the output shown.
 
-use std::fmt;
+use core::fmt;
 
 use error_stack::{Context, Report, Result, ResultExt};
 

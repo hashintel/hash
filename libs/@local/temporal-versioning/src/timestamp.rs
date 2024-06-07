@@ -1,17 +1,22 @@
-use core::fmt;
+use core::{cmp::Ordering, fmt, marker::PhantomData, str::FromStr};
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{cmp::Ordering, marker::PhantomData, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
 use derivative::Derivative;
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, ToSql, Type};
+use postgres_types::FromSql;
+#[cfg(feature = "postgres")]
+use postgres_types::ToSql;
+#[cfg(feature = "postgres")]
+use postgres_types::Type;
 use serde::{Deserialize, Serialize};
 use time::{format_description::well_known::Iso8601, OffsetDateTime};
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::openapi;
+#[cfg(feature = "utoipa")]
+use utoipa::ToSchema;
 
 use crate::TemporalTagged;
 

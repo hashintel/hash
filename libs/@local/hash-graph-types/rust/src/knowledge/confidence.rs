@@ -1,11 +1,16 @@
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, ToSql};
+use postgres_types::FromSql;
+#[cfg(feature = "postgres")]
+use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
-use utoipa::{
-    openapi::{self, KnownFormat, SchemaFormat},
-    ToSchema,
-};
+use utoipa::openapi;
+#[cfg(feature = "utoipa")]
+use utoipa::openapi::KnownFormat;
+#[cfg(feature = "utoipa")]
+use utoipa::openapi::SchemaFormat;
+#[cfg(feature = "utoipa")]
+use utoipa::ToSchema;
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Serialize)]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]

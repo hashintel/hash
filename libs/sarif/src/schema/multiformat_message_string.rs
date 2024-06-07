@@ -1,7 +1,9 @@
 use alloc::borrow::Cow;
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 use crate::schema::PropertyBag;
 

@@ -1,16 +1,31 @@
 #[cfg(target_has_atomic = "8")]
-use core::sync::atomic::{AtomicBool, AtomicI8, AtomicU8};
+use core::sync::atomic::AtomicBool;
 #[cfg(nightly)]
 #[cfg(target_has_atomic = "128")]
-use core::sync::atomic::{AtomicI128, AtomicU128};
+use core::sync::atomic::AtomicI128;
 #[cfg(target_has_atomic = "16")]
-use core::sync::atomic::{AtomicI16, AtomicU16};
+use core::sync::atomic::AtomicI16;
 #[cfg(target_has_atomic = "32")]
-use core::sync::atomic::{AtomicI32, AtomicU32};
+use core::sync::atomic::AtomicI32;
 #[cfg(target_has_atomic = "64")]
-use core::sync::atomic::{AtomicI64, AtomicU64};
+use core::sync::atomic::AtomicI64;
+#[cfg(target_has_atomic = "8")]
+use core::sync::atomic::AtomicI8;
 #[cfg(target_has_atomic = "ptr")]
-use core::sync::atomic::{AtomicIsize, AtomicUsize};
+use core::sync::atomic::AtomicIsize;
+#[cfg(nightly)]
+#[cfg(target_has_atomic = "128")]
+use core::sync::atomic::AtomicU128;
+#[cfg(target_has_atomic = "16")]
+use core::sync::atomic::AtomicU16;
+#[cfg(target_has_atomic = "32")]
+use core::sync::atomic::AtomicU32;
+#[cfg(target_has_atomic = "64")]
+use core::sync::atomic::AtomicU64;
+#[cfg(target_has_atomic = "8")]
+use core::sync::atomic::AtomicU8;
+#[cfg(target_has_atomic = "ptr")]
+use core::sync::atomic::AtomicUsize;
 
 use crate::{error::DeserializeError, Deserialize, Deserializer, Document, Reflection, Schema};
 

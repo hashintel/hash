@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 use graph_types::ontology::{DataTypeId, EntityTypeId, OntologyTypeRecordId, PropertyTypeId};
 use postgres_types::{FromSql, ToSql};

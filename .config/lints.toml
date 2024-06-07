@@ -19,7 +19,6 @@ allow = [
     "clippy::shadow_reuse",
     "clippy::shadow_same",
     "clippy::unneeded_field_pattern",
-
     # Consider enabling:
     "clippy::absolute_paths",
     "clippy::default_numeric_fallback",
@@ -34,7 +33,6 @@ allow = [
     "clippy::tests_outside_test_module",
     "clippy::unimplemented",
     "clippy::unreachable",
-
     # Should be enabled:
     "clippy::allow_attributes",
     "clippy::allow_attributes_without_reason",
@@ -51,8 +49,6 @@ allow = [
     "clippy::multiple_inherent_impl",
     "clippy::panic",
     "clippy::partial_pub_fields",
-    "clippy::std_instead_of_alloc",
-    "clippy::std_instead_of_core",
     "clippy::unwrap_in_result",
     "clippy::wildcard_enum_match_arm",
 ]
@@ -61,7 +57,6 @@ warn = [
     "future_incompatible",
     "nonstandard_style",
     "unreachable_pub",
-
     "clippy::all",
     "clippy::pedantic",
     "clippy::nursery",

@@ -6,6 +6,8 @@
               warning instead"
 )]
 
+extern crate alloc;
+
 mod args;
 mod error;
 mod subcommand;

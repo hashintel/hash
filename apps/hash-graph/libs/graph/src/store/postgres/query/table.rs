@@ -1,4 +1,4 @@
-use std::{
+use core::{
     fmt::{self, Debug, Formatter},
     hash::Hash,
     iter::{once, Chain, Once},

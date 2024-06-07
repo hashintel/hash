@@ -42,7 +42,7 @@
 //! ```rust
 //! # // we only test with nightly, which means that `render()` is unused on earlier version
 //! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
-//! use std::fmt::{Display, Formatter};
+//! use core::fmt::{Display, Formatter};
 //! use std::io::{Error, ErrorKind};
 //! use error_stack::Report;
 //!
@@ -299,15 +299,19 @@ mod hook;
 mod location;
 mod r#override;
 
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::borrow::ToOwned;
 use alloc::collections::VecDeque;
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::{
-    borrow::ToOwned,
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::format;
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::string::String;
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::string::ToString;
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::vec;
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::vec::Vec;
 use core::{
     fmt::{self, Debug, Display, Formatter},
     iter::once,
@@ -317,9 +321,13 @@ use core::{
 pub use charset::Charset;
 pub use color::ColorMode;
 #[cfg(any(feature = "std", feature = "hooks"))]
+pub(crate) use hook::install_builtin_hooks;
+#[cfg(any(feature = "std", feature = "hooks"))]
+pub(crate) use hook::Format;
+#[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
-pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
+pub(crate) use hook::Hooks;
 #[cfg(not(any(feature = "std", feature = "hooks")))]
 use location::LocationAttachment;
 

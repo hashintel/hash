@@ -1,6 +1,6 @@
 //! Web routes for CRU operations on entities.
 
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},

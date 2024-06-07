@@ -1,7 +1,5 @@
-use std::{
-    collections::{HashMap, HashSet},
-    iter::once,
-};
+use core::iter::once;
+use std::collections::{HashMap, HashSet};
 
 use authorization::{
     backend::ModifyRelationshipOperation,

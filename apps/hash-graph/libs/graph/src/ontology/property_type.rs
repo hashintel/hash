@@ -1,4 +1,4 @@
-use std::{fmt, fmt::Write};
+use core::{fmt, fmt::Write};
 
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
@@ -489,7 +489,7 @@ impl PropertyTypeQueryPath<'_> {
 
 #[cfg(test)]
 mod tests {
-    use std::iter::once;
+    use core::iter::once;
 
     use super::*;
 

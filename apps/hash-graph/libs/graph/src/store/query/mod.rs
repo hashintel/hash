@@ -1,7 +1,8 @@
 mod filter;
 mod path;
 
-use std::{collections::HashMap, fmt};
+use core::fmt;
+use std::collections::HashMap;
 
 use serde::{
     de::{self, IntoDeserializer},

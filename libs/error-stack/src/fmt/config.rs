@@ -1,6 +1,8 @@
-use crate::fmt::{Charset, ColorMode};
 #[cfg(any(feature = "std", feature = "hooks"))]
-use crate::fmt::{Format, HookContext};
+use crate::fmt::Format;
+#[cfg(any(feature = "std", feature = "hooks"))]
+use crate::fmt::HookContext;
+use crate::fmt::{Charset, ColorMode};
 
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) struct Config {

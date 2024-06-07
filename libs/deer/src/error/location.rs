@@ -1,5 +1,7 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::vec::Vec;
 
 use super::ErrorProperty;
 

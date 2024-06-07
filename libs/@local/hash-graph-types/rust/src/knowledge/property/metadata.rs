@@ -1,20 +1,27 @@
+use alloc::borrow::Cow;
+use std::collections::{hash_map, HashMap};
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{
-    borrow::Cow,
-    collections::{hash_map, HashMap},
-};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
+use postgres_types::FromSql;
+#[cfg(feature = "postgres")]
+use postgres_types::IsNull;
+#[cfg(feature = "postgres")]
+use postgres_types::Json;
+#[cfg(feature = "postgres")]
+use postgres_types::ToSql;
+#[cfg(feature = "postgres")]
+use postgres_types::Type;
 use serde::{ser::SerializeSeq, Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
-use utoipa::{
-    openapi::{self, ToArray},
-    ToSchema,
-};
+use utoipa::openapi;
+#[cfg(feature = "utoipa")]
+use utoipa::openapi::ToArray;
+#[cfg(feature = "utoipa")]
+use utoipa::ToSchema;
 
 use crate::knowledge::{
     property::provenance::PropertyProvenance, Confidence, PropertyPatchOperation, PropertyPath,

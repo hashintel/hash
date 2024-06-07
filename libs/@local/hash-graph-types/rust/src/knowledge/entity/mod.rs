@@ -1,15 +1,19 @@
 mod provenance;
 
-use std::{fmt, str::FromStr};
+use core::{fmt, str::FromStr};
 
 use error_stack::Report;
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, ToSql};
+use postgres_types::FromSql;
+#[cfg(feature = "postgres")]
+use postgres_types::ToSql;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
 use type_system::url::{BaseUrl, VersionedUrl};
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::openapi;
+#[cfg(feature = "utoipa")]
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 pub use self::provenance::{
@@ -323,7 +327,8 @@ mod tests {
     }
 
     mod diff {
-        use std::{borrow::Cow, iter::once};
+        use alloc::borrow::Cow;
+        use core::iter::once;
 
         use type_system::url::BaseUrl;
 

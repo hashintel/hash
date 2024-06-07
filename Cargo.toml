@@ -18,11 +18,14 @@ members = [
     "tests/hash-graph-integration",
     "tests/hash-graph-test-data/rust",
     "libs/@local/harpc/wire-protocol",
-    "libs/@local/harpc/types"]
-exclude = [
+    "libs/@local/harpc/types",
     "libs/antsi",
     "libs/deer",
+    "libs/deer/desert",
+    "libs/deer/json",
+    "libs/deer/macros",
     "libs/error-stack",
+    "libs/error-stack/macros",
     "libs/sarif",
 ]
 default-members = [

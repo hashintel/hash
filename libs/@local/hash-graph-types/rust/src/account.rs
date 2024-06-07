@@ -1,10 +1,14 @@
-use std::fmt;
+use core::fmt;
 
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, ToSql};
+use postgres_types::FromSql;
+#[cfg(feature = "postgres")]
+use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::openapi;
+#[cfg(feature = "utoipa")]
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]

@@ -8,7 +8,8 @@ mod pool;
 pub(crate) mod query;
 mod traversal_context;
 
-use std::{fmt::Debug, sync::Arc};
+use alloc::sync::Arc;
+use core::fmt::Debug;
 
 use async_trait::async_trait;
 use authorization::{

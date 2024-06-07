@@ -1,7 +1,6 @@
-use std::{
-    collections::{hash_map::Entry, BTreeMap, HashMap},
-    hash::Hash,
-};
+use alloc::collections::BTreeMap;
+use core::hash::Hash;
+use std::collections::{hash_map::Entry, HashMap};
 
 use graph::subgraph::{
     edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},

@@ -14,7 +14,11 @@
 //! ```
 
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::{format, vec, vec::Vec};
+use alloc::format;
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::vec;
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::vec::Vec;
 
 use serde::{ser::SerializeMap, Serialize, Serializer};
 

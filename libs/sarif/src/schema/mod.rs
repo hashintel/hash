@@ -9,7 +9,9 @@ mod run;
 mod tool;
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 pub use self::{
     log::SarifLog,

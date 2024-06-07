@@ -1,4 +1,5 @@
-use std::{collections::HashSet, iter::once, str::FromStr};
+use core::{iter::once, str::FromStr};
+use std::collections::HashSet;
 
 use authorization::AuthorizationApi;
 use graph::{

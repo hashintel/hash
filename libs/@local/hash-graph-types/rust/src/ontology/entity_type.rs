@@ -1,17 +1,26 @@
-use std::iter::once;
+use core::iter::once;
 
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, ToSql};
+use postgres_types::FromSql;
+#[cfg(feature = "postgres")]
+use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
     EntityType,
 };
 #[cfg(feature = "utoipa")]
-use utoipa::{
-    openapi::{schema, Ref, RefOr, Schema, SchemaType},
-    ToSchema,
-};
+use utoipa::openapi::schema;
+#[cfg(feature = "utoipa")]
+use utoipa::openapi::Ref;
+#[cfg(feature = "utoipa")]
+use utoipa::openapi::RefOr;
+#[cfg(feature = "utoipa")]
+use utoipa::openapi::Schema;
+#[cfg(feature = "utoipa")]
+use utoipa::openapi::SchemaType;
+#[cfg(feature = "utoipa")]
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{

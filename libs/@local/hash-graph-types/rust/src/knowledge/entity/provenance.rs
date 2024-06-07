@@ -5,16 +5,31 @@ use std::error::Error;
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
+use postgres_types::FromSql;
+#[cfg(feature = "postgres")]
+use postgres_types::IsNull;
+#[cfg(feature = "postgres")]
+use postgres_types::Json;
+#[cfg(feature = "postgres")]
+use postgres_types::ToSql;
+#[cfg(feature = "postgres")]
+use postgres_types::Type;
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use url::Url;
 #[cfg(feature = "utoipa")]
-use utoipa::{
-    openapi::{ObjectBuilder, OneOfBuilder, RefOr, Schema, SchemaType},
-    ToSchema,
-};
+use utoipa::openapi::ObjectBuilder;
+#[cfg(feature = "utoipa")]
+use utoipa::openapi::OneOfBuilder;
+#[cfg(feature = "utoipa")]
+use utoipa::openapi::RefOr;
+#[cfg(feature = "utoipa")]
+use utoipa::openapi::Schema;
+#[cfg(feature = "utoipa")]
+use utoipa::openapi::SchemaType;
+#[cfg(feature = "utoipa")]
+use utoipa::ToSchema;
 
 use crate::account::{CreatedById, EditionArchivedById, EditionCreatedById};
 

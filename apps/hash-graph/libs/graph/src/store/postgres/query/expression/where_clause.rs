@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 use crate::store::{
     postgres::query::{expression::conditional::Transpiler, Condition, Expression, Transpile},
@@ -120,7 +120,7 @@ impl Transpile for WhereExpression {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
+    use alloc::borrow::Cow;
 
     use graph_types::ontology::DataTypeWithMetadata;
 

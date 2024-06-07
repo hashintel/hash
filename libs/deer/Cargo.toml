@@ -42,6 +42,3 @@ rustc_version = "0.4.0"
 default = ['std']
 std = ['serde/std', 'error-stack/std']
 arbitrary-precision = []
-
-[workspace]
-members = ['.', 'macros', 'json', 'desert']

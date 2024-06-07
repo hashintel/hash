@@ -1,7 +1,7 @@
 pub(crate) mod error;
 pub(in crate::ontology) mod raw;
 
-use std::num::NonZero;
+use core::num::NonZero;
 
 use serde::{Deserialize, Serialize};
 
@@ -86,7 +86,7 @@ impl<T: ValidateUrl> ValidateUrl for ValueOrArray<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use serde_json::json;
 

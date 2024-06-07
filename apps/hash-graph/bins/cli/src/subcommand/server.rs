@@ -1,10 +1,11 @@
-use std::{
-    fmt, fs,
+use alloc::sync::Arc;
+use core::{
+    fmt,
     net::{AddrParseError, SocketAddr},
     str::FromStr,
-    sync::Arc,
     time::Duration,
 };
+use std::fs;
 
 use authorization::{
     backend::{SpiceDbOpenApi, ZanzibarBackend},

@@ -1,4 +1,5 @@
-use std::{error::Error, fmt, io};
+use core::fmt;
+use std::{error::Error, io};
 
 use error_stack::{Report, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
@@ -274,7 +275,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
                             attempt += 1;
                             // TODO: Use a more customizable backoff
                             //       current: 10ms, 40ms, 90ms
-                            sleep(std::time::Duration::from_millis(10) * attempt * attempt).await;
+                            sleep(core::time::Duration::from_millis(10) * attempt * attempt).await;
                         }
                         _ => break Err(report),
                     },

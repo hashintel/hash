@@ -1,8 +1,10 @@
-use std::str::FromStr;
+use core::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]
-use {tsify::Tsify, wasm_bindgen::prelude::*};
+use tsify::Tsify;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
 
 use crate::{
     raw,

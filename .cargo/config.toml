@@ -56,8 +56,6 @@ rustflags = [
     "-Aclippy::shadow_unrelated",
     "-Aclippy::single_call_fn",
     "-Aclippy::single_char_lifetime_names",
-    "-Aclippy::std_instead_of_alloc",
-    "-Aclippy::std_instead_of_core",
     "-Aclippy::tests_outside_test_module",
     "-Aclippy::unimplemented",
     "-Aclippy::unneeded_field_pattern",

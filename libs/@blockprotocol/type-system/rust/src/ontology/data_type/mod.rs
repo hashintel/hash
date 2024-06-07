@@ -1,11 +1,21 @@
-use core::fmt;
+use core::{fmt, ptr};
+use std::collections::HashMap;
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{collections::HashMap, ptr};
 
 pub use error::ParseDataTypeError;
 #[cfg(feature = "postgres")]
-use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
+use postgres_types::private::BytesMut;
+#[cfg(feature = "postgres")]
+use postgres_types::FromSql;
+#[cfg(feature = "postgres")]
+use postgres_types::IsNull;
+#[cfg(feature = "postgres")]
+use postgres_types::Json;
+#[cfg(feature = "postgres")]
+use postgres_types::ToSql;
+#[cfg(feature = "postgres")]
+use postgres_types::Type;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -189,7 +199,7 @@ impl ValidateUrl for DataTypeReference {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use serde_json::json;
 

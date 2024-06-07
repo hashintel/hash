@@ -482,6 +482,8 @@
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
 )]
 #![allow(unsafe_code)]
+// This is an error handling library producing Results, not Errors
+#![allow(clippy::missing_errors_doc)]
 
 extern crate alloc;
 
@@ -503,6 +505,15 @@ mod hook;
 #[cfg(feature = "serde")]
 mod serde;
 
+#[doc(inline)]
+#[allow(deprecated)]
+pub use self::future::FutureExt;
+#[doc(inline)]
+#[allow(deprecated)]
+pub use self::result::IntoReport;
+#[doc(inline)]
+#[allow(deprecated)]
+pub use self::result::ResultExt;
 pub use self::{
     compat::IntoReportCompat,
     context::Context,
@@ -510,12 +521,6 @@ pub use self::{
     macros::*,
     report::Report,
     result::Result,
-};
-#[doc(inline)]
-#[allow(deprecated)]
-pub use self::{
-    future::FutureExt,
-    result::{IntoReport, ResultExt},
 };
 
 #[cfg(test)]

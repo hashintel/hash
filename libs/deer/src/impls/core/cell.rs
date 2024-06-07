@@ -1,6 +1,8 @@
-use core::cell::{Cell, RefCell, UnsafeCell};
 #[cfg(nightly)]
-use core::cell::{OnceCell, SyncUnsafeCell};
+use core::cell::OnceCell;
+#[cfg(nightly)]
+use core::cell::SyncUnsafeCell;
+use core::cell::{Cell, RefCell, UnsafeCell};
 
 use crate::{error::DeserializeError, Deserialize, Deserializer, Document, Reflection, Schema};
 

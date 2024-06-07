@@ -7,7 +7,9 @@ use deer::{
 use error_stack::Report;
 use serde_json::to_value;
 #[cfg(feature = "pretty")]
-use similar_asserts::{assert_eq, assert_serde_eq};
+use similar_asserts::assert_eq;
+#[cfg(feature = "pretty")]
+use similar_asserts::assert_serde_eq;
 
 use crate::{deserializer::Deserializer, error::ErrorVec, token::Token};
 

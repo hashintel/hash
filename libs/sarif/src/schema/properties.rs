@@ -3,7 +3,9 @@ use alloc::collections::BTreeMap;
 use alloc::{borrow::Cow, collections::BTreeSet};
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 /// Key/value pairs that provide additional information about the object
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

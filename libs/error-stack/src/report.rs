@@ -1,20 +1,30 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::{boxed::Box, vec, vec::Vec};
+use alloc::boxed::Box;
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::vec;
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::vec::Vec;
 #[cfg(nightly)]
 use core::error::Error;
 use core::{fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
-use std::backtrace::{Backtrace, BacktraceStatus};
+use std::backtrace::Backtrace;
+#[cfg(all(rust_1_65, feature = "std"))]
+use std::backtrace::BacktraceStatus;
 #[cfg(all(not(nightly), feature = "std"))]
 use std::error::Error;
 #[cfg(feature = "std")]
 use std::process::ExitCode;
 
 #[cfg(feature = "spantrace")]
-use tracing_error::{SpanTrace, SpanTraceStatus};
+use tracing_error::SpanTrace;
+#[cfg(feature = "spantrace")]
+use tracing_error::SpanTraceStatus;
 
 #[cfg(nightly)]
-use crate::iter::{RequestRef, RequestValue};
+use crate::iter::RequestRef;
+#[cfg(nightly)]
+use crate::iter::RequestValue;
 use crate::{
     iter::{Frames, FramesMut},
     Context, Frame,
@@ -419,7 +429,8 @@ impl<C> Report<C> {
     /// ## Example
     ///
     /// ```rust
-    /// use std::{fmt, fs};
+    /// use core::fmt;
+    /// use std::fs;
     ///
     /// use error_stack::ResultExt;
     ///

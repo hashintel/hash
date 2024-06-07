@@ -1,4 +1,4 @@
-use std::{fmt, fmt::Formatter};
+use core::{fmt, fmt::Formatter};
 
 use postgres_types::ToSql;
 

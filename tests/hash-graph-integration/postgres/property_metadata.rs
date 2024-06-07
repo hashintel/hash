@@ -1,4 +1,6 @@
-use std::{borrow::Cow, collections::HashMap, iter::once, str::FromStr};
+use alloc::borrow::Cow;
+use core::{iter::once, str::FromStr};
+use std::collections::HashMap;
 
 use authorization::AuthorizationApi;
 use graph::store::{

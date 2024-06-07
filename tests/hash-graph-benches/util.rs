@@ -1,4 +1,5 @@
-use std::{fs, mem::ManuallyDrop, path::Path};
+use core::mem::ManuallyDrop;
+use std::{fs, path::Path};
 
 use authorization::{
     schema::{
