@@ -10,7 +10,6 @@ import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ActorType,
-  PropertyMetadataMap,
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
 } from "@local/hash-graph-client";
@@ -73,8 +72,6 @@ export type EntityMetadata = Subtype<
     temporalVersioning: EntityTemporalVersioningMetadata;
     archived: boolean;
     provenance: EntityProvenance;
-    confidence?: number;
-    properties?: PropertyMetadataMap;
   }
 >;
 
@@ -83,8 +80,6 @@ export type LinkData = Subtype<
   {
     leftEntityId: EntityId;
     rightEntityId: EntityId;
-    leftEntityConfidence?: number;
-    rightEntityConfidence?: number;
   }
 >;
 
