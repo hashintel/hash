@@ -54,8 +54,10 @@ hash_graph_env_vars = [
     name  = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN", secret = false,
     value = "(?:https://hash\\.ai|https://app\\.hash\\.ai)/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w\\-_%]+/"
   },
-  { name = "HASH_GRAPH_LOG_FORMAT", secret = false, value = "json" },
-  { name = "HASH_GRAPH_LOG_LEVEL", secret = false, value = "info" },
+  { name = "HASH_GRAPH_LOG_FILE_ENABLED", secret = false, value = "false" },
+  { name = "HASH_GRAPH_LOG_CONSOLE_FORMAT", secret = false, value = "full" },
+  { name = "HASH_GRAPH_LOG_CONSOLE_COLOR", secret = false, value = "never" },
+  { name = "HASH_GRAPH_LOG_LEVEL", secret = false, value = "trace,h2=info,tokio_util=debug,tower=info,tonic=debug,hyper=info,tokio_postgres=info,rustls=info,tarpc=info" },
   { name = "RUST_BACKTRACE", secret = false, value = "1" }
 ]
 
