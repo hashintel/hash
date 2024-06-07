@@ -96,14 +96,23 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
   startingDelay?: number;
   retryCount?: number;
 }): Promise<AnthropicMessagesCreateResponse> => {
-  const { payload, startingDelay, retryCount } = params;
+  const {
+    payload,
+    startingDelay = defaultBackoffStartingDelay,
+    retryCount = 1,
+  } = params;
+
+  logger.debug(
+    `Gracefully handling Anthropic rate limit error by retrying after ${startingDelay}ms for the ${retryCount} time.`,
+  );
+
   try {
     return await backOff(
       () => {
         return createAnthropicMessagesWithTools(payload);
       },
       {
-        startingDelay: startingDelay ?? defaultBackoffStartingDelay,
+        startingDelay,
         /**
          * We only want to retry once per call to the `backoff` method, because we
          * don't want to retry the request if a non-rate-limit related error is
@@ -131,7 +140,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
               anthropicRateLimitRequestsResetTimestamp,
             })
           : undefined,
-        retryCount: (retryCount ?? 0) + 1,
+        retryCount: retryCount + 1,
       });
     }
 

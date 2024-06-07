@@ -103,14 +103,23 @@ const openAiChatCompletionWithBackoff = async (params: {
   startingDelay?: number;
   retryCount?: number;
 }): Promise<ChatCompletion> => {
-  const { completionPayload, startingDelay, retryCount } = params;
+  const {
+    completionPayload,
+    startingDelay = defaultBackoffStartingDelay,
+    retryCount = 1,
+  } = params;
+
+  logger.debug(
+    `Gracefully handling OpenAI rate limit error by retrying after ${startingDelay}ms for the ${retryCount} time.`,
+  );
+
   try {
     return await backOff(
       () => {
         return openai.chat.completions.create(completionPayload);
       },
       {
-        startingDelay: startingDelay ?? defaultBackoffStartingDelay,
+        startingDelay,
         /**
          * We only want to retry once per call to the `backoff` method, because we
          * don't want to retry the request if a non-rate-limit related error is
@@ -136,7 +145,7 @@ const openAiChatCompletionWithBackoff = async (params: {
         startingDelay: rateLimitResetRequests
           ? convertOpenAiTimeStringToMilliseconds(rateLimitResetRequests)
           : undefined,
-        retryCount: (retryCount ?? 0) + 1,
+        retryCount: retryCount + 1,
       });
     }
 
