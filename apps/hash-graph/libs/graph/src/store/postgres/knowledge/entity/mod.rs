@@ -226,9 +226,6 @@ where
                         continue;
                     }
 
-                    let span = tracing::trace_span!("post_filter_entities");
-                    let _s = span.enter();
-
                     let permissions = self
                         .authorization_api
                         .check_entities_permission(
@@ -403,9 +400,6 @@ where
                     .iter()
                     .map(|(entity, _)| entity.metadata.record_id.entity_id)
                     .collect::<HashSet<_>>();
-
-                let span = tracing::trace_span!("post_filter_entities");
-                let _s = span.enter();
 
                 let (permissions, zookie) = self
                     .authorization_api
@@ -799,11 +793,7 @@ where
             .change_context(InsertionError)
             .attach(StatusCode::InvalidArgument)?;
 
-        let commit_result = {
-            let span = tracing::trace_span!("committing entity");
-            let _enter = span.enter();
-            transaction.commit().await.change_context(InsertionError)
-        };
+        let commit_result = transaction.commit().await.change_context(InsertionError);
         if let Err(mut error) = commit_result {
             if let Err(auth_error) = self
                 .authorization_api
