@@ -5,7 +5,9 @@ Before you start install (or update) rye and run `rye sync`.
 - Install: `curl -sSf https://rye.astral.sh/get | bash`
 - Update: `rye self update`
 
-Generated using `rye init --private --script --license AGPL-3.0 --build-system pdm --no-pin --min-py 3.11 lm-prompt-optimization`
+Generated using `rye init --private --script --license AGPL-3.0 --build-system pdm --no-pin --min-py 3.11 lm-prompt-optimization`.
+
+To generate libraries, simply remove the `--script` flag.
 
 ## Short rye introduction
 
