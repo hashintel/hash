@@ -3,18 +3,18 @@ import type {
   GraphApi,
   PropertyPatchOperation,
 } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  EntityPropertiesObject,
+} from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  Entity,
-  EntityPropertiesObject,
-  EntityRootType,
-} from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import {
   extractDraftIdFromEntityId,
   splitEntityId,
@@ -80,18 +80,6 @@ export const getLatestEntityById = async (params: {
   }
 
   return entity;
-};
-
-export const archiveEntity = async (params: {
-  graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
-  entity: Entity;
-}) => {
-  const { graphApiClient, authentication, entity } = params;
-  await graphApiClient.patchEntity(authentication.actorId, {
-    entityId: entity.metadata.recordId.entityId,
-    archived: true,
-  });
 };
 
 export const getEntityUpdate = <T extends EntityPropertiesObject>({

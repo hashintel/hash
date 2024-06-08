@@ -32,3 +32,6 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [features]
 utoipa = ["dep:utoipa"]
+
+[lints]
+workspace = true

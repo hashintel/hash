@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   extractDraftIdFromEntityId,
   extractOwnedByIdFromEntityId,

@@ -1,4 +1,6 @@
-use std::{borrow::Cow, error::Error, fmt};
+use alloc::borrow::Cow;
+use core::fmt;
+use std::error::Error;
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
@@ -21,8 +23,7 @@ use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::{url::VersionedUrl, ClosedEntityType, EntityType};
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi,
-    openapi::{schema, Ref, RefOr, Schema},
+    openapi::{self, schema, Ref, RefOr, Schema},
     ToSchema,
 };
 use validation::ValidateEntityComponents;
@@ -451,7 +452,7 @@ pub trait EntityStore {
         &mut self,
         actor_id: AccountId,
         params: PatchEntityParams,
-    ) -> impl Future<Output = Result<EntityMetadata, Report<UpdateError>>> + Send;
+    ) -> impl Future<Output = Result<Entity, Report<UpdateError>>> + Send;
 
     fn diff_entity(
         &self,

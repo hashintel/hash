@@ -53,7 +53,7 @@ pub(crate) mod resource_ref {
 }
 
 pub(crate) mod relation {
-    use std::borrow::Cow;
+    use alloc::borrow::Cow;
 
     use serde::{de, de::IntoDeserializer, ser, Deserialize, Deserializer, Serialize, Serializer};
 

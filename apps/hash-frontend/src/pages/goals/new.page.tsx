@@ -98,13 +98,17 @@ const NewGoalPageContent = () => {
   const getOwner = useGetOwnerForEntity();
   const { push } = useRouter();
 
-  const [startFlow] = useMutation<
+  const [startFlow, { called }] = useMutation<
     StartFlowMutation,
     StartFlowMutationVariables
   >(startFlowMutation);
 
   const createGoal = async (event: FormEvent) => {
     event.preventDefault();
+
+    if (called || !goal.trim()) {
+      return;
+    }
 
     const triggerOutputs = [
       {
@@ -273,12 +277,19 @@ const NewGoalPageContent = () => {
             }}
           >
             <Button
-              disabled={!goal.trim()}
+              disabled={!goal.trim() || called}
               onClick={createGoal}
               size="medium"
               type="submit"
             >
-              Continue <ArrowRightIconRegular sx={{ fontSize: 16, ml: 1 }} />
+              {called ? (
+                "Starting..."
+              ) : (
+                <>
+                  Continue
+                  <ArrowRightIconRegular sx={{ fontSize: 16, ml: 1 }} />
+                </>
+              )}
             </Button>
           </Box>
         </Box>

@@ -1,3 +1,4 @@
+import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type {
   EntityMetadata as EntityMetadataBp,
   EntityRecordId as EntityRecordIdBp,
@@ -9,7 +10,6 @@ import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ActorType,
-  PropertyMetadataMap,
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
 } from "@local/hash-graph-client";
@@ -20,6 +20,7 @@ import type {
   EditionCreatedById,
 } from "./account";
 import type { Uuid } from "./branded";
+import type { BaseUrl } from "./ontology";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
@@ -71,8 +72,6 @@ export type EntityMetadata = Subtype<
     temporalVersioning: EntityTemporalVersioningMetadata;
     archived: boolean;
     provenance: EntityProvenance;
-    confidence?: number;
-    properties?: PropertyMetadataMap;
   }
 >;
 
@@ -81,8 +80,6 @@ export type LinkData = Subtype<
   {
     leftEntityId: EntityId;
     rightEntityId: EntityId;
-    leftEntityConfidence?: number;
-    rightEntityConfidence?: number;
   }
 >;
 
@@ -102,3 +99,5 @@ export type EntityEditionProvenance = {
   origin?: ProvidedEntityEditionProvenanceOrigin;
   sources?: Array<SourceProvenance>;
 };
+
+export type EntityPropertiesObject = Record<BaseUrl, EntityPropertyValue>;

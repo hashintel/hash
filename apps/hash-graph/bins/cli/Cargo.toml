@@ -44,5 +44,5 @@ uuid = "1.8.0"
 [features]
 test-server = ["graph-api/test-server"]
 
-[lints.rust]
-unreachable-pub = "allow"
+[lints]
+workspace = true

@@ -8,7 +8,6 @@ import {
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
-import { isEqual } from "lodash";
 
 import type { EntityDiff } from "../../../../../../graphql/api-types.gen";
 import type { HistoryEvent } from "./shared/types";
@@ -69,9 +68,9 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
       changedPropertyIndex,
       propertyDiff,
     ] of diffData.diff.properties.entries()) {
-      const propertyProvenance = changedEntityEdition.metadata.properties?.find(
-        (map) => isEqual(map.path, propertyDiff.path),
-      );
+      const propertyProvenance = changedEntityEdition.propertyMetadata(
+        propertyDiff.path,
+      )?.provenance;
 
       /**
        * @todo H-2775 – handle property objects and changes to array contents
@@ -92,7 +91,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
           number: `${changedEntityIndex + 2}.${changedPropertyIndex + 1}`,
           provenance: {
             edition: changedEntityEdition.metadata.provenance.edition,
-            property: propertyProvenance?.metadata.provenance,
+            property: propertyProvenance,
           },
           propertyType: propertyTypeWithMetadata.propertyType,
           timestamp:
@@ -112,12 +111,12 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
   for (const [index, [key, value]] of typedEntries(
     firstEntityEdition.properties,
   ).entries()) {
-    const propertyProvenance = firstEntityEdition.metadata.properties?.find(
-      /**
-       * @todo H-2775 – handle property objects and changes to array contents
-       */
-      (map) => map.path[0] === key,
-    );
+    /**
+     * @todo H-2775 – handle property objects and changes to array contents
+     */
+    const propertyProvenance = firstEntityEdition.propertyMetadata([
+      key,
+    ])?.provenance;
 
     try {
       const propertyTypeWithMetadata = getPropertyTypeForEntity(
@@ -130,7 +129,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
         number: `1.${index + 1}`,
         provenance: {
           edition: firstEntityEdition.metadata.provenance.edition,
-          property: propertyProvenance?.metadata.provenance,
+          property: propertyProvenance,
         },
         propertyType: propertyTypeWithMetadata.propertyType,
         timestamp: firstEditionIdentifier.revisionId,

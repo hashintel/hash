@@ -5,13 +5,10 @@ pub(in crate::ontology) mod raw;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
+use core::{borrow::Borrow, ptr};
+use std::collections::{HashMap, HashSet};
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{
-    borrow::Borrow,
-    collections::{HashMap, HashSet},
-    ptr,
-};
 
 #[cfg(feature = "postgres")]
 use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
@@ -211,7 +208,7 @@ impl ValidateUrl for EntityTypeReference {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use super::*;
     use crate::utils::tests::check_serialization_from_str;

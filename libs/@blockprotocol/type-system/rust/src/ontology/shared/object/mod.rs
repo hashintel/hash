@@ -110,7 +110,7 @@ impl<T, const MIN: usize> Default for Object<T, MIN> {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use serde_json::json;
 

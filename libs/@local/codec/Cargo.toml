@@ -34,3 +34,6 @@ bytes = [
 ]
 serde = ["dep:serde", "dep:time"]
 harpc = ["dep:harpc-wire-protocol", "dep:tokio-util", "dep:error-stack"]
+
+[lints]
+workspace = true

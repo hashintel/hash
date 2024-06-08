@@ -1,7 +1,6 @@
-use std::{
-    collections::{BTreeSet, HashMap, HashSet},
-    hash::{BuildHasher, Hash},
-};
+use alloc::collections::BTreeSet;
+use core::hash::{BuildHasher, Hash};
+use std::collections::{HashMap, HashSet};
 
 use graph_types::knowledge::entity::EntityId;
 use temporal_versioning::LeftClosedTemporalInterval;

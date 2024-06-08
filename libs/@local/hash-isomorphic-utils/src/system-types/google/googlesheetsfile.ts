@@ -2,8 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { LinkData } from "@local/hash-graph-types/entity";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   Account,
@@ -64,9 +63,7 @@ export type {
  */
 export type ActorTypeDataType = "human" | "machine";
 
-export type AssociatedWithAccount = Entity<AssociatedWithAccountProperties> & {
-  linkData: LinkData;
-};
+export type AssociatedWithAccount = LinkEntity<AssociatedWithAccountProperties>;
 
 export type AssociatedWithAccountOutgoingLinkAndTarget = never;
 

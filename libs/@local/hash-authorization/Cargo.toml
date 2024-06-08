@@ -18,14 +18,14 @@ serde = { workspace = true, features = ["derive", "unstable"] }
 tokio.workspace = true
 tracing = { workspace = true }
 
-derive-where = { version = "1.2.7", default-features = false, features = ["nightly"] }
+derive-where = { workspace = true }
 futures = { version = "0.3.30", default-features = false }
 serde_json = { version = "1.0.116" }
 serde_plain = "1.0.2"
 
 reqwest = { version = "0.12.4", default-features = false, features = ["json", "stream"] }
-tokio-util = { version ="0.7.11", features = ["io"] }
-uuid =  { version = "1.8.0", default-features = false, features = ["v5"] }
+tokio-util = { version = "0.7.11", features = ["io"] }
+uuid = { version = "1.8.0", default-features = false, features = ["v5"] }
 
 utoipa = { version = "4.2.0", optional = true }
 
@@ -34,3 +34,6 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [features]
 utoipa = ["dep:utoipa"]
+
+[lints]
+workspace = true

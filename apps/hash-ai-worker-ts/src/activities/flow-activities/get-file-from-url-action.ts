@@ -2,7 +2,6 @@ import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
@@ -34,18 +33,15 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
     };
   }
 
-  const { entityMetadata, properties } = getFileEntityFromUrlStatus;
-
   // @todo look for an existing file with the same originalUrl in the graph, and update it if found?
   const operation = "create" as const;
+
+  const fileEntity = getFileEntityFromUrlStatus.entity.toJSON();
 
   logProgress([
     {
       persistedEntity: {
-        entity: {
-          metadata: entityMetadata,
-          properties,
-        } satisfies Entity,
+        entity: fileEntity,
         operation, // @todo update this to "update" if an existing entity was found
       },
       recordedAt: new Date().toISOString(),
@@ -64,10 +60,7 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
               "fileEntity" satisfies OutputNameForAction<"getFileFromUrl">,
             payload: {
               kind: "Entity",
-              value: {
-                metadata: entityMetadata,
-                properties,
-              } satisfies Entity,
+              value: fileEntity,
             },
           },
         ],

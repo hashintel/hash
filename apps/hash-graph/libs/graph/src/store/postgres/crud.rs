@@ -76,7 +76,6 @@ where
 
         let cursor_indices = sorting.compile(
             &mut compiler,
-            #[allow(clippy::unwrap_used)]
             cursor_parameters.as_ref(),
             temporal_axes.expect("To use a cursor, temporal axes has to be specified"),
         );

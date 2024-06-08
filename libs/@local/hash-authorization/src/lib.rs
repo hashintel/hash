@@ -5,6 +5,9 @@
     never_type
 )]
 #![feature(type_alias_impl_trait)]
+
+extern crate alloc;
+
 pub mod backend;
 pub mod schema;
 pub mod zanzibar;
@@ -316,7 +319,7 @@ where
     A: AuthorizationApi + Clone + Send + Sync,
 {
     type Api<'pool> = Self;
-    type Error = std::convert::Infallible;
+    type Error = core::convert::Infallible;
 
     async fn acquire(&self) -> Result<Self::Api<'_>, Self::Error> {
         Ok(self.clone())

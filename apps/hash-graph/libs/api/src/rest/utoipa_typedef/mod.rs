@@ -98,7 +98,7 @@ impl ToSchema<'_> for MaybeListOfEntityType {
 }
 
 impl<T> IntoIterator for ListOrValue<T> {
-    type IntoIter = std::vec::IntoIter<Self::Item>;
+    type IntoIter = alloc::vec::IntoIter<Self::Item>;
     type Item = T;
 
     fn into_iter(self) -> Self::IntoIter {

@@ -24,7 +24,7 @@ locals {
     cpu         = 0 # let ECS divvy up the available CPU
     healthCheck = {
       command     = ["CMD", "/bin/sh", "-c", "curl -f http://localhost:4100/health || exit 1"]
-      startPeriod = 30
+      startPeriod = 10
       interval    = 10
       retries     = 10
       timeout     = 5

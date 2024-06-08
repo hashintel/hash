@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use core::str::FromStr;
 
 use authorization::AuthorizationApi;
 use graph::{
@@ -151,7 +151,7 @@ async fn initial_person() {
         }]
     );
 
-    let updated_entity_metadata = api
+    let updated_entity = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
@@ -169,7 +169,7 @@ async fn initial_person() {
         .expect("could not create entity");
 
     assert_eq!(
-        updated_entity_metadata.entity_type_ids,
+        updated_entity.metadata.entity_type_ids,
         [person_entity_type_id(), org_entity_type_id()]
     );
 
@@ -221,7 +221,7 @@ async fn initial_person() {
     assert_eq!(
         updated_person_entities,
         [Entity {
-            metadata: updated_entity_metadata,
+            metadata: updated_entity.metadata,
             properties: alice(),
             link_data: None
         }]
@@ -313,7 +313,7 @@ async fn create_multi() {
         }]
     );
 
-    let updated_entity_metadata = api
+    let updated_entity = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
@@ -331,7 +331,7 @@ async fn create_multi() {
         .expect("could not create entity");
 
     assert_eq!(
-        updated_entity_metadata.entity_type_ids,
+        updated_entity.metadata.entity_type_ids,
         [person_entity_type_id()]
     );
 
@@ -360,7 +360,7 @@ async fn create_multi() {
     assert_eq!(
         updated_person_entities,
         [Entity {
-            metadata: updated_entity_metadata,
+            metadata: updated_entity.metadata,
             properties: alice(),
             link_data: None
         }]

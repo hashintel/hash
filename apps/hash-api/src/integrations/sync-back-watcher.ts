@@ -5,9 +5,9 @@ import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/red
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import type { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { Entity } from "@local/hash-subgraph";
 
 import { systemAccountId } from "../graph/system-account";
 import { logger } from "../logger";

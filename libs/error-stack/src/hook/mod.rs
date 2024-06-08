@@ -83,7 +83,7 @@ impl Report<()> {
     /// # #[cfg(nightly)]
     /// # mod nightly {
     /// use std::error::{Request, Error};
-    /// use std::fmt::{Display, Formatter};
+    /// use core::fmt::{Display, Formatter};
     /// use error_stack::{Report, report};
     ///
     /// struct Suggestion(&'static str);

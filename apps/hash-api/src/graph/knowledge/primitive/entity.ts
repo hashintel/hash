@@ -14,14 +14,19 @@ import type {
   GetEntitySubgraphRequest,
   GraphResolveDepths,
   ModifyRelationshipOperation,
-  PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
+import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
+import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  EntityPropertiesObject,
+  LinkData,
+} from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -30,7 +35,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  mapGraphApiEntityMetadataToMetadata,
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
@@ -40,9 +44,7 @@ import type {
 } from "@local/hash-isomorphic-utils/types";
 import type {
   DiffEntityInput,
-  Entity,
   EntityAuthorizationRelationship,
-  EntityPropertiesObject,
   EntityRelationAndSubject,
   EntityRootType,
   Subgraph,
@@ -54,7 +56,6 @@ import {
   isEntityVertex,
   splitEntityId,
 } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
 import type {
@@ -69,21 +70,7 @@ import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
-import type { CreateLinkEntityParams } from "./link-entity";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
-
-export type CreateEntityParams = {
-  ownedById: OwnedById;
-  properties: EntityPropertiesObject;
-  entityTypeId: VersionedUrl;
-  outgoingLinks?: Omit<CreateLinkEntityParams, "leftEntityId">[];
-  entityUuid?: EntityUuid;
-  draft?: boolean;
-  relationships: EntityRelationAndSubject[];
-  confidence?: number;
-  propertyMetadata?: PropertyMetadataMap;
-  provenance?: ProvidedEntityEditionProvenance;
-};
 
 /** @todo: potentially directly export this from the subgraph package */
 export type PropertyValue = EntityPropertiesObject[BaseUrl];
@@ -98,7 +85,11 @@ export type PropertyValue = EntityPropertiesObject[BaseUrl];
  * @param params.entityUuid (optional) - the uuid of the entity, automatically generated if left undefined
  */
 export const createEntity: ImpureGraphFunction<
-  CreateEntityParams,
+  Omit<CreateEntityParameters, "linkData"> & {
+    outgoingLinks?: (Omit<CreateEntityParameters, "linkData"> & {
+      linkData: Omit<LinkData, "leftEntityId">;
+    })[];
+  },
   Promise<Entity>
 > = async (context, authentication, params) => {
   const {
@@ -128,27 +119,29 @@ export const createEntity: ImpureGraphFunction<
     }
   }
 
-  const { data: metadata } = await graphApi.createEntity(actorId, {
-    ownedById,
-    entityTypeIds: [entityTypeId],
-    properties,
-    entityUuid: overrideEntityUuid,
-    draft,
-    relationships: params.relationships,
-    confidence: params.confidence,
-    propertyMetadata: params.propertyMetadata,
-    provenance,
-  });
-
-  const entity = {
-    properties,
-    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
-  };
+  const entity = await Entity.create(
+    graphApi,
+    { actorId },
+    {
+      ownedById,
+      entityTypeId,
+      properties,
+      entityUuid: overrideEntityUuid,
+      draft,
+      relationships: params.relationships,
+      confidence: params.confidence,
+      propertyMetadata: params.propertyMetadata,
+      provenance,
+    },
+  );
 
   for (const createOutgoingLinkParams of outgoingLinks ?? []) {
     await createLinkEntity(context, authentication, {
       ...createOutgoingLinkParams,
-      leftEntityId: entity.metadata.recordId.entityId,
+      linkData: {
+        ...createOutgoingLinkParams.linkData,
+        leftEntityId: entity.metadata.recordId.entityId,
+      },
     });
   }
 
@@ -525,10 +518,13 @@ export const createEntityWithLinks: ImpureGraphFunction<
 
         // links are created as an outgoing link from the parent entity to the children.
         await createLinkEntity(context, authentication, {
-          linkEntityTypeId: link.meta.linkEntityTypeId,
-          leftEntityId: parentEntity.entity.metadata.recordId.entityId,
-          rightEntityId: entity.metadata.recordId.entityId,
           ownedById,
+          properties: {},
+          linkData: {
+            leftEntityId: parentEntity.entity.metadata.recordId.entityId,
+            rightEntityId: entity.metadata.recordId.entityId,
+          },
+          entityTypeId: link.meta.linkEntityTypeId,
           relationships,
           draft:
             /** If either side of the link is a draft entity, the link entity must be draft also */
@@ -577,19 +573,22 @@ export const updateEntity: ImpureGraphFunction<
   const { graphApi } = context;
   const { actorId } = authentication;
 
-  const { data: metadata } = await graphApi.patchEntity(actorId, {
-    entityId: entity.metadata.recordId.entityId,
-    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-    draft: params.draft,
-    properties: [
-      {
-        op: "replace",
-        path: [],
-        value: params.properties,
-      },
-    ],
-    provenance,
-  });
+  const updatedEntity = await entity.patch(
+    graphApi,
+    { actorId },
+    {
+      entityTypeId,
+      draft: params.draft,
+      properties: [
+        {
+          op: "replace",
+          path: [],
+          value: params.properties,
+        },
+      ],
+      provenance,
+    },
+  );
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
     if (afterUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
@@ -602,37 +601,7 @@ export const updateEntity: ImpureGraphFunction<
     }
   }
 
-  return {
-    ...entity,
-    metadata: mapGraphApiEntityMetadataToMetadata(metadata),
-    properties,
-  };
-};
-
-export const archiveEntity: ImpureGraphFunction<
-  {
-    entity: Entity;
-  },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  const { entity } = params;
-  await graphApi.patchEntity(actorId, {
-    entityId: entity.metadata.recordId.entityId,
-    archived: true,
-  });
-};
-
-export const unarchiveEntity: ImpureGraphFunction<
-  {
-    entity: Entity;
-  },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  const { entity } = params;
-  await graphApi.patchEntity(actorId, {
-    entityId: entity.metadata.recordId.entityId,
-    archived: false,
-  });
+  return updatedEntity;
 };
 
 /**
@@ -857,7 +826,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
           `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
         );
       }
-      return linkEntity;
+      return new LinkEntity(linkEntity);
     }),
   );
 };

@@ -27,6 +27,7 @@ import { getTextFromEntity } from "@apps/hash-api/src/graph/knowledge/system-typ
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   blockProtocolPropertyTypes,
@@ -35,7 +36,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { Entity } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

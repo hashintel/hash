@@ -1,4 +1,5 @@
 import { useMutation } from "@apollo/client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { useCallback } from "react";
 
 import type {
@@ -68,7 +69,7 @@ export const useBlockProtocolUpdateEntity = (
       }
 
       return {
-        data: updatedEntity,
+        data: new Entity(updatedEntity),
       };
     },
     [updateFn, readonly],

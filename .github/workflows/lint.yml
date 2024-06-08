@@ -154,8 +154,6 @@ jobs:
         if: always() && steps.lints.outputs.has-clippy == 'true'
         working-directory: ${{ matrix.directory }}
         run: |
-          just lint-toml "check"
-
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
@@ -340,7 +338,7 @@ jobs:
           [[ ${{ needs.global.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@19c86e40d4bc3be986b18f1459d4549536887065
+        uses: rtCamp/action-slack-notify@4b831323e0d40c468b2d0555bd03b9da6f92d647
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

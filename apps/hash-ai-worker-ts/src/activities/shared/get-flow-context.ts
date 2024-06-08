@@ -6,24 +6,40 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
+import type { Client as TemporalClient } from "@temporalio/client";
+import type { MemoryCache } from "cache-manager";
 import { caching } from "cache-manager";
 
-const temporalClient = await createTemporalClient();
+let _temporalClient: TemporalClient | undefined;
 
-const runFlowWorkflowParamsCache = await caching("memory", {
-  max: 100, // 100 items
-  ttl: 10 * 60 * 1000, // 10 minutes
-});
+let _runFlowWorkflowParamsCache: MemoryCache | undefined;
 
 type PartialRunFlowWorkflowParams = Pick<
   RunFlowWorkflowParams,
   "webId" | "userAuthentication"
 >;
 
+const getCache = async () => {
+  _runFlowWorkflowParamsCache =
+    _runFlowWorkflowParamsCache ??
+    (await caching("memory", {
+      max: 100, // 100 items
+      ttl: 10 * 60 * 1000, // 10 minutes
+    }));
+  return _runFlowWorkflowParamsCache;
+};
+
+const getTemporalClient = async () => {
+  _temporalClient = _temporalClient ?? (await createTemporalClient());
+  return _temporalClient;
+};
+
 const getPartialRunFlowWorkflowParams = async (params: {
   workflowId: string;
 }): Promise<PartialRunFlowWorkflowParams> => {
   const { workflowId } = params;
+
+  const runFlowWorkflowParamsCache = await getCache();
 
   const cachedPartialRunFlowWorkflowParams =
     await runFlowWorkflowParamsCache.get<PartialRunFlowWorkflowParams>(
@@ -34,6 +50,7 @@ const getPartialRunFlowWorkflowParams = async (params: {
     return cachedPartialRunFlowWorkflowParams;
   }
 
+  const temporalClient = await getTemporalClient();
   const handle = temporalClient.workflow.getHandle(workflowId);
 
   const { events } = await handle.fetchHistory();

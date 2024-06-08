@@ -1,8 +1,9 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  EntityPropertiesObject,
+} from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { Block } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type { EntityPropertiesObject } from "@local/hash-subgraph";
 import type { Draft } from "immer";
 import { castDraft, produce } from "immer";
 import isEqual from "lodash/isEqual";
@@ -13,7 +14,7 @@ import type { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 
 import type { BlockEntity } from "./entity";
-import { getEntityChildEntity, isRichTextContainingEntity } from "./entity";
+import { getEntityChildEntity, isRichTextProperties } from "./entity";
 import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
 import {
   createEntityStore,
@@ -193,21 +194,22 @@ const setBlockChildEntity = (
   blockEntityDraftId: string,
   targetEntity: EntityStoreType,
 ) => {
-  let targetDraftEntity = getDraftEntityByEntityId(
-    draftEntityStore,
-    targetEntity.metadata.recordId.entityId,
+  let targetDraftEntity = Object.values(draftEntityStore).find(
+    (entity) =>
+      entity.metadata.recordId.entityId ===
+      targetEntity.metadata.recordId.entityId,
   );
 
   // Add target entity to draft store if it is not present there
   // @todo consider moving this to ProseMirrorSchemaManager.updateBlockData
-  if (!targetDraftEntity) {
+  if (targetDraftEntity === undefined) {
     const targetEntityDraftId = generateDraftIdForEntity(
       targetEntity.metadata.recordId.entityId,
     );
     targetDraftEntity = {
       metadata: targetEntity.metadata,
       draftId: targetEntityDraftId,
-      properties: targetEntity.properties,
+      properties: castDraft(targetEntity.properties),
       /** @todo use the actual updated date here https://app.asana.com/0/0/1203099452204542/f */
       // updatedAt: targetEntity.updatedAt,
     };
@@ -281,7 +283,7 @@ const entityStoreReducer = (
                 action.payload.blockEntityMetadata.componentId;
               draftEntity.blockChildEntity = action.payload.blockEntityMetadata
                 .blockChildEntity as Draft<
-                Block & { draftId?: string | undefined }
+                BlockEntity & { draftId?: string | undefined }
               >;
             }
 
@@ -374,7 +376,6 @@ const entityStoreReducer = (
 
         draftState.store.draft[action.payload.draftId] = {
           metadata: {
-            archived: false,
             recordId: {
               entityId: action.payload.entityId,
               editionId: now,
@@ -641,7 +642,7 @@ class ProsemirrorStateChangeHandler {
     // and we'd like to update the child entity's text contents appropriately.
 
     if (
-      isRichTextContainingEntity(childEntity) &&
+      isRichTextProperties(childEntity.properties) &&
       node.firstChild &&
       node.firstChild.firstChild &&
       // Check if the next entity node's child is a component node

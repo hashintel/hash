@@ -1,12 +1,13 @@
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
+import type { Client as TemporalClient } from "@temporalio/client";
 import debounce from "lodash.debounce";
 
 import { logProgressSignal } from "../../shared/signals";
 import { logger } from "./activity-logger";
 
-const temporalClient = await createTemporalClient();
+let temporalClient: TemporalClient | undefined;
 
 const logQueueByRunId: Map<string, StepProgressLog[]> = new Map();
 
@@ -16,6 +17,8 @@ const logQueueByRunId: Map<string, StepProgressLog[]> = new Map();
  */
 const sendLogSignal = debounce(
   async (workflowId: string) => {
+    temporalClient = temporalClient ?? (await createTemporalClient());
+
     const handle = temporalClient.workflow.getHandle(workflowId);
 
     const logs = logQueueByRunId.get(workflowId);

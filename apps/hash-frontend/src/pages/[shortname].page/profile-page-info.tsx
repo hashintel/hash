@@ -5,8 +5,8 @@ import {
   IconButton,
   PenRegularIcon,
 } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
-import type { Entity } from "@local/hash-subgraph";
 import {
   Box,
   Divider,

@@ -52,7 +52,7 @@ where
         let possibilities = one_of
             .possibilities
             .into_iter()
-            .map(std::convert::Into::into)
+            .map(core::convert::Into::into)
             .collect();
         Self { possibilities }
     }

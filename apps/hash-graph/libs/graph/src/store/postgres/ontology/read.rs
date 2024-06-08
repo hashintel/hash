@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt};

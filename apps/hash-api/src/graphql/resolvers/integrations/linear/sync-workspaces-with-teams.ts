@@ -2,18 +2,17 @@ import {
   getMachineActorId,
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Entity } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 
 import {
-  archiveEntity,
   getLatestEntityById,
   modifyEntityAuthorizationRelationships,
 } from "../../../../graph/knowledge/primitive/entity";
@@ -133,9 +132,10 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
           /** @todo: remove system account id as account group member if there are no other integrations */
         }
 
-        return archiveEntity(impureGraphContext, authentication, {
-          entity: syncLinearDataWithLinkEntity,
-        });
+        return syncLinearDataWithLinkEntity.archive(
+          impureGraphContext.graphApi,
+          authentication,
+        );
       },
     ),
     ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {

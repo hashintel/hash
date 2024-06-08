@@ -42,7 +42,7 @@ config({ silent: true, path: monorepoRootDir });
 
 export const logger = new Logger({
   mode: process.env.NODE_ENV === "production" ? "prod" : "dev",
-  serviceName: "api",
+  serviceName: "integration-worker",
 });
 
 const TEMPORAL_HOST = new URL(

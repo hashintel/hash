@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 #[cfg(feature = "postgres")]
 use std::error::Error;
 

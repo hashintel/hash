@@ -1,8 +1,8 @@
-use std::{
-    error::Error,
+use core::{
     fmt,
     fmt::{Display, Formatter},
 };
+use std::error::Error;
 
 use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]

@@ -1,4 +1,5 @@
-use std::{collections::HashMap, sync::Arc};
+use alloc::sync::Arc;
+use std::collections::HashMap;
 
 use authorization::{
     backend::ZanzibarBackend,

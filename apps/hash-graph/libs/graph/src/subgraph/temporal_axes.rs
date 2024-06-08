@@ -1,4 +1,4 @@
-use derivative::Derivative;
+use derive_where::derive_where;
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{
     DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
@@ -82,14 +82,8 @@ impl<A: Default> PinnedTemporalAxisUnresolved<A> {
     }
 }
 
-#[derive(Derivative, Serialize, Deserialize)]
-#[derivative(
-    Debug(bound = ""),
-    Clone(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    Hash(bound = "")
-)]
+#[derive_where(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
 pub struct RightBoundedTemporalIntervalUnresolved<A> {
     pub start: Option<TemporalBound<A>>,

@@ -4,6 +4,7 @@ import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -19,9 +20,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type { Entity } from "@local/hash-subgraph";
 import { splitEntityId } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import {
   ApolloError,
   ForbiddenError,
@@ -31,7 +30,6 @@ import {
 import {
   addEntityAdministrator,
   addEntityEditor,
-  archiveEntity,
   canUserReadEntity,
   checkEntityPermission,
   createEntityWithLinks,
@@ -41,7 +39,6 @@ import {
   modifyEntityAuthorizationRelationships,
   removeEntityAdministrator,
   removeEntityEditor,
-  unarchiveEntity,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import {
@@ -76,7 +73,6 @@ import {
 } from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
 
 export const createEntityResolver: ResolverFn<
@@ -107,7 +103,7 @@ export const createEntityResolver: ResolverFn<
    * @see https://app.asana.com/0/1202805690238892/1203084714149803/f
    */
 
-  let entity: Entity | LinkEntity;
+  let entity: Entity;
 
   const provenance: EntityEditionProvenance = {
     actorType: "human",
@@ -133,11 +129,13 @@ export const createEntityResolver: ResolverFn<
     ]);
 
     entity = await createLinkEntity(context, authentication, {
-      leftEntityId,
-      rightEntityId,
-      properties,
-      linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
+      properties,
+      linkData: {
+        leftEntityId,
+        rightEntityId,
+      },
+      entityTypeId,
       relationships:
         relationships ??
         createDefaultAuthorizationRelationships(authentication),
@@ -156,7 +154,7 @@ export const createEntityResolver: ResolverFn<
     });
   }
 
-  return mapEntityToGQL(entity);
+  return entity;
 };
 
 export const queryEntitiesResolver: NonNullable<
@@ -384,7 +382,7 @@ export const updateEntityResolver: ResolverFn<
     });
   }
 
-  return mapEntityToGQL(updatedEntity);
+  return updatedEntity;
 };
 
 export const updateEntitiesResolver: ResolverFn<
@@ -419,7 +417,7 @@ export const archiveEntityResolver: ResolverFn<
     entityId,
   });
 
-  await archiveEntity(context, authentication, { entity });
+  await entity.archive(context.graphApi, authentication);
 
   return true;
 };
@@ -444,7 +442,7 @@ export const archiveEntitiesResolver: ResolverFn<
           entityId,
         });
 
-        await archiveEntity(context, authentication, { entity });
+        await entity.archive(context.graphApi, authentication);
 
         archivedEntities.push(entity);
       } catch (error) {
@@ -456,7 +454,7 @@ export const archiveEntitiesResolver: ResolverFn<
   if (entitiesThatCouldNotBeArchived.length > 0) {
     await Promise.all(
       archivedEntities.map((entity) =>
-        unarchiveEntity(context, authentication, { entity }),
+        entity.unarchive(context.graphApi, authentication),
       ),
     );
 

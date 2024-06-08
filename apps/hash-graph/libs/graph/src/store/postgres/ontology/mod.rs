@@ -4,7 +4,8 @@ mod ontology_id;
 mod property_type;
 mod read;
 
-use std::{borrow::Cow, convert::identity};
+use alloc::borrow::Cow;
+use core::convert::identity;
 
 use error_stack::{Report, ResultExt};
 use graph_types::{

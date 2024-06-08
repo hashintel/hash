@@ -12,7 +12,7 @@ mod relationship;
 mod resource;
 mod subject;
 
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 

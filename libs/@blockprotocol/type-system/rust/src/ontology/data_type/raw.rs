@@ -1,4 +1,5 @@
-use std::{collections::HashMap, str::FromStr};
+use core::str::FromStr;
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]

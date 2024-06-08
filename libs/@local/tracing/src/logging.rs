@@ -60,6 +60,21 @@ pub enum ConsoleStream {
     Test,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+pub enum ColorOption {
+    #[default]
+    Auto,
+    Always,
+    Never,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum AnsiSupport {
+    Always,
+    Never,
+}
+
 impl ConsoleStream {
     const fn make_writer(self) -> ConsoleMakeWriter {
         match self {
@@ -71,7 +86,7 @@ impl ConsoleStream {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::Args))]
+#[cfg_attr(feature = "clap", derive(clap::Args), clap(next_help_heading = Some("Console logging")))]
 pub struct ConsoleConfig {
     /// Whether to enable logging to stdout/stderr
     #[cfg_attr(
@@ -99,6 +114,22 @@ pub struct ConsoleConfig {
         )
     )]
     pub format: LogFormat,
+
+    /// Whether to use colors in the output.
+    ///
+    /// This will only be used if the format is not `Json`.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-console-color",
+            long = "logging-console-color",
+            default_value_t = ColorOption::default(),
+            value_enum,
+            env = "HASH_GRAPH_LOG_CONSOLE_COLOR",
+            global = true,
+        )
+    )]
+    pub color: ColorOption,
 
     /// Logging verbosity to use.
     #[cfg_attr(
@@ -215,7 +246,7 @@ impl FileRotation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::Args))]
+#[cfg_attr(feature = "clap", derive(clap::Args), clap(next_help_heading = Some("File logging")))]
 pub struct FileConfig {
     /// Whether to enable logging to a file
     #[cfg_attr(
@@ -236,9 +267,9 @@ pub struct FileConfig {
         clap(
             id = "logging-file-format",
             long = "logging-file-format",
-            default_value_t = LogFormat::Compact,
+            default_value_t = LogFormat::Json,
             value_enum,
-            env = "HASH_GRAPH_LOG_FORMAT",
+            env = "HASH_GRAPH_LOG_FILE_FORMAT",
             global = true,
         )
     )]
@@ -323,6 +354,7 @@ fn layer<S, W, F>(
     level: Option<Level>,
     writer: W,
     fields: F,
+    ansi: AnsiSupport,
 ) -> ConcreteLayer<S, W, F>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
@@ -334,6 +366,7 @@ where
     fmt::layer()
         .event_format(formatter)
         .fmt_fields(fields)
+        .with_ansi(ansi == AnsiSupport::Always)
         .with_writer(writer)
         .with_filter(env_filter(level))
 }
@@ -342,6 +375,7 @@ fn delegate_to_correct_layer<S, W>(
     format: LogFormat,
     level: Option<Level>,
     writer: W,
+    ansi: AnsiSupport,
 ) -> impl Layer<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
@@ -361,10 +395,10 @@ where
     match format {
         LogFormat::Json => <Left<S, W> as Layer<S>>::and_then(
             None,
-            Right::<S, W>::Some(layer(format, level, writer, JsonFields::new())),
+            Right::<S, W>::Some(layer(format, level, writer, JsonFields::new(), ansi)),
         ),
         _ => <Left<S, W> as Layer<S>>::and_then(
-            Some(layer(format, level, writer, DefaultFields::new())),
+            Some(layer(format, level, writer, DefaultFields::new(), ansi)),
             Right::<S, W>::None,
         ),
     }
@@ -378,7 +412,7 @@ where
     let appender = config.rotation.appender(config.output);
     let (writer, guard) = tracing_appender::non_blocking(appender);
 
-    let layer = delegate_to_correct_layer(config.format, config.level, writer);
+    let layer = delegate_to_correct_layer(config.format, config.level, writer, AnsiSupport::Never);
 
     (layer, guard)
 }
@@ -393,10 +427,27 @@ pub fn console_layer<S>(config: &ConsoleConfig) -> ConsoleLayer<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    let ansi_output = io::stderr().is_terminal() && config.format != LogFormat::Json;
+    let ansi_output = config.format != LogFormat::Json
+        && match config.color {
+            ColorOption::Auto => match config.stream {
+                ConsoleStream::Stdout | ConsoleStream::Test => io::stdout().is_terminal(),
+                ConsoleStream::Stderr => io::stderr().is_terminal(),
+            },
+            ColorOption::Always => true,
+            ColorOption::Never => false,
+        };
     if !ansi_output {
         Report::set_color_mode(ColorMode::None);
     }
 
-    delegate_to_correct_layer(config.format, config.level, config.stream.make_writer())
+    delegate_to_correct_layer(
+        config.format,
+        config.level,
+        config.stream.make_writer(),
+        if ansi_output {
+            AnsiSupport::Always
+        } else {
+            AnsiSupport::Never
+        },
+    )
 }

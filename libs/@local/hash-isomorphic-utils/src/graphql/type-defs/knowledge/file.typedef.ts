@@ -9,7 +9,7 @@ export const fileTypedef = gql`
     """
     The file Entity
     """
-    entity: Entity!
+    entity: SerializedEntity!
   }
 
   """
@@ -101,6 +101,6 @@ export const fileTypedef = gql`
       The entityId of the existing file entity, if this is replacing an existing file
       """
       fileEntityUpdateInput: FileEntityUpdateInput
-    ): Entity!
+    ): SerializedEntity!
   }
 `;

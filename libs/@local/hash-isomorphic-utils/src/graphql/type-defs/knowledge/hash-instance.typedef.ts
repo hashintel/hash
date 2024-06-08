@@ -5,6 +5,6 @@ export const hashInstanceTypedef = gql`
     """
     Get the HASH instance entity.
     """
-    hashInstanceEntity: Entity!
+    hashInstanceEntity: SerializedEntity!
   }
 `;

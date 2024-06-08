@@ -1,4 +1,4 @@
-use std::{
+use core::{
     fmt::{self, Write},
     str::FromStr,
 };
@@ -865,7 +865,7 @@ impl EntityTypeQueryPath<'_> {
 
 #[cfg(test)]
 mod tests {
-    use std::iter::once;
+    use core::iter::once;
 
     use super::*;
 
