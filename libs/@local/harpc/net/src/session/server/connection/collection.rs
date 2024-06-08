@@ -117,8 +117,9 @@ impl TransactionCollection {
         let entry = self.storage.entry_async(id).await;
         match entry {
             Entry::Occupied(entry) => {
-                // evict the old one by cancelling it, it's still active, so we do not decrease the
-                // counter
+                // We need to cancel the previous transaction immediately, as we have received
+                // another request for the same transaction id, if we would drop the handle, instead
+                // of cancelling it, we would send an error that transmission was incomplete.
                 entry.cancel.cancel();
 
                 entry.update(state);
@@ -321,6 +322,11 @@ impl Drop for TransactionPermit {
         let id = self.id;
         let generation = self.generation;
 
+        // We need to spawn a task here, because `remove_if` might block, there's a blocking
+        // equivalent, but if an `Entry` is used across an await point, there's the possibility of a
+        // deadlock. To prevent this from even accidentally happening, we spawn a new task.
+        // (We tried to use the blocking methods previously, which was too easy to accidentally
+        // deadlock)
         tokio::spawn(async move {
             let has_removed = storage
                 .remove_if_async(&id, |state| state.generation == generation)

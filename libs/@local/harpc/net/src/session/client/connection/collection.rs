@@ -134,6 +134,11 @@ impl Drop for TransactionPermit {
         let storage = Arc::clone(&self.storage);
         let notify = Arc::clone(&self.notify);
 
+        // We need to spawn a task here, because `remove_if` might block, there's a blocking
+        // equivalent, but if an `Entry` is used across an await point, there's the possibility of a
+        // deadlock. To prevent this from even accidentally happening, we spawn a new task.
+        // (We tried to use the blocking methods previously, which was too easy to accidentally
+        // deadlock)
         tokio::spawn(async move {
             let removed = storage.remove_async(&id).await;
 
