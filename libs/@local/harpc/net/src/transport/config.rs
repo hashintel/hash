@@ -53,6 +53,10 @@ pub struct SwarmConfig {
     /// the overall memory usage.
     ///
     /// **Default:** `32`
+    ///
+    /// [`NetworkBehaviour`]: libp2p::swarm::NetworkBehaviour
+    /// [`ConnectionHandler`]: libp2p::swarm::ConnectionHandler
+    /// [`Swarm`]: libp2p::swarm::Swarm
     pub notify_handler_buffer_size: Option<NonZero<usize>>,
 
     /// Configures the size of the buffer for events sent by a [`ConnectionHandler`] to the
@@ -70,6 +74,9 @@ pub struct SwarmConfig {
     /// Each connection has a guaranteed buffer of one event per connection.
     ///
     /// **Default:** `7`
+    ///
+    /// [`ConnectionHandler`]: libp2p::swarm::ConnectionHandler
+    /// [`NetworkBehaviour`]: libp2p::swarm::NetworkBehaviour
     pub per_connection_event_buffer_size: Option<usize>,
 
     /// Number of addresses concurrently dialed for a single outbound connection attempt.
@@ -89,6 +96,8 @@ pub struct SwarmConfig {
     /// > are ignored.
     ///
     /// **Default:** `None`
+    ///
+    /// [`SubstreamProtocol`]: libp2p::swarm::SubstreamProtocol
     pub substream_upgrade_protocol_override: Option<upgrade::Version>,
 
     /// The maximum number of inbound streams concurrently negotiating on a
@@ -102,6 +111,8 @@ pub struct SwarmConfig {
     /// [`StreamMuxerBox`] level.
     ///
     /// **Default:** `128`
+    ///
+    /// [`StreamMuxerBox`]: libp2p::core::muxing::StreamMuxerBox
     pub max_negotiating_inbound_streams: Option<usize>,
 
     /// How long to keep a connection alive once it is idling.
