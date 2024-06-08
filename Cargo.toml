@@ -60,10 +60,9 @@ repo-chores.path = "libs/@local/repo-chores/rust"
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }
 
+# Shared third-party dependencies
 aws-config = { version = "1.4.0" }
 aws-sdk-s3 = { version = "1.28.0" }
-
-# Shared third-party dependencies
 bytes = "1.6.0"
 clap = { version = "4.5.4", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
 derive-where = { version = "1.2.7", default-features = false, features = ["nightly"] }

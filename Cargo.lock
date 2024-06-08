@@ -1327,17 +1327,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derivative"
-version = "2.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
 name = "derive-where"
 version = "1.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1873,7 +1862,7 @@ dependencies = [
  "clap",
  "codec",
  "criterion",
- "derivative",
+ "derive-where",
  "dotenv-flow",
  "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures",
@@ -4749,7 +4738,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "codec",
- "derivative",
+ "derive-where",
  "postgres-protocol",
  "postgres-types",
  "serde",
