@@ -122,7 +122,10 @@ impl TransportLayer {
     /// If the background task cannot be reached, crashes while processing the request, or is unable
     /// to dial the address provided.
     pub async fn lookup_peer(&self, address: Multiaddr) -> Result<PeerId, TransportError> {
-        self.ipc.lookup_peer(address).await
+        self.ipc
+            .lookup_peer(address)
+            .await
+            .change_context(TransportError::Ipc)
     }
 
     /// Get the external addresses of the transport layer.
@@ -131,7 +134,10 @@ impl TransportLayer {
     ///
     /// If the background task cannot be reached or crashes while processing the request.
     pub async fn external_addresses(&self) -> Result<Vec<Multiaddr>, TransportError> {
-        self.ipc.external_addresses().await
+        self.ipc
+            .external_addresses()
+            .await
+            .change_context(TransportError::Ipc)
     }
 
     #[must_use]
@@ -146,7 +152,10 @@ impl TransportLayer {
     /// If the background task cannot be reached, crashes while processing the request, or the
     /// multiaddr is not supported by the transport.
     pub async fn listen_on(&self, address: Multiaddr) -> Result<ListenerId, TransportError> {
-        self.ipc.listen_on(address).await
+        self.ipc
+            .listen_on(address)
+            .await
+            .change_context(TransportError::Ipc)
     }
 
     /// Listen for incoming connections.
@@ -158,11 +167,15 @@ impl TransportLayer {
     /// If the background task cannot be reached, crashes while processing the request or there is
     /// already an active listener.
     pub async fn listen(&self) -> Result<IncomingConnections, TransportError> {
-        let mut control = self.ipc.control().await?;
+        let mut control = self
+            .ipc
+            .control()
+            .await
+            .change_context(TransportError::Ipc)?;
 
         let incoming = control
             .accept(PROTOCOL_NAME)
-            .change_context(TransportError)?;
+            .change_context(TransportError::AlreadyListening)?;
 
         Ok(IncomingConnections { inner: incoming })
     }
@@ -177,13 +190,17 @@ impl TransportLayer {
     /// If the background task cannot be reached, crashes while processing the request or the remote
     /// peer does not support the protocol.
     pub async fn dial(&self, peer: PeerId) -> Result<OutgoingConnection, TransportError> {
-        let mut control = self.ipc.control().await?;
+        let mut control = self
+            .ipc
+            .control()
+            .await
+            .change_context(TransportError::Ipc)?;
 
         let stream = control
             .open_stream(peer, PROTOCOL_NAME)
             .await
             .map_err(OpenStreamError::from)
-            .change_context(TransportError)?;
+            .change_context(TransportError::OpenStream { peer_id: peer })?;
 
         let stream = stream.compat();
         let stream = BufStream::new(stream);

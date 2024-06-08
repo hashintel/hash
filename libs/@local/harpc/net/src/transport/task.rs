@@ -122,7 +122,9 @@ impl TransportTask {
 
                 Ok(transport)
             })
-            .change_context(TransportError)?
+            .change_context(TransportError::SetupSwarmTransport)?;
+
+        let Ok(swarm) = swarm
             .with_bandwidth_metrics(&mut registry)
             .with_behaviour(|keys| TransportBehaviour {
                 stream: stream::Behaviour::new(),
@@ -131,8 +133,9 @@ impl TransportTask {
                     keys.public(),
                 )),
                 ping: ping::Behaviour::new(config.ping),
-            })
-            .change_context(TransportError)?
+            });
+
+        let swarm = swarm
             .with_swarm_config(|existing| config.swarm.apply(existing))
             .build();
 

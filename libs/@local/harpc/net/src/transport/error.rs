@@ -1,6 +1,9 @@
 use core::fmt::{self, Debug, Display, Formatter};
 
+use libp2p::PeerId;
 use libp2p_stream as stream;
+
+use super::PROTOCOL_NAME;
 
 /// Errors while opening a new stream.
 pub struct OpenStreamError(stream::OpenStreamError);
@@ -26,7 +29,23 @@ impl From<stream::OpenStreamError> for OpenStreamError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error(
-    "The underlying swarm has been stopped or the request could not be fulfilled by the swarm."
-)]
-pub struct TransportError;
+pub enum IpcError {
+    #[error("Transport task has been shutdown and the IPC message could not be delivered")]
+    NotDelivered,
+    #[error("Transport task has dropped the IPC channel and no response was received")]
+    NoResponse,
+    #[error("Underlying swarm has returned an error")]
+    Swarm,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+pub enum TransportError {
+    #[error("Unable to send IPC message")]
+    Ipc,
+    #[error("The swarm is already actively listening for `{}`", PROTOCOL_NAME)]
+    AlreadyListening,
+    #[error("Unable to open a new stream to the peer `{peer_id}`")]
+    OpenStream { peer_id: PeerId },
+    #[error("Unable to initialize underlying transport layer of swarm")]
+    SetupSwarmTransport,
+}
