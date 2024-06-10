@@ -1,3 +1,4 @@
+import AnthropicBedrock from "@anthropic-ai/bedrock-sdk";
 import Anthropic from "@anthropic-ai/sdk";
 import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources";
 import type {
@@ -116,17 +117,82 @@ export type AnthropicMessagesCreateResponse = Omit<
   content: AnthropicMessagesCreateResponseContent[];
 };
 
-export const createAnthropicMessagesWithTools = async (
-  params: AnthropicMessagesCreateParams,
-): Promise<AnthropicMessagesCreateResponse> => {
-  const response = await anthropic.messages.create(
-    params as MessageCreateParamsNonStreaming,
-    {
-      headers: {
-        "anthropic-beta": "tools-2024-05-16",
-      },
-    },
-  );
+const awsAccessKey = getRequiredEnv("HASH_TEMPORAL_AWS_ACCESS_KEY_ID");
+const awsSecretKey = getRequiredEnv("HASH_TEMPORAL_AWS_SECRET_ACCESS_KEY");
+const awsRegion = "us-west-2";
 
-  return response as AnthropicMessagesCreateResponse;
+const anthropicBedrockClient = new AnthropicBedrock({
+  awsAccessKey,
+  awsSecretKey,
+  awsRegion,
+});
+
+const anthropicBedrockModels = [
+  "anthropic.claude-3-haiku-20240307-v1:0",
+  "anthropic.claude-3-haiku-20240307-v1:0",
+  "anthropic.claude-3-opus-20240229-v1:0",
+] as const;
+
+type AnthropicBedrockModel = (typeof anthropicBedrockModels)[number];
+
+/** @see https://docs.anthropic.com/en/api/claude-on-amazon-bedrock#api-model-names */
+export const anthropicModelToBedrockModel: Record<
+  AnthropicMessageModel,
+  AnthropicBedrockModel | null
+> = {
+  "claude-3-sonnet-20240229": "anthropic.claude-3-haiku-20240307-v1:0",
+  "claude-3-haiku-20240307": "anthropic.claude-3-haiku-20240307-v1:0",
+  "claude-3-opus-20240229": "anthropic.claude-3-opus-20240229-v1:0",
+  "claude-2.0": null,
+  "claude-2.1": null,
+  "claude-instant-1.2": null,
+};
+
+type AnthropicBedrockMessagesCreateParams = Omit<
+  AnthropicMessagesCreateParams,
+  "model"
+> & {
+  model: AnthropicBedrockModel;
+};
+
+export const createAnthropicMessagesWithTools = async (
+  params:
+    | {
+        payload: AnthropicMessagesCreateParams;
+        provider: "anthropic";
+      }
+    | {
+        payload: AnthropicBedrockMessagesCreateParams;
+        provider: "amazon-bedrock";
+      },
+): Promise<AnthropicMessagesCreateResponse> => {
+  const { payload, provider } = params;
+
+  let response: AnthropicMessagesCreateResponse;
+
+  /**
+   * If the model is available on Amazon Bedrock and the amazon bedrock provider
+   * has been requested, use the Bedrock client for the request.
+   */
+  if (provider === "amazon-bedrock") {
+    response = (await anthropicBedrockClient.messages.create(
+      payload as MessageCreateParamsNonStreaming,
+      {
+        headers: {
+          "anthropic-beta": "tools-2024-05-16",
+        },
+      },
+    )) as AnthropicMessagesCreateResponse;
+  } else {
+    response = (await anthropic.messages.create(
+      payload as MessageCreateParamsNonStreaming,
+      {
+        headers: {
+          "anthropic-beta": "tools-2024-05-16",
+        },
+      },
+    )) as AnthropicMessagesCreateResponse;
+  }
+
+  return response;
 };

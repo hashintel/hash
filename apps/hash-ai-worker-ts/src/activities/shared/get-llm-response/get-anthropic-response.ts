@@ -16,6 +16,7 @@ import type {
 } from "./anthropic-client";
 import {
   anthropicMessageModelToMaxOutput,
+  anthropicModelToBedrockModel,
   createAnthropicMessagesWithTools,
   isAnthropicContentToolUseContent,
 } from "./anthropic-client";
@@ -125,7 +126,7 @@ const isErrorAnthropicRateLimitingError = (
   ((error instanceof APIError || error instanceof BedRockAPIError) &&
     error.status === 429);
 
-const isErrorAnthropicThrottlingError = (error: unknown): boolean =>
+const isErrorAnthropicThrottlingError = (error: unknown): error is APIError =>
   (error instanceof APIError || error instanceof BedRockAPIError) &&
   !!error.status &&
   /**
@@ -155,7 +156,10 @@ const createAnthropicMessagesWithToolsWithStartingDelay = async (params: {
       setTimeout(resolve, startingDelay);
     });
 
-    const successfulResponse = await createAnthropicMessagesWithTools(payload);
+    const successfulResponse = await createAnthropicMessagesWithTools({
+      payload,
+      provider: "anthropic",
+    });
 
     return successfulResponse;
   } catch (error) {
@@ -165,6 +169,11 @@ const createAnthropicMessagesWithToolsWithStartingDelay = async (params: {
     if (params.retryCount === maximumRateLimitRetries) {
       throw error;
     }
+
+    /**
+     * @todo: consider retrying with the Amazon Bedrock provider before proceeding
+     * with a delayed request to the Anthropic provider
+     */
 
     if (isErrorAnthropicRateLimitingError(error)) {
       const anthropicRateLimitWaitTime = getWaitPeriodFromHeaders(
@@ -238,18 +247,65 @@ export const getAnthropicResponse = async <ToolName extends string>(
   };
 
   try {
-    anthropicResponse = await createAnthropicMessagesWithTools(payload);
+    anthropicResponse = await createAnthropicMessagesWithTools({
+      payload,
+      provider: "anthropic",
+    });
 
     logger.debug(`Anthropic API response: ${stringify(anthropicResponse)}`);
-  } catch (error) {
-    logger.error(`Anthropic API error: ${stringify(error)}`);
+  } catch (anthropicProviderError) {
+    logger.error(`Anthropic API error: ${stringify(anthropicProviderError)}`);
 
-    if (isErrorAnthropicRateLimitingError(error)) {
-      /**
-       * This is in the format of a RFC 3339 timestamp.
-       */
+    const compatibleBedrockModel = anthropicModelToBedrockModel[payload.model];
+
+    /**
+     * Before retrying the request with a starting delay, try using
+     * the Amazon Bedrock provider if the model is available on Bedrock.
+     */
+    if (
+      (isErrorAnthropicRateLimitingError(anthropicProviderError) ||
+        isErrorAnthropicThrottlingError(anthropicProviderError)) &&
+      compatibleBedrockModel
+    ) {
+      try {
+        anthropicResponse = await createAnthropicMessagesWithTools({
+          payload: { ...payload, model: compatibleBedrockModel },
+          provider: "amazon-bedrock",
+        });
+      } catch (bedrockApiError) {
+        /**
+         * If a rate limit error or throttling error was also encountered
+         * with the Amazon Bedrock provider, then retry with the anthropic
+         * provider and a starting delay.
+         */
+        if (
+          isErrorAnthropicRateLimitingError(bedrockApiError) ||
+          isErrorAnthropicThrottlingError(bedrockApiError)
+        ) {
+          const startingDelay = isErrorAnthropicRateLimitingError(
+            anthropicProviderError,
+          )
+            ? getWaitPeriodFromHeaders(anthropicProviderError.headers)
+            : throttledStartingDelay;
+
+          anthropicResponse =
+            await createAnthropicMessagesWithToolsWithStartingDelay({
+              payload,
+              startingDelay,
+            });
+        } else {
+          return {
+            status: "api-error",
+            anthropicApiError:
+              bedrockApiError instanceof BedRockAPIError
+                ? bedrockApiError
+                : undefined,
+          };
+        }
+      }
+    } else if (isErrorAnthropicRateLimitingError(anthropicProviderError)) {
       const anthropicRateLimitWaitTime = getWaitPeriodFromHeaders(
-        error.headers,
+        anthropicProviderError.headers,
       );
 
       anthropicResponse =
@@ -257,7 +313,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
           payload,
           startingDelay: anthropicRateLimitWaitTime,
         });
-    } else if (isErrorAnthropicThrottlingError(error)) {
+    } else if (isErrorAnthropicThrottlingError(anthropicProviderError)) {
       anthropicResponse =
         await createAnthropicMessagesWithToolsWithStartingDelay({
           payload,
@@ -267,7 +323,10 @@ export const getAnthropicResponse = async <ToolName extends string>(
 
     return {
       status: "api-error",
-      anthropicApiError: error instanceof APIError ? error : undefined,
+      anthropicApiError:
+        anthropicProviderError instanceof APIError
+          ? anthropicProviderError
+          : undefined,
     };
   }
 
