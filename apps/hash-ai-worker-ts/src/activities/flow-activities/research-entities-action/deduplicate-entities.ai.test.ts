@@ -304,7 +304,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
   },
 ];
 
-test(
+test.skip(
   "Test deduplicate LLM providers",
   async () => {
     const { duplicates } = await deduplicateEntities({

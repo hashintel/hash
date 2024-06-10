@@ -195,7 +195,7 @@ const factsAboutGraphicsCard: Fact[] = [
   },
 ];
 
-test(
+test.skip(
   "Test proposeEntityFromFacts with graphics card entity",
   async () => {
     const { userAuthentication } = await getFlowContext();

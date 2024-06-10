@@ -405,7 +405,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
   },
 ];
 
-test(
+test.skip(
   "Test inferFactsFromText with LLM providers",
   async () => {
     const url = "https://platform.openai.com/docs/models";

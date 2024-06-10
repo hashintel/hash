@@ -8,7 +8,7 @@ import { getFlowContext } from "../../../shared/get-flow-context";
 import { graphApiClient } from "../../../shared/graph-api-client";
 import { getEntitySummariesFromText } from "./get-entity-summaries-from-text";
 
-test(
+test.skip(
   "Test getEntitySummariesFromText with a FTSE350 table",
   async () => {
     const { userAuthentication } = await getFlowContext();

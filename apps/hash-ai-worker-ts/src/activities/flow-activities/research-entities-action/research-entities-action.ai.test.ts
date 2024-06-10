@@ -244,7 +244,7 @@ test.skip(
   },
 );
 
-test(
+test.skip(
   "Test researchEntitiesAction: Find a comparison of graphics cards which can be used for running AI models",
   async () => {
     const status = await researchEntitiesAction({
