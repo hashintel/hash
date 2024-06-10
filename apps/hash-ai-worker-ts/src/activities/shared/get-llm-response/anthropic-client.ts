@@ -117,8 +117,15 @@ export type AnthropicMessagesCreateResponse = Omit<
   content: AnthropicMessagesCreateResponseContent[];
 };
 
-const awsAccessKey = getRequiredEnv("HASH_TEMPORAL_AWS_ACCESS_KEY_ID");
-const awsSecretKey = getRequiredEnv("HASH_TEMPORAL_AWS_SECRET_ACCESS_KEY");
+const awsAccessKey = getRequiredEnv(
+  "HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID",
+);
+const awsSecretKey = getRequiredEnv(
+  "HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY",
+);
+/**
+ * Currently this is the only region supporting Claude 3 Opus.
+ */
 const awsRegion = "us-west-2";
 
 const anthropicBedrockClient = new AnthropicBedrock({

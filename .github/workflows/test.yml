@@ -329,6 +329,8 @@ jobs:
           if [[ ${{ steps.tests.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
               echo 'OPENAI_API_KEY=dummy' >> .env.local
               echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
+              echo 'HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy' >> .env.local
+              echo 'HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=dummy' >> .env.local
               SERVICES="$SERVICES hash-temporal-worker-ts"
           fi
           if [[ ${{ steps.tests.outputs.external-service-worker-integration }} == 'true' ]]; then
