@@ -3,9 +3,9 @@ import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import dedent from "dedent";
-import { backOff } from "exponential-backoff";
 import type OpenAI from "openai";
 import { APIError, RateLimitError } from "openai";
+import type { Headers } from "openai/core";
 import type {
   ChatCompletion,
   ChatCompletion as OpenAiChatCompletion,
@@ -19,7 +19,7 @@ import { logger } from "../activity-logger";
 import { modelToContextWindow, openai } from "../openai-client";
 import { stringify } from "../stringify";
 import {
-  defaultBackoffStartingDelay,
+  defaultRateLimitRetryDelay,
   maximumRateLimitRetries,
   maxRetryCount,
 } from "./constants";
@@ -94,40 +94,49 @@ const convertOpenAiTimeStringToMilliseconds = (timeString: string): number => {
   }
 };
 
+const getWaitPeriodFromHeaders = (headers?: Headers): number => {
+  const tokenReset = headers?.["x-ratelimit-reset-tokens"];
+  const requestReset = headers?.["x-ratelimit-reset-requests"];
+  if (!tokenReset && !requestReset) {
+    return defaultRateLimitRetryDelay;
+  }
+
+  if (!tokenReset) {
+    return convertOpenAiTimeStringToMilliseconds(requestReset!);
+  }
+  if (!requestReset) {
+    return convertOpenAiTimeStringToMilliseconds(tokenReset);
+  }
+  return Math.max(
+    convertOpenAiTimeStringToMilliseconds(requestReset),
+    convertOpenAiTimeStringToMilliseconds(tokenReset),
+  );
+};
+
 /**
- * Method for retrying OpenAI chat completions with a backoff, retrying
+ * Method for retrying OpenAI chat completions with a delay, retrying
  * only if subsequent rate limit errors are encountered.
  */
-const openAiChatCompletionWithBackoff = async (params: {
+const openAiChatCompletionWithStartingDelay = async (params: {
   completionPayload: ChatCompletionCreateParamsNonStreaming;
-  startingDelay?: number;
+  startingDelay: number;
   retryCount?: number;
 }): Promise<ChatCompletion> => {
-  const {
-    completionPayload,
-    startingDelay = defaultBackoffStartingDelay,
-    retryCount = 1,
-  } = params;
+  const { completionPayload, startingDelay, retryCount = 1 } = params;
 
   logger.debug(
     `Gracefully handling OpenAI rate limit error by retrying after ${startingDelay}ms for the ${retryCount} time.`,
   );
 
   try {
-    return await backOff(
-      () => {
-        return openai.chat.completions.create(completionPayload);
-      },
-      {
-        startingDelay,
-        /**
-         * We only want to retry once per call to the `backoff` method, because we
-         * don't want to retry the request if a non-rate-limit related error is
-         * returned.
-         */
-        numOfAttempts: 1,
-      },
-    );
+    await new Promise((resolve) => {
+      setTimeout(resolve, startingDelay);
+    });
+
+    const successfulResult =
+      await openai.chat.completions.create(completionPayload);
+
+    return successfulResult;
   } catch (error) {
     if (error instanceof RateLimitError) {
       /**
@@ -137,14 +146,9 @@ const openAiChatCompletionWithBackoff = async (params: {
         throw error;
       }
 
-      const rateLimitResetRequests =
-        error.headers?.["x-ratelimit-reset-requests"];
-
-      return openAiChatCompletionWithBackoff({
+      return openAiChatCompletionWithStartingDelay({
         completionPayload,
-        startingDelay: rateLimitResetRequests
-          ? convertOpenAiTimeStringToMilliseconds(rateLimitResetRequests)
-          : undefined,
+        startingDelay: getWaitPeriodFromHeaders(error.headers),
         retryCount: retryCount + 1,
       });
     }
@@ -257,14 +261,9 @@ export const getOpenAiResponse = async <ToolName extends string>(
         `Encountered OpenAi Rate Limit API error: ${stringify(error)}`,
       );
 
-      const rateLimitResetRequests =
-        error.headers?.["x-ratelimit-reset-requests"];
-
-      openAiResponse = await openAiChatCompletionWithBackoff({
+      openAiResponse = await openAiChatCompletionWithStartingDelay({
         completionPayload,
-        startingDelay: rateLimitResetRequests
-          ? convertOpenAiTimeStringToMilliseconds(rateLimitResetRequests)
-          : undefined,
+        startingDelay: getWaitPeriodFromHeaders(error.headers),
       });
     }
 
