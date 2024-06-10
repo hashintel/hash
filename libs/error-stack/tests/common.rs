@@ -1,7 +1,7 @@
 #![allow(dead_code, unreachable_pub, unused_attributes)]
 #![cfg_attr(
     nightly,
-    feature(error_in_core, error_generic_member_access),
+    feature(error_generic_member_access),
     allow(clippy::incompatible_msrv)
 )]
 
