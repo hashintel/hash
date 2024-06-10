@@ -89,8 +89,7 @@ export const isUserHashInstanceAdmin = async (
   authentication: { actorId: AccountId },
   { userAccountId }: { userAccountId: AccountId },
 ) => {
-  // eslint-disable-next-line no-console
-  console.info(`[${userAccountId}] Fetching HASH Instance entity`);
+  // console.info(`[${userAccountId}] Fetching HASH Instance entity`);
   const hashInstance = await getHashInstance(ctx, authentication).catch(
     (err) => {
       // eslint-disable-next-line no-console
@@ -100,10 +99,8 @@ export const isUserHashInstanceAdmin = async (
       throw err;
     },
   );
-  // eslint-disable-next-line no-console
-  console.info(`[${userAccountId}] SUCCESS Fetching HASH Instance entity`);
-  // eslint-disable-next-line no-console
-  console.info(`[${userAccountId}] Checking permission on instance`);
+  // console.info(`[${userAccountId}] SUCCESS Fetching HASH Instance entity`);
+  // console.info(`[${userAccountId}] Checking permission on instance`);
   return ctx.graphApi
     .checkEntityPermission(
       userAccountId,
@@ -111,17 +108,15 @@ export const isUserHashInstanceAdmin = async (
       "update",
     )
     .then(({ data }) => {
-      // eslint-disable-next-line no-console
-      console.info(
-        `[${userAccountId}] SUCCESS Checking permission on instance`,
-      );
+      // console.info(
+      //   `[${userAccountId}] SUCCESS Checking permission on instance`,
+      // );
       return data.has_permission;
     })
     .catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error(
-        `[${userAccountId}] ERROR Checking permission on instance: ${err}`,
-      );
+      // console.error(
+      //   `[${userAccountId}] ERROR Checking permission on instance: ${err}`,
+      // );
       throw err;
     });
 };
