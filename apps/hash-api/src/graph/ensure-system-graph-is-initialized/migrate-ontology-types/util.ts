@@ -1241,20 +1241,18 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
     {},
   );
 
-  await Promise.all(
-    [...users, ...orgs].map((webEntity) => {
-      const webOwnedById = extractOwnedByIdFromEntityId(
-        webEntity.metadata.recordId.entityId,
-      );
+  for (const webEntity of [...users, ...orgs]) {
+    const webOwnedById = extractOwnedByIdFromEntityId(
+      webEntity.metadata.recordId.entityId,
+    );
 
-      return upgradeWebEntities({
-        authentication,
-        context,
-        entityTypeBaseUrls,
-        migrationState,
-        migrateProperties,
-        webOwnedById,
-      });
-    }),
-  );
+    await upgradeWebEntities({
+      authentication,
+      context,
+      entityTypeBaseUrls,
+      migrationState,
+      migrateProperties,
+      webOwnedById,
+    });
+  }
 };

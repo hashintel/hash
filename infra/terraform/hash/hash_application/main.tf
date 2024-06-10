@@ -13,6 +13,30 @@ locals {
       env_vars = aws_ssm_parameter.spicedb_env_vars
     },
   ]
+  kratos_task_defs = [
+    {
+      task_def = local.kratos_migration_container_def
+      env_vars = aws_ssm_parameter.kratos_env_vars
+      ecr_arn  = var.kratos_image.ecr_arn
+    },
+    {
+      task_def = local.kratos_service_container_def
+      env_vars = aws_ssm_parameter.kratos_env_vars
+      ecr_arn  = var.kratos_image.ecr_arn
+    },
+  ]
+  hydra_task_defs = [
+    {
+      task_def = local.hydra_migration_container_def
+      env_vars = aws_ssm_parameter.hydra_env_vars
+      ecr_arn  = var.hydra_image.ecr_arn
+    },
+    {
+      task_def = local.hydra_service_container_def
+      env_vars = aws_ssm_parameter.hydra_env_vars
+      ecr_arn  = var.hydra_image.ecr_arn
+    },
+  ]
   graph_task_defs = [
     {
       task_def = local.graph_migration_container_def
@@ -32,26 +56,6 @@ locals {
   ]
   task_defs = [
     {
-      task_def = local.kratos_migration_container_def
-      env_vars = aws_ssm_parameter.kratos_env_vars
-      ecr_arn  = var.kratos_image.ecr_arn
-    },
-    {
-      task_def = local.kratos_service_container_def
-      env_vars = aws_ssm_parameter.kratos_env_vars
-      ecr_arn  = var.kratos_image.ecr_arn
-    },
-    {
-      task_def = local.hydra_migration_container_def
-      env_vars = aws_ssm_parameter.hydra_env_vars
-      ecr_arn  = var.hydra_image.ecr_arn
-    },
-    {
-      task_def = local.hydra_service_container_def
-      env_vars = aws_ssm_parameter.hydra_env_vars
-      ecr_arn  = var.hydra_image.ecr_arn
-    },
-    {
       task_def = local.api_service_container_def
       env_vars = aws_ssm_parameter.api_env_vars
       ecr_arn  = var.api_image.ecr_arn
@@ -62,8 +66,6 @@ locals {
       ecr_arn  = var.api_image.ecr_arn
     },
   ]
-  # To scale up the worker we probably want to move these into a separated service. They are defined in this task
-  # to easily connect to the Graph API.
   worker_task_defs = [
     {
       task_def = local.temporal_worker_ai_ts_service_container_def
@@ -262,6 +264,28 @@ resource "aws_iam_role" "execution_role" {
             Resource = concat(
               flatten([
                 for def in local.spicedb_task_defs : [for _, env_var in def.env_vars : env_var.arn]
+              ])
+            )
+          }
+        ],
+        [
+          {
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
+            Resource = concat(
+              flatten([
+                for def in local.kratos_task_defs : [for _, env_var in def.env_vars : env_var.arn]
+              ])
+            )
+          }
+        ],
+        [
+          {
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
+            Resource = concat(
+              flatten([
+                for def in local.hydra_task_defs : [for _, env_var in def.env_vars : env_var.arn]
               ])
             )
           }
@@ -499,6 +523,34 @@ resource "aws_security_group" "app_sg" {
     protocol    = "tcp"
     description = "Allow outbound gRPC connections to Temporal"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = local.kratos_public_port
+    to_port     = local.kratos_public_port
+    protocol    = "tcp"
+    description = "Allow connections to kratos"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+  egress {
+    from_port   = local.kratos_private_port
+    to_port     = local.kratos_private_port
+    protocol    = "tcp"
+    description = "Allow connections to kratos"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+  egress {
+    from_port   = local.hydra_public_port
+    to_port     = local.hydra_public_port
+    protocol    = "tcp"
+    description = "Allow connections to hydra"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+  egress {
+    from_port   = local.hydra_private_port
+    to_port     = local.hydra_private_port
+    protocol    = "tcp"
+    description = "Allow connections to hydra"
+    cidr_blocks = [var.vpc.cidr_block]
   }
   egress {
     from_port   = local.graph_container_port
