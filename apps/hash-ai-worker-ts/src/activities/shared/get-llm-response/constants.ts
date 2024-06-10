@@ -4,9 +4,9 @@
 export const maxRetryCount = 3;
 
 /**
- * The starting delay for exponential backoff, when a rate limit error is encountered.
+ * The starting delay when a rate limit error is encountered.
  */
-export const defaultBackoffStartingDelay = 10_000;
+export const defaultRateLimitRetryDelay = 10_000;
 
 /**
  * The maximum number of times a request is retried when a rate limit error is encountered.

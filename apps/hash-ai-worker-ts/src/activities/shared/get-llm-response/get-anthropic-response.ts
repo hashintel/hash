@@ -1,6 +1,11 @@
-import { APIError, RateLimitError } from "@anthropic-ai/sdk";
+import type { Headers } from "@anthropic-ai/sdk/core";
+import {
+  APIError,
+  APIError as BedRockAPIError,
+  RateLimitError as BedrockRateLimitError,
+  RateLimitError,
+} from "@anthropic-ai/sdk/error";
 import dedent from "dedent";
-import { backOff } from "exponential-backoff";
 
 import { logger } from "../activity-logger";
 import { stringify } from "../stringify";
@@ -15,7 +20,7 @@ import {
   isAnthropicContentToolUseContent,
 } from "./anthropic-client";
 import {
-  defaultBackoffStartingDelay,
+  defaultRateLimitRetryDelay,
   maximumRateLimitRetries,
   maxRetryCount,
 } from "./constants";
@@ -89,8 +94,39 @@ const convertAnthropicRateLimitRequestsResetTimestampToMilliseconds = ({
 
 const throttledStartingDelay = 15_000; // 15 seconds
 
+const getWaitPeriodFromHeaders = (headers?: Headers): number => {
+  const tokenResetString = headers?.["anthropic-ratelimit-tokens-reset"];
+  const requestResetString = headers?.["anthropic-ratelimit-requests-reset"];
+
+  const tokenReset = tokenResetString
+    ? convertAnthropicRateLimitRequestsResetTimestampToMilliseconds({
+        anthropicRateLimitRequestsResetTimestamp: tokenResetString,
+      })
+    : undefined;
+
+  const requestReset = requestResetString
+    ? convertAnthropicRateLimitRequestsResetTimestampToMilliseconds({
+        anthropicRateLimitRequestsResetTimestamp: requestResetString,
+      })
+    : undefined;
+
+  if (!tokenReset && !requestReset) {
+    return defaultRateLimitRetryDelay;
+  }
+
+  return Math.max(tokenReset ?? 0, requestReset ?? 0);
+};
+
+const isErrorAnthropicRateLimitingError = (
+  error: unknown,
+): error is RateLimitError | APIError =>
+  error instanceof RateLimitError ||
+  error instanceof BedrockRateLimitError ||
+  ((error instanceof APIError || error instanceof BedRockAPIError) &&
+    error.status === 429);
+
 const isErrorAnthropicThrottlingError = (error: unknown): boolean =>
-  error instanceof APIError &&
+  (error instanceof APIError || error instanceof BedRockAPIError) &&
   !!error.status &&
   /**
    * @todo: This is a temporary solution until we have a better way to
@@ -100,58 +136,44 @@ const isErrorAnthropicThrottlingError = (error: unknown): boolean =>
   error.status < 600;
 
 /**
- * Method for retrying Anthropic request, retrying
+ * Method for retrying Anthropic request with a starting delay, retrying
  * only if subsequent rate limit errors are encountered.
  */
-const createAnthropicMessagesWithToolsWithBackoff = async (params: {
+const createAnthropicMessagesWithToolsWithStartingDelay = async (params: {
   payload: AnthropicMessagesCreateParams;
-  startingDelay?: number;
+  startingDelay: number;
   retryCount?: number;
 }): Promise<AnthropicMessagesCreateResponse> => {
-  const {
-    payload,
-    startingDelay = defaultBackoffStartingDelay,
-    retryCount = 1,
-  } = params;
+  const { payload, startingDelay, retryCount = 1 } = params;
 
   logger.debug(
     `Gracefully handling Anthropic rate limit error by retrying after ${startingDelay}ms for the ${retryCount} time.`,
   );
 
   try {
-    return await backOff(
-      () => {
-        return createAnthropicMessagesWithTools(payload);
-      },
-      {
-        startingDelay,
-        /**
-         * We only want to retry once per call to the `backoff` method, because we
-         * don't want to retry the request if a non-rate-limit related error is
-         * returned.
-         */
-        numOfAttempts: 1,
-      },
-    );
+    await new Promise((resolve) => {
+      setTimeout(resolve, startingDelay);
+    });
+
+    const successfulResponse = await createAnthropicMessagesWithTools(payload);
+
+    return successfulResponse;
   } catch (error) {
-    if (error instanceof RateLimitError) {
-      /**
-       * If we've reached the maximum number of retries, throw the rate limit error.
-       */
-      if (params.retryCount === maximumRateLimitRetries) {
-        throw error;
-      }
+    /**
+     * If we've reached the maximum number of retries, throw the rate limit error.
+     */
+    if (params.retryCount === maximumRateLimitRetries) {
+      throw error;
+    }
 
-      const anthropicRateLimitRequestsResetTimestamp =
-        error.headers?.["anthropic-ratelimit-requests-reset"] ?? undefined;
+    if (isErrorAnthropicRateLimitingError(error)) {
+      const anthropicRateLimitWaitTime = getWaitPeriodFromHeaders(
+        error.headers,
+      );
 
-      return createAnthropicMessagesWithToolsWithBackoff({
+      return createAnthropicMessagesWithToolsWithStartingDelay({
         payload,
-        startingDelay: anthropicRateLimitRequestsResetTimestamp
-          ? convertAnthropicRateLimitRequestsResetTimestampToMilliseconds({
-              anthropicRateLimitRequestsResetTimestamp,
-            })
-          : undefined,
+        startingDelay: anthropicRateLimitWaitTime,
         retryCount: retryCount + 1,
       });
     } else if (isErrorAnthropicThrottlingError(error)) {
@@ -160,7 +182,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
        * we should retry the request with a delay (we can't know exactly how long
        * we'll be throttled for, so need to guess).
        */
-      return createAnthropicMessagesWithToolsWithBackoff({
+      return createAnthropicMessagesWithToolsWithStartingDelay({
         payload,
         startingDelay: throttledStartingDelay,
         retryCount: retryCount + 1,
@@ -222,28 +244,25 @@ export const getAnthropicResponse = async <ToolName extends string>(
   } catch (error) {
     logger.error(`Anthropic API error: ${stringify(error)}`);
 
-    if (error instanceof RateLimitError) {
-      const headers = error.headers;
-
+    if (isErrorAnthropicRateLimitingError(error)) {
       /**
        * This is in the format of a RFC 3339 timestamp.
        */
-      const anthropicRateLimitRequestsResetTimestamp =
-        headers?.["anthropic-ratelimit-requests-reset"] ?? undefined;
+      const anthropicRateLimitWaitTime = getWaitPeriodFromHeaders(
+        error.headers,
+      );
 
-      anthropicResponse = await createAnthropicMessagesWithToolsWithBackoff({
-        payload,
-        startingDelay: anthropicRateLimitRequestsResetTimestamp
-          ? convertAnthropicRateLimitRequestsResetTimestampToMilliseconds({
-              anthropicRateLimitRequestsResetTimestamp,
-            })
-          : undefined,
-      });
+      anthropicResponse =
+        await createAnthropicMessagesWithToolsWithStartingDelay({
+          payload,
+          startingDelay: anthropicRateLimitWaitTime,
+        });
     } else if (isErrorAnthropicThrottlingError(error)) {
-      anthropicResponse = await createAnthropicMessagesWithToolsWithBackoff({
-        payload,
-        startingDelay: throttledStartingDelay,
-      });
+      anthropicResponse =
+        await createAnthropicMessagesWithToolsWithStartingDelay({
+          payload,
+          startingDelay: throttledStartingDelay,
+        });
     }
 
     return {
