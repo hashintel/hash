@@ -106,6 +106,9 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     case "CreatedPlan": {
       return "Created research plan";
     }
+    case "StartedSubTask": {
+      return `Started sub-task with goal “${log.goal}”`;
+    }
   }
 };
 
@@ -179,6 +182,14 @@ const LogDetail = ({
     }
     case "StateChange": {
       return log.message;
+    }
+    case "StartedSubTask": {
+      return (
+        <>
+          Started sub-task with goal “{log.goal}”
+          <ModelTooltip text={log.explanation} />
+        </>
+      );
     }
   }
 };

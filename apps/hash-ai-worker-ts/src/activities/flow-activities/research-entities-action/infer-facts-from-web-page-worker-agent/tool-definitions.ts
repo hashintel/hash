@@ -245,8 +245,16 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
       type: "object",
       properties: {
         explanation: explanationDefinition,
+        suggestionForNextSteps: {
+          type: "string",
+          description: dedent(`
+            A suggestion for how to find any relevant facts that could be used to provide values for additional properties.
+            This should be a detailed explanation of how you would go about finding the missing facts from online resources.
+            If the you've encountered URLs for web pages which may be relevant, you must include them in the suggestion.
+          `),
+        },
       },
-      required: ["explanation"],
+      required: ["explanation", "suggestionForNextSteps"],
     },
   },
   terminate: {
@@ -268,6 +276,7 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
     name: "updatePlan",
     description: dedent(`
       Update the plan for the research task.
+      This should be a list of steps in plain English.
       You should call this alongside other tool calls to progress towards completing the task.
     `),
     inputSchema: {
@@ -314,6 +323,7 @@ export type ToolCallArguments = Subtype<
     };
     complete: {
       explanation: string;
+      suggestionForNextSteps: string;
     };
     terminate: {
       explanation: string;

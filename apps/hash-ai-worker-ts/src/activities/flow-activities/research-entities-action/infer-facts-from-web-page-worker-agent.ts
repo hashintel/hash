@@ -15,10 +15,7 @@ import type {
   LlmMessageToolResultContent,
   LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message";
-import {
-  getTextContentFromLlmMessage,
-  getToolCallsFromLlmAssistantMessage,
-} from "../../shared/get-llm-response/llm-message";
+import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
 import type {
   LlmParams,
   ParsedLlmToolCall,
@@ -38,11 +35,10 @@ import type {
   InferFactsFromWebPageWorkerAgentState,
   ToolName,
 } from "./infer-facts-from-web-page-worker-agent/types";
-// import { retrievePreviousState, writeStateToFile } from "./testing-utils";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
-const model: LlmParams["model"] = "gpt-4-0125-preview";
+const model: LlmParams["model"] = "claude-3-opus-20240229";
 
 const generateSystemMessagePrefix = (params: {
   input: InferFactsFromWebPageWorkerAgentInput;
@@ -120,10 +116,8 @@ const createInitialPlan = async (params: {
   const systemPrompt = dedent(`
       ${generateSystemMessagePrefix({ input })}
 
-      Do not make *any* tool calls. You must first provide a plan of how you will use
-        the tools to progress towards completing the task.
-
-      This should be a list of steps in plain English.
+      You must now make an "updatePlan" tool call, to provide your initial plan for
+        how you will use the tools to progress towards completing the task.
 
       Remember that you may need to navigate to other web pages which are linked on the
         initial web page, to find all the facts about entities required to satisfy the prompt.
@@ -142,6 +136,7 @@ const createInitialPlan = async (params: {
       messages,
       model,
       tools: Object.values(toolDefinitions),
+      toolChoice: "updatePlan",
     },
     {
       userAccountId: userAuthentication.actorId,
@@ -157,7 +152,9 @@ const createInitialPlan = async (params: {
     );
   }
 
-  const { message, stopReason } = llmResponse;
+  const { message } = llmResponse;
+
+  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
   const retry = (retryParams: {
     retryMessageContent: LlmUserMessage["content"];
@@ -181,35 +178,43 @@ const createInitialPlan = async (params: {
     });
   };
 
-  if (stopReason === "tool_use") {
-    const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
-    return retry({
-      retryMessageContent: [
-        ...toolCalls.map<LlmMessageToolResultContent>((toolCall) => ({
-          type: "tool_result",
-          tool_use_id: toolCall.id,
-          content:
-            "You must not make any tool calls yet. Provide your initial plan as plain text instead.",
-          is_error: true,
-        })),
-      ],
-    });
+  const updatePlanToolCall = toolCalls.find(
+    (toolCall) => toolCall.name === "updatePlan",
+  );
+
+  if (!updatePlanToolCall) {
+    if (toolCalls.length > 0) {
+      return retry({
+        retryMessageContent: [
+          ...toolCalls.map<LlmMessageToolResultContent>((toolCall) => ({
+            type: "tool_result",
+            tool_use_id: toolCall.id,
+            content: dedent(`
+              You cannot make this tool call yet.
+              You must first make a single tool call to the "updatePlan" tool with your initial plan.
+            `),
+            is_error: true,
+          })),
+        ],
+      });
+    } else {
+      return retry({
+        retryMessageContent: [
+          {
+            type: "text",
+            text: dedent(`
+              You didn't make a "updatePlan" tool call.
+              You must make a single "updatePlan" tool call with your initial plan, before doing anything else.
+            `),
+          },
+        ],
+      });
+    }
   }
 
-  const messageText = getTextContentFromLlmMessage({ message });
+  const { plan } = updatePlanToolCall.input as ToolCallArguments["updatePlan"];
 
-  if (!messageText) {
-    return retry({
-      retryMessageContent: [
-        {
-          type: "text",
-          text: "You did not provide a plan in your response.",
-        },
-      ],
-    });
-  }
-
-  return { plan: messageText };
+  return { plan };
 };
 
 const getNextToolCalls = async (params: {
@@ -279,19 +284,44 @@ const getNextToolCalls = async (params: {
   return { toolCalls };
 };
 
+const getTopLevelDomain = (url: string) => {
+  const parsedUrl = new URL(url);
+  const hostnameParts = parsedUrl.hostname.split(".");
+
+  if (hostnameParts.length > 1) {
+    return hostnameParts.slice(-2).join(".");
+  }
+};
+
+const haveSameTopLevelDomain = (url1: string, url2: string): boolean => {
+  const tld1 = getTopLevelDomain(url1);
+  const tld2 = getTopLevelDomain(url2);
+
+  if (tld1 && tld2) {
+    return tld1 === tld2;
+  }
+
+  return false;
+};
+
 export const inferFactsFromWebPageWorkerAgent = async (params: {
   prompt: string;
   entityTypes: DereferencedEntityType[];
   linkEntityTypes?: DereferencedEntityType[];
   url: string;
+  testingParams?: {
+    persistState?: (state: InferFactsFromWebPageWorkerAgentState) => void;
+    resumeFromState?: InferFactsFromWebPageWorkerAgentState;
+  };
 }): Promise<
   Status<{
     inferredFactsAboutEntities: LocalEntitySummary[];
     inferredFacts: Fact[];
     filesUsedToInferFacts: AccessedRemoteFile[];
+    suggestionForNextSteps: string;
   }>
 > => {
-  const { url } = params;
+  const { url, testingParams } = params;
 
   /**
    * We start by making a asking the coordinator agent to create an initial plan
@@ -311,25 +341,29 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
     innerHtml: initialWebPageInnerHtml,
   };
 
-  const { plan: initialPlan } = await createInitialPlan({
-    input,
-  });
+  let state: InferFactsFromWebPageWorkerAgentState;
 
-  logger.debug(`Worker agent initial plan: ${initialPlan}`);
+  if (testingParams?.resumeFromState) {
+    state = testingParams.resumeFromState;
+  } else {
+    const { plan: initialPlan } = await createInitialPlan({
+      input,
+    });
 
-  const state: InferFactsFromWebPageWorkerAgentState = {
-    currentPlan: initialPlan,
-    previousCalls: [],
-    inferredFactsAboutEntities: [],
-    inferredFacts: [],
-    inferredFactsFromWebPageUrls: [],
-    filesQueried: [],
-    filesUsedToInferFacts: [],
-  };
+    logger.debug(`Worker agent initial plan: ${initialPlan}`);
+
+    state = {
+      currentPlan: initialPlan,
+      previousCalls: [],
+      inferredFactsAboutEntities: [],
+      inferredFacts: [],
+      inferredFactsFromWebPageUrls: [],
+      filesQueried: [],
+      filesUsedToInferFacts: [],
+    };
+  }
 
   const { userAuthentication } = await getFlowContext();
-
-  // const state = retrievePreviousState();
 
   const { toolCalls: initialToolCalls } = await getNextToolCalls({
     state,
@@ -338,7 +372,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
 
   const processToolCalls = async (processToolCallsParams: {
     toolCalls: ParsedLlmToolCall<ToolName>[];
-  }): Promise<Status<never>> => {
+  }): Promise<Status<{ suggestionForNextSteps: string }>> => {
     const { toolCalls } = processToolCallsParams;
 
     logger.debug(`Worker agent processing tool calls: ${stringify(toolCalls)}`);
@@ -375,28 +409,38 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
             const { url: toolCallUrl } =
               toolCall.input as ToolCallArguments["getWebPageInnerHtml"];
 
-            const urlHeadFetch = await fetch(toolCallUrl, { method: "HEAD" });
-
-            if (!urlHeadFetch.ok) {
+            if (!haveSameTopLevelDomain(toolCallUrl, input.url)) {
               return {
                 ...toolCall,
-                output: `Failed to fetch the page at the provided URL: ${toolCallUrl}`,
+                output: dedent(`
+                  The URL provided is not from the same top level domain as the initial web page URL.
+                  You can only access web pages which are linked to by the initial web page and are hosted on the same top-level domain.
+                `),
                 isError: true,
               };
             }
 
-            const contentType = urlHeadFetch.headers.get("Content-Type");
+            const urlHeadFetch = await fetch(toolCallUrl, { method: "HEAD" });
 
-            if (contentType && contentType.includes("application/pdf")) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  The URL provided is a PDF file.
-                  You must use the "queryPdf" tool to extract the text content from the PDF.
-                  Detected Content-Type: ${contentType}
-                `),
-                isError: true,
-              };
+            /**
+             * Only check the content type of the URL if the HEAD request was successful.
+             *
+             * This may be because the web page requires an authenticated user to access it.
+             */
+            if (urlHeadFetch.ok) {
+              const contentType = urlHeadFetch.headers.get("Content-Type");
+
+              if (contentType && contentType.includes("application/pdf")) {
+                return {
+                  ...toolCall,
+                  output: dedent(`
+                    The URL provided is a PDF file.
+                    You must use the "queryPdf" tool to extract the text content from the PDF.
+                    Detected Content-Type: ${contentType}
+                  `),
+                  isError: true,
+                };
+              }
             }
 
             const { htmlContent } = await getWebPageActivity({
@@ -462,6 +506,20 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
                   You did not previously query the PDF file at the provided fileUrl: ${toolCallInput.fileUrl}.
                   You must first query the PDF file with the relevant query using the "queryPdf" tool,
                     before inferring entities from its text content.
+                `),
+                isError: true,
+              };
+            }
+
+            if (
+              "url" in toolCallInput &&
+              !haveSameTopLevelDomain(toolCallInput.url, input.url)
+            ) {
+              return {
+                ...toolCall,
+                output: dedent(`
+                  The URL provided is not from the same top level domain as the initial web page URL.
+                  You must only infer facts from web pages which are linked to by the initial web page and are hosted on the same top-level domain.
                 `),
                 isError: true,
               };
@@ -641,7 +699,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
       ),
     );
 
-    const isCompleted = toolCalls.some(
+    const completeToolCall = toolCalls.find(
       (toolCall) => toolCall.name === "complete",
     );
 
@@ -649,13 +707,17 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
      * Check whether the research task has completed after processing the tool calls,
      * incase the agent has made other tool calls at the same time as the "complete" tool call.
      */
-    if (isCompleted) {
-      return { code: StatusCode.Ok, contents: [] };
+    if (completeToolCall) {
+      const { suggestionForNextSteps } =
+        completeToolCall.input as ToolCallArguments["complete"];
+      return { code: StatusCode.Ok, contents: [{ suggestionForNextSteps }] };
     }
 
     state.previousCalls = [...state.previousCalls, { completedToolCalls }];
 
-    // writeStateToFile(state);
+    if (testingParams?.persistState) {
+      testingParams.persistState(state);
+    }
 
     const { toolCalls: nextToolCalls } = await getNextToolCalls({
       state,
@@ -679,6 +741,8 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
     };
   }
 
+  const { suggestionForNextSteps } = status.contents[0]!;
+
   return {
     code: StatusCode.Ok,
     contents: [
@@ -686,6 +750,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
         inferredFacts: state.inferredFacts,
         inferredFactsAboutEntities: state.inferredFactsAboutEntities,
         filesUsedToInferFacts: state.filesUsedToInferFacts,
+        suggestionForNextSteps,
       },
     ],
   };

@@ -33,7 +33,7 @@ type MinimalDataType = Omit<CustomDataType, "$id" | "$schema" | "kind">;
 
 type MinimalPropertyObject = BpObject<ValueOrArray<DereferencedPropertyType>>;
 
-type MinimalPropertyTypeValue =
+export type MinimalPropertyTypeValue =
   | MinimalDataType
   | MinimalPropertyObject
   | Array<OneOf<MinimalPropertyTypeValue>>;
