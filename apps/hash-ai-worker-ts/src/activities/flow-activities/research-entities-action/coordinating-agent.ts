@@ -97,7 +97,9 @@ const generateSystemPromptPrefix = (params: {
       - conducting multiple web searches
       - starting sub-tasks to find additional relevant facts about specific entities
 
-    If at any point the task can be split up into sub-tasks, you must do so.
+    If it would be useful to split up the task into sub-tasks to find detailed information on specific entities, do so. 
+    Don't start sub-tasks in parallel which duplicate or overlap, or where one will depend on the result of another (do it in sequence).
+    For simpler research tasks you might not need sub-tasks.
 
     Do not waste resources and time trying to produce a table, report or any other form of output that isn't the proposed entities with all their properties.
     
