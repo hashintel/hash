@@ -714,7 +714,11 @@ where
                         WHERE (ontology_id) IN (SELECT ontology_id FROM embeddings_to_delete)
                     )
                 INSERT INTO data_type_embeddings
-                SELECT ontology_id, embedding, updated_at_transaction_time FROM provided_embeddings
+                SELECT
+                    ontology_id,
+                    embedding,
+                    updated_at_transaction_time
+                SaFROM provided_embeddings
                 ON CONFLICT (ontology_id) DO UPDATE SET
                     embedding = EXCLUDED.embedding,
                     updated_at_transaction_time = EXCLUDED.updated_at_transaction_time
