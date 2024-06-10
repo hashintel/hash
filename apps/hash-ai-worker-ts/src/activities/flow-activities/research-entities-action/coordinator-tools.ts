@@ -1,4 +1,3 @@
-import type { OmitValue } from "@local/advanced-types/omit-value";
 import type { Subtype } from "@local/advanced-types/subtype";
 import dedent from "dedent";
 
@@ -39,8 +38,8 @@ export const generateToolDefinitions = <
   omitTools?: T;
   state?: CoordinatingAgentState;
 }): Record<
-  OmitValue<CoordinatorToolName, T[number]>,
-  LlmToolDefinition<OmitValue<CoordinatorToolName, T[number]>>
+  Exclude<CoordinatorToolName, T[number]>,
+  LlmToolDefinition<Exclude<CoordinatorToolName, T[number]>>
 > => {
   const allToolDefinitions: Record<
     CoordinatorToolName,
@@ -325,8 +324,8 @@ export const generateToolDefinitions = <
       ([toolName]) => !params.omitTools?.includes(toolName as T[number]),
     ),
   ) as Record<
-    OmitValue<CoordinatorToolName, T[number]>,
-    LlmToolDefinition<OmitValue<CoordinatorToolName, T[number]>>
+    Exclude<CoordinatorToolName, T[number]>,
+    LlmToolDefinition<Exclude<CoordinatorToolName, T[number]>>
   >;
 
   return filteredTools;

@@ -1,5 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { OmitValue } from "@local/advanced-types/omit-value";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -58,7 +57,7 @@ const subTaskAgentCustomToolNames = ["complete", "terminate"] as const;
 type SubTaskAgentCustomToolName = (typeof subTaskAgentCustomToolNames)[number];
 
 type SubTaskAgentToolName =
-  | OmitValue<CoordinatorToolName, OmittedCoordinatorToolNames>
+  | Exclude<CoordinatorToolName, OmittedCoordinatorToolNames>
   | SubTaskAgentCustomToolName;
 
 const generateToolDefinitions = <
@@ -66,8 +65,8 @@ const generateToolDefinitions = <
 >(params: {
   omitTools: T;
 }): Record<
-  OmitValue<SubTaskAgentToolName, T[number]>,
-  LlmToolDefinition<OmitValue<SubTaskAgentToolName, T[number]>>
+  Exclude<SubTaskAgentToolName, T[number]>,
+  LlmToolDefinition<Exclude<SubTaskAgentToolName, T[number]>>
 > => {
   const coordinatorToolDefinitions = generateCoordinatorToolDefinitions({
     omitTools: omittedCoordinatorToolNames.concat(),
@@ -111,8 +110,8 @@ const generateToolDefinitions = <
       ([toolName]) => !params.omitTools.includes(toolName as T[number]),
     ),
   ) as Record<
-    OmitValue<SubTaskAgentToolName, T[number]>,
-    LlmToolDefinition<OmitValue<SubTaskAgentToolName, T[number]>>
+    Exclude<SubTaskAgentToolName, T[number]>,
+    LlmToolDefinition<Exclude<SubTaskAgentToolName, T[number]>>
   >;
 
   return filteredToolDefinitions;
