@@ -12,6 +12,7 @@ import { getFlowContext } from "../../shared/get-flow-context";
 import { getLlmResponse } from "../../shared/get-llm-response";
 import type {
   LlmMessage,
+  LlmMessageToolResultContent,
   LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message";
 import {
@@ -181,12 +182,16 @@ const createInitialPlan = async (params: {
   };
 
   if (stopReason === "tool_use") {
+    const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
     return retry({
       retryMessageContent: [
-        {
-          type: "text",
-          text: "You must not make any tool calls yet. Provide your initial plan instead.",
-        },
+        ...toolCalls.map<LlmMessageToolResultContent>((toolCall) => ({
+          type: "tool_result",
+          tool_use_id: toolCall.id,
+          content:
+            "You must not make any tool calls yet. Provide your initial plan as plain text instead.",
+          is_error: true,
+        })),
       ],
     });
   }
@@ -251,6 +256,7 @@ const getNextToolCalls = async (params: {
       messages,
       model,
       tools: Object.values(toolDefinitions),
+      toolChoice: "required",
     },
     {
       userAccountId: userAuthentication.actorId,

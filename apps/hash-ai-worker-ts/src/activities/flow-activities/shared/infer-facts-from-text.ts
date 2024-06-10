@@ -1,6 +1,7 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
+
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import { logger } from "../../shared/activity-logger";
-import { stringify } from "../../shared/stringify";
 import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
 import { getEntitySummariesFromText } from "./infer-facts-from-text/get-entity-summaries-from-text";
 import { inferEntityFactsFromText } from "./infer-facts-from-text/infer-entity-facts-from-text";
@@ -44,38 +45,84 @@ export const inferFactsFromText = async (params: {
         }),
     ).then((unflattenedEntitySummaries) => unflattenedEntitySummaries.flat()));
 
+  const entitySummariesByType = entitySummaries.reduce(
+    (prev, currentEntitySummary) => {
+      const { entityTypeId } = currentEntitySummary;
+
+      return {
+        ...prev,
+        [entityTypeId]: [...(prev[entityTypeId] ?? []), currentEntitySummary],
+      };
+    },
+    {} as Record<VersionedUrl, LocalEntitySummary[]>,
+  );
+
   const aggregatedFacts: Fact[] = await Promise.all(
-    entitySummaries.map(async (entitySummary) => {
-      logger.debug(`Inferring facts for entity: ${stringify(entitySummary)}`);
-
-      const dereferencedEntityType =
-        dereferencedEntityTypes[entitySummary.entityTypeId]?.schema;
-
-      if (!dereferencedEntityType) {
-        throw new Error(
-          `Could not find dereferenced entity type for entity summary: ${stringify(
-            entitySummary,
-          )}`,
+    Object.entries(entitySummariesByType).map(
+      async ([entityTypeId, entitySummariesOfType]) => {
+        logger.debug(
+          `Inferring facts for ${entitySummariesOfType.length} entity summaries of type: ${entityTypeId}`,
         );
-      }
 
-      const { facts } = await inferEntityFactsFromText({
-        subjectEntity: entitySummary,
+        const dereferencedEntityType =
+          dereferencedEntityTypes[entityTypeId as VersionedUrl]?.schema;
+
+        if (!dereferencedEntityType) {
+          throw new Error(
+            `Could not find dereferenced entity type for entity summaries: ${entityTypeId}`,
+          );
+        }
+
+        const maximumNumberOfParallelizedRequests = 3;
+
+        const facts: Fact[] = [];
+
+        const chunks = entitySummariesOfType.reduce<LocalEntitySummary[][]>(
+          (previousArray, item, index) => {
+            const chunkIndex = Math.floor(
+              index / maximumNumberOfParallelizedRequests,
+            );
+
+            const resultArray = previousArray;
+
+            if (!resultArray[chunkIndex]) {
+              return [...resultArray, [item]];
+            }
+
+            return [
+              ...resultArray.slice(0, chunkIndex),
+              [...(resultArray[chunkIndex] ?? []), item],
+            ];
+          },
+          [],
+        );
+
         /**
-         * Note: we could reduce the number of potential object entities by filtering out
-         * all entities which don't have a type that the subject entity can link to. This
-         * would result in missed facts, so is not being done at the moment but could be
-         * considered in the future.
+         * Parallelize the facts for entities in chunks, to reduce risk of hitting rate limits.
+         *
+         * @todo: implement more robust strategy for dealing with rate limits
+         * @see https://linear.app/hash/issue/H-2787/handle-rate-limits-gracefully-particularly-when-gathering-facts-for
          */
-        potentialObjectEntities: entitySummaries.filter(
-          ({ localId }) => localId !== entitySummary.localId,
-        ),
-        text,
-        dereferencedEntityType,
-      });
+        for (const chunk of chunks) {
+          const chunkResults = await Promise.all(
+            chunk.map(async (entity) => {
+              const { facts: factsForSingleEntity } =
+                await inferEntityFactsFromText({
+                  subjectEntities: [entity],
+                  potentialObjectEntities: entitySummaries,
+                  text,
+                  dereferencedEntityType,
+                });
+              return factsForSingleEntity;
+            }),
+          );
 
-      return facts;
-    }),
+          facts.push(...chunkResults.flat());
+        }
+
+        return facts;
+      },
+    ),
   ).then((unflattenedFacts) => unflattenedFacts.flat());
 
   return { facts: aggregatedFacts, entitySummaries };

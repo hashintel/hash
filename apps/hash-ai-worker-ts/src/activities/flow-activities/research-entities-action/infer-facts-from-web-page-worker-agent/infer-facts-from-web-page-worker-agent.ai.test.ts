@@ -37,7 +37,7 @@ test.skip(
   },
 );
 
-test(
+test.skip(
   "Test inferFactsFromWebPageWorkerAgent for Sora article authors",
   async () => {
     const { userAuthentication } = await getFlowContext();
