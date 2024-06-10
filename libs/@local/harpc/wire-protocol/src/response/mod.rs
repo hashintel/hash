@@ -147,7 +147,7 @@ mod test {
         flags::BitFlagsOp,
         payload::Payload,
         protocol::{Protocol, ProtocolVersion},
-        request::id::test::mock_request_id,
+        request::id::test_utils::mock_request_id,
         response::{
             begin::ResponseBegin, body::ResponseBody, flags::ResponseFlag, frame::ResponseFrame,
             kind::ResponseKind, Response,
