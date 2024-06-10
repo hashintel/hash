@@ -1,6 +1,7 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import { Entity } from "@local/hash-graph-sdk/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
@@ -51,6 +52,18 @@ export const getLlmResponse = async <T extends LlmParams>(
     grantCreatePermissionForWeb: webId,
     graphApiClient,
   });
+
+  if (webId !== userAccountId) {
+    /**
+     * If the web isn't the user's, we need to make sure the AI assistant also has permission over the user's web,
+     * to be able to create the usage record.
+     */
+    await getAiAssistantAccountIdActivity({
+      authentication: { actorId: userAccountId },
+      grantCreatePermissionForWeb: userAccountId as OwnedById,
+      graphApiClient,
+    });
+  }
 
   if (!aiAssistantAccountId) {
     return {
