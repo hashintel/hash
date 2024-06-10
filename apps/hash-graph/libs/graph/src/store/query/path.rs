@@ -1,4 +1,6 @@
-use std::{borrow::Cow, error::Error, fmt, fmt::Write};
+use alloc::borrow::Cow;
+use core::{fmt, fmt::Write};
+use std::error::Error;
 
 use bytes::BytesMut;
 use postgres_types::{IsNull, ToSql, Type};

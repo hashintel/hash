@@ -1,4 +1,4 @@
-use std::iter::once;
+use core::iter::once;
 
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};

@@ -1,4 +1,6 @@
-use std::{collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
+use alloc::sync::Arc;
+use core::{fmt::Debug, hash::Hash};
+use std::collections::HashMap;
 
 use authorization::{
     backend::PermissionAssertion,

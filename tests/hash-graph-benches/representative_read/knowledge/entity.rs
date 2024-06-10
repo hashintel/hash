@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 
 use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};

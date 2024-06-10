@@ -1,6 +1,6 @@
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
-import type { AuthenticationContext } from "../../../graphql/authentication-context";
 import type { ImpureGraphContext } from "../../context-types";
 
 export type MigrationState = {

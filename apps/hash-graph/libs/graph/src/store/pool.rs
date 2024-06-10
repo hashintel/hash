@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use async_trait::async_trait;
 use authorization::AuthorizationApi;

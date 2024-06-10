@@ -1,9 +1,9 @@
-use core::borrow::Borrow;
-use std::{
+use core::{
+    borrow::Borrow,
     net::{Ipv4Addr, Ipv6Addr},
     str::FromStr,
-    sync::OnceLock,
 };
+use std::sync::OnceLock;
 
 use email_address::EmailAddress;
 use error_stack::{bail, ensure, Report, ResultExt};
@@ -629,7 +629,7 @@ mod tests {
             .expect_err("validation succeeded");
 
         _ = validate_data(
-            json!(std::f64::consts::PI),
+            json!(core::f64::consts::PI),
             &integer_type,
             ValidateEntityComponents::full(),
         )

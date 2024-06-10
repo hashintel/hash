@@ -9,6 +9,8 @@
     reason = "This should be enabled but it's currently too noisy"
 )]
 
+extern crate alloc;
+
 mod data_type;
 mod drafts;
 mod entity;
@@ -54,9 +56,9 @@ use graph::{
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
             UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
-        AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityStore, EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool,
-        PropertyTypeStore, QueryError, StorePool, UpdateError,
+        AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig,
+        DatabaseType, EntityStore, EntityTypeStore, InsertionError, PostgresStore,
+        PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
     Environment,
 };
@@ -161,7 +163,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
             database,
         );
 
-        let pool = PostgresStorePool::new(&connection_info, NoTls)
+        let pool = PostgresStorePool::new(&connection_info, &DatabasePoolConfig::default(), NoTls)
             .await
             .expect("could not connect to database");
 
@@ -790,7 +792,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: PatchEntityParams,
-    ) -> Result<EntityMetadata, UpdateError> {
+    ) -> Result<Entity, UpdateError> {
         self.store.patch_entity(actor_id, params).await
     }
 

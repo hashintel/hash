@@ -19,3 +19,6 @@ url = { version = "2.5.0", default-features = false }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = "1.0.59"
+
+[lints]
+workspace = true

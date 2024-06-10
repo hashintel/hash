@@ -1,7 +1,5 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Debug,
-};
+use core::fmt::Debug;
+use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]
@@ -86,7 +84,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use serde_json::json;
 

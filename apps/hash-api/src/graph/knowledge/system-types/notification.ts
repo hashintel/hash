@@ -2,7 +2,10 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  CreateEntityParameters,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import {
@@ -30,7 +33,6 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import type { CreateEntityParams } from "../primitive/entity";
 import {
   createEntity,
   getEntitySubgraph,
@@ -95,7 +97,7 @@ export const getMentionNotificationFromEntity: PureGraphFunction<
 };
 
 export const createMentionNotification: ImpureGraphFunction<
-  Pick<CreateEntityParams, "ownedById"> & {
+  Pick<CreateEntityParameters, "ownedById"> & {
     triggeredByUser: User;
     occurredInEntity: Page;
     occurredInBlock: Block;
@@ -143,43 +145,56 @@ export const createMentionNotification: ImpureGraphFunction<
        */
       createLinkEntity(context, userAuthentication, {
         ownedById,
-        leftEntityId: entity.metadata.recordId.entityId,
-        rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
-        linkEntityTypeId:
-          systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
+        properties: {},
+        linkData: {
+          leftEntityId: entity.metadata.recordId.entityId,
+          rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
+        },
+        entityTypeId: systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
         relationships: linkEntityRelationships,
       }),
       createLinkEntity(context, userAuthentication, {
         ownedById,
-        leftEntityId: entity.metadata.recordId.entityId,
-        rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
-        linkEntityTypeId:
-          systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+        properties: {},
+        linkData: {
+          leftEntityId: entity.metadata.recordId.entityId,
+          rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+        },
+        entityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
         relationships: linkEntityRelationships,
       }),
       createLinkEntity(context, userAuthentication, {
         ownedById,
-        leftEntityId: entity.metadata.recordId.entityId,
-        rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
-        linkEntityTypeId:
-          systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
+        properties: {},
+        linkData: {
+          leftEntityId: entity.metadata.recordId.entityId,
+          rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
+        },
+        entityTypeId: systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
         relationships: linkEntityRelationships,
       }),
       occurredInComment
         ? createLinkEntity(context, userAuthentication, {
             ownedById,
-            leftEntityId: entity.metadata.recordId.entityId,
-            rightEntityId: occurredInComment.entity.metadata.recordId.entityId,
-            linkEntityTypeId:
+            properties: {},
+            linkData: {
+              leftEntityId: entity.metadata.recordId.entityId,
+              rightEntityId:
+                occurredInComment.entity.metadata.recordId.entityId,
+            },
+            entityTypeId:
               systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
             relationships: linkEntityRelationships,
           })
         : [],
       createLinkEntity(context, userAuthentication, {
         ownedById,
-        leftEntityId: entity.metadata.recordId.entityId,
-        rightEntityId: occurredInText.entity.metadata.recordId.entityId,
-        linkEntityTypeId: systemLinkEntityTypes.occurredInText.linkEntityTypeId,
+        properties: {},
+        linkData: {
+          leftEntityId: entity.metadata.recordId.entityId,
+          rightEntityId: occurredInText.entity.metadata.recordId.entityId,
+        },
+        entityTypeId: systemLinkEntityTypes.occurredInText.linkEntityTypeId,
         relationships: linkEntityRelationships,
       }),
     ].flat(),
@@ -338,7 +353,7 @@ export const getCommentNotificationFromEntity: PureGraphFunction<
 };
 
 export const createCommentNotification: ImpureGraphFunction<
-  Pick<CreateEntityParams, "ownedById"> & {
+  Pick<CreateEntityParameters, "ownedById"> & {
     triggeredByUser: User;
     triggeredByComment: Comment;
     occurredInEntity: Page;
@@ -408,7 +423,7 @@ export const createCommentNotification: ImpureGraphFunction<
   }
 
   await Promise.all(
-    linksToCreate.map(({ rightEntityId, linkEntityTypeId }) =>
+    linksToCreate.map(({ rightEntityId, linkEntityTypeId: entityTypeId }) =>
       /**
        * We do this separately with the user's authority because we need to use the user's authority to create the links
        * We cannot use a bot scoped to the user's web, because the thing that we are linking to (comments, pages)
@@ -417,10 +432,13 @@ export const createCommentNotification: ImpureGraphFunction<
        * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
        */
       createLinkEntity(context, userAuthentication, {
-        linkEntityTypeId,
-        leftEntityId,
-        rightEntityId,
         ownedById,
+        properties: {},
+        linkData: {
+          leftEntityId,
+          rightEntityId,
+        },
+        entityTypeId,
         relationships: linkEntityRelationships,
       }),
     ),

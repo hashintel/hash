@@ -419,7 +419,8 @@ impl<C> Report<C> {
     /// ## Example
     ///
     /// ```rust
-    /// use std::{fmt, fs};
+    /// use core::fmt;
+    /// use std::fs;
     ///
     /// use error_stack::ResultExt;
     ///

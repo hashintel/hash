@@ -13,7 +13,6 @@ import {
 } from "@local/hash-subgraph";
 
 import {
-  archiveEntity,
   getLatestEntityById,
   modifyEntityAuthorizationRelationships,
 } from "../../../../graph/knowledge/primitive/entity";
@@ -133,9 +132,10 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
           /** @todo: remove system account id as account group member if there are no other integrations */
         }
 
-        return archiveEntity(impureGraphContext, authentication, {
-          entity: syncLinearDataWithLinkEntity,
-        });
+        return syncLinearDataWithLinkEntity.archive(
+          impureGraphContext.graphApi,
+          authentication,
+        );
       },
     ),
     ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {

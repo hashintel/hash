@@ -1,4 +1,6 @@
-use std::fmt::{self, Display, Formatter, Write};
+use core::fmt::{
+    Display, Formatter, Write, {self},
+};
 
 use crate::store::{
     postgres::query::{

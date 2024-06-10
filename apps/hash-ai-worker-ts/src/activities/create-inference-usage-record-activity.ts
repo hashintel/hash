@@ -1,5 +1,6 @@
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
-import type { EntityMetadata, GraphApi } from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 
 import type { LlmUsage } from "./shared/get-llm-response/types";
@@ -17,7 +18,7 @@ export const createInferenceUsageRecordActivity = async ({
   modelName: PermittedOpenAiModel;
   usage: LlmUsage[];
   userAccountId: AccountId;
-}): Promise<EntityMetadata> => {
+}): Promise<Entity> => {
   const { inputUnitCount, outputUnitCount } = usage.reduce(
     (acc, usageRecord) => {
       acc.inputUnitCount += usageRecord.inputTokens;
@@ -27,7 +28,7 @@ export const createInferenceUsageRecordActivity = async ({
     { inputUnitCount: 0, outputUnitCount: 0 },
   );
 
-  const usageRecordMetadata = await createUsageRecord(
+  return createUsageRecord(
     { graphApi: graphApiClient },
     { actorId: aiAssistantAccountId },
     {
@@ -38,6 +39,4 @@ export const createInferenceUsageRecordActivity = async ({
       outputUnitCount,
     },
   );
-
-  return usageRecordMetadata;
 };

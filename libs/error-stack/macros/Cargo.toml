@@ -19,3 +19,6 @@ proc-macro = true
 
 [dev-dependencies]
 error-stack = { path = "..", default-features = false }
+
+[lints]
+workspace = true

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use core::str::FromStr;
 
 use graph::store::{knowledge::CreateEntityParams, EntityStore};
 use graph_test_data::{data_type, entity, entity_type, property_type};

@@ -359,22 +359,14 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     if (isExactMatch) {
       entityToReturn = existingEntity;
     } else {
-      const metadata = await graphApiClient
-        .patchEntity(webBotActorId, {
+      entityToReturn = await existingEntity.patch(
+        graphApiClient,
+        { actorId: webBotActorId },
+        {
           draft: existingEntityIsDraft,
-          entityId: existingEntity.metadata.recordId.entityId,
           properties: patchOperations,
-        })
-        .then((resp) => resp.data);
-
-      entityToReturn = new Entity({
-        ...existingEntity.toJSON(),
-        metadata,
-        properties: {
-          ...existingEntity.properties,
-          ...fileProperties,
         },
-      });
+      );
     }
   } else {
     const authRelationships = createDefaultAuthorizationRelationships({
@@ -382,39 +374,37 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     });
 
     const entityValues = {
-      entityTypeIds: [googleEntityTypes.googleSheetsFile.entityTypeId],
+      entityTypeId: googleEntityTypes.googleSheetsFile.entityTypeId,
       properties: fileProperties,
     };
 
-    entityToReturn = await graphApiClient
-      .createEntity(webBotActorId, {
+    entityToReturn = await Entity.create(
+      graphApiClient,
+      { actorId: webBotActorId },
+      {
+        ...entityValues,
         draft: false,
-        entityTypeIds: entityValues.entityTypeIds,
         ownedById: webId,
-        properties: entityValues.properties,
         relationships: authRelationships,
-      })
-      .then(
-        (resp) =>
-          new Entity({
-            properties: entityValues.properties,
-            metadata: resp.data,
-          }),
-      );
-
-    await graphApiClient.createEntity(webBotActorId, {
-      draft: false,
-      entityTypeIds: [
-        systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId,
-      ],
-      ownedById: webId,
-      linkData: {
-        leftEntityId: entityToReturn.metadata.recordId.entityId,
-        rightEntityId: googleAccount.metadata.recordId.entityId,
       },
-      properties: {},
-      relationships: authRelationships,
-    });
+    );
+
+    await Entity.create(
+      graphApiClient,
+      { actorId: webBotActorId },
+      {
+        draft: false,
+        entityTypeId:
+          systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId,
+        ownedById: webId,
+        linkData: {
+          leftEntityId: entityToReturn.metadata.recordId.entityId,
+          rightEntityId: googleAccount.metadata.recordId.entityId,
+        },
+        properties: {},
+        relationships: authRelationships,
+      },
+    );
   }
 
   return {

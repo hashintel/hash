@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 use error_stack::{Context, ResultExt};
 use regex::{Captures, Regex};

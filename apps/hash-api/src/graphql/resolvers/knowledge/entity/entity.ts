@@ -30,7 +30,6 @@ import {
 import {
   addEntityAdministrator,
   addEntityEditor,
-  archiveEntity,
   canUserReadEntity,
   checkEntityPermission,
   createEntityWithLinks,
@@ -40,7 +39,6 @@ import {
   modifyEntityAuthorizationRelationships,
   removeEntityAdministrator,
   removeEntityEditor,
-  unarchiveEntity,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import {
@@ -131,11 +129,13 @@ export const createEntityResolver: ResolverFn<
     ]);
 
     entity = await createLinkEntity(context, authentication, {
-      leftEntityId,
-      rightEntityId,
-      properties,
-      linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
+      properties,
+      linkData: {
+        leftEntityId,
+        rightEntityId,
+      },
+      entityTypeId,
       relationships:
         relationships ??
         createDefaultAuthorizationRelationships(authentication),
@@ -417,7 +417,7 @@ export const archiveEntityResolver: ResolverFn<
     entityId,
   });
 
-  await archiveEntity(context, authentication, { entity });
+  await entity.archive(context.graphApi, authentication);
 
   return true;
 };
@@ -442,7 +442,7 @@ export const archiveEntitiesResolver: ResolverFn<
           entityId,
         });
 
-        await archiveEntity(context, authentication, { entity });
+        await entity.archive(context.graphApi, authentication);
 
         archivedEntities.push(entity);
       } catch (error) {
@@ -454,7 +454,7 @@ export const archiveEntitiesResolver: ResolverFn<
   if (entitiesThatCouldNotBeArchived.length > 0) {
     await Promise.all(
       archivedEntities.map((entity) =>
-        unarchiveEntity(context, authentication, { entity }),
+        entity.unarchive(context.graphApi, authentication),
       ),
     );
 

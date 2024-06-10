@@ -1,7 +1,5 @@
-use std::{
-    io::{self, Write},
-    marker::PhantomData,
-};
+use core::marker::PhantomData;
+use std::io::{self, Write};
 
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt};

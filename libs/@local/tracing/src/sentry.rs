@@ -1,14 +1,14 @@
+use alloc::{borrow::Cow, sync::Arc};
+#[cfg(feature = "clap")]
+use core::str::FromStr;
+use core::{fmt, panic::Location};
+#[cfg(feature = "clap")]
+use std::ffi::OsStr;
 use std::{
-    borrow::Cow,
-    fmt,
     fs::File,
     io::{BufRead, BufReader},
-    panic::Location,
     path::Path,
-    sync::Arc,
 };
-#[cfg(feature = "clap")]
-use std::{ffi::OsStr, str::FromStr};
 
 #[cfg(feature = "clap")]
 use clap::{builder::TypedValueParser, error::ErrorKind, Arg, Command, Error, Parser};
@@ -70,7 +70,7 @@ impl TypedValueParser for OptionalSentryDsnParser {
 
 /// Arguments for configuring the logging setup
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "clap", derive(Parser))]
+#[cfg_attr(feature = "clap", derive(Parser), clap(next_help_heading = Some("Sentry")))]
 pub struct SentryConfig {
     // we need to qualify `Option` here, as otherwise `clap` tries to be too smart and only uses
     // the `value_parser` on the internal `sentry::types::Dsn`, failing.

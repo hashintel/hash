@@ -1,4 +1,4 @@
-use std::time::Duration;
+use core::time::Duration;
 
 use futures::{stream, StreamExt, TryStreamExt};
 use reqwest::{

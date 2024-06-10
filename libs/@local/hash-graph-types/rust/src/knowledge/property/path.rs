@@ -1,6 +1,7 @@
+use alloc::borrow::Cow;
+use core::iter::once;
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{borrow::Cow, iter::once};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
@@ -154,7 +155,7 @@ impl<'k> FromIterator<PropertyPathElement<'k>> for PropertyPath<'k> {
 }
 
 impl<'k> IntoIterator for PropertyPath<'k> {
-    type IntoIter = std::vec::IntoIter<Self::Item>;
+    type IntoIter = alloc::vec::IntoIter<Self::Item>;
     type Item = PropertyPathElement<'k>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -163,7 +164,7 @@ impl<'k> IntoIterator for PropertyPath<'k> {
 }
 
 impl<'k> IntoIterator for &'k PropertyPath<'k> {
-    type IntoIter = std::slice::Iter<'k, PropertyPathElement<'k>>;
+    type IntoIter = core::slice::Iter<'k, PropertyPathElement<'k>>;
     type Item = &'k PropertyPathElement<'k>;
 
     fn into_iter(self) -> Self::IntoIter {

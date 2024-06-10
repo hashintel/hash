@@ -1,6 +1,7 @@
+use core::ptr;
+use std::collections::HashSet;
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{collections::HashSet, ptr};
 
 pub use error::ParsePropertyTypeError;
 #[cfg(feature = "postgres")]
@@ -198,7 +199,7 @@ impl PropertyValues {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use serde_json::json;
 

@@ -25,12 +25,12 @@
     "@blockprotocol/graph": "0.3.4",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-types": "0.0.0-private",
-    "lodash.isequal": "4.5.0"
+    "lodash": "4.17.21"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/lodash.isequal": "4.5.8",
+    "@types/lodash": "4.17.4",
     "@vitest/coverage-istanbul": "1.6.0",
     "eslint": "8.57.0",
     "typescript": "5.1.6",

@@ -2,7 +2,7 @@ mod insert;
 mod select;
 mod window;
 
-use std::fmt;
+use core::fmt;
 
 pub use self::{
     insert::InsertStatementBuilder,

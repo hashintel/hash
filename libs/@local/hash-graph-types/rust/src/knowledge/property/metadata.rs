@@ -1,9 +1,7 @@
+use alloc::borrow::Cow;
+use std::collections::{hash_map, HashMap};
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{
-    borrow::Cow,
-    collections::{hash_map, HashMap},
-};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;

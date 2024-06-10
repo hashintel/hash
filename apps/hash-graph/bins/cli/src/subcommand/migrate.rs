@@ -1,7 +1,9 @@
 use authorization::NoAuthorization;
 use clap::Parser;
 use error_stack::{Result, ResultExt};
-use graph::store::{DatabaseConnectionInfo, PostgresStorePool, StoreMigration, StorePool};
+use graph::store::{
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StoreMigration, StorePool,
+};
 use tokio_postgres::NoTls;
 
 use crate::error::GraphError;
@@ -11,10 +13,13 @@ use crate::error::GraphError;
 pub struct MigrateArgs {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
+
+    #[clap(flatten)]
+    pub pool_config: DatabasePoolConfig,
 }
 
 pub async fn migrate(args: MigrateArgs) -> Result<(), GraphError> {
-    let pool = PostgresStorePool::new(&args.db_info, NoTls)
+    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
         .await
         .change_context(GraphError)
         .map_err(|report| {

@@ -1,19 +1,22 @@
-use std::sync::Arc;
+use alloc::sync::Arc;
+use core::{fmt::Debug, num::NonZero, time::Duration};
 
 use async_trait::async_trait;
 use authorization::AuthorizationApi;
 use bb8_postgres::{
-    bb8::{ErrorSink, ManageConnection, Pool, PooledConnection, RunError},
+    bb8::{CustomizeConnection, ErrorSink, ManageConnection, Pool, PooledConnection, RunError},
     PostgresConnectionManager,
 };
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt};
 use temporal_client::TemporalClient;
 use tokio_postgres::{
     tls::{MakeTlsConnect, TlsConnect},
     Client, Config, Error, GenericClient, Socket, Transaction,
 };
 
-use crate::store::{DatabaseConnectionInfo, PostgresStore, StoreError, StorePool};
+use crate::store::{
+    config::DatabasePoolConfig, DatabaseConnectionInfo, PostgresStore, StoreError, StorePool,
+};
 
 pub struct PostgresStorePool<Tls>
 where
@@ -36,6 +39,21 @@ impl ErrorSink<Error> for ErrorLogger {
     }
 }
 
+#[derive(Debug)]
+struct OnAcquireLogger;
+
+#[async_trait]
+impl<C, E> CustomizeConnection<C, E> for OnAcquireLogger
+where
+    C: Send + 'static,
+    E: 'static,
+{
+    async fn on_acquire(&self, _connection: &mut C) -> Result<(), E> {
+        tracing::info!("Acquiring connection to postgres");
+        Ok(())
+    }
+}
+
 impl<Tls: Clone + Send + Sync + 'static> PostgresStorePool<Tls>
 where
     Tls: MakeTlsConnect<
@@ -49,7 +67,12 @@ where
     /// # Errors
     ///
     /// - if creating a connection returns an error.
-    pub async fn new(db_info: &DatabaseConnectionInfo, tls: Tls) -> Result<Self, StoreError> {
+    #[tracing::instrument(skip(tls))]
+    pub async fn new(
+        db_info: &DatabaseConnectionInfo,
+        pool_config: &DatabasePoolConfig,
+        tls: Tls,
+    ) -> Result<Self, Report<StoreError>> {
         tracing::debug!(url=%db_info, "Creating connection pool to Postgres");
         let mut config = Config::new();
         config
@@ -62,6 +85,16 @@ where
         Ok(Self {
             pool: Pool::builder()
                 .error_sink(Box::new(ErrorLogger))
+                .connection_customizer(Box::new(OnAcquireLogger))
+                .max_size(pool_config.max_connections.get())
+                .min_idle(pool_config.min_idle_connections.map(NonZero::get))
+                .max_lifetime(Duration::from_secs(
+                    pool_config.max_connection_lifetime.get(),
+                ))
+                .connection_timeout(Duration::from_secs(pool_config.connection_timeout.get()))
+                .idle_timeout(Duration::from_secs(
+                    pool_config.connection_idle_timeout.get(),
+                ))
                 .build(PostgresConnectionManager::new(config, tls))
                 .await
                 .change_context(StoreError)
@@ -87,7 +120,7 @@ where
         &self,
         authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> Result<Self::Store<'_, A>, Self::Error> {
+    ) -> Result<Self::Store<'_, A>, Report<Self::Error>> {
         Ok(PostgresStore::new(
             self.pool.get().await?,
             authorization_api,
@@ -99,7 +132,8 @@ where
         &self,
         authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> Result<Self::Store<'static, A>, Self::Error> {
+    ) -> Result<Self::Store<'static, A>, Report<Self::Error>> {
+        tracing::warn!("Acquiring owned connection from Postgres pool");
         Ok(PostgresStore::new(
             self.pool.get_owned().await?,
             authorization_api,

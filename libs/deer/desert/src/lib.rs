@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::panic_in_result_fn, clippy::missing_errors_doc)]
 
 extern crate alloc;
 

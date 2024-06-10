@@ -1,4 +1,4 @@
-use std::fmt::{self, Write};
+use core::fmt::{self, Write};
 
 use crate::store::postgres::query::{
     expression::{GroupByExpression, OrderByExpression},
@@ -113,7 +113,7 @@ impl Transpile for SelectStatement {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
+    use alloc::borrow::Cow;
 
     use graph_types::{
         knowledge::entity::Entity,

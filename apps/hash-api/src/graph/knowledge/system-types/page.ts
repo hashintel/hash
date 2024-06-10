@@ -1,5 +1,9 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  CreateEntityParameters,
+  Entity,
+  LinkEntity,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
@@ -32,9 +36,7 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import type { CreateEntityParams } from "../primitive/entity";
 import {
-  archiveEntity,
   createEntity,
   getEntities,
   getEntityOutgoingLinks,
@@ -111,7 +113,7 @@ export const getPageById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createPage: ImpureGraphFunction<
-  Pick<CreateEntityParams, "ownedById"> & {
+  Pick<CreateEntityParameters, "ownedById"> & {
     title: string;
     summary?: string;
     prevFractionalIndex?: string;
@@ -356,7 +358,7 @@ export const removeParentPage: ImpureGraphFunction<
     );
   }
 
-  await archiveEntity(ctx, authentication, { entity: parentPageLink });
+  await parentPageLink.archive(ctx.graphApi, authentication);
 };
 
 /**
@@ -407,10 +409,13 @@ export const setPageParentPage: ImpureGraphFunction<
     }
 
     await createLinkEntity(ctx, authentication, {
-      linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
-      leftEntityId: page.entity.metadata.recordId.entityId,
-      rightEntityId: parentPage.entity.metadata.recordId.entityId,
       ownedById: authentication.actorId as OwnedById,
+      properties: {},
+      linkData: {
+        leftEntityId: page.entity.metadata.recordId.entityId,
+        rightEntityId: parentPage.entity.metadata.recordId.entityId,
+      },
+      entityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }

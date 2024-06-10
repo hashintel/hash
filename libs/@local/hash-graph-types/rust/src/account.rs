@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};

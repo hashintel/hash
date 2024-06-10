@@ -30,6 +30,8 @@
 //!
 //! [`BenchmarkId`]: criterion::BenchmarkId
 
+extern crate alloc;
+
 #[path = "../util.rs"]
 mod util;
 
@@ -38,7 +40,7 @@ mod ontology;
 
 mod seed;
 
-use std::str::FromStr;
+use core::str::FromStr;
 
 use authorization::NoAuthorization;
 use criterion::{BenchmarkId, Criterion, SamplingMode};

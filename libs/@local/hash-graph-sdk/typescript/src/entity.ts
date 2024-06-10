@@ -1,22 +1,57 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type {
+  CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
+  GraphApi,
+  PatchEntityParams as GraphApiPatchEntityParams,
   PropertyMetadata,
   PropertyMetadataMap,
   PropertyPath,
   PropertyProvenance,
 } from "@local/hash-graph-client/api";
 import type {
+  CreatedById,
+  EditionArchivedById,
+  EditionCreatedById,
+} from "@local/hash-graph-types/account";
+import type {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
-  EntityProvenance,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
+  EntityUuid,
   LinkData,
 } from "@local/hash-graph-types/entity";
-import isEqual from "lodash.isequal";
+import type {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+} from "@local/hash-graph-types/temporal-versioning";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import isEqual from "lodash/isEqual";
+import zip from "lodash/zip";
 
+import type { AuthenticationContext } from "./authentication-context";
+
+export type CreateEntityParameters = Omit<
+  GraphApiCreateEntityRequest,
+  "entityTypeIds" | "decisionTime" | "draft"
+> & {
+  ownedById: OwnedById;
+  properties: EntityPropertiesObject;
+  linkData?: LinkData;
+  entityTypeId: VersionedUrl;
+  entityUuid?: EntityUuid;
+  propertyMetadata?: PropertyMetadataMap;
+  draft?: boolean;
+};
+
+export type PatchEntityParameters = Omit<
+  GraphApiPatchEntityParams,
+  "entityId" | "entityTypeIds" | "decisionTime"
+> & {
+  entityTypeId?: VersionedUrl;
+};
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
 );
@@ -30,7 +65,9 @@ export interface SerializedEntity<
   [typeId]: TypeId;
 }
 
-type EntityData<Properties extends EntityPropertiesObject> = {
+type EntityData<
+  Properties extends EntityPropertiesObject = EntityPropertiesObject,
+> = {
   metadata: EntityMetadata & {
     confidence?: number;
     properties?: PropertyMetadataMap;
@@ -76,24 +113,115 @@ export class Entity<
       this.#entity = entity as unknown as EntityData<Properties>;
     } else if (isGraphApiEntity(entity)) {
       this.#entity = {
+        ...entity,
         properties: entity.properties as Properties,
         metadata: {
+          ...entity.metadata,
           recordId: entity.metadata.recordId as EntityRecordId,
           entityTypeId: entity.metadata.entityTypeIds[0] as VersionedUrl,
           temporalVersioning: entity.metadata
             .temporalVersioning as EntityTemporalVersioningMetadata,
-          provenance: entity.metadata.provenance as EntityProvenance,
-          archived: entity.metadata.archived,
-          confidence: entity.metadata.confidence,
-          properties: entity.metadata.properties,
+          provenance: {
+            ...entity.metadata.provenance,
+            createdById: entity.metadata.provenance.createdById as CreatedById,
+            createdAtDecisionTime: entity.metadata.provenance
+              .createdAtDecisionTime as CreatedAtDecisionTime,
+            createdAtTransactionTime: entity.metadata.provenance
+              .createdAtTransactionTime as CreatedAtTransactionTime,
+            firstNonDraftCreatedAtDecisionTime: entity.metadata.provenance
+              .firstNonDraftCreatedAtDecisionTime as CreatedAtDecisionTime,
+            firstNonDraftCreatedAtTransactionTime: entity.metadata.provenance
+              .firstNonDraftCreatedAtTransactionTime as CreatedAtTransactionTime,
+            edition: {
+              ...entity.metadata.provenance.edition,
+              createdById: entity.metadata.provenance.edition
+                .createdById as EditionCreatedById,
+              archivedById: entity.metadata.provenance.edition
+                .archivedById as EditionArchivedById,
+            },
+          },
         },
-        linkData: entity.linkData as LinkData,
+        linkData: {
+          ...entity.linkData,
+          leftEntityId: entity.linkData?.leftEntityId as EntityId,
+          rightEntityId: entity.linkData?.rightEntityId as EntityId,
+        },
       };
     } else {
       throw new Error(
         `Expected entity to be either a serialized entity, or a graph api entity, but got ${JSON.stringify(entity, null, 2)}`,
       );
     }
+  }
+
+  public static async create(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: CreateEntityParameters,
+  ): Promise<Entity> {
+    return (
+      await Entity.createMultiple(graphAPI, authentication, [params])
+    )[0]!;
+  }
+
+  public static async createMultiple(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: CreateEntityParameters[],
+  ): Promise<Entity[]> {
+    return graphAPI
+      .createEntities(
+        authentication.actorId,
+        params.map(({ entityTypeId, draft, ...rest }) => ({
+          entityTypeIds: [entityTypeId],
+          draft: draft ?? false,
+          ...rest,
+        })),
+      )
+      .then(({ data }) =>
+        zip(params, data).map(
+          ([request, metadata]) =>
+            new Entity({
+              metadata: metadata!,
+              properties: request!.properties,
+              linkData: request!.linkData,
+            }),
+        ),
+      );
+  }
+
+  public async patch(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    { entityTypeId, ...params }: PatchEntityParameters,
+  ): Promise<Entity<Properties>> {
+    return graphAPI
+      .patchEntity(authentication.actorId, {
+        entityId: this.entityId,
+        entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+        ...params,
+      })
+      .then(({ data }) => new Entity<Properties>(data));
+  }
+
+  public async archive(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+  ): Promise<void> {
+    await graphAPI.patchEntity(authentication.actorId, {
+      entityId: this.entityId,
+      archived: true,
+    });
+  }
+
+  public async unarchive(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+  ): Promise<void> {
+    await graphAPI.patchEntity(authentication.actorId, {
+      entityId: this.entityId,
+      archived: false,
+    });
   }
 
   public get metadata(): EntityMetadata {
@@ -142,6 +270,56 @@ export class LinkEntity<
     }
 
     super(input as EntityInput<Properties>);
+  }
+
+  public static async createMultiple(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: (CreateEntityParameters & { linkData: LinkData })[],
+  ): Promise<LinkEntity[]> {
+    return graphAPI
+      .createEntities(
+        authentication.actorId,
+        params.map(({ entityTypeId, draft, ...rest }) => ({
+          entityTypeIds: [entityTypeId],
+          draft: draft ?? false,
+          ...rest,
+        })),
+      )
+      .then(({ data }) =>
+        zip(params, data).map(
+          ([request, metadata]) =>
+            new LinkEntity({
+              metadata: metadata!,
+              properties: request!.properties,
+              linkData: request!.linkData,
+            }),
+        ),
+      );
+  }
+
+  public static async create(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: CreateEntityParameters & { linkData: LinkData },
+  ): Promise<LinkEntity> {
+    return (
+      await LinkEntity.createMultiple(graphAPI, authentication, [params])
+    )[0]!;
+  }
+
+  public async patch(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    { entityTypeId, ...params }: PatchEntityParameters,
+  ): Promise<LinkEntity<Properties>> {
+    return graphAPI
+      .patchEntity(authentication.actorId, {
+        entityId: this.entityId,
+        entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+        ...params,
+      })
+      .then(({ data }) => new LinkEntity<Properties>(data));
   }
 
   public get linkData(): LinkData {

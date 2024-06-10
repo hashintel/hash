@@ -1,4 +1,5 @@
-use std::{borrow::Cow, fmt, str::FromStr};
+use alloc::borrow::Cow;
+use core::{fmt, str::FromStr};
 
 use graph_types::knowledge::entity::Entity;
 use serde::{
@@ -800,7 +801,7 @@ impl SubgraphRecord for Entity {
 
 #[cfg(test)]
 mod tests {
-    use std::iter::once;
+    use core::iter::once;
 
     use super::*;
 

@@ -14,10 +14,8 @@
 // env-variable `NO_COLOR=1`. To emulate no-unicode support set your `$TERM` variable
 // **temporarily** to `linux`.
 
-use std::{
-    fmt::{Display, Formatter},
-    path::Path,
-};
+use core::fmt::{Display, Formatter};
+use std::path::Path;
 
 use error_stack::{
     fmt::{Charset, ColorMode},

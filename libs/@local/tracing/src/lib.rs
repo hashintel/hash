@@ -3,6 +3,8 @@
 #![feature(can_vector)]
 #![feature(write_all_vectored)]
 
+extern crate alloc;
+
 pub mod console;
 pub(crate) mod formatter;
 pub mod logging;
