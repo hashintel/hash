@@ -17,6 +17,8 @@ pub struct Payload(
 );
 
 impl Payload {
+    pub const MAX_SIZE: usize = (u16::MAX as usize) - 32;
+
     pub fn new(bytes: impl Into<Bytes>) -> Self {
         Self(bytes.into())
     }
@@ -26,8 +28,22 @@ impl Payload {
         Self(Bytes::from_static(bytes))
     }
 
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub const fn as_bytes(&self) -> &Bytes {
         &self.0
+    }
+
+    pub fn into_bytes(self) -> Bytes {
+        self.0
     }
 }
 
@@ -51,6 +67,12 @@ impl Decode for Payload {
         B: Buf,
     {
         Bytes::decode(buffer, ()).map(Self)
+    }
+}
+
+impl AsRef<[u8]> for Payload {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
     }
 }
 

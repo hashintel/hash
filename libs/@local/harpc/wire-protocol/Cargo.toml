@@ -21,5 +21,8 @@ harpc-types = { workspace = true, features = ["proptest"] }
 expect-test = "1.5.0"
 similar-asserts = "1.5.0"
 
+[features]
+test-utils = []
+
 [lints]
 workspace = true
