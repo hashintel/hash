@@ -4,8 +4,8 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import dedent from "dedent";
 import type OpenAI from "openai";
-import { APIError, RateLimitError } from "openai";
 import type { Headers } from "openai/core";
+import { APIError, RateLimitError } from "openai/error";
 import type {
   ChatCompletion,
   ChatCompletion as OpenAiChatCompletion,
@@ -22,6 +22,7 @@ import {
   defaultRateLimitRetryDelay,
   maximumRateLimitRetries,
   maxRetryCount,
+  serverErrorRetryStartingDelay,
 } from "./constants";
 import type { LlmMessageToolUseContent, LlmUserMessage } from "./llm-message";
 import {
@@ -113,6 +114,12 @@ const getWaitPeriodFromHeaders = (headers?: Headers): number => {
   );
 };
 
+const isServerError = (error: unknown): error is APIError =>
+  error instanceof APIError &&
+  !!error.status &&
+  error.status >= 500 &&
+  error.status < 600;
+
 /**
  * Method for retrying OpenAI chat completions with a delay, retrying
  * only if subsequent rate limit errors are encountered.
@@ -149,6 +156,12 @@ const openAiChatCompletionWithStartingDelay = async (params: {
       return openAiChatCompletionWithStartingDelay({
         completionPayload,
         startingDelay: getWaitPeriodFromHeaders(error.headers),
+        retryCount: retryCount + 1,
+      });
+    } else if (isServerError(error)) {
+      return openAiChatCompletionWithStartingDelay({
+        completionPayload,
+        startingDelay: serverErrorRetryStartingDelay,
         retryCount: retryCount + 1,
       });
     }
@@ -264,6 +277,13 @@ export const getOpenAiResponse = async <ToolName extends string>(
       openAiResponse = await openAiChatCompletionWithStartingDelay({
         completionPayload,
         startingDelay: getWaitPeriodFromHeaders(error.headers),
+      });
+    } else if (isServerError(error)) {
+      logger.error(`Encountered OpenAi Server Error: ${stringify(error)}`);
+
+      openAiResponse = await openAiChatCompletionWithStartingDelay({
+        completionPayload,
+        startingDelay: serverErrorRetryStartingDelay,
       });
     }
 

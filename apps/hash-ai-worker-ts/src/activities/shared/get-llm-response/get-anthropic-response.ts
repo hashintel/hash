@@ -24,6 +24,7 @@ import {
   defaultRateLimitRetryDelay,
   maximumRateLimitRetries,
   maxRetryCount,
+  serverErrorRetryStartingDelay,
 } from "./constants";
 import type { LlmMessageToolUseContent, LlmUserMessage } from "./llm-message";
 import {
@@ -93,8 +94,6 @@ const convertAnthropicRateLimitRequestsResetTimestampToMilliseconds = ({
   return rateLimitEndInMilliseconds;
 };
 
-const throttledStartingDelay = 15_000; // 15 seconds
-
 const getWaitPeriodFromHeaders = (headers?: Headers): number => {
   const tokenResetString = headers?.["anthropic-ratelimit-tokens-reset"];
   const requestResetString = headers?.["anthropic-ratelimit-requests-reset"];
@@ -126,13 +125,9 @@ const isErrorAnthropicRateLimitingError = (
   ((error instanceof APIError || error instanceof BedRockAPIError) &&
     error.status === 429);
 
-const isErrorAnthropicThrottlingError = (error: unknown): error is APIError =>
+const isServerError = (error: unknown): error is APIError =>
   (error instanceof APIError || error instanceof BedRockAPIError) &&
   !!error.status &&
-  /**
-   * @todo: This is a temporary solution until we have a better way to
-   * determine if the error is caused by throttling.
-   */
   error.status >= 500 &&
   error.status < 600;
 
@@ -185,15 +180,10 @@ const createAnthropicMessagesWithToolsWithStartingDelay = async (params: {
         startingDelay: anthropicRateLimitWaitTime,
         retryCount: retryCount + 1,
       });
-    } else if (isErrorAnthropicThrottlingError(error)) {
-      /**
-       * If we receive an error which may have been caused by throttling,
-       * we should retry the request with a delay (we can't know exactly how long
-       * we'll be throttled for, so need to guess).
-       */
+    } else if (isServerError(error)) {
       return createAnthropicMessagesWithToolsWithStartingDelay({
         payload,
-        startingDelay: throttledStartingDelay,
+        startingDelay: serverErrorRetryStartingDelay,
         retryCount: retryCount + 1,
       });
     }
@@ -264,7 +254,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
      */
     if (
       (isErrorAnthropicRateLimitingError(anthropicProviderError) ||
-        isErrorAnthropicThrottlingError(anthropicProviderError)) &&
+        isServerError(anthropicProviderError)) &&
       compatibleBedrockModel
     ) {
       try {
@@ -280,13 +270,13 @@ export const getAnthropicResponse = async <ToolName extends string>(
          */
         if (
           isErrorAnthropicRateLimitingError(bedrockApiError) ||
-          isErrorAnthropicThrottlingError(bedrockApiError)
+          isServerError(bedrockApiError)
         ) {
           const startingDelay = isErrorAnthropicRateLimitingError(
             anthropicProviderError,
           )
             ? getWaitPeriodFromHeaders(anthropicProviderError.headers)
-            : throttledStartingDelay;
+            : serverErrorRetryStartingDelay;
 
           anthropicResponse =
             await createAnthropicMessagesWithToolsWithStartingDelay({
@@ -313,11 +303,11 @@ export const getAnthropicResponse = async <ToolName extends string>(
           payload,
           startingDelay: anthropicRateLimitWaitTime,
         });
-    } else if (isErrorAnthropicThrottlingError(anthropicProviderError)) {
+    } else if (isServerError(anthropicProviderError)) {
       anthropicResponse =
         await createAnthropicMessagesWithToolsWithStartingDelay({
           payload,
-          startingDelay: throttledStartingDelay,
+          startingDelay: serverErrorRetryStartingDelay,
         });
     }
 
