@@ -1,11 +1,6 @@
 #![cfg_attr(
     nightly,
-    feature(
-        error_in_core,
-        error_generic_member_access,
-        sync_unsafe_cell,
-        exclusive_wrapper
-    )
+    feature(error_generic_member_access, sync_unsafe_cell, exclusive_wrapper)
 )]
 #![cfg_attr(all(nightly, target_has_atomic = "128"), feature(integer_atomics))]
 #![cfg_attr(not(feature = "std"), no_std)]

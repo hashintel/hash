@@ -5,10 +5,10 @@ pub(in crate::ontology) mod raw;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
+#[cfg(feature = "postgres")]
+use core::error::Error;
 use core::{borrow::Borrow, ptr};
 use std::collections::{HashMap, HashSet};
-#[cfg(feature = "postgres")]
-use std::error::Error;
 
 #[cfg(feature = "postgres")]
 use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};

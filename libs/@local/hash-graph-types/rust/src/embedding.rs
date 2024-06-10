@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 #[cfg(feature = "postgres")]
-use std::error::Error;
+use core::error::Error;
 
 #[cfg(feature = "postgres")]
 use bytes::{BufMut, BytesMut};

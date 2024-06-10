@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
-use core::iter::once;
 #[cfg(feature = "postgres")]
-use std::error::Error;
+use core::error::Error;
+use core::iter::once;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;

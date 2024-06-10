@@ -1,3 +1,5 @@
+#[cfg(feature = "postgres")]
+use core::error::Error;
 use core::{
     cmp::Ordering,
     fmt,
@@ -6,8 +8,6 @@ use core::{
     marker::PhantomData,
     ops::{Bound, RangeBounds},
 };
-#[cfg(feature = "postgres")]
-use std::error::Error;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;

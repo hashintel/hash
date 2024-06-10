@@ -118,7 +118,7 @@ impl fmt::Display for ErrorB {
 }
 
 #[cfg(all(nightly, feature = "std"))]
-impl std::error::Error for ErrorB {
+impl core::error::Error for ErrorB {
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         request.provide_ref(&self.1);
     }

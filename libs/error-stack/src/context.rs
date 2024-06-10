@@ -1,8 +1,6 @@
 #[cfg(nightly)]
-use core::error::{Error, Request};
-use core::fmt;
-#[cfg(all(not(nightly), feature = "std"))]
-use std::error::Error;
+use core::error::Request;
+use core::{error::Error, fmt};
 
 use crate::Report;
 
@@ -75,7 +73,6 @@ where
     }
 }
 
-#[cfg(any(nightly, feature = "std"))]
 impl<C: Error + Send + Sync + 'static> Context for C {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {

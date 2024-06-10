@@ -82,7 +82,7 @@ impl Report<()> {
     ///
     /// # #[cfg(nightly)]
     /// # mod nightly {
-    /// use std::error::{Request, Error};
+    /// use core::error::{Request, Error};
     /// use core::fmt::{Display, Formatter};
     /// use error_stack::{Report, report};
     ///

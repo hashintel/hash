@@ -472,7 +472,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(
     nightly,
-    feature(error_in_core, error_generic_member_access),
+    feature(error_generic_member_access),
     allow(clippy::incompatible_msrv)
 )]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
@@ -497,7 +497,6 @@ mod report;
 mod result;
 
 mod context;
-#[cfg(any(nightly, feature = "std"))]
 mod error;
 pub mod fmt;
 #[cfg(any(feature = "std", feature = "hooks"))]
