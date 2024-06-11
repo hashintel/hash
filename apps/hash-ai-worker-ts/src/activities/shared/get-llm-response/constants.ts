@@ -11,9 +11,14 @@ export const defaultRateLimitRetryDelay = 10_000;
 /**
  * The maximum number of times a request is retried when a rate limit error is encountered.
  */
-export const maximumRateLimitRetries = 5;
+export const maximumRateLimitRetries = 10;
 
 /**
- * The delay between retries when an LLM server error is encountered (e.g. because of throttling).
+ * The maximum number of times a request is retried with an exponential backoff, when encountering a server error.
  */
-export const serverErrorRetryStartingDelay = 15_000;
+export const maximumExponentialBackoffRetries = 10;
+
+/**
+ * The default delay between retries when an LLM server error is encountered (e.g. because of throttling).
+ */
+export const serverErrorRetryStartingDelay = 5_000;

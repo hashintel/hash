@@ -21,6 +21,7 @@ import { modelToContextWindow, openai } from "../openai-client";
 import { stringify } from "../stringify";
 import {
   defaultRateLimitRetryDelay,
+  maximumExponentialBackoffRetries,
   maximumRateLimitRetries,
   maxRetryCount,
   serverErrorRetryStartingDelay,
@@ -131,7 +132,7 @@ const openAiChatCompletionWithBackoff = async (params: {
     return backOff(() => openai.chat.completions.create(completionPayload), {
       startingDelay: serverErrorRetryStartingDelay,
       jitter: "full",
-      numOfAttempts: 10,
+      numOfAttempts: maximumExponentialBackoffRetries,
       retry: (error) => {
         /**
          * Only retry further requests with an exponential back-off if a server error

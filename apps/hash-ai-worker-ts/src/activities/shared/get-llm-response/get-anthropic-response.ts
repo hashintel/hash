@@ -19,6 +19,7 @@ import {
 } from "./anthropic-client";
 import {
   defaultRateLimitRetryDelay,
+  maximumExponentialBackoffRetries,
   maximumRateLimitRetries,
   maxRetryCount,
   serverErrorRetryStartingDelay,
@@ -164,7 +165,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
       {
         startingDelay: serverErrorRetryStartingDelay,
         jitter: "full",
-        numOfAttempts: 10,
+        numOfAttempts: maximumExponentialBackoffRetries,
         retry: (error) => {
           /**
            * Only retry further requests with an exponential back-off if a server error
