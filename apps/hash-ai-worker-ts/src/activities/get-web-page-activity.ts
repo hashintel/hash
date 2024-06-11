@@ -55,9 +55,16 @@ export const sanitizeHtmlForLlmConsumption = (params: {
 
 const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
   /** @todo: consider re-using the same `browser` instance across requests  */
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({
+    args: ["--lang=en-US"],
+  });
 
   const page = await browser.newPage();
+
+  await page.setExtraHTTPHeaders({
+    /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language */
+    "Accept-Language": "en-US,en,q=0.5",
+  });
 
   try {
     const timeout = 10_000;

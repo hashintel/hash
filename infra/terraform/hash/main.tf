@@ -436,6 +436,14 @@ module "application" {
       name  = "AWS_S3_UPLOADS_SECRET_ACCESS_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_secret_access_key"])
     },
+    {
+      name = "HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_aws_access_key_id"])
+    },
+    {
+      name = "HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_aws_secret_access_key"])
+    }
   ]
   temporal_worker_integration_image    = module.temporal_worker_integration_ecr
   temporal_worker_integration_env_vars = [

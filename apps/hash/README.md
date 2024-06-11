@@ -107,9 +107,11 @@ To run HASH locally, please follow these steps:
 1. If you need to test or develop AI-related features, you will need to create an `.env.local` file in the repository root with the following values:
 
    ```sh
-   OPENAI_API_KEY=your-open-ai-api-key      # required for most AI features
-   ANTHROPIC_API_KEY=your-anthropic-api-key # required for most AI features
-   E2B_API_KEY=your-e2b-api-key             # only required for the question-answering flow action
+   OPENAI_API_KEY=your-open-ai-api-key                                      # required for most AI features
+   ANTHROPIC_API_KEY=your-anthropic-api-key                                 # required for most AI features
+   HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=your-aws-access-key-id         # required for most AI features
+   HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key # required for most AI features
+   E2B_API_KEY=your-e2b-api-key                                             # only required for the question-answering flow action
    ```
 
    **Note on environment files:** `.env.local` is not committed to the repo – **put any secrets that should remain secret here.** The default environment variables are taken from `.env`, extended by `.env.development`, and finally by `.env.local`. If you want to overwrite values specified in `.env` or `.env.development`, you can add them to `.env.local`. Do **not** change any other `.env` files unless you intend to change the defaults for development or testing.
