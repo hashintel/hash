@@ -27,7 +27,7 @@ const AdminUsersPage: NextPageWithLayout = () => {
   return (
     <>
       <Typography variant="h5" sx={{ marginBottom: 2 }}>
-        Registered Users
+        Registered Users {users ? `(${users.length})` : ""}
       </Typography>
       {/* @todo: we probably want to use a more customizable version of the `EntitiesTable` instead */}
       <Table

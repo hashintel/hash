@@ -1,4 +1,5 @@
-use std::{fs, mem::ManuallyDrop, path::Path};
+use core::mem::ManuallyDrop;
+use std::{fs, path::Path};
 
 use authorization::{
     schema::{
@@ -16,8 +17,8 @@ use graph::{
             UpdateDataTypesParams, UpdateEntityTypesParams, UpdatePropertyTypesParams,
         },
         AsClient, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo,
-        DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        StoreMigration, StorePool,
+        DatabasePoolConfig, DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool,
+        PropertyTypeStore, StoreMigration, StorePool,
     },
     Environment,
 };
@@ -43,6 +44,7 @@ pub struct StoreWrapper<A: AuthorizationApi> {
     source_db_pool: Pool,
     pool: ManuallyDrop<Pool>,
     pub store: ManuallyDrop<Store<A>>,
+    #[expect(clippy::allow_attributes, reason = "False positive")]
     #[allow(dead_code, reason = "False positive")]
     pub account_id: AccountId,
 }
@@ -124,9 +126,13 @@ where
             bench_db_name.to_owned(),
         );
 
-        let source_db_pool = PostgresStorePool::new(&source_db_connection_info, NoTls)
-            .await
-            .expect("could not connect to database");
+        let source_db_pool = PostgresStorePool::new(
+            &source_db_connection_info,
+            &DatabasePoolConfig::default(),
+            NoTls,
+        )
+        .await
+        .expect("could not connect to database");
 
         // Create a new connection to the source database, copy the database, drop the connection
         {
@@ -195,6 +201,7 @@ where
                     port,
                     bench_db_name.to_owned(),
                 ),
+                &DatabasePoolConfig::default(),
                 NoTls,
             )
             .await
@@ -209,9 +216,13 @@ where
                 .expect("could not run migrations");
         }
 
-        let pool = PostgresStorePool::new(&bench_db_connection_info, NoTls)
-            .await
-            .expect("could not connect to database");
+        let pool = PostgresStorePool::new(
+            &bench_db_connection_info,
+            &DatabasePoolConfig::default(),
+            NoTls,
+        )
+        .await
+        .expect("could not connect to database");
 
         // _owned is necessary as otherwise we have a self-referential struct
         let store = pool
@@ -238,7 +249,7 @@ where
         if !(self.delete_on_drop) {
             return;
         }
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         // We're in the process of dropping the parent struct, we just need to ensure we release
         // the connections of this pool before deleting the database
         // SAFETY: The values of `store` and `pool` are not accessed after dropping

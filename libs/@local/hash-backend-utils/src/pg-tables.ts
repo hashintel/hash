@@ -3,7 +3,8 @@
  * names are converted from snake_case to camelCase for consistency.
  */
 import type { JsonObject } from "@blockprotocol/core";
-import type { EditionCreatedById, Uuid } from "@local/hash-subgraph";
+import type { EditionCreatedById } from "@local/hash-graph-types/account";
+import type { Uuid } from "@local/hash-graph-types/branded";
 
 import type { Wal2JsonMsg } from "./wal2json";
 

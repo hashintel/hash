@@ -14,12 +14,17 @@ exclude = ["package.json"]
 publish = false
 
 [dependencies]
-error-stack = { git = "https://github.com/hashintel/hash", rev = "0829935", default-features = false }
+error-stack = { version = "0.4.1", default-features = false }
 
 num-traits = { version = "0.2.19", default-features = false }
 
-serde = { version = "1.0.200", default-features = false, features = ['alloc', 'derive'] }
-erased-serde = { version = "0.4.4", default-features = false, features = ['alloc'] }
+serde = { version = "1.0.200", default-features = false, features = [
+    'alloc',
+    'derive',
+] }
+erased-serde = { version = "0.4.4", default-features = false, features = [
+    'alloc',
+] }
 
 [dev-dependencies]
 serde_json = { version = "1.0.116", features = ['arbitrary_precision'] }
@@ -38,5 +43,5 @@ default = ['std']
 std = ['serde/std', 'error-stack/std']
 arbitrary-precision = []
 
-[workspace]
-members = ['.', 'macros', 'json', 'desert']
+[lints]
+workspace = true

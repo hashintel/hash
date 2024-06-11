@@ -1,9 +1,9 @@
-import type { Entity } from "./element/knowledge";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "./element/ontology";
+} from "@local/hash-graph-types/ontology";
 
 export * from "./element/knowledge";
 export * from "./element/ontology";

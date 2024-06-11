@@ -1,4 +1,5 @@
 import { sleep } from "@local/hash-backend-utils/utils";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   RunFlowWorkflowParams,
@@ -11,7 +12,6 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
-import type { EntityUuid } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import {

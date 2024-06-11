@@ -37,9 +37,6 @@ locals {
     mountPoints      = []
     volumesFrom      = []
     command          = ["ensure-system-graph-is-initialized"]
-    dependsOn   = [
-      { condition = "HEALTHY", containerName = local.kratos_service_container_def.name },
-    ]
     logConfiguration = {
       logDriver = "awslogs"
       options   = {
@@ -58,6 +55,8 @@ locals {
         { name = "HASH_TEMPORAL_SERVER_PORT", value = var.temporal_port },
         { name = "HASH_GRAPH_API_HOST", value = local.graph_container_port_dns },
         { name = "HASH_GRAPH_API_PORT", value = tostring(local.graph_container_port) },
+        { name = "HASH_KRATOS_PUBLIC_URL", value = "http://${local.kratos_public_http_port_dns}:${local.kratos_public_port}" },
+        { name = "HASH_KRATOS_ADMIN_URL", value = "http://${local.kratos_private_http_port_dns}:${local.kratos_private_port}" },
       ])
 
     secrets = [
@@ -75,8 +74,6 @@ locals {
     volumesFrom = []
     dependsOn   = [
       { condition = "SUCCESS", containerName = local.api_migration_container_def.name },
-      { condition = "HEALTHY", containerName = local.hydra_service_container_def.name },
-      { condition = "HEALTHY", containerName = local.kratos_service_container_def.name },
     ]
     healthCheck = {
       command = [
@@ -114,6 +111,10 @@ locals {
         { name = "HASH_TEMPORAL_SERVER_PORT", value = var.temporal_port },
         { name = "HASH_GRAPH_API_HOST", value = local.graph_container_port_dns },
         { name = "HASH_GRAPH_API_PORT", value = tostring(local.graph_container_port) },
+        { name = "HASH_KRATOS_PUBLIC_URL", value = "http://${local.kratos_public_http_port_dns}:${local.kratos_public_port}" },
+        { name = "HASH_KRATOS_ADMIN_URL", value = "http://${local.kratos_private_http_port_dns}:${local.kratos_private_port}" },
+        { name = "HASH_HYDRA_PUBLIC_URL", value = "http://${local.hydra_public_http_port_dns}:${local.hydra_public_port}" },
+        { name = "HASH_HYDRA_ADMIN_URL", value = "http://${local.hydra_private_http_port_dns}:${local.hydra_private_port}" },
       ])
 
     secrets = [

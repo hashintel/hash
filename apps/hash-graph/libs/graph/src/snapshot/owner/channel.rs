@@ -1,4 +1,4 @@
-use std::{
+use core::{
     pin::Pin,
     result::Result as StdResult,
     task::{ready, Context, Poll},

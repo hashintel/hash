@@ -1,17 +1,14 @@
+import type { EntityPropertyValue } from "@blockprotocol/graph";
 import { extractVersion } from "@blockprotocol/type-system";
 import {
   AsteriskRegularIcon,
   Chip,
   EyeSlashIconRegular,
 } from "@hashintel/design-system";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type {
-  Entity,
-  EntityPropertyValue,
-  EntityRootType,
-  EntityTypeWithMetadata,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityRevision,
@@ -19,7 +16,6 @@ import {
   getOutgoingLinkAndTargetEntities,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { BoxProps } from "@mui/material";
 import {

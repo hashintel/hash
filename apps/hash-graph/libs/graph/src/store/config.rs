@@ -1,4 +1,6 @@
-use core::fmt;
+use core::{fmt, num::NonZero};
+
+use derive_where::derive_where;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
@@ -7,7 +9,8 @@ pub enum DatabaseType {
     Postgres,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
+#[derive_where(Debug)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct DatabaseConnectionInfo {
     /// The database type to connect to.
@@ -39,6 +42,7 @@ pub struct DatabaseConnectionInfo {
             global = true
         )
     )]
+    #[derive_where(skip)]
     password: String,
 
     /// The host to connect to.
@@ -159,5 +163,90 @@ impl fmt::Display for DatabaseConnectionInfo {
             "{}://{}:***@{}:{}/{}",
             db_type, self.user, self.host, self.port, self.database
         )
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
+pub struct DatabasePoolConfig {
+    /// Sets the maximum number of connections managed by the pool.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            long,
+            default_value_t = Self::default().max_connections,
+            env = "HASH_GRAPH_PG_MAX_CONNECTIONS",
+            global = true
+        )
+    )]
+    pub max_connections: NonZero<u32>,
+
+    /// Sets the minimum idle connection count maintained by the pool.
+    ///
+    /// If set, the pool will try to maintain at least this many idle connections at all times,
+    /// while respecting the value of `max_connections`.
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, env = "HASH_GRAPH_PG_MIN_IDLE_CONNECTIONS", global = true)
+    )]
+    pub min_idle_connections: Option<NonZero<u32>>,
+
+    /// Sets the maximum lifetime of connections in the pool in seconds.
+    ///
+    /// If set, connections will be closed at the next reaping after surviving past this duration.
+    ///
+    /// If a connection reaches its maximum lifetime while checked out it will be closed when it is
+    /// returned to the pool.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            long,
+            default_value_t = Self::default().max_connection_lifetime,
+            env = "HASH_GRAPH_PG_MAX_CONNECTION_LIFETIME",
+            global = true
+        )
+    )]
+    pub max_connection_lifetime: NonZero<u64>,
+
+    /// Sets the connection timeout used by the pool in seconds.
+    ///
+    /// Acquiring a connection will wait this long before giving up and returning an error.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            long,
+            default_value_t = Self::default().connection_timeout,
+            env = "HASH_GRAPH_PG_CONNECTION_TIMEOUT",
+            global = true
+        )
+    )]
+    pub connection_timeout: NonZero<u64>,
+
+    /// Sets the idle timeout used by the pool in seconds.
+    ///
+    /// If set, idle connections in excess of `min_idle_connections` will be closed at the next
+    /// reaping after remaining idle past this duration.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            long,
+            default_value_t = Self::default().connection_idle_timeout,
+            env = "HASH_GRAPH_PG_CONNECTION_IDLE_TIMEOUT",
+            global = true
+        )
+    )]
+    pub connection_idle_timeout: NonZero<u64>,
+}
+
+impl Default for DatabasePoolConfig {
+    #[expect(clippy::unwrap_used)]
+    fn default() -> Self {
+        Self {
+            max_connections: NonZero::new(10).unwrap(),
+            min_idle_connections: None,
+            max_connection_lifetime: NonZero::new(30 * 60).unwrap(),
+            connection_timeout: NonZero::new(30).unwrap(),
+            connection_idle_timeout: NonZero::new(10 * 60).unwrap(),
+        }
     }
 }

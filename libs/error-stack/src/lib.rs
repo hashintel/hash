@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2024-05-20&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2024-06-03&color=blue)][rust-version]
 //! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
@@ -482,6 +482,8 @@
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
 )]
 #![allow(unsafe_code)]
+// This is an error handling library producing Results, not Errors
+#![allow(clippy::missing_errors_doc)]
 
 extern crate alloc;
 

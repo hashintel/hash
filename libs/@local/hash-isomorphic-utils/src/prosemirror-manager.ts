@@ -1,7 +1,8 @@
 import type { BlockVariant, JsonObject } from "@blockprotocol/core";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityId, OwnedById } from "@local/hash-subgraph";
 import type { Node, Schema } from "prosemirror-model";
 import type { EditorState, Transaction } from "prosemirror-state";
 import type { EditorProps, EditorView } from "prosemirror-view";
@@ -14,7 +15,7 @@ import {
   prepareBlockCache,
 } from "./blocks";
 import type { BlockEntity } from "./entity";
-import { getBlockChildEntity, isRichTextContainingEntity } from "./entity";
+import { getBlockChildEntity, isRichTextProperties } from "./entity";
 import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
 import {
   createEntityStore,
@@ -169,8 +170,11 @@ export class ProsemirrorManager {
         : null;
 
     const content =
-      blockData && isRichTextContainingEntity(blockData)
-        ? childrenForTextEntity(blockData, this.schema)
+      blockData && isRichTextProperties(blockData.properties)
+        ? childrenForTextEntity(
+            { properties: blockData.properties },
+            this.schema,
+          )
         : [];
 
     /**

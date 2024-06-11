@@ -1,23 +1,20 @@
 import { useApolloClient, useQuery } from "@apollo/client";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { AccountGroupId } from "@local/hash-graph-types/account";
+import type { Uuid } from "@local/hash-graph-types/branded";
+import type { EntityMetadata } from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { checkUserPermissionsOnEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  AccountGroupId,
-  EntityMetadata,
-  EntityRootType,
-  Subgraph,
-  Timestamp,
-  Uuid,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,
@@ -82,11 +79,13 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       authenticatedUserSubgraph,
       userEntity.metadata.recordId.entityId,
       intervalForTimestamp(new Date().toISOString() as Timestamp),
-    ).filter(
-      (linkEntity) =>
-        linkEntity.metadata.entityTypeId ===
-        systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-    ) as LinkEntity<IsMemberOfProperties>[];
+    )
+      .filter(
+        (linkEntity) =>
+          linkEntity.metadata.entityTypeId ===
+          systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+      )
+      .map((linkEntity) => new LinkEntity<IsMemberOfProperties>(linkEntity));
   }, [authenticatedUserSubgraph]);
 
   const { orgs: resolvedOrgs, refetch: refetchOrgs } = useOrgsWithLinks({

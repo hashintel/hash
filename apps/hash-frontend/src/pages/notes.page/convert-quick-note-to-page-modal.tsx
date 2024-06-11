@@ -1,10 +1,11 @@
 import { Autocomplete, TextField } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/page";
-import type { Entity, OwnedById } from "@local/hash-subgraph";
 import type { ModalProps } from "@mui/material";
 import {
   autocompleteClasses,
@@ -25,7 +26,9 @@ import { PageIcon } from "../../components/page-icon";
 import { Button, Modal } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 
-export type PageWithParentLink = SimplePage & { parentLinkEntity?: Entity };
+export type PageWithParentLink = SimplePage & {
+  parentLinkEntity?: Entity;
+};
 
 type ConvertToPageFormData = {
   title?: string;
@@ -116,7 +119,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
       fractionalIndex,
       parentPage,
       type: "document",
-      ...pageEntity,
+      metadata: pageEntity.metadata,
     });
     onClose();
   });

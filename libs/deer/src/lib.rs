@@ -9,6 +9,12 @@
 )]
 #![cfg_attr(all(nightly, target_has_atomic = "128"), feature(integer_atomics))]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::error_impl_error,
+    clippy::missing_errors_doc
+)]
 
 // TODO: note to implementors of `Deserialize` to allow for `visit_none` and to defer to
 //  `visit_none` on every `deserialize_*` call if appropriate. missing value (`visit_none`) will

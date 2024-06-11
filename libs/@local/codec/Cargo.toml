@@ -9,7 +9,7 @@ publish = false
 
 [dependencies]
 derive-where = { workspace = true, optional = true }
-error-stack = { workspace = true, optional = true }
+error-stack = { workspace = true, optional = true, features = ["std"] }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 tokio-util = { workspace = true, features = ["codec"], optional = true }
@@ -21,6 +21,9 @@ time = { workspace = true, features = [
 ], optional = true }
 harpc-wire-protocol = { workspace = true, optional = true }
 
+[dev-dependencies]
+serde = { workspace = true, features = ["derive"] }
+
 [features]
 bytes = [
     "dep:serde",
@@ -31,3 +34,6 @@ bytes = [
 ]
 serde = ["dep:serde", "dep:time"]
 harpc = ["dep:harpc-wire-protocol", "dep:tokio-util", "dep:error-stack"]
+
+[lints]
+workspace = true

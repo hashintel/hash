@@ -106,8 +106,8 @@ module "temporal" {
   cpu                 = 256
   memory              = 512
   # TODO: provide by the HASH variables.tf
-  temporal_version    = "1.21.0.0"
-  temporal_ui_version = "2.16.2"
+  temporal_version    = "1.23.1.0"
+  temporal_ui_version = "2.27.2"
 
   postgres_host          = module.postgres.pg_host
   postgres_port          = module.postgres.pg_port
@@ -301,6 +301,10 @@ module "application" {
   ])
   api_env_vars = concat(var.hash_api_env_vars, [
     {
+      name  = "ACCESS_FORM_SLACK_WEBHOOK_URL", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["access_form_slack_webhook_url"])
+    },
+    {
       name  = "MAILCHIMP_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["mailchimp_api_key"])
     },
@@ -362,6 +366,10 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
     },
     {
+      name  = "INTERNAL_API_HOST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_host"])
+    },
+    {
       name  = "INTERNAL_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_key"])
     },
@@ -386,6 +394,10 @@ module "application" {
     {
       name  = "ANTHROPIC_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_anthropic_api_key"])
+    },
+    {
+      name  = "INTERNAL_API_HOST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_host"])
     },
     {
       name  = "INTERNAL_API_KEY", secret = true,

@@ -61,7 +61,9 @@ const getModelSuggestedFlowRunName = async (
   );
 
   if (llmResponse.status !== "ok") {
-    throw new Error(`Failed to generate flow run name: ${llmResponse.status}`);
+    throw new Error(
+      `Failed to generate flow run name - ${llmResponse.status}:${"message" in llmResponse ? llmResponse.message : "unknown"}`,
+    );
   }
 
   const text = getTextContentFromLlmMessage({ message: llmResponse.message });

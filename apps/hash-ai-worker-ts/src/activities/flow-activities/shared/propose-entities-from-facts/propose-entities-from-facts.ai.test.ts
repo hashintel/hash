@@ -416,7 +416,7 @@ const ftse350Facts = [
   },
 ];
 
-test(
+test.skip(
   "Test proposeEntitiesFromFacts",
   async () => {
     const { userAuthentication } = await getFlowContext();

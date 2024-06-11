@@ -168,7 +168,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@c2bb13fe14454ce1be6b630075c6abb37d14be12 # v2.33.33
+        uses: taiki-e/install-action@d0c2bb4cffa2484ea6862a142a14b7ac5057c74a # v2.38.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,cargo-nextest@0.9.68,cargo-llvm-cov@0.6.9
 
@@ -285,7 +285,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@c2bb13fe14454ce1be6b630075c6abb37d14be12 # v2.33.33
+        uses: taiki-e/install-action@d0c2bb4cffa2484ea6862a142a14b7ac5057c74a # v2.38.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,cargo-nextest@0.9.68,cargo-llvm-cov@0.6.9
 
@@ -415,7 +415,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@c2bb13fe14454ce1be6b630075c6abb37d14be12 # v2.33.33
+        uses: taiki-e/install-action@d0c2bb4cffa2484ea6862a142a14b7ac5057c74a # v2.38.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,cargo-nextest@0.9.68,cargo-llvm-cov@0.6.9
 
@@ -550,7 +550,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@c2bb13fe14454ce1be6b630075c6abb37d14be12 # v2.33.33
+        uses: taiki-e/install-action@d0c2bb4cffa2484ea6862a142a14b7ac5057c74a # v2.38.0
         with:
           tool: cargo-semver-checks
 
@@ -600,7 +600,7 @@ jobs:
           [[ ${{ needs.publish.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@19c86e40d4bc3be986b18f1459d4549536887065
+        uses: rtCamp/action-slack-notify@4b831323e0d40c468b2d0555bd03b9da6f92d647
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

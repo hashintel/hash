@@ -1,6 +1,6 @@
 {
   "name": "@apps/plugin-browser",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "private": true,
   "description": "A browser extension for gathering info from the web into your HASH account.",
   "repository": {
@@ -30,6 +30,8 @@
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
     "@local/advanced-types": "0.0.0-private",
+    "@local/hash-graph-sdk": "0.0.0-private",
+    "@local/hash-graph-types": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@mui/material": "5.14.11",

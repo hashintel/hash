@@ -6,10 +6,13 @@
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./src/*.ts",
-      "node": "./src/*.ts",
-      "default": "./src/*.ts"
+    "./*": "./src/*.ts"
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./src/*.ts"
+      ]
     }
   },
   "scripts": {
@@ -19,12 +22,15 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
+    "@blockprotocol/graph": "0.3.4",
     "@local/hash-graph-client": "0.0.0-private",
-    "@local/hash-subgraph": "0.0.0-private"
+    "@local/hash-graph-types": "0.0.0-private",
+    "lodash": "4.17.21"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
+    "@types/lodash": "4.17.4",
     "@vitest/coverage-istanbul": "1.6.0",
     "eslint": "8.57.0",
     "typescript": "5.1.6",

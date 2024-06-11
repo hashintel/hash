@@ -17,10 +17,10 @@ use crate::{
 };
 
 pub trait QueryResult<R, S: Sorting> {
-    type Artifacts: Send;
+    type Indices: Send;
 
-    fn decode_record(&self, artifacts: &Self::Artifacts) -> R;
-    fn decode_cursor(&self, artifacts: &Self::Artifacts) -> <S as Sorting>::Cursor;
+    fn decode_record(&self, indices: &Self::Indices) -> R;
+    fn decode_cursor(&self, indices: &Self::Indices) -> <S as Sorting>::Cursor;
 }
 
 pub trait Sorting {
@@ -165,7 +165,7 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync = VertexIdSorting<R>>:
         Output = Result<
             (
                 Self::ReadPaginatedStream,
-                <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+                <Self::QueryResult as QueryResult<R, S>>::Indices,
             ),
             QueryError,
         >,
@@ -183,7 +183,7 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync = VertexIdSorting<R>>:
         Output = Result<
             (
                 Vec<Self::QueryResult>,
-                <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+                <Self::QueryResult as QueryResult<R, S>>::Indices,
             ),
             QueryError,
         >,

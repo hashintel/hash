@@ -28,19 +28,21 @@ import type {
   GetEntityTypesParams,
   GetPropertyTypesParams,
 } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import {
   currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
-  AccountId,
-  BaseUrl,
-  Entity,
-  EntityTypeWithMetadata,
   OntologyTypeVertexId,
   QueryTemporalAxesUnresolved,
-  Timestamp,
 } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {

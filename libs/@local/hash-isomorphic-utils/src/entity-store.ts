@@ -1,11 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
-  EntityMetadata,
   EntityPropertiesObject,
   EntityTemporalVersioningMetadata,
   LinkData,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/entity";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { Draft } from "immer";
 import { produce } from "immer";
@@ -14,7 +14,7 @@ import type { BlockEntity } from "./entity";
 import { generateDraftIdForEntity } from "./entity-store-plugin";
 import { blockProtocolPropertyTypes } from "./ontology-type-ids";
 
-export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
+export type EntityStoreType = BlockEntity | Entity;
 
 export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
   blockProtocolPropertyTypes.textualContent.propertyTypeId,
@@ -22,13 +22,11 @@ export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
-    archived: boolean;
     recordId: {
       entityId: EntityId | null;
       editionId: string;
     };
     entityTypeId?: VersionedUrl | null;
-    provenance?: EntityMetadata["provenance"];
     temporalVersioning: EntityTemporalVersioningMetadata;
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
@@ -173,7 +171,11 @@ export const createEntityStore = (
      * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
      */
     draft[draftId] = produce<DraftEntity>(
-      { ...entity, draftId },
+      {
+        properties: entity.properties,
+        metadata: entity.metadata,
+        draftId,
+      },
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
           /**

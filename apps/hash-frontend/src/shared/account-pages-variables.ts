@@ -1,10 +1,10 @@
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   pageOrNotificationNotArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { OwnedById } from "@local/hash-subgraph";
 
 export const getAccountPagesVariables = ({
   ownedById,

@@ -8,6 +8,7 @@ import { getLlmResponse } from "../../../shared/get-llm-response";
 import type {
   LlmMessage,
   LlmMessageToolResultContent,
+  LlmUserMessage,
 } from "../../../shared/get-llm-response/llm-message";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types";
@@ -21,7 +22,7 @@ const toolNames = ["submitFacts"] as const;
 type ToolName = (typeof toolNames)[number];
 
 const generateToolDefinitions = (params: {
-  subjectEntity: LocalEntitySummary;
+  subjectEntities: LocalEntitySummary[];
 }): Record<ToolName, LlmToolDefinition<ToolName>> => ({
   submitFacts: {
     name: "submitFacts",
@@ -36,12 +37,16 @@ const generateToolDefinitions = (params: {
           items: {
             type: "object",
             properties: {
+              subjectEntityLocalId: {
+                type: "string",
+                description: "The local ID of the subject entity of the fact.",
+              },
               text: {
                 type: "string",
                 description: dedent(`
                   The text containing the fact, which:
                   - must follow a consistent sentence structure, with a single subject, a single predicate and a single object
-                  - must have the "${params.subjectEntity.name}" entity as the singular subject of the fact, so must start with "${params.subjectEntity.name} <predicate> <object>"
+                  - must have the one of the subject entities as the singular subject of the fact, for example a fact for an entity with name ${params.subjectEntities[0]?.name} must start with "${params.subjectEntities[0]?.name} <predicate> <object>"
                   - must be concise statements that are true based on the information provided in the text
                   - must be standalone, and not depend on any contextual information to make sense
                   - must not contain any pronouns, and refer to all entities by their provided "name"
@@ -75,7 +80,12 @@ const generateToolDefinitions = (params: {
                 `),
               },
             },
-            required: ["text", "objectEntityLocalId", "prepositionalPhrases"],
+            required: [
+              "text",
+              "subjectEntityLocalId",
+              "objectEntityLocalId",
+              "prepositionalPhrases",
+            ],
           },
         },
       },
@@ -88,23 +98,61 @@ const systemPrompt = dedent(`
   You are a fact extracting agent.
 
   The user will provide you with:
-    - "text": the text from which you should extract facts.
-    - "subjectEntity": the entity the facts must have a their subject.
-    - "entityType": a definition of the entity type of the subject entity, which includes the properties and outgoing links of the entity.
-    - "potentialObjectEntities": a list of other entities mentioned in the text, which may be the object of facts.
+    - Text: the text from which you should extract facts.
+    - Subject Entities: the subject entities of facts that the user is looking for, each of which are of the same type (i.e. have the same properties and outgoing links)
+    - Relevant Properties: a list of properties the user is looking for in the text.
+    - Relevant Outgoing Links: a definition of the possible outgoing links the user is looking for in the text.
+    - Potential Object Entities: a list of other entities mentioned in the text, which may be the object of facts.
 
-  You must provide an exhaustive list of facts about the entity based on the information provided in the text.
+  You must provide an exhaustive list of facts about the provided subject entities based on the information provided in the text.
   For example, if you are provided with data from a table where the entity is a row of the table,
     all the information in each cell of the row should be represented in the facts.
 
-  These facts will be later used to construct the entity with the properties and links of the entity type.
-  If any information in the text is relevant for constructing the properties or outgoing links, you must include them as facts.
+  These facts will be later used to construct the entities with the properties and links which the user will specify.
+  If any information in the text is relevant for constructing the relevant properties or outgoing links, you must include them as facts.
 `);
+
+const constructUserMessage = (params: {
+  text: string;
+  subjectEntities: LocalEntitySummary[];
+  dereferencedEntityType: DereferencedEntityType;
+  potentialObjectEntities: LocalEntitySummary[];
+}): LlmUserMessage => {
+  const {
+    text,
+    subjectEntities,
+    dereferencedEntityType,
+    potentialObjectEntities,
+  } = params;
+
+  const relevantProperties = Object.values(dereferencedEntityType.properties)
+    .flatMap((value) => ("items" in value ? value.items : value))
+    .map((definition) => ({
+      title: definition.title,
+      description: definition.description,
+    }));
+
+  return {
+    role: "user",
+    content: [
+      {
+        type: "text",
+        text: dedent(`
+          Text: ${text}
+          Subject Entities: ${JSON.stringify(subjectEntities.map(({ localId, name }) => ({ localId, name })))}
+          Relevant Properties: ${JSON.stringify(relevantProperties)}
+          Relevant Outgoing Links: ${JSON.stringify(Object.values(dereferencedEntityType.links ?? {}))}
+          Potential Object Entities: ${JSON.stringify(potentialObjectEntities.map(({ localId, name, summary }) => ({ localId, name, summary })))}
+        `),
+      },
+    ],
+  };
+};
 
 const retryMax = 3;
 
 export const inferEntityFactsFromText = async (params: {
-  subjectEntity: LocalEntitySummary;
+  subjectEntities: LocalEntitySummary[];
   potentialObjectEntities: LocalEntitySummary[];
   text: string;
   dereferencedEntityType: DereferencedEntityType;
@@ -115,7 +163,7 @@ export const inferEntityFactsFromText = async (params: {
   };
 }): Promise<{ facts: Fact[] }> => {
   const {
-    subjectEntity,
+    subjectEntities,
     potentialObjectEntities,
     text,
     dereferencedEntityType,
@@ -126,24 +174,19 @@ export const inferEntityFactsFromText = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "gpt-4-0125-preview",
-      tools: Object.values(generateToolDefinitions({ subjectEntity })),
+      model: "gpt-4o-2024-05-13",
+      tools: Object.values(generateToolDefinitions({ subjectEntities })),
+      toolChoice: toolNames[0],
       systemPrompt,
       messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: dedent(`
-                text: ${retryContext ? "Omitted, as you no longer need to infer new facts." : text}
-                subjectEntity: ${JSON.stringify({ localId: subjectEntity.localId, name: subjectEntity.name })}
-                entityType: ${JSON.stringify(dereferencedEntityType)}
-                potentialObjectEntities: ${JSON.stringify(potentialObjectEntities.map(({ localId, name }) => ({ localId, name })))}
-              `),
-            },
-          ],
-        },
+        constructUserMessage({
+          text: retryContext
+            ? "Omitted, as you no longer need to infer new facts."
+            : text,
+          subjectEntities,
+          dereferencedEntityType,
+          potentialObjectEntities,
+        }),
         ...(retryContext?.retryMessages ?? []),
       ],
     },
@@ -173,24 +216,49 @@ export const inferEntityFactsFromText = async (params: {
   for (const toolCall of toolCalls) {
     const input = toolCall.input as {
       facts: {
+        subjectEntityLocalId: string;
         text: string;
         prepositionalPhrases: string[];
         objectEntityLocalId: string | null;
       }[];
     };
 
-    const newFacts: Fact[] = input.facts.map((fact) => ({
-      factId: generateUuid(),
-      text: fact.text,
-      subjectEntityLocalId: subjectEntity.localId,
-      objectEntityLocalId: fact.objectEntityLocalId ?? undefined,
-      prepositionalPhrases: fact.prepositionalPhrases,
-    }));
+    const newFacts: Fact[] = input.facts.flatMap((fact) => {
+      const subjectEntity = subjectEntities.find(
+        ({ localId }) => localId === fact.subjectEntityLocalId,
+      );
+
+      if (!subjectEntity) {
+        invalidFacts.push({
+          factId: generateUuid(),
+          text: fact.text,
+          subjectEntityLocalId: fact.subjectEntityLocalId,
+          objectEntityLocalId: fact.objectEntityLocalId ?? undefined,
+          prepositionalPhrases: fact.prepositionalPhrases,
+          invalidReason: `An invalid "subjectEntityLocalId" has been provided: ${fact.subjectEntityLocalId}`,
+          toolCallId: toolCall.id,
+        });
+
+        return [];
+      }
+
+      return {
+        factId: generateUuid(),
+        text: fact.text,
+        subjectEntityLocalId: subjectEntity.localId,
+        objectEntityLocalId: fact.objectEntityLocalId ?? undefined,
+        prepositionalPhrases: fact.prepositionalPhrases,
+      };
+    });
 
     for (const fact of newFacts) {
       const objectEntity = potentialObjectEntities.find(
         ({ localId }) => localId === fact.objectEntityLocalId,
       );
+
+      const subjectEntity = subjectEntities.find(
+        ({ localId }) => localId === fact.subjectEntityLocalId,
+      )!;
 
       /** @todo: ensure the provided `objectEntityLocalId` matches an ID in `potentialObjectEntities` */
 
@@ -225,6 +293,8 @@ export const inferEntityFactsFromText = async (params: {
     ...validFacts,
     ...(retryContext?.previousValidFacts ?? []),
   ];
+
+  /** @todo: check if there are subject entities for which no facts have been provided */
 
   if (invalidFacts.length > 0) {
     const { retryCount = 0 } = retryContext ?? {};

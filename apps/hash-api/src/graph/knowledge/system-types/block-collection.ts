@@ -1,4 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -13,14 +15,11 @@ import type {
   HasDataProperties,
   HasIndexedContentProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityId } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import type { PositionInput } from "../../../graphql/api-types.gen";
 import type { ImpureGraphFunction } from "../../context-types";
 import {
-  archiveEntity,
   getEntityOutgoingLinks,
   getLatestEntityById,
 } from "../primitive/entity";
@@ -102,18 +101,20 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
   }
 
   const linkEntity: LinkEntity = await createLinkEntity(ctx, authentication, {
-    leftEntityId: blockCollectionEntityId,
-    rightEntityId: block.entity.metadata.recordId.entityId,
-    linkEntityTypeId: canvasPosition
-      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
-      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
-    properties: canvasPosition || indexPosition,
+    properties: (canvasPosition || indexPosition) ?? {},
+    linkData: {
+      leftEntityId: blockCollectionEntityId,
+      rightEntityId: block.entity.metadata.recordId.entityId,
+    },
+    entityTypeId: canvasPosition
+      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
+      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
-  return linkEntity as unknown as
+  return linkEntity as
     | HasSpatiallyPositionedContent
     | HasIndexedContentProperties;
 };
@@ -146,13 +147,9 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
     entityId: linkEntityId,
   });
 
-  if (!linkEntity.linkData) {
-    throw new Error(`Entity with id ${linkEntityId} is not a link entity`);
-  }
-
   await updateLinkEntity(ctx, authentication, {
     properties: canvasPosition || indexPosition,
-    linkEntity: linkEntity as LinkEntity,
+    linkEntity: new LinkEntity(linkEntity),
   });
 };
 
@@ -173,5 +170,5 @@ export const removeBlockFromBlockCollection: ImpureGraphFunction<
     entityId: linkEntityId,
   });
 
-  await archiveEntity(ctx, authentication, { entity: linkEntity });
+  await linkEntity.archive(ctx.graphApi, authentication);
 };

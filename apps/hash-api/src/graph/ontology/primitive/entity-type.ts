@@ -15,6 +15,13 @@ import type {
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
+import type {
+  BaseUrl,
+  EntityTypeMetadata,
+  EntityTypeWithMetadata,
+  OntologyTypeRecordId,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -26,14 +33,9 @@ import type {
   UserPermissionsOnEntityType,
 } from "@local/hash-isomorphic-utils/types";
 import type {
-  BaseUrl,
   EntityTypeAuthorizationRelationship,
-  EntityTypeMetadata,
   EntityTypeRelationAndSubject,
   EntityTypeRootType,
-  EntityTypeWithMetadata,
-  OntologyTypeRecordId,
-  OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import {

@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 
 use aws_config::SdkConfig;
 use aws_sdk_s3::{

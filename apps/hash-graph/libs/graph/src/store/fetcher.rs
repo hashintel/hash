@@ -1,4 +1,6 @@
-use std::{collections::HashSet, mem, sync::Arc};
+use alloc::sync::Arc;
+use core::mem;
+use std::collections::HashSet;
 
 use async_trait::async_trait;
 use authorization::{
@@ -724,7 +726,7 @@ where
     ) -> Result<
         (
             Self::ReadPaginatedStream,
-            <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+            <Self::QueryResult as QueryResult<R, S>>::Indices,
         ),
         QueryError,
     > {
@@ -1233,7 +1235,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: PatchEntityParams,
-    ) -> Result<EntityMetadata, UpdateError> {
+    ) -> Result<Entity, UpdateError> {
         for entity_type_id in &params.entity_type_ids {
             self.insert_external_types_by_reference(
                 actor_id,

@@ -6,7 +6,7 @@
 
 mod status_code;
 
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 pub use status_code::StatusCode;

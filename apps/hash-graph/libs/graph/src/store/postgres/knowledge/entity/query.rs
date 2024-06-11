@@ -1,4 +1,4 @@
-use std::convert::identity;
+use core::convert::identity;
 
 use graph_types::{
     knowledge::{
@@ -53,10 +53,10 @@ pub struct EntityVertexIdCursorParameters<'p> {
 }
 
 impl QueryRecordDecode for VertexIdSorting<Entity> {
-    type CompilationArtifacts = EntityVertexIdIndices;
+    type Indices = EntityVertexIdIndices;
     type Output = EntityVertexId;
 
-    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self::Output {
+    fn decode(row: &Row, indices: &Self::Indices) -> Self::Output {
         let ClosedTemporalBound::Inclusive(revision_id) = *row
             .get::<_, LeftClosedTemporalInterval<VariableAxis>>(indices.revision_id)
             .start();
@@ -92,7 +92,7 @@ impl<'s> PostgresSorting<'s, Entity> for VertexIdSorting<Entity> {
         compiler: &mut SelectCompiler<'p, 'q, Entity>,
         parameters: Option<&'p Self::CompilationParameters>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Self::CompilationArtifacts {
+    ) -> Self::Indices {
         let revision_id_path = match temporal_axes.variable_time_axis() {
             TimeAxis::TransactionTime => &EntityQueryPath::TransactionTime,
             TimeAxis::DecisionTime => &EntityQueryPath::DecisionTime,
@@ -234,10 +234,10 @@ impl Default for EntityRecordPaths<'_> {
 }
 
 impl QueryRecordDecode for Entity {
-    type CompilationArtifacts = EntityRecordRowIndices;
+    type Indices = EntityRecordRowIndices;
     type Output = Self;
 
-    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
+    fn decode(row: &Row, indices: &Self::Indices) -> Self {
         let link_data = {
             let left_owned_by_id: Option<Uuid> = row.get(indices.left_entity_owned_by_id);
             let left_entity_uuid: Option<Uuid> = row.get(indices.left_entity_uuid);
@@ -358,7 +358,7 @@ impl PostgresRecord for Entity {
     fn compile<'p, 'q: 'p>(
         compiler: &mut SelectCompiler<'p, 'q, Self>,
         paths: &'p Self::CompilationParameters,
-    ) -> Self::CompilationArtifacts {
+    ) -> Self::Indices {
         EntityRecordRowIndices {
             owned_by_id: compiler.add_distinct_selection_with_ordering(
                 &EntityQueryPath::OwnedById,

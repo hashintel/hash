@@ -14,8 +14,8 @@ import type {
   BaseUrl,
   CustomDataType,
   EntityTypeMetadata,
-  Subgraph,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
+import type { Subgraph } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   getDataTypeById,
@@ -33,7 +33,7 @@ type MinimalDataType = Omit<CustomDataType, "$id" | "$schema" | "kind">;
 
 type MinimalPropertyObject = BpObject<ValueOrArray<DereferencedPropertyType>>;
 
-type MinimalPropertyTypeValue =
+export type MinimalPropertyTypeValue =
   | MinimalDataType
   | MinimalPropertyObject
   | Array<OneOf<MinimalPropertyTypeValue>>;

@@ -30,6 +30,13 @@ impl RequestBody {
             Self::Frame(frame) => &frame.payload,
         }
     }
+
+    pub fn into_payload(self) -> Payload {
+        match self {
+            Self::Begin(begin) => begin.payload,
+            Self::Frame(frame) => frame.payload,
+        }
+    }
 }
 
 impl Encode for RequestBody {

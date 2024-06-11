@@ -17,14 +17,13 @@
 #![expect(
     unreachable_pub,
     clippy::significant_drop_tightening,
-    clippy::significant_drop_in_scrutinee,
     reason = "This should be enabled but it's currently too noisy"
 )]
 
-use std::{
-    fmt,
-    path::{Path, PathBuf},
-};
+extern crate alloc;
+
+use core::fmt;
+use std::path::{Path, PathBuf};
 
 pub mod knowledge;
 pub mod ontology;

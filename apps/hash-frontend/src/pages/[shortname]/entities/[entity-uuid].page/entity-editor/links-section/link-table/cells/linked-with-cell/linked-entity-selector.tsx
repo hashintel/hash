@@ -1,13 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
-import type {
-  Entity,
-  EntityId,
-  EntityRootType,
-  EntityTypeWithMetadata,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { PaperProps } from "@mui/material";
 import { Stack, Typography } from "@mui/material";
@@ -136,7 +133,7 @@ export const LinkedEntitySelector = ({
         makePublic: false,
         onComplete: (upload) =>
           onSelect(
-            upload.createdEntities.fileEntity as unknown as Entity,
+            upload.createdEntities.fileEntity as Entity,
             // the entity's subgraph should mostly contain the file's type, since we're choosing it based on the expected type
             // it will not if the expected type is File and we automatically choose a narrower type of e.g. Image based on the upload
             entitySubgraph,

@@ -125,6 +125,7 @@ blocks/**/.env
 **/.mypy_cache
 **/.pytest_cache
 **/.hypothesis
+**/wheels
 
 # generated files
 *.gen.*

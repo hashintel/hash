@@ -238,20 +238,32 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
     description: dedent(`
       Complete the inference task.
       You must explain how the task has been completed with the existing submitted facts about entities.
-      Do not make this tool call if the research prompt hasn't been fully satisfied.
+      Do not call this tool call unless you have made a significant effort to find as many relevant
+        facts as possible with the provided tools.
     `),
     inputSchema: {
       type: "object",
       properties: {
         explanation: explanationDefinition,
+        suggestionForNextSteps: {
+          type: "string",
+          description: dedent(`
+            A suggestion for how to find any relevant facts that could be used to provide values for additional properties.
+            This should be a detailed explanation of how you would go about finding the missing facts from online resources.
+            If the you've encountered URLs for web pages which may be relevant, you must include them in the suggestion.
+          `),
+        },
       },
-      required: ["explanation"],
+      required: ["explanation", "suggestionForNextSteps"],
     },
   },
   terminate: {
     name: "terminate",
-    description:
-      "Terminate the inference task, because it cannot be completed with the provided tools.",
+    description: dedent(`
+      Terminate the inference task, because it cannot be progressed with the provided tools.
+      Do not under any circumstances terminate the inference task if you were able to find some, but
+        not all of the facts requested by the user.
+    `),
     inputSchema: {
       type: "object",
       properties: {
@@ -264,6 +276,7 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
     name: "updatePlan",
     description: dedent(`
       Update the plan for the research task.
+      This should be a list of steps in plain English.
       You should call this alongside other tool calls to progress towards completing the task.
     `),
     inputSchema: {
@@ -310,6 +323,7 @@ export type ToolCallArguments = Subtype<
     };
     complete: {
       explanation: string;
+      suggestionForNextSteps: string;
     };
     terminate: {
       explanation: string;

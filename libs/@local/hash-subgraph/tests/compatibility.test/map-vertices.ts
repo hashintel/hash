@@ -27,28 +27,36 @@ import type {
   PropertyTypeMetadata as PropertyTypeMetadataGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
-  BaseUrl,
-  CreatedAtDecisionTime,
-  CreatedAtTransactionTime,
   CreatedById,
-  CustomDataType,
-  DataTypeMetadata,
   EditionArchivedById,
   EditionCreatedById,
+} from "@local/hash-graph-types/account";
+import type {
   EntityId,
   EntityMetadata,
-  EntityPropertiesObject,
   EntityProvenance,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
-  EntityTypeMetadata,
-  KnowledgeGraphVertex,
   LinkData,
+} from "@local/hash-graph-types/entity";
+import type {
+  BaseUrl,
+  CustomDataType,
+  DataTypeMetadata,
+  EntityTypeMetadata,
   OntologyProvenance,
   OntologyTypeRecordId,
-  OntologyVertex,
+} from "@local/hash-graph-types/ontology";
+import type {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
   Timestamp,
+} from "@local/hash-graph-types/temporal-versioning";
+import type {
+  KnowledgeGraphVertex,
+  OntologyVertex,
   Vertices,
 } from "@local/hash-subgraph";
 import { isEntityId } from "@local/hash-subgraph";
@@ -341,25 +349,19 @@ const mapEntityMetadata = (
     ),
     provenance: mapEntityProvenance(metadata.provenance),
     archived: metadata.archived,
-    confidence: metadata.confidence,
-    properties: metadata.properties,
   };
 };
 
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,
 ): KnowledgeGraphVertex => {
+  const _metadata = mapEntityMetadata(vertex.inner.metadata);
+  const _linkData = vertex.inner.linkData
+    ? mapLinkData(vertex.inner.linkData)
+    : undefined;
   return {
     kind: vertex.kind,
-    inner: {
-      properties: vertex.inner.properties as EntityPropertiesObject,
-      ...(vertex.inner.linkData
-        ? {
-            linkData: mapLinkData(vertex.inner.linkData),
-          }
-        : ({} as { linkData: never })),
-      metadata: mapEntityMetadata(vertex.inner.metadata),
-    },
+    inner: new Entity(vertex.inner),
   };
 };
 

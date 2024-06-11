@@ -21,7 +21,7 @@ use utoipa::ToSchema;
 
 pub use self::{
     account::AccountStore,
-    config::{DatabaseConnectionInfo, DatabaseType},
+    config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
     error::{
         BaseUrlAlreadyExists, InsertionError, OntologyVersionDoesNotExist, QueryError, StoreError,
         UpdateError,

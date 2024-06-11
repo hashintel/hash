@@ -775,6 +775,18 @@ export const systemDataTypes = {
     title: "GBP",
     description: "An amount denominated in British pounds sterling",
   },
+  gigabytes: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/gigabytes/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/gigabytes/",
+    title: "Gigabytes",
+    description: "A unit of information equal to one billion bytes.",
+  },
+  gigahertz: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/gigahertz/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/gigahertz/",
+    title: "Gigahertz",
+    description: "A unit of frequency equal to one billion hertz.",
+  },
   kilometers: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/kilometers/v/1",
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/kilometers/",
@@ -821,6 +833,13 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/usd/",
     title: "USD",
     description: "An amount denominated in US Dollars",
+  },
+  watts: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/watts/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/watts/",
+    title: "Watts",
+    description:
+      "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
   },
 } as const;
 

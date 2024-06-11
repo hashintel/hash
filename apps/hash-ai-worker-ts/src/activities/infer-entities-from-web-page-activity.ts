@@ -1,5 +1,5 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -101,7 +101,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
       existingEntities && existingEntities.length > 0
         ? dedent(`
           The user has provided these existing entities, which do not need to be inferred again: ${JSON.stringify(existingEntities.map(simplifyEntity))}
-  
+
           You are encouraged to link to existing entities from the new entities you propose, where it may be relevant.
         `)
         : ""

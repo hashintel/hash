@@ -24,7 +24,6 @@ import { config } from "dotenv-flow";
 
 import { createAiActivities, createGraphActivities } from "./activities";
 import { createFlowActivities } from "./activities/flow-activities";
-import { logger } from "./activities/shared/activity-logger";
 import { logToConsole } from "./shared/logger";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -79,10 +78,19 @@ async function run() {
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
   });
 
+  logToConsole.info("Created Graph client");
+
   const vaultClient = createVaultClient();
   if (!vaultClient) {
     throw new Error("Vault client not created");
   }
+
+  logToConsole.info("Created Vault client");
+
+  const connection = await NativeConnection.connect({
+    address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
+  });
+  logToConsole.info("Created Temporal connection");
 
   const worker = await Worker.create({
     ...workflowOption(),
@@ -93,13 +101,9 @@ async function run() {
       ...createGraphActivities({
         graphApiClient,
       }),
-      ...createFlowActivities({
-        vaultClient,
-      }),
+      ...createFlowActivities({ vaultClient }),
     },
-    connection: await NativeConnection.connect({
-      address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
-    }),
+    connection,
     namespace: "HASH",
     taskQueue: "ai",
     sinks: { ...defaultSinks(), ...sentrySinks() },
@@ -117,7 +121,7 @@ async function run() {
   const port = 4100;
   httpServer.listen({ host: "::", port });
 
-  logger.info(`HTTP server listening on port ${port}`);
+  logToConsole.info(`HTTP server listening on port ${port}`);
 
   await worker.run();
 }
@@ -132,6 +136,6 @@ process.on("SIGTERM", () => {
 });
 
 run().catch((err) => {
-  logToConsole.error(err);
+  logToConsole.error(`Error running worker: ${err}`);
   process.exit(1);
 });

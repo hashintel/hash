@@ -1,13 +1,11 @@
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FlowRunProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  type AccountId,
-  type EntityId,
-  extractEntityUuidFromEntityId,
-  type OwnedById,
-} from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { Context } from "@temporalio/activity";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { vi } from "vitest";
@@ -40,18 +38,19 @@ const createDummyFlow = async (params: { actorId: AccountId }) => {
     },
   };
 
-  const { data: dummyFlowEntityMetadata } = await graphApiClient.createEntity(
-    actorId,
+  const dummyFlowEntity = await Entity.create(
+    graphApiClient,
+    { actorId },
     {
-      ownedById: actorId,
-      entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
+      ownedById: actorId as OwnedById,
+      entityTypeId: systemEntityTypes.flowRun.entityTypeId,
       properties: dummyFlowRunProperties,
       draft: false,
       relationships: createDefaultAuthorizationRelationships({ actorId }),
     },
   );
 
-  return { dummyFlowEntityMetadata };
+  return { dummyFlowEntity };
 };
 
 const aliceUserAccountId = await getAliceUserAccountId();
@@ -61,7 +60,7 @@ vi.mock("@temporalio/activity", async (importOriginal) => {
     // eslint-disable-next-line @typescript-eslint/consistent-type-imports
     await importOriginal<typeof import("@temporalio/activity")>();
 
-  const { dummyFlowEntityMetadata } = await createDummyFlow({
+  const { dummyFlowEntity } = await createDummyFlow({
     actorId: aliceUserAccountId,
   });
 
@@ -74,7 +73,7 @@ vi.mock("@temporalio/activity", async (importOriginal) => {
           info: {
             workflowExecution: {
               workflowId: extractEntityUuidFromEntityId(
-                dummyFlowEntityMetadata.recordId.entityId as EntityId,
+                dummyFlowEntity.metadata.recordId.entityId,
               ),
             },
             activityId: "test-activity-id",

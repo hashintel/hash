@@ -1,19 +1,19 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   AccountEntityId,
   AccountGroupEntityId,
-  EntityId,
-  OwnedById,
 } from "@local/hash-subgraph";
 import {
   extractAccountGroupId,
   extractAccountId,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   ImpureGraphFunction,
@@ -83,10 +83,12 @@ export const createOrgMembership: ImpureGraphFunction<
   try {
     linkEntity = await createLinkEntity(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
-      linkEntityTypeId: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-      leftEntityId: userEntityId,
-      rightEntityId: orgEntityId,
       properties: {},
+      linkData: {
+        leftEntityId: userEntityId,
+        rightEntityId: orgEntityId,
+      },
+      entityTypeId: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
       relationships: createOrgMembershipAuthorizationRelationships({
         memberAccountId: userAccountId,
       }),

@@ -3,7 +3,7 @@ import { gql } from "apollo-server-express";
 export const entityTypedef = gql`
   scalar EntityId
   scalar EntityRecordId
-  scalar Entity
+  scalar SerializedEntity
   scalar EntityPropertiesObject
   scalar EntityMetadata
   scalar EntityRelationAndSubject
@@ -82,6 +82,14 @@ export const entityTypedef = gql`
     subject: EntityAuthorizationSubject!
   }
 
+  scalar DiffEntityInput
+  scalar DiffEntityResult
+
+  type EntityDiff {
+    input: DiffEntityInput!
+    diff: DiffEntityResult!
+  }
+
   extend type Query {
     """
     Implementation of the Block Protocol queryEntities hook
@@ -136,6 +144,8 @@ export const entityTypedef = gql`
     ): [EntityAuthorizationRelationship!]!
 
     checkUserPermissionsOnEntity(metadata: EntityMetadata!): UserPermissions!
+
+    getEntityDiffs(inputs: [DiffEntityInput!]!): [EntityDiff!]!
   }
 
   enum AuthorizationSubjectKind {
@@ -201,17 +211,17 @@ export const entityTypedef = gql`
       Set the permission relations on the entity
       """
       relationships: [EntityRelationAndSubject!]
-    ): Entity!
+    ): SerializedEntity!
 
     """
     Update an entity.
     """
-    updateEntity(entityUpdate: EntityUpdateDefinition!): Entity!
+    updateEntity(entityUpdate: EntityUpdateDefinition!): SerializedEntity!
 
     """
     Update multiple entities.
     """
-    updateEntities(entityUpdates: [EntityUpdateDefinition!]!): Entity!
+    updateEntities(entityUpdates: [EntityUpdateDefinition!]!): SerializedEntity!
 
     """
     Archive an entity.

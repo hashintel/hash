@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { EditorState } from "prosemirror-state";
 import type { DirectEditorProps } from "prosemirror-view";
 import { EditorView } from "prosemirror-view";

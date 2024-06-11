@@ -24,10 +24,10 @@ export const LoggedOut = () => {
         </HomepageBigText>
         <HomepageBigText>on the waitlist</HomepageBigText>
         <HomepageSmallCaps>
-          Stay tuned
+          Sign up
           <Box
             component="span"
-            sx={{ color: ({ palette }) => palette.blue[70], ml: 0.8 }}
+            sx={{ color: ({ palette }) => palette.blue[70], ml: 0.7 }}
           >
             for access
           </Box>

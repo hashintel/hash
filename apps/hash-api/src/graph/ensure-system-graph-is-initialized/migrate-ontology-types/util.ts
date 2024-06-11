@@ -26,6 +26,17 @@ import type {
   DataTypeRelationAndSubject,
   UpdatePropertyType,
 } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type {
+  BaseUrl,
+  ConstructDataTypeParams,
+  CustomDataType,
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -47,18 +58,9 @@ import {
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import type {
-  BaseUrl,
-  ConstructDataTypeParams,
-  CustomDataType,
-  DataTypeWithMetadata,
-  Entity,
-  EntityPropertiesObject,
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
-  EntityTypeWithMetadata,
-  OwnedById,
   PropertyTypeRelationAndSubject,
-  PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
@@ -1239,20 +1241,18 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
     {},
   );
 
-  await Promise.all(
-    [...users, ...orgs].map((webEntity) => {
-      const webOwnedById = extractOwnedByIdFromEntityId(
-        webEntity.metadata.recordId.entityId,
-      );
+  for (const webEntity of [...users, ...orgs]) {
+    const webOwnedById = extractOwnedByIdFromEntityId(
+      webEntity.metadata.recordId.entityId,
+    );
 
-      return upgradeWebEntities({
-        authentication,
-        context,
-        entityTypeBaseUrls,
-        migrationState,
-        migrateProperties,
-        webOwnedById,
-      });
-    }),
-  );
+    await upgradeWebEntities({
+      authentication,
+      context,
+      entityTypeBaseUrls,
+      migrationState,
+      migrateProperties,
+      webOwnedById,
+    });
+  }
 };

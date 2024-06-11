@@ -14,16 +14,16 @@ use crate::{
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 
-pub struct QueryArtifacts<R: QueryRecordDecode, S: QueryRecordDecode> {
-    record_indices: R::CompilationArtifacts,
-    cursor_indices: S::CompilationArtifacts,
+pub struct QueryIndices<R: QueryRecordDecode, S: QueryRecordDecode> {
+    record_indices: R::Indices,
+    cursor_indices: S::Indices,
 }
 
 pub trait QueryRecordDecode {
-    type CompilationArtifacts: Send + Sync + 'static;
+    type Indices: Send + Sync + 'static;
     type Output;
 
-    fn decode(row: &Row, artifacts: &Self::CompilationArtifacts) -> Self::Output;
+    fn decode(row: &Row, indices: &Self::Indices) -> Self::Output;
 }
 
 impl<R, S> QueryResult<R, S> for Row
@@ -31,13 +31,13 @@ where
     R: QueryRecordDecode<Output = R>,
     S: Sorting + QueryRecordDecode<Output = S::Cursor>,
 {
-    type Artifacts = QueryArtifacts<R, S>;
+    type Indices = QueryIndices<R, S>;
 
-    fn decode_record(&self, indices: &Self::Artifacts) -> R {
+    fn decode_record(&self, indices: &Self::Indices) -> R {
         R::decode(self, &indices.record_indices)
     }
 
-    fn decode_cursor(&self, indices: &Self::Artifacts) -> S::Cursor {
+    fn decode_cursor(&self, indices: &Self::Indices) -> S::Cursor {
         S::decode(self, &indices.cursor_indices)
     }
 }
@@ -66,7 +66,7 @@ where
         sorting: &S,
         limit: Option<usize>,
         include_drafts: bool,
-    ) -> Result<(Self::ReadPaginatedStream, QueryArtifacts<R, S>), Report<QueryError>> {
+    ) -> Result<(Self::ReadPaginatedStream, QueryIndices<R, S>), Report<QueryError>> {
         let cursor_parameters = sorting.encode().change_context(QueryError)?;
 
         let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
@@ -76,7 +76,6 @@ where
 
         let cursor_indices = sorting.compile(
             &mut compiler,
-            #[allow(clippy::unwrap_used)]
             cursor_parameters.as_ref(),
             temporal_axes.expect("To use a cursor, temporal axes has to be specified"),
         );
@@ -95,7 +94,7 @@ where
 
         Ok((
             stream.map(|row| row.change_context(QueryError)),
-            QueryArtifacts {
+            QueryIndices {
                 record_indices,
                 cursor_indices,
             },

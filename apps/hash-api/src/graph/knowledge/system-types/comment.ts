@@ -1,4 +1,9 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type {
+  CreateEntityParameters,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -8,18 +13,13 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type {
-  Entity,
-  EntityId,
-  EntityRelationAndSubject,
-} from "@local/hash-subgraph";
+import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import type { CreateEntityParams } from "../primitive/entity";
 import {
   createEntity,
   getEntityIncomingLinks,
@@ -134,7 +134,7 @@ export const getCommentText: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createComment: ImpureGraphFunction<
-  Pick<CreateEntityParams, "ownedById"> & {
+  Pick<CreateEntityParameters, "ownedById"> & {
     author: User;
     parentEntityId: EntityId;
     textualContent: TextToken[];
@@ -185,17 +185,21 @@ export const createComment: ImpureGraphFunction<
     entityTypeId: systemEntityTypes.comment.entityTypeId,
     outgoingLinks: [
       {
-        linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
-        rightEntityId: parentEntityId,
         ownedById,
-        owner: author.accountId,
+        properties: {},
+        linkData: {
+          rightEntityId: parentEntityId,
+        },
+        entityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
         relationships,
       },
       {
-        linkEntityTypeId: systemLinkEntityTypes.authoredBy.linkEntityTypeId,
-        rightEntityId: author.entity.metadata.recordId.entityId,
         ownedById,
-        owner: author.accountId,
+        properties: {},
+        linkData: {
+          rightEntityId: author.entity.metadata.recordId.entityId,
+        },
+        entityTypeId: systemLinkEntityTypes.authoredBy.linkEntityTypeId,
         relationships,
       },
       /**
@@ -204,10 +208,12 @@ export const createComment: ImpureGraphFunction<
        * `parent` nad `author` link entities.
        */
       {
-        linkEntityTypeId: systemLinkEntityTypes.hasText.linkEntityTypeId,
-        rightEntityId: textEntity.metadata.recordId.entityId,
         ownedById,
-        owner: author.accountId,
+        properties: {},
+        linkData: {
+          rightEntityId: textEntity.metadata.recordId.entityId,
+        },
+        entityTypeId: systemLinkEntityTypes.hasText.linkEntityTypeId,
         relationships,
       },
     ],

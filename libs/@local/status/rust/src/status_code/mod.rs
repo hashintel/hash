@@ -1,7 +1,7 @@
 // Attribution: *Heavily* inspired by the Google Cloud API Error Model
 //  https://cloud.google.com/apis/design/errors
 
-use std::fmt::{Display, Formatter, Result};
+use core::fmt::{Display, Formatter, Result};
 
 use serde::{Deserialize, Serialize};
 

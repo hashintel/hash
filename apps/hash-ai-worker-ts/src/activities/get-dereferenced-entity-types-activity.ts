@@ -1,12 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { AccountId } from "@local/hash-subgraph";
 
 import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types";
 import { dereferenceEntityType } from "./shared/dereference-entity-type";

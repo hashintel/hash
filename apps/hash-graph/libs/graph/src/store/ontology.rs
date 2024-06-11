@@ -1,4 +1,5 @@
-use std::{borrow::Cow, iter};
+use alloc::borrow::Cow;
+use core::iter;
 
 use authorization::schema::{
     DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,

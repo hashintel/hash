@@ -17,9 +17,12 @@ postgres-types = { version = "0.2.6", default-features = false, features = ["wit
 time = { version = "0.3.36", default-features = false, features = ["serde", "parsing", "formatting", "macros"] }
 tracing = { workspace = true, optional = true }
 
-derivative = "2.2.0"
+derive-where = { workspace = true }
 postgres-protocol = { version = "0.6.6", default-features = false, optional = true }
 
 [features]
 postgres = ["dep:bytes", "dep:postgres-types", "dep:postgres-protocol", "dep:tracing"]
 utoipa = ["dep:utoipa"]
+
+[lints]
+workspace = true

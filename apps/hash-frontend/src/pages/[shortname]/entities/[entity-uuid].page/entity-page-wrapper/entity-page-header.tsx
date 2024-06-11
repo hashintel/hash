@@ -1,6 +1,7 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
@@ -11,6 +12,7 @@ import { useContext } from "react";
 import { NotificationsWithLinksContextProvider } from "../../../../shared/notifications-with-links-context";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
+import { EntityEditorTabs } from "../shared/entity-editor-tabs";
 import { DraftEntityBanner } from "./draft-entity-banner";
 
 export const EntityPageHeader = ({
@@ -22,6 +24,7 @@ export const EntityPageHeader = ({
   chip,
   editBar,
   isModifyingEntity,
+  showTabs,
 }: {
   entity?: Entity;
   entitySubgraph?: Subgraph<EntityRootType>;
@@ -31,6 +34,7 @@ export const EntityPageHeader = ({
   chip: ReactNode;
   editBar?: ReactNode;
   isModifyingEntity?: boolean;
+  showTabs?: boolean;
 }) => {
   const router = useRouter();
 
@@ -83,7 +87,8 @@ export const EntityPageHeader = ({
       {editBar}
 
       <Box
-        py={3.75}
+        pt={3.75}
+        pb={showTabs ? 0 : 3.75}
         sx={({ palette }) => ({ background: palette.common.white })}
       >
         <Container>
@@ -99,6 +104,11 @@ export const EntityPageHeader = ({
               {entityLabel}
             </Typography>
           </Stack>
+          {showTabs && (
+            <Box mt={6}>
+              <EntityEditorTabs />
+            </Box>
+          )}
         </Container>
       </Box>
     </>

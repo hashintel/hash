@@ -1,6 +1,7 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity, OwnedById } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import { logger } from "../../../../logger";

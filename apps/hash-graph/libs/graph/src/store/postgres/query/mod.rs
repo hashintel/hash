@@ -13,12 +13,12 @@ pub(crate) mod rows;
 mod statement;
 pub(crate) mod table;
 
-use std::{
-    borrow::Cow,
+use alloc::borrow::Cow;
+use core::{
     convert::identity,
-    error::Error,
     fmt::{self, Display, Formatter},
 };
+use std::error::Error;
 
 use bytes::BytesMut;
 use error_stack::Context;
@@ -67,7 +67,7 @@ pub trait PostgresRecord: QueryRecord + QueryRecordDecode<Output = Self> {
     fn compile<'p, 'q: 'p>(
         compiler: &mut SelectCompiler<'p, 'q, Self>,
         paths: &'p Self::CompilationParameters,
-    ) -> Self::CompilationArtifacts;
+    ) -> Self::Indices;
 }
 
 /// An absolute path inside of a query pointing to an attribute.
@@ -87,7 +87,7 @@ pub trait Transpile: 'static {
     fn transpile_to_string(&self) -> String {
         struct Transpiler<'a, T: ?Sized>(&'a T);
         impl<T: Transpile + ?Sized> Display for Transpiler<'_, T> {
-            fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+            fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
                 self.0.transpile(fmt)
             }
         }
@@ -110,7 +110,7 @@ pub trait PostgresSorting<'s, R: QueryRecord>:
         compiler: &mut SelectCompiler<'p, 'q, R>,
         parameters: Option<&'p Self::CompilationParameters>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Self::CompilationArtifacts
+    ) -> Self::Indices
     where
         's: 'q;
 }
@@ -211,10 +211,10 @@ impl ToSql for CursorField<'_> {
 }
 
 impl<'s> QueryRecordDecode for EntityQuerySorting<'s> {
-    type CompilationArtifacts = Vec<usize>;
+    type Indices = Vec<usize>;
     type Output = EntityQueryCursor<'s>;
 
-    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self::Output {
+    fn decode(row: &Row, indices: &Self::Indices) -> Self::Output {
         EntityQueryCursor {
             values: indices.iter().map(|i| row.get(i)).collect(),
         }
@@ -237,7 +237,7 @@ where
         compiler: &mut SelectCompiler<'p, 'q, Entity>,
         _: Option<&'p Self::CompilationParameters>,
         _: &QueryTemporalAxes,
-    ) -> Self::CompilationArtifacts
+    ) -> Self::Indices
     where
         's: 'q,
     {

@@ -1,28 +1,25 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type {
-  CreateEntityRequest,
-  EntityMetadata,
-} from "@local/hash-graph-client";
+import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification";
-import {
-  findExistingEntity,
-  findExistingLinkEntity,
-} from "../shared/find-existing-entity";
+// import {
+//   findExistingEntity,
+//   findExistingLinkEntity,
+// } from "../shared/find-existing-entity";
 import { getFlowContext } from "../shared/get-flow-context";
 import { graphApiClient } from "../shared/graph-api-client";
 import { logProgress } from "../shared/log-progress";
@@ -57,10 +54,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     proposedEntityWithResolvedLinks;
 
   const entityValues: Omit<
-    CreateEntityRequest,
+    CreateEntityParameters,
     "relationships" | "ownedById" | "draft" | "linkData"
   > & { linkData: Entity["linkData"] } = {
-    entityTypeIds: [entityTypeId],
+    entityTypeId,
     properties,
     linkData,
     provenance,
@@ -137,42 +134,41 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       };
     }
 
-    const { entityMetadata, properties: updatedProperties } =
-      getFileEntityFromUrlStatus;
+    const { entity: updatedEntity } = getFileEntityFromUrlStatus;
 
-    entity = {
-      metadata: entityMetadata,
-      ...entityValues,
-      properties: updatedProperties,
-    };
+    entity = updatedEntity;
   } else {
-    existingEntity = await (linkData
-      ? findExistingLinkEntity({
-          actorId,
-          graphApiClient,
-          ownedById,
-          linkData,
-          includeDrafts: createEditionAsDraft,
-        })
-      : findExistingEntity({
-          actorId,
-          graphApiClient,
-          ownedById,
-          proposedEntity: proposedEntityWithResolvedLinks,
-          includeDrafts: createEditionAsDraft,
-        }));
+    /**
+     * @todo: improve the logic for finding existing entities, to
+     * reduce the number of false positives.
+     */
+    // existingEntity = await (linkData
+    //   ? findExistingLinkEntity({
+    //       actorId,
+    //       graphApiClient,
+    //       ownedById,
+    //       linkData,
+    //       includeDrafts: createEditionAsDraft,
+    //     })
+    //   : findExistingEntity({
+    //       actorId,
+    //       graphApiClient,
+    //       ownedById,
+    //       proposedEntity: proposedEntityWithResolvedLinks,
+    //       includeDrafts: createEditionAsDraft,
+    //     }));
 
     operation = existingEntity ? "update" : "create";
 
     try {
-      let entityMetadata: EntityMetadata;
-
       if (existingEntity) {
         const { existingEntityIsDraft, isExactMatch, patchOperations } =
           getEntityUpdate({
             existingEntity,
             newProperties: properties,
           });
+
+        const serializedEntity = existingEntity.toJSON();
 
         if (isExactMatch) {
           return {
@@ -186,8 +182,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
                     payload: {
                       kind: "PersistedEntity",
                       value: {
-                        entity: existingEntity,
-                        existingEntity,
+                        entity: serializedEntity,
+                        existingEntity: serializedEntity,
                         operation: "already-exists-as-proposed",
                       },
                     },
@@ -198,30 +194,28 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           };
         }
 
-        entityMetadata = await graphApiClient
-          .patchEntity(actorId, {
+        entity = await existingEntity.patch(
+          graphApiClient,
+          { actorId: webBotActorId },
+          {
             draft: existingEntityIsDraft ? true : createEditionAsDraft,
-            entityId: existingEntity.metadata.recordId.entityId,
             properties: patchOperations,
-          })
-          .then((resp) => resp.data);
+          },
+        );
       } else {
-        entityMetadata = await graphApiClient
-          .createEntity(webBotActorId, {
+        entity = await Entity.create(
+          graphApiClient,
+          { actorId: webBotActorId },
+          {
             ...entityValues,
             draft: createEditionAsDraft,
             ownedById,
             relationships: createDefaultAuthorizationRelationships({
               actorId,
             }),
-          })
-          .then((resp) => resp.data);
+          },
+        );
       }
-
-      entity = {
-        metadata: mapGraphApiEntityMetadataToMetadata(entityMetadata),
-        ...entityValues,
-      };
     } catch (err) {
       return {
         code: StatusCode.Internal,
@@ -234,7 +228,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
                   "persistedEntity" as OutputNameForAction<"persistEntity">,
                 payload: {
                   kind: "PersistedEntity",
-                  value: { existingEntity, operation },
+                  value: {
+                    existingEntity: existingEntity?.toJSON(),
+                    operation,
+                  },
                 },
               },
             ],
@@ -244,13 +241,15 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     }
   }
 
+  const persistedEntity = {
+    entity: entity.toJSON(),
+    existingEntity: existingEntity?.toJSON(),
+    operation,
+  } satisfies PersistedEntity;
+
   logProgress([
     {
-      persistedEntity: {
-        entity,
-        existingEntity: existingEntity ?? undefined,
-        operation,
-      },
+      persistedEntity,
       recordedAt: new Date().toISOString(),
       stepId: Context.current().info.activityId,
       type: "PersistedEntity",
@@ -274,7 +273,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
               "persistedEntity" as OutputNameForAction<"persistEntity">,
             payload: {
               kind: "PersistedEntity",
-              value: { operation, entity, existingEntity },
+              value: persistedEntity,
             },
           },
         ],

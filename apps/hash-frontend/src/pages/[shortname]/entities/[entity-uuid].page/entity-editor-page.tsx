@@ -1,7 +1,8 @@
 import { OntologyChip } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import { NextSeo } from "next-seo";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -91,6 +92,7 @@ export const EntityEditorPage = ({
                   path={`${owner}/entities/${entityUuid}`}
                 />
               }
+              showTabs
             />
           }
         >

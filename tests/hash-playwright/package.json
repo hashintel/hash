@@ -13,6 +13,7 @@
   "dependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
+    "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
@@ -27,7 +28,7 @@
     "@apps/hash-frontend": "0.0.0-private",
     "@apps/hash-realtime": "0.0.0-private",
     "@apps/hash-search-loader": "0.0.0-private",
-    "@apps/plugin-browser": "0.0.7",
+    "@apps/plugin-browser": "0.0.8",
     "@blockprotocol/graph": "0.3.4"
   }
 }

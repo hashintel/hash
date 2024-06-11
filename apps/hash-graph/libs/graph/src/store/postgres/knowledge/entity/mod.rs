@@ -1,11 +1,9 @@
 mod query;
 mod read;
 
-use std::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-    iter::once,
-};
+use alloc::borrow::Cow;
+use core::iter::once;
+use std::collections::{HashMap, HashSet};
 
 use authorization::{
     backend::ModifyRelationshipOperation,
@@ -226,9 +224,6 @@ where
                         continue;
                     }
 
-                    let span = tracing::trace_span!("post_filter_entities");
-                    let _s = span.enter();
-
                     let permissions = self
                         .authorization_api
                         .check_entities_permission(
@@ -403,9 +398,6 @@ where
                     .iter()
                     .map(|(entity, _)| entity.metadata.record_id.entity_id)
                     .collect::<HashSet<_>>();
-
-                let span = tracing::trace_span!("post_filter_entities");
-                let _s = span.enter();
 
                 let (permissions, zookie) = self
                     .authorization_api
@@ -799,11 +791,7 @@ where
             .change_context(InsertionError)
             .attach(StatusCode::InvalidArgument)?;
 
-        let commit_result = {
-            let span = tracing::trace_span!("committing entity");
-            let _enter = span.enter();
-            transaction.commit().await.change_context(InsertionError)
-        };
+        let commit_result = transaction.commit().await.change_context(InsertionError);
         if let Err(mut error) = commit_result {
             if let Err(auth_error) = self
                 .authorization_api
@@ -1162,7 +1150,7 @@ where
         &mut self,
         actor_id: AccountId,
         mut params: PatchEntityParams,
-    ) -> Result<EntityMetadata, UpdateError> {
+    ) -> Result<Entity, UpdateError> {
         let transaction_time = Timestamp::now().remove_nanosecond();
         let decision_time = params
             .decision_time
@@ -1315,14 +1303,18 @@ where
             && params.confidence == previous_entity.metadata.confidence
         {
             // No changes were made to the entity.
-            return Ok(EntityMetadata {
-                record_id: previous_entity.metadata.record_id,
-                temporal_versioning: previous_entity.metadata.temporal_versioning,
-                entity_type_ids,
-                provenance: previous_entity.metadata.provenance,
-                archived,
-                confidence: previous_entity.metadata.confidence,
-                properties: property_metadata,
+            return Ok(Entity {
+                properties: previous_properties,
+                link_data: previous_entity.link_data,
+                metadata: EntityMetadata {
+                    record_id: previous_entity.metadata.record_id,
+                    temporal_versioning: previous_entity.metadata.temporal_versioning,
+                    entity_type_ids,
+                    provenance: previous_entity.metadata.provenance,
+                    archived,
+                    confidence: previous_entity.metadata.confidence,
+                    properties: property_metadata,
+                },
             });
         }
 
@@ -1491,20 +1483,18 @@ where
             properties: property_metadata,
             archived,
         };
+        let entity = Entity {
+            properties,
+            link_data,
+            metadata: entity_metadata.clone(),
+        };
         if let Some(temporal_client) = &self.temporal_client {
             temporal_client
-                .start_update_entity_embeddings_workflow(
-                    actor_id,
-                    &[Entity {
-                        properties,
-                        link_data,
-                        metadata: entity_metadata.clone(),
-                    }],
-                )
+                .start_update_entity_embeddings_workflow(actor_id, &[entity.clone()])
                 .await
                 .change_context(UpdateError)?;
         }
-        Ok(entity_metadata)
+        Ok(entity)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]

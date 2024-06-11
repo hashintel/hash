@@ -1,4 +1,5 @@
-use std::{collections::HashSet, iter::once};
+use core::iter::once;
+use std::collections::HashSet;
 
 use authorization::{
     backend::ModifyRelationshipOperation,
@@ -742,10 +743,10 @@ pub struct DataTypeRowIndices {
 }
 
 impl QueryRecordDecode for DataTypeWithMetadata {
-    type CompilationArtifacts = DataTypeRowIndices;
+    type Indices = DataTypeRowIndices;
     type Output = Self;
 
-    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
+    fn decode(row: &Row, indices: &Self::Indices) -> Self {
         let record_id = OntologyTypeRecordId {
             base_url: row.get(indices.base_url),
             version: row.get(indices.version),
@@ -789,7 +790,7 @@ impl PostgresRecord for DataTypeWithMetadata {
     fn compile<'p, 'q: 'p>(
         compiler: &mut SelectCompiler<'p, 'q, Self>,
         _paths: &Self::CompilationParameters,
-    ) -> Self::CompilationArtifacts {
+    ) -> Self::Indices {
         DataTypeRowIndices {
             base_url: compiler.add_distinct_selection_with_ordering(
                 &DataTypeQueryPath::BaseUrl,

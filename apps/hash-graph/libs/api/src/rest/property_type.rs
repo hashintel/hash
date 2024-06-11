@@ -1,8 +1,6 @@
 //! Web routes for CRU operations on Property types.
 
-#![expect(clippy::str_to_string)]
-
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -192,7 +190,7 @@ struct CreatePropertyTypeRequest {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, domain_validator)
+    skip(store_pool, authorization_api_pool, domain_validator, temporal_client)
 )]
 async fn create_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -308,7 +306,7 @@ enum LoadExternalPropertyTypeRequest {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, domain_validator)
+    skip(store_pool, authorization_api_pool, domain_validator, temporal_client)
 )]
 async fn load_external_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -403,7 +401,10 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
 async fn get_property_types<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -470,7 +471,10 @@ struct GetPropertyTypeSubgraphResponse {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
 async fn get_property_type_subgraph<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -542,7 +546,10 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn update_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -624,7 +631,10 @@ where
     ),
     request_body = UpdatePropertyTypeEmbeddingParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, body)
+)]
 async fn update_property_type_embeddings<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -675,7 +685,10 @@ where
     ),
     request_body = ArchivePropertyTypeParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn archive_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -735,7 +748,10 @@ where
     ),
     request_body = UnarchivePropertyTypeParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn unarchive_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,

@@ -1,11 +1,11 @@
 import { useQuery } from "@apollo/client";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
-  Entity,
   EntityId,
   EntityMetadata,
   EntityTemporalVersioningMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/entity";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 import type {
   GetPageCommentsQuery,
@@ -42,5 +42,20 @@ export const usePageComments = (pageEntityId?: EntityId): PageCommentsInfo => {
     skip: !pageEntityId,
   });
 
-  return { data: data?.pageComments ?? emptyComments, loading };
+  const pageComments = data?.pageComments;
+  return {
+    data: pageComments
+      ? pageComments.map((comment) => ({
+          ...comment,
+          author: new Entity(comment.author),
+          parent: new Entity(comment.parent),
+          replies: comment.replies.map((reply) => ({
+            ...reply,
+            author: new Entity(reply.author),
+            parent: new Entity(reply.parent),
+          })),
+        }))
+      : emptyComments,
+    loading,
+  };
 };

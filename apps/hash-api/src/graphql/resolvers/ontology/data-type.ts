@@ -3,8 +3,14 @@ import {
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  mapGraphApiSubgraphToSubgraph,
+  serializeSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type {
+  DataTypeRootType,
+  SerializedSubgraph,
+} from "@local/hash-subgraph";
 
 import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
 import type {
@@ -16,7 +22,7 @@ import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { graphQLContextToImpureGraphContext } from "../util";
 
 export const queryDataTypes: ResolverFn<
-  Promise<Subgraph>,
+  Promise<SerializedSubgraph>,
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryQueryDataTypesArgs
@@ -44,16 +50,16 @@ export const queryDataTypes: ResolverFn<
     },
   );
 
-  const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(
-    response.subgraph,
-    authentication.actorId,
+  return serializeSubgraph(
+    mapGraphApiSubgraphToSubgraph<DataTypeRootType>(
+      response.subgraph,
+      authentication.actorId,
+    ),
   );
-
-  return subgraph;
 };
 
 export const getDataType: ResolverFn<
-  Promise<Subgraph>,
+  Promise<SerializedSubgraph>,
   Record<string, never>,
   GraphQLContext,
   QueryGetDataTypeArgs
@@ -62,18 +68,20 @@ export const getDataType: ResolverFn<
   { dataTypeId, constrainsValuesOn, includeArchived },
   graphQLContext,
 ) =>
-  getDataTypeSubgraphById(
-    graphQLContextToImpureGraphContext(graphQLContext),
-    graphQLContext.authentication,
-    {
-      dataTypeId,
-      /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
+  serializeSubgraph(
+    await getDataTypeSubgraphById(
+      graphQLContextToImpureGraphContext(graphQLContext),
+      graphQLContext.authentication,
+      {
+        dataTypeId,
+        /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn,
+        },
+        temporalAxes: includeArchived
+          ? fullTransactionTimeAxis
+          : currentTimeInstantTemporalAxes,
       },
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
-    },
+    ),
   );

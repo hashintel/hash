@@ -135,7 +135,7 @@ test.skip(
   },
 );
 
-test(
+test.skip(
   'Test researchEntitiesAction: find information about a person called "Ben Werner", a software engineer based in London',
   async () => {
     const status = await researchEntitiesAction({
@@ -160,7 +160,118 @@ test(
         humanInputCanBeRequested: false,
         persistState: (state) =>
           persistState({ state, testName: "ben-werner" }),
-        resumeFromState: retrievePreviousState({ testName: "ben-werner" }),
+        // resumeFromState: retrievePreviousState({ testName: "ben-werner" }),
+      },
+    });
+
+    expect(status).toBeDefined();
+  },
+  {
+    timeout: 10 * 60 * 1000,
+  },
+);
+
+test.skip(
+  'Test researchEntitiesAction: Find information about a person called "Tim Brooks", an employee at OpenAI',
+  async () => {
+    const status = await researchEntitiesAction({
+      inputs: [
+        {
+          inputName: "prompt",
+          payload: {
+            kind: "Text",
+            value:
+              'Find information about a person called "Tim Brooks", an employee at OpenAI',
+          },
+        },
+        {
+          inputName: "entityTypeIds",
+          payload: {
+            kind: "VersionedUrl",
+            value: ["https://hash.ai/@ftse/types/entity-type/person/v/1"],
+          },
+        },
+      ],
+      testingParams: {
+        humanInputCanBeRequested: false,
+        persistState: (state) =>
+          persistState({ state, testName: "tim-brooks" }),
+        resumeFromState: retrievePreviousState({ testName: "tim-brooks" }),
+      },
+    });
+
+    expect(status).toBeDefined();
+  },
+  {
+    timeout: 10 * 60 * 1000,
+  },
+);
+
+test.skip(
+  "Test researchEntitiesAction: Find all the Large Language Models provided by OpenAI",
+  async () => {
+    const status = await researchEntitiesAction({
+      inputs: [
+        {
+          inputName: "prompt",
+          payload: {
+            kind: "Text",
+            value: "Find all the Large Language Models provided by OpenAI",
+          },
+        },
+        {
+          inputName: "entityTypeIds",
+          payload: {
+            kind: "VersionedUrl",
+            value: [
+              "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+            ],
+          },
+        },
+      ],
+      testingParams: {
+        humanInputCanBeRequested: false,
+        persistState: (state) =>
+          persistState({ state, testName: "openai-llm" }),
+        resumeFromState: retrievePreviousState({ testName: "openai-llm" }),
+      },
+    });
+
+    expect(status).toBeDefined();
+  },
+  {
+    timeout: 10 * 60 * 1000,
+  },
+);
+
+test.skip(
+  "Test researchEntitiesAction: Find a comparison of graphics cards which can be used for running AI models",
+  async () => {
+    const status = await researchEntitiesAction({
+      inputs: [
+        {
+          inputName: "prompt",
+          payload: {
+            kind: "Text",
+            value:
+              "Find a comparison of graphics cards which can be used for running AI models",
+          },
+        },
+        {
+          inputName: "entityTypeIds",
+          payload: {
+            kind: "VersionedUrl",
+            value: [
+              "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
+            ],
+          },
+        },
+      ],
+      testingParams: {
+        humanInputCanBeRequested: false,
+        persistState: (state) =>
+          persistState({ state, testName: "graphics-cards" }),
+        resumeFromState: retrievePreviousState({ testName: "graphics-cards" }),
       },
     });
 

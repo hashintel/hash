@@ -18,11 +18,15 @@ members = [
     "tests/hash-graph-integration",
     "tests/hash-graph-test-data/rust",
     "libs/@local/harpc/wire-protocol",
-    "libs/@local/harpc/types"]
-exclude = [
+    "libs/@local/harpc/types",
+	"libs/@local/harpc/net",
     "libs/antsi",
     "libs/deer",
+    "libs/deer/desert",
+    "libs/deer/json",
+    "libs/deer/macros",
     "libs/error-stack",
+    "libs/error-stack/macros",
     "libs/sarif",
 ]
 default-members = [
@@ -59,12 +63,11 @@ repo-chores.path = "libs/@local/repo-chores/rust"
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }
 
+# Shared third-party dependencies
 aws-config = { version = "1.4.0" }
 aws-sdk-s3 = { version = "1.28.0" }
-
-# Shared third-party dependencies
 bytes = "1.6.0"
-clap = { version = "4.5.4", default-features = false, features = ["std"] }
+clap = { version = "4.5.4", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
 derive-where = { version = "1.2.7", default-features = false, features = ["nightly"] }
 email_address = { version = "0.2.4", default-features = false }
 futures = { version = "0.3.30", default-features = false }
@@ -84,5 +87,68 @@ inherits = "release"
 lto = "fat"
 strip = "none"
 
-[patch.crates-io]
-crc32c = { git = "https://github.com/zowens/crc32c", rev = "04eabbc6ef33e0afe529da729e65916c48f9d032" }
+[workspace.lints.rust]
+nonstandard_style = { level = "warn", priority = -1 }
+future_incompatible = { level = "warn", priority = -1 }
+
+unsafe_code = "deny"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+restriction = { level = "warn", priority = -1 }
+
+# Should be enabled:
+absolute_paths = "allow"
+allow_attributes_without_reason = "allow"
+arithmetic_side_effects = "allow"
+as_conversions = "allow"
+else_if_without_else = "allow"
+enum_variant_names = "allow"
+expect_used = "allow"
+indexing_slicing = "allow"
+let_underscore_must_use = "allow"
+let_underscore_untyped = "allow" # Conflicts with `clippy::no_effect_underscore_binding` in function bindings
+min_ident_chars = "allow"
+missing_assert_message = "allow"
+multiple_inherent_impl = "allow"
+panic = "allow"
+partial_pub_fields = "allow"
+unwrap_in_result = "allow"
+wildcard_enum_match_arm = "allow"
+
+# Consider enabling:
+default_numeric_fallback = "allow"
+impl_trait_in_params = "allow"
+iter_over_hash_type = "allow"
+multiple_unsafe_ops_per_block = "allow"
+pattern_type_mismatch = "allow"
+shadow_unrelated = "allow"
+single_call_fn = "allow"
+single_char_lifetime_names = "allow"
+tests_outside_test_module = "allow"
+unimplemented = "allow"
+unreachable = "allow"
+
+# Does not apply to us:
+blanket_clippy_restriction_lints = "allow"
+exhaustive_enums = "allow"
+exhaustive_structs = "allow"
+implicit_return = "allow"
+missing_docs_in_private_items = "allow"
+missing_inline_in_public_items = "allow"
+missing_trait_methods = "allow" # Should be enabled per `impl` instead of globally
+mod_module_files = "allow" # opposite of `clippy::self_named_module_files`
+module_name_repetitions = "allow"
+pub_use = "allow"
+pub_with_shorthand = "allow" # # opposite of `clippy::pub_without_shorthand`
+question_mark_used = "allow"
+ref_patterns = "allow"
+redundant_pub_crate = "allow" # opposite of `unreachable_pub`
+semicolon_outside_block = "allow" # opposite of `clippy::semicolon_inside_block`
+separated_literal_suffix = "allow" # opposite of `clippy::unseparated_literal_suffix`
+shadow_reuse = "allow"
+shadow_same = "allow"
+unneeded_field_pattern = "allow" # Actually, the opposite would be a great lint

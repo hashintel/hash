@@ -1,4 +1,4 @@
-import type { BaseUrl } from "@local/hash-subgraph";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { useRouter } from "next/router";
 
 import type { NextPageWithLayout } from "../../../../shared/layout";

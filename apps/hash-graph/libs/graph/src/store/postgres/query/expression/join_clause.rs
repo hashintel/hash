@@ -1,4 +1,4 @@
-use std::{fmt, fmt::Write};
+use core::{fmt, fmt::Write};
 
 use crate::store::postgres::query::{
     table::{Column, ForeignKeyReference},

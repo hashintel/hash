@@ -1,13 +1,12 @@
 import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
-  Entity,
   EntityId,
   EntityPropertiesObject,
-  OwnedById,
-} from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+} from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { PropsWithChildren } from "react";
 import {
   createContext,
@@ -277,8 +276,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             throw new Error(errors?.[0]?.message ?? "unknown error");
           }
 
-          fileEntity =
-            data.createFileFromUrl as unknown as Entity<FileProperties>;
+          fileEntity = new Entity<FileProperties>(data.createFileFromUrl);
 
           if (makePublic) {
             /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -340,8 +338,9 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
               throw new Error(errors?.[0]?.message ?? "unknown error");
             }
 
-            fileEntity = data.requestFileUpload
-              .entity as unknown as Entity<FileProperties>;
+            fileEntity = new Entity<FileProperties>(
+              data.requestFileUpload.entity,
+            );
 
             if (makePublic) {
               /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -510,7 +509,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           throw new Error(errors?.[0]?.message ?? "unknown error");
         }
 
-        const linkEntity = data.createEntity as LinkEntity;
+        const linkEntity = new LinkEntity(data.createEntity);
 
         if (makePublic) {
           /** @todo: make entity public as part of `createEntity` query once this is supported */

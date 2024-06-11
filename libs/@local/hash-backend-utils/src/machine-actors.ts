@@ -1,22 +1,17 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { GraphApi } from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  mapGraphApiEntityMetadataToMetadata,
-  mapGraphApiEntityToEntity,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
-import type {
-  AccountId,
-  EntityMetadata,
-  OwnedById,
-} from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 export type WebMachineActorIdentifier = `system-${OwnedById}`;
@@ -122,7 +117,7 @@ export const createMachineActorEntity = async (
     systemAccountId: AccountId;
     machineEntityTypeId?: VersionedUrl;
   },
-): Promise<EntityMetadata> => {
+): Promise<void> => {
   // Give the machine actor permissions to instantiate its own entity (entities of type Machine)
   await context.graphApi.modifyEntityTypeAuthorizationRelationships(
     systemAccountId,
@@ -141,12 +136,13 @@ export const createMachineActorEntity = async (
     ],
   );
 
-  const metadata = await context.graphApi
-    .createEntity(machineAccountId, {
+  await Entity.create(
+    context.graphApi,
+    { actorId: machineAccountId },
+    {
       draft: false,
-      entityTypeIds: [
+      entityTypeId:
         machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
-      ],
       ownedById,
       properties: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
@@ -169,8 +165,8 @@ export const createMachineActorEntity = async (
           },
         },
       ],
-    })
-    .then((resp) => mapGraphApiEntityMetadataToMetadata(resp.data));
+    },
+  );
 
   if (!shouldBeAbleToCreateMoreMachineEntities) {
     await context.graphApi.modifyEntityTypeAuthorizationRelationships(
@@ -191,8 +187,6 @@ export const createMachineActorEntity = async (
       ],
     );
   }
-
-  return metadata;
 };
 
 /**

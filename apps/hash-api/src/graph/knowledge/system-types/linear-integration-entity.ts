@@ -1,4 +1,7 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -19,12 +22,7 @@ import type {
   LinearIntegrationProperties,
   SyncLinearDataWithProperties,
 } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type {
-  AccountId,
-  Entity,
-  EntityId,
-  EntityRootType,
-} from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -186,7 +184,12 @@ export const getLinearIntegrationById: ImpureGraphFunction<
 
 export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
   { linearIntegrationEntityId: EntityId; includeDrafts?: boolean },
-  Promise<{ syncLinearDataWithLinkEntity: Entity; workspaceEntity: Entity }[]>
+  Promise<
+    {
+      syncLinearDataWithLinkEntity: Entity;
+      workspaceEntity: Entity;
+    }[]
+  >
 > = async (
   { graphApi },
   { actorId },
@@ -318,14 +321,15 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
   } else {
     await createLinkEntity(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
-      linkEntityTypeId:
-        systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-      leftEntityId: linearIntegrationEntityId,
-      rightEntityId: workspaceEntityId,
       properties: {
         "https://hash.ai/@hash/types/property-type/linear-team-id/":
           linearTeamIds,
       } as SyncLinearDataWithProperties,
+      linkData: {
+        leftEntityId: linearIntegrationEntityId,
+        rightEntityId: workspaceEntityId,
+      },
+      entityTypeId: systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
       relationships: [
         ...createDefaultAuthorizationRelationships(authentication),
         {

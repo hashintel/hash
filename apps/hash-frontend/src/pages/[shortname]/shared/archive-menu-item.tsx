@@ -1,5 +1,6 @@
 import { useMutation } from "@apollo/client";
-import type { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback } from "react";

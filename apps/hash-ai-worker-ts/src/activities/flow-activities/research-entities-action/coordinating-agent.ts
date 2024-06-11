@@ -1,43 +1,49 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { Entity } from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
+import { logger } from "../../shared/activity-logger";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import { getFlowContext } from "../../shared/get-flow-context";
 import { getLlmResponse } from "../../shared/get-llm-response";
 import type {
   LlmMessage,
+  LlmMessageTextContent,
   LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message";
 import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
-import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
+import type {
+  LlmParams,
+  ParsedLlmToolCall,
+} from "../../shared/get-llm-response/types";
 import { graphApiClient } from "../../shared/graph-api-client";
 import { logProgress } from "../../shared/log-progress";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
-import type { PermittedOpenAiModel } from "../../shared/openai-client";
+import { stringify } from "../../shared/stringify";
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../shared/infer-facts-from-text/types";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./coordinator-tools";
-import { generateToolCalls } from "./coordinator-tools";
+import { generateToolDefinitions } from "./coordinator-tools";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { getAnswersFromHuman } from "./get-answers-from-human";
 import type { AccessedRemoteFile } from "./infer-facts-from-web-page-worker-agent/types";
+import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption";
 import type { ExistingEntitySummary } from "./summarize-existing-entities";
 import { summarizeExistingEntities } from "./summarize-existing-entities";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
-const model: PermittedOpenAiModel = "gpt-4-0125-preview";
+const model: LlmParams["model"] = "claude-3-opus-20240229";
 
 export type CoordinatingAgentInput = {
   humanInputCanBeRequested: boolean;
@@ -83,12 +89,20 @@ const generateSystemPromptPrefix = (params: {
 
     You must completely satisfy the research prompt, without any missing information.
 
-    You must carefully inspect the properties on the provided entity types and link types,
-      and find all the relevant facts so that as many properties on the entity can be filled as possible.
-      
-    You may need to conduct multiple web searches, to find all the relevant facts to propose the entities.
+    You must carefully examine the properties on the provided entity types and link types, because you must provide values for
+      as many properties as possible.
+
+    This most likely will require:
+      - inferring facts from more than one web page
+      - conducting multiple web searches
+      - starting sub-tasks to find additional relevant facts about specific entities
+
+    If at any point the task can be split up into sub-tasks, you must do so.
     
     ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}` : ""}
+
+    The "complete" tool for completing the research task will only be available once you have submitted
+      proposed entities that satisfy the research prompt.
   `);
 };
 
@@ -97,16 +111,26 @@ const generateInitialUserMessage = (params: {
 }): LlmUserMessage => {
   const { prompt, entityTypes, linkEntityTypes, existingEntities } =
     params.input;
+
   return {
     role: "user",
     content: [
       {
         type: "text",
         text: dedent(`
-        Prompt: ${prompt}
-        Entity Types: ${JSON.stringify(entityTypes)}
-        ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
-        ${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
+Prompt: ${prompt}
+Entity Types:
+${entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
+${
+  /**
+   * @todo: simplify link type definitions, potentially by moving them to an "Outgoing Links" field
+   * on the simplified entity type definition.
+   *
+   * @see https://linear.app/hash/issue/H-2826/simplify-property-values-for-llm-consumption
+   */
+  linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""
+}
+${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
       `),
       },
     ],
@@ -128,13 +152,11 @@ export type CoordinatingAgentState = {
   questionsAndAnswers: string | null;
 };
 
-const getNextToolCalls = async (params: {
+const generateProgressReport = (params: {
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
-}): Promise<{
-  toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
-}> => {
-  const { input, state } = params;
+}): LlmMessageTextContent => {
+  const { state } = params;
 
   const submittedProposedEntities = state.proposedEntities.filter(
     (proposedEntity) =>
@@ -148,10 +170,10 @@ const getNextToolCalls = async (params: {
       state.submittedEntityIds.includes(proposedEntity.localEntityId),
   );
 
-  const systemPrompt = dedent(`
-      ${generateSystemPromptPrefix({ input, questionsAndAnswers: state.questionsAndAnswers })}
-      
-      Make as many tool calls as are required to progress towards completing the task.
+  return {
+    type: "text",
+    text: dedent(`
+      Here is a summary of the progress you've made so far.
 
       ${generatePreviouslyInferredFactsSystemPromptMessage(state)}
 
@@ -177,18 +199,83 @@ const getNextToolCalls = async (params: {
 
       You have previously proposed the following plan:
       ${state.plan}
-      If you want to deviate from this plan, update it using the "updatePlan" tool.
+
+      If you want to deviate from this plan or improve it, update it using the "updatePlan" tool.
       You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
+      
+      ${
+        state.inferredFactsAboutEntities.length > 0
+          ? dedent(`
+        Before calling the "proposeEntitiesFromFacts" tool, ensure you have gathered facts for as many
+          properties for each entity as possible.
+
+        If there is additional research to be done for one or more of the entities, you should call the "startFactGatheringSubTasks" tool
+          for to gather the required facts on a per-entity basis.
+
+        Remember that the outputted information will only consist of the properties and links defined in the entity and link types,
+          so don't waste resources on gathering information that cannot be returned.
+      `)
+          : ""
+      }
+    `),
+  };
+};
+
+const getNextToolCalls = async (params: {
+  input: CoordinatingAgentInput;
+  state: CoordinatingAgentState;
+  forcedToolCall?: CoordinatorToolName;
+}): Promise<{
+  toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
+}> => {
+  const { input, state, forcedToolCall } = params;
+
+  const systemPrompt = dedent(`
+      ${generateSystemPromptPrefix({ input, questionsAndAnswers: state.questionsAndAnswers })}
+
+      Make as many tool calls as are required to progress towards completing the task.
     `);
+
+  const llmMessagesFromPreviousToolCalls = mapPreviousCallsToLlmMessages({
+    previousCalls: state.previousCalls,
+  });
+
+  const lastUserMessage = llmMessagesFromPreviousToolCalls.slice(-1)[0];
+
+  if (lastUserMessage && lastUserMessage.role !== "user") {
+    throw new Error(
+      `Expected last message to be a user message, but it was: ${stringify(
+        lastUserMessage,
+      )}`,
+    );
+  }
+
+  const progressReport = generateProgressReport({ input, state });
 
   const messages: LlmMessage[] = [
     generateInitialUserMessage({ input }),
-    ...mapPreviousCallsToLlmMessages({ previousCalls: state.previousCalls }),
-  ];
+    ...llmMessagesFromPreviousToolCalls.slice(0, -1),
+    lastUserMessage
+      ? ({
+          ...lastUserMessage,
+          content: [
+            ...lastUserMessage.content,
+            // Add the progress report to the most recent user message.
+            progressReport,
+          ],
+        } satisfies LlmUserMessage)
+      : [],
+  ].flat();
 
   const tools = Object.values(
-    generateToolCalls({
-      humanInputCanBeRequested: input.humanInputCanBeRequested,
+    generateToolDefinitions({
+      omitTools: [
+        ...(input.humanInputCanBeRequested
+          ? []
+          : ["requestHumanInput" as const]),
+        ...(state.submittedEntityIds.length > 0 ? [] : ["complete" as const]),
+      ],
+      state,
     }),
   );
 
@@ -200,6 +287,7 @@ const getNextToolCalls = async (params: {
       messages,
       model,
       tools,
+      toolChoice: forcedToolCall ?? "required",
     },
     {
       userAccountId: userAuthentication.actorId,
@@ -222,13 +310,14 @@ const getNextToolCalls = async (params: {
   return { toolCalls };
 };
 
+const maximumRetries = 3;
+
 const createInitialPlan = async (params: {
   input: CoordinatingAgentInput;
   questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
+  retryContext?: { retryMessages: LlmMessage[]; retryCount: number };
 }): Promise<Pick<CoordinatingAgentState, "plan" | "questionsAndAnswers">> => {
-  const { input } = params;
-
-  const { questionsAndAnswers } = params;
+  const { input, questionsAndAnswers, retryContext } = params;
 
   const systemPrompt = dedent(`
     ${generateSystemPromptPrefix({ input, questionsAndAnswers })}
@@ -236,19 +325,19 @@ const createInitialPlan = async (params: {
     ${
       input.humanInputCanBeRequested
         ? dedent(`
-          You must ${questionsAndAnswers ? "now" : "first"} do one of: 
+          You must ${questionsAndAnswers ? "now" : "first"} do one of:
           1. Ask the user ${questionsAndAnswers ? "further" : ""} questions to help clarify the research brief. You should ask questions if:
             - The scope of the research is unclear (e.g. how much information is desired in response)
             - The scope of the research task is very broad (e.g. the prompt is vague)
             - The research brief or terms within it are ambiguous
             - You can think of any other questions that will help you deliver a better response to the user
           If in doubt, ask!
-          
+
           2. Provide a plan of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
-          
+
           Please now either ask the user your questions, or produce the initial plan if there are no ${questionsAndAnswers ? "more " : ""}useful questions to ask.
           
-          At this stage you may only use the 'requestHumanInput' and 'updatePlan' tools – definitions for the other tools are only provided to help you produce a plan.
+          You must now make either a "requestHumanInput" or a "updatePlan" tool call – definitions for the other tools are only provided to help you produce a plan.
     `)
         : dedent(`
         You must now provide a plan with the "updatePlan" tool of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
@@ -260,19 +349,23 @@ const createInitialPlan = async (params: {
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
   const tools = Object.values(
-    generateToolCalls({
-      humanInputCanBeRequested: input.humanInputCanBeRequested,
+    generateToolDefinitions<["complete"]>({
+      omitTools: input.humanInputCanBeRequested
+        ? ["complete"]
+        : (["complete", "requestHumanInput"] as unknown as ["complete"]),
     }),
   );
 
   const llmResponse = await getLlmResponse(
     {
       systemPrompt,
-      messages: [generateInitialUserMessage({ input })],
+      messages: [
+        generateInitialUserMessage({ input }),
+        ...(retryContext?.retryMessages ?? []),
+      ],
       model,
       tools,
-      seed: 1,
-      toolChoice: "required",
+      toolChoice: input.humanInputCanBeRequested ? "required" : "updatePlan",
     },
     {
       userAccountId: userAuthentication.actorId,
@@ -292,23 +385,13 @@ const createInitialPlan = async (params: {
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
-  const firstToolCall = toolCalls[0];
+  const updatePlanToolCall = toolCalls.find(
+    (toolCall) => toolCall.name === "updatePlan",
+  );
 
-  if (!firstToolCall) {
-    throw new Error(
-      `Expected tool calls in message: ${JSON.stringify(message, null, 2)}`,
-    );
-  }
-
-  if (toolCalls.length > 1) {
-    throw new Error(
-      `Expected only one tool call in message: ${JSON.stringify(message, null, 2)}`,
-    );
-  }
-
-  if (firstToolCall.name === "updatePlan") {
+  if (updatePlanToolCall) {
     const { plan } =
-      firstToolCall.input as CoordinatorToolCallArguments["updatePlan"];
+      updatePlanToolCall.input as CoordinatorToolCallArguments["updatePlan"];
 
     logProgress([
       {
@@ -322,16 +405,71 @@ const createInitialPlan = async (params: {
     return { plan, questionsAndAnswers };
   }
 
+  const retry = (retryParams: { retryMessage: LlmUserMessage }) => {
+    const retryCount = retryContext?.retryCount ?? 1;
+
+    if (retryCount >= maximumRetries) {
+      throw new Error(
+        `Exceeded maximum number of retries (${maximumRetries}) for creating initial plan`,
+      );
+    }
+
+    logger.debug(
+      `Retrying to create initial plan with retry message: ${stringify(retryParams.retryMessage)}`,
+    );
+
+    return createInitialPlan({
+      input,
+      questionsAndAnswers,
+      retryContext: {
+        retryMessages: [message, retryParams.retryMessage],
+        retryCount: retryCount + 1,
+      },
+    });
+  };
+
   /** @todo: ensure the tool call is one of the expected ones */
 
-  const { questions } =
-    firstToolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
+  const requestHumanInputToolCall = toolCalls.find(
+    (toolCall) => toolCall.name === "requestHumanInput",
+  );
 
-  const responseString = await getAnswersFromHuman(questions);
+  if (input.humanInputCanBeRequested && requestHumanInputToolCall) {
+    const { questions } =
+      requestHumanInputToolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
 
-  return createInitialPlan({
-    input,
-    questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
+    const responseString = await getAnswersFromHuman(questions);
+
+    return createInitialPlan({
+      input,
+      questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
+    });
+  }
+
+  if (toolCalls.length === 0) {
+    return retry({
+      retryMessage: {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `You didn't make any tool calls, you must call the ${input.humanInputCanBeRequested ? `"requestHumanInput" tool or the` : ""}"updatePlan" tool.`,
+          },
+        ],
+      },
+    });
+  }
+
+  return retry({
+    retryMessage: {
+      role: "user",
+      content: toolCalls.map(({ name, id }) => ({
+        type: "tool_result",
+        tool_use_id: id,
+        content: `You cannot call the "${name}" tool yet, you must call the ${input.humanInputCanBeRequested ? `"requestHumanInput" tool or the` : ""}"updatePlan" tool first.`,
+        is_error: true,
+      })),
+    },
   });
 };
 

@@ -1,5 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
+import type { EntityPropertyValue } from "@blockprotocol/graph/temporal";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   AutomaticInferenceArguments,
   ManualInferenceArguments,
@@ -8,11 +11,6 @@ import type {
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type {
-  BaseUrl,
-  Entity,
-  EntityPropertyValue,
-} from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import type { QueryDefinition } from "@temporalio/workflow";
 
@@ -67,7 +65,7 @@ export type InferenceTokenUsage = {
 };
 
 type InferredEntityResultBase = {
-  entity?: Entity | null;
+  entity?: SerializedEntity | null;
   entityTypeId: VersionedUrl;
   operation: "create" | "update" | "already-exists-as-proposed";
   proposedEntity: ProposedEntity;
@@ -75,7 +73,7 @@ type InferredEntityResultBase = {
 };
 
 export type InferredEntityCreationSuccess = InferredEntityResultBase & {
-  entity: Entity;
+  entity: SerializedEntity;
   operation: "create";
   status: "success";
 };
@@ -88,19 +86,19 @@ export type InferredEntityCreationFailure = InferredEntityResultBase & {
 };
 
 export type InferredEntityMatchesExisting = InferredEntityResultBase & {
-  entity: Entity;
+  entity: SerializedEntity;
   operation: "already-exists-as-proposed";
   status: "success";
 };
 
 export type InferredEntityUpdateSuccess = InferredEntityResultBase & {
-  entity: Entity;
+  entity: SerializedEntity;
   operation: "update";
   status: "success";
 };
 
 export type InferredEntityUpdateFailure = InferredEntityResultBase & {
-  entity?: Entity;
+  entity?: SerializedEntity;
   failureReason: string;
   operation: "update";
   status: "failure";

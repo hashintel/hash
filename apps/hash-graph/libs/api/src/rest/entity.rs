@@ -1,8 +1,6 @@
 //! Web routes for CRU operations on entities.
 
-#![expect(clippy::str_to_string)]
-
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -326,7 +324,10 @@ where
         (status = 500, description = "Store error occurred"),
     ),
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn validate_entity<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -502,7 +503,10 @@ struct GetEntitiesRequest<'q, 's, 'p> {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
 async fn get_entities<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -605,7 +609,10 @@ struct GetEntitySubgraphResponse<'r> {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
 async fn get_entity_subgraph<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -682,7 +689,10 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
 async fn count_entities<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -725,7 +735,7 @@ where
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = EntityMetadata),
+        (status = 200, content_type = "application/json", description = "The updated entity", body = Entity),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
         (status = 423, content_type = "text/plain", description = "The entity that should be updated was unexpectedly updated at the same time"),
 
@@ -744,7 +754,7 @@ async fn patch_entity<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(params): Json<PatchEntityParams>,
-) -> Result<Json<EntityMetadata>, Response>
+) -> Result<Json<Entity>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -790,7 +800,10 @@ where
     ),
     request_body = UpdateEntityEmbeddingsParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, body)
+)]
 async fn update_entity_embeddings<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -840,7 +853,10 @@ where
     ),
     request_body = DiffEntityParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn diff_entity<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -1014,7 +1030,10 @@ where
         (status = 403, description = "Permission denied"),
 )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn add_entity_administrator<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
@@ -1107,7 +1126,10 @@ where
         (status = 403, description = "Permission denied"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn remove_entity_administrator<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
@@ -1200,7 +1222,10 @@ where
         (status = 403, description = "Permission denied"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn add_entity_editor<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((entity_id, editor)): Path<(EntityId, OwnedById)>,
@@ -1287,7 +1312,10 @@ where
         (status = 403, description = "Permission denied"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn remove_entity_editor<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((entity_id, editor)): Path<(EntityId, OwnedById)>,

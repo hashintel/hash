@@ -37,7 +37,7 @@ mod wasm {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::fmt::Debug;
+    use core::fmt::Debug;
 
     use serde::{de::DeserializeOwned, Deserialize, Serialize};
 

@@ -1,4 +1,5 @@
-use std::{borrow::Cow, collections::HashSet};
+use alloc::borrow::Cow;
+use std::collections::HashSet;
 
 use authorization::AuthorizationApi;
 use graph::{

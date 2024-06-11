@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, LinkData } from "@local/hash-subgraph";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 /**
  * Whether the user account is active or disabled (suspended).
@@ -44,9 +44,7 @@ export type AutoClosedAtPropertyValue = TextDataType;
  */
 export type AvatarURLPropertyValue = TextDataType;
 
-export type BelongsToOrganization = Entity<BelongsToOrganizationProperties> & {
-  linkData: LinkData;
-};
+export type BelongsToOrganization = LinkEntity<BelongsToOrganizationProperties>;
 
 export type BelongsToOrganizationOutgoingLinkAndTarget = never;
 
@@ -156,9 +154,7 @@ export type GitPublicLinkbackMessagesEnabledPropertyValue = BooleanDataType;
  */
 export type GuestPropertyValue = BooleanDataType;
 
-export type HasAssignee = Entity<HasAssigneeProperties> & {
-  linkData: LinkData;
-};
+export type HasAssignee = LinkEntity<HasAssigneeProperties>;
 
 export type HasAssigneeOutgoingLinkAndTarget = never;
 
@@ -173,7 +169,7 @@ export type HasAssigneeProperties1 = LinkProperties;
 
 export type HasAssigneeProperties2 = {};
 
-export type HasCreator = Entity<HasCreatorProperties> & { linkData: LinkData };
+export type HasCreator = LinkEntity<HasCreatorProperties>;
 
 export type HasCreatorOutgoingLinkAndTarget = never;
 
@@ -188,9 +184,7 @@ export type HasCreatorProperties1 = LinkProperties;
 
 export type HasCreatorProperties2 = {};
 
-export type HasSubscriber = Entity<HasSubscriberProperties> & {
-  linkData: LinkData;
-};
+export type HasSubscriber = LinkEntity<HasSubscriberProperties>;
 
 export type HasSubscriberOutgoingLinkAndTarget = never;
 
@@ -378,7 +372,7 @@ export type OrganizationProperties = {
   "https://hash.ai/@linear/types/property-type/user-count/": UserCountPropertyValue;
 };
 
-export type Parent = Entity<ParentProperties> & { linkData: LinkData };
+export type Parent = Entity<ParentProperties> & { LinkEntity: LinkEntity };
 
 export type ParentOutgoingLinkAndTarget = never;
 
@@ -442,7 +436,7 @@ export type SAMLEnabledPropertyValue = BooleanDataType;
  */
 export type SCIMEnabledPropertyValue = BooleanDataType;
 
-export type SnoozedBy = Entity<SnoozedByProperties> & { linkData: LinkData };
+export type SnoozedBy = LinkEntity<SnoozedByProperties>;
 
 export type SnoozedByOutgoingLinkAndTarget = never;
 
@@ -476,7 +470,7 @@ export type StartedAtPropertyValue = TextDataType;
  */
 export type StartedTriageAtPropertyValue = TextDataType;
 
-export type State = Entity<StateProperties> & { linkData: LinkData };
+export type State = Entity<StateProperties> & { LinkEntity: LinkEntity };
 
 export type StateOutgoingLinkAndTarget = never;
 

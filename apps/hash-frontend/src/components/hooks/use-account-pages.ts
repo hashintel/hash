@@ -1,5 +1,7 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import type { EntityMetadata } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -7,12 +9,9 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  EntityMetadata,
-  EntityRootType,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -69,7 +68,7 @@ export const useAccountPages = (
 
     return getRoots(typedSubgraph).map((latestPage) => {
       const pageOutgoingLinks = getOutgoingLinkAndTargetEntities(
-        subgraph,
+        deserializeSubgraph(subgraph),
         latestPage.metadata.recordId.entityId,
       );
 

@@ -1,15 +1,14 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
 import type {
-  AccountId,
   BaseUrl,
-  Entity,
-  EntityRootType,
   EntityTypeWithMetadata,
-  OwnedById,
-  Subgraph,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";

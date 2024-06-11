@@ -5,6 +5,12 @@ import type {
 } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  EntityId,
+  EntityPropertiesObject,
+  EntityRecordId,
+} from "@local/hash-graph-types/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import {
@@ -14,15 +20,12 @@ import {
 import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import type {
-  Entity,
-  EntityId,
-  EntityPropertiesObject,
   EntityRevisionId,
   EntityRootType,
   EntityVertex,
   Subgraph,
 } from "@local/hash-subgraph";
-import { isEntityId } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId, isEntityId } from "@local/hash-subgraph";
 import type { FunctionComponent } from "react";
 import {
   useCallback,
@@ -282,23 +285,40 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
           ...entityOrTypeEditionMap,
           [draftEntityEditionTimestamp as string]: {
             kind: "entity",
-            inner: {
-              ...entityInStore,
+            // TODO: `Entity` should not be created here
+            //   see https://linear.app/hash/issue/H-2786/avoid-constructing-graphentity-in-block-loader
+            inner: new Entity({
+              metadata: {
+                recordId: entityInStore.metadata.recordId as EntityRecordId,
+                entityTypeIds: [
+                  entityInStore.metadata.entityTypeId,
+                ] as VersionedUrl[],
+                temporalVersioning: entityInStore.metadata.temporalVersioning,
+                archived: false,
+                provenance: {
+                  createdAtDecisionTime:
+                    entityInStore.metadata.temporalVersioning.decisionTime.start
+                      .limit,
+                  createdAtTransactionTime:
+                    entityInStore.metadata.temporalVersioning.transactionTime
+                      .start.limit,
+                  createdById: extractOwnedByIdFromEntityId(
+                    entityInStore.metadata.recordId.entityId as EntityId,
+                  ),
+                  edition: {
+                    createdById: extractOwnedByIdFromEntityId(
+                      entityInStore.metadata.recordId.entityId as EntityId,
+                    ),
+                  },
+                },
+              },
               properties: isBlockEntity
                 ? entityInStore.properties
                 : rewrittenPropertiesForTextualContent(
                     entityInStore.properties,
                   ),
-              /**
-               * This cast is necessary because the DraftEntity type has some missing fields (e.g. entityId)
-               * to account for entities which are only in the local store, and not in the API.
-               * Because this entity must exist in the API, since we have matched it on an entityId from the API,
-               * we can safely cast it to the Entity type.
-               *
-               * Ideally the entity store would not have differences in the type to persisted entities,
-               * which we should address when moving to a single global entity store – see H-1351.
-               */
-            } as Entity,
+              linkData: entityInStore.linkData,
+            }),
           } satisfies EntityVertex,
         };
 

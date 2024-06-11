@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity, EntityId } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 
 type SimplifiedEntity = {
   entityId: EntityId;

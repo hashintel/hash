@@ -2,12 +2,10 @@ import { useQuery } from "@apollo/client";
 import type { JsonValue } from "@blockprotocol/core";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
 import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
-import type {
-  DataTypeWithMetadata,
-  OntologyTypeRevisionId,
-} from "@local/hash-subgraph";
+import type { OntologyTypeRevisionId } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import type { PropsWithChildren } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";

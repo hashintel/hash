@@ -4,16 +4,16 @@ import type {
   PropertyMetadataMap,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
-import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
 import type {
-  AccountId,
-  Entity,
   EntityId,
   EntityPropertiesObject,
   EntityUuid,
-  OwnedById,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type { Status } from "@local/status";
 
 import type { ActionDefinitionId } from "./action-definitions";
@@ -59,13 +59,13 @@ export type ProposedEntityWithResolvedLinks = Omit<
 };
 
 export type PersistedEntity = {
-  entity?: Entity;
-  existingEntity?: Entity;
+  entity?: SerializedEntity;
+  existingEntity?: SerializedEntity;
   operation: "create" | "update" | "already-exists-as-proposed";
 };
 
 export type FailedEntityProposal = {
-  existingEntity?: Entity;
+  existingEntity?: SerializedEntity;
   operation?: "create" | "update" | "already-exists-as-proposed";
   proposedEntity: ProposedEntityWithResolvedLinks;
   message: string;
@@ -98,7 +98,7 @@ export type GoogleSheet = { spreadsheetId: string } | { newSheetName: string };
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Boolean: boolean;
-  Entity: Entity;
+  Entity: SerializedEntity;
   EntityId: EntityId;
   FormattedText: FormattedText;
   GoogleAccountId: string;
@@ -372,6 +372,12 @@ export type VisitedWebPageLog = ProgressLogBase & {
   type: "VisitedWebPage";
 };
 
+export type StartedSubTaskLog = ProgressLogBase & {
+  explanation: string;
+  goal: string;
+  type: "StartedSubTask";
+};
+
 export type ViewedFile = {
   explanation: string;
   fileUrl: string;
@@ -396,7 +402,8 @@ export type StepProgressLog =
   | ProposedEntityLog
   | VisitedWebPageLog
   | ViewedFile
-  | QueriedWebLog;
+  | QueriedWebLog
+  | StartedSubTaskLog;
 
 export type ProgressLogSignal = {
   attempt: number;

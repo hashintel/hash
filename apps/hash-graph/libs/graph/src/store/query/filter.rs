@@ -1,6 +1,7 @@
-use std::{borrow::Cow, fmt, mem, str::FromStr};
+use alloc::borrow::Cow;
+use core::{fmt, mem, str::FromStr};
 
-use derivative::Derivative;
+use derive_where::derive_where;
 use error_stack::{bail, Context, Report, ResultExt};
 use graph_types::{
     knowledge::entity::{Entity, EntityId},
@@ -23,12 +24,8 @@ use crate::{
 };
 
 /// A set of conditions used for queries.
-#[derive(Derivative, Deserialize)]
-#[derivative(
-    Debug(bound = "R::QueryPath<'p>: fmt::Debug"),
-    PartialEq(bound = "R::QueryPath<'p>: PartialEq"),
-    Clone(bound = "R::QueryPath<'p>: Clone")
-)]
+#[derive(Deserialize)]
+#[derive_where(Debug, Clone, PartialEq; R::QueryPath<'p>)]
 #[serde(
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
@@ -222,12 +219,8 @@ where
 }
 
 /// A leaf value in a [`Filter`].
-#[derive(Derivative, Deserialize)]
-#[derivative(
-    Debug(bound = "R::QueryPath<'p>: fmt::Debug"),
-    PartialEq(bound = "R::QueryPath<'p>: PartialEq"),
-    Clone(bound = "R::QueryPath<'p>: Clone")
-)]
+#[derive(Deserialize)]
+#[derive_where(Debug, Clone, PartialEq; R::QueryPath<'p>)]
 #[serde(
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"

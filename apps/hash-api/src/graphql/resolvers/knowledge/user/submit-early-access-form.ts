@@ -1,6 +1,7 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { OwnedById } from "@local/hash-subgraph";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { createEntity } from "../../../../graph/knowledge/primitive/entity";
 import { systemAccountId } from "../../../../graph/system-account";
@@ -49,13 +50,19 @@ export const submitEarlyAccessFormResolver: ResolverFn<
           },
         },
         {
+          relation: "viewer",
+          subject: {
+            kind: "account",
+            subjectId: user.accountId,
+          },
+        },
+        {
           relation: "setting",
           subject: {
             kind: "setting",
             subjectId: "administratorFromWeb",
           },
         },
-
         {
           relation: "setting",
           subject: {
@@ -66,6 +73,43 @@ export const submitEarlyAccessFormResolver: ResolverFn<
       ],
     },
   );
+
+  if (process.env.ACCESS_FORM_SLACK_WEBHOOK_URL) {
+    const simpleProperties = simplifyProperties(properties);
+    const slackMessage = {
+      blocks: [
+        {
+          type: "header",
+          text: {
+            type: "plain_text",
+            text: "Early Access Form Submission",
+          },
+        },
+        {
+          type: "section",
+          fields: [
+            {
+              type: "mrkdwn",
+              text: Object.entries(simpleProperties)
+                .map(([key, value]) => `*${key}*: ${value}`)
+                .join("\n"),
+            },
+          ],
+        },
+        {
+          type: "divider",
+        },
+      ],
+    };
+
+    void fetch(process.env.ACCESS_FORM_SLACK_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(slackMessage),
+    });
+  }
 
   return true;
 };

@@ -1,4 +1,4 @@
-use std::num::NonZero;
+use core::num::NonZero;
 
 use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]

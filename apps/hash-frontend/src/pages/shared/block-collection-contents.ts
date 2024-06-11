@@ -1,4 +1,7 @@
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
+import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -15,10 +18,7 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type {
-  Entity,
-  EntityId,
   EntityRootType,
-  EntityUuid,
   GraphResolveDepths,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -26,13 +26,9 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import type {
-  BlockCollectionContentItem,
-  GetEntitySubgraphQueryVariables,
-} from "../../graphql/api-types.gen";
+import type { GetEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
 
 /**
  * The depths required to fetch the contents for blocks to render, rooted at a BlockCollection
@@ -170,7 +166,8 @@ export const getBlockCollectionContents = (params: {
       return {
         linkEntity: containsLinkEntityRevisions[0]!,
         rightEntity: {
-          ...rightEntity,
+          metadata: rightEntity.metadata,
+          properties: rightEntity.properties,
           blockChildEntity,
           componentId,
         },

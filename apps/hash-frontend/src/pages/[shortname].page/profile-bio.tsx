@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   GetEntityQuery,
@@ -7,7 +8,7 @@ import type {
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityRootType, OwnedById } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";

@@ -1,11 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { GraphApi } from "@local/hash-graph-client";
-import type {
-  AccountId,
-  Entity,
-  EntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -325,7 +323,7 @@ export const inferEntitySummaries = async (params: {
             You did not suggest any ${missingContentKinds} of the following types: ${typesWithNoSuggestionsToRerequest
               .map(({ schema }) => schema.$id)
               .join(", ")}.
-            
+
             Please reconsider the input text to see if you can identify any ${missingContentKinds} of those types${existingEntities && existingEntities.length > 0 && isMissingLinks ? ", including whether any links can be created to the existing entities provided." : "."}
           `),
           role: "user",

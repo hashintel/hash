@@ -13,14 +13,13 @@ import {
   sortIntervals as sortIntervalsBp,
   unionOfIntervals as unionOfIntervalsBp,
 } from "@blockprotocol/graph/temporal/stdlib";
-
 import type {
   BoundedTimeInterval,
   LimitedTemporalBound,
   TemporalBound,
   TimeInterval,
   Timestamp,
-} from "../main";
+} from "@local/hash-graph-types/temporal-versioning";
 
 /**
  * Standard comparison function that returns whether `IntervalA` is before the `IntervalB`. Where "before"

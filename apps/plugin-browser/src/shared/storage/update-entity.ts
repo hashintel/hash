@@ -1,9 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
-  Entity,
   EntityId,
   EntityPropertiesObject,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/entity";
 
 import type {
   UpdateEntityMutation,
@@ -27,5 +27,5 @@ export const updateEntity = (params: {
       },
     },
   ).then(({ data }) => {
-    return data.updateEntity;
+    return new Entity(data.updateEntity);
   });

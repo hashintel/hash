@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, time::Duration};
+use core::{net::SocketAddr, time::Duration};
 
 use authorization::{
     backend::{SpiceDbOpenApi, ZanzibarBackend},
@@ -9,7 +9,7 @@ use clap::Parser;
 use error_stack::{Result, ResultExt};
 use graph::{
     snapshot::SnapshotEntry,
-    store::{DatabaseConnectionInfo, PostgresStorePool},
+    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool},
 };
 use reqwest::Client;
 use tokio::{net::TcpListener, time::timeout};
@@ -25,6 +25,9 @@ use crate::{
 pub struct TestServerArgs {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
+
+    #[clap(flatten)]
+    pub pool_config: DatabasePoolConfig,
 
     /// The address the REST server is listening at.
     #[clap(flatten)]
@@ -56,7 +59,7 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
             .change_context(GraphError);
     }
 
-    let pool = PostgresStorePool::new(&args.db_info, NoTls)
+    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
         .await
         .change_context(GraphError)
         .map_err(|report| {

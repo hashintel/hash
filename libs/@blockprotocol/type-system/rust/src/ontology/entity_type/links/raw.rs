@@ -1,4 +1,5 @@
-use std::{collections::HashMap, str::FromStr};
+use core::str::FromStr;
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]
@@ -117,7 +118,7 @@ impl MaybeOneOfEntityTypeReference {
 impl From<Option<OneOf<EntityTypeReference>>> for MaybeOneOfEntityTypeReference {
     fn from(option: Option<OneOf<EntityTypeReference>>) -> Self {
         Self {
-            inner: option.map(std::convert::Into::into),
+            inner: option.map(core::convert::Into::into),
         }
     }
 }
@@ -128,7 +129,7 @@ impl TryFrom<MaybeOneOfEntityTypeReference> for Option<OneOf<EntityTypeReference
     fn try_from(value: MaybeOneOfEntityTypeReference) -> Result<Self, Self::Error> {
         value
             .into_inner()
-            .map(std::convert::TryInto::try_into)
+            .map(core::convert::TryInto::try_into)
             .transpose()
     }
 }
@@ -146,7 +147,7 @@ mod tests {
     //  entity types
 
     mod maybe_ordered_array {
-        use std::num::NonZero;
+        use core::num::NonZero;
 
         use super::*;
         use crate::ontology::raw::Array;

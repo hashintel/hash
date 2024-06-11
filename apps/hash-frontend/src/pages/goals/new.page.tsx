@@ -4,11 +4,12 @@ import {
   BullseyeLightIcon,
   TextField,
 } from "@hashintel/design-system";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
-import type { EntityTypeWithMetadata, OwnedById } from "@local/hash-subgraph";
 import {
   autocompleteClasses,
   Box,
@@ -97,13 +98,17 @@ const NewGoalPageContent = () => {
   const getOwner = useGetOwnerForEntity();
   const { push } = useRouter();
 
-  const [startFlow] = useMutation<
+  const [startFlow, { called }] = useMutation<
     StartFlowMutation,
     StartFlowMutationVariables
   >(startFlowMutation);
 
   const createGoal = async (event: FormEvent) => {
     event.preventDefault();
+
+    if (called || !goal.trim()) {
+      return;
+    }
 
     const triggerOutputs = [
       {
@@ -272,12 +277,19 @@ const NewGoalPageContent = () => {
             }}
           >
             <Button
-              disabled={!goal.trim()}
+              disabled={!goal.trim() || called}
               onClick={createGoal}
               size="medium"
               type="submit"
             >
-              Continue <ArrowRightIconRegular sx={{ fontSize: 16, ml: 1 }} />
+              {called ? (
+                "Starting..."
+              ) : (
+                <>
+                  Continue
+                  <ArrowRightIconRegular sx={{ fontSize: 16, ml: 1 }} />
+                </>
+              )}
             </Button>
           </Box>
         </Box>

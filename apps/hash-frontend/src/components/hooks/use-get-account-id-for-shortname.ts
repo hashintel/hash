@@ -1,4 +1,5 @@
-import type { AccountEntityId, AccountId } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { AccountEntityId } from "@local/hash-subgraph";
 import { extractAccountId } from "@local/hash-subgraph";
 import { useMemo } from "react";
 

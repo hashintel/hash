@@ -1,17 +1,18 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  CreatedById,
+  EditionCreatedById,
+} from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
-  CreatedById,
-  EditionCreatedById,
-  Entity,
-  EntityId,
-  EntityRootType,
-  Subgraph,
   Timestamp,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/temporal-versioning";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
@@ -43,14 +44,14 @@ export const createDraftLinkEntity = ({
   rightEntityId: EntityId;
   leftEntityId: EntityId;
   linkEntityTypeId: VersionedUrl;
-}): Entity => {
-  return {
+}): Entity =>
+  new Entity({
     properties: {},
     linkData: { rightEntityId, leftEntityId },
     metadata: {
       archived: false,
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
-      entityTypeId: linkEntityTypeId,
+      entityTypeIds: [linkEntityTypeId],
       provenance: {
         createdById: "" as CreatedById,
         createdAtTransactionTime: "" as CreatedAtTransactionTime,
@@ -78,8 +79,7 @@ export const createDraftLinkEntity = ({
         },
       },
     },
-  };
-};
+  });
 
 export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,

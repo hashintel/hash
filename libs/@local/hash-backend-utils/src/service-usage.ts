@@ -1,5 +1,10 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type { GraphApi } from "@local/hash-graph-client";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -20,13 +25,8 @@ import {
 import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type {
-  AccountId,
-  BoundedTimeInterval,
-  Entity,
   EntityRelationAndSubject,
   EntityRootType,
-  EntityUuid,
-  OwnedById,
 } from "@local/hash-subgraph";
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import {
@@ -304,40 +304,41 @@ export const createUsageRecord = async (
     usageRecordEntityUuid,
   );
 
-  const createdEntitiesMetadata = await context.graphApi
-    .createEntities(authentication.actorId, [
+  const createdEntities = await Entity.createMultiple(
+    context.graphApi,
+    { actorId: authentication.actorId },
+    [
       {
+        ownedById: userAccountId as OwnedById,
         draft: false,
         entityUuid: usageRecordEntityUuid,
-        ownedById: userAccountId,
         properties,
-        entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
+        entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
         relationships: entityRelationships,
       },
       {
+        ownedById: userAccountId as OwnedById,
         draft: false,
-        ownedById: userAccountId,
         properties: {},
         linkData: {
           leftEntityId: usageRecordEntityId,
           rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
         },
-        entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
+        entityTypeId: systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
         relationships: entityRelationships,
       },
-    ])
-    .then(({ data }) => data);
-
-  const usageRecordEntityMetadata = createdEntitiesMetadata.find(
-    (entityMetadata) =>
-      entityMetadata.recordId.entityId === usageRecordEntityId,
+    ],
   );
 
-  if (!usageRecordEntityMetadata) {
+  const usageRecordEntity = createdEntities.find(
+    (entity) => entity.metadata.recordId.entityId === usageRecordEntityId,
+  );
+
+  if (!usageRecordEntity) {
     throw new Error(
       `Failed to create usage record entity for user ${userAccountId}.`,
     );
   }
 
-  return usageRecordEntityMetadata;
+  return usageRecordEntity;
 };

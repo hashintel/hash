@@ -1,4 +1,5 @@
-use std::{collections::HashSet, convert::identity};
+use core::convert::identity;
+use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
@@ -224,7 +225,7 @@ impl GraphResolveDepths {
 }
 
 pub trait GraphResolveDepthIndex {
-    fn depth_mut(self, direction: EdgeDirection, dephts: &mut GraphResolveDepths) -> &mut u8;
+    fn depth_mut(self, direction: EdgeDirection, depths: &mut GraphResolveDepths) -> &mut u8;
 }
 
 impl GraphResolveDepthIndex for OntologyEdgeKind {

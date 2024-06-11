@@ -8,12 +8,14 @@ import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { BaseUrl, Entity, EntityId } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -364,7 +366,7 @@ export const EntitiesTable: FunctionComponent<{
   const handleEntityClick = useCallback(
     (entity: BpEntity) => {
       const { shortname: entityNamespace } = getOwnerForEntity({
-        entity: entity as unknown as Entity,
+        entity: entity as Entity,
       });
 
       if (entityNamespace === "") {

@@ -1,3 +1,8 @@
+use core::{
+    fmt::Display,
+    sync::atomic::{AtomicU32, Ordering},
+};
+
 use bytes::{Buf, BufMut};
 use error_stack::Result;
 
@@ -7,15 +12,9 @@ use crate::codec::{Buffer, BufferError, Decode, Encode};
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
 pub struct RequestId(u32);
 
-impl RequestId {
-    const fn zero() -> Self {
-        Self(0)
-    }
-
-    fn next(&mut self) -> Self {
-        let value = self.0;
-        self.0 = self.0.overflowing_add(1).0;
-        Self(value)
+impl Display for RequestId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.0, f)
     }
 }
 
@@ -43,19 +42,25 @@ impl Decode for RequestId {
 }
 
 pub struct RequestIdProducer {
-    current: RequestId,
+    current: AtomicU32,
 }
 
 impl RequestIdProducer {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            current: RequestId::zero(),
+            current: AtomicU32::new(0),
         }
     }
 
-    pub fn produce(&mut self) -> RequestId {
-        self.current.next()
+    pub fn produce(&self) -> RequestId {
+        // we don't care about ordering here, and `fetch_add` is a single atomic operation.
+        // We do not care if on simultanous calls to `produce` one caller is before the other (the
+        // order of the `RequestId`s is not important)
+        // Therefore `Relaxed` is enough of a guarantee here, because we rely on the atomicity of
+        // the operation, not on the ordering.
+        // (This would be different if this wasn't just a counter)
+        RequestId(self.current.fetch_add(1, Ordering::Relaxed))
     }
 }
 
@@ -73,9 +78,21 @@ impl Default for RequestIdProducer {
     }
 }
 
+#[cfg(any(feature = "test-utils", test))]
+pub(crate) mod test_utils {
+    use super::RequestId;
+
+    #[must_use]
+    pub const fn mock_request_id(id: u32) -> RequestId {
+        RequestId(id)
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod test {
     #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
+    use core::sync::atomic::AtomicU32;
+
     use expect_test::expect;
 
     use super::RequestIdProducer;
@@ -83,10 +100,6 @@ pub(crate) mod test {
         codec::test::{assert_codec, assert_decode, assert_encode},
         request::id::RequestId,
     };
-
-    pub(crate) const fn mock_request_id(id: u32) -> RequestId {
-        RequestId(id)
-    }
 
     #[test]
     fn next() {
@@ -101,7 +114,7 @@ pub(crate) mod test {
     #[test]
     fn overflow() {
         let mut producer = RequestIdProducer::new();
-        producer.current = RequestId(u32::MAX);
+        producer.current = AtomicU32::new(u32::MAX);
 
         assert_eq!(producer.next().expect("infallible").0, u32::MAX);
         assert_eq!(producer.next().expect("infallible").0, 0);

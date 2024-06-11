@@ -1,7 +1,8 @@
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { getUserServiceUsage } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId, Timestamp } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 

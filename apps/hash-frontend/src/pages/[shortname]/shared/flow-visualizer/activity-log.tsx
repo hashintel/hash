@@ -1,11 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityMetadata,
   EntityRecordId,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/entity";
+import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { Box, Stack, TableCell, Tooltip } from "@mui/material";
 import { format } from "date-fns";
 import type { ReactElement } from "react";
@@ -34,6 +35,8 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
 
   const entity = isPersistedEntity
     ? log.persistedEntity.entity
+      ? new Entity(log.persistedEntity.entity)
+      : undefined
     : log.proposedEntity;
 
   if (!entity) {
@@ -51,7 +54,7 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
       : entity.metadata.entityTypeId;
 
   const entityLabel = generateEntityLabel(null, {
-    ...entity,
+    properties: entity.properties,
     metadata: {
       recordId: {
         editionId: "irrelevant-here",
@@ -102,6 +105,9 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     }
     case "CreatedPlan": {
       return "Created research plan";
+    }
+    case "StartedSubTask": {
+      return `Started sub-task with goal “${log.goal}”`;
     }
   }
 };
@@ -176,6 +182,14 @@ const LogDetail = ({
     }
     case "StateChange": {
       return log.message;
+    }
+    case "StartedSubTask": {
+      return (
+        <>
+          Started sub-task with goal “{log.goal}”
+          <ModelTooltip text={log.explanation} />
+        </>
+      );
     }
   }
 };

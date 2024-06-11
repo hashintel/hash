@@ -42,7 +42,7 @@ where
         let elements = all_of
             .elements
             .into_iter()
-            .map(std::convert::Into::into)
+            .map(core::convert::Into::into)
             .collect();
         Self { elements }
     }

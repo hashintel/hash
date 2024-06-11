@@ -1,10 +1,7 @@
-import type {
-  BaseUrl,
-  Entity,
-  EntityPropertiesObject,
-  EntityPropertyValue,
-  JsonValue,
-} from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { JsonValue } from "@local/hash-subgraph";
 
 export type EntityPropertyValueWithSimplifiedProperties =
   | JsonValue
@@ -17,7 +14,7 @@ export type EntityPropertiesObjectWithSimplifiedProperties = {
 const mapSimplifiedPropertyValueToPropertyValue = (params: {
   simplifiedPropertyValue: EntityPropertyValueWithSimplifiedProperties;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
-}): EntityPropertyValue => {
+}): Entity["properties"][BaseUrl] => {
   const { simplifiedPropertyValue, simplifiedPropertyTypeMappings } = params;
 
   if (

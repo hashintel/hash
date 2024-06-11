@@ -1,4 +1,4 @@
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import dedent from "dedent";
 
 import { getFlowContext } from "../../shared/get-flow-context";
@@ -23,25 +23,27 @@ import type { ExistingEntitySummary } from "./summarize-existing-entities";
  */
 export const deduplicationAgentSystemPrompt = `
   You are a deduplication agent. Your task is to identify duplicate entities in a list of entities.
-  
+
   Use your best judgement to determine which entities are duplicates, based on:
   1. The name of the entities
   2. Their types
   3. Their summaries
-  
+
   Bear in mind that:
   1. the same entity may be described in different ways, or be named in slightly different ways
   2. the same entity may have different types, where the different types could conceivably apply to the same entity
   3. the same or very similar name may refer to different entities
   4. the same or very similar summary may refer to different entities
+
+  If an entity is a different version of another entity (e.g. a different version of a piece of software, a newer model of a car, or the Toastmaker 3000 versus the Toastmaker 2000), do not report it as a duplicate as they are not referring to the same thing.
   
-  If in doubt, do not merge entities. If you are confident that two entities are duplicates, merge them.
-  
+  If in doubt, do not merge entities. If you are confident that two entities are referring to the exact same thing, report them as duplicates.
+
   Once you have identified duplicates, you must pick a single canonical entity to assign its duplicate(s) too.
   Choose the one with the best summary.
-  
+
   If there are no duplicates, return an empty list for the 'duplicates' property.
-  
+
   Here are the entities you need to consider:
 `;
 

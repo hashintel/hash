@@ -3,17 +3,17 @@ import type {
   EntityEmbedding,
   GraphApi,
 } from "@local/hash-graph-client";
+import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type {
-  DataTypeWithMetadata,
-  EntityPropertiesObject,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
 import type { CreateEmbeddingResponse } from "openai/resources";
 
 import { createInferenceUsageRecordActivity } from "./activities/create-inference-usage-record-activity";

@@ -1,6 +1,8 @@
 import { useQuery } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   fullOntologyResolveDepths,
@@ -8,7 +10,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
-import type { Entity, EntityId } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import type {
@@ -30,7 +31,9 @@ export const PersistedEntityGraph = ({
   const entityTypeIds = useMemo(
     () =>
       persistedEntities
-        .map(({ entity }) => entity?.metadata.entityTypeId)
+        .map(({ entity }) =>
+          entity ? new Entity(entity).metadata.entityTypeId : undefined,
+        )
         .filter(isNotNullish),
     [persistedEntities],
   );
@@ -68,17 +71,18 @@ export const PersistedEntityGraph = ({
       if (!entity) {
         continue;
       }
+      const persistedEntity = new Entity(entity);
 
-      const entityId = entity.metadata.recordId.entityId;
+      const entityId = persistedEntity.metadata.recordId.entityId;
 
       const existing = deduplicatedLatestEntitiesByEntityId[entityId];
 
       if (
         !existing ||
         existing.metadata.temporalVersioning.decisionTime.start.limit <
-          entity.metadata.temporalVersioning.decisionTime.start.limit
+          persistedEntity.metadata.temporalVersioning.decisionTime.start.limit
       ) {
-        deduplicatedLatestEntitiesByEntityId[entityId] = entity;
+        deduplicatedLatestEntitiesByEntityId[entityId] = persistedEntity;
       }
     }
 

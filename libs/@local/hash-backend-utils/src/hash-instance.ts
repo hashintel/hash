@@ -4,6 +4,11 @@ import {
 } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -13,7 +18,6 @@ import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-pro
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import type { AccountGroupId, AccountId, Entity } from "@local/hash-subgraph";
 
 export type HashInstance = {
   entity: Entity;
@@ -84,16 +88,38 @@ export const isUserHashInstanceAdmin = async (
   ctx: { graphApi: GraphApi },
   authentication: { actorId: AccountId },
   { userAccountId }: { userAccountId: AccountId },
-) =>
-  getHashInstance(ctx, authentication).then((hashInstance) =>
-    ctx.graphApi
-      .checkEntityPermission(
-        userAccountId,
-        hashInstance.entity.metadata.recordId.entityId,
-        "update",
-      )
-      .then(({ data }) => data.has_permission),
+) => {
+  // console.info(`[${userAccountId}] Fetching HASH Instance entity`);
+  const hashInstance = await getHashInstance(ctx, authentication).catch(
+    (err) => {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[${userAccountId}] ERROR Fetching HASH Instance entity: ${err}`,
+      );
+      throw err;
+    },
   );
+  // console.info(`[${userAccountId}] SUCCESS Fetching HASH Instance entity`);
+  // console.info(`[${userAccountId}] Checking permission on instance`);
+  return ctx.graphApi
+    .checkEntityPermission(
+      userAccountId,
+      hashInstance.entity.metadata.recordId.entityId,
+      "update",
+    )
+    .then(({ data }) => {
+      // console.info(
+      //   `[${userAccountId}] SUCCESS Checking permission on instance`,
+      // );
+      return data.has_permission;
+    })
+    .catch((err) => {
+      // console.error(
+      //   `[${userAccountId}] ERROR Checking permission on instance: ${err}`,
+      // );
+      throw err;
+    });
+};
 
 /**
  * Retrieves the accountGroupId of the instance admin account group.

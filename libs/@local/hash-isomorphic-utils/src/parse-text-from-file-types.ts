@@ -1,9 +1,10 @@
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
 
 import type { FileProperties } from "./system-types/shared";
 
 export type ParseTextFromFileParams = {
   presignedFileDownloadUrl: string;
-  fileEntity: Entity<FileProperties>;
+  fileEntity: SerializedEntity<FileProperties>;
   webMachineActorId: AccountId;
 };

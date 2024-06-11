@@ -1,9 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
-  Entity,
   EntityPropertiesObject,
   LinkData,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/entity";
 
 import type {
   CreateEntityMutation,
@@ -25,5 +25,5 @@ export const createEntity = (params: {
       linkData: params.linkData,
     },
   ).then(({ data }) => {
-    return data.createEntity;
+    return new Entity(data.createEntity);
   });

@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 #[cfg(feature = "postgres")]
 use std::error::Error;
 
@@ -56,13 +56,17 @@ impl<'v> From<&'v [f32]> for Embedding<'v> {
 impl ToSql for Embedding<'_> {
     postgres_types::to_sql_checked!();
 
-    fn to_sql(&self, _ty: &Type, w: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+    fn to_sql(
+        &self,
+        _ty: &Type,
+        out: &mut BytesMut,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
         let dim = self.0.len();
-        w.put_u16(dim.try_into()?);
-        w.put_u16(0);
+        out.put_u16(dim.try_into()?);
+        out.put_u16(0);
 
         for v in self.0.as_ref() {
-            w.put_f32(*v);
+            out.put_f32(*v);
         }
 
         Ok(IsNull::No)
@@ -83,12 +87,12 @@ impl<'v> FromSql<'v> for Embedding<'_> {
         clippy::missing_asserts_for_indexing,
         reason = "We error if the buffer is too small"
     )]
-    fn from_sql(_ty: &Type, buf: &'v [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        if buf.len() < 4 {
+    fn from_sql(_ty: &Type, raw: &'v [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        if raw.len() < 4 {
             return Err("expected at least 4 bytes".into());
         }
-        let dim = u16::from_be_bytes(buf[0..2].try_into()?) as usize;
-        let unused = u16::from_be_bytes(buf[2..4].try_into()?);
+        let dim = u16::from_be_bytes(raw[0..2].try_into()?) as usize;
+        let unused = u16::from_be_bytes(raw[2..4].try_into()?);
         if unused != 0 {
             return Err("expected unused to be 0".into());
         }
@@ -96,7 +100,7 @@ impl<'v> FromSql<'v> for Embedding<'_> {
         let mut vec = Vec::with_capacity(dim);
         for i in 0..dim {
             let s = 4 + 4 * i;
-            vec.push(f32::from_be_bytes(buf[s..s + 4].try_into()?));
+            vec.push(f32::from_be_bytes(raw[s..s + 4].try_into()?));
         }
 
         Ok(Self(Cow::Owned(vec)))
