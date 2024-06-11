@@ -88,7 +88,6 @@ export const compareLlmResponses = async () => {
   const llmResponses = await Promise.all(
     models.map((model) => {
       return getLlmResponse(
-        // @ts-expect-error - figure out what's going wrong here
         {
           ...llmParams,
           model,
