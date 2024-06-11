@@ -3,6 +3,7 @@ import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import dedent from "dedent";
+import { backOff } from "exponential-backoff";
 import type OpenAI from "openai";
 import type { Headers } from "openai/core";
 import { APIError, RateLimitError } from "openai/error";
@@ -120,48 +121,44 @@ const isServerError = (error: unknown): error is APIError =>
   error.status >= 500 &&
   error.status < 600;
 
-/**
- * Method for retrying OpenAI chat completions with a delay, retrying
- * only if subsequent rate limit errors are encountered.
- */
-const openAiChatCompletionWithStartingDelay = async (params: {
+const openAiChatCompletionWithBackoff = async (params: {
   completionPayload: ChatCompletionCreateParamsNonStreaming;
-  startingDelay: number;
   retryCount?: number;
 }): Promise<ChatCompletion> => {
-  const { completionPayload, startingDelay, retryCount = 1 } = params;
-
-  logger.debug(
-    `Gracefully handling OpenAI rate limit error by retrying after ${startingDelay}ms for the ${retryCount} time.`,
-  );
+  const { completionPayload, retryCount = 0 } = params;
 
   try {
-    await new Promise((resolve) => {
-      setTimeout(resolve, startingDelay);
+    return backOff(() => openai.chat.completions.create(completionPayload), {
+      startingDelay: serverErrorRetryStartingDelay,
+      jitter: "full",
+      numOfAttempts: 10,
+      retry: (error) => {
+        /**
+         * Only retry further requests with an exponential back-off if a server error
+         * was encountered.
+         */
+        if (isServerError(error)) {
+          return true;
+        }
+
+        return false;
+      },
     });
-
-    const successfulResult =
-      await openai.chat.completions.create(completionPayload);
-
-    return successfulResult;
   } catch (error) {
-    if (error instanceof RateLimitError) {
-      /**
-       * If we've reached the maximum number of retries, throw the rate limit error.
-       */
-      if (params.retryCount === maximumRateLimitRetries) {
-        throw error;
+    if (
+      error instanceof RateLimitError &&
+      retryCount < maximumRateLimitRetries
+    ) {
+      const startingDelay = getWaitPeriodFromHeaders(error.headers);
+
+      if (startingDelay) {
+        await new Promise((resolve) => {
+          setTimeout(resolve, startingDelay);
+        });
       }
 
-      return openAiChatCompletionWithStartingDelay({
+      return openAiChatCompletionWithBackoff({
         completionPayload,
-        startingDelay: getWaitPeriodFromHeaders(error.headers),
-        retryCount: retryCount + 1,
-      });
-    } else if (isServerError(error)) {
-      return openAiChatCompletionWithStartingDelay({
-        completionPayload,
-        startingDelay: serverErrorRetryStartingDelay,
         retryCount: retryCount + 1,
       });
     }
@@ -267,26 +264,10 @@ export const getOpenAiResponse = async <ToolName extends string>(
   const timeBeforeRequest = Date.now();
 
   try {
-    openAiResponse = await openai.chat.completions.create(completionPayload);
+    openAiResponse = await openAiChatCompletionWithBackoff({
+      completionPayload,
+    });
   } catch (error: unknown) {
-    if (error instanceof RateLimitError) {
-      logger.error(
-        `Encountered OpenAi Rate Limit API error: ${stringify(error)}`,
-      );
-
-      openAiResponse = await openAiChatCompletionWithStartingDelay({
-        completionPayload,
-        startingDelay: getWaitPeriodFromHeaders(error.headers),
-      });
-    } else if (isServerError(error)) {
-      logger.error(`Encountered OpenAi Server Error: ${stringify(error)}`);
-
-      openAiResponse = await openAiChatCompletionWithStartingDelay({
-        completionPayload,
-        startingDelay: serverErrorRetryStartingDelay,
-      });
-    }
-
     logger.error(`OpenAI API error: ${stringify(error)}`);
 
     return {
