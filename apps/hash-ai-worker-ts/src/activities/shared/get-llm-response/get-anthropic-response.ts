@@ -1,22 +1,19 @@
 import type { Headers } from "@anthropic-ai/sdk/core";
-import {
-  APIError,
-  APIError as BedRockAPIError,
-  RateLimitError as BedrockRateLimitError,
-  RateLimitError,
-} from "@anthropic-ai/sdk/error";
+import type { RateLimitError } from "@anthropic-ai/sdk/error";
+import { APIError } from "@anthropic-ai/sdk/error";
 import dedent from "dedent";
+import { backOff } from "exponential-backoff";
 
 import { logger } from "../activity-logger";
 import { stringify } from "../stringify";
 import type {
+  AnthropicApiProvider,
   AnthropicMessagesCreateParams,
   AnthropicMessagesCreateResponse,
   AnthropicToolDefinition,
 } from "./anthropic-client";
 import {
   anthropicMessageModelToMaxOutput,
-  anthropicModelToBedrockModel,
   createAnthropicMessagesWithTools,
   isAnthropicContentToolUseContent,
 } from "./anthropic-client";
@@ -119,76 +116,160 @@ const getWaitPeriodFromHeaders = (headers?: Headers): number => {
 
 const isErrorAnthropicRateLimitingError = (
   error: unknown,
-): error is RateLimitError | APIError =>
-  error instanceof RateLimitError ||
-  error instanceof BedrockRateLimitError ||
-  ((error instanceof APIError || error instanceof BedRockAPIError) &&
-    error.status === 429);
+): error is RateLimitError =>
+  typeof error === "object" &&
+  !!error &&
+  "status" in error &&
+  error.status === 429;
 
 const isServerError = (error: unknown): error is APIError =>
-  (error instanceof APIError || error instanceof BedRockAPIError) &&
-  !!error.status &&
+  typeof error === "object" &&
+  !!error &&
+  "status" in error &&
+  typeof error.status === "number" &&
   error.status >= 500 &&
   error.status < 600;
+
+const switchProvider = (
+  provider: AnthropicApiProvider,
+): AnthropicApiProvider =>
+  provider === "anthropic" ? "amazon-bedrock" : "anthropic";
 
 /**
  * Method for retrying Anthropic request with a starting delay, retrying
  * only if subsequent rate limit errors are encountered.
  */
-const createAnthropicMessagesWithToolsWithStartingDelay = async (params: {
+const createAnthropicMessagesWithToolsWithBackoff = async (params: {
   payload: AnthropicMessagesCreateParams;
-  startingDelay: number;
+  initialProvider?: AnthropicApiProvider;
   retryCount?: number;
+  priorRateLimitError?: Partial<Record<AnthropicApiProvider, RateLimitError>>;
 }): Promise<AnthropicMessagesCreateResponse> => {
-  const { payload, startingDelay, retryCount = 1 } = params;
+  const {
+    payload,
+    retryCount = 1,
+    initialProvider = "anthropic",
+    priorRateLimitError,
+  } = params;
 
-  logger.debug(
-    `Gracefully handling Anthropic rate limit error by retrying after ${startingDelay}ms for the ${retryCount} time.`,
-  );
+  let currentProvider: AnthropicApiProvider = initialProvider;
 
   try {
-    await new Promise((resolve) => {
-      setTimeout(resolve, startingDelay);
-    });
-
-    const successfulResponse = await createAnthropicMessagesWithTools({
-      payload,
-      provider: "anthropic",
-    });
-
-    return successfulResponse;
-  } catch (error) {
-    /**
-     * If we've reached the maximum number of retries, throw the rate limit error.
-     */
-    if (params.retryCount === maximumRateLimitRetries) {
-      throw error;
-    }
-
-    /**
-     * @todo: consider retrying with the Amazon Bedrock provider before proceeding
-     * with a delayed request to the Anthropic provider
-     */
-
-    if (isErrorAnthropicRateLimitingError(error)) {
-      const anthropicRateLimitWaitTime = getWaitPeriodFromHeaders(
-        error.headers,
-      );
-
-      return createAnthropicMessagesWithToolsWithStartingDelay({
-        payload,
-        startingDelay: anthropicRateLimitWaitTime,
-        retryCount: retryCount + 1,
-      });
-    } else if (isServerError(error)) {
-      return createAnthropicMessagesWithToolsWithStartingDelay({
-        payload,
+    return backOff(
+      () =>
+        createAnthropicMessagesWithTools({
+          payload,
+          provider: currentProvider,
+        }),
+      {
         startingDelay: serverErrorRetryStartingDelay,
-        retryCount: retryCount + 1,
-      });
+        jitter: "full",
+        numOfAttempts: 10,
+        retry: (error) => {
+          /**
+           * Only retry further requests with an exponential back-off if a server error
+           * was encountered.
+           */
+          if (isServerError(error)) {
+            const otherProvider = switchProvider(currentProvider);
+            const priorRateLimitErrorForOtherProvider =
+              priorRateLimitError?.[otherProvider];
+
+            /**
+             * We only retry the request with the other provider if we didn't previously
+             * encounter a rate limit error with the other provider.
+             *
+             * Otherwise we will most likely immediately encounter the rate limit.
+             */
+            logger.debug(
+              `Encountered server error with provider "${currentProvider}", retrying with exponential backoff with provider "${priorRateLimitErrorForOtherProvider ? currentProvider : otherProvider}".`,
+            );
+            if (!priorRateLimitErrorForOtherProvider) {
+              currentProvider = otherProvider;
+            }
+
+            return true;
+          }
+
+          return false;
+        },
+      },
+    );
+  } catch (currentProviderError) {
+    if (
+      isErrorAnthropicRateLimitingError(currentProviderError) &&
+      retryCount < maximumRateLimitRetries
+    ) {
+      const otherProvider = switchProvider(currentProvider);
+
+      if (!priorRateLimitError) {
+        /**
+         * If we didn't previously encounter a rate limit with any provider,
+         * we can directly retry the request with the other provider.
+         */
+        logger.debug(
+          `Encountered rate limit error with provider "${currentProvider}", retrying directly with provider "${otherProvider}".`,
+        );
+        return createAnthropicMessagesWithToolsWithBackoff({
+          payload,
+          initialProvider: otherProvider,
+          retryCount: retryCount + 1,
+          priorRateLimitError: {
+            [currentProvider]: currentProviderError,
+          },
+        });
+      }
+
+      const otherProviderPriorRateLimitError =
+        priorRateLimitError[otherProvider];
+
+      if (otherProviderPriorRateLimitError) {
+        /**
+         * If we have now encountered a rate limit with both providers,
+         * we need to wait for the smaller of the two starting delays
+         * before retrying the request with the corresponding provider.
+         */
+        const currentProviderStartingDelay = getWaitPeriodFromHeaders(
+          currentProviderError.headers,
+        );
+
+        const otherProviderStartingDelay = getWaitPeriodFromHeaders(
+          otherProviderPriorRateLimitError.headers,
+        );
+
+        const smallerStartingDelay = Math.min(
+          currentProviderStartingDelay,
+          otherProviderStartingDelay,
+        );
+
+        const smallerStartingDelayProvider =
+          currentProviderStartingDelay < otherProviderStartingDelay
+            ? currentProvider
+            : otherProvider;
+
+        logger.debug(
+          `Encountered rate limit error with both providers "${currentProvider}" and "${otherProvider}", delaying request for provider "${smallerStartingDelayProvider}" until the rate limit wait period has ended.`,
+        );
+
+        if (smallerStartingDelay > 0) {
+          await new Promise((resolve) => {
+            setTimeout(resolve, smallerStartingDelay);
+          });
+        }
+
+        return createAnthropicMessagesWithToolsWithBackoff({
+          payload,
+          initialProvider: smallerStartingDelayProvider,
+          retryCount: retryCount + 1,
+          priorRateLimitError: {
+            [currentProvider]: currentProviderError,
+            [otherProvider]: otherProviderPriorRateLimitError,
+          },
+        });
+      }
     }
 
-    throw error;
+    throw currentProviderError;
   }
 };
 
@@ -237,86 +318,17 @@ export const getAnthropicResponse = async <ToolName extends string>(
   };
 
   try {
-    anthropicResponse = await createAnthropicMessagesWithTools({
+    anthropicResponse = await createAnthropicMessagesWithToolsWithBackoff({
       payload,
-      provider: "anthropic",
     });
 
     logger.debug(`Anthropic API response: ${stringify(anthropicResponse)}`);
-  } catch (anthropicProviderError) {
-    logger.error(`Anthropic API error: ${stringify(anthropicProviderError)}`);
-
-    const compatibleBedrockModel = anthropicModelToBedrockModel[payload.model];
-
-    /**
-     * Before retrying the request with a starting delay, try using
-     * the Amazon Bedrock provider if the model is available on Bedrock.
-     */
-    if (
-      (isErrorAnthropicRateLimitingError(anthropicProviderError) ||
-        isServerError(anthropicProviderError)) &&
-      compatibleBedrockModel
-    ) {
-      try {
-        anthropicResponse = await createAnthropicMessagesWithTools({
-          payload: { ...payload, model: compatibleBedrockModel },
-          provider: "amazon-bedrock",
-        });
-      } catch (bedrockApiError) {
-        /**
-         * If a rate limit error or throttling error was also encountered
-         * with the Amazon Bedrock provider, then retry with the anthropic
-         * provider and a starting delay.
-         */
-        if (
-          isErrorAnthropicRateLimitingError(bedrockApiError) ||
-          isServerError(bedrockApiError)
-        ) {
-          const startingDelay = isErrorAnthropicRateLimitingError(
-            anthropicProviderError,
-          )
-            ? getWaitPeriodFromHeaders(anthropicProviderError.headers)
-            : serverErrorRetryStartingDelay;
-
-          anthropicResponse =
-            await createAnthropicMessagesWithToolsWithStartingDelay({
-              payload,
-              startingDelay,
-            });
-        } else {
-          return {
-            status: "api-error",
-            anthropicApiError:
-              bedrockApiError instanceof BedRockAPIError
-                ? bedrockApiError
-                : undefined,
-          };
-        }
-      }
-    } else if (isErrorAnthropicRateLimitingError(anthropicProviderError)) {
-      const anthropicRateLimitWaitTime = getWaitPeriodFromHeaders(
-        anthropicProviderError.headers,
-      );
-
-      anthropicResponse =
-        await createAnthropicMessagesWithToolsWithStartingDelay({
-          payload,
-          startingDelay: anthropicRateLimitWaitTime,
-        });
-    } else if (isServerError(anthropicProviderError)) {
-      anthropicResponse =
-        await createAnthropicMessagesWithToolsWithStartingDelay({
-          payload,
-          startingDelay: serverErrorRetryStartingDelay,
-        });
-    }
+  } catch (error) {
+    logger.error(`Anthropic API error: ${stringify(error)}`);
 
     return {
       status: "api-error",
-      anthropicApiError:
-        anthropicProviderError instanceof APIError
-          ? anthropicProviderError
-          : undefined,
+      anthropicApiError: error instanceof APIError ? error : undefined,
     };
   }
 

@@ -149,9 +149,13 @@ export const anthropicModelToBedrockModel: Record<
   "claude-3-opus-20240229": "anthropic.claude-3-opus-20240229-v1:0",
 };
 
+const anthropicApiProviders = ["anthropic", "amazon-bedrock"] as const;
+
+export type AnthropicApiProvider = (typeof anthropicApiProviders)[number];
+
 export const createAnthropicMessagesWithTools = async (params: {
   payload: AnthropicMessagesCreateParams;
-  provider: "anthropic" | "amazon-bedrock";
+  provider: AnthropicApiProvider;
 }): Promise<AnthropicMessagesCreateResponse> => {
   const { payload, provider } = params;
 
