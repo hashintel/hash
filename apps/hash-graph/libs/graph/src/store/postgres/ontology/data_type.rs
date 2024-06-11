@@ -718,7 +718,7 @@ where
                     ontology_id,
                     embedding,
                     updated_at_transaction_time
-                SaFROM provided_embeddings
+                FROM provided_embeddings
                 ON CONFLICT (ontology_id) DO UPDATE SET
                     embedding = EXCLUDED.embedding,
                     updated_at_transaction_time = EXCLUDED.updated_at_transaction_time
