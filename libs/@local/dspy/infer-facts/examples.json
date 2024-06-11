@@ -4,7 +4,8 @@
     "subject_entity": "Microsoft Corporation",
     "facts": [
       {
-        "text": "Microsoft Corporation is headquartered in Redmond, Washington."
+        "text": "Microsoft Corporation is headquartered in Redmond, Washington.",
+        "prepositionalPhrases": []
       },
       {
         "text": "Microsoft Corporation was founded by Bill Gates.",
@@ -19,7 +20,8 @@
         "prepositionalPhrases": ["in 2022"]
       },
       {
-        "text": "Microsoft Corporation is considered one of the Big Five American information technology companies."
+        "text": "Microsoft Corporation is considered one of the Big Five American information technology companies.",
+        "prepositionalPhrases": []
       },
       {
         "text": "Microsoft Corporation acquired Activision Blizzard.",
@@ -46,17 +48,20 @@
     "subject_entity": "Nintendo",
     "facts": [
       {
-        "text": "Nintendo is a Japanese multinational video game company."
+        "text": "Nintendo is a Japanese multinational video game company.",
+        "prepositionalPhrases": []
       },
       {
-        "text": "Nintendo is headquartered in Kyoto."
+        "text": "Nintendo is headquartered in Kyoto.",
+        "prepositionalPhrases": []
       },
       {
         "text": "Nintendo was founded by Fusajiro Yamauchi.",
         "prepositionalPhrases": ["in 1889."]
       },
       {
-        "text": "Nintendo originally produced handmade hanafuda playing cards."
+        "text": "Nintendo originally produced handmade hanafuda playing cards.",
+        "prepositionalPhrases": []
       },
       {
         "text": "Nintendo distributed its first console, the Color TV-Game.",
@@ -71,7 +76,24 @@
         "prepositionalPhrases": ["in 1985."]
       },
       {
-        "text": "Nintendo has produced successful consoles such as the Game Boy, the Super Nintendo Entertainment System, the Nintendo DS, the Wii, and the Switch."
+        "text": "Nintendo produced the Game Boy, the Super Nintendo Entertainment System, the Nintendo DS, the Wii, and the Switch.",
+        "prepositionalPhrases": []
+      },
+      {
+        "text": "Nintendo produced the Super Nintendo Entertainment System",
+        "prepositionalPhrases": []
+      },
+      {
+        "text": "Nintendo produced the Nintendo DS",
+        "prepositionalPhrases": []
+      },
+      {
+        "text": "Nintendo produced the Wii",
+        "prepositionalPhrases": []
+      },
+      {
+        "text": "Nintendo produced the Switch",
+        "prepositionalPhrases": []
       },
       {
         "text": "Nintendo's mascot is Mario",
@@ -92,12 +114,20 @@
     "subject_entity": "PERSIMMON PLC ORD 10P",
     "facts": [
       {
-        "text": "PERSIMMON PLC ORD 10P has a market cap of 4,609.57 million GBX."
+        "text": "PERSIMMON PLC ORD 10P has a market cap of 4,609.57 million GBX.",
+        "prepositionalPhrases": []
       },
-      { "text": "PERSIMMON PLC ORD 10P has a stock price of 1,446.00 GBX." },
-      { "text": "PERSIMMON PLC ORD 10P had a price change of 4.50 GBX." },
       {
-        "text": "PERSIMMON PLC ORD 10P had a price change percentage of 0.31%."
+        "text": "PERSIMMON PLC ORD 10P has a stock price of 1,446.00 GBX.",
+        "prepositionalPhrases": []
+      },
+      {
+        "text": "PERSIMMON PLC ORD 10P had a price change of 4.50 GBX.",
+        "prepositionalPhrases": []
+      },
+      {
+        "text": "PERSIMMON PLC ORD 10P had a price change percentage of 0.31%.",
+        "prepositionalPhrases": []
       }
     ]
   },
@@ -106,11 +136,21 @@
     "subject_entity": "HARGREAVES LANSDOWN PLC",
     "facts": [
       {
-        "text": "HARGREAVES LANSDOWN PLC has a market cap of 5,020.66 million GBX."
+        "text": "HARGREAVES LANSDOWN PLC has a market cap of 5,020.66 million GBX.",
+        "prepositionalPhrases": []
       },
-      { "text": "HARGREAVES LANSDOWN PLC has a stock price of 1,074.00 GBX." },
-      { "text": "HARGREAVES LANSDOWN PLC had a price change of 15.50 GBX." },
-      { "text": "HARGREAVES LANSDOWN PLC had a percentage change of 1.46%." }
+      {
+        "text": "HARGREAVES LANSDOWN PLC has a stock price of 1,074.00 GBX.",
+        "prepositionalPhrases": []
+      },
+      {
+        "text": "HARGREAVES LANSDOWN PLC had a price change of 15.50 GBX.",
+        "prepositionalPhrases": []
+      },
+      {
+        "text": "HARGREAVES LANSDOWN PLC had a percentage change of 1.46%.",
+        "prepositionalPhrases": []
+      }
     ]
   }
 ]
