@@ -139,6 +139,9 @@ const openAiChatCompletionWithBackoff = async (params: {
          * was encountered.
          */
         if (isServerError(error)) {
+          logger.debug(
+            `Encountered server error with OpenAI, retrying with exponential backoff.`,
+          );
           return true;
         }
 
@@ -150,6 +153,9 @@ const openAiChatCompletionWithBackoff = async (params: {
       error instanceof RateLimitError &&
       retryCount < maximumRateLimitRetries
     ) {
+      logger.debug(
+        `Encountered rate limit error with OpenAI provider, delaying retry request until the rate limit wait period has ended.`,
+      );
       const startingDelay = getWaitPeriodFromHeaders(error.headers);
 
       if (startingDelay) {

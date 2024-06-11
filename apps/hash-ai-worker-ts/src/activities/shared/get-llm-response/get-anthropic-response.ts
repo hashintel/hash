@@ -136,10 +136,6 @@ const switchProvider = (
 ): AnthropicApiProvider =>
   provider === "anthropic" ? "amazon-bedrock" : "anthropic";
 
-/**
- * Method for retrying Anthropic request with a starting delay, retrying
- * only if subsequent rate limit errors are encountered.
- */
 const createAnthropicMessagesWithToolsWithBackoff = async (params: {
   payload: AnthropicMessagesCreateParams;
   initialProvider?: AnthropicApiProvider;
