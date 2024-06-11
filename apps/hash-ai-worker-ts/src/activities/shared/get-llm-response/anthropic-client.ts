@@ -27,9 +27,6 @@ const anthropicMessageModels = [
   "claude-3-opus-20240229",
   "claude-3-sonnet-20240229",
   "claude-3-haiku-20240307",
-  "claude-2.1",
-  "claude-2.0",
-  "claude-instant-1.2",
 ] satisfies MessageCreateParamsBase["model"][];
 
 export type AnthropicMessageModel = (typeof anthropicMessageModels)[number];
@@ -44,9 +41,9 @@ export const anthropicMessageModelToContextWindow: Record<
   AnthropicMessageModel,
   number
 > = {
-  "claude-instant-1.2": 100_000,
-  "claude-2.0": 100_000,
-  "claude-2.1": 200_000,
+  // "claude-instant-1.2": 100_000,
+  // "claude-2.0": 100_000,
+  // "claude-2.1": 200_000,
   "claude-3-haiku-20240307": 200_000,
   "claude-3-sonnet-20240229": 200_000,
   "claude-3-opus-20240229": 200_000,
@@ -57,9 +54,9 @@ export const anthropicMessageModelToMaxOutput: Record<
   AnthropicMessageModel,
   number
 > = {
-  "claude-instant-1.2": 4096,
-  "claude-2.0": 4096,
-  "claude-2.1": 4096,
+  // "claude-instant-1.2": 4096,
+  // "claude-2.0": 4096,
+  // "claude-2.1": 4096,
   "claude-3-haiku-20240307": 4096,
   "claude-3-sonnet-20240229": 4096,
   "claude-3-opus-20240229": 4096,
@@ -135,7 +132,7 @@ const anthropicBedrockClient = new AnthropicBedrock({
 });
 
 const anthropicBedrockModels = [
-  "anthropic.claude-3-haiku-20240307-v1:0",
+  "anthropic.claude-3-sonnet-20240229-v1:0",
   "anthropic.claude-3-haiku-20240307-v1:0",
   "anthropic.claude-3-opus-20240229-v1:0",
 ] as const;
@@ -145,34 +142,17 @@ type AnthropicBedrockModel = (typeof anthropicBedrockModels)[number];
 /** @see https://docs.anthropic.com/en/api/claude-on-amazon-bedrock#api-model-names */
 export const anthropicModelToBedrockModel: Record<
   AnthropicMessageModel,
-  AnthropicBedrockModel | null
+  AnthropicBedrockModel
 > = {
-  "claude-3-sonnet-20240229": "anthropic.claude-3-haiku-20240307-v1:0",
+  "claude-3-sonnet-20240229": "anthropic.claude-3-sonnet-20240229-v1:0",
   "claude-3-haiku-20240307": "anthropic.claude-3-haiku-20240307-v1:0",
   "claude-3-opus-20240229": "anthropic.claude-3-opus-20240229-v1:0",
-  "claude-2.0": null,
-  "claude-2.1": null,
-  "claude-instant-1.2": null,
 };
 
-type AnthropicBedrockMessagesCreateParams = Omit<
-  AnthropicMessagesCreateParams,
-  "model"
-> & {
-  model: AnthropicBedrockModel;
-};
-
-export const createAnthropicMessagesWithTools = async (
-  params:
-    | {
-        payload: AnthropicMessagesCreateParams;
-        provider: "anthropic";
-      }
-    | {
-        payload: AnthropicBedrockMessagesCreateParams;
-        provider: "amazon-bedrock";
-      },
-): Promise<AnthropicMessagesCreateResponse> => {
+export const createAnthropicMessagesWithTools = async (params: {
+  payload: AnthropicMessagesCreateParams;
+  provider: "anthropic" | "amazon-bedrock";
+}): Promise<AnthropicMessagesCreateResponse> => {
   const { payload, provider } = params;
 
   let response: AnthropicMessagesCreateResponse;
@@ -182,8 +162,12 @@ export const createAnthropicMessagesWithTools = async (
    * has been requested, use the Bedrock client for the request.
    */
   if (provider === "amazon-bedrock") {
+    const bedrockModel = anthropicModelToBedrockModel[payload.model];
     response = (await anthropicBedrockClient.messages.create(
-      payload as MessageCreateParamsNonStreaming,
+      {
+        ...(payload as MessageCreateParamsNonStreaming),
+        model: bedrockModel,
+      },
       {
         headers: {
           "anthropic-beta": "tools-2024-05-16",
