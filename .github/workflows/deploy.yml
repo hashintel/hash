@@ -100,7 +100,7 @@ jobs:
           [[ ${{ needs.sourcemaps.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@4b831323e0d40c468b2d0555bd03b9da6f92d647
+        uses: rtCamp/action-slack-notify@d6bddf945c2aaf4f04fd87dbaa7d3dccf31efda4
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
