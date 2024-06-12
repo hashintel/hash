@@ -3,7 +3,7 @@
 mod api;
 mod schema;
 
-use std::error::Error;
+use core::error::Error;
 
 use authorization::{
     backend::ZanzibarBackend,

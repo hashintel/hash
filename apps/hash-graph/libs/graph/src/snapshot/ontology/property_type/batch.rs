@@ -84,7 +84,8 @@ where
                     .query(
                         "
                             INSERT INTO property_type_constrains_values_on_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::property_type_constrains_values_on[])
+                            SELECT DISTINCT *
+                              FROM UNNEST($1::property_type_constrains_values_on[])
                             RETURNING 1;
                         ",
                         &[&values],

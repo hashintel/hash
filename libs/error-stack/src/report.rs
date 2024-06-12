@@ -1,12 +1,8 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, vec, vec::Vec};
-#[cfg(nightly)]
-use core::error::Error;
-use core::{fmt, marker::PhantomData, mem, panic::Location};
+use core::{error::Error, fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
-#[cfg(all(not(nightly), feature = "std"))]
-use std::error::Error;
 #[cfg(feature = "std")]
 use std::process::ExitCode;
 
@@ -629,7 +625,6 @@ impl<C> Report<C> {
     }
 
     /// Converts this `Report` to an [`Error`].
-    #[cfg(any(nightly, feature = "std"))]
     #[must_use]
     pub fn into_error(self) -> impl Error + Send + Sync + 'static
     where
@@ -639,7 +634,6 @@ impl<C> Report<C> {
     }
 
     /// Returns this `Report` as an [`Error`].
-    #[cfg(any(nightly, feature = "std"))]
     #[must_use]
     pub fn as_error(&self) -> &(impl Error + Send + Sync + 'static)
     where
@@ -649,28 +643,24 @@ impl<C> Report<C> {
     }
 }
 
-#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Send> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Sync> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Send + Sync> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())

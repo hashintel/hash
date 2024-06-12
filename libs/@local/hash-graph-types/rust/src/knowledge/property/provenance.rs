@@ -1,5 +1,5 @@
 #[cfg(feature = "postgres")]
-use std::error::Error;
+use core::error::Error;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;

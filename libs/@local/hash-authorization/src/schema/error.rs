@@ -1,5 +1,7 @@
-use core::fmt::{self, Debug, Write};
-use std::error::Error;
+use core::{
+    error::Error,
+    fmt::{self, Debug, Write},
+};
 
 use derive_where::derive_where;
 use serde::Serialize;

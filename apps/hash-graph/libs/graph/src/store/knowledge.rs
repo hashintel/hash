@@ -1,6 +1,5 @@
 use alloc::borrow::Cow;
-use core::fmt;
-use std::error::Error;
+use core::{error::Error, fmt};
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;

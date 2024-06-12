@@ -1,5 +1,5 @@
 #![cfg(feature = "std")]
-#![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
+#![cfg_attr(nightly, feature(error_generic_member_access))]
 
 use std::io;
 
@@ -23,7 +23,7 @@ fn into_report() {
     assert_eq!(report.current_context().kind(), io::ErrorKind::Other);
 }
 
-fn returning_boxed_error() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+fn returning_boxed_error() -> Result<(), Box<dyn core::error::Error + Send + Sync>> {
     io_error().attach(10_u32)?;
     Ok(())
 }

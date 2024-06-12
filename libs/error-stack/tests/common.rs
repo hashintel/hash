@@ -1,7 +1,7 @@
 #![allow(dead_code, unreachable_pub, unused_attributes)]
 #![cfg_attr(
     nightly,
-    feature(error_in_core, error_generic_member_access),
+    feature(error_generic_member_access),
     allow(clippy::incompatible_msrv)
 )]
 
@@ -118,7 +118,7 @@ impl fmt::Display for ErrorB {
 }
 
 #[cfg(all(nightly, feature = "std"))]
-impl std::error::Error for ErrorB {
+impl core::error::Error for ErrorB {
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         request.provide_ref(&self.1);
     }

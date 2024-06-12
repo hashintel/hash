@@ -1,5 +1,5 @@
-use core::fmt;
-use std::{error::Error, io};
+use core::{error::Error, fmt};
+use std::io;
 
 use error_stack::{Report, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
