@@ -248,7 +248,16 @@ const getNextToolCalls = async (params: {
     `);
 
   const messages: LlmMessage[] = [
-    generateUserMessage({ input }),
+    generateUserMessage({
+      input,
+      /**
+       * Include the inner HTML of the web page in the user message no HTML content
+       * has been requested in other tool calls.
+       */
+      includeInnerHtml: !state.previousCalls.some(({ completedToolCalls }) =>
+        completedToolCalls.some(({ name }) => name === "getWebPageInnerHtml"),
+      ),
+    }),
     ...mapPreviousCallsToLlmMessages({
       previousCalls: state.previousCalls,
     }),
