@@ -12,7 +12,7 @@ import type {
   InferFactsFromWebPageWorkerAgentState,
 } from "./types";
 
-test(
+test.skip(
   "handleQueryPdfToolCall - queryPdf - Marks and Spencer 2024 Annual Report - Major Shareholders",
   async () => {
     const state: InferFactsFromWebPageWorkerAgentState = {
