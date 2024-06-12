@@ -66,7 +66,8 @@ export const BlogPostHead: FunctionComponent<{
   subtitle?: string;
   categories?: string[];
   authors?: BlogPostAuthorType[];
-  date?: string;
+  dateFirstPublished?: string;
+  dateLastUpdated?: string;
   pageTitle?: string;
   pageDescription?: string;
 }> = ({
@@ -74,7 +75,8 @@ export const BlogPostHead: FunctionComponent<{
   subtitle,
   categories,
   authors = [],
-  date: dateInput,
+  dateFirstPublished: dateFirstPublishedInput,
+  dateLastUpdated: dateLastUpdatedInput,
   pageTitle = title,
   pageDescription = subtitle,
 }) => {
@@ -82,8 +84,11 @@ export const BlogPostHead: FunctionComponent<{
 
   const fullTitle = `${pageTitle ? `${pageTitle} – ` : ""}HASH Developer Blog`;
 
-  const date = dateInput ? new Date(dateInput) : null;
-  const dateIso = date ? date.toISOString() : null;
+  const dateFirstPublished = dateFirstPublishedInput ? new Date(dateFirstPublishedInput) : null;
+  const dateFirstPublishedIso = dateFirstPublished ? dateFirstPublished.toISOString() : null;
+
+  const dateLastUpdated = dateLastUpdatedInput ? new Date(dateLastUpdatedInput) : null;
+  const dateLastUpdatedIso = dateLastUpdated ? dateLastUpdated.toISOString() : null;
 
   return (
     <>
@@ -180,7 +185,7 @@ export const BlogPostHead: FunctionComponent<{
               </Typography>
             ) : null}
             <Stack direction={{ xs: "column", md: "row" }}>
-              {date ? (
+              {dateFirstPublished ? (
                 <Typography
                   variant="hashSmallText"
                   fontStyle="italic"
@@ -202,7 +207,7 @@ export const BlogPostHead: FunctionComponent<{
                     }),
                   ]}
                 >
-                  {format(date, "MMMM do, y")}
+                  {format(dateFirstPublished, "MMMM do, y")}
                 </Typography>
               ) : null}
               <Stack spacing={4}>
