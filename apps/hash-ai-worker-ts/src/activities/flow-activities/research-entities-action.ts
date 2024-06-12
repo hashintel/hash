@@ -35,6 +35,47 @@ import type { Fact } from "./shared/infer-facts-from-text/types";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
 import type { FlowActionActivity } from "./types";
 
+const adjustDuplicates = (params: {
+  duplicates: DuplicateReport[];
+  entityIdsWhichCannotBeDeduplicated: EntityId[];
+}) => {
+  const { duplicates, entityIdsWhichCannotBeDeduplicated } = params;
+
+  const adjustedDuplicates = duplicates.map<DuplicateReport>(
+    ({ canonicalId, duplicateIds }) => {
+      if (
+        entityIdsWhichCannotBeDeduplicated.includes(canonicalId as EntityId)
+      ) {
+        return { canonicalId, duplicateIds };
+      }
+
+      const existingEntityIdMarkedAsDuplicate = duplicateIds.find((id) =>
+        entityIdsWhichCannotBeDeduplicated.includes(id as EntityId),
+      );
+
+      /**
+       * @todo: this doesn't account for when there are duplicates
+       * detected in the existing entities.
+       */
+      if (existingEntityIdMarkedAsDuplicate) {
+        return {
+          canonicalId: existingEntityIdMarkedAsDuplicate,
+          duplicateIds: [
+            ...duplicateIds.filter(
+              (id) => id !== existingEntityIdMarkedAsDuplicate,
+            ),
+            canonicalId,
+          ],
+        };
+      }
+
+      return { canonicalId, duplicateIds };
+    },
+  );
+
+  return adjustedDuplicates;
+};
+
 const updateStateFromInferredFacts = async (params: {
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
@@ -70,37 +111,10 @@ const updateStateFromInferredFacts = async (params: {
     ...(input.existingEntitySummaries ?? []).map(({ entityId }) => entityId),
   ];
 
-  const adjustedDuplicates = duplicates.map<DuplicateReport>(
-    ({ canonicalId, duplicateIds }) => {
-      if (
-        entityIdsWhichCannotBeDeduplicated.includes(canonicalId as EntityId)
-      ) {
-        return { canonicalId, duplicateIds };
-      }
-
-      const existingEntityIdMarkedAsDuplicate = duplicateIds.find((id) =>
-        entityIdsWhichCannotBeDeduplicated.includes(id as EntityId),
-      );
-
-      /**
-       * @todo: this doesn't account for when there are duplicates
-       * detected in the existing entities.
-       */
-      if (existingEntityIdMarkedAsDuplicate) {
-        return {
-          canonicalId: existingEntityIdMarkedAsDuplicate,
-          duplicateIds: [
-            ...duplicateIds.filter(
-              (id) => id !== existingEntityIdMarkedAsDuplicate,
-            ),
-            canonicalId,
-          ],
-        };
-      }
-
-      return { canonicalId, duplicateIds };
-    },
-  );
+  const adjustedDuplicates = adjustDuplicates({
+    duplicates,
+    entityIdsWhichCannotBeDeduplicated,
+  });
 
   const inferredFactsWithDeduplicatedEntities = inferredFacts.map((fact) => {
     const { subjectEntityLocalId, objectEntityLocalId } = fact;
