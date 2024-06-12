@@ -35,6 +35,7 @@ import type {
   InferFactsFromWebPageWorkerAgentState,
   ToolName,
 } from "./infer-facts-from-web-page-worker-agent/types";
+import { updateStateFromInferredFacts } from "./infer-facts-from-web-page-worker-agent/update-state-from-inferred-facts";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
@@ -483,38 +484,11 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
                 tool call unless there are no entities to infer from this page.
               `),
             };
-          } else if (
-            toolCall.name === "inferFactsFromWebPage" ||
-            toolCall.name === "inferFactsFromText"
-          ) {
-            const toolCallInput = toolCall.input as ToolCallArguments[
-              | "inferFactsFromWebPage"
-              | "inferFactsFromText"];
+          } else if (toolCall.name === "inferFactsFromWebPage") {
+            const toolCallInput =
+              toolCall.input as ToolCallArguments["inferFactsFromWebPage"];
 
-            const accessedRemoteFile =
-              "fileUrl" in toolCallInput
-                ? state.filesQueried.find(
-                    ({ url: previouslyQueriedFileUrl }) =>
-                      previouslyQueriedFileUrl === toolCallInput.fileUrl,
-                  )
-                : undefined;
-
-            if ("fileUrl" in toolCallInput && !accessedRemoteFile) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  You did not previously query the PDF file at the provided fileUrl: ${toolCallInput.fileUrl}.
-                  You must first query the PDF file with the relevant query using the "queryPdf" tool,
-                    before inferring entities from its text content.
-                `),
-                isError: true,
-              };
-            }
-
-            if (
-              "url" in toolCallInput &&
-              !haveSameTopLevelDomain(toolCallInput.url, input.url)
-            ) {
+            if (!haveSameTopLevelDomain(toolCallInput.url, input.url)) {
               return {
                 ...toolCall,
                 output: dedent(`
@@ -527,61 +501,21 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
 
             const { prompt: toolCallPrompt } = toolCallInput;
 
-            // if (
-            //   "expectedNumberOfEntities" in toolCallInput &&
-            //   toolCallInput.expectedNumberOfEntities < 1
-            // ) {
-            //   return {
-            //     ...toolCall,
-            //     output: dedent(`
-            //       You provided an expected number of entities which is less than 1. You must provide
-            //       a positive integer as the expected number of entities to infer.
-            //     `),
-            //     isError: true,
-            //   };
-            // }
-
-            if ("text" in toolCallInput && toolCallInput.text.length === 0) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  You provided an empty string as the ${"htmlContent" in toolCallInput ? "htmlContent from the web page" : "text"}.
-                  You must provide ${"htmlContent" in toolCallInput ? "the relevant HTML content from the web page" : "text content"} to infer entities from.
-                `),
-                isError: true,
-              };
-            }
-
-            if ("url" in toolCallInput) {
-              state.inferredFactsFromWebPageUrls.push(toolCallInput.url);
-            }
+            state.inferredFactsFromWebPageUrls.push(toolCallInput.url);
 
             let content = "";
 
-            if ("text" in toolCallInput) {
-              /**
-               * @todo: consider prepending additional contextual information about the PDF file
-               */
-              content = dedent(`
-                The following text content is a snippet of a PDF file hosted at the URL "${toolCallInput.fileUrl}".
-                ---------------- START OF TEXT SNIPPET ----------------
-                ${toolCallInput.text}
-                ---------------- END OF TEXT SNIPPET ----------------
-                
-              `);
-            } else {
-              const webPage = await getWebPageActivity({
-                url: toolCallInput.url,
-                sanitizeForLlm: true,
-              });
+            const webPage = await getWebPageActivity({
+              url: toolCallInput.url,
+              sanitizeForLlm: true,
+            });
 
-              content = dedent(`
+            content = dedent(`
                 The following HTML content was obtained from the web page with title "${webPage.title}", hosted at the URL "${toolCallInput.url}".
                 ---------------- START OF INNER HTML ----------------
                 ${webPage.htmlContent}
                 ---------------- END OF INNER HTML ----------------
               `);
-            }
 
             const dereferencedEntityTypes =
               await getDereferencedEntityTypesActivity({
@@ -606,80 +540,32 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
                 relevantEntitiesPrompt: toolCallPrompt,
               });
 
-            const factSource: SourceProvenance =
-              "url" in toolCallInput
-                ? {
-                    type: SourceType.Webpage,
-                    location: {
-                      uri: toolCallInput.url,
-                      /** @todo */
-                      name: undefined,
-                      description: undefined,
-                    },
-                    loadedAt: new Date().toISOString(),
-                    /** @todo */
-                    authors: undefined,
-                    firstPublished: undefined,
-                    lastUpdated: undefined,
-                  }
-                : {
-                    type: SourceType.Document,
-                    location: {
-                      uri: toolCallInput.fileUrl,
-                      /** @todo H-2728 get the AI to infer these from the doc */
-                      name: undefined,
-                      description: undefined,
-                    },
-                    loadedAt: accessedRemoteFile?.loadedAt,
-                    /** @todo H-2728 get the AI to infer these from the doc */
-                    authors: undefined,
-                    firstPublished: undefined,
-                    lastUpdated: undefined,
-                  };
+            const factSource: SourceProvenance = {
+              type: SourceType.Webpage,
+              location: {
+                uri: toolCallInput.url,
+                /** @todo */
+                name: undefined,
+                description: undefined,
+              },
+              loadedAt: new Date().toISOString(),
+              /** @todo */
+              authors: undefined,
+              firstPublished: undefined,
+              lastUpdated: undefined,
+            };
 
             const inferredFactsWithSource = inferredFacts.map((fact) => ({
               ...fact,
               sources: [...(fact.sources ?? []), factSource],
             }));
 
-            /**
-             * @todo: deduplicate the entity summaries from previously obtained
-             * entity summaries.
-             */
-
-            state.inferredFacts.push(...inferredFactsWithSource);
-            state.inferredFactsAboutEntities.push(...entitySummaries);
-
-            if (
-              "fileUrl" in toolCallInput &&
-              !state.filesUsedToInferFacts.some(
-                ({ url: previousFileUsedToProposeEntitiesUrl }) =>
-                  previousFileUsedToProposeEntitiesUrl ===
-                  toolCallInput.fileUrl,
-              )
-            ) {
-              state.filesUsedToInferFacts.push(accessedRemoteFile!);
-            }
-
-            // if (
-            //   "expectedNumberOfEntities" in toolCallInput &&
-            //   entitySummaries.length !==
-            //     toolCallInput.expectedNumberOfEntities
-            // ) {
-            //   return {
-            //     ...toolCall,
-            //     output: dedent(`
-            //       The following entities were inferred from the provided HTML content: ${JSON.stringify(summarizedNewProposedEntities)}
-
-            //       The number of entities inferred from the HTML content doesn't match the expected number of entities.
-            //       Expected: ${toolCallInput.expectedNumberOfEntities}
-            //       Actual: ${entitySummaries.length}
-
-            //       If there are missing entities which you require, you must make another "inferFactsFromWebPage" tool call
-            //         with the relevant HTML content to try again.
-            //     `),
-            //   };
-            // }
+            await updateStateFromInferredFacts({
+              state,
+              inferredFacts: inferredFactsWithSource,
+              inferredFactsAboutEntities: entitySummaries,
+              filesUsedToInferFacts: [],
+            });
 
             return {
               ...toolCall,
@@ -687,10 +573,11 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
                 ${inferredFacts.length} facts were successfully inferred for the following entities: ${JSON.stringify(entitySummaries)}
               `),
             };
-          } else if (toolCall.name === "queryPdf") {
-            return await handleQueryPdfToolCall({
+          } else if (toolCall.name === "queryFactsFromPdf") {
+            return handleQueryPdfToolCall({
+              input,
               state,
-              toolCall: toolCall as ParsedLlmToolCall<"queryPdf">,
+              toolCall: toolCall as ParsedLlmToolCall<"queryFactsFromPdf">,
             });
           }
 
