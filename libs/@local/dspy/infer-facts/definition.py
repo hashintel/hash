@@ -28,11 +28,6 @@ class Fact(pydantic.BaseModel):
                               """)
     objectEntityLocalId: Optional[str] = pydantic.Field(description="The localId of the entity that is the object if the fact, if any. Facts don't need to have entities as their object", default = None)
 
-fact_array_schema = {
-    "type": "array",
-    "items": Fact.model_json_schema()
-}
-
 class ExistingEntity(pydantic.BaseModel):
     localId: str = pydantic.Field(description="The localId of the entity")
     name: str = pydantic.Field(description="The name of the entity")

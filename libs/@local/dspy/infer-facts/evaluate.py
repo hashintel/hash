@@ -10,7 +10,7 @@ dspy.settings.configure(lm=haiku)
 
 # Run the unoptimized program on a test case and print the answer
 # This isn't needed for the evaluation, it's just a demonstration
-with open("test-cases.json") as f:
+with open("testset.json") as f:
     input_data = json.load(f)
 
 unoptimized_program = FactInferrerProgram()
@@ -18,17 +18,17 @@ pred = unoptimized_program (**input_data[3])
 print("Unoptimized answer:")
 print(f"{pred}")
 
-# Load the examples set for evaluation
-# @todo create a different evaluation set to the training set, 
-# because examples in the training set appear in the model's prompt
-with open("examples.json") as f:
-    examples = json.load(f)
+exit()
 
-testset = [dspy.Example(**item).with_inputs("context", "subject_entity") for item in examples]
+# Load the setset for evaluation
+with open("testset.json") as f:
+    tests = json.load(f)
+
+testset = [dspy.Example(**item).with_inputs("context", "subject_entity") for item in tests]
 
 # Create the evaluation function
 # Table display is not supported in the terminal – see https://github.com/stanfordnlp/dspy/issues/663
-evaluate = Evaluate(devset=testset, metric=metric, num_threads=4, display_progress=True, display_table=False )
+evaluate = Evaluate(devset=testset, metric=metric, num_threads=4, display_progress=True, display_table=False)
 
 # Evaluate the unoptimized program's performance on the testset
 print("******************* Unoptimized program *******************")

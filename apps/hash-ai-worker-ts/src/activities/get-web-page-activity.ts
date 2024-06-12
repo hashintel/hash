@@ -8,6 +8,7 @@ import sanitizeHtml from "sanitize-html";
 
 import { logger } from "./shared/activity-logger";
 import { requestExternalInput } from "./shared/request-external-input";
+import { writeFileSync } from "node:fs";
 
 puppeteer.use(StealthPlugin());
 
@@ -226,3 +227,23 @@ export const getWebPageActivity = async (params: {
     htmlContent,
   };
 };
+
+const escapeHtmlToJsonString = (html: string) => {
+  return html
+    .replace(/\\/g, "\\\\") // Escape backslashes
+    .replace(/"/g, "'") // Replace double quotes with single quotes
+    .replace(/\n/g, "") // Remove newlines
+    .replace(/\r/g, "") // Remove carriage returns
+    .replace(/\t/g, ""); // Remove tabs
+};
+
+await getWebPageActivity({
+  url: "https://openai.com/index/video-generation-models-as-world-simulators/",
+  sanitizeForLlm: true,
+}).then((webPage) => {
+  writeFileSync(
+    "html.txt",
+    escapeHtmlToJsonString(webPage.htmlContent),
+    "utf8",
+  );
+});

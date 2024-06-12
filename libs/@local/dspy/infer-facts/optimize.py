@@ -10,7 +10,7 @@ from llms import gpt4o, haiku
 dspy.settings.configure(lm=haiku)
 
 # Create the training set from the examples
-with open("examples.json") as f:
+with open("trainset.json") as f:
     examples = json.load(f)
 trainset = [dspy.Example(**item).with_inputs("context", "subject_entity") for item in examples]
 
