@@ -1,5 +1,4 @@
 //! Adapted and vendored from `http-body` crate (https://docs.rs/http-body/latest/src/http_body/size_hint.rs.html)
-use std::u64;
 
 /// A `Body` size hint
 ///

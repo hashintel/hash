@@ -1,15 +1,40 @@
 use core::task::{Context, Poll};
 
 use error_stack::Report;
-use harpc_net::codec::{ErrorEncoder, PlainError};
+use harpc_net::codec::{ErrorEncoder, WireError};
 use harpc_wire_protocol::response::kind::ResponseKind;
-use tower::{Service, ServiceExt};
+use tower::{Layer, Service, ServiceExt};
 
 use crate::{
-    body::{control::Controlled, either::Either, full::Full, Body},
+    body::{control::Controlled, full::Full, Body},
+    either::Either,
     request::Request,
     response::Response,
 };
+
+pub struct HandleReportLayer<E> {
+    encoder: E,
+}
+
+impl<E> HandleReportLayer<E> {
+    pub fn new(encoder: E) -> Self {
+        Self { encoder }
+    }
+}
+
+impl<S, E> Layer<S> for HandleReportLayer<E>
+where
+    E: Clone,
+{
+    type Service = HandleReport<S, E>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        HandleReport {
+            inner,
+            encoder: self.encoder.clone(),
+        }
+    }
+}
 
 pub struct HandleReport<S, E> {
     inner: S,
@@ -58,6 +83,30 @@ where
     }
 }
 
+pub struct HandleErrorLayer<E> {
+    encoder: E,
+}
+
+impl<E> HandleErrorLayer<E> {
+    pub fn new(encoder: E) -> Self {
+        Self { encoder }
+    }
+}
+
+impl<E, S> Layer<S> for HandleErrorLayer<E>
+where
+    E: Clone,
+{
+    type Service = HandleError<S, E>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        HandleError {
+            inner,
+            encoder: self.encoder.clone(),
+        }
+    }
+}
+
 // TODO: this is on tower level (which works)
 pub struct HandleError<S, E> {
     inner: S,
@@ -68,7 +117,7 @@ pub struct HandleError<S, E> {
 impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleError<S, E>
 where
     S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
-    S::Error: PlainError,
+    S::Error: WireError,
     E: ErrorEncoder + Clone,
     ReqBody: Body<Control = !>,
     ResBody: Body<Control: AsRef<ResponseKind>>,

@@ -2559,6 +2559,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "harpc-tower"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "harpc-net",
+ "harpc-types",
+ "harpc-wire-protocol",
+ "pin-project",
+ "pin-project-lite",
+ "thiserror",
+ "tokio",
+ "tower",
+]
+
+[[package]]
 name = "harpc-types"
 version = "0.0.0"
 dependencies = [

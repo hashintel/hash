@@ -5,10 +5,12 @@
     min_exhaustive_patterns
 )]
 
-mod body;
-mod extensions;
-mod layer;
-mod request;
-mod response;
+pub mod body;
+pub mod either;
+pub mod extensions;
+pub mod layer;
+pub mod parts;
+pub mod request;
+pub mod response;
 
 // TODO: server implementation, encoding/decoding, layer to encode errors into responses

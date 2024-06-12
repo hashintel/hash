@@ -24,7 +24,7 @@ use super::{
     },
 };
 use crate::{
-    codec::{ErrorEncoder, WriteError},
+    codec::{ErrorEncoder, WireError},
     transport::{test::memory_address, Transport, TransportConfig, TransportLayer},
 };
 
@@ -54,7 +54,7 @@ pub(crate) struct StringEncoder;
 impl ErrorEncoder for StringEncoder {
     fn encode_error<E>(&self, error: E) -> impl Future<Output = TransactionError> + Send
     where
-        E: WriteError,
+        E: WireError,
     {
         ready(TransactionError {
             code: error.code(),

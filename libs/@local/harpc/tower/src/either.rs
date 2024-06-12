@@ -6,19 +6,38 @@ use std::{
 use bytes::Buf;
 use error_stack::Report;
 
-use super::{Body, Frame};
+use crate::body::{Body, Frame};
 
-macro_rules! get {
-    ($ty:ty => $($method:ident),*) => {
-        $(
-            fn $method(&mut self) -> $ty {
-                match self {
-                    Self::Left(left) => left.$method(),
-                    Self::Right(right) => right.$method(),
-                }
+macro_rules! forward {
+    (   $(#[$meta:meta])*
+        fn $name:ident(&self $(, $argument:ident : $type:ty)*) -> $return:ty; $($rest:tt)*
+    ) => {
+        $(#[$meta])*
+        fn $name(&self $(, $argument : $type)*) -> $return {
+            match self {
+                Self::Left(left) => left.$name($($argument),*),
+                Self::Right(right) => right.$name($($argument),*),
             }
-        )*
+        }
+
+        forward!($($rest)*);
     };
+
+    (   $(#[$meta:meta])*
+        fn $name:ident(&mut self $(, $argument:ident : $type:ty)*) -> $return:ty; $($rest:tt)*
+    ) => {
+        $(#[$meta])*
+        fn $name(&mut self $(, $argument : $type)*) -> $return {
+            match self {
+                Self::Left(left) => left.$name($($argument),*),
+                Self::Right(right) => right.$name($($argument),*),
+            }
+        }
+
+        forward!($($rest)*);
+    };
+
+    () => {};
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
@@ -102,140 +121,75 @@ impl<T> Either<T, T> {
     }
 }
 
-// TODO: don't particularly like the names here.
-impl<L> Either<L, !> {
-    pub fn take_left(self) -> L {
-        let Self::Left(left) = self;
-
-        left
-    }
-}
-
-impl<R> Either<!, R> {
-    pub fn take_right(self) -> R {
-        let Self::Right(right) = self;
-
-        right
-    }
-}
-
 impl<L, R> Buf for Either<L, R>
 where
     L: Buf,
     R: Buf,
 {
-    get!(u8 => get_u8);
+    forward!(
+        fn get_u8(&mut self) -> u8;
+        fn get_i8(&mut self) -> i8;
 
-    get!(i8 => get_i8);
+        fn get_u16(&mut self) -> u16;
+        fn get_u16_le(&mut self) -> u16;
+        fn get_u16_ne(&mut self) -> u16;
 
-    get!(u16 => get_u16, get_u16_le, get_u16_ne);
+        fn get_i16(&mut self) -> i16;
+        fn get_i16_le(&mut self) -> i16;
+        fn get_i16_ne(&mut self) -> i16;
 
-    get!(i16 => get_i16, get_i16_le, get_i16_ne);
+        fn get_u32(&mut self) -> u32;
+        fn get_u32_le(&mut self) -> u32;
+        fn get_u32_ne(&mut self) -> u32;
 
-    get!(u32 => get_u32, get_u32_le, get_u32_ne);
+        fn get_i32(&mut self) -> i32;
+        fn get_i32_le(&mut self) -> i32;
+        fn get_i32_ne(&mut self) -> i32;
 
-    get!(i32 => get_i32, get_i32_le, get_i32_ne);
+        fn get_u64(&mut self) -> u64;
+        fn get_u64_le(&mut self) -> u64;
+        fn get_u64_ne(&mut self) -> u64;
 
-    get!(u64 => get_u64, get_u64_le, get_u64_ne);
+        fn get_i64(&mut self) -> i64;
+        fn get_i64_le(&mut self) -> i64;
+        fn get_i64_ne(&mut self) -> i64;
 
-    get!(i64 => get_i64, get_i64_le, get_i64_ne);
+        fn get_u128(&mut self) -> u128;
+        fn get_u128_le(&mut self) -> u128;
+        fn get_u128_ne(&mut self) -> u128;
 
-    get!(u128 => get_u128, get_u128_le, get_u128_ne);
+        fn get_i128(&mut self) -> i128;
+        fn get_i128_le(&mut self) -> i128;
+        fn get_i128_ne(&mut self) -> i128;
 
-    get!(i128 => get_i128, get_i128_le, get_i128_ne);
+        fn get_f32(&mut self) -> f32;
+        fn get_f32_le(&mut self) -> f32;
+        fn get_f32_ne(&mut self) -> f32;
 
-    get!(f32 => get_f32, get_f32_le, get_f32_ne);
+        fn get_f64(&mut self) -> f64;
+        fn get_f64_le(&mut self) -> f64;
+        fn get_f64_ne(&mut self) -> f64;
 
-    get!(f64 => get_f64, get_f64_le, get_f64_ne);
+        fn get_uint(&mut self, nbytes: usize) -> u64;
+        fn get_uint_le(&mut self, nbytes: usize) -> u64;
+        fn get_uint_ne(&mut self, nbytes: usize) -> u64;
 
-    fn remaining(&self) -> usize {
-        match self {
-            Self::Left(left) => left.remaining(),
-            Self::Right(right) => right.remaining(),
-        }
-    }
+        fn get_int(&mut self, nbytes: usize) -> i64;
+        fn get_int_le(&mut self, nbytes: usize) -> i64;
+        fn get_int_ne(&mut self, nbytes: usize) -> i64;
 
-    fn chunk(&self) -> &[u8] {
-        match self {
-            Self::Left(left) => left.chunk(),
-            Self::Right(right) => right.chunk(),
-        }
-    }
-
-    fn advance(&mut self, cnt: usize) {
-        match self {
-            Self::Left(left) => left.advance(cnt),
-            Self::Right(right) => right.advance(cnt),
-        }
-    }
+        fn remaining(&self) -> usize;
+        fn chunk(&self) -> &[u8];
+        fn advance(&mut self, cnt: usize) -> ();
+        fn has_remaining(&self) -> bool;
+        fn copy_to_slice(&mut self, dst: &mut [u8]) -> ();
+        fn copy_to_bytes(&mut self, len: usize) -> bytes::Bytes;
+    );
 
     fn chunks_vectored<'a>(&'a self, dst: &mut [std::io::IoSlice<'a>]) -> usize {
         match self {
             Self::Left(left) => left.chunks_vectored(dst),
             Self::Right(right) => right.chunks_vectored(dst),
-        }
-    }
-
-    fn has_remaining(&self) -> bool {
-        match self {
-            Self::Left(left) => left.has_remaining(),
-            Self::Right(right) => right.has_remaining(),
-        }
-    }
-
-    fn copy_to_slice(&mut self, dst: &mut [u8]) {
-        match self {
-            Self::Left(left) => left.copy_to_slice(dst),
-            Self::Right(right) => right.copy_to_slice(dst),
-        }
-    }
-
-    fn get_uint(&mut self, nbytes: usize) -> u64 {
-        match self {
-            Self::Left(left) => left.get_uint(nbytes),
-            Self::Right(right) => right.get_uint(nbytes),
-        }
-    }
-
-    fn get_uint_le(&mut self, nbytes: usize) -> u64 {
-        match self {
-            Self::Left(left) => left.get_uint_le(nbytes),
-            Self::Right(right) => right.get_uint_le(nbytes),
-        }
-    }
-
-    fn get_uint_ne(&mut self, nbytes: usize) -> u64 {
-        match self {
-            Self::Left(left) => left.get_uint_ne(nbytes),
-            Self::Right(right) => right.get_uint_ne(nbytes),
-        }
-    }
-
-    fn get_int(&mut self, nbytes: usize) -> i64 {
-        match self {
-            Self::Left(left) => left.get_int(nbytes),
-            Self::Right(right) => right.get_int(nbytes),
-        }
-    }
-
-    fn get_int_le(&mut self, nbytes: usize) -> i64 {
-        match self {
-            Self::Left(left) => left.get_int_le(nbytes),
-            Self::Right(right) => right.get_int_le(nbytes),
-        }
-    }
-
-    fn get_int_ne(&mut self, nbytes: usize) -> i64 {
-        match self {
-            Self::Left(left) => left.get_int_ne(nbytes),
-            Self::Right(right) => right.get_int_ne(nbytes),
-        }
-    }
-
-    fn copy_to_bytes(&mut self, len: usize) -> bytes::Bytes {
-        match self {
-            Self::Left(left) => left.copy_to_bytes(len),
-            Self::Right(right) => right.copy_to_bytes(len),
         }
     }
 }
