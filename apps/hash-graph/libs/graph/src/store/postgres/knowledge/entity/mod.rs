@@ -24,7 +24,7 @@ use graph_types::{
             EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
             InferredEntityProvenance,
         },
-        Confidence, PropertyMetadataMap, PropertyObject, PropertyPath,
+        Confidence, PropertyMetadataObject, PropertyObject, PropertyPath,
     },
     ontology::EntityTypeId,
     owned_by_id::OwnedById,
@@ -1625,7 +1625,7 @@ where
         properties: &PropertyObject,
         confidence: Option<Confidence>,
         provenance: &EntityEditionProvenance,
-        metadata: &PropertyMetadataMap,
+        metadata: &PropertyMetadataObject,
     ) -> Result<(EntityEditionId, ClosedEntityType), InsertionError> {
         let edition_id: EntityEditionId = self
             .as_client()

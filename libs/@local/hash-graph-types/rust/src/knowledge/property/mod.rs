@@ -16,8 +16,8 @@ use type_system::{url::BaseUrl, JsonSchemaValueType};
 pub use self::{
     diff::PropertyDiff,
     metadata::{
-        PropertyMetadata, PropertyMetadataMap, PropertyMetadataMapElement, PropertyObject,
-        PropertyPathError,
+        PropertyMetadataArray, PropertyMetadataElement, PropertyMetadataObject,
+        PropertyMetadataValue, PropertyObject,
     },
     patch::PropertyPatchOperation,
     path::{PropertyPath, PropertyPathElement},

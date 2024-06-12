@@ -26,7 +26,7 @@ import type {
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { PropertyMetadataMap } from "@local/hash-graph-types/entity";
+import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -121,7 +121,7 @@ const writeFileToS3URL = async ({
 
 export const getFileEntityFromUrl = async (params: {
   url: string;
-  propertyMetadata?: PropertyMetadataMap;
+  propertyMetadata?: PropertyMetadataObject;
   provenance?: ProvidedEntityEditionProvenance;
   entityTypeId?: VersionedUrl;
   description?: string;

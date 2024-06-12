@@ -19,7 +19,7 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{EntityMetadata, ProvidedEntityEditionProvenance},
-        PropertyMetadataMap, PropertyObject,
+        PropertyMetadataObject, PropertyObject,
     },
     owned_by_id::OwnedById,
 };
@@ -107,7 +107,7 @@ async fn seed_db<A: AuthorizationApi>(
                 entity_type_ids: vec![entity_type_id],
                 properties,
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
+                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],

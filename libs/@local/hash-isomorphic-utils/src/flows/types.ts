@@ -7,7 +7,7 @@ import type {
   EntityId,
   EntityPropertiesObject,
   EntityUuid,
-  PropertyMetadataMap,
+  PropertyMetadataObject,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
@@ -37,7 +37,7 @@ type LocalOrExistingEntityId =
  */
 export type ProposedEntity = {
   provenance?: ProvidedEntityEditionProvenance;
-  propertyMetadata?: PropertyMetadataMap;
+  propertyMetadata?: PropertyMetadataObject;
   localEntityId: string;
   entityTypeId: VersionedUrl;
   summary?: string;

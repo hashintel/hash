@@ -3167,7 +3167,7 @@
           "propertyMetadata": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/PropertyMetadataMap"
+                "$ref": "#/components/schemas/PropertyMetadataObject"
               }
             ]
           },
@@ -3792,7 +3792,7 @@
             }
           },
           "properties": {
-            "$ref": "#/components/schemas/PropertyMetadataMap"
+            "$ref": "#/components/schemas/PropertyMetadataObject"
           },
           "provenance": {
             "$ref": "#/components/schemas/EntityProvenance"
@@ -6639,7 +6639,7 @@
           "propertyName": "op"
         }
       },
-      "PropertyMetadata": {
+      "PropertyMetadataArray": {
         "type": "object",
         "properties": {
           "confidence": {
@@ -6652,23 +6652,62 @@
           "provenance": {
             "$ref": "#/components/schemas/PropertyProvenance"
           }
-        }
-      },
-      "PropertyMetadataMap": {
-        "type": "object",
+        },
         "additionalProperties": {
-          "$ref": "#/components/schemas/PropertyMetadataMapElement"
+          "$ref": "#/components/schemas/PropertyMetadataElement"
         }
       },
-      "PropertyMetadataMapElement": {
+      "PropertyMetadataElement": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PropertyMetadataArray"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyMetadataObject"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyMetadataValue"
+          }
+        ]
+      },
+      "PropertyMetadataObject": {
         "type": "object",
         "properties": {
-          "metadata": {
-            "$ref": "#/components/schemas/PropertyMetadata"
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/PropertyProvenance"
           }
         },
         "additionalProperties": {
-          "$ref": "#/components/schemas/PropertyMetadataMapElement"
+          "$ref": "#/components/schemas/PropertyMetadataElement"
+        }
+      },
+      "PropertyMetadataValue": {
+        "type": "object",
+        "properties": {
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
+          "dataTypeId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/PropertyProvenance"
+          }
         }
       },
       "PropertyObject": {
@@ -7857,7 +7896,7 @@
           "propertyMetadata": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/PropertyMetadataMap"
+                "$ref": "#/components/schemas/PropertyMetadataObject"
               }
             ]
           }

@@ -13,7 +13,7 @@ use graph_types::{
             ProvidedEntityEditionProvenance,
         },
         link::LinkData,
-        Confidence, PropertyDiff, PropertyMetadataMap, PropertyObject, PropertyPatchOperation,
+        Confidence, PropertyDiff, PropertyMetadataObject, PropertyObject, PropertyPatchOperation,
         PropertyPath,
     },
     owned_by_id::OwnedById,
@@ -190,8 +190,8 @@ pub struct CreateEntityParams<R> {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
-    pub property_metadata: PropertyMetadataMap,
+    #[serde(default, skip_serializing_if = "PropertyMetadataObject::is_empty")]
+    pub property_metadata: PropertyMetadataObject,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
@@ -210,8 +210,12 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub properties: Cow<'a, PropertyObject>,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(borrow, default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
-    pub property_metadata: Cow<'a, PropertyMetadataMap>,
+    #[serde(
+        borrow,
+        default,
+        skip_serializing_if = "PropertyMetadataObject::is_empty"
+    )]
+    pub property_metadata: Cow<'a, PropertyMetadataObject>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,

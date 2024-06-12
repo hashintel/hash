@@ -1,9 +1,9 @@
 use error_stack::Report;
-use graph_types::knowledge::{PropertyMetadataMap, PropertyObject};
+use graph_types::knowledge::{PropertyMetadataObject, PropertyObject};
 
 use crate::{EntityValidationError, Validate, ValidateEntityComponents};
 
-impl<P> Validate<PropertyObject, P> for PropertyMetadataMap
+impl<P> Validate<PropertyObject, P> for PropertyMetadataObject
 where
     P: Sync,
 {

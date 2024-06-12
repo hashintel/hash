@@ -1,5 +1,5 @@
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
-import type { PropertyMetadataMap } from "@local/hash-graph-types/entity";
+import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { expect, test } from "vitest";
 
@@ -61,35 +61,25 @@ const createTestEntity = (): GraphApiEntity => ({
       [base_url_a]: {
         [base_url_aa]: {
           [base_url_aaa]: {
-            metadata: {
-              confidence: 0.1,
-            },
+            confidence: 0.1,
           },
         },
-        metadata: {
-          confidence: 0.2,
-        },
+        confidence: 0.2,
       },
       [base_url_b]: {
         "10": {
           [base_url_b10b]: {
-            metadata: {
-              confidence: 0.3,
-            },
+            confidence: 0.3,
           },
         },
-        metadata: {
-          confidence: 0.4,
-        },
+        confidence: 0.4,
       },
       [base_url_c]: {
         "20": {
-          metadata: {
-            confidence: 0.5,
-          },
+          confidence: 0.5,
         },
       },
-    } satisfies PropertyMetadataMap,
+    } satisfies PropertyMetadataObject,
   },
   properties: {},
 });

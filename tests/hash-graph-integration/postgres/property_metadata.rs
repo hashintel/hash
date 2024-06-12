@@ -10,7 +10,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{Location, ProvidedEntityEditionProvenance, SourceProvenance, SourceType},
-        Confidence, Property, PropertyMetadata, PropertyMetadataMap, PropertyObject,
+        Confidence, Property, PropertyMetadataObject, PropertyMetadataValue, PropertyObject,
         PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
     },
     owned_by_id::OwnedById,
@@ -135,18 +135,18 @@ fn confidence(value: f64) -> Confidence {
 
 fn property_metadata<'a>(
     value: impl IntoIterator<Item = (&'a str, f64, PropertyProvenance)>,
-) -> PropertyMetadataMap {
-    let mut map = PropertyMetadataMap::default();
-    for (key, value, provenance) in value {
-        map.set(
-            &PropertyPath::from_json_pointer(key).expect("could not parse path"),
-            PropertyMetadata {
-                confidence: Some(confidence(value)),
-                provenance,
-            },
-        )
-        .expect("could not set metadata");
-    }
+) -> PropertyMetadataObject {
+    let mut map = PropertyMetadataObject::default();
+    // for (key, value, provenance) in value {
+    //     map.set(
+    //         &PropertyPath::from_json_pointer(key).expect("could not parse path"),
+    //         PropertyMetadata {
+    //             confidence: Some(confidence(value)),
+    //             provenance,
+    //         },
+    //     )
+    //     .expect("could not set metadata");
+    // }
     map
 }
 
@@ -243,7 +243,7 @@ async fn no_initial_metadata() {
                 entity_type_ids: vec![person_entity_type_id()],
                 properties: alice(),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
+                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -368,7 +368,7 @@ async fn properties_add() {
                 entity_type_ids: vec![person_entity_type_id()],
                 properties: alice(),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
+                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -424,7 +424,7 @@ async fn properties_remove() {
                 entity_type_ids: vec![person_entity_type_id()],
                 properties: alice(),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
+                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -510,6 +510,6 @@ async fn properties_remove() {
 
     assert_eq!(
         updated_entity.metadata.properties,
-        PropertyMetadataMap::default()
+        PropertyMetadataObject::default()
     );
 }

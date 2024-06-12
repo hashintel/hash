@@ -19,7 +19,7 @@ pub use self::provenance::{
 use crate::{
     knowledge::{
         link::LinkData,
-        property::{PatchError, PropertyMetadataMap},
+        property::{PatchError, PropertyMetadataObject},
         Confidence, PropertyObject, PropertyPatchOperation,
     },
     owned_by_id::OwnedById,
@@ -97,8 +97,8 @@ pub struct EntityMetadata {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
-    #[serde(default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
-    pub properties: PropertyMetadataMap,
+    #[serde(default, skip_serializing_if = "PropertyMetadataObject::is_empty")]
+    pub properties: PropertyMetadataObject,
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -125,7 +125,7 @@ impl Entity {
         operations: &[PropertyPatchOperation],
     ) -> Result<(), Report<PatchError>> {
         self.properties.patch(operations)?;
-        self.metadata.properties.patch(operations)?;
+        // self.metadata.properties.patch(operations)?;
 
         Ok(())
     }
