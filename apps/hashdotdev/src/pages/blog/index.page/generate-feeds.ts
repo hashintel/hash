@@ -43,7 +43,7 @@ export const generateFeeds = async (posts: Page<BlogPost>[]) => {
       author: post.data.authors.map((author) => ({
         name: author.name,
       })),
-      dateFirstPublished: new Date(post.data.dateFirstPublished),
+      date: new Date(post.data.dateFirstPublished),
       image: `${FRONTEND_URL}/${post.data.postPhoto}`,
     });
   }
