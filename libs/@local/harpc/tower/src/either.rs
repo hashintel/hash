@@ -1,3 +1,4 @@
+use core::task::ready;
 use std::{
     pin::Pin,
     task::{Context, Poll},
@@ -209,23 +210,29 @@ where
     ) -> Poll<Option<Result<Frame<Self::Data, Self::Control>, Self::Error>>> {
         let this = self.project();
 
-        match this {
-            EitherProj::Left(left) => left.poll_frame(cx).map(|opt| {
-                opt.map(|response| {
-                    response
-                        .map(|frame| frame.map_data(Either::Left).map_control(Either::Left))
-                        .map_err(|error| error.change_context(EitherError::Left))
-                })
-            }),
+        let frame = match this {
+            EitherProj::Left(left) => {
+                let Some(frame) = ready!(left.poll_frame(cx)) else {
+                    return Poll::Ready(None);
+                };
 
-            EitherProj::Right(right) => right.poll_frame(cx).map(|response| {
-                response.map(|response| {
-                    response
-                        .map(|frame| frame.map_data(Either::Right).map_control(Either::Right))
-                        .map_err(|error| error.change_context(EitherError::Right))
-                })
-            }),
-        }
+                frame
+                    .map(|frame| frame.map_data(Either::Left).map_control(Either::Left))
+                    .map_err(|error| error.change_context(EitherError::Left))
+            }
+
+            EitherProj::Right(right) => {
+                let Some(frame) = ready!(right.poll_frame(cx)) else {
+                    return Poll::Ready(None);
+                };
+
+                frame
+                    .map(|frame| frame.map_data(Either::Right).map_control(Either::Right))
+                    .map_err(|error| error.change_context(EitherError::Right))
+            }
+        };
+
+        Poll::Ready(Some(frame))
     }
 
     fn is_complete(&self) -> Option<bool> {

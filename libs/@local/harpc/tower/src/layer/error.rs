@@ -9,7 +9,7 @@ use crate::{
     body::{control::Controlled, full::Full, Body},
     either::Either,
     request::Request,
-    response::Response,
+    response::{Parts, Response},
 };
 
 pub struct HandleReportLayer<E> {
@@ -76,7 +76,7 @@ where
                 Err(report) => {
                     let error = encoder.encode_report(report).await;
 
-                    Ok(Response::new_error(session, error).map_body(Either::Right))
+                    Ok(Response::from_error(Parts::new(session), error).map_body(Either::Right))
                 }
             }
         }
@@ -148,7 +148,7 @@ where
                 Err(error) => {
                     let error = encoder.encode_error(error).await;
 
-                    Ok(Response::new_error(session, error).map_body(Either::Right))
+                    Ok(Response::from_error(Parts::new(session), error).map_body(Either::Right))
                 }
             }
         }

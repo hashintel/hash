@@ -93,19 +93,18 @@ impl<D, C> Frame<D, C> {
     }
 }
 
+type BodyFrame<B> = Frame<<B as Body>::Data, <B as Body>::Control>;
+type BodyFrameResult<B> = Result<BodyFrame<B>, <B as Body>::Error>;
+
 pub trait Body {
     type Data: Buf;
     type Control;
 
     type Error;
 
-    fn poll_frame(
-        self: Pin<&mut Self>,
-        cx: &mut Context,
-    ) -> Poll<Option<Result<Frame<Self::Data, Self::Control>, Self::Error>>>;
+    fn poll_frame(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<BodyFrameResult<Self>>>;
 
     fn is_complete(&self) -> Option<bool>;
-    // we can model is_incomplete through an error instead
 
     fn size_hint(&self) -> SizeHint {
         SizeHint::default()

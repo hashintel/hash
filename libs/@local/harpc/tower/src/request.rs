@@ -5,15 +5,11 @@ use crate::{body::Body, extensions::Extensions};
 
 /// Component parts of a hrpc `Request`.
 pub struct Parts {
-    /// The request's service.
     pub service: ServiceDescriptor,
-    /// The request's procedure.
     pub procedure: ProcedureDescriptor,
 
-    /// The request's session.
     pub session: SessionId,
 
-    /// The request's extensions.
     pub extensions: Extensions,
 }
 
