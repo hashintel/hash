@@ -1,0 +1,8 @@
+{
+  "research_brief": "Movies directed by Christopher Nolan.",
+  "predicted_entities": ["Inception", "The Dark Knight", "Dunkirk", "Tenet"],
+  "missing_entities": [],
+  "wrong_type_entities": [],
+  "irrelevant_entities": [],
+  "unmatched_entities": []
+}

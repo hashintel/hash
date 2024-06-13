@@ -1,0 +1,8 @@
+{
+  "research_brief": "AI companies",
+  "predicted_entities": ["OpenAI", "Tesla", "Microsoft"],
+  "missing_entities": ["Apple"],
+  "wrong_type_entities": [],
+  "irrelevant_entities": [],
+  "unmatched_entities": []
+}

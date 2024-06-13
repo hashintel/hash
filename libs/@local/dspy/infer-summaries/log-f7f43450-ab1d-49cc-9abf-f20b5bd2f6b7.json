@@ -1,0 +1,20 @@
+{
+  "research_brief": "Identify new tech products announced at the 2024 Consumer Electronics Show (CES)",
+  "predicted_entities": [
+    "XYZ Inc. Smartwatch",
+    "ABC Corp. VR Headset",
+    "GreenTech Eco-Friendly Laptop"
+  ],
+  "missing_entities": [
+    "Next-Gen VR Headset",
+    "Revolutionary Smartwatch",
+    "Eco-Friendly Laptop"
+  ],
+  "wrong_type_entities": [],
+  "irrelevant_entities": [],
+  "unmatched_entities": [
+    "ABC Corp. VR Headset",
+    "GreenTech Eco-Friendly Laptop",
+    "XYZ Inc. Smartwatch"
+  ]
+}

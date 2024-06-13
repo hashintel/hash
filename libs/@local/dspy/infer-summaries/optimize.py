@@ -24,13 +24,13 @@ bootstrap_optimized_program = bootstrap_optimizer.compile(EntityRecognizerProgra
 
 bootstrap_optimized_program.save("optimized_program-bootstrapped.json")
 
-print("Finished")
+print("Finished bootstrapping")
 
 # Set up the optimizer: to optimize the prompt
-# optimizer_config = dict(prompt_model=gpt4o, task_model=haiku, metric=metric, breadth=10, depth=1, init_temperature=0.8)
-# copro_optimizer = COPRO(**optimizer_config)
+optimizer_config = dict(prompt_model=gpt4o, task_model=haiku, metric=metric, breadth=4, depth=2, init_temperature=0.8)
+copro_optimizer = COPRO(**optimizer_config)
 
-# eval_config = dict(num_threads=16, display_progress=True, display_table=0)
-# copro_optimized_signature = copro_optimizer.compile(EntityRecognizerProgram(), trainset=trainset, eval_kwargs=eval_config)
+eval_config = dict(num_threads=4, display_progress=True, display_table=0)
+copro_optimized_signature = copro_optimizer.compile(EntityRecognizerProgram(), trainset=trainset, eval_kwargs=eval_config)
 
-# copro_optimized_signature.save("optimized_program-prompt.json")
+copro_optimized_signature.save("optimized_program-prompt.json")

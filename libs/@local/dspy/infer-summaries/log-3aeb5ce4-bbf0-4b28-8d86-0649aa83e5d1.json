@@ -1,0 +1,14 @@
+{
+  "research_brief": "Identify notable scientists working on climage change",
+  "predicted_entities": [
+    "Dr. Jane Smith",
+    "Professor John Doe",
+    "Dr. Emily Brown",
+    "Greta Thunberg",
+    "Elon Musk"
+  ],
+  "missing_entities": [],
+  "wrong_type_entities": [],
+  "irrelevant_entities": ["Elon Musk", "Greta Thunberg"],
+  "unmatched_entities": []
+}

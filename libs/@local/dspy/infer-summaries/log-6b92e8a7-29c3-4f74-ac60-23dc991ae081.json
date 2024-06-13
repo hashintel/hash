@@ -1,0 +1,22 @@
+{
+  "research_brief": "Obtain the authors of the 'Video generation models as world simulators' article",
+  "predicted_entities": [
+    "Tim Brooks",
+    "Bill Peebles",
+    "Connor Holmes",
+    "Will DePue",
+    "Yufei Guo",
+    "Li Jing",
+    "David Schnurr",
+    "Joe Taylor",
+    "Troy Luhman",
+    "Eric Luhman",
+    "Clarence Ng",
+    "Ricky Wang",
+    "Aditya Ramesh"
+  ],
+  "missing_entities": [],
+  "wrong_type_entities": [],
+  "irrelevant_entities": [],
+  "unmatched_entities": []
+}

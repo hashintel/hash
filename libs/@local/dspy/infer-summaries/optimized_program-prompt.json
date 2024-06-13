@@ -1,0 +1,10 @@
+{
+  "prog.predictor": {
+    "lm": null,
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature_instructions": "Proposed Instruction: Identify and extract entities from a given text segment that align with the specified entity_type. Ensure that each identified entity not only matches the entity_type but also conforms to the relevant_entities_description provided. If an entity doesn't directly meet the description, it should have an explicit contextual relationship with those that do. Disregard any entities that do not fit these criteria.",
+    "signature_prefix": "Identified entities:"
+  }
+}

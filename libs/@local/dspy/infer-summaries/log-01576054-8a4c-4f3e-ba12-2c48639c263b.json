@@ -1,0 +1,12 @@
+{
+  "research_brief": "Identify events related to space exploration mission",
+  "predicted_entities": [
+    "Starship's First Orbital Flight",
+    "Upcoming Mars Mission",
+    "International Space Station Resupply"
+  ],
+  "missing_entities": [],
+  "wrong_type_entities": [],
+  "irrelevant_entities": [],
+  "unmatched_entities": []
+}

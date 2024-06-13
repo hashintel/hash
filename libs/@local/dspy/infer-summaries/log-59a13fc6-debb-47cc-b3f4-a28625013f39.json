@@ -1,0 +1,29 @@
+{
+  "research_brief": "Constituents of the FTSE 350 Index",
+  "predicted_entities": ["FTSE 350", "FTSE 100", "FTSE 250"],
+  "missing_entities": [
+    "INTERMEDIATE CAPITAL GROUP PLC",
+    "NINETY ONE PLC",
+    "HOWDEN JOINERY GROUP PLC",
+    "PERSIMMON PLC",
+    "WATCHES OF SWITZERLAND GROUP PLC",
+    "OSB GROUP PLC",
+    "SSP GROUP PLC",
+    "ST.JAMES'S PLACE PLC",
+    "RIGHTMOVE PLC",
+    "MOLTEN VENTURES PLC",
+    "INVESTEC PLC",
+    "GENUIT GROUP PLC",
+    "REDROW PLC",
+    "IBSTOCK PLC",
+    "DIPLOMA PLC",
+    "RENTOKIL INITIAL PLC",
+    "DERWENT LONDON PLC",
+    "3I GROUP PLC",
+    "SUPERMARKET INCOME REIT PLC",
+    "WORKSPACE GROUP PLC"
+  ],
+  "wrong_type_entities": [],
+  "irrelevant_entities": [],
+  "unmatched_entities": ["FTSE 100", "FTSE 250", "FTSE 350"]
+}
