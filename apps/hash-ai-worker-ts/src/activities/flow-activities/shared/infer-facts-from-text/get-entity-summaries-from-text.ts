@@ -91,7 +91,7 @@ export const getEntitySummariesFromText = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "gpt-4o-2024-05-13",
+      model: "claude-3-haiku-20240307",
       toolChoice: toolNames[0],
       messages: [
         {

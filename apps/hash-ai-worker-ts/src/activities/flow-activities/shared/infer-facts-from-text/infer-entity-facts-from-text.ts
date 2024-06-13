@@ -174,7 +174,7 @@ export const inferEntityFactsFromText = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "gpt-4o-2024-05-13",
+      model: "claude-3-haiku-20240307",
       tools: Object.values(generateToolDefinitions({ subjectEntities })),
       toolChoice: toolNames[0],
       systemPrompt,
