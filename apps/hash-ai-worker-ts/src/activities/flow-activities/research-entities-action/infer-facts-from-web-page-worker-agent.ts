@@ -251,7 +251,7 @@ const getNextToolCalls = async (params: {
     generateUserMessage({
       input,
       /**
-       * Include the inner HTML of the original web page in the user message 
+       * Include the inner HTML of the original web page in the user message
        * if no further HTML content has been requested in other tool calls.
        */
       includeInnerHtml: !state.previousCalls.some(({ completedToolCalls }) =>
@@ -419,6 +419,14 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
             const { url: toolCallUrl } =
               toolCall.input as ToolCallArguments["getWebPageInnerHtml"];
 
+            /**
+             * @todo: consider removing this limitation, by providing the caller of
+             * the worker agent with a list of the URLs which the worker agent has
+             * accessed that are not from the same top-level domain to avoid the
+             * same webpage being accessed multiple times for the same purpose.
+             *
+             * @see https://linear.app/hash/issue/H-2893/reduce-token-consumption-in-worker-agent
+             */
             if (!haveSameTopLevelDomain(toolCallUrl, input.url)) {
               return {
                 ...toolCall,
