@@ -13,6 +13,7 @@ import { getFlowContext } from "../shared/get-flow-context";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
 import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
+import { checkSubTasksAgent } from "./research-entities-action/check-sub-tasks-agent";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
@@ -532,56 +533,76 @@ export const researchEntitiesAction: FlowActionActivity<{
             const { subTasks } =
               toolCall.input as CoordinatorToolCallArguments["startFactGatheringSubTasks"];
 
+            let counter = 0;
+
+            const subTasksWithIds = subTasks.map((subTask) => ({
+              ...subTask,
+              subTaskId: `${counter++}`,
+            }));
+
+            const { acceptedSubTasks, rejectedSubTasks } =
+              await checkSubTasksAgent({
+                input,
+                state,
+                subTasks: subTasksWithIds,
+              });
+
             const responsesWithSubTask = await Promise.all(
-              subTasks.map(async (subTask) => {
-                const {
-                  goal,
-                  relevantEntityIds,
-                  entityTypeIds,
-                  linkEntityTypeIds,
-                  explanation,
-                } = subTask;
-
-                const entityTypes = input.entityTypes.filter(({ $id }) =>
-                  entityTypeIds.includes($id),
-                );
-
-                const linkEntityTypes = input.linkEntityTypes?.filter(
-                  ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
-                );
-
-                const relevantEntities =
-                  state.inferredFactsAboutEntities.filter(({ localId }) =>
-                    relevantEntityIds.includes(localId),
-                  );
-
-                const existingFactsAboutRelevantEntities =
-                  state.inferredFacts.filter(({ subjectEntityLocalId }) =>
-                    relevantEntityIds.includes(subjectEntityLocalId),
-                  );
-
-                logProgress([
-                  {
-                    type: "StartedSubTask",
+              subTasksWithIds
+                .filter((subTask) =>
+                  acceptedSubTasks.some(
+                    ({ subTaskId }) => subTaskId === subTask.subTaskId,
+                  ),
+                )
+                .map(async (subTask) => {
+                  const {
+                    goal,
+                    relevantEntityIds,
+                    entityTypeIds,
+                    linkEntityTypeIds,
                     explanation,
-                    goal,
-                    recordedAt: new Date().toISOString(),
-                    stepId,
-                  },
-                ]);
+                  } = subTask;
 
-                const response = await runSubTaskAgent({
-                  input: {
-                    goal,
-                    relevantEntities,
-                    existingFactsAboutRelevantEntities,
-                    entityTypes,
-                    linkEntityTypes,
-                  },
-                });
+                  const entityTypes = input.entityTypes.filter(({ $id }) =>
+                    entityTypeIds.includes($id),
+                  );
 
-                return { response, subTask };
-              }),
+                  const linkEntityTypes = input.linkEntityTypes?.filter(
+                    ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
+                  );
+
+                  const relevantEntities =
+                    state.inferredFactsAboutEntities.filter(({ localId }) =>
+                      relevantEntityIds.includes(localId),
+                    );
+
+                  const existingFactsAboutRelevantEntities =
+                    state.inferredFacts.filter(({ subjectEntityLocalId }) =>
+                      relevantEntityIds.includes(subjectEntityLocalId),
+                    );
+
+                  logProgress([
+                    {
+                      type: "StartedSubTask",
+                      explanation,
+                      goal,
+                      recordedAt: new Date().toISOString(),
+                      stepId,
+                    },
+                  ]);
+
+                  const response = await runSubTaskAgent({
+                    input: {
+                      goal,
+                      relevantEntities,
+                      existingFactsAboutRelevantEntities,
+                      entityTypes,
+                      linkEntityTypes,
+                    },
+                  });
+
+                  return { response, subTask };
+                }),
             );
 
             const inferredFacts: Fact[] = [];
@@ -600,6 +621,14 @@ export const researchEntitiesAction: FlowActionActivity<{
               } else {
                 output += `An error was encountered when completing the sub-task with goal "${subTask.goal}": ${response.reason}\n`;
               }
+            }
+
+            for (const { subTaskId, reason } of rejectedSubTasks) {
+              const { goal } = subTasksWithIds.find(
+                (subTask) => subTask.subTaskId === subTaskId,
+              )!;
+
+              output += `The sub-task with goal "${goal}" was rejected for the following reason: ${reason}\n`;
             }
 
             if (inferredFactsAboutEntities.length > 0) {
