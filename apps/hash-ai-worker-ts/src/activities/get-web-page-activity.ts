@@ -238,7 +238,7 @@ const escapeHtmlToJsonString = (html: string) => {
 };
 
 await getWebPageActivity({
-  url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+  url: "https://www.nvidia.com/en-gb/geforce/graphics-cards/40-series/rtx-4090/",
   sanitizeForLlm: true,
 }).then((webPage) => {
   writeFileSync(

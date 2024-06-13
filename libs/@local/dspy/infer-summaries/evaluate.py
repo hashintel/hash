@@ -19,9 +19,9 @@ devset = [dspy.Example(**test).with_inputs("context", "entity_type", "relevant_e
 evaluate = Evaluate(devset=devset, metric=metric, num_threads=4, display_progress=True, display_table=False)
 
 # Evaluate the unoptimized program's performance on the testset
-print("******************* Unoptimized program *******************")
-result = evaluate(EntityRecognizerProgram())
-print(f"********* Unoptimized program's score: {result} *********")
+# print("******************* Unoptimized program *******************")
+# result = evaluate(EntityRecognizerProgram())
+# print(f"********* Unoptimized program's score: {result} *********")
 
 # # Evaluate the optimized program's performance on the testset
 # print("******************* Optimized program *******************")

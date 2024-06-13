@@ -4,7 +4,7 @@
     "traces": [],
     "train": [],
     "demos": [],
-    "signature_instructions": "Proposed Instruction: Carefully dissect the given context to identify and extract all entities that precisely match the specified entity_type. Beyond mere identification, ensure thorough verification by cross-checking each extracted entity against the provided relevant_entities_description and confirming it maintains a substantial contextual connection with similarly classified entities. Filter out entities that fall short of these definitive standards to uphold the accuracy and relevancy of the extraction.",
-    "signature_prefix": "Extracted and validated entities are:"
+    "signature_instructions": "Basic Instruction: Carefully dissect the given context to identify and extract all entities that precisely match the specified entity_type. Beyond mere identification, ensure thorough verification by cross-checking each extracted entity against the provided relevant_entities_description and confirming it maintains a substantial contextual connection with similarly classified entities. Filter out entities that fall short of these definitive standards to uphold the accuracy and relevancy of the extraction.\n\nProposed Instruction: Analyze the given text to pinpoint all entities matching the specified entity_type. For each identified entity, cross-check it with the relevant_entities_description to ensure strong contextual alignment with other entities of the same type. Eliminate any entities that do not meet these criteria to maintain high extraction accuracy and relevance.",
+    "signature_prefix": "Extracted Entities:"
   }
 }
