@@ -60,7 +60,7 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
               text: dedent(`
               URL: ${url}
               Title: ${webPage.title}
-              Text: ${webPage.htmlContent} 
+              Text: ${webPage.innerText} 
             `),
             },
           ],
