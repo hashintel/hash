@@ -52,7 +52,7 @@ import {
 import { getEntityDiffsResolver } from "./knowledge/entity/get-entity-diffs";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
 import { requestFileUpload } from "./knowledge/file/request-file-upload";
-import { hashInstanceEntityResolver } from "./knowledge/hash-instance/hash-instance";
+import { hashInstanceSettingsResolver } from "./knowledge/hash-instance/hash-instance";
 import { createOrgResolver } from "./knowledge/org/create-org";
 import { pageContents } from "./knowledge/page";
 import {
@@ -127,7 +127,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       getEntityAuthorizationRelationshipsResolver,
     ),
     getEntitySubgraph: getEntitySubgraphResolver,
-    hashInstanceEntity: hashInstanceEntityResolver,
+    hashInstanceSettings: hashInstanceSettingsResolver,
     // Integration
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,

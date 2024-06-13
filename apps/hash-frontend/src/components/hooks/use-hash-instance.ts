@@ -9,10 +9,10 @@ import type {
 import { useMemo } from "react";
 
 import type {
-  GetHashInstanceEntityQueryQuery,
-  GetHashInstanceEntityQueryQueryVariables,
+  GetHashInstanceSettingsQueryQuery,
+  GetHashInstanceSettingsQueryQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash-instance.queries";
+import { getHashInstanceSettings } from "../../graphql/queries/knowledge/hash-instance.queries";
 
 /**
  * Retrieves the HASH instance.
@@ -20,33 +20,35 @@ import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash
 export const useHashInstance = (): {
   loading: boolean;
   hashInstance?: Simplified<HASHInstance>;
+  isUserAdmin: boolean;
 } => {
   const { data, loading } = useQuery<
-    GetHashInstanceEntityQueryQuery,
-    GetHashInstanceEntityQueryQueryVariables
-  >(getHashInstanceEntityQuery, {
+    GetHashInstanceSettingsQueryQuery,
+    GetHashInstanceSettingsQueryQueryVariables
+  >(getHashInstanceSettings, {
     fetchPolicy: "cache-and-network",
   });
 
-  const { hashInstanceEntity } = data ?? {};
+  const { hashInstanceSettings } = data ?? {};
 
   const hashInstance = useMemo<Simplified<HASHInstance> | undefined>(() => {
-    if (!hashInstanceEntity) {
+    if (!hashInstanceSettings) {
       return undefined;
     }
 
     const deserializedHashInstanceEntity = new Entity<HASHInstanceProperties>(
-      hashInstanceEntity,
+      hashInstanceSettings.entity,
     );
 
     return {
       metadata: deserializedHashInstanceEntity.metadata,
       properties: simplifyProperties(deserializedHashInstanceEntity.properties),
     };
-  }, [hashInstanceEntity]);
+  }, [hashInstanceSettings]);
 
   return {
     loading,
     hashInstance,
+    isUserAdmin: !!hashInstanceSettings?.isUserAdmin,
   };
 };
