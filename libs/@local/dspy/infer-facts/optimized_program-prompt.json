@@ -1,0 +1,10 @@
+{
+  "prog.predictor": {
+    "lm": null,
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature_instructions": "Basic Instruction: Infer facts about named entities from a piece of context.\nProposed Instruction: Carefully examine the provided context and extract pertinent facts about specific named entities mentioned within it. Ensure that the derived facts are directly supported by the context and clearly articulate the relationship or significance of these entities based on the information given.",
+    "signature_prefix": "Identified facts about the named entities are:"
+  }
+}
