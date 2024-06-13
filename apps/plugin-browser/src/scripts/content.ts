@@ -27,10 +27,10 @@ browser.runtime.onMessage.addListener(async (message: Message, _sender) => {
     const pageUrl = urlObject.href.replace(urlObject.hash, "");
 
     return {
-      content:
-        (message.html ? docContent?.innerHTML : docContent?.innerText) ?? "",
-      pageTitle: document.title,
-      pageUrl,
+      htmlContent: docContent?.innerHTML ?? "",
+      innerText: docContent?.innerText ?? "",
+      title: document.title,
+      url: pageUrl,
     } satisfies GetTabContentReturn;
   }
 
