@@ -78,7 +78,7 @@ export const PageSidebar: FunctionComponent = () => {
         ? [
             {
               title: "Workers",
-              path: "/goals",
+              path: enabledFeatureFlags.ai ? "/goals" : "/flows",
               icon: <BoltLightIcon sx={{ fontSize: 16 }} />,
               tooltipTitle: "",
               activeIfPathMatches: /^\/@([^/]+)\/(flows|workers)\//,
