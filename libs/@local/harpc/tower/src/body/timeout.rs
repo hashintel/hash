@@ -21,7 +21,7 @@ pub enum TimeoutError {
 pin_project_lite::pin_project! {
     /// A body that limits the amount of time between packets.
     #[derive(Debug)]
-    pub struct Timeout<B> {
+    pub struct FrameTimeout<B> {
         timeout: Duration,
         timeout_exceeded: bool,
 
@@ -33,7 +33,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<B> Timeout<B> {
+impl<B> FrameTimeout<B> {
     /// Create a new `Timeout` body.
     pub fn new(inner: B, timeout: Duration) -> Self {
         Self {
@@ -46,7 +46,7 @@ impl<B> Timeout<B> {
     }
 }
 
-impl<B, C> Body for Timeout<B>
+impl<B, C> Body for FrameTimeout<B>
 where
     B: Body<Error = Report<C>>,
 {

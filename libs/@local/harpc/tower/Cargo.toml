@@ -9,6 +9,7 @@ edition.workspace = true
 [dependencies]
 bytes.workspace = true
 error-stack.workspace = true
+futures.workspace = true
 harpc-net.workspace = true
 harpc-types.workspace = true
 harpc-wire-protocol.workspace = true

@@ -105,12 +105,9 @@ where
     L: AsRef<T>,
     R: AsRef<T>,
 {
-    fn as_ref(&self) -> &T {
-        match self {
-            Self::Left(left) => left.as_ref(),
-            Self::Right(right) => right.as_ref(),
-        }
-    }
+    forward!(
+        fn as_ref(&self) -> &T;
+    );
 }
 
 impl<T> Either<T, T> {
@@ -204,41 +201,26 @@ where
     type Data = Either<L::Data, R::Data>;
     type Error = Report<EitherError>;
 
+    forward!(
+        fn is_complete(&self) -> Option<bool>;
+    );
+
     fn poll_frame(
         self: Pin<&mut Self>,
         cx: &mut Context,
     ) -> Poll<Option<Result<Frame<Self::Data, Self::Control>, Self::Error>>> {
         let this = self.project();
 
-        let frame = match this {
-            EitherProj::Left(left) => {
-                let Some(frame) = ready!(left.poll_frame(cx)) else {
-                    return Poll::Ready(None);
-                };
+        match this {
+            EitherProj::Left(left) => left
+                .poll_frame(cx)
+                .map_ok(|frame| frame.map_data(Either::Left).map_control(Either::Left))
+                .map_err(|error| error.change_context(EitherError::Left)),
 
-                frame
-                    .map(|frame| frame.map_data(Either::Left).map_control(Either::Left))
-                    .map_err(|error| error.change_context(EitherError::Left))
-            }
-
-            EitherProj::Right(right) => {
-                let Some(frame) = ready!(right.poll_frame(cx)) else {
-                    return Poll::Ready(None);
-                };
-
-                frame
-                    .map(|frame| frame.map_data(Either::Right).map_control(Either::Right))
-                    .map_err(|error| error.change_context(EitherError::Right))
-            }
-        };
-
-        Poll::Ready(Some(frame))
-    }
-
-    fn is_complete(&self) -> Option<bool> {
-        match self {
-            Self::Left(left) => left.is_complete(),
-            Self::Right(right) => right.is_complete(),
+            EitherProj::Right(right) => right
+                .poll_frame(cx)
+                .map_ok(|frame| frame.map_data(Either::Right).map_control(Either::Right))
+                .map_err(|error| error.change_context(EitherError::Right)),
         }
     }
 }
