@@ -9,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 use self::connection::ConnectionParts;
 pub use self::{
     config::SessionConfig,
-    connection::Connection,
+    connection::{Connection, ResponseStream},
     transaction::stream::{ErrorStream, ValueStream},
 };
 use super::error::SessionError;

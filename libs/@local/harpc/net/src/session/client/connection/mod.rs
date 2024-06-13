@@ -25,10 +25,8 @@ use tokio_util::{
     task::TaskTracker,
 };
 
-use self::{
-    collection::{TransactionCollection, TransactionState, TransactionStorage},
-    stream::ResponseStream,
-};
+use self::collection::{TransactionCollection, TransactionState, TransactionStorage};
+pub use self::stream::ResponseStream;
 use super::{config::SessionConfig, transaction::TransactionTask};
 use crate::session::{error::ConnectionPartiallyClosedError, gc::ConnectionGarbageCollectorTask};
 

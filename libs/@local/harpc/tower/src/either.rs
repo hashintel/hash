@@ -1,4 +1,3 @@
-use core::task::ready;
 use std::{
     pin::Pin,
     task::{Context, Poll},
