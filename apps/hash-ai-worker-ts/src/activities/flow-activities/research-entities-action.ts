@@ -91,87 +91,101 @@ const updateStateFromInferredFacts = async (params: {
     filesUsedToInferFacts,
   } = params;
 
-  const { duplicates } = await deduplicateEntities({
-    entities: [
-      ...(input.existingEntitySummaries ?? []),
-      ...inferredFactsAboutEntities,
-      ...state.inferredFactsAboutEntities,
-    ],
-  });
-
-  /**
-   * There are some entities that shouldn't be marked as the duplicates, and
-   * should instead always be the canonical entity.
-   */
-  const entityIdsWhichCannotBeDeduplicated = [
+  if (
+    (input.existingEntities ?? []).length === 0 &&
+    state.inferredFactsAboutEntities.length === 0
+  ) {
     /**
-     * We don't want to deduplicate any entities that are already persisted in
-     * the graph (i.e. the `existingEntities` passed in as input to the action)
+     * If there are no existing inferred facts about entities, there
+     * is no need to deduplicate entities.
      */
-    ...(input.existingEntitySummaries ?? []).map(({ entityId }) => entityId),
-  ];
+    state.inferredFactsAboutEntities = inferredFactsAboutEntities;
+    state.inferredFacts = inferredFacts;
+  } else {
+    const { duplicates } = await deduplicateEntities({
+      entities: [
+        ...(input.existingEntitySummaries ?? []),
+        ...inferredFactsAboutEntities,
+        ...state.inferredFactsAboutEntities,
+      ],
+    });
 
-  const adjustedDuplicates = adjustDuplicates({
-    duplicates,
-    entityIdsWhichCannotBeDeduplicated,
-  });
+    /**
+     * There are some entities that shouldn't be marked as the duplicates, and
+     * should instead always be the canonical entity.
+     */
+    const entityIdsWhichCannotBeDeduplicated = [
+      /**
+       * We don't want to deduplicate any entities that are already persisted in
+       * the graph (i.e. the `existingEntities` passed in as input to the action)
+       */
+      ...(input.existingEntitySummaries ?? []).map(({ entityId }) => entityId),
+    ];
 
-  const inferredFactsWithDeduplicatedEntities = inferredFacts.map((fact) => {
-    const { subjectEntityLocalId, objectEntityLocalId } = fact;
-    const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
-      duplicateIds.includes(subjectEntityLocalId),
+    const adjustedDuplicates = adjustDuplicates({
+      duplicates,
+      entityIdsWhichCannotBeDeduplicated,
+    });
+
+    const inferredFactsWithDeduplicatedEntities = inferredFacts.map((fact) => {
+      const { subjectEntityLocalId, objectEntityLocalId } = fact;
+      const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
+        duplicateIds.includes(subjectEntityLocalId),
+      );
+
+      const objectDuplicate = objectEntityLocalId
+        ? duplicates.find(({ duplicateIds }) =>
+            duplicateIds.includes(objectEntityLocalId),
+          )
+        : undefined;
+
+      return {
+        ...fact,
+        subjectEntityLocalId:
+          subjectDuplicate?.canonicalId ?? fact.subjectEntityLocalId,
+        objectEntityLocalId:
+          objectDuplicate?.canonicalId ?? objectEntityLocalId,
+      };
+    });
+
+    state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
+    state.inferredFactsAboutEntities = [
+      ...state.inferredFactsAboutEntities,
+      ...inferredFactsAboutEntities,
+    ].filter(
+      ({ localId }) =>
+        !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
     );
+    /**
+     * Account for any previously proposed entities with a local ID which has
+     * been marked as a duplicate.
+     */
+    state.proposedEntities = state.proposedEntities.map((proposedEntity) => {
+      const duplicate = duplicates.find(({ duplicateIds }) =>
+        duplicateIds.includes(proposedEntity.localEntityId),
+      );
 
-    const objectDuplicate = objectEntityLocalId
-      ? duplicates.find(({ duplicateIds }) =>
-          duplicateIds.includes(objectEntityLocalId),
-        )
-      : undefined;
+      return duplicate
+        ? {
+            ...proposedEntity,
+            localEntityId: duplicate.canonicalId,
+          }
+        : proposedEntity;
+    });
+    /**
+     * Account for any previously submitted entity ID which has been marked
+     * as a duplicate.
+     */
+    state.submittedEntityIds = state.submittedEntityIds.map((entityId) => {
+      const duplicate = duplicates.find(({ duplicateIds }) =>
+        duplicateIds.includes(entityId),
+      );
 
-    return {
-      ...fact,
-      subjectEntityLocalId:
-        subjectDuplicate?.canonicalId ?? fact.subjectEntityLocalId,
-      objectEntityLocalId: objectDuplicate?.canonicalId ?? objectEntityLocalId,
-    };
-  });
+      return duplicate ? duplicate.canonicalId : entityId;
+    });
+  }
 
-  state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
-  state.inferredFactsAboutEntities = [
-    ...state.inferredFactsAboutEntities,
-    ...inferredFactsAboutEntities,
-  ].filter(
-    ({ localId }) =>
-      !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
-  );
   state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
-  /**
-   * Account for any previously proposed entities with a local ID which has
-   * been marked as a duplicate.
-   */
-  state.proposedEntities = state.proposedEntities.map((proposedEntity) => {
-    const duplicate = duplicates.find(({ duplicateIds }) =>
-      duplicateIds.includes(proposedEntity.localEntityId),
-    );
-
-    return duplicate
-      ? {
-          ...proposedEntity,
-          localEntityId: duplicate.canonicalId,
-        }
-      : proposedEntity;
-  });
-  /**
-   * Account for any previously submitted entity ID which has been marked
-   * as a duplicate.
-   */
-  state.submittedEntityIds = state.submittedEntityIds.map((entityId) => {
-    const duplicate = duplicates.find(({ duplicateIds }) =>
-      duplicateIds.includes(entityId),
-    );
-
-    return duplicate ? duplicate.canonicalId : entityId;
-  });
 };
 
 export const researchEntitiesAction: FlowActionActivity<{
