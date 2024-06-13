@@ -74,6 +74,8 @@ export const getLlmResponse = async <T extends LlmParams>(
 
   const timeBeforeApiCall = Date.now();
 
+  logger.debug(`Getting LLM response for model ${llmParams.model}`);
+
   const llmResponse = (
     isLlmParamsAnthropicLlmParams(llmParams)
       ? await getAnthropicResponse(llmParams)

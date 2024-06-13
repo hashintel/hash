@@ -19,41 +19,52 @@ export const updateStateFromInferredFacts = async (params: {
     filesUsedToInferFacts,
   } = params;
 
-  const { duplicates } = await deduplicateEntities({
-    entities: [
-      ...inferredFactsAboutEntities,
+  if (state.inferredFactsAboutEntities.length === 0) {
+    /**
+     * If there are no existing inferred facts about entities, there
+     * is no need to deduplicate entities.
+     */
+    state.inferredFactsAboutEntities = inferredFactsAboutEntities;
+    state.inferredFacts = inferredFacts;
+  } else {
+    const { duplicates } = await deduplicateEntities({
+      entities: [
+        ...inferredFactsAboutEntities,
+        ...state.inferredFactsAboutEntities,
+      ],
+    });
+
+    const inferredFactsWithDeduplicatedEntities = inferredFacts.map((fact) => {
+      const { subjectEntityLocalId, objectEntityLocalId } = fact;
+      const subjectDuplicate = duplicates.find(({ duplicateIds }) =>
+        duplicateIds.includes(subjectEntityLocalId),
+      );
+
+      const objectDuplicate = objectEntityLocalId
+        ? duplicates.find(({ duplicateIds }) =>
+            duplicateIds.includes(objectEntityLocalId),
+          )
+        : undefined;
+
+      return {
+        ...fact,
+        subjectEntityLocalId:
+          subjectDuplicate?.canonicalId ?? fact.subjectEntityLocalId,
+        objectEntityLocalId:
+          objectDuplicate?.canonicalId ?? objectEntityLocalId,
+      };
+    });
+
+    state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
+    state.inferredFactsAboutEntities = [
       ...state.inferredFactsAboutEntities,
-    ],
-  });
-
-  const inferredFactsWithDeduplicatedEntities = inferredFacts.map((fact) => {
-    const { subjectEntityLocalId, objectEntityLocalId } = fact;
-    const subjectDuplicate = duplicates.find(({ duplicateIds }) =>
-      duplicateIds.includes(subjectEntityLocalId),
+      ...inferredFactsAboutEntities,
+    ].filter(
+      ({ localId }) =>
+        !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
     );
+  }
 
-    const objectDuplicate = objectEntityLocalId
-      ? duplicates.find(({ duplicateIds }) =>
-          duplicateIds.includes(objectEntityLocalId),
-        )
-      : undefined;
-
-    return {
-      ...fact,
-      subjectEntityLocalId:
-        subjectDuplicate?.canonicalId ?? fact.subjectEntityLocalId,
-      objectEntityLocalId: objectDuplicate?.canonicalId ?? objectEntityLocalId,
-    };
-  });
-
-  state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
-  state.inferredFactsAboutEntities = [
-    ...state.inferredFactsAboutEntities,
-    ...inferredFactsAboutEntities,
-  ].filter(
-    ({ localId }) =>
-      !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
-  );
   state.filesUsedToInferFacts = [
     ...state.filesUsedToInferFacts,
     ...filesUsedToInferFacts,

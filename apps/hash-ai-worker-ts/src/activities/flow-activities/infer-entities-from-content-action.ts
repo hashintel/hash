@@ -18,8 +18,9 @@ import type {
 import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity";
 import { getFlowContext } from "../shared/get-flow-context";
 import { graphApiClient } from "../shared/graph-api-client";
+import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model";
 import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities";
-import { modelAliasToSpecificModel } from "../shared/openai-client";
+import { isPermittedOpenAiModel } from "../shared/openai-client";
 import type { FlowActionActivity } from "./types";
 
 export const inferEntitiesFromContentAction: FlowActionActivity = async ({
@@ -28,7 +29,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
   const {
     content,
     entityTypeIds,
-    model,
+    model: modelAlias,
     relevantEntitiesPrompt,
     existingEntities: inputExistingEntities,
   } = getSimplifiedActionInputs({
@@ -88,10 +89,20 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     usage: [],
   };
 
-  if (!isInferenceModelName(model)) {
+  if (!isInferenceModelName(modelAlias)) {
     return {
       code: StatusCode.InvalidArgument,
-      message: `Invalid inference model name: ${model}`,
+      message: `Invalid inference model name: ${modelAlias}`,
+      contents: [],
+    };
+  }
+
+  const model = inferenceModelAliasToSpecificModel[modelAlias];
+
+  if (!isPermittedOpenAiModel(model)) {
+    return {
+      code: StatusCode.InvalidArgument,
+      message: `Model must be an OpenAI model, provided: ${model}`,
       contents: [],
     };
   }
@@ -99,7 +110,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
   const status = await inferEntitiesFromWebPageActivity({
     webPage: content,
     relevantEntitiesPrompt,
-    model: modelAliasToSpecificModel[model],
+    model,
     entityTypes,
     inferenceState: webPageInferenceState,
     existingEntities,
