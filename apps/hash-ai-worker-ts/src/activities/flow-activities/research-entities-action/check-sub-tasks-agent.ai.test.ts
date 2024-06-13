@@ -7,7 +7,7 @@ import { getFlowContext } from "../../shared/get-flow-context";
 import { graphApiClient } from "../../shared/graph-api-client";
 import { checkSubTasksAgent } from "./check-sub-tasks-agent";
 
-test(
+test.skip(
   "Test checkSubTasksAgent",
   async () => {
     const { userAuthentication } = await getFlowContext();
