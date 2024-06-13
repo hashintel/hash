@@ -1,6 +1,7 @@
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Context } from "@temporalio/activity";
+import { JSDOM } from "jsdom";
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import sanitizeHtml from "sanitize-html";
@@ -10,6 +11,42 @@ import { requestExternalInput } from "./shared/request-external-input";
 
 puppeteer.use(StealthPlugin());
 
+/**
+ * The attributes that will be allowed in the HTML content.
+ */
+const allowedAttributes = [
+  "href",
+  "src",
+  "onclick",
+  "title",
+  "alt",
+  "aria",
+  "label",
+  "aria-*",
+  "data-*",
+];
+
+/**
+ * The tags that will always be filtered from the HTML content.
+ *
+ * @todo: consider whether there are other tags that aren't relevant
+ * for LLM consumption.
+ */
+const disallowedTags = ["script", "style", "link", "canvas", "svg"];
+
+/**
+ * The tags that will be filtered from the HTML content if they don't have
+ * any of the relevant attributes (defined in `allowedAttributes`).
+ */
+const disallowedTagsWithNoRelevantAttributes = [
+  "div",
+  "span",
+  "strong",
+  "b",
+  "i",
+  "em",
+];
+
 export const sanitizeHtmlForLlmConsumption = (params: {
   htmlContent: string;
   maximumNumberOfTokens?: number;
@@ -18,29 +55,34 @@ export const sanitizeHtmlForLlmConsumption = (params: {
 
   const sanitizedHtml = sanitizeHtml(htmlContent, {
     allowedTags: sanitizeHtml.defaults.allowedTags.filter(
-      /**
-       * @todo: consider whether there are other tags that aren't relevant
-       * for LLM consumption.
-       */
-      (tag) => !["script", "style", "link", "canvas", "svg"].includes(tag),
+      (tag) => !disallowedTags.includes(tag),
     ),
-    allowedAttributes: {
-      "*": [
-        "href",
-        "src",
-        "onclick",
-        "title",
-        "alt",
-        "aria",
-        "label",
-        "aria-*",
-        "data-*",
-      ],
-    },
+    allowedAttributes: { "*": allowedAttributes },
     disallowedTagsMode: "discard",
   });
 
-  const slicedSanitizedHtml = sanitizedHtml.slice(
+  const dom = new JSDOM(sanitizedHtml);
+  const document = dom.window.document;
+
+  const elements = document.querySelectorAll(
+    disallowedTagsWithNoRelevantAttributes.join(","),
+  );
+
+  for (const element of elements) {
+    if (!element.attributes.length) {
+      while (element.firstChild) {
+        element.parentNode?.insertBefore(element.firstChild, element);
+      }
+      element.remove();
+    }
+  }
+
+  const sanitizedHtmlWithNoDisallowedTags = document.body.innerHTML
+    // Remove any whitespace between tags
+    .replace(/>\s+</g, "><")
+    .trim();
+
+  const slicedSanitizedHtml = sanitizedHtmlWithNoDisallowedTags.slice(
     0,
     /**
      * Assume that each token is 4 characters long.

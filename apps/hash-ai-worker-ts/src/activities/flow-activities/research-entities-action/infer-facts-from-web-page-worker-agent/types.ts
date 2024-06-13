@@ -13,8 +13,7 @@ const toolNames = [
   "complete",
   "terminate",
   "updatePlan",
-  "queryPdf",
-  "inferFactsFromText",
+  "queryFactsFromPdf",
 ] as const;
 
 export type ToolName = (typeof toolNames)[number];

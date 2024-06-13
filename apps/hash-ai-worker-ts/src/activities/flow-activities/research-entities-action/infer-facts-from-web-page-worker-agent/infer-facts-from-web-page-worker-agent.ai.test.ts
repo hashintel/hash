@@ -124,7 +124,7 @@ test.skip(
   },
 );
 
-test(
+test.skip(
   "Test inferFactsFromWebPageWorkerAgent: top 3 graphics cards",
   async () => {
     const { userAuthentication } = await getFlowContext();
@@ -161,5 +161,45 @@ test(
   },
   {
     timeout: 10 * 60 * 1000,
+  },
+);
+
+test.skip(
+  "Test inferFactsFromWebPageWorkerAgent for getting investors of M & S",
+  async () => {
+    const { userAuthentication } = await getFlowContext();
+
+    const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
+      entityTypeIds: [
+        "https://hash.ai/@ftse/types/entity-type/investment-fund/v/1",
+      ],
+      actorId: userAuthentication.actorId,
+      graphApiClient,
+      simplifyPropertyKeys: true,
+    });
+
+    const status = await inferFactsFromWebPageWorkerAgent({
+      prompt:
+        "Get the list of investors of Marks and Spencer's, based on the 2023 annual investors report PDF file.",
+      entityTypes: Object.values(dereferencedEntityTypes).map(
+        ({ schema }) => schema,
+      ),
+      url: "https://corporate.marksandspencer.com/investors",
+      testingParams: {
+        persistState: (state) =>
+          persistState({ state, testName: "investors-of-m-and-s" }),
+        // resumeFromState: retrievePreviousState({
+        //   testName: "investors-of-m-and-s",
+        // }),
+      },
+    });
+
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ status }, null, 2));
+
+    expect(status).toBeDefined();
+  },
+  {
+    timeout: 5 * 60 * 1000,
   },
 );

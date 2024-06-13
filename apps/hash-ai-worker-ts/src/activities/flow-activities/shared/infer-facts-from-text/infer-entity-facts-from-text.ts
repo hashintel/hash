@@ -262,16 +262,7 @@ export const inferEntityFactsFromText = async (params: {
 
       /** @todo: ensure the provided `objectEntityLocalId` matches an ID in `potentialObjectEntities` */
 
-      if (fact.text.includes(" and ")) {
-        /**
-         * @todo: this can result in false positives, names may include the word "and"
-         */
-        invalidFacts.push({
-          ...fact,
-          invalidReason: `The fact contains the forbidden word "and". Facts must be standalone and not contain conjunctions. You must split this fact into separate standalone facts.`,
-          toolCallId: toolCall.id,
-        });
-      } else if (!fact.text.startsWith(subjectEntity.name)) {
+      if (!fact.text.startsWith(subjectEntity.name)) {
         invalidFacts.push({
           ...fact,
           invalidReason: `The fact does not start with "${subjectEntity.name}" as the subject of the fact. Facts must have the subject entity as the singular subject.`,
