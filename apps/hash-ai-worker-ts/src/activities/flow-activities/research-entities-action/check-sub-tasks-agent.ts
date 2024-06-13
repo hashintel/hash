@@ -80,6 +80,14 @@ export const checkSubTasksAgent = async (params: {
     - the subtask is a duplicate of another subtask, or
     - the subtask will lead to looking up the same information from another subtask, or
     - the subtask won't lead to discovering new information that can be outputted from the research task as entities and links.
+
+    Subtasks are executed independently, so won't be able to share information between them.
+
+    Therefore you must also reject subtasks if they could result in looking up information about more entities
+      than is required to complete the research task.
+
+    When the user is looking up information about entities in more than one subtask, you must reject the subtasks if their goals
+      don't name and specify which entities to focus on. Otherwise each subtask may look up information about different entities.
   `;
 
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
@@ -116,7 +124,7 @@ export const checkSubTasksAgent = async (params: {
 
   const response = await getLlmResponse(
     {
-      model: "claude-3-haiku-20240307",
+      model: "claude-3-opus-20240229",
       systemPrompt,
       tools: [submitVerdictToolDefinition],
       messages: [
