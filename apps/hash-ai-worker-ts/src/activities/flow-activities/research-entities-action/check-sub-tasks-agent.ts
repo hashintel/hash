@@ -78,6 +78,7 @@ export const checkSubTasksAgent = async (params: {
     You must reject a subtask if:
     - the subtask is irrelevant to the research task, or
     - the subtask is a duplicate of another subtask, or
+    - the subtask is very similar to the research task itself, or
     - the subtask will lead to looking up the same information from another subtask, or
     - the subtask won't lead to discovering new information that can be outputted from the research task as entities and links.
 
