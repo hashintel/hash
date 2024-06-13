@@ -251,8 +251,8 @@ const getNextToolCalls = async (params: {
     generateUserMessage({
       input,
       /**
-       * Include the inner HTML of the web page in the user message no HTML content
-       * has been requested in other tool calls.
+       * Include the inner HTML of the original web page in the user message 
+       * if no further HTML content has been requested in other tool calls.
        */
       includeInnerHtml: !state.previousCalls.some(({ completedToolCalls }) =>
         completedToolCalls.some(({ name }) => name === "getWebPageInnerHtml"),
