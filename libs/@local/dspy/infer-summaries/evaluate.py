@@ -4,15 +4,15 @@ import json
 
 from definition import EntityRecognizerProgram
 from metric import metric
-from llms import haiku, gpt4o
+from llms import haiku
 
 dspy.settings.configure(lm=haiku)
 
-# Load the training set for unoptimized evaluation
-with open("trainset.json") as f:
+# Load the testset set for evaluation
+with open("testset.json") as f:
     tests = json.load(f)
 
-devset = [dspy.Example(**item).with_inputs("context", "entity_type", "relevant_entities_description") for item in tests]
+devset = [dspy.Example(**test).with_inputs("context", "entity_type", "relevant_entities_description") for test in tests]
 
 # Create the evaluation function
 # Table display is not supported in the terminal – see https://github.com/stanfordnlp/dspy/issues/663
@@ -22,3 +22,10 @@ evaluate = Evaluate(devset=devset, metric=metric, num_threads=4, display_progres
 print("******************* Unoptimized program *******************")
 result = evaluate(EntityRecognizerProgram())
 print(f"********* Unoptimized program's score: {result} *********")
+
+# # Evaluate the optimized program's performance on the testset
+# print("******************* Optimized program *******************")
+# program = EntityRecognizerProgram()
+# program.load(path="optimized_program-bootstrapped.json")
+# result = evaluate(program)
+# print(f"********* Optimized program's score: {result} *********")

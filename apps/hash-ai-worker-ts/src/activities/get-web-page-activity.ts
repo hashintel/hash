@@ -238,7 +238,7 @@ const escapeHtmlToJsonString = (html: string) => {
 };
 
 await getWebPageActivity({
-  url: "https://openai.com/index/video-generation-models-as-world-simulators/",
+  url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
   sanitizeForLlm: true,
 }).then((webPage) => {
   writeFileSync(

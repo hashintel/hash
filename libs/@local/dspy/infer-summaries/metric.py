@@ -14,12 +14,12 @@ def metric(example, pred, Trace=None) -> float:
       entities in `wrong_type_entities` and `irrelevant_entities`.
 
     Scoring:
-    - If any gold entity is missed, the score is 0.
-    - If no gold entity is missed:
-        - Any predicted entity appearing in `wrong_type_entities` reduces the score
-          up to a maximum of 0.4, proportionate to the number of wrong type entities in the example.
-        - Any predicted entity appearing in `irrelevant_entities` reduces the score
-          up to a maximum of 0.2, proportionate to the number of irrelevant entities in the example.
+    - Any entity missed from gold_entities reduces the score
+      up to a maximum of 0.5, proportionate to the number of entities missing from the example.
+    - Any predicted entity appearing in `wrong_type_entities` reduces the score
+      up to a maximum of 0.3, proportionate to the number of wrong type entities in the example.
+    - Any predicted entity appearing in `irrelevant_entities` reduces the score
+      up to a maximum of 0.2, proportionate to the number of irrelevant entities in the example.
 
     A unique identifier (UUID) is generated for each evaluation. The logs, including 
     predicted entities and other details, are written to a file named after this UUID.
@@ -61,18 +61,18 @@ def metric(example, pred, Trace=None) -> float:
     log["missing_entities"] = list(missing_entities)
 
     # Calculate penalties for missing entities
-    missing_entities_penalty = 0.7 * (len(missing_entities) / len(gold_set))
-    score -= min(missing_entities_penalty, 0.7)
+    missing_entities_penalty = 0.5 * (len(missing_entities) / len(gold_set))
+    score -= min(missing_entities_penalty, 0.5)
 
     # Calculate penalties for wrong type entities
     if wrong_type_matches:
-        wrong_type_penalty = 0.2 * (len(wrong_type_matches) / len(wrong_type_set))
-        score -= min(wrong_type_penalty, 0.2)
+        wrong_type_penalty = 0.3 * (len(wrong_type_matches) / len(wrong_type_set))
+        score -= min(wrong_type_penalty, 0.3)
 
     # Calculate penalties for irrelevant entities
     if irrelevant_matches:
-        irrelevant_penalty = 0.1 * (len(irrelevant_matches) / len(irrelevant_set))
-        score -= min(irrelevant_penalty, 0.1)
+        irrelevant_penalty = 0.2 * (len(irrelevant_matches) / len(irrelevant_set))
+        score -= min(irrelevant_penalty, 0.2)
         
     # Identify predicted entities that aren't matched
     # – this may indicate an oversight in the training data, or entities named slightly differently

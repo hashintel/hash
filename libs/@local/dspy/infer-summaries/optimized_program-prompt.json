@@ -4,7 +4,7 @@
     "traces": [],
     "train": [],
     "demos": [],
-    "signature_instructions": "Proposed Instruction: Identify and extract entities from a given text segment that align with the specified entity_type. Ensure that each identified entity not only matches the entity_type but also conforms to the relevant_entities_description provided. If an entity doesn't directly meet the description, it should have an explicit contextual relationship with those that do. Disregard any entities that do not fit these criteria.",
-    "signature_prefix": "Identified entities:"
+    "signature_instructions": "Proposed Instruction: Carefully dissect the given context to identify and extract all entities that precisely match the specified entity_type. Beyond mere identification, ensure thorough verification by cross-checking each extracted entity against the provided relevant_entities_description and confirming it maintains a substantial contextual connection with similarly classified entities. Filter out entities that fall short of these definitive standards to uphold the accuracy and relevancy of the extraction.",
+    "signature_prefix": "Extracted and validated entities are:"
   }
 }

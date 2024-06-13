@@ -15,9 +15,9 @@ class EntityType(pydantic.BaseModel):
 # Define the DSPy Signature, which represents the input -> output expectations of the program
 class EntityRecognizerSignature(dspy.Signature):
     """
-    Infer entities from a piece of context. ALL entities must match the supplied entity_type.
-    Each entity inferred must also meet the relevant_entities_description, or have a clear relationship in the context to entities that do (these must also match the supplied type)
-    Ignore other entities mentioned in the context.
+    Carefully dissect the given context to identify and extract all entities that precisely match the specified entity_type. 
+    Beyond mere identification, ensure thorough verification by cross-checking each extracted entity against the provided relevant_entities_description and confirming it maintains a substantial contextual connection with similarly classified entities. 
+    Filter out entities that fall short of these definitive standards to uphold the accuracy and relevancy of the extraction.
     """
     context: str = dspy.InputField()
     entity_type: dict = dspy.InputField(description="The type of entities of interest")
