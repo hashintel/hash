@@ -20,10 +20,8 @@ import type {
   EntityTemporalVersioningMetadata,
   EntityUuid,
   LinkData,
-  PropertyMetadataArray,
   PropertyMetadataElement,
   PropertyMetadataObject,
-  PropertyMetadataValue,
   PropertyPath,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -84,12 +82,6 @@ type EntityData<
   };
 };
 
-type PropertyElementMetadata = {
-  confidence?: number;
-  provenance?: PropertyProvenance;
-  dataTypeId?: VersionedUrl;
-};
-
 type EntityInput<Properties extends EntityPropertiesObject> =
   | GraphApiEntity
   | SerializedEntity<Properties>;
@@ -116,11 +108,11 @@ export const flattenedPropertyMetadataMap = (
   metadata: PropertyMetadataObject,
 ): {
   path: PropertyPath;
-  metadata: PropertyElementMetadata;
+  metadata: Required<PropertyMetadataElement>["metadata"];
 }[] => {
   const flattened: {
     path: PropertyPath;
-    metadata: PropertyElementMetadata;
+    metadata: Required<PropertyMetadataElement>["metadata"];
   }[] = [];
 
   const visitElement = (
@@ -142,21 +134,10 @@ export const flattenedPropertyMetadataMap = (
       }
     }
 
-    const confidence = element.confidence;
-    const provenance = element.provenance;
-    const dataTypeId = (element as PropertyMetadataValue).dataTypeId;
-    if (
-      confidence !== undefined ||
-      provenance !== undefined ||
-      dataTypeId !== undefined
-    ) {
+    if (element.metadata) {
       flattened.push({
         path,
-        metadata: {
-          confidence,
-          provenance,
-          dataTypeId,
-        },
+        metadata: element.metadata,
       });
     }
   };
@@ -303,56 +284,34 @@ export class Entity<
     return this.#entity.properties;
   }
 
-  private propertyMetadataElement(
+  public propertyMetadata(
     path: PropertyPath,
-  ): PropertyElementMetadata | undefined {
+  ): PropertyMetadataElement["metadata"] {
     return path.reduce<PropertyMetadataElement | undefined>((map, key) => {
       if (!map) {
         return undefined;
       }
       if (typeof key === "number") {
-        return (map as PropertyMetadataArray)[`${key}`];
+        if ("elements" in map) {
+          return map.elements[key];
+        } else {
+          return undefined;
+        }
+      } else if ("properties" in map) {
+        return map.properties[key];
       } else {
-        return (map as PropertyMetadataObject)[key];
+        return undefined;
       }
-    }, this.#entity.metadata.properties);
-  }
-
-  public propertyMetadata(
-    path: PropertyPath,
-  ): PropertyElementMetadata | undefined {
-    const element = this.propertyMetadataElement(path);
-
-    if (!element) {
-      return undefined;
-    }
-    const provenance = element.provenance;
-    const confidence = element.confidence;
-    const dataTypeId = (element as PropertyMetadataValue).dataTypeId;
-    if (
-      provenance === undefined &&
-      confidence === undefined &&
-      dataTypeId === undefined
-    ) {
-      return undefined;
-    }
-
-    return {
-      provenance,
-      confidence,
-      dataTypeId,
-    };
+    }, this.#entity.metadata.properties)?.metadata;
   }
 
   public flattenedProperties(): {
     path: PropertyPath;
-    metadata: {
-      dataTypeId?: VersionedUrl;
-      confidence?: number;
-      provenance?: PropertyProvenance;
-    };
+    metadata: PropertyMetadataElement["metadata"];
   }[] {
-    return flattenedPropertyMetadataMap(this.#entity.metadata.properties ?? {});
+    return flattenedPropertyMetadataMap(
+      this.#entity.metadata.properties ?? { properties: {} },
+    );
   }
 
   public get linkData(): LinkData | undefined {

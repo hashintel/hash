@@ -1,14 +1,16 @@
-use alloc::borrow::Cow;
+pub use self::{
+    array::{ArrayMetadata, PropertyMetadataArray},
+    object::{ObjectMetadata, PropertyMetadataObject},
+    value::ValueMetadata,
+};
+
+mod array;
+mod object;
+mod value;
+
+use std::collections::HashMap;
 #[cfg(feature = "postgres")]
 use std::error::Error;
-use std::{
-    collections::{
-        btree_map,
-        hash_map::{self, RawEntryMut},
-        BTreeMap, HashMap,
-    },
-    mem,
-};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
@@ -16,17 +18,14 @@ use error_stack::{Report, ResultExt};
 use json_patch::{AddOperation, PatchOperation, RemoveOperation, ReplaceOperation};
 use jsonptr::Pointer;
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
-use serde::{
-    de::{DeserializeSeed, Visitor},
-    Deserialize, Deserializer, Serialize,
-};
+use postgres_types::{FromSql, IsNull, ToSql, Type};
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::url::BaseUrl;
 
 use crate::knowledge::{
-    property::{provenance::PropertyProvenance, PatchError, Property},
-    Confidence, PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyPathElement,
+    property::{PatchError, Property},
+    PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyPathElement,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -45,397 +44,36 @@ pub enum PropertyPathError {
     ObjectKeyNotFound { key: BaseUrl },
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub struct PropertyMetadataArray {
-    #[serde(flatten)]
-    array: BTreeMap<usize, PropertyMetadataElement>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    confidence: Option<Confidence>,
-    #[serde(default, skip_serializing_if = "PropertyProvenance::is_empty")]
-    provenance: PropertyProvenance,
-}
-
-impl PropertyMetadataArray {
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.array.is_empty() && self.confidence.is_none() && self.provenance.is_empty()
-    }
-
-    pub fn add(
-        &mut self,
-        index: usize,
-        metadata: PropertyMetadataElement,
-    ) -> Result<(), Report<PropertyPathError>> {
-        let after = self.array.split_off(&index);
-        self.array.insert(index, metadata);
-        self.array.extend(
-            after
-                .into_iter()
-                .map(|(index, metadata)| (index + 1, metadata)),
-        );
-        Ok(())
-    }
-
-    pub fn remove(
-        &mut self,
-        index: usize,
-    ) -> Result<PropertyMetadataElement, Report<PropertyPathError>> {
-        let after = self.array.split_off(&(index + 1));
-        let metadata = self
-            .array
-            .remove(&index)
-            .ok_or(PropertyPathError::ArrayIndexNotFound { index })?;
-        self.array.extend(
-            after
-                .into_iter()
-                .map(|(index, metadata)| (index - 1, metadata)),
-        );
-        Ok(metadata)
-    }
-
-    pub fn replace(
-        &mut self,
-        index: usize,
-        metadata: PropertyMetadataElement,
-    ) -> Result<PropertyMetadataElement, Report<PropertyPathError>> {
-        Ok(mem::replace(
-            self.array
-                .get_mut(&index)
-                .ok_or(PropertyPathError::ArrayIndexNotFound { index })?,
-            metadata,
-        ))
-    }
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub struct PropertyMetadataObject {
-    #[serde(flatten)]
-    object: HashMap<BaseUrl, PropertyMetadataElement>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    confidence: Option<Confidence>,
-    #[serde(default, skip_serializing_if = "PropertyProvenance::is_empty")]
-    provenance: PropertyProvenance,
-}
-
-impl PropertyMetadataObject {
-    pub fn with_confidence(mut self, confidence: Confidence) -> Self {
-        self.confidence = Some(confidence);
-        self
-    }
-
-    pub fn with_provenance(mut self, provenance: PropertyProvenance) -> Self {
-        self.provenance = provenance;
-        self
-    }
-
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.object.is_empty() && self.confidence.is_none() && self.provenance.is_empty()
-    }
-
-    pub fn add(
-        &mut self,
-        key: BaseUrl,
-        metadata: PropertyMetadataElement,
-    ) -> Result<(), Report<PropertyPathError>> {
-        match self.object.entry(key) {
-            hash_map::Entry::Occupied(mut entry) => {
-                Err(Report::new(PropertyPathError::ObjectKeyOccupied {
-                    key: entry.key().clone(),
-                }))
-            }
-            hash_map::Entry::Vacant(entry) => {
-                entry.insert(metadata);
-                Ok(())
-            }
-        }
-    }
-
-    // fn patch_add<'a>(
-    //     &mut self,
-    //     property_path: impl IntoIterator<Item = PropertyPathElement<'a>>,
-    //     metadata: PropertyMetadataElement,
-    // ) -> Result<(), Report<PropertyPathError>> {
-    //     let mut path_iter = property_path.into_iter().peekable();
-    //     let Some(first) = path_iter.next() else {
-    //         return Err(Report::new(PropertyPathError::EmptyPath));
-    //     };
-    //
-    //     let first_key = match first {
-    //         PropertyPathElement::Property(key) => key,
-    //         PropertyPathElement::Index(index) => {
-    //             return Err(Report::new(PropertyPathError::ObjectExpected { index }));
-    //         }
-    //     };
-    //
-    //     let element = if path_iter.peek().is_none() {
-    //         self.add(first_key.into_owned(), metadata)?;
-    //         return Ok(());
-    //     } else {
-    //         self.object
-    //             .get_mut(&first_key)
-    //             .ok_or_else(|| PropertyPathError::ObjectKeyNotFound {
-    //                 key: first_key.into_owned(),
-    //             })?
-    //     };
-    // }
-
-    pub fn remove(
-        &mut self,
-        key: &BaseUrl,
-    ) -> Result<PropertyMetadataElement, Report<PropertyPathError>> {
-        Ok(self
-            .object
-            .remove(key)
-            .ok_or_else(|| PropertyPathError::ObjectKeyNotFound { key: key.clone() })?)
-    }
-
-    pub fn replace(
-        &mut self,
-        key: &BaseUrl,
-        metadata: PropertyMetadataElement,
-    ) -> Result<PropertyMetadataElement, Report<PropertyPathError>> {
-        Ok(mem::replace(
-            self.object
-                .get_mut(&key)
-                .ok_or_else(|| PropertyPathError::ObjectKeyNotFound { key: key.clone() })?,
-            metadata,
-        ))
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for PropertyMetadataObject {
-    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        Ok(Json::from_sql(ty, raw)?.0)
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <Json<Self> as FromSql>::accepts(ty)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl ToSql for PropertyMetadataObject {
-    postgres_types::to_sql_checked!();
-
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        Json(self).to_sql(ty, out)
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <Json<Self> as ToSql>::accepts(ty)
-    }
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub struct PropertyMetadataValue {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    confidence: Option<Confidence>,
-    #[serde(default, skip_serializing_if = "PropertyProvenance::is_empty")]
-    provenance: PropertyProvenance,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    data_type_id: Option<VersionedUrl>,
-}
-
-impl PropertyMetadataValue {
-    pub fn with_confidence(mut self, confidence: Confidence) -> Self {
-        self.confidence = Some(confidence);
-        self
-    }
-
-    pub fn with_provenance(mut self, provenance: PropertyProvenance) -> Self {
-        self.provenance = provenance;
-        self
-    }
-
-    pub fn with_data_type_id(mut self, data_type_id: VersionedUrl) -> Self {
-        self.data_type_id = Some(data_type_id);
-        self
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for PropertyMetadataValue {
-    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        Ok(Json::from_sql(ty, raw)?.0)
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <Json<Self> as FromSql>::accepts(ty)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl ToSql for PropertyMetadataValue {
-    postgres_types::to_sql_checked!();
-
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        Json(self).to_sql(ty, out)
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <Json<Self> as ToSql>::accepts(ty)
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum PropertyMetadataElementType {
-    Value,
-    Array,
-    Object,
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum PropertyMetadataElement {
-    Value(PropertyMetadataValue),
     Array(PropertyMetadataArray),
     Object(PropertyMetadataObject),
+    Value { metadata: ValueMetadata },
 }
 
-// impl PropertyMetadataElement {
-//     fn promote(path: PropertyMetadataElement<'_>) -> Result<>
-//     fn patch_add(
-//         &mut self,
-//         property_path: impl IntoIterator<Item = PropertyPathElement<'_>>,
-//         metadata: PropertyMetadataElement,
-//     ) -> Result<(), Report<PropertyPathError>> {
-//         let mut path_iter = property_path.into_iter().peekable();
-//
-//         match self {
-//             PropertyMetadataElement::Value(value) => {
-//                 // We can potentially replace the value with `Array` or `Object` if no data type
-//                 // is specified.
-//                 let can_be_promoted = value.data_type_id.is_none();
-//                 if let Some(peek) = path_iter.peek() {
-//                     match peek {
-//                         PropertyPathElement::Property(_) => {
-//                             return Err(Report::new(PropertyPathError::ArrayExpected {
-//                                 key: peek.into_owned(),
-//                             }));
-//                         }
-//                         PropertyPathElement::Index(_) => {
-//                             return Err(Report::new(PropertyPathError::ObjectExpected {
-//                                 index: peek.into_owned(),
-//                             }));
-//                         }
-//
-//                     }
-//                 }
-//
-//                 return Err(Report::new(PropertyPathError::ObjectExpected { index: 0 }));
-//             }
-//             PropertyMetadataElement::Array(array) => {
-//                 array.patch_add(property_path, metadata)?;
-//             }
-//             PropertyMetadataElement::Object(object) => {
-//                 object.patch_add(property_path, metadata)?;
-//             }
-//         }
-//         let Some(first) = path_iter.next() else {
-//             return Err(Report::new(PropertyPathError::EmptyPath));
-//         };
-//
-//         let first_key = match first {
-//             PropertyPathElement::Property(key) => key,
-//             PropertyPathElement::Index(index) => {
-//                 return Err(Report::new(PropertyPathError::ObjectExpected { index }));
-//             }
-//         };
-//
-//         let element = if path_iter.peek().is_none() {
-//             self.add(first_key.into_owned(), metadata)?;
-//             return Ok(());
-//         } else {
-//             self.object
-//                 .get_mut(&first_key)
-//                 .ok_or_else(|| PropertyPathError::ObjectKeyNotFound {
-//                     key: first_key.into_owned(),
-//                 })?
-//         };
-//     }
-// }
+impl From<PropertyMetadataArray> for PropertyMetadataElement {
+    fn from(array: PropertyMetadataArray) -> Self {
+        Self::Array(array)
+    }
+}
+
+impl From<PropertyMetadataObject> for PropertyMetadataElement {
+    fn from(object: PropertyMetadataObject) -> Self {
+        Self::Object(object)
+    }
+}
+
+impl From<ValueMetadata> for PropertyMetadataElement {
+    fn from(metadata: ValueMetadata) -> Self {
+        Self::Value { metadata }
+    }
+}
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct PropertyObject(HashMap<BaseUrl, Property>);
-
-// pub struct PropertiesWithMetadata {
-//     properties: Property,
-//     metadata: PropertyMetadataElement,
-// }
-//
-// struct ValidatingPropertyObject<'a>(&'a Property);
-//
-// impl<'de> DeserializeSeed<'de> for ValidatingPropertyObject<'_> {
-//     type Value = PropertyObject;
-//
-//     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         struct ValidatingPropertyObjectVisitor<'a>(&'a PropertyMetadataElement);
-//
-//         impl<'de, 'a> Visitor<'de> for ValidatingPropertyObjectVisitor<'a> {
-//             type Value = HashMap<K, V, S>;
-//
-//             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-//                 formatter.write_str("a map")
-//             }
-//
-//             #[inline]
-//             fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-//             where
-//                 A: MapAccess<'de>,
-//             {
-//                 let mut values = (HashMap::with_capacity_and_hasher(
-//                     size_hint::cautious::<(K, V)>(map.size_hint()),
-//                     S::default(),
-//                 ));
-//                 while let Some((key, value)) = match (map.next_entry()) {
-//                     Ok(val) => val,
-//                     Err(err) => return Err(err),
-//                 } {
-//                     values.insert(key, value);
-//                 }
-//                 Ok(values)
-//             }
-//         }
-//         let visitor = MapVisitor {
-//             marker: PhantomData,
-//         };
-//         deserializer.deserialize_map(visitor)
-//     }
-// }
-//
-// impl<'de> DeserializeSeed<'de> for PropertiesWithMetadata {
-//     type Value = (PropertyObject, PropertyMetadataElement);
-//
-//     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         // deserializer.
-//     }
-// }
 
 impl PropertyObject {
     #[must_use]
@@ -553,6 +191,15 @@ impl PartialEq<JsonValue> for PropertyObject {
                     .get(key.as_str())
                     .map_or(false, |other_value| value == other_value)
             })
+    }
+}
+
+impl IntoIterator for PropertyObject {
+    type IntoIter = std::collections::hash_map::IntoIter<BaseUrl, Property>;
+    type Item = (BaseUrl, Property);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 

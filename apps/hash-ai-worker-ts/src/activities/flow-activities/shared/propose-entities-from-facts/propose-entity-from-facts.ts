@@ -101,7 +101,9 @@ const generatePropertyMetadata = (params: {
 }): { propertyMetadata: ProposedEntity["propertyMetadata"] } => {
   const { inputProperties, facts, simplifiedPropertyTypeMappings } = params;
 
-  const propertyMetadata: NonNullable<ProposedEntity["propertyMetadata"]> = {};
+  const propertyMetadata: NonNullable<ProposedEntity["propertyMetadata"]> = {
+    properties: {},
+  };
 
   for (const [
     simplifiedPropertyKey,
@@ -137,8 +139,8 @@ const generatePropertyMetadata = (params: {
       );
     }
 
-    propertyMetadata[baseUrl] = {
-      provenance: { sources: sourcesUsedToDetermineValue },
+    propertyMetadata.properties[baseUrl] = {
+      metadata: { provenance: { sources: sourcesUsedToDetermineValue } },
     };
   }
 

@@ -10,9 +10,9 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{Location, ProvidedEntityEditionProvenance, SourceProvenance, SourceType},
-        Confidence, Property, PropertyMetadataElement, PropertyMetadataObject,
-        PropertyMetadataValue, PropertyObject, PropertyPatchOperation, PropertyPath,
-        PropertyPathElement, PropertyProvenance,
+        Confidence, Property, PropertyMetadataElement, PropertyMetadataObject, PropertyObject,
+        PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
+        ValueMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -306,9 +306,13 @@ async fn no_initial_metadata() {
                 properties: vec![PropertyPatchOperation::Replace {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                     value: Property::Value(json!("Alice")),
-                    metadata: Some(PropertyMetadataElement::Value(
-                        PropertyMetadataValue::default().with_confidence(confidence(0.5)),
-                    )),
+                    metadata: Some(PropertyMetadataElement::Value {
+                        metadata: ValueMetadata {
+                            confidence: Some(confidence(0.5)),
+                            data_type_id: None,
+                            provenance: PropertyProvenance::default(),
+                        },
+                    }),
                 }],
                 entity_type_ids: vec![],
                 archived: None,
@@ -392,9 +396,13 @@ async fn properties_add() {
                 properties: vec![PropertyPatchOperation::Add {
                     path: path.clone(),
                     value: Property::Value(json!(30)),
-                    metadata: Some(PropertyMetadataElement::Value(
-                        PropertyMetadataValue::default().with_confidence(confidence(0.5)),
-                    )),
+                    metadata: Some(PropertyMetadataElement::Value {
+                        metadata: ValueMetadata {
+                            confidence: Some(confidence(0.5)),
+                            data_type_id: None,
+                            provenance: PropertyProvenance::default(),
+                        },
+                    }),
                 }],
                 draft: None,
                 archived: None,
@@ -459,20 +467,24 @@ async fn properties_remove() {
                         path: once(PropertyPathElement::from(interests_property_type_id()))
                             .collect(),
                         value: Property::Value(json!({})),
-                        metadata: Some(PropertyMetadataElement::Value(
-                            PropertyMetadataValue::default()
-                                .with_confidence(confidence(0.5))
-                                .with_provenance(property_provenance_a()),
-                        )),
+                        metadata: Some(PropertyMetadataElement::Value {
+                            metadata: ValueMetadata {
+                                confidence: Some(confidence(0.5)),
+                                data_type_id: None,
+                                provenance: property_provenance_a(),
+                            },
+                        }),
                     },
                     PropertyPatchOperation::Add {
                         path: film_path.clone(),
                         value: Property::Value(json!("Fight Club")),
-                        metadata: Some(PropertyMetadataElement::Value(
-                            PropertyMetadataValue::default()
-                                .with_confidence(confidence(0.5))
-                                .with_provenance(property_provenance_b()),
-                        )),
+                        metadata: Some(PropertyMetadataElement::Value {
+                            metadata: ValueMetadata {
+                                confidence: Some(confidence(0.5)),
+                                data_type_id: None,
+                                provenance: property_provenance_b(),
+                            },
+                        }),
                     },
                 ],
                 draft: None,

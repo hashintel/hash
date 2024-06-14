@@ -6,7 +6,7 @@ mod provenance;
 
 use alloc::borrow::Cow;
 use core::{cmp::Ordering, fmt};
-use std::{collections::HashMap, io};
+use std::{collections::HashMap, io, iter};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -16,8 +16,8 @@ use type_system::{url::BaseUrl, JsonSchemaValueType};
 pub use self::{
     diff::PropertyDiff,
     metadata::{
-        PropertyMetadataArray, PropertyMetadataElement, PropertyMetadataObject,
-        PropertyMetadataValue, PropertyObject,
+        ArrayMetadata, ObjectMetadata, PropertyMetadataArray, PropertyMetadataElement,
+        PropertyMetadataObject, PropertyObject, ValueMetadata,
     },
     patch::PropertyPatchOperation,
     path::{PropertyPath, PropertyPathElement},
@@ -31,6 +31,130 @@ pub enum Property {
     Array(Vec<Self>),
     Object(PropertyObject),
     Value(serde_json::Value),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(untagged)]
+pub enum PropertyWithMetadata {
+    Array {
+        elements: Vec<Self>,
+        #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
+        metadata: ArrayMetadata,
+    },
+    Object {
+        properties: HashMap<BaseUrl, Self>,
+        #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
+        metadata: ObjectMetadata,
+    },
+    Value {
+        value: JsonValue,
+        metadata: ValueMetadata,
+    },
+}
+
+impl PropertyWithMetadata {
+    pub fn from_parts(property: Property, metadata: Option<PropertyMetadataElement>) -> Self {
+        match (property, metadata) {
+            (
+                Property::Array(properties),
+                Some(PropertyMetadataElement::Array(PropertyMetadataArray {
+                    elements: metadata_elements,
+                    metadata,
+                })),
+            ) => Self::Array {
+                elements: metadata_elements
+                    .into_iter()
+                    .map(Some)
+                    .chain(iter::repeat_with(|| None))
+                    .zip(properties)
+                    .map(|(metadata, property)| Self::from_parts(property, metadata))
+                    .collect(),
+                metadata,
+            },
+            (Property::Array(properties), None) => Self::Array {
+                elements: properties
+                    .into_iter()
+                    .map(|property| Self::from_parts(property, None))
+                    .collect(),
+                metadata: ArrayMetadata::default(),
+            },
+            (
+                Property::Object(properties),
+                Some(PropertyMetadataElement::Object(PropertyMetadataObject {
+                    properties: mut metadata_elements,
+                    metadata,
+                })),
+            ) => Self::Object {
+                properties: properties
+                    .into_iter()
+                    .map(|(key, property)| {
+                        let metadata = metadata_elements.remove(&key);
+                        (key, Self::from_parts(property, metadata))
+                    })
+                    .collect(),
+                metadata,
+            },
+            (Property::Object(properties), None) => Self::Object {
+                properties: properties
+                    .into_iter()
+                    .map(|(key, property)| (key, Self::from_parts(property, None)))
+                    .collect(),
+                metadata: ObjectMetadata::default(),
+            },
+            (Property::Value(value), Some(PropertyMetadataElement::Value { metadata })) => {
+                Self::Value { value, metadata }
+            }
+            (Property::Value(value), None) => Self::Value {
+                value,
+                metadata: ValueMetadata {
+                    provenance: PropertyProvenance::default(),
+                    confidence: None,
+                    data_type_id: None,
+                },
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn into_parts(self) -> (Property, PropertyMetadataElement) {
+        match self {
+            Self::Array { elements, metadata } => {
+                let (properties, metadata_elements) =
+                    elements.into_iter().map(Self::into_parts).unzip();
+                (
+                    Property::Array(properties),
+                    PropertyMetadataElement::Array(PropertyMetadataArray {
+                        elements: metadata_elements,
+                        metadata,
+                    }),
+                )
+            }
+            Self::Object {
+                properties,
+                metadata,
+            } => {
+                let (properties, metadata_properties) = properties
+                    .into_iter()
+                    .map(|(base_url, property_with_metadata)| {
+                        let (property, metadata) = property_with_metadata.into_parts();
+                        ((base_url.clone(), property), (base_url, metadata))
+                    })
+                    .unzip();
+                (
+                    Property::Object(PropertyObject::new(properties)),
+                    PropertyMetadataElement::Object(PropertyMetadataObject {
+                        properties: metadata_properties,
+                        metadata,
+                    }),
+                )
+            }
+            Self::Value { value, metadata } => (
+                Property::Value(value),
+                PropertyMetadataElement::Value { metadata },
+            ),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Error)]
@@ -242,8 +366,8 @@ impl PartialEq<JsonValue> for Property {
                     return false;
                 };
 
-                lhs.properties().len() == rhs.len()
-                    && lhs.properties().iter().all(|(key, value)| {
+                lhs.len() == rhs.len()
+                    && lhs.iter().all(|(key, value)| {
                         rhs.get(key.as_str())
                             .map_or(false, |other_value| value == other_value)
                     })

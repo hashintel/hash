@@ -10,9 +10,11 @@ import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ActorType,
-  PropertyProvenance,
+  ArrayMetadata,
+  ObjectMetadata,
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
+  ValueMetadata,
 } from "@local/hash-graph-client";
 
 import type {
@@ -82,21 +84,19 @@ export type PropertyMetadataElement =
   | PropertyMetadataValue;
 
 export interface PropertyMetadataValue {
-  dataTypeId?: VersionedUrl;
-  confidence?: number;
-  provenance?: PropertyProvenance;
+  metadata: Omit<ValueMetadata, "dataTypeId"> & {
+    dataTypeId?: VersionedUrl;
+  };
 }
 
 export interface PropertyMetadataObject {
-  [key: BaseUrl]: PropertyMetadataElement;
-  confidence?: number;
-  provenance?: PropertyProvenance;
+  properties: Record<BaseUrl, PropertyMetadataElement>;
+  metadata?: ObjectMetadata;
 }
 
 export interface PropertyMetadataArray {
-  [key: `${number}`]: PropertyMetadataElement;
-  confidence?: number;
-  provenance?: PropertyProvenance;
+  elements: PropertyMetadataElement[];
+  metadata?: ArrayMetadata;
 }
 
 export type PropertyPath = [BaseUrl, ...(BaseUrl | number)[]];

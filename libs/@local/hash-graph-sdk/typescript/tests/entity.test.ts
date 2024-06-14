@@ -58,25 +58,47 @@ const createTestEntity = (): GraphApiEntity => ({
         "36fb3cd2-a500-493e-ab1e-e0b3a40839aa~17562306-35b5-4bb1-bda3-1c5ddea833ea",
     },
     properties: {
-      [base_url_a]: {
-        [base_url_aa]: {
-          [base_url_aaa]: {
-            confidence: 0.1,
+      properties: {
+        [base_url_a]: {
+          properties: {
+            [base_url_aa]: {
+              properties: {
+                [base_url_aaa]: {
+                  metadata: {
+                    confidence: 0.1,
+                  },
+                },
+              },
+            },
+          },
+          metadata: {
+            confidence: 0.2,
           },
         },
-        confidence: 0.2,
-      },
-      [base_url_b]: {
-        "10": {
-          [base_url_b10b]: {
-            confidence: 0.3,
+        [base_url_b]: {
+          elements: [
+            {
+              properties: {
+                [base_url_b10b]: {
+                  metadata: {
+                    confidence: 0.3,
+                  },
+                },
+              },
+            },
+          ],
+          metadata: {
+            confidence: 0.4,
           },
         },
-        confidence: 0.4,
-      },
-      [base_url_c]: {
-        "20": {
-          confidence: 0.5,
+        [base_url_c]: {
+          elements: [
+            {
+              metadata: {
+                confidence: 0.5,
+              },
+            },
+          ],
         },
       },
     } satisfies PropertyMetadataObject,
@@ -128,7 +150,7 @@ test("propertyMetadata access", () => {
   expect(entityInstance.propertyMetadata([base_url_b, 20])).toBeUndefined();
 
   expect(
-    entityInstance.propertyMetadata([base_url_b, 10, base_url_b10b]),
+    entityInstance.propertyMetadata([base_url_b, 0, base_url_b10b]),
   ).toEqual({ confidence: 0.3 });
 
   expect(
@@ -142,13 +164,13 @@ test("propertyMetadata access", () => {
 
   expect(entityInstance.propertyMetadata([base_url_c])).toBeUndefined();
 
-  expect(entityInstance.propertyMetadata([base_url_c, 10])).toBeUndefined();
+  expect(entityInstance.propertyMetadata([base_url_c, 1])).toBeUndefined();
 
   expect(
-    entityInstance.propertyMetadata([base_url_c, 10, base_url_cc]),
+    entityInstance.propertyMetadata([base_url_c, 0, base_url_cc]),
   ).toBeUndefined();
 
-  expect(entityInstance.propertyMetadata([base_url_c, 20])).toEqual({
+  expect(entityInstance.propertyMetadata([base_url_c, 0])).toEqual({
     confidence: 0.5,
   });
 });

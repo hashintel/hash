@@ -3019,6 +3019,21 @@
         },
         "additionalProperties": false
       },
+      "ArrayMetadata": {
+        "type": "object",
+        "properties": {
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/PropertyProvenance"
+          }
+        }
+      },
       "BaseUrl": {
         "type": "string",
         "format": "uri"
@@ -5969,6 +5984,21 @@
         "format": "date-time",
         "nullable": true
       },
+      "ObjectMetadata": {
+        "type": "object",
+        "properties": {
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/PropertyProvenance"
+          }
+        }
+      },
       "OntologyEdgeKind": {
         "type": "string",
         "enum": [
@@ -6641,20 +6671,19 @@
       },
       "PropertyMetadataArray": {
         "type": "object",
+        "required": [
+          "elements"
+        ],
         "properties": {
-          "confidence": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Confidence"
-              }
-            ]
+          "elements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyMetadataElement"
+            }
           },
-          "provenance": {
-            "$ref": "#/components/schemas/PropertyProvenance"
+          "metadata": {
+            "$ref": "#/components/schemas/ArrayMetadata"
           }
-        },
-        "additionalProperties": {
-          "$ref": "#/components/schemas/PropertyMetadataElement"
         }
       },
       "PropertyMetadataElement": {
@@ -6666,47 +6695,32 @@
             "$ref": "#/components/schemas/PropertyMetadataObject"
           },
           {
-            "$ref": "#/components/schemas/PropertyMetadataValue"
+            "type": "object",
+            "required": [
+              "metadata"
+            ],
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ValueMetadata"
+              }
+            }
           }
         ]
       },
       "PropertyMetadataObject": {
         "type": "object",
+        "required": [
+          "properties"
+        ],
         "properties": {
-          "confidence": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Confidence"
-              }
-            ]
+          "metadata": {
+            "$ref": "#/components/schemas/ObjectMetadata"
           },
-          "provenance": {
-            "$ref": "#/components/schemas/PropertyProvenance"
-          }
-        },
-        "additionalProperties": {
-          "$ref": "#/components/schemas/PropertyMetadataElement"
-        }
-      },
-      "PropertyMetadataValue": {
-        "type": "object",
-        "properties": {
-          "confidence": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Confidence"
-              }
-            ]
-          },
-          "dataTypeId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ]
-          },
-          "provenance": {
-            "$ref": "#/components/schemas/PropertyProvenance"
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyMetadataElement"
+            }
           }
         }
       },
@@ -6726,10 +6740,10 @@
               "op"
             ],
             "properties": {
-              "confidence": {
+              "metadata": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/Confidence"
+                    "$ref": "#/components/schemas/PropertyMetadataElement"
                   }
                 ]
               },
@@ -6741,13 +6755,6 @@
               },
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
-              },
-              "provenance": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/PropertyProvenance"
-                  }
-                ]
               },
               "value": {
                 "$ref": "#/components/schemas/Property"
@@ -6780,10 +6787,10 @@
               "op"
             ],
             "properties": {
-              "confidence": {
+              "metadata": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/Confidence"
+                    "$ref": "#/components/schemas/PropertyMetadataElement"
                   }
                 ]
               },
@@ -6795,13 +6802,6 @@
               },
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
-              },
-              "provenance": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/PropertyProvenance"
-                  }
-                ]
               },
               "value": {
                 "$ref": "#/components/schemas/Property"
@@ -7902,6 +7902,28 @@
           }
         },
         "additionalProperties": false
+      },
+      "ValueMetadata": {
+        "type": "object",
+        "properties": {
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
+          "dataTypeId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/PropertyProvenance"
+          }
+        }
       },
       "VersionedUrl": {
         "type": "string",

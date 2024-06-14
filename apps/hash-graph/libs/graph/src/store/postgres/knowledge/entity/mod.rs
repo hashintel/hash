@@ -24,7 +24,8 @@ use graph_types::{
             EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
             InferredEntityProvenance,
         },
-        Confidence, PropertyMetadataObject, PropertyObject, PropertyPath,
+        Confidence, Property, PropertyMetadataElement, PropertyMetadataObject, PropertyObject,
+        PropertyPath, PropertyWithMetadata,
     },
     ontology::EntityTypeId,
     owned_by_id::OwnedById,
@@ -496,6 +497,18 @@ where
         let mut entities = Vec::with_capacity(params.len());
 
         for params in params {
+            let (Property::Object(properties), PropertyMetadataElement::Object(property_metadata)) =
+                PropertyWithMetadata::from_parts(
+                    Property::Object(params.properties),
+                    Some(PropertyMetadataElement::Object(params.property_metadata)),
+                )
+                .into_parts()
+            else {
+                return Err(Report::new(InsertionError)
+                    .attach(StatusCode::InvalidArgument)
+                    .attach_printable("Properties must be an object"));
+            };
+
             let decision_time = params
                 .decision_time
                 .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
@@ -547,11 +560,11 @@ where
             let entity_edition_id = EntityEditionId::new(Uuid::new_v4());
             entity_edition_rows.push(EntityEditionRow {
                 entity_edition_id,
-                properties: params.properties.clone(),
+                properties: properties.clone(),
                 archived: false,
                 confidence: params.confidence,
                 provenance: entity_provenance.edition.clone(),
-                property_metadata: params.property_metadata.clone(),
+                property_metadata: property_metadata.clone(),
             });
 
             let temporal_versioning = EntityTemporalMetadata {
@@ -603,7 +616,7 @@ where
             });
 
             entities.push(Entity {
-                properties: params.properties,
+                properties,
                 link_data,
                 metadata: EntityMetadata {
                     record_id: EntityRecordId {
@@ -615,7 +628,7 @@ where
                     archived: false,
                     provenance: entity_provenance,
                     confidence: params.confidence,
-                    properties: params.property_metadata,
+                    properties: property_metadata,
                 },
             });
 
