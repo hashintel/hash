@@ -104,6 +104,7 @@ export const BlogPostHead: FunctionComponent<{
                   authors: authors.map((author) => author.name),
                   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- don't want empty string
                   publishedTime: dateFirstPublishedIso || undefined,
+                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- don't want empty string
                   modifiedTime: dateLastUpdatedIso || undefined,
                 },
               },
