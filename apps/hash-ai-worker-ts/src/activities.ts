@@ -30,7 +30,7 @@ import {
   createEntityTypeEmbeddings,
   createPropertyTypeEmbeddings,
 } from "./activities/shared/embeddings";
-import { userExceededServiceUsageLimitActivity } from "./activities/user-exceeded-service-usage-limit-activity";
+import { webExceededServiceUsageLimitActivity } from "./activities/web-exceeded-service-usage-limit-activity";
 
 export { createGraphActivities } from "./activities/graph";
 
@@ -132,11 +132,11 @@ export const createAiActivities = ({
 
   async userExceededServiceUsageLimitActivity(
     params: Omit<
-      Parameters<typeof userExceededServiceUsageLimitActivity>[0],
+      Parameters<typeof webExceededServiceUsageLimitActivity>[0],
       "graphApiClient"
     >,
   ) {
-    return userExceededServiceUsageLimitActivity({
+    return webExceededServiceUsageLimitActivity({
       ...params,
       graphApiClient,
     });
