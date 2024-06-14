@@ -1,9 +1,9 @@
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import type { AccountId } from "@local/hash-graph-types/src/account";
+import type { Timestamp } from "@local/hash-graph-types/src/temporal-versioning";
+import type { OwnedById } from "@local/hash-graph-types/src/web";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 
@@ -18,7 +18,7 @@ const usageCostLimit = {
   },
 };
 
-export const webExceededServiceUsageLimitActivity = async (params: {
+export const checkWebServiceUsageNotExceeded = async (params: {
   graphApiClient: GraphApi;
   userAccountId: AccountId;
   webId: OwnedById;

@@ -5,8 +5,8 @@ import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-typ
 import { StatusCode } from "@local/status";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
-import { webExceededServiceUsageLimitActivity } from "../web-exceeded-service-usage-limit-activity";
 import { logger } from "./activity-logger";
+import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-service-usage-not-exceeded";
 import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response";
 import {
   getOpenAiResponse,
@@ -30,7 +30,7 @@ export const getLlmResponse = async <T extends LlmParams>(
   /**
    * Check whether the web has exceeded its usage limit, before proceeding with the LLM request.
    */
-  const usageLimitExceededCheck = await webExceededServiceUsageLimitActivity({
+  const usageLimitExceededCheck = await checkWebServiceUsageNotExceeded({
     graphApiClient,
     userAccountId,
     webId,
