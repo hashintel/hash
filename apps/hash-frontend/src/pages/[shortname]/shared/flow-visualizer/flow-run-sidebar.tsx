@@ -6,7 +6,6 @@ import {
   CloseIcon,
 } from "@hashintel/design-system";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
-import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import type {
   FlowDefinition,
   StepDefinition,
@@ -39,6 +38,7 @@ import type {
   GroupWithEdgesAndNodes,
   UngroupedEdgesAndNodes,
 } from "./shared/types";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/src/flows/goal-flow-definitions";
 
 type StatusFor = "group" | "step";
 
@@ -328,8 +328,7 @@ export const FlowRunSidebar = ({
       <Box sx={{ mb: 2 }}>
         <SectionLabel
           text={
-            flowDefinition.flowDefinitionId ===
-            goalFlowDefinition.flowDefinitionId
+            goalFlowDefinitionIds.includes(flowDefinition.flowDefinitionId)
               ? "Goal"
               : "Description"
           }

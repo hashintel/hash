@@ -6,7 +6,6 @@ import {
 import {
   answerQuestionFlow,
   ftseInvestorsFlowDefinition,
-  goalFlowDefinition,
   inferUserEntitiesFromWebPageFlowDefinition,
   researchEntitiesFlowDefinition,
   researchTaskFlowDefinition,
@@ -15,6 +14,11 @@ import {
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
+import {
+  goalFlowDefinition,
+  goalFlowDefinitionWithReportDeliverable,
+  goalFlowDefinitionWithSpreadsheetDeliverable,
+} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 export type FlowDefinitionsContextType = {
   flowDefinitions: FlowDefinition[];
@@ -34,6 +38,8 @@ const exampleFlows: FlowDefinition[] = [
   manualBrowserInferenceFlowDefinition,
   automaticBrowserInferenceFlowDefinition,
   goalFlowDefinition,
+  goalFlowDefinitionWithReportDeliverable,
+  goalFlowDefinitionWithSpreadsheetDeliverable,
 ];
 
 export const FlowDefinitionsContextProvider = ({

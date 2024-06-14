@@ -6,8 +6,10 @@ import type {
   AutomaticInferenceTriggerInputName,
   ManualInferenceTriggerInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
-import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import {
+  goalFlowDefinitionIds,
+  GoalFlowTriggerInput,
+} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type {
   FlowDefinition,
   FlowTrigger,
@@ -122,7 +124,7 @@ export const generateFlowRunName = async (
     webId,
   };
 
-  if (flowDefinition.flowDefinitionId === goalFlowDefinition.flowDefinitionId) {
+  if (goalFlowDefinitionIds.includes(flowDefinition.flowDefinitionId)) {
     const researchBrief = flowTrigger.outputs?.find(
       ({ outputName }) =>
         outputName === ("Research guidance" satisfies GoalFlowTriggerInput),

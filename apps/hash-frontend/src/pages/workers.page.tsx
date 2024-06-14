@@ -6,7 +6,6 @@ import {
 } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
-import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import {
   generateWorkerRunPath,
   workerFlowFilterParam,
@@ -55,6 +54,7 @@ import type {
   VirtualizedTableSort,
 } from "./shared/virtualized-table";
 import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/src/flows/goal-flow-definitions";
 
 type FieldId =
   | "web"
@@ -319,10 +319,9 @@ const WorkersPageContent = () => {
 
     const rowData: VirtualizedTableRow<WorkerSummary>[] = filteredFlowRuns.map(
       (flowRun) => {
-        const type =
-          flowRun.flowDefinitionId === goalFlowDefinition.flowDefinitionId
-            ? "goal"
-            : "flow";
+        const type = goalFlowDefinitionIds.includes(flowRun.flowDefinitionId)
+          ? "goal"
+          : "flow";
 
         const flowDefinition = flowDefinitions.find(
           (def) => def.flowDefinitionId === flowRun.flowDefinitionId,

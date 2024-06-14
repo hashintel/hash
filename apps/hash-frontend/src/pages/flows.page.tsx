@@ -1,6 +1,5 @@
 import { InfinityLightIcon } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { Box, Container, TableCell, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
@@ -30,6 +29,7 @@ import type {
   VirtualizedTableSort,
 } from "./shared/virtualized-table";
 import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/src/flows/goal-flow-definitions";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 
@@ -136,9 +136,7 @@ const FlowsPageContent = () => {
 
   const flowDefinitionRows = useMemo<VirtualizedTableRow<FlowSummary>[]>(() => {
     const rowData: VirtualizedTableRow<FlowSummary>[] = allFlowDefinitions
-      .filter(
-        (def) => def.flowDefinitionId !== goalFlowDefinition.flowDefinitionId,
-      )
+      .filter((def) => !goalFlowDefinitionIds.includes(def.flowDefinitionId))
       .map((flowDefinition) => {
         let lastRunStartedAt = null;
         for (const flowRun of flowRuns) {
