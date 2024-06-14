@@ -547,6 +547,7 @@ const parseGqlAuthorizationViewerInput = ({
     return {
       kind: "accountGroup",
       subjectId: viewer as AccountGroupId,
+      subjectSet: "member",
     } as const;
   }
 };

@@ -161,6 +161,7 @@ export const getLlmResponse = async <T extends LlmParams>(
                     subject: {
                       kind: "accountGroup",
                       subjectId: hashInstanceAdminGroupId,
+                      subjectSet: "member",
                     },
                   },
                 ],

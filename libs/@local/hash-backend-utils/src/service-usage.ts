@@ -293,6 +293,7 @@ export const createUsageRecord = async (
       subject: {
         kind: "accountGroup",
         subjectId: hashInstanceAdminGroupId,
+        subjectSet: "member",
       },
     },
   ];
