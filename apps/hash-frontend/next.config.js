@@ -25,6 +25,10 @@ const sentryWebpackPluginOptions = {
 // They then get converted into variables with the right name in `frontend/src/lib/public-env.ts`
 // NOTE THAT any environment variable which is _missing_ will be converted to the string 'undefined' if no fallback is set
 
+// Show the worker cost in the UI. Always enabled for admins
+process.env.NEXT_PUBLIC_SHOW_WORKER_COST =
+  process.env.SHOW_WORKER_COST ?? false;
+
 process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED =
   process.env.HASH_OPENSEARCH_ENABLED ?? false;
 
