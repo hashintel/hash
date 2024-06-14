@@ -14,7 +14,7 @@ const usageCostLimit = {
   },
   web: {
     day: 10,
-    month: 250,
+    month: 50,
   },
 };
 
