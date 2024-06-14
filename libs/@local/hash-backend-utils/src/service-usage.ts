@@ -128,8 +128,9 @@ export const createUsageRecord = async (
 
   /**
    * We want to assign usage to the web, which may be an org, but be able to identify which users
-   * incurred which usage in an org – so we create the usage record using the user that incurred it
-   * @todo what should this be for scheduled / automatically triggered flows?
+   * incurred which usage in an org – so we create the usage record using the user that incurred it.
+   * For manually-triggered flows, this is the user that triggered the flow.
+   * For automatically triggered (scheduled, reactive), this is the user that created the trigger/schedule.
    */
   const authentication = { actorId: userAccountId };
 
