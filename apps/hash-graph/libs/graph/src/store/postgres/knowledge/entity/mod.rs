@@ -502,6 +502,7 @@ where
                     Property::Object(params.properties),
                     Some(PropertyMetadataElement::Object(params.property_metadata)),
                 )
+                .change_context(InsertionError)?
                 .into_parts()
             else {
                 return Err(Report::new(InsertionError)
@@ -1232,7 +1233,7 @@ where
         let previous_properties = previous_entity.properties.clone();
         let previous_property_metadata = previous_entity.metadata.properties.clone();
         previous_entity
-            .patch(&params.properties)
+            .patch(params.properties)
             .change_context(UpdateError)?;
         let properties = previous_entity.properties;
         let property_metadata = previous_entity.metadata.properties;

@@ -1,4 +1,4 @@
-use std::mem;
+use core::mem;
 
 use error_stack::Report;
 use serde::{Deserialize, Serialize};
@@ -54,7 +54,7 @@ impl PropertyMetadataArray {
         index: usize,
     ) -> Result<PropertyMetadataElement, Report<PropertyPathError>> {
         if index >= self.elements.len() {
-            return Err(PropertyPathError::ArrayIndexNotFound { index }.into());
+            Err(PropertyPathError::ArrayIndexNotFound { index }.into())
         } else {
             Ok(self.elements.remove(index))
         }

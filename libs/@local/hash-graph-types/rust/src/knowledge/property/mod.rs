@@ -8,6 +8,7 @@ use alloc::borrow::Cow;
 use core::{cmp::Ordering, fmt};
 use std::{collections::HashMap, io, iter};
 
+use error_stack::Report;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
@@ -23,6 +24,7 @@ pub use self::{
     path::{PropertyPath, PropertyPathElement},
     provenance::PropertyProvenance,
 };
+use crate::knowledge::property::metadata::PropertyPathError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -48,13 +50,17 @@ pub enum PropertyWithMetadata {
         metadata: ObjectMetadata,
     },
     Value {
+        #[cfg_attr(feature = "utoipa", schema(value_type = Value))]
         value: JsonValue,
         metadata: ValueMetadata,
     },
 }
 
 impl PropertyWithMetadata {
-    pub fn from_parts(property: Property, metadata: Option<PropertyMetadataElement>) -> Self {
+    pub fn from_parts(
+        property: Property,
+        metadata: Option<PropertyMetadataElement>,
+    ) -> Result<Self, Report<PropertyPathError>> {
         match (property, metadata) {
             (
                 Property::Array(properties),
@@ -62,58 +68,63 @@ impl PropertyWithMetadata {
                     elements: metadata_elements,
                     metadata,
                 })),
-            ) => Self::Array {
+            ) => Ok(Self::Array {
                 elements: metadata_elements
                     .into_iter()
                     .map(Some)
                     .chain(iter::repeat_with(|| None))
                     .zip(properties)
                     .map(|(metadata, property)| Self::from_parts(property, metadata))
-                    .collect(),
+                    .collect::<Result<_, _>>()?,
                 metadata,
-            },
-            (Property::Array(properties), None) => Self::Array {
+            }),
+            (Property::Array(properties), None) => Ok(Self::Array {
                 elements: properties
                     .into_iter()
                     .map(|property| Self::from_parts(property, None))
-                    .collect(),
+                    .collect::<Result<_, _>>()?,
                 metadata: ArrayMetadata::default(),
-            },
+            }),
             (
                 Property::Object(properties),
                 Some(PropertyMetadataElement::Object(PropertyMetadataObject {
                     properties: mut metadata_elements,
                     metadata,
                 })),
-            ) => Self::Object {
+            ) => Ok(Self::Object {
                 properties: properties
                     .into_iter()
                     .map(|(key, property)| {
                         let metadata = metadata_elements.remove(&key);
-                        (key, Self::from_parts(property, metadata))
+                        Ok::<_, Report<PropertyPathError>>((
+                            key,
+                            Self::from_parts(property, metadata)?,
+                        ))
                     })
-                    .collect(),
+                    .collect::<Result<_, _>>()?,
                 metadata,
-            },
-            (Property::Object(properties), None) => Self::Object {
+            }),
+            (Property::Object(properties), None) => Ok(Self::Object {
                 properties: properties
                     .into_iter()
-                    .map(|(key, property)| (key, Self::from_parts(property, None)))
-                    .collect(),
+                    .map(|(key, property)| {
+                        Ok::<_, Report<PropertyPathError>>((key, Self::from_parts(property, None)?))
+                    })
+                    .collect::<Result<_, _>>()?,
                 metadata: ObjectMetadata::default(),
-            },
+            }),
             (Property::Value(value), Some(PropertyMetadataElement::Value { metadata })) => {
-                Self::Value { value, metadata }
+                Ok(Self::Value { value, metadata })
             }
-            (Property::Value(value), None) => Self::Value {
+            (Property::Value(value), None) => Ok(Self::Value {
                 value,
                 metadata: ValueMetadata {
                     provenance: PropertyProvenance::default(),
                     confidence: None,
                     data_type_id: None,
                 },
-            },
-            _ => unreachable!(),
+            }),
+            _ => Err(Report::new(PropertyPathError::PropertyMetadataMismatch)),
         }
     }
 

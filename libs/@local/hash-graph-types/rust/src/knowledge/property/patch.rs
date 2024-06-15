@@ -24,28 +24,3 @@ pub enum PropertyPatchOperation {
         metadata: Option<PropertyMetadataElement>,
     },
 }
-
-#[cfg(test)]
-mod tests {
-    use serde_json::json;
-
-    use super::*;
-
-    #[test]
-    fn test_deserialize_property_patch_operation() {
-        let json = json!({
-            "op": "add",
-            "path": ["a", "b"],
-            "value": {
-                "object": {
-                    "c": 1
-                }
-            },
-            "metadata": {
-                "provenance": {
-                    "confidence": 0.5
-                }
-            }
-        });
-    }
-}

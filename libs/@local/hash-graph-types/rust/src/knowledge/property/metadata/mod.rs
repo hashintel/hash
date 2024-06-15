@@ -14,19 +14,13 @@ use std::error::Error;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-use error_stack::{Report, ResultExt};
-use json_patch::{AddOperation, PatchOperation, RemoveOperation, ReplaceOperation};
-use jsonptr::Pointer;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use type_system::url::BaseUrl;
 
-use crate::knowledge::{
-    property::{PatchError, Property},
-    PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyPathElement,
-};
+use crate::knowledge::{property::Property, PropertyDiff, PropertyPath, PropertyPathElement};
 
 #[derive(Debug, thiserror::Error)]
 pub enum PropertyPathError {
@@ -42,6 +36,8 @@ pub enum PropertyPathError {
     ArrayIndexNotFound { index: usize },
     #[error("Element not found at key `{key}`")]
     ObjectKeyNotFound { key: BaseUrl },
+    #[error("Properties and metadata do not match")]
+    PropertyMetadataMismatch,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -127,55 +123,6 @@ impl PropertyObject {
         self.0
             .get(&first_key)
             .map_or(false, |property| property.get(path_iter).is_some())
-    }
-
-    /// Applies the given patch operations to the object.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the patch operation failed
-    pub fn patch(
-        &mut self,
-        operations: &[PropertyPatchOperation],
-    ) -> Result<(), Report<PatchError>> {
-        let patches = operations
-            .iter()
-            .map(|operation| {
-                Ok(match operation {
-                    PropertyPatchOperation::Add {
-                        path,
-                        value,
-                        metadata: _,
-                    } => PatchOperation::Add(AddOperation {
-                        path: Pointer::new(path),
-                        value: serde_json::to_value(value).change_context(PatchError)?,
-                    }),
-                    PropertyPatchOperation::Remove { path } => {
-                        PatchOperation::Remove(RemoveOperation {
-                            path: Pointer::new(path),
-                        })
-                    }
-                    PropertyPatchOperation::Replace {
-                        path,
-                        value,
-                        metadata: _,
-                    } => PatchOperation::Replace(ReplaceOperation {
-                        path: Pointer::new(path),
-                        value: serde_json::to_value(value).change_context(PatchError)?,
-                    }),
-                })
-            })
-            .collect::<Result<Vec<_>, Report<PatchError>>>()?;
-
-        // TODO: Implement more efficient patching without serialization
-        #[expect(
-            clippy::needless_borrows_for_generic_args,
-            reason = "value would be moved"
-        )]
-        let mut this = serde_json::to_value(&self).change_context(PatchError)?;
-        json_patch::patch(&mut this, &patches).change_context(PatchError)?;
-        *self = serde_json::from_value(this).change_context(PatchError)?;
-        Ok(())
     }
 }
 
