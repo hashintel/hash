@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use authorization::AuthorizationApi;
 use graph::store::{
     knowledge::{CreateEntityParams, PatchEntityParams},
@@ -9,8 +7,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{EntityId, ProvidedEntityEditionProvenance},
-        Property, PropertyMetadataElement, PropertyMetadataObject, PropertyObject,
-        PropertyPatchOperation, PropertyPath, PropertyProvenance,
+        Property, PropertyMetadataObject, PropertyObject, PropertyPatchOperation, PropertyPath,
     },
     owned_by_id::OwnedById,
 };
@@ -57,15 +54,15 @@ fn person_entity_type_id() -> VersionedUrl {
     }
 }
 
-fn alice() -> HashMap<BaseUrl, Property> {
+fn alice() -> PropertyObject {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
 
-fn bob() -> HashMap<BaseUrl, Property> {
+fn bob() -> PropertyObject {
     serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity")
 }
 
-fn charles() -> HashMap<BaseUrl, Property> {
+fn charles() -> PropertyObject {
     serde_json::from_str(entity::PERSON_CHARLES_V1).expect("could not parse entity")
 }
 

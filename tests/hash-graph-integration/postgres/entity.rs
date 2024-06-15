@@ -14,7 +14,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::ProvidedEntityEditionProvenance, Property, PropertyMetadataObject, PropertyObject,
-        PropertyPatchOperation, PropertyPath, PropertyProvenance,
+        PropertyPatchOperation, PropertyPath,
     },
     owned_by_id::OwnedById,
 };

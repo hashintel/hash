@@ -344,7 +344,7 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let params = dbg!(ValidateEntityParams::deserialize(&body).map_err(report_to_response)?);
+    let params = ValidateEntityParams::deserialize(&body).map_err(report_to_response)?;
 
     let authorization_api = authorization_api_pool
         .acquire()

@@ -1,11 +1,6 @@
-use core::mem;
-
-use error_stack::Report;
 use serde::{Deserialize, Serialize};
 
-use crate::knowledge::{
-    property::metadata::PropertyPathError, Confidence, PropertyMetadataElement, PropertyProvenance,
-};
+use crate::knowledge::{Confidence, PropertyMetadataElement, PropertyProvenance};
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -38,38 +33,5 @@ impl PropertyMetadataArray {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.elements.is_empty() && self.metadata.is_empty()
-    }
-
-    pub fn add(
-        &mut self,
-        index: usize,
-        metadata: PropertyMetadataElement,
-    ) -> Result<(), Report<PropertyPathError>> {
-        self.elements.insert(index, metadata);
-        Ok(())
-    }
-
-    pub fn remove(
-        &mut self,
-        index: usize,
-    ) -> Result<PropertyMetadataElement, Report<PropertyPathError>> {
-        if index >= self.elements.len() {
-            Err(PropertyPathError::ArrayIndexNotFound { index }.into())
-        } else {
-            Ok(self.elements.remove(index))
-        }
-    }
-
-    pub fn replace(
-        &mut self,
-        index: usize,
-        metadata: PropertyMetadataElement,
-    ) -> Result<PropertyMetadataElement, Report<PropertyPathError>> {
-        Ok(mem::replace(
-            self.elements
-                .get_mut(index)
-                .ok_or(PropertyPathError::ArrayIndexNotFound { index })?,
-            metadata,
-        ))
     }
 }

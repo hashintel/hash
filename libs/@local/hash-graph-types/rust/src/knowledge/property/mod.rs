@@ -5,8 +5,8 @@ mod path;
 mod provenance;
 
 use alloc::borrow::Cow;
-use core::{cmp::Ordering, fmt};
-use std::{collections::HashMap, io, iter};
+use core::{cmp::Ordering, fmt, iter};
+use std::{collections::HashMap, io};
 
 use error_stack::Report;
 use serde::{Deserialize, Serialize};
@@ -37,16 +37,16 @@ pub enum Property {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum PropertyWithMetadata {
     Array {
         elements: Vec<Self>,
-        #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
+        // #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
         metadata: ArrayMetadata,
     },
     Object {
         properties: HashMap<BaseUrl, Self>,
-        #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
+        // #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
         metadata: ObjectMetadata,
     },
     Value {

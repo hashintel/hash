@@ -1,5 +1,6 @@
 use alloc::borrow::Cow;
 use core::{iter::once, str::FromStr};
+use std::collections::HashMap;
 
 use authorization::AuthorizationApi;
 use graph::store::{
@@ -10,9 +11,9 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{Location, ProvidedEntityEditionProvenance, SourceProvenance, SourceType},
-        Confidence, Property, PropertyMetadataElement, PropertyMetadataObject, PropertyObject,
-        PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
-        ValueMetadata,
+        Confidence, ObjectMetadata, Property, PropertyMetadataElement, PropertyMetadataObject,
+        PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
+        PropertyProvenance, ValueMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -130,37 +131,25 @@ fn alice() -> PropertyObject {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
 
-fn confidence(value: f64) -> Confidence {
-    serde_json::from_str(&value.to_string()).expect("could not parse confidence")
-}
-
-fn property_metadata<'a>(
-    value: impl IntoIterator<Item = (&'a str, f64, PropertyProvenance)>,
-) -> PropertyMetadataObject {
-    let mut map = PropertyMetadataObject::default();
-    // for (key, value, provenance) in value {
-    //     map.set(
-    //         &PropertyPath::from_json_pointer(key).expect("could not parse path"),
-    //         PropertyMetadata {
-    //             confidence: Some(confidence(value)),
-    //             provenance,
-    //         },
-    //     )
-    //     .expect("could not set metadata");
-    // }
-    map
-}
-
 #[tokio::test]
 async fn initial_metadata() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
-    let path: PropertyPath = once(PropertyPathElement::from(name_property_type_id())).collect();
-    let path_pointer = path.to_json_pointer();
+    let entity_property_metadata = PropertyMetadataObject {
+        properties: HashMap::from([(
+            name_property_type_id(),
+            PropertyMetadataElement::Value {
+                metadata: ValueMetadata {
+                    provenance: property_provenance_a(),
+                    confidence: Confidence::new(0.5),
+                    data_type_id: None,
+                },
+            },
+        )]),
+        metadata: ObjectMetadata::default(),
+    };
 
-    let entity_property_metadata =
-        property_metadata([(path_pointer.as_str(), 0.5, property_provenance_a())]);
     let entity_metadata = api
         .create_entity(
             api.account_id,
@@ -170,7 +159,7 @@ async fn initial_metadata() {
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
                 properties: alice(),
-                confidence: Some(confidence(0.5)),
+                confidence: Confidence::new(0.5),
                 property_metadata: entity_property_metadata.clone(),
                 link_data: None,
                 draft: true,
@@ -181,7 +170,7 @@ async fn initial_metadata() {
         .await
         .expect("could not create entity");
 
-    assert_eq!(entity_metadata.confidence, Some(confidence(0.5)));
+    assert_eq!(entity_metadata.confidence, Confidence::new(0.5));
     assert_eq!(entity_metadata.properties, entity_property_metadata);
 
     let updated_entity = api
@@ -194,7 +183,7 @@ async fn initial_metadata() {
                 archived: None,
                 draft: None,
                 decision_time: None,
-                confidence: Some(confidence(0.5)),
+                confidence: Confidence::new(0.5),
                 provenance: edition_provenance(),
             },
         )
@@ -286,14 +275,14 @@ async fn no_initial_metadata() {
                 archived: None,
                 draft: None,
                 decision_time: None,
-                confidence: Some(confidence(0.5)),
+                confidence: Confidence::new(0.5),
                 provenance: ProvidedEntityEditionProvenance::default(),
             },
         )
         .await
         .expect("could not update entity");
 
-    assert_eq!(updated_entity.metadata.confidence, Some(confidence(0.5)));
+    assert_eq!(updated_entity.metadata.confidence, Confidence::new(0.5));
     assert!(updated_entity.metadata.properties.is_empty());
 
     let path: PropertyPath = once(PropertyPathElement::from(name_property_type_id())).collect();
@@ -308,7 +297,7 @@ async fn no_initial_metadata() {
                     value: Property::Value(json!("Alice")),
                     metadata: Some(PropertyMetadataElement::Value {
                         metadata: ValueMetadata {
-                            confidence: Some(confidence(0.5)),
+                            confidence: Confidence::new(0.5),
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
                         },
@@ -328,7 +317,13 @@ async fn no_initial_metadata() {
     assert!(updated_entity.metadata.confidence.is_none());
     assert_eq!(
         updated_entity.metadata.properties,
-        property_metadata([(path_pointer.as_str(), 0.5, property_provenance_a())])
+        PropertyMetadataObject {
+            properties: HashMap::new(),
+            metadata: ObjectMetadata {
+                provenance: PropertyProvenance::default(),
+                confidence: Confidence::new(0.5),
+            },
+        }
     );
 
     let updated_entity = api
@@ -341,17 +336,23 @@ async fn no_initial_metadata() {
                 archived: None,
                 draft: None,
                 decision_time: None,
-                confidence: Some(confidence(0.5)),
+                confidence: Confidence::new(0.5),
                 provenance: edition_provenance(),
             },
         )
         .await
         .expect("could not update entity");
 
-    assert_eq!(updated_entity.metadata.confidence, Some(confidence(0.5)));
+    assert_eq!(updated_entity.metadata.confidence, Confidence::new(0.5));
     assert_eq!(
         updated_entity.metadata.properties,
-        property_metadata([(path_pointer.as_str(), 0.5, property_provenance_a())])
+        PropertyMetadataObject {
+            properties: HashMap::new(),
+            metadata: ObjectMetadata {
+                provenance: PropertyProvenance::default(),
+                confidence: Confidence::new(0.5),
+            },
+        }
     );
     assert_eq!(
         updated_entity.metadata.provenance.edition.provided,
@@ -398,7 +399,7 @@ async fn properties_add() {
                     value: Property::Value(json!(30)),
                     metadata: Some(PropertyMetadataElement::Value {
                         metadata: ValueMetadata {
-                            confidence: Some(confidence(0.5)),
+                            confidence: Confidence::new(0.5),
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
                         },
@@ -416,7 +417,13 @@ async fn properties_add() {
     let path_pointer = path.to_json_pointer();
     assert_eq!(
         updated_entity.metadata.properties,
-        property_metadata([(path_pointer.as_str(), 0.5, property_provenance_a())])
+        PropertyMetadataObject {
+            properties: HashMap::new(),
+            metadata: ObjectMetadata {
+                provenance: PropertyProvenance::default(),
+                confidence: Confidence::new(0.5),
+            },
+        }
     );
 }
 
@@ -469,7 +476,7 @@ async fn properties_remove() {
                         value: Property::Value(json!({})),
                         metadata: Some(PropertyMetadataElement::Value {
                             metadata: ValueMetadata {
-                                confidence: Some(confidence(0.5)),
+                                confidence: Confidence::new(0.5),
                                 data_type_id: None,
                                 provenance: property_provenance_a(),
                             },
@@ -480,7 +487,7 @@ async fn properties_remove() {
                         value: Property::Value(json!("Fight Club")),
                         metadata: Some(PropertyMetadataElement::Value {
                             metadata: ValueMetadata {
-                                confidence: Some(confidence(0.5)),
+                                confidence: Confidence::new(0.5),
                                 data_type_id: None,
                                 provenance: property_provenance_b(),
                             },
@@ -500,14 +507,13 @@ async fn properties_remove() {
     let interests_path_pointer = interests_path.to_json_pointer();
     assert_eq!(
         updated_entity.metadata.properties,
-        property_metadata([
-            (
-                interests_path_pointer.as_str(),
-                0.5,
-                property_provenance_a()
-            ),
-            (film_path_pointer.as_str(), 0.5, property_provenance_b())
-        ])
+        PropertyMetadataObject {
+            properties: HashMap::new(),
+            metadata: ObjectMetadata {
+                provenance: PropertyProvenance::default(),
+                confidence: Confidence::new(0.5),
+            },
+        }
     );
 
     let updated_entity = api

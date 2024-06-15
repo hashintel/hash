@@ -165,15 +165,19 @@ impl Entity {
             .collect::<Result<Vec<_>, Report<PatchError>>>()?;
 
         // TODO: Implement more efficient patching without cloning and serialization
-        let mut properties_with_metadata = serde_json::to_value(PropertyWithMetadata::from_parts(
-            Property::Object(self.properties.clone()),
-            Some(PropertyMetadataElement::Object(
-                self.metadata.properties.clone(),
-            )),
-        ))
+        let mut properties_with_metadata = serde_json::to_value(
+            PropertyWithMetadata::from_parts(
+                Property::Object(self.properties.clone()),
+                Some(PropertyMetadataElement::Object(
+                    self.metadata.properties.clone(),
+                )),
+            )
+            .change_context(PatchError)?,
+        )
         .change_context(PatchError)?;
 
         json_patch::patch(&mut properties_with_metadata, &patches).change_context(PatchError)?;
+        println!("{:#}", properties_with_metadata);
         let (Property::Object(properties), PropertyMetadataElement::Object(metadata)) =
             serde_json::from_value::<PropertyWithMetadata>(properties_with_metadata)
                 .change_context(PatchError)?

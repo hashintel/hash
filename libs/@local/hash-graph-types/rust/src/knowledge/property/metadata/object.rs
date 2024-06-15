@@ -1,18 +1,12 @@
-use std::{
-    collections::{hash_map, HashMap},
-    error::Error,
-    mem,
-};
+use core::error::Error;
+use std::collections::HashMap;
 
 use bytes::BytesMut;
-use error_stack::Report;
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use type_system::url::BaseUrl;
 
-use crate::knowledge::{
-    property::metadata::PropertyPathError, Confidence, PropertyMetadataElement, PropertyProvenance,
-};
+use crate::knowledge::{Confidence, PropertyMetadataElement, PropertyProvenance};
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -45,43 +39,6 @@ impl PropertyMetadataObject {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.properties.is_empty() && self.metadata.is_empty()
-    }
-
-    pub fn add(
-        &mut self,
-        key: BaseUrl,
-        metadata: PropertyMetadataElement,
-    ) -> Option<PropertyMetadataElement> {
-        match self.properties.entry(key) {
-            hash_map::Entry::Occupied(entry) => Some(mem::replace(entry.into_mut(), metadata)),
-            hash_map::Entry::Vacant(entry) => {
-                entry.insert(metadata);
-                None
-            }
-        }
-    }
-
-    pub fn remove(
-        &mut self,
-        key: &BaseUrl,
-    ) -> Result<PropertyMetadataElement, Report<PropertyPathError>> {
-        Ok(self
-            .properties
-            .remove(key)
-            .ok_or_else(|| PropertyPathError::ObjectKeyNotFound { key: key.clone() })?)
-    }
-
-    pub fn replace(
-        &mut self,
-        key: &BaseUrl,
-        metadata: PropertyMetadataElement,
-    ) -> Result<PropertyMetadataElement, Report<PropertyPathError>> {
-        Ok(mem::replace(
-            self.properties
-                .get_mut(&key)
-                .ok_or_else(|| PropertyPathError::ObjectKeyNotFound { key: key.clone() })?,
-            metadata,
-        ))
     }
 }
 

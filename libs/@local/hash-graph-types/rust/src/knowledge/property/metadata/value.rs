@@ -5,7 +5,7 @@ use crate::knowledge::{Confidence, PropertyProvenance};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ValueMetadata {
     #[serde(default, skip_serializing_if = "PropertyProvenance::is_empty")]
     pub provenance: PropertyProvenance,
