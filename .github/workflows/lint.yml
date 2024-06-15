@@ -105,7 +105,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@4e38715ddc7c4e1fd3e44ab4c124a2dcca7306fd # v2.34.0
+        uses: taiki-e/install-action@d0c2bb4cffa2484ea6862a142a14b7ac5057c74a # v2.38.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -338,7 +338,7 @@ jobs:
           [[ ${{ needs.global.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@19c86e40d4bc3be986b18f1459d4549536887065
+        uses: rtCamp/action-slack-notify@d6bddf945c2aaf4f04fd87dbaa7d3dccf31efda4
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

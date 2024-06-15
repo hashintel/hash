@@ -370,6 +370,12 @@ export type VisitedWebPageLog = ProgressLogBase & {
   type: "VisitedWebPage";
 };
 
+export type StartedSubTaskLog = ProgressLogBase & {
+  explanation: string;
+  goal: string;
+  type: "StartedSubTask";
+};
+
 export type ViewedFile = {
   explanation: string;
   fileUrl: string;
@@ -394,7 +400,8 @@ export type StepProgressLog =
   | ProposedEntityLog
   | VisitedWebPageLog
   | ViewedFile
-  | QueriedWebLog;
+  | QueriedWebLog
+  | StartedSubTaskLog;
 
 export type ProgressLogSignal = {
   attempt: number;

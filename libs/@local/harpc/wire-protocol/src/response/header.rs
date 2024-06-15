@@ -83,7 +83,7 @@ mod test {
         codec::test::{assert_codec, assert_decode, assert_encode},
         flags::BitFlagsOp,
         protocol::{Protocol, ProtocolVersion},
-        request::id::test::mock_request_id,
+        request::id::test_utils::mock_request_id,
         response::{
             flags::{ResponseFlag, ResponseFlags},
             header::ResponseHeader,

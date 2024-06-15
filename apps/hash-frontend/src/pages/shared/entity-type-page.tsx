@@ -233,14 +233,14 @@ export const EntityTypePage = ({
     : extractVersion(entityType.schema.$id);
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
-    const entityTypeSchema = getEntityTypeFromFormData(data);
+    const { icon, labelProperty, schema } = getEntityTypeFromFormData(data);
 
     const res = await updateEntityType(
       {
-        ...entityTypeSchema,
-        allOf: [{ $ref: linkEntityTypeUrl }],
+        ...schema,
+        allOf: [{ $ref: linkEntityTypeUrl }, ...schema.allOf],
       },
-      { icon: data.icon },
+      { icon, labelProperty: labelProperty as BaseUrl },
     );
 
     if (!res.errors?.length && res.data) {

@@ -1,5 +1,7 @@
 use core::{fmt, num::NonZero};
 
+use derive_where::derive_where;
+
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 pub enum DatabaseType {
@@ -8,6 +10,7 @@ pub enum DatabaseType {
 }
 
 #[derive(Clone, PartialEq, Eq)]
+#[derive_where(Debug)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct DatabaseConnectionInfo {
     /// The database type to connect to.
@@ -39,6 +42,7 @@ pub struct DatabaseConnectionInfo {
             global = true
         )
     )]
+    #[derive_where(skip)]
     password: String,
 
     /// The host to connect to.
@@ -76,19 +80,6 @@ pub struct DatabaseConnectionInfo {
         )
     )]
     database: String,
-}
-
-impl fmt::Debug for DatabaseConnectionInfo {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("DatabaseConnectionInfo")
-            .field("database_type", &self.database_type)
-            .field("user", &self.user)
-            .field("password", &"***")
-            .field("host", &self.host)
-            .field("port", &self.port)
-            .field("database", &self.database)
-            .finish()
-    }
 }
 
 impl DatabaseConnectionInfo {

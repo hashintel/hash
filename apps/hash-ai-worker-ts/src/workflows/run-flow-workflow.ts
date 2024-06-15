@@ -269,7 +269,7 @@ export const runFlowWorkflow = async (
 
       const actionActivity = proxyFlowActivity({
         actionId: `${currentStep.actionDefinitionId}Action`,
-        maximumAttempts: actionStepDefinition.retryCount ?? 1,
+        maximumAttempts: actionStepDefinition.retryCount ?? 3,
         activityId: currentStep.stepId,
       });
 

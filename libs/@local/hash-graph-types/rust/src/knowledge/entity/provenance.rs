@@ -1,6 +1,6 @@
-use std::collections::HashSet;
 #[cfg(feature = "postgres")]
-use std::error::Error;
+use core::error::Error;
+use std::collections::HashSet;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;

@@ -135,6 +135,46 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
+  await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      title: "Gigahertz",
+      description: "A unit of frequency equal to one billion hertz.",
+      label: {
+        right: "GHz",
+      },
+      type: "number",
+    },
+    webShortname: "hash",
+    migrationState,
+  });
+
+  await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      title: "Gigabytes",
+      description: "A unit of information equal to one billion bytes.",
+      label: {
+        right: "GB",
+      },
+      type: "number",
+    },
+    webShortname: "hash",
+    migrationState,
+  });
+
+  await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      title: "Watts",
+      description:
+        "A unit of power in the International System of Units (SI) equal to one joule per second.",
+      label: {
+        right: "W",
+      },
+      type: "number",
+    },
+    webShortname: "hash",
+    migrationState,
+  });
+
   return migrationState;
 };
 

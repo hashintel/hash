@@ -20,10 +20,12 @@ const toolNames = ["registerEntitySummaries"] as const;
 
 type ToolName = (typeof toolNames)[number];
 
-const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
+const generateToolDefinitions = (params: {
+  dereferencedEntityType: DereferencedEntityType;
+}): Record<ToolName, LlmToolDefinition<ToolName>> => ({
   registerEntitySummaries: {
     name: "registerEntitySummaries",
-    description: "Register the relevant entity summaries.",
+    description: `Register the relevant entity summaries for all entities which are of type "${params.dereferencedEntityType.title}".`,
     inputSchema: {
       type: "object",
       properties: {
@@ -48,20 +50,23 @@ const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
       required: ["entitySummaries"],
     },
   },
-};
+});
 
 const generateSystemPrompt = (params: {
   includesRelevantEntitiesPrompt?: boolean;
+  dereferencedEntityType: DereferencedEntityType;
 }) =>
   dedent(`
   You are an entity summary extraction agent.
 
   The user will provide you with:
     - "text": the text from which you should extract entity summaries.
-    - "entityType": the type of the entities that need to be extracted from the text
+    - "entityType": the definition of the "${params.dereferencedEntityType.title}" type, which must be the type of the entities that are extracted from the text
     ${params.includesRelevantEntitiesPrompt ? `- "relevantEntitiesPrompt": a prompt provided by the user indicating which entities should be included.` : ""}
 
-  You must extract all the entities from the text which are of the provided type${params.includesRelevantEntitiesPrompt ? " and are relevant given the provided prompt" : ""}.
+  You must extract all the entities from the text which are of the "${params.dereferencedEntityType.title}" type${params.includesRelevantEntitiesPrompt ? " and are relevant given the provided prompt" : ""}.
+
+  Do not under any circumstances provide entity summaries for entities which are not of the "${params.dereferencedEntityType.title}" type.
   
   For each ${params.includesRelevantEntitiesPrompt ? "relevant " : ""}entity, provide:
     - "name": the name of the entity, which can be used to identify the entity in the text.
@@ -79,6 +84,10 @@ export const getEntitySummariesFromText = async (params: {
   const { text, dereferencedEntityType, relevantEntitiesPrompt } = params;
 
   const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+
+  const toolDefinitions = generateToolDefinitions({
+    dereferencedEntityType,
+  });
 
   const llmResponse = await getLlmResponse(
     {
@@ -101,6 +110,7 @@ export const getEntitySummariesFromText = async (params: {
       ],
       systemPrompt: generateSystemPrompt({
         includesRelevantEntitiesPrompt: !!relevantEntitiesPrompt,
+        dereferencedEntityType,
       }),
       tools: Object.values(toolDefinitions),
     },

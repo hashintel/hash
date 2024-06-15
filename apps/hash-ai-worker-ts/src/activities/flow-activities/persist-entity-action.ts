@@ -16,10 +16,10 @@ import { Context } from "@temporalio/activity";
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification";
-import {
-  findExistingEntity,
-  findExistingLinkEntity,
-} from "../shared/find-existing-entity";
+// import {
+//   findExistingEntity,
+//   findExistingLinkEntity,
+// } from "../shared/find-existing-entity";
 import { getFlowContext } from "../shared/get-flow-context";
 import { graphApiClient } from "../shared/graph-api-client";
 import { logProgress } from "../shared/log-progress";
@@ -138,21 +138,25 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
     entity = updatedEntity;
   } else {
-    existingEntity = await (linkData
-      ? findExistingLinkEntity({
-          actorId,
-          graphApiClient,
-          ownedById,
-          linkData,
-          includeDrafts: createEditionAsDraft,
-        })
-      : findExistingEntity({
-          actorId,
-          graphApiClient,
-          ownedById,
-          proposedEntity: proposedEntityWithResolvedLinks,
-          includeDrafts: createEditionAsDraft,
-        }));
+    /**
+     * @todo: improve the logic for finding existing entities, to
+     * reduce the number of false positives.
+     */
+    // existingEntity = await (linkData
+    //   ? findExistingLinkEntity({
+    //       actorId,
+    //       graphApiClient,
+    //       ownedById,
+    //       linkData,
+    //       includeDrafts: createEditionAsDraft,
+    //     })
+    //   : findExistingEntity({
+    //       actorId,
+    //       graphApiClient,
+    //       ownedById,
+    //       proposedEntity: proposedEntityWithResolvedLinks,
+    //       includeDrafts: createEditionAsDraft,
+    //     }));
 
     operation = existingEntity ? "update" : "create";
 

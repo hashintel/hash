@@ -16,8 +16,8 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 
 import { getFlowContext } from "../shared/get-flow-context";
-import type { UsageTrackingParams } from "../shared/get-llm-response";
 import { getLlmResponse } from "../shared/get-llm-response";
+import type { UsageTrackingParams } from "../shared/get-llm-response/get-openai-reponse";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message";
 import { graphApiClient } from "../shared/graph-api-client";
 

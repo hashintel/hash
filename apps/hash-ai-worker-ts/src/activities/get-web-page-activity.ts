@@ -10,11 +10,61 @@ import { requestExternalInput } from "./shared/request-external-input";
 
 puppeteer.use(StealthPlugin());
 
+export const sanitizeHtmlForLlmConsumption = (params: {
+  htmlContent: string;
+  maximumNumberOfTokens?: number;
+}): string => {
+  const { htmlContent, maximumNumberOfTokens = 75_000 } = params;
+
+  const sanitizedHtml = sanitizeHtml(htmlContent, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.filter(
+      /**
+       * @todo: consider whether there are other tags that aren't relevant
+       * for LLM consumption.
+       */
+      (tag) => !["script", "style", "link", "canvas", "svg"].includes(tag),
+    ),
+    allowedAttributes: {
+      "*": [
+        "href",
+        "src",
+        "onclick",
+        "title",
+        "alt",
+        "aria",
+        "label",
+        "aria-*",
+        "data-*",
+      ],
+    },
+    disallowedTagsMode: "discard",
+  });
+
+  const slicedSanitizedHtml = sanitizedHtml.slice(
+    0,
+    /**
+     * Assume that each token is 4 characters long.
+     *
+     * @todo: use `js-tiktoken` to more accurately determine the number of tokens.
+     */
+    maximumNumberOfTokens * 4,
+  );
+
+  return slicedSanitizedHtml;
+};
+
 const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
   /** @todo: consider re-using the same `browser` instance across requests  */
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({
+    args: ["--lang=en-US"],
+  });
 
   const page = await browser.newPage();
+
+  await page.setExtraHTTPHeaders({
+    /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language */
+    "Accept-Language": "en-US,en,q=0.5",
+  });
 
   try {
     const timeout = 10_000;
@@ -123,29 +173,7 @@ export const getWebPageActivity = async (params: {
     : await getWebPageFromPuppeteer(url);
 
   if (sanitizeForLlm) {
-    const sanitizedHtml = sanitizeHtml(htmlContent, {
-      allowedTags: sanitizeHtml.defaults.allowedTags.filter(
-        /**
-         * @todo: consider whether there are other tags that aren't relevant
-         * for LLM consumption.
-         */
-        (tag) => !["script", "style", "link", "canvas", "svg"].includes(tag),
-      ),
-      allowedAttributes: {
-        "*": [
-          "href",
-          "src",
-          "onclick",
-          "title",
-          "alt",
-          "aria",
-          "label",
-          "aria-*",
-          "data-*",
-        ],
-      },
-      disallowedTagsMode: "discard",
-    });
+    const sanitizedHtml = sanitizeHtmlForLlmConsumption({ htmlContent });
 
     return { htmlContent: sanitizedHtml, title, url };
   }

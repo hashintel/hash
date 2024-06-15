@@ -1,10 +1,10 @@
-use core::{cmp::Ordering, fmt, marker::PhantomData, str::FromStr};
 #[cfg(feature = "postgres")]
-use std::error::Error;
+use core::error::Error;
+use core::{fmt, marker::PhantomData, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-use derivative::Derivative;
+use derive_where::derive_where;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
@@ -21,32 +21,14 @@ use crate::TemporalTagged;
 // A generic parameter is used here to avoid implementing the same struct multiple times or using
 // macros. It's reused in other time-related structs as well. This implies that trait bounds are
 // not required for trait implementations.
-#[derive(Derivative, Serialize, Deserialize)]
-#[derivative(
-    Copy(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    Hash(bound = ""),
-    Ord(bound = "")
-)]
+#[derive(Serialize, Deserialize)]
+#[derive_where(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(transparent, bound = "")]
 pub struct Timestamp<A> {
     #[serde(skip)]
     axis: PhantomData<A>,
     #[serde(with = "codec::serde::time")]
     time: OffsetDateTime,
-}
-
-impl<A> PartialOrd for Timestamp<A> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<A> Clone for Timestamp<A> {
-    fn clone(&self) -> Self {
-        *self
-    }
 }
 
 impl<A> fmt::Debug for Timestamp<A> {

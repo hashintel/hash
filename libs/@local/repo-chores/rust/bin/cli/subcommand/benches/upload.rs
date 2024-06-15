@@ -1,4 +1,5 @@
-use std::{error::Error, path::PathBuf};
+use core::error::Error;
+use std::path::PathBuf;
 
 use aws_config::BehaviorVersion;
 use clap::Parser;

@@ -1,5 +1,4 @@
-use core::fmt;
-use std::error::Error;
+use core::{error::Error, fmt};
 
 #[derive(Debug)]
 pub enum SnapshotDumpError {

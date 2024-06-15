@@ -137,7 +137,7 @@ mod test {
     use expect_test::expect;
     use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 
-    use super::id::test::mock_request_id;
+    use super::id::test_utils::mock_request_id;
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode, encode_value},
         flags::BitFlagsOp,

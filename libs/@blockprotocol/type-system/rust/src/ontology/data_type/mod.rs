@@ -1,7 +1,7 @@
+#[cfg(feature = "postgres")]
+use core::error::Error;
 use core::{fmt, ptr};
 use std::collections::HashMap;
-#[cfg(feature = "postgres")]
-use std::error::Error;
 
 pub use error::ParseDataTypeError;
 #[cfg(feature = "postgres")]

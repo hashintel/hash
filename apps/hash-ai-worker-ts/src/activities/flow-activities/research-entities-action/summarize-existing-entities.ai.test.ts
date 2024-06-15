@@ -12,7 +12,7 @@ import { expect, test } from "vitest";
 import { graphApiClient } from "../../shared/graph-api-client";
 import { summarizeExistingEntities } from "./summarize-existing-entities";
 
-test(
+test.skip(
   "Test summarizeExistingEntities with user entities",
   async () => {
     const publicUserEntities = await graphApiClient

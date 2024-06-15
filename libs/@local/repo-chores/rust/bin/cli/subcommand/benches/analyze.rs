@@ -1,6 +1,8 @@
-use core::fmt::{Display, Formatter};
-use std::{
+use core::{
     error::Error,
+    fmt::{Display, Formatter},
+};
+use std::{
     fs::File,
     io,
     io::{BufWriter, Write},

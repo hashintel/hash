@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet};
 #[cfg(feature = "postgres")]
-use std::error::Error;
+use core::error::Error;
+use std::collections::{HashMap, HashSet};
 
 #[cfg(feature = "postgres")]
 use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};

@@ -1,5 +1,5 @@
 #![cfg(not(miri))] // debug formatting does not utilize any unsafe code
-#![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
+#![cfg_attr(nightly, feature(error_generic_member_access))]
 #![allow(clippy::std_instead_of_core)]
 mod common;
 
@@ -254,7 +254,7 @@ mod full {
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
     #[cfg(nightly)]
-    use std::error::Request;
+    use core::error::Request;
     use std::{
         error::Error,
         fmt::{Display, Formatter},

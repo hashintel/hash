@@ -1,7 +1,5 @@
-use std::{
-    error::Error,
-    path::{Path, PathBuf},
-};
+use core::error::Error;
+use std::path::{Path, PathBuf};
 
 mod analyze;
 mod upload;

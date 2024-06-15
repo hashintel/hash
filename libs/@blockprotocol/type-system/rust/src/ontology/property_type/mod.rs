@@ -1,7 +1,7 @@
+#[cfg(feature = "postgres")]
+use core::error::Error;
 use core::ptr;
 use std::collections::HashSet;
-#[cfg(feature = "postgres")]
-use std::error::Error;
 
 pub use error::ParsePropertyTypeError;
 #[cfg(feature = "postgres")]
