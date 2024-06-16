@@ -1,3 +1,4 @@
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { Box } from "@mui/material";
 import { useMemo } from "react";
 
@@ -6,7 +7,6 @@ import { useFlowRunsContext } from "../shared/flow-runs-context";
 import { flowRunStatusToStatusText } from "../shared/flow-tables";
 import { GoalListSection } from "./goals-list/goal-list-section";
 import type { GoalSummary } from "./goals-list/goal-list-section/goal-row";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 export const GoalsList = () => {
   const { flowRuns, loading } = useFlowRunsContext();

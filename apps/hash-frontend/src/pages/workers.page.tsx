@@ -10,6 +10,7 @@ import {
   generateWorkerRunPath,
   workerFlowFilterParam,
 } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import {
   Box,
   Container,
@@ -54,7 +55,6 @@ import type {
   VirtualizedTableSort,
 } from "./shared/virtualized-table";
 import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/src/flows/goal-flow-definitions";
 
 type FieldId =
   | "web"
@@ -319,7 +319,9 @@ const WorkersPageContent = () => {
 
     const rowData: VirtualizedTableRow<WorkerSummary>[] = filteredFlowRuns.map(
       (flowRun) => {
-        const type = goalFlowDefinitionIds.includes(flowRun.flowDefinitionId)
+        const type = goalFlowDefinitionIds.includes(
+          flowRun.flowDefinitionId as EntityUuid,
+        )
           ? "goal"
           : "flow";
 

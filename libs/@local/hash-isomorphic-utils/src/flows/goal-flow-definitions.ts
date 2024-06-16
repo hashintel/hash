@@ -1,9 +1,9 @@
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   InputNameForAction,
   OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 export type GoalFlowTriggerInput =
   | "Research guidance"
@@ -108,6 +108,8 @@ export const goalFlowDefinition: FlowDefinition = {
   ],
 };
 
+export type GoogleSheetTriggerInput = "Google Account" | "Google Sheet";
+
 export const goalFlowDefinitionWithSpreadsheetDeliverable: FlowDefinition = {
   name: "Research and save to Google Sheets",
   flowDefinitionId: "goal-with-spreadsheet" as EntityUuid,
@@ -139,13 +141,13 @@ export const goalFlowDefinitionWithSpreadsheetDeliverable: FlowDefinition = {
       },
       {
         payloadKind: "GoogleAccountId",
-        name: "Google Account",
+        name: "Google Account" satisfies GoogleSheetTriggerInput,
         array: false,
         required: true,
       },
       {
         payloadKind: "GoogleSheet",
-        name: "Google Sheet",
+        name: "Google Sheet" satisfies GoogleSheetTriggerInput,
         array: false,
         required: true,
       },
@@ -262,6 +264,8 @@ export const goalFlowDefinitionWithSpreadsheetDeliverable: FlowDefinition = {
   ],
 };
 
+export type ReportTriggerInput = "Report specification";
+
 export const goalFlowDefinitionWithReportDeliverable: FlowDefinition = {
   name: "Research and write a report",
   flowDefinitionId: "goal-with-report" as EntityUuid,
@@ -291,7 +295,7 @@ export const goalFlowDefinitionWithReportDeliverable: FlowDefinition = {
       },
       {
         payloadKind: "Text",
-        name: "Report specification",
+        name: "Report specification" satisfies ReportTriggerInput,
         array: false,
         required: true,
       },

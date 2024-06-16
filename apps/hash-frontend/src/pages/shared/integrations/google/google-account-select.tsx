@@ -1,5 +1,5 @@
 import { Select } from "@hashintel/design-system";
-import { Stack, Typography } from "@mui/material";
+import { outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useRef } from "react";
 
 import { Button } from "../../../../shared/ui/button";
@@ -58,13 +58,22 @@ export const GoogleAccountSelect = ({
   }, [googleAccountId, setGoogleAccountId, options]);
 
   return (
-    <Stack direction="row" alignItems="center" gap={2}>
+    <Stack direction="row" alignItems="center" gap={1.5}>
       {options.length > 0 ? (
         <>
           <Select
             displayEmpty
             onChange={(event) => setGoogleAccountId(event.target.value)}
             placeholder="Select Google Account"
+            sx={{
+              [`.${outlinedInputClasses.root} .${outlinedInputClasses.input}`]:
+                {
+                  fontSize: 15,
+                  px: 2,
+                  py: 1,
+                },
+              width: 160,
+            }}
             value={googleAccountId}
           >
             {options.map((option) => (
@@ -84,7 +93,7 @@ export const GoogleAccountSelect = ({
           }
           authContext.addGoogleAccount();
         }}
-        size="small"
+        size="xs"
       >
         Link a new account
       </Button>

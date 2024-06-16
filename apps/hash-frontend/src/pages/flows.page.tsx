@@ -1,6 +1,7 @@
 import { InfinityLightIcon } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { Box, Container, TableCell, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { memo, useMemo, useState } from "react";
@@ -29,7 +30,6 @@ import type {
   VirtualizedTableSort,
 } from "./shared/virtualized-table";
 import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/src/flows/goal-flow-definitions";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 
