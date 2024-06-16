@@ -195,6 +195,10 @@ const NewGoalPageContent = () => {
       },
     ];
 
+    /**
+     * @todo handle flows with multiple deliverables – probably need to dynamically generate the definition,
+     *   and have an explicit flag for 'goal' definitions rather than relying on a static set of flowDefinitionIds
+     */
     let flowDefinition = goalFlowDefinition;
     if (deliverablesSettings.document) {
       if (!deliverablesSettings.document.brief) {
@@ -204,7 +208,7 @@ const NewGoalPageContent = () => {
         outputName: "Report specification" satisfies ReportTriggerInput,
         payload: {
           kind: "Text",
-          value: deliverablesSettings.document.brief,
+          value: `Produce a Markdown-formatted report on the following: ${deliverablesSettings.document.brief}`,
         },
       });
       flowDefinition = goalFlowDefinitionWithReportDeliverable;

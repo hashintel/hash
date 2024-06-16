@@ -48,6 +48,7 @@ const model: LlmParams["model"] = "claude-3-opus-20240229";
 export type CoordinatingAgentInput = {
   humanInputCanBeRequested: boolean;
   prompt: string;
+  reportSpecification?: string;
   allDereferencedEntityTypesById: DereferencedEntityTypesByTypeId;
   entityTypes: DereferencedEntityType<string>[];
   linkEntityTypes?: DereferencedEntityType<string>[];
@@ -59,7 +60,8 @@ const generateSystemPromptPrefix = (params: {
   input: CoordinatingAgentInput;
   questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
 }) => {
-  const { linkEntityTypes, existingEntities } = params.input;
+  const { linkEntityTypes, existingEntities, reportSpecification } =
+    params.input;
   const { questionsAndAnswers } = params;
 
   return dedent(`
@@ -70,6 +72,13 @@ const generateSystemPromptPrefix = (params: {
 
     The user provides you with:
       - Prompt: the text prompt you need to satisfy to complete the research task
+      ${
+        reportSpecification
+          ? dedent(`
+      - Report Specification: the specification for the report your research will be used to produce – keep these requirements in mind when conducting research
+      `)
+          : ""
+      }
       - Entity Types: the types of entities you can propose to satisfy the research prompt
       ${
         linkEntityTypes
@@ -113,8 +122,13 @@ const generateSystemPromptPrefix = (params: {
 const generateInitialUserMessage = (params: {
   input: CoordinatingAgentInput;
 }): LlmUserMessage => {
-  const { prompt, entityTypes, linkEntityTypes, existingEntities } =
-    params.input;
+  const {
+    prompt,
+    reportSpecification,
+    entityTypes,
+    linkEntityTypes,
+    existingEntities,
+  } = params.input;
 
   return {
     role: "user",
@@ -123,6 +137,7 @@ const generateInitialUserMessage = (params: {
         type: "text",
         text: dedent(`
 Prompt: ${prompt}
+${reportSpecification ? `Report specification: ${reportSpecification}` : ""}
 Entity Types:
 ${entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
 ${
@@ -521,6 +536,7 @@ const parseCoordinatorInputs = async (params: {
     prompt,
     entityTypeIds,
     existingEntities: inputExistingEntities,
+    reportSpecification,
   } = getSimplifiedActionInputs({
     inputs: stepInputs,
     actionType: "researchEntities",
@@ -570,6 +586,7 @@ const parseCoordinatorInputs = async (params: {
   return {
     humanInputCanBeRequested: testingParams?.humanInputCanBeRequested ?? true,
     prompt,
+    reportSpecification,
     entityTypes,
     linkEntityTypes: linkEntityTypes.length > 0 ? linkEntityTypes : undefined,
     allDereferencedEntityTypesById: dereferencedEntityTypes,

@@ -60,14 +60,15 @@ export const goalFlowDefinition: FlowDefinition = {
           inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "Research guidance",
+          sourceStepOutputName:
+            "Research guidance" satisfies GoalFlowTriggerInput,
         },
         {
           inputName:
             "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "Entity Types",
+          sourceStepOutputName: "Entity Types" satisfies GoalFlowTriggerInput,
         },
       ],
     },
@@ -90,7 +91,8 @@ export const goalFlowDefinition: FlowDefinition = {
           inputName: "draft" satisfies InputNameForAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "Create as draft",
+          sourceStepOutputName:
+            "Create as draft" satisfies GoalFlowTriggerInput,
         },
       ],
     },
@@ -176,14 +178,15 @@ export const goalFlowDefinitionWithSpreadsheetDeliverable: FlowDefinition = {
           inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "Research guidance",
+          sourceStepOutputName:
+            "Research guidance" satisfies GoalFlowTriggerInput,
         },
         {
           inputName:
             "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "Entity Types",
+          sourceStepOutputName: "Entity Types" satisfies GoalFlowTriggerInput,
         },
       ],
     },
@@ -206,7 +209,8 @@ export const goalFlowDefinitionWithSpreadsheetDeliverable: FlowDefinition = {
           inputName: "draft" satisfies InputNameForAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "Create as draft",
+          sourceStepOutputName:
+            "Create as draft" satisfies GoalFlowTriggerInput,
         },
       ],
     },
@@ -231,14 +235,16 @@ export const goalFlowDefinitionWithSpreadsheetDeliverable: FlowDefinition = {
             "googleAccountId" satisfies InputNameForAction<"writeGoogleSheet">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "Google Account",
+          sourceStepOutputName:
+            "Google Account" satisfies GoogleSheetTriggerInput,
         },
         {
           inputName:
             "googleSheet" satisfies InputNameForAction<"writeGoogleSheet">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "Google Sheet",
+          sourceStepOutputName:
+            "Google Sheet" satisfies GoogleSheetTriggerInput,
         },
         {
           inputName:
@@ -324,14 +330,23 @@ export const goalFlowDefinitionWithReportDeliverable: FlowDefinition = {
           inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "Research guidance",
+          sourceStepOutputName:
+            "Research guidance" satisfies GoalFlowTriggerInput,
         },
         {
           inputName:
             "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "Entity Types",
+          sourceStepOutputName: "Entity Types" satisfies GoalFlowTriggerInput,
+        },
+        {
+          inputName:
+            "reportSpecification" satisfies InputNameForAction<"researchEntities">,
+          kind: "step-output",
+          sourceStepId: "trigger",
+          sourceStepOutputName:
+            "Report specification" satisfies ReportTriggerInput,
         },
       ],
     },
@@ -354,7 +369,8 @@ export const goalFlowDefinitionWithReportDeliverable: FlowDefinition = {
           inputName: "draft" satisfies InputNameForAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName: "Create as draft",
+          sourceStepOutputName:
+            "Create as draft" satisfies GoalFlowTriggerInput,
         },
       ],
     },
