@@ -285,8 +285,6 @@ async fn no_initial_metadata() {
     assert_eq!(updated_entity.metadata.confidence, Confidence::new(0.5));
     assert!(updated_entity.metadata.properties.is_empty());
 
-    let path: PropertyPath = once(PropertyPathElement::from(name_property_type_id())).collect();
-    let path_pointer = path.to_json_pointer();
     let updated_entity = api
         .patch_entity(
             api.account_id,
@@ -414,7 +412,6 @@ async fn properties_add() {
         .await
         .expect("could not patch entity");
 
-    let path_pointer = path.to_json_pointer();
     assert_eq!(
         updated_entity.metadata.properties,
         PropertyMetadataObject {
@@ -428,6 +425,7 @@ async fn properties_add() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn properties_remove() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
@@ -503,8 +501,6 @@ async fn properties_remove() {
         .await
         .expect("could not patch entity");
 
-    let film_path_pointer = film_path.to_json_pointer();
-    let interests_path_pointer = interests_path.to_json_pointer();
     assert_eq!(
         updated_entity.metadata.properties,
         PropertyMetadataObject {

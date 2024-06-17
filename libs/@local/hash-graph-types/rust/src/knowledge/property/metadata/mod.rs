@@ -26,16 +26,16 @@ use crate::knowledge::{property::Property, PropertyDiff, PropertyPath, PropertyP
 pub enum PropertyPathError {
     #[error("Property path is empty")]
     EmptyPath,
+    #[error("Property path index `{index}` is out of bounds, length is `{len}`")]
+    IndexOutOfBounds { index: usize, len: usize },
+    #[error("Property path key `{key}` does not exist")]
+    InvalidKey { key: BaseUrl },
     #[error("Expected object but got array index `{index}`")]
-    ObjectExpected { index: usize },
+    UnexpectedIndex { index: usize },
     #[error("Expected array but got object key `{key}`")]
-    ArrayExpected { key: BaseUrl },
-    #[error("Property path is occupied by object key `{key}`")]
-    ObjectKeyOccupied { key: BaseUrl },
-    #[error("Element not found at index `{index}`")]
-    ArrayIndexNotFound { index: usize },
-    #[error("Element not found at key `{key}`")]
-    ObjectKeyNotFound { key: BaseUrl },
+    UnexpectedKey { key: BaseUrl },
+    #[error("Tried to add value to existing value")]
+    UnexpectedValue,
     #[error("Properties and metadata do not match")]
     PropertyMetadataMismatch,
 }

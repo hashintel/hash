@@ -3,8 +3,6 @@ mod provenance;
 use core::{fmt, str::FromStr};
 
 use error_stack::{Report, ResultExt};
-use json_patch::{AddOperation, PatchOperation, RemoveOperation, ReplaceOperation};
-use jsonptr::Pointer;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -127,61 +125,52 @@ impl Entity {
         &mut self,
         operations: impl IntoIterator<Item = PropertyPatchOperation>,
     ) -> Result<(), Report<PatchError>> {
-        let patches = operations
-            .into_iter()
-            .map(|operation| {
-                Ok(match operation {
-                    PropertyPatchOperation::Add {
-                        path,
-                        value,
-                        metadata,
-                    } => PatchOperation::Add(AddOperation {
-                        path: Pointer::new(path),
-                        value: serde_json::to_value(
-                            PropertyWithMetadata::from_parts(value, metadata)
-                                .change_context(PatchError)?,
-                        )
-                        .change_context(PatchError)?,
-                    }),
-                    PropertyPatchOperation::Remove { path } => {
-                        PatchOperation::Remove(RemoveOperation {
-                            path: Pointer::new(path),
-                        })
-                    }
-                    PropertyPatchOperation::Replace {
-                        path,
-                        value,
-                        metadata,
-                    } => PatchOperation::Replace(ReplaceOperation {
-                        path: Pointer::new(path),
-                        value: serde_json::to_value(
-                            PropertyWithMetadata::from_parts(value, metadata)
-                                .change_context(PatchError)?,
-                        )
-                        .change_context(PatchError)?,
-                    }),
-                })
-            })
-            .collect::<Result<Vec<_>, Report<PatchError>>>()?;
-
-        // TODO: Implement more efficient patching without cloning and serialization
-        let mut properties_with_metadata = serde_json::to_value(
-            PropertyWithMetadata::from_parts(
-                Property::Object(self.properties.clone()),
-                Some(PropertyMetadataElement::Object(
-                    self.metadata.properties.clone(),
-                )),
-            )
-            .change_context(PatchError)?,
+        let mut properties_with_metadata = PropertyWithMetadata::from_parts(
+            Property::Object(self.properties.clone()),
+            Some(PropertyMetadataElement::Object(
+                self.metadata.properties.clone(),
+            )),
         )
         .change_context(PatchError)?;
 
-        json_patch::patch(&mut properties_with_metadata, &patches).change_context(PatchError)?;
-        println!("{:#}", properties_with_metadata);
+        for operation in operations {
+            match operation {
+                PropertyPatchOperation::Add {
+                    path,
+                    value,
+                    metadata,
+                } => {
+                    properties_with_metadata
+                        .add(
+                            path,
+                            PropertyWithMetadata::from_parts(value, metadata)
+                                .change_context(PatchError)?,
+                        )
+                        .change_context(PatchError)?;
+                }
+                PropertyPatchOperation::Remove { path } => {
+                    properties_with_metadata
+                        .remove(&path)
+                        .change_context(PatchError)?;
+                }
+                PropertyPatchOperation::Replace {
+                    path,
+                    value,
+                    metadata,
+                } => {
+                    properties_with_metadata
+                        .replace(
+                            &path,
+                            PropertyWithMetadata::from_parts(value, metadata)
+                                .change_context(PatchError)?,
+                        )
+                        .change_context(PatchError)?;
+                }
+            }
+        }
+
         let (Property::Object(properties), PropertyMetadataElement::Object(metadata)) =
-            serde_json::from_value::<PropertyWithMetadata>(properties_with_metadata)
-                .change_context(PatchError)?
-                .into_parts()
+            properties_with_metadata.into_parts()
         else {
             unreachable!("patching should not change the property type");
         };
