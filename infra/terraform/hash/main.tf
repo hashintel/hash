@@ -297,12 +297,7 @@ module "application" {
     },
   ])
   api_image              = module.api_ecr
-  api_migration_env_vars = concat(var.hash_api_migration_env_vars, [
-    {
-      name  = "INCOMPLETE_USER_ACCOUNTS", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["incomplete_user_accounts"])
-    },
-  ])
+  api_migration_env_vars = var.hash_api_migration_env_vars
   api_env_vars = concat(var.hash_api_env_vars, [
     {
       name  = "ACCESS_FORM_SLACK_WEBHOOK_URL", secret = true,
