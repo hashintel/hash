@@ -1,7 +1,10 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -196,15 +199,26 @@ export const createUsageRecord = async (
         subjectSet: "member",
       },
     },
-    {
+  ];
+
+  if (assignUsageToWebId === userAccountId) {
+    entityRelationships.push({
+      relation: "viewer",
+      subject: {
+        kind: "account",
+        subjectId: userAccountId,
+      },
+    });
+  } else {
+    entityRelationships.push({
       relation: "viewer",
       subject: {
         kind: "accountGroup",
-        subjectId: assignUsageToWebId,
+        subjectId: assignUsageToWebId as AccountGroupId,
         subjectSet: "administrator",
       },
-    },
-  ];
+    });
+  }
 
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
 
