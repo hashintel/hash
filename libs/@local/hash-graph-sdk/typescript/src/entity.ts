@@ -29,6 +29,7 @@ import type {
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
+import { isArray } from "lodash";
 import zip from "lodash/zip";
 
 import type { AuthenticationContext } from "./authentication-context";
@@ -118,13 +119,16 @@ export const flattenedPropertyMetadataMap = (
     path: PropertyPath,
     element: PropertyMetadataElement,
   ): void => {
-    if ("properties" in element) {
-      for (const [key, value] of typedEntries(element.properties)) {
-        visitElement([...path, key], value);
-      }
-    } else if ("elements" in element) {
-      for (const [index, value] of element.elements.entries()) {
+    if (!("value" in element) || !element.value) {
+      return;
+    }
+    if (isArray(element.value)) {
+      for (const [index, value] of element.value.entries()) {
         visitElement([...path, index], value);
+      }
+    } else {
+      for (const [key, value] of typedEntries(element.value)) {
+        visitElement([...path, key], value);
       }
     }
 
@@ -281,17 +285,17 @@ export class Entity<
     path: PropertyPath,
   ): PropertyMetadataElement["metadata"] {
     return path.reduce<PropertyMetadataElement | undefined>((map, key) => {
-      if (!map) {
+      if (!map || !("value" in map) || !map.value) {
         return undefined;
       }
       if (typeof key === "number") {
-        if ("elements" in map) {
-          return map.elements[key];
+        if (isArray(map.value)) {
+          return map.value[key];
         } else {
           return undefined;
         }
-      } else if ("properties" in map) {
-        return map.properties[key];
+      } else if (!isArray(map.value)) {
+        return map.value[key];
       } else {
         return undefined;
       }
@@ -303,7 +307,7 @@ export class Entity<
     metadata: PropertyMetadataElement["metadata"];
   }[] {
     return flattenedPropertyMetadataMap(
-      this.#entity.metadata.properties ?? { properties: {} },
+      this.#entity.metadata.properties ?? { value: {} },
     );
   }
 

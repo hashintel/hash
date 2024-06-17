@@ -3032,7 +3032,8 @@
           "provenance": {
             "$ref": "#/components/schemas/PropertyProvenance"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "BaseUrl": {
         "type": "string",
@@ -6016,7 +6017,8 @@
           "provenance": {
             "$ref": "#/components/schemas/PropertyProvenance"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OntologyEdgeKind": {
         "type": "string",
@@ -6690,20 +6692,18 @@
       },
       "PropertyMetadataArray": {
         "type": "object",
-        "required": [
-          "elements"
-        ],
         "properties": {
-          "elements": {
+          "metadata": {
+            "$ref": "#/components/schemas/ArrayMetadata"
+          },
+          "value": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PropertyMetadataElement"
             }
-          },
-          "metadata": {
-            "$ref": "#/components/schemas/ArrayMetadata"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PropertyMetadataElement": {
         "oneOf": [
@@ -6728,20 +6728,18 @@
       },
       "PropertyMetadataObject": {
         "type": "object",
-        "required": [
-          "properties"
-        ],
         "properties": {
           "metadata": {
             "$ref": "#/components/schemas/ObjectMetadata"
           },
-          "properties": {
+          "value": {
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/PropertyMetadataElement"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PropertyObject": {
         "type": "object",

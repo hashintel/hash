@@ -213,7 +213,7 @@ impl PropertyWithMetadata {
             (
                 Property::Array(properties),
                 Some(PropertyMetadataElement::Array(PropertyMetadataArray {
-                    elements: metadata_elements,
+                    value: metadata_elements,
                     metadata,
                 })),
             ) => Ok(Self::Array {
@@ -236,7 +236,7 @@ impl PropertyWithMetadata {
             (
                 Property::Object(properties),
                 Some(PropertyMetadataElement::Object(PropertyMetadataObject {
-                    properties: mut metadata_elements,
+                    value: mut metadata_elements,
                     metadata,
                 })),
             ) => Ok(Self::Object {
@@ -284,7 +284,7 @@ impl PropertyWithMetadata {
                 (
                     Property::Array(properties),
                     PropertyMetadataElement::Array(PropertyMetadataArray {
-                        elements: metadata_elements,
+                        value: metadata_elements,
                         metadata,
                     }),
                 )
@@ -303,7 +303,7 @@ impl PropertyWithMetadata {
                 (
                     Property::Object(PropertyObject::new(properties)),
                     PropertyMetadataElement::Object(PropertyMetadataObject {
-                        properties: metadata_properties,
+                        value: metadata_properties,
                         metadata,
                     }),
                 )

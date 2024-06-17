@@ -765,7 +765,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       const sourcesUsedToProposeEntity = [
         ...(submittedProposedEntity.provenance?.sources ?? []),
         ...flattenedPropertyMetadataMap(
-          submittedProposedEntity.propertyMetadata ?? { properties: {} },
+          submittedProposedEntity.propertyMetadata ?? {},
         ).flatMap(({ metadata }) => metadata.provenance?.sources ?? []),
       ];
 
@@ -804,9 +804,7 @@ export const researchEntitiesAction: FlowActionActivity<{
        * @todo: H-2728 set the web page this file was discovered in (if applicable) in the property provenance
        * for the `fileUrl`
        */
-      propertyMetadata: {
-        properties: {},
-      },
+      propertyMetadata: {},
       provenance: fileEditionProvenance,
       entityTypeId,
       localEntityId: generateUuid(),

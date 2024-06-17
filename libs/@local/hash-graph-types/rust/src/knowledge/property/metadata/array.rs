@@ -4,7 +4,7 @@ use crate::knowledge::{Confidence, PropertyMetadataElement, PropertyProvenance};
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArrayMetadata {
     #[serde(default, skip_serializing_if = "PropertyProvenance::is_empty")]
     pub provenance: PropertyProvenance,
@@ -22,9 +22,10 @@ impl ArrayMetadata {
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyMetadataArray {
-    pub elements: Vec<PropertyMetadataElement>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub value: Vec<PropertyMetadataElement>,
     #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
     pub metadata: ArrayMetadata,
 }
@@ -32,6 +33,6 @@ pub struct PropertyMetadataArray {
 impl PropertyMetadataArray {
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.elements.is_empty() && self.metadata.is_empty()
+        self.value.is_empty() && self.metadata.is_empty()
     }
 }

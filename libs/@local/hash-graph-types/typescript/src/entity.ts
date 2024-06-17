@@ -90,12 +90,12 @@ export interface PropertyMetadataValue {
 }
 
 export interface PropertyMetadataObject {
-  properties: Record<BaseUrl, PropertyMetadataElement>;
+  value?: Record<BaseUrl, PropertyMetadataElement>;
   metadata?: ObjectMetadata;
 }
 
 export interface PropertyMetadataArray {
-  elements: PropertyMetadataElement[];
+  value?: PropertyMetadataElement[];
   metadata?: ArrayMetadata;
 }
 

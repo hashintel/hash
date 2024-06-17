@@ -13,7 +13,7 @@ use crate::knowledge::{Confidence, PropertyMetadataElement, PropertyProvenance};
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ObjectMetadata {
     #[serde(default, skip_serializing_if = "PropertyProvenance::is_empty")]
     pub provenance: PropertyProvenance,
@@ -31,9 +31,10 @@ impl ObjectMetadata {
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyMetadataObject {
-    pub properties: HashMap<BaseUrl, PropertyMetadataElement>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub value: HashMap<BaseUrl, PropertyMetadataElement>,
     #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
     pub metadata: ObjectMetadata,
 }
@@ -41,7 +42,7 @@ pub struct PropertyMetadataObject {
 impl PropertyMetadataObject {
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.properties.is_empty() && self.metadata.is_empty()
+        self.value.is_empty() && self.metadata.is_empty()
     }
 }
 

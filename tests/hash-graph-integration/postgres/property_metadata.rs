@@ -137,7 +137,7 @@ async fn initial_metadata() {
     let mut api = seed(&mut database).await;
 
     let entity_property_metadata = PropertyMetadataObject {
-        properties: HashMap::from([(
+        value: HashMap::from([(
             name_property_type_id(),
             PropertyMetadataElement::Value {
                 metadata: ValueMetadata {
@@ -210,7 +210,7 @@ async fn initial_metadata() {
     assert_eq!(
         updated_entity.metadata.properties,
         PropertyMetadataObject {
-            properties: HashMap::from([(name_property_type_id(), name_property_metadata)]),
+            value: HashMap::from([(name_property_type_id(), name_property_metadata)]),
             metadata: ObjectMetadata {
                 provenance: PropertyProvenance::default(),
                 confidence: Confidence::new(0.8),
@@ -272,7 +272,7 @@ async fn no_initial_metadata() {
     assert_eq!(
         entity_metadata.properties,
         PropertyMetadataObject {
-            properties: HashMap::from([(
+            value: HashMap::from([(
                 name_property_type_id(),
                 PropertyMetadataElement::Value {
                     metadata: ValueMetadata {
@@ -326,7 +326,7 @@ async fn no_initial_metadata() {
     assert_eq!(
         entity_metadata.properties,
         PropertyMetadataObject {
-            properties: HashMap::from([(
+            value: HashMap::from([(
                 name_property_type_id(),
                 PropertyMetadataElement::Value {
                     metadata: ValueMetadata {
@@ -371,7 +371,7 @@ async fn no_initial_metadata() {
     assert_eq!(
         updated_entity.metadata.properties,
         PropertyMetadataObject {
-            properties: HashMap::from([(
+            value: HashMap::from([(
                 name_property_type_id(),
                 PropertyMetadataElement::Value {
                     metadata: ValueMetadata {
@@ -406,7 +406,7 @@ async fn no_initial_metadata() {
     assert_eq!(
         updated_entity.metadata.properties,
         PropertyMetadataObject {
-            properties: HashMap::from([(
+            value: HashMap::from([(
                 name_property_type_id(),
                 PropertyMetadataElement::Value {
                     metadata: ValueMetadata {
@@ -482,7 +482,7 @@ async fn properties_add() {
     assert_eq!(
         updated_entity.metadata.properties,
         PropertyMetadataObject {
-            properties: HashMap::from([
+            value: HashMap::from([
                 (
                     name_property_type_id(),
                     PropertyMetadataElement::Value {
@@ -558,7 +558,7 @@ async fn properties_remove() {
                             .collect(),
                         value: Property::Object(PropertyObject::new(HashMap::new())),
                         metadata: Some(PropertyMetadataElement::Object(PropertyMetadataObject {
-                            properties: HashMap::new(),
+                            value: HashMap::new(),
                             metadata: ObjectMetadata {
                                 confidence: Confidence::new(0.4),
                                 provenance: property_provenance_a(),
@@ -589,7 +589,7 @@ async fn properties_remove() {
     assert_eq!(
         updated_entity.metadata.properties,
         PropertyMetadataObject {
-            properties: HashMap::from([
+            value: HashMap::from([
                 (
                     name_property_type_id(),
                     PropertyMetadataElement::Value {
@@ -603,7 +603,7 @@ async fn properties_remove() {
                 (
                     interests_property_type_id(),
                     PropertyMetadataElement::Object(PropertyMetadataObject {
-                        properties: HashMap::from([(
+                        value: HashMap::from([(
                             film_property_type_id(),
                             PropertyMetadataElement::Value {
                                 metadata: ValueMetadata {
@@ -646,7 +646,7 @@ async fn properties_remove() {
     assert_eq!(
         updated_entity.metadata.properties,
         PropertyMetadataObject {
-            properties: HashMap::from([(
+            value: HashMap::from([(
                 name_property_type_id(),
                 PropertyMetadataElement::Value {
                     metadata: ValueMetadata {

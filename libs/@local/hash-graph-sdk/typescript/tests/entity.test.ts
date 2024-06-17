@@ -58,11 +58,11 @@ const createTestEntity = (): GraphApiEntity => ({
         "36fb3cd2-a500-493e-ab1e-e0b3a40839aa~17562306-35b5-4bb1-bda3-1c5ddea833ea",
     },
     properties: {
-      properties: {
+      value: {
         [base_url_a]: {
-          properties: {
+          value: {
             [base_url_aa]: {
-              properties: {
+              value: {
                 [base_url_aaa]: {
                   metadata: {
                     confidence: 0.1,
@@ -76,9 +76,9 @@ const createTestEntity = (): GraphApiEntity => ({
           },
         },
         [base_url_b]: {
-          elements: [
+          value: [
             {
-              properties: {
+              value: {
                 [base_url_b10b]: {
                   metadata: {
                     confidence: 0.3,
@@ -92,7 +92,7 @@ const createTestEntity = (): GraphApiEntity => ({
           },
         },
         [base_url_c]: {
-          elements: [
+          value: [
             {
               metadata: {
                 confidence: 0.5,
