@@ -5,7 +5,6 @@ import type {
   Entity as GraphApiEntity,
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
-  PropertyMetadataObject as GraphApiPropertyMetadataObject,
   PropertyProvenance,
 } from "@local/hash-graph-client/api";
 import type {
