@@ -119,16 +119,15 @@ export const flattenedPropertyMetadataMap = (
     path: PropertyPath,
     element: PropertyMetadataElement,
   ): void => {
-    if (!("value" in element) || !element.value) {
-      return;
-    }
-    if (isArray(element.value)) {
-      for (const [index, value] of element.value.entries()) {
-        visitElement([...path, index], value);
-      }
-    } else {
-      for (const [key, value] of typedEntries(element.value)) {
-        visitElement([...path, key], value);
+    if ("value" in element && element.value) {
+      if (isArray(element.value)) {
+        for (const [index, value] of element.value.entries()) {
+          visitElement([...path, index], value);
+        }
+      } else {
+        for (const [key, value] of typedEntries(element.value)) {
+          visitElement([...path, key], value);
+        }
       }
     }
 
