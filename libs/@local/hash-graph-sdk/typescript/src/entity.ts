@@ -214,10 +214,9 @@ export class Entity<
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(({ entityTypeId, draft, propertyMetadata, ...rest }) => ({
+        params.map(({ entityTypeId, draft, ...rest }) => ({
           entityTypeIds: [entityTypeId],
           draft: draft ?? false,
-          propertyMetadata: propertyMetadata as GraphApiPropertyMetadataObject,
           ...rest,
         })),
       )
