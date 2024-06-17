@@ -5,6 +5,7 @@ import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-u
 require("setimmediate");
 
 import "./globals.scss";
+import "./prism.css";
 
 import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
