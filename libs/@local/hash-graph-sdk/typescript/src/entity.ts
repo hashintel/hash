@@ -306,9 +306,7 @@ export class Entity<
     path: PropertyPath;
     metadata: PropertyMetadataElement["metadata"];
   }[] {
-    return flattenedPropertyMetadataMap(
-      this.#entity.metadata.properties ?? { value: {} },
-    );
+    return flattenedPropertyMetadataMap(this.#entity.metadata.properties ?? {});
   }
 
   public get linkData(): LinkData | undefined {
