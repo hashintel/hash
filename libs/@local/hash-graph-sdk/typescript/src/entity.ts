@@ -24,7 +24,6 @@ import type {
   PropertyMetadataObject,
   PropertyPath,
 } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
@@ -33,6 +32,7 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import zip from "lodash/zip";
 
 import type { AuthenticationContext } from "./authentication-context";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 
 export type CreateEntityParameters = Omit<
   GraphApiCreateEntityRequest,
@@ -119,18 +119,13 @@ export const flattenedPropertyMetadataMap = (
     path: PropertyPath,
     element: PropertyMetadataElement,
   ): void => {
-    for (const [key, value] of Object.entries(element)) {
-      if (key.endsWith("/")) {
-        // Nested object
-        visitElement(
-          [...path, key as BaseUrl],
-          value as PropertyMetadataElement,
-        );
-      } else {
-        const keyNumber = parseInt(key, 10);
-        if (!Number.isNaN(keyNumber)) {
-          visitElement([...path, keyNumber], value as PropertyMetadataElement);
-        }
+    if ("properties" in element) {
+      for (const [key, value] of typedEntries(element.properties)) {
+        visitElement([...path, key], value);
+      }
+    } else if ("elements" in element) {
+      for (const [index, value] of element.elements.entries()) {
+        visitElement([...path, index], value);
       }
     }
 
@@ -142,9 +137,7 @@ export const flattenedPropertyMetadataMap = (
     }
   };
 
-  for (const [baseUrl, value] of Object.entries(metadata)) {
-    visitElement([baseUrl as BaseUrl], value as PropertyMetadataElement);
-  }
+  visitElement([], metadata);
 
   return flattened;
 };

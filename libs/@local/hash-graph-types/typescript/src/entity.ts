@@ -99,7 +99,7 @@ export interface PropertyMetadataArray {
   metadata?: ArrayMetadata;
 }
 
-export type PropertyPath = [BaseUrl, ...(BaseUrl | number)[]];
+export type PropertyPath = (BaseUrl | number)[];
 
 export type LinkData = Subtype<
   LinkDataBp,

@@ -184,8 +184,8 @@ test("flattened properties", () => {
       metadata: { confidence: 0.1 },
     },
     { path: [base_url_a], metadata: { confidence: 0.2 } },
-    { path: [base_url_b, 10, base_url_b10b], metadata: { confidence: 0.3 } },
+    { path: [base_url_b, 0, base_url_b10b], metadata: { confidence: 0.3 } },
     { path: [base_url_b], metadata: { confidence: 0.4 } },
-    { path: [base_url_c, 20], metadata: { confidence: 0.5 } },
+    { path: [base_url_c, 0], metadata: { confidence: 0.5 } },
   ]);
 });
