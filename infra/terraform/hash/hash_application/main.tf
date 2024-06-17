@@ -62,8 +62,6 @@ locals {
       ecr_arn  = var.api_image.ecr_arn
     },
   ]
-  # To scale up the worker we probably want to move these into a separated service. They are defined in this task
-  # to easily connect to the Graph API.
   worker_task_defs = [
     {
       task_def = local.temporal_worker_ai_ts_service_container_def
