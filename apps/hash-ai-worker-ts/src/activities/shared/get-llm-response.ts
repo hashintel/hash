@@ -1,13 +1,12 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
-import { userExceededServiceUsageLimitActivity } from "../user-exceeded-service-usage-limit-activity";
 import { logger } from "./activity-logger";
+import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-service-usage-not-exceeded";
 import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response";
 import {
   getOpenAiResponse,
@@ -29,21 +28,18 @@ export const getLlmResponse = async <T extends LlmParams>(
   const { graphApiClient, userAccountId, webId } = usageTrackingParams;
 
   /**
-   * Check whether the user has exceeded their usage limit, before
-   * proceeding with the LLM request.
+   * Check whether the web has exceeded its usage limit, before proceeding with the LLM request.
    */
-  const userHasExceededUsageStatus =
-    await userExceededServiceUsageLimitActivity({
-      graphApiClient,
-      userAccountId,
-    });
+  const usageLimitExceededCheck = await checkWebServiceUsageNotExceeded({
+    graphApiClient,
+    userAccountId,
+    webId,
+  });
 
-  if (userHasExceededUsageStatus.code !== StatusCode.Ok) {
+  if (usageLimitExceededCheck.code !== StatusCode.Ok) {
     return {
       status: "exceeded-usage-limit",
-      message:
-        userHasExceededUsageStatus.message ??
-        "You have exceeded your usage limit.",
+      message: usageLimitExceededCheck.message ?? "Usage limit exceeded.",
     };
   }
 
@@ -52,18 +48,6 @@ export const getLlmResponse = async <T extends LlmParams>(
     grantCreatePermissionForWeb: webId,
     graphApiClient,
   });
-
-  if (webId !== userAccountId) {
-    /**
-     * If the web isn't the user's, we need to make sure the AI assistant also has permission over the user's web,
-     * to be able to create the usage record.
-     */
-    await getAiAssistantAccountIdActivity({
-      authentication: { actorId: userAccountId },
-      grantCreatePermissionForWeb: userAccountId as OwnedById,
-      graphApiClient,
-    });
-  }
 
   if (!aiAssistantAccountId) {
     return {
@@ -102,15 +86,15 @@ export const getLlmResponse = async <T extends LlmParams>(
     try {
       usageRecordEntity = await createUsageRecord(
         { graphApi: graphApiClient },
-        { actorId: aiAssistantAccountId },
         {
+          assignUsageToWebId: webId,
           serviceName: isLlmParamsAnthropicLlmParams(llmParams)
             ? "Anthropic"
             : "OpenAI",
           featureName: llmParams.model,
-          userAccountId,
           inputUnitCount: usage.inputTokens,
           outputUnitCount: usage.outputTokens,
+          userAccountId,
         },
       );
     } catch (error) {
@@ -152,10 +136,10 @@ export const getLlmResponse = async <T extends LlmParams>(
                     },
                   },
                   {
-                    relation: "viewer",
+                    relation: "setting",
                     subject: {
-                      kind: "account",
-                      subjectId: userAccountId,
+                      kind: "setting",
+                      subjectId: "viewFromWeb",
                     },
                   },
                   {

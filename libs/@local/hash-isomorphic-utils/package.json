@@ -24,7 +24,7 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@apollo/client": "3.6.9",
+    "@apollo/client": "3.10.5",
     "@blockprotocol/core": "0.1.3",
     "@blockprotocol/graph": "0.3.4",
     "@local/advanced-types": "0.0.0-private",

@@ -130,7 +130,7 @@ export type SimpleStatus =
   | "Information Required"
   | "In Progress"
   | "Complete"
-  | "Error"
+  | "Errored"
   | "Cancelled";
 
 export const statusToSimpleStatus = (
@@ -144,7 +144,7 @@ export const statusToSimpleStatus = (
       break;
     case FlowStepStatus.Failed:
     case FlowStepStatus.TimedOut:
-      simpleStatus = "Error";
+      simpleStatus = "Errored";
       break;
     case FlowStepStatus.Cancelled:
       simpleStatus = "Cancelled";
@@ -213,7 +213,7 @@ export const useStatusForSteps = (
 
       statusByStep[stepRun.stepId] = simpleStatus;
 
-      if (simpleStatus === "Error") {
+      if (simpleStatus === "Errored") {
         hasError = true;
       } else if (
         simpleStatus === "In Progress" ||
@@ -226,7 +226,7 @@ export const useStatusForSteps = (
     }
 
     if (hasError) {
-      status = "Error";
+      status = "Errored";
     } else if (hasInProgress) {
       status = "In Progress";
     } else if (hasWaiting) {
