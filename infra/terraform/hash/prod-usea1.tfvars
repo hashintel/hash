@@ -62,6 +62,8 @@ hash_graph_env_vars = [
 ]
 
 hash_api_migration_env_vars = [
+  { name = "HASH_KRATOS_PUBLIC_URL", secret = false, value = "http://localhost:4433" },
+  { name = "HASH_KRATOS_ADMIN_URL", secret = false, value = "http://localhost:4434" },
   { name = "LOG_LEVEL", secret = false, value = "debug" },
 ]
 
@@ -74,6 +76,11 @@ hash_api_env_vars = [
   { name = "FILE_UPLOAD_PROVIDER", secret = false, value = "AWS_S3" },
 
   { name = "HASH_OPENSEARCH_ENABLED", secret = false, value = "false" },
+
+  { name = "HASH_KRATOS_PUBLIC_URL", secret = false, value = "http://localhost:4433" },
+  { name = "HASH_KRATOS_ADMIN_URL", secret = false, value = "http://localhost:4434" },
+  { name = "HASH_HYDRA_PUBLIC_URL", secret = false, value = "http://localhost:4444" },
+  { name = "HASH_HYDRA_ADMIN_URL", secret = false, value = "http://localhost:4445" },
 
   # TODO: remove these deprecated system org variables
   { name = "SYSTEM_ACCOUNT_NAME", secret = false, value = "HASH" },
