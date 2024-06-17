@@ -26,7 +26,7 @@ export const statusSx = {
     text: ({ palette }) => palette.blue[100],
   },
   Cancelled: redStyles,
-  Error: redStyles,
+  Errored: redStyles,
   Waiting: {
     borderColor: ({ palette }) => palette.gray[30],
     darkBackground: ({ palette }) => palette.gray[30],

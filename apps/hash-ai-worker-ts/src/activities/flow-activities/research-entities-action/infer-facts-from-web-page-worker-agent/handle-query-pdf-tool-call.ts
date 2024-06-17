@@ -3,23 +3,36 @@ import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { MetadataMode } from "llamaindex";
 
+import type { DereferencedEntityTypesByTypeId } from "../../../infer-entities/inference-types";
 import { logger } from "../../../shared/activity-logger";
 import type { ParsedLlmToolCall } from "../../../shared/get-llm-response/types";
 import { logProgress } from "../../../shared/log-progress";
 import { stringify } from "../../../shared/stringify";
+import { inferFactsFromText } from "../../shared/infer-facts-from-text";
 import type { CompletedToolCall } from "../types";
 import { filterAndRankTextChunksAgent } from "./filter-and-rank-text-chunks-agent";
 import { indexPdfFile } from "./llama-index/index-pdf-file";
 import type { ToolCallArguments } from "./tool-definitions";
-import type { InferFactsFromWebPageWorkerAgentState } from "./types";
+import type {
+  InferFactsFromWebPageWorkerAgentInput,
+  InferFactsFromWebPageWorkerAgentState,
+} from "./types";
+import { updateStateFromInferredFacts } from "./update-state-from-inferred-facts";
 
 export const handleQueryPdfToolCall = async (params: {
+  input: InferFactsFromWebPageWorkerAgentInput;
   state: InferFactsFromWebPageWorkerAgentState;
-  toolCall: ParsedLlmToolCall<"queryPdf">;
-}): Promise<CompletedToolCall<"queryPdf">> => {
-  const { toolCall, state } = params;
-  const { description, fileUrl, exampleText, explanation } =
-    toolCall.input as ToolCallArguments["queryPdf"];
+  toolCall: ParsedLlmToolCall<"queryFactsFromPdf">;
+}): Promise<CompletedToolCall<"queryFactsFromPdf">> => {
+  const { input, toolCall, state } = params;
+  const {
+    description,
+    fileUrl,
+    exampleText,
+    explanation,
+    relevantEntitiesPrompt,
+    entityTypeIds,
+  } = toolCall.input as ToolCallArguments["queryFactsFromPdf"];
 
   /**
    * @todo: are the prefixes necessary?
@@ -40,6 +53,8 @@ export const handleQueryPdfToolCall = async (params: {
       isError: true,
     };
   }
+
+  const loadedAt = new Date();
 
   const fileUrlHeadFetch = await fetch(fileUrl, { method: "HEAD" });
 
@@ -117,7 +132,10 @@ export const handleQueryPdfToolCall = async (params: {
       textChunks,
     });
 
-  if (filteredAndRankedTextChunksResponse.status !== "ok") {
+  if (
+    filteredAndRankedTextChunksResponse.status !== "ok" ||
+    filteredAndRankedTextChunksResponse.orderedRelevantTextChunks.length === 0
+  ) {
     /** @todo: consider improving the error reporting of this */
     return {
       ...toolCall,
@@ -143,19 +161,56 @@ export const handleQueryPdfToolCall = async (params: {
     });
   }
 
+  /**
+   * Step 3: Infer facts from the relevant text chunks
+   */
+
+  const textToInferFactsFrom = dedent(`
+    Here is a list of the most relevant sections of the PDF file with file URL ${fileUrl}:
+    ${orderedRelevantTextChunks.map((text, index) => `Relevant section ${index + 1}: ${text}`).join("\n")}
+    `);
+
+  const dereferencedEntityTypes = input.entityTypes.filter(({ $id }) =>
+    entityTypeIds.includes($id),
+  );
+
+  const dereferencedEntityTypesById =
+    dereferencedEntityTypes.reduce<DereferencedEntityTypesByTypeId>(
+      (prev, schema) => ({
+        ...prev,
+        [schema.$id]: {
+          schema,
+          isLink: false,
+        },
+      }),
+      {} as DereferencedEntityTypesByTypeId,
+    );
+
+  const { facts, entitySummaries } = await inferFactsFromText({
+    text: textToInferFactsFrom,
+    dereferencedEntityTypes: dereferencedEntityTypesById,
+    relevantEntitiesPrompt,
+  });
+
+  await updateStateFromInferredFacts({
+    state,
+    inferredFacts: facts,
+    inferredFactsAboutEntities: entitySummaries,
+    filesUsedToInferFacts: [
+      {
+        url: fileUrl,
+        entityTypeId: systemEntityTypes.pdfDocument.entityTypeId,
+        loadedAt: loadedAt.toISOString(),
+      },
+    ],
+  });
+
   return {
     ...toolCall,
-    output: dedent(`
-    Here is a list of the most relevant sections of the PDF file, based on your query:
-    ${orderedRelevantTextChunks.map((text, index) => `Relevant section ${index + 1}: ${text}`).join("\n")}
-    --- END OF RELEVANT SECTIONS ---
-
-    If the relevant sections include the information needed for the relevant entities,
-      use the "inferEntitiesFromText" tool with the relevant text as input.
-
-    If the relevant sections do not include the information needed for the relevant entities,
-      that does not mean the information is not in the PDF file. You can try calling the
-      "queryPdf" tool again with a different "description" of the information you need.
-  `),
+    /**
+     * @todo: consider whether it may be useful for the agent to know which facts
+     * came from which PDF file.
+     */
+    output: `Successfully inferred ${facts.length} facts from the relevant sections of the PDF file.`,
   };
 };

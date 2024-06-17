@@ -11,7 +11,7 @@ import { getFlowContext } from "../shared/get-flow-context";
 import { getLlmResponse } from "../shared/get-llm-response";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message";
 import { graphApiClient } from "../shared/graph-api-client";
-import { modelAliasToSpecificModel } from "../shared/openai-client";
+import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model";
 import type { FlowActionActivity } from "./types";
 
 const generateSummarizeWebPageSystemPrompt = (params: {
@@ -60,13 +60,13 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
               text: dedent(`
               URL: ${url}
               Title: ${webPage.title}
-              Text: ${webPage.htmlContent} 
+              Text: ${webPage.innerText} 
             `),
             },
           ],
         },
       ],
-      model: modelAliasToSpecificModel[model],
+      model: inferenceModelAliasToSpecificModel[model],
     },
     {
       userAccountId: userAuthentication.actorId,

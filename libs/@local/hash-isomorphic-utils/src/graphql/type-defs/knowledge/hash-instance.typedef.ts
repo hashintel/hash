@@ -1,10 +1,15 @@
 import { gql } from "apollo-server-express";
 
 export const hashInstanceTypedef = gql`
+  type HashInstanceSettings {
+    entity: SerializedEntity!
+    isUserAdmin: Boolean!
+  }
+
   extend type Query {
     """
-    Get the HASH instance entity.
+    Get the HASH instance settings
     """
-    hashInstanceEntity: SerializedEntity!
+    hashInstanceSettings: HashInstanceSettings
   }
 `;

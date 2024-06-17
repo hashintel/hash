@@ -62,7 +62,7 @@ export const InferEntitiesAction = ({
     };
 
     try {
-      const siteContent = await (browser.tabs.sendMessage(
+      const sourceWebPage = await (browser.tabs.sendMessage(
         activeTab.id,
         message,
       ) as Promise<GetTabContentReturn>);
@@ -72,9 +72,7 @@ export const InferEntitiesAction = ({
         entityTypeIds: targetEntityTypeIds,
         model,
         ownedById,
-        sourceTitle: siteContent.pageTitle,
-        sourceUrl: siteContent.pageUrl,
-        textInput: siteContent.content,
+        sourceWebPage,
         type: "infer-entities",
       });
     } catch (err) {

@@ -25,6 +25,7 @@ export type WebPage = {
   url: string;
   title: string;
   htmlContent: string;
+  innerText: string;
 };
 
 type LocalOrExistingEntityId =

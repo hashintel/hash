@@ -18,6 +18,9 @@ export const inferenceModelNames = [
   "gpt-4",
   "gpt-4-turbo",
   "gpt-3.5-turbo",
+  "claude-3-haiku",
+  "claude-3-sonnet",
+  "claude-3-opus",
 ] as const;
 
 export type InferenceModelName = (typeof inferenceModelNames)[number];

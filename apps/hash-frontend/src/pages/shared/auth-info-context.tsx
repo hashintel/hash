@@ -1,11 +1,9 @@
-import { useApolloClient, useQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { checkUserPermissionsOnEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -26,11 +24,7 @@ import {
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
-import type {
-  CheckUserPermissionsOnEntityQuery,
-  CheckUserPermissionsOnEntityQueryVariables,
-  MeQuery,
-} from "../../graphql/api-types.gen";
+import type { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
 import type { User } from "../../lib/user-and-org";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
@@ -124,7 +118,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 
   const apolloClient = useApolloClient();
 
-  const { hashInstance } = useHashInstance();
+  const { isUserAdmin: isInstanceAdmin } = useHashInstance();
 
   const fetchAuthenticatedUser =
     useCallback<RefetchAuthInfoFunction>(async () => {
@@ -163,25 +157,6 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     () => constructUserValue(authenticatedUserSubgraph),
     [authenticatedUserSubgraph, constructUserValue],
   );
-
-  const { data: userPermissionsOnHashInstance } = useQuery<
-    CheckUserPermissionsOnEntityQuery,
-    CheckUserPermissionsOnEntityQueryVariables
-  >(checkUserPermissionsOnEntityQuery, {
-    variables: {
-      // The query is skipped if `hashInstance` is `undefined`
-      metadata: hashInstance?.metadata as EntityMetadata,
-    },
-    skip: !hashInstance || !authenticatedUser,
-  });
-
-  const isInstanceAdmin = useMemo(() => {
-    if (!userPermissionsOnHashInstance) {
-      return undefined;
-    }
-
-    return userPermissionsOnHashInstance.checkUserPermissionsOnEntity.edit;
-  }, [userPermissionsOnHashInstance]);
 
   const value = useMemo(
     () => ({

@@ -1,0 +1,49 @@
+import "../../shared/testing-utilities/mock-get-flow-context";
+
+import { expect, test } from "vitest";
+
+import { createAnthropicMessagesWithTools } from "./get-llm-response/anthropic-client";
+
+test.skip(
+  "Test rate limit with amazon bedrock",
+  async () => {
+    let count = 0;
+    const smallOpusRequest = () => {
+      // eslint-disable-next-line no-console
+      console.log(`Sending request number ${count}`);
+
+      count++;
+
+      return createAnthropicMessagesWithTools({
+        payload: {
+          model: "claude-3-opus-20240229",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Say hello!",
+                },
+              ],
+            },
+          ],
+          max_tokens: 100,
+        },
+        provider: "amazon-bedrock",
+      });
+    };
+
+    try {
+      await Promise.all(Array.from({ length: 60 }, smallOpusRequest));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.log(JSON.stringify({ error }, null, 2));
+
+      expect(error).toBeDefined();
+    }
+  },
+  {
+    timeout: 5 * 60 * 1000,
+  },
+);

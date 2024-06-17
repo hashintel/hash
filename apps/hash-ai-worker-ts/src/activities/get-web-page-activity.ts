@@ -1,6 +1,7 @@
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Context } from "@temporalio/activity";
+import { JSDOM } from "jsdom";
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import sanitizeHtml from "sanitize-html";
@@ -10,37 +11,13 @@ import { requestExternalInput } from "./shared/request-external-input";
 
 puppeteer.use(StealthPlugin());
 
-export const sanitizeHtmlForLlmConsumption = (params: {
-  htmlContent: string;
+const sliceContentForLlmConsumption = (params: {
+  content: string;
   maximumNumberOfTokens?: number;
 }): string => {
-  const { htmlContent, maximumNumberOfTokens = 75_000 } = params;
+  const { content, maximumNumberOfTokens = 75_000 } = params;
 
-  const sanitizedHtml = sanitizeHtml(htmlContent, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.filter(
-      /**
-       * @todo: consider whether there are other tags that aren't relevant
-       * for LLM consumption.
-       */
-      (tag) => !["script", "style", "link", "canvas", "svg"].includes(tag),
-    ),
-    allowedAttributes: {
-      "*": [
-        "href",
-        "src",
-        "onclick",
-        "title",
-        "alt",
-        "aria",
-        "label",
-        "aria-*",
-        "data-*",
-      ],
-    },
-    disallowedTagsMode: "discard",
-  });
-
-  const slicedSanitizedHtml = sanitizedHtml.slice(
+  const slicedContent = content.slice(
     0,
     /**
      * Assume that each token is 4 characters long.
@@ -49,6 +26,85 @@ export const sanitizeHtmlForLlmConsumption = (params: {
      */
     maximumNumberOfTokens * 4,
   );
+
+  return slicedContent;
+};
+
+/**
+ * The attributes that will be allowed in the HTML content.
+ */
+const allowedAttributes = [
+  "href",
+  "src",
+  "onclick",
+  "title",
+  "alt",
+  "aria",
+  "label",
+  "aria-*",
+  "data-*",
+];
+
+/**
+ * The tags that will always be filtered from the HTML content.
+ *
+ * @todo: consider whether there are other tags that aren't relevant
+ * for LLM consumption.
+ */
+const disallowedTags = ["script", "style", "link", "canvas", "svg"];
+
+/**
+ * The tags that will be filtered from the HTML content if they don't have
+ * any of the relevant attributes (defined in `allowedAttributes`).
+ */
+const disallowedTagsWithNoRelevantAttributes = [
+  "div",
+  "span",
+  "strong",
+  "b",
+  "i",
+  "em",
+];
+
+export const sanitizeHtmlForLlmConsumption = (params: {
+  htmlContent: string;
+  maximumNumberOfTokens?: number;
+}): string => {
+  const { htmlContent, maximumNumberOfTokens } = params;
+
+  const sanitizedHtml = sanitizeHtml(htmlContent, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.filter(
+      (tag) => !disallowedTags.includes(tag),
+    ),
+    allowedAttributes: { "*": allowedAttributes },
+    disallowedTagsMode: "discard",
+  });
+
+  const dom = new JSDOM(sanitizedHtml);
+  const document = dom.window.document;
+
+  const elements = document.querySelectorAll(
+    disallowedTagsWithNoRelevantAttributes.join(","),
+  );
+
+  for (const element of elements) {
+    if (!element.attributes.length) {
+      while (element.firstChild) {
+        element.parentNode?.insertBefore(element.firstChild, element);
+      }
+      element.remove();
+    }
+  }
+
+  const sanitizedHtmlWithNoDisallowedTags = document.body.innerHTML
+    // Remove any whitespace between tags
+    .replace(/>\s+</g, "><")
+    .trim();
+
+  const slicedSanitizedHtml = sliceContentForLlmConsumption({
+    content: sanitizedHtmlWithNoDisallowedTags,
+    maximumNumberOfTokens,
+  });
 
   return slicedSanitizedHtml;
 };
@@ -84,10 +140,13 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
      * that for web pages with a significant amount of content,
      * we are still able to return a partial result.
      */
-    const htmlContent = await Promise.race([
+    const { htmlContent, innerText } = await Promise.race([
       navigationPromise,
       timeoutPromise,
-    ]).then(() => page.evaluate(() => document.body.innerHTML)); // Return partial content if timeout occurs
+    ]).then(async () => ({
+      htmlContent: await page.evaluate(() => document.body.innerHTML),
+      innerText: await page.evaluate(() => document.body.innerText),
+    })); // Return partial content if timeout occurs
 
     const title = await page.title();
 
@@ -95,6 +154,7 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
 
     return {
       htmlContent,
+      innerText,
       title,
       url,
     };
@@ -111,6 +171,7 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
        * @todo H-2604 consider returning this as a structured error that the calling code rather than the LLM can handle
        */
       htmlContent: `Could not load page: ${errMessage}`,
+      innerText: `Could not load page: ${errMessage}`,
       title: `Error loading page: ${errMessage}`,
       url,
     };
@@ -168,19 +229,28 @@ export const getWebPageActivity = async (params: {
      */
     process.env.NODE_ENV !== "test";
 
-  const { htmlContent, title } = shouldAskBrowser
+  const { htmlContent, innerText, title } = shouldAskBrowser
     ? await getWebPageFromBrowser(url)
     : await getWebPageFromPuppeteer(url);
 
   if (sanitizeForLlm) {
     const sanitizedHtml = sanitizeHtmlForLlmConsumption({ htmlContent });
+    const sanitizedInnerText = sliceContentForLlmConsumption({
+      content: innerText,
+    });
 
-    return { htmlContent: sanitizedHtml, title, url };
+    return {
+      htmlContent: sanitizedHtml,
+      innerText: sanitizedInnerText,
+      title,
+      url,
+    };
   }
 
   return {
     title,
     url,
     htmlContent,
+    innerText,
   };
 };

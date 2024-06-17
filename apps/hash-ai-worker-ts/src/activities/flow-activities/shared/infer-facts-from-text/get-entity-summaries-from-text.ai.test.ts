@@ -33,6 +33,7 @@ test.skip(
     const { entitySummaries } = await getEntitySummariesFromText({
       text: htmlContent,
       dereferencedEntityType,
+      relevantEntitiesPrompt: "Obtain the FTSE350 constituents from the table.",
     });
 
     // eslint-disable-next-line no-console
@@ -109,7 +110,7 @@ test.skip(
       text: htmlContent,
       dereferencedEntityType,
       relevantEntitiesPrompt:
-        "Obtain the full list of current members of Church Lab",
+        "Obtain the full list of the current members of Church Lab",
     });
 
     expect(entitySummaries).toBeDefined();

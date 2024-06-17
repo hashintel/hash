@@ -100,6 +100,7 @@ use crate::rest::{
 
             EntityRelationAndSubject,
             EntityPermission,
+            EntitySubjectSet,
             EntitySettingSubject,
             EntityOwnerSubject,
             EntityAdministratorSubject,

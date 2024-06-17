@@ -18,6 +18,7 @@ import {
   useFlowRunsContext,
   useStatusForSteps,
 } from "../../../shared/flow-runs-context";
+import { flowRunStatusToStatusText } from "../../../shared/flow-tables";
 import { MarkerEnd } from "./marker-end";
 import { nodeTabHeight, parentGroupPadding } from "./shared/dimensions";
 import { transitionOptions } from "./shared/styles";
@@ -91,13 +92,16 @@ const elkGraphToFlattenedPositionedNodes = (nodes: ElkNode[]): ElkNode[] => {
   ]);
 };
 
-type DagProps = UngroupedEdgesAndNodes | GroupWithEdgesAndNodes;
+type SwimlaneProps = (UngroupedEdgesAndNodes | GroupWithEdgesAndNodes) & {
+  isOnlySwimlane: boolean;
+};
 
 export const Swimlane = ({
   group,
   nodes: initialNodes,
   edges: initialEdges,
-}: DagProps) => {
+  isOnlySwimlane,
+}: SwimlaneProps) => {
   const { fitView } = useReactFlow();
 
   const { selectedFlowRun } = useFlowRunsContext();
@@ -153,6 +157,21 @@ export const Swimlane = ({
   const { overallStatus: groupStatus, statusByStep } =
     useStatusForSteps(stepsWithIds) ?? {};
 
+  const statusToDisplay = useMemo(() => {
+    if (selectedFlowRun && isOnlySwimlane) {
+      /**
+       * If this is the only swimlane in the view, we want to show an error if the flow run is in an errored state
+       * – it may have errored before any steps in the swimlane have been processed.
+       */
+      const flowRunStatus = flowRunStatusToStatusText(selectedFlowRun.status);
+
+      if (["Abandoned", "Errored"].includes(flowRunStatus)) {
+        return flowRunStatus;
+      }
+    }
+    return groupStatus;
+  }, [groupStatus, isOnlySwimlane, selectedFlowRun]);
+
   /**
    * We need to specify the markerEnd for each edge when they are passed into ReactFlow,
    * because only markers which are referenced by edges passed to it will be included in its EdgeRenderer.
@@ -175,11 +194,12 @@ export const Swimlane = ({
         background: ({ palette }) =>
           !selectedFlowRun
             ? palette.gray[10]
-            : groupStatus === "Complete"
+            : statusToDisplay === "Complete"
               ? "rgba(239, 254, 250, 1)"
-              : groupStatus === "In Progress"
+              : statusToDisplay === "In Progress"
                 ? palette.blue[10]
-                : groupStatus === "Error" || groupStatus === "Cancelled"
+                : statusToDisplay === "Errored" ||
+                    statusToDisplay === "Cancelled"
                   ? palette.red[10]
                   : palette.common.white,
         "&:not(:last-of-type)": {

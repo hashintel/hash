@@ -297,8 +297,7 @@ module "application" {
     },
   ])
   api_image              = module.api_ecr
-  api_migration_env_vars = concat(var.hash_api_migration_env_vars, [
-  ])
+  api_migration_env_vars = var.hash_api_migration_env_vars
   api_env_vars = concat(var.hash_api_env_vars, [
     {
       name  = "ACCESS_FORM_SLACK_WEBHOOK_URL", secret = true,
