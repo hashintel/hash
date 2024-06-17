@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
@@ -32,7 +33,6 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import zip from "lodash/zip";
 
 import type { AuthenticationContext } from "./authentication-context";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 
 export type CreateEntityParameters = Omit<
   GraphApiCreateEntityRequest,
