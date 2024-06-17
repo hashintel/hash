@@ -51,16 +51,15 @@ export const sanitizeInputBeforeValidation = (params: {
   return input;
 };
 
-const ajv = new Ajv();
+let _ajv: Ajv | undefined;
+const getValidator = () => {
+  if (!_ajv) {
+    _ajv = new Ajv();
+    addFormats(_ajv);
+  }
 
-/**
- * @todo: filter out `label` keyword from dereferenced entity types
- *
- * @see https://linear.app/hash/issue/H-2840/filter-out-label-property-from-dereferenced-entity-types
- */
-ajv.addKeyword("label");
-
-addFormats(ajv);
+  return _ajv;
+};
 
 const applyAdditionalPropertiesFalseToSchema = (params: {
   schema: JSONSchema;
@@ -125,7 +124,9 @@ export const getInputValidationErrors = (params: {
 }) => {
   const { input, toolDefinition } = params;
 
-  const validate = ajv.compile(
+  const validator = getValidator();
+
+  const validate = validator.compile(
     applyAdditionalPropertiesFalseToSchema({
       schema: toolDefinition.inputSchema,
     }),
