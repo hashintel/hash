@@ -7942,7 +7942,8 @@
           "provenance": {
             "$ref": "#/components/schemas/PropertyProvenance"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "VersionedUrl": {
         "type": "string",
