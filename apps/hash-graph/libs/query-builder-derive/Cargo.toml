@@ -10,7 +10,7 @@ publish = false
 proc-macro = true
 
 [dependencies]
-virtue = "0.0.16"
+virtue = "0.0.17"
 syn = "2.0.60"
 
 [dev-dependencies]

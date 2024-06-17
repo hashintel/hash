@@ -193,13 +193,15 @@ export const createUsageRecord = async (
       subject: {
         kind: "accountGroup",
         subjectId: hashInstanceAdminGroupId,
+        subjectSet: "member",
       },
     },
     {
-      relation: "setting",
+      relation: "viewer",
       subject: {
-        kind: "setting",
-        subjectId: "viewFromWeb",
+        kind: "accountGroup",
+        subjectId: assignUsageToWebId,
+        subjectSet: "administrator",
       },
     },
   ];

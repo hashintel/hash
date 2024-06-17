@@ -64,15 +64,15 @@ definition graph/entity {
     relation level_00_owner: graph/web
 
 	// Administration
-	relation level_00_administrator: graph/account | graph/account_group#member
+	relation level_00_administrator: graph/account | graph/account_group#member | graph/account_group#administrator
 	// the `level_00_owner` relation in the web is an account or an account group. In addition to the manually specified admin on an entity,
 	//   - For account webs: the account who is owning the web will have full access, always
 	//   - For account group webs: if the setting `admin` is set the org admin will have full access
 	permission full_access = level_00_administrator + (level_00_setting->level_00_administrator & level_00_owner->administrator)
 
 	// Permissions
-	relation level_00_editor: graph/account | graph/account_group#member
-	relation level_00_viewer: graph/account | graph/account_group#member | graph/account:*
+	relation level_00_editor: graph/account | graph/account_group#member | graph/account_group#administrator
+	relation level_00_viewer: graph/account | graph/account_group#member | graph/account_group#administrator | graph/account:*
 
 	permission update = full_access + level_00_editor + (level_00_setting->level_00_update & level_00_owner->update_entity)
 	permission view = update + level_00_viewer + (level_00_setting->level_00_view & level_00_owner->view_entity)

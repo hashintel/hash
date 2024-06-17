@@ -48,6 +48,7 @@ const migrate: MigrationFunction = async ({
           subject: {
             kind: "accountGroup",
             subjectId: hashInstanceAdminsAccountGroupId,
+            subjectSet: "member",
           },
         },
       },
