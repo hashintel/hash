@@ -55,6 +55,7 @@ let _ajv: Ajv | undefined;
 const getValidator = () => {
   if (!_ajv) {
     _ajv = new Ajv();
+    _ajv.addKeyword("label");
     addFormats(_ajv);
   }
 
