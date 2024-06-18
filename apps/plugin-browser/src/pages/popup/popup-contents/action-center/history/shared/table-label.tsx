@@ -13,7 +13,12 @@ export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
         {type === "manual" ? "Manually" : "Automatically"} triggered
       </Typography>
       <Link
-        href={`${FRONTEND_ORIGIN}${generatedFilteredWorkersPath({ flowDefinitionIds: type === "manual" ? [manualBrowserInferenceFlowDefinition.flowDefinitionId] : [automaticBrowserInferenceFlowDefinition.flowDefinitionId] })}`}
+        href={`${FRONTEND_ORIGIN}${generatedFilteredWorkersPath({
+          flowDefinitionIds:
+            type === "manual"
+              ? [manualBrowserInferenceFlowDefinition.flowDefinitionId]
+              : [automaticBrowserInferenceFlowDefinition.flowDefinitionId],
+        })}`}
         sx={{
           alignItems: "center",
           color: ({ palette }) => palette.gray[50],

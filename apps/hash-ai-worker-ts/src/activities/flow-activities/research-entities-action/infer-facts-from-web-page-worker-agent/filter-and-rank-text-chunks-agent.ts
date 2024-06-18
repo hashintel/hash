@@ -140,7 +140,8 @@ export const filterAndRankTextChunksAgent = async (params: {
     ${JSON.stringify(textChunksWithIds)}
   `);
 
-  const { flowEntityId, userAuthentication, webId } = await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -162,6 +163,10 @@ export const filterAndRankTextChunksAgent = async (params: {
       temperature: 0,
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "filter-chunks",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],

@@ -1,6 +1,11 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
+import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
@@ -8,14 +13,25 @@ import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-
 import { logger } from "./activity-logger";
 import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-service-usage-not-exceeded";
 import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response";
-import {
-  getOpenAiResponse,
-  type UsageTrackingParams,
-} from "./get-llm-response/get-openai-reponse";
+import { getOpenAiResponse } from "./get-llm-response/get-openai-reponse";
 import { logLlmRequest } from "./get-llm-response/log-llm-request";
 import type { LlmParams, LlmResponse } from "./get-llm-response/types";
 import { isLlmParamsAnthropicLlmParams } from "./get-llm-response/types";
 import { stringify } from "./stringify";
+
+export type UsageTrackingParams = {
+  /**
+   * Required for tracking usage on a per-user basis.
+   *
+   * @todo: consider abstracting this in a wrapper method, or via
+   * generic params (via a `logUsage` method).
+   */
+  userAccountId: AccountId;
+  customMetadata: FlowUsageRecordCustomMetadata | null;
+  webId: OwnedById;
+  graphApiClient: GraphApi;
+  incurredInEntities: { entityId: EntityId }[];
+};
 
 /**
  * This function sends a request to the Anthropic or OpenAI API based on the
@@ -25,7 +41,8 @@ export const getLlmResponse = async <T extends LlmParams>(
   llmParams: T,
   usageTrackingParams: UsageTrackingParams,
 ): Promise<LlmResponse<T>> => {
-  const { graphApiClient, userAccountId, webId } = usageTrackingParams;
+  const { customMetadata, graphApiClient, userAccountId, webId } =
+    usageTrackingParams;
 
   /**
    * Check whether the web has exceeded its usage limit, before proceeding with the LLM request.
@@ -88,6 +105,7 @@ export const getLlmResponse = async <T extends LlmParams>(
         { graphApi: graphApiClient },
         {
           assignUsageToWebId: webId,
+          customMetadata,
           serviceName: isLlmParamsAnthropicLlmParams(llmParams)
             ? "Anthropic"
             : "OpenAI",
@@ -100,7 +118,9 @@ export const getLlmResponse = async <T extends LlmParams>(
     } catch (error) {
       return {
         status: "internal-error",
-        message: `Failed to create usage record for AI assistant: ${stringify(error)}`,
+        message: `Failed to create usage record for AI assistant: ${stringify(
+          error,
+        )}`,
       };
     }
 
@@ -158,7 +178,9 @@ export const getLlmResponse = async <T extends LlmParams>(
           } catch (error) {
             return {
               status: "internal-error",
-              message: `Failed to link usage record to entity with ID ${entityId}: ${stringify(error)}`,
+              message: `Failed to link usage record to entity with ID ${entityId}: ${stringify(
+                error,
+              )}`,
             };
           }
         }),
@@ -167,7 +189,9 @@ export const getLlmResponse = async <T extends LlmParams>(
       if (errors.length > 0) {
         return {
           status: "internal-error",
-          message: `Failed to link usage record to entities: ${stringify(errors)}`,
+          message: `Failed to link usage record to entities: ${stringify(
+            errors,
+          )}`,
         };
       }
     }

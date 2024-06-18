@@ -181,7 +181,8 @@ export const proposeEntities = async (params: {
 
   logger.debug(`Next messages to model: ${stringify(messages)}`);
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -197,6 +198,10 @@ export const proposeEntities = async (params: {
       temperature: 0,
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "propose-entities",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],

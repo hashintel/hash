@@ -191,7 +191,10 @@ export const Topbar = ({
                 >
                   Run
                   {run.closedAt
-                    ? ` – ${format(new Date(run.closedAt), "yyyy-MM-dd h:mm a")}`
+                    ? ` – ${format(
+                        new Date(run.closedAt),
+                        "yyyy-MM-dd h:mm a",
+                      )}`
                     : " – in progress"}
                 </MenuItem>
               ))}

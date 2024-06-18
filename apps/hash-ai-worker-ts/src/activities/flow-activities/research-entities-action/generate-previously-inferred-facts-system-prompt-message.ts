@@ -23,7 +23,12 @@ export const generatePreviouslyInferredFactsSystemPromptMessage = (params: {
           Entity Name: ${entitySummary.name}
           Entity Summary: ${entitySummary.summary}
           Entity Type Id: ${entitySummary.entityTypeId}
-          Entity facts: ${JSON.stringify(factsWithEntityAsSubject.map(({ text, prepositionalPhrases }) => `${text} ${prepositionalPhrases.join(", ")}`))}
+          Entity facts: ${JSON.stringify(
+            factsWithEntityAsSubject.map(
+              ({ text, prepositionalPhrases }) =>
+                `${text} ${prepositionalPhrases.join(", ")}`,
+            ),
+          )}
         `);
       })
       .join("\n")}

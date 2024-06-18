@@ -255,7 +255,11 @@ const generateSystemPrompt = (params: { proposingOutgoingLinks: boolean }) =>
 
   The user will provide you with:
     - Facts: a list of facts about the entity
-    ${params.proposingOutgoingLinks ? `Possible outgoing link target entities: a list of entities which can be used as target entities when defining outgoing links on the entity` : ``}
+    ${
+      params.proposingOutgoingLinks
+        ? `Possible outgoing link target entities: a list of entities which can be used as target entities when defining outgoing links on the entity`
+        : ``
+    }
 
   The user has requested that you fill out as many properties as possible, so please do so. Do not optimize for short responses.
 
@@ -308,7 +312,8 @@ export const proposeEntityFromFacts = async (params: {
     possibleOutgoingLinkTargetEntitySummaries,
   } = params;
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const proposingOutgoingLinks =
     proposeOutgoingLinkEntityTypes.length > 0 &&
@@ -351,6 +356,10 @@ export const proposeEntityFromFacts = async (params: {
       ...(retryContext?.retryMessages ?? []),
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "entity-from-facts",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],

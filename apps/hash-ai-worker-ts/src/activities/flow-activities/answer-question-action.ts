@@ -163,7 +163,8 @@ const callModel = async (
     outputs: StepOutput[];
   }>
 > => {
-  const { flowEntityId, userAuthentication, webId } = await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -175,6 +176,10 @@ const callModel = async (
       tools: answerTools,
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "answer-question",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],

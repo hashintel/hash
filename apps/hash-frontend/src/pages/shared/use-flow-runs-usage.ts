@@ -10,8 +10,14 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
-import { getAggregateUsageRecords } from "@local/hash-isomorphic-utils/service-usage";
+import type {
+  AggregatedUsageByTask,
+  AggregatedUsageRecord,
+} from "@local/hash-isomorphic-utils/service-usage";
+import {
+  getAggregateUsageRecordsByServiceFeature,
+  getAggregateUsageRecordsByTask,
+} from "@local/hash-isomorphic-utils/service-usage";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
@@ -29,7 +35,8 @@ import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.q
 
 type UsageByFlowRunId = {
   [flowRunId: EntityUuid]: {
-    records: AggregatedUsageRecord[];
+    recordsByTask: AggregatedUsageByTask[];
+    recordsByServiceFeature: AggregatedUsageRecord[];
     total: number;
   };
 };
@@ -129,17 +136,25 @@ export const useFlowRunsUsage = ({
         );
       });
 
-      const usageRecords = getAggregateUsageRecords({
+      const aggregatedUsageRecordsForFlowRun =
+        getAggregateUsageRecordsByServiceFeature({
+          serviceUsageRecords: usageRecordsForFlowRun,
+          serviceUsageRecordSubgraph,
+        });
+
+      const aggregatedUsageRecordsByTask = getAggregateUsageRecordsByTask({
         serviceUsageRecords: usageRecordsForFlowRun,
         serviceUsageRecordSubgraph,
       });
 
-      const total = usageRecords.reduce((acc, usageRecord) => {
-        return acc + usageRecord.totalCostInUsd;
-      }, 0);
+      let total = 0;
+      for (const aggregatedUsageRecordForFlowRun of aggregatedUsageRecordsForFlowRun) {
+        total += aggregatedUsageRecordForFlowRun.totalCostInUsd;
+      }
 
       usageByFlowRunId[flowRunId] = {
-        records: usageRecords,
+        recordsByTask: aggregatedUsageRecordsByTask,
+        recordsByServiceFeature: aggregatedUsageRecordsForFlowRun,
         total,
       };
     }

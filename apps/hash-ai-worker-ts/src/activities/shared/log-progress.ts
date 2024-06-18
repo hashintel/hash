@@ -41,7 +41,9 @@ const sendLogSignal = debounce(
        * @todo H-2545: Graceful workflow cancellation
        */
       logger.error(
-        `Could not send logs for workflowId ${workflowId}: ${(err as Error).message}`,
+        `Could not send logs for workflowId ${workflowId}: ${
+          (err as Error).message
+        }`,
       );
     }
   },

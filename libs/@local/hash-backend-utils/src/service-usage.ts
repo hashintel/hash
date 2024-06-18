@@ -20,7 +20,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
-import { getAggregateUsageRecords } from "@local/hash-isomorphic-utils/service-usage";
+import { getAggregateUsageRecordsByServiceFeature } from "@local/hash-isomorphic-utils/service-usage";
 import {
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
@@ -95,7 +95,7 @@ export const getWebServiceUsage = async (
 
   const serviceUsageRecords = getRoots(serviceUsageRecordSubgraph);
 
-  const aggregateUsageRecords = getAggregateUsageRecords({
+  const aggregateUsageRecords = getAggregateUsageRecordsByServiceFeature({
     decisionTimeInterval,
     serviceUsageRecords,
     serviceUsageRecordSubgraph,
@@ -108,6 +108,7 @@ export const createUsageRecord = async (
   context: { graphApi: GraphApi },
   {
     assignUsageToWebId,
+    customMetadata,
     serviceName,
     featureName,
     inputUnitCount,
@@ -115,6 +116,7 @@ export const createUsageRecord = async (
     userAccountId,
   }: {
     assignUsageToWebId: OwnedById;
+    customMetadata?: Record<string, unknown> | null;
     serviceName: string;
     featureName: string;
     inputUnitCount?: number;
@@ -128,6 +130,11 @@ export const createUsageRecord = async (
     "https://hash.ai/@hash/types/property-type/output-unit-count/":
       outputUnitCount,
   };
+
+  if (customMetadata) {
+    properties["https://hash.ai/@hash/types/property-type/custom-metadata/"] =
+      customMetadata;
+  }
 
   /**
    * We want to assign usage to the web, which may be an org, but be able to identify which users

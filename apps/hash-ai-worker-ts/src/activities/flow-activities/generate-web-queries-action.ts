@@ -55,7 +55,8 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
     };
   }
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -70,6 +71,10 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
       tools,
     },
     {
+      customMetadata: {
+        taskName: "generate-web-queries",
+        stepId,
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],

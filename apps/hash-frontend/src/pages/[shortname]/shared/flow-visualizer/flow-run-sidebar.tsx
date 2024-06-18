@@ -381,24 +381,49 @@ export const FlowRunSidebar = ({
                 ${usage.total.toFixed(2)}
               </Typography>
             </Box>
-            {usage.records
-              .sort((a, b) => b.totalCostInUsd - a.totalCostInUsd)
-              .map((record) => (
-                <Box key={record.featureName}>
-                  <Typography
-                    variant="smallTextParagraphs"
-                    sx={{ color: ({ palette }) => palette.gray[50] }}
-                  >
-                    <Box component="span" fontWeight={500}>
-                      {record.featureName
-                        .replace(/-(\b\d{4}[-]?\d{2}[-]?\d{2}\b)$/, "")
-                        .trim()}
-                      :
-                    </Box>{" "}
-                    ${record.totalCostInUsd.toFixed(2)}
-                  </Typography>
-                </Box>
-              ))}
+            <Box
+              sx={{
+                pb: 2,
+                mb: 2,
+                borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
+              }}
+            >
+              {usage.recordsByServiceFeature
+                .sort((a, b) => b.totalCostInUsd - a.totalCostInUsd)
+                .map((record) => (
+                  <Box key={record.featureName}>
+                    <Typography
+                      variant="smallTextParagraphs"
+                      sx={{ color: ({ palette }) => palette.gray[50] }}
+                    >
+                      <Box component="span" fontWeight={500}>
+                        {record.featureName
+                          .replace(/-(\b\d{4}[-]?\d{2}[-]?\d{2}\b)$/, "")
+                          .trim()}
+                        :
+                      </Box>{" "}
+                      ${record.totalCostInUsd.toFixed(2)}
+                    </Typography>
+                  </Box>
+                ))}
+            </Box>
+            <Box>
+              {usage.recordsByTask
+                .sort((a, b) => b.totalCostInUsd - a.totalCostInUsd)
+                .map((record) => (
+                  <Box key={record.taskName}>
+                    <Typography
+                      variant="smallTextParagraphs"
+                      sx={{ color: ({ palette }) => palette.gray[50] }}
+                    >
+                      <Box component="span" fontWeight={500}>
+                        {record.taskName}:
+                      </Box>{" "}
+                      ${record.totalCostInUsd.toFixed(2)}
+                    </Typography>
+                  </Box>
+                ))}
+            </Box>
           </SidebarSection>
         </Box>
       ) : null}

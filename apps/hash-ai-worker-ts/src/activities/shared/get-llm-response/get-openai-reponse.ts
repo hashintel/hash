@@ -1,7 +1,3 @@
-import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
 import type OpenAI from "openai";
@@ -292,7 +288,10 @@ export const getOpenAiResponse = async <ToolName extends string>(
   );
 
   logger.debug(
-    `OpenAI response: ${stringify({ ...openAiResponse, choices: choicesWithoutLogProbs })}`,
+    `OpenAI response: ${stringify({
+      ...openAiResponse,
+      choices: choicesWithoutLogProbs,
+    })}`,
   );
 
   const currentRequestTime = Date.now() - timeBeforeRequest;
@@ -324,7 +323,9 @@ export const getOpenAiResponse = async <ToolName extends string>(
     }
 
     logger.debug(
-      `Retrying OpenAI call with the following retry message content: ${stringify(retryParams.retryMessageContent)}`,
+      `Retrying OpenAI call with the following retry message content: ${stringify(
+        retryParams.retryMessageContent,
+      )}`,
     );
 
     const openAiResponseMessage = openAiResponse.choices[0]?.message;
@@ -549,17 +550,4 @@ export const getOpenAiResponse = async <ToolName extends string>(
   };
 
   return response;
-};
-
-export type UsageTrackingParams = {
-  /**
-   * Required for tracking usage on a per-user basis.
-   *
-   * @todo: consider abstracting this in a wrapper method, or via
-   * generic params (via a `logUsage` method).
-   */
-  userAccountId: AccountId;
-  webId: OwnedById;
-  graphApiClient: GraphApi;
-  incurredInEntities: { entityId: EntityId }[];
 };

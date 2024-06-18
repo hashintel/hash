@@ -61,14 +61,30 @@ const generateSystemPrompt = (params: {
 
   The user will provide you with:
     - "text": the text from which you should extract entity summaries.
-    - "entityType": the definition of the "${params.dereferencedEntityType.title}" type, which must be the type of the entities that are extracted from the text
-    ${params.includesRelevantEntitiesPrompt ? `- "relevantEntitiesPrompt": a prompt provided by the user indicating which entities should be included.` : ""}
+    - "entityType": the definition of the "${
+      params.dereferencedEntityType.title
+    }" type, which must be the type of the entities that are extracted from the text
+    ${
+      params.includesRelevantEntitiesPrompt
+        ? `- "relevantEntitiesPrompt": a prompt provided by the user indicating which entities should be included.`
+        : ""
+    }
 
-  You must extract all the entities from the text which are of the "${params.dereferencedEntityType.title}" type${params.includesRelevantEntitiesPrompt ? " and are relevant given the provided prompt" : ""}.
+  You must extract all the entities from the text which are of the "${
+    params.dereferencedEntityType.title
+  }" type${
+    params.includesRelevantEntitiesPrompt
+      ? " and are relevant given the provided prompt"
+      : ""
+  }.
 
-  Do not under any circumstances provide entity summaries for entities which are not of the "${params.dereferencedEntityType.title}" type.
+  Do not under any circumstances provide entity summaries for entities which are not of the "${
+    params.dereferencedEntityType.title
+  }" type.
   
-  For each ${params.includesRelevantEntitiesPrompt ? "relevant " : ""}entity, provide:
+  For each ${
+    params.includesRelevantEntitiesPrompt ? "relevant " : ""
+  }entity, provide:
     - "name": the name of the entity, which can be used to identify the entity in the text.
     - "summary": a one sentence description of the entity. This must be entirely based on
       the provided text, and not any other knowledge you may have.
@@ -83,7 +99,8 @@ export const getEntitySummariesFromText = async (params: {
 }> => {
   const { text, dereferencedEntityType, relevantEntitiesPrompt } = params;
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const toolDefinitions = generateToolDefinitions({
     dereferencedEntityType,
@@ -102,7 +119,11 @@ export const getEntitySummariesFromText = async (params: {
               text: dedent(`
                 text: ${text}
                 entityType: ${JSON.stringify(dereferencedEntityType)}
-                ${relevantEntitiesPrompt ? `Relevant entities prompt: ${relevantEntitiesPrompt}` : ""}
+                ${
+                  relevantEntitiesPrompt
+                    ? `Relevant entities prompt: ${relevantEntitiesPrompt}`
+                    : ""
+                }
               `),
             },
           ],
@@ -115,6 +136,10 @@ export const getEntitySummariesFromText = async (params: {
       tools: Object.values(toolDefinitions),
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "entity-summaries-from-text",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],

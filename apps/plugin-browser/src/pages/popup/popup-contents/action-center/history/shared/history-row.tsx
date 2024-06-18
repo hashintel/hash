@@ -82,7 +82,10 @@ export const HistoryRow = ({
 
   const openFlowButton = (
     <Link
-      href={`${FRONTEND_ORIGIN}${generateWorkerRunPath({ shortname: owner.properties.shortname, flowRunId: flowRun.flowRunId })}`}
+      href={`${FRONTEND_ORIGIN}${generateWorkerRunPath({
+        shortname: owner.properties.shortname,
+        flowRunId: flowRun.flowRunId,
+      })}`}
       target="_blank"
     >
       <ArrowUpRightFromSquareRegularIcon />

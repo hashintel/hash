@@ -73,7 +73,8 @@ export const summarizeExistingEntities = async (params: {
 }): Promise<{ existingEntitySummaries: ExistingEntitySummary[] }> => {
   const { existingEntities } = params;
 
-  const { flowEntityId, userAuthentication, webId } = await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -86,7 +87,9 @@ export const summarizeExistingEntities = async (params: {
           content: [
             {
               type: "text",
-              text: `Entities: ${JSON.stringify(existingEntities.map(simplifyEntity))}`,
+              text: `Entities: ${JSON.stringify(
+                existingEntities.map(simplifyEntity),
+              )}`,
             },
           ],
         },
@@ -94,6 +97,10 @@ export const summarizeExistingEntities = async (params: {
       model: "gpt-4o-2024-05-13",
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "summarize-entities",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],

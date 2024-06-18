@@ -179,7 +179,11 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
              * Otherwise we will most likely immediately encounter the rate limit.
              */
             logger.debug(
-              `Encountered server error with provider "${currentProvider}", retrying with exponential backoff with provider "${priorRateLimitErrorForOtherProvider ? currentProvider : otherProvider}".`,
+              `Encountered server error with provider "${currentProvider}", retrying with exponential backoff with provider "${
+                priorRateLimitErrorForOtherProvider
+                  ? currentProvider
+                  : otherProvider
+              }".`,
             );
             if (!priorRateLimitErrorForOtherProvider) {
               currentProvider = otherProvider;

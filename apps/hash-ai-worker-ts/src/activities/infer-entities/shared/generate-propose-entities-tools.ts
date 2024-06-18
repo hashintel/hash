@@ -33,7 +33,11 @@ export const generateToolLinkFields = (params: {
   sourceEntityId: {
     description: dedent(`
       The entityId of the source entity of the link.
-      ${params.canLinkToExistingEntities ? "If the source is an existing entity, it must be a string. If it is a proposed entity, it must be a number." : ""}
+      ${
+        params.canLinkToExistingEntities
+          ? "If the source is an existing entity, it must be a string. If it is a proposed entity, it must be a number."
+          : ""
+      }
     `),
     ...(params.canLinkToExistingEntities
       ? {
@@ -51,7 +55,11 @@ export const generateToolLinkFields = (params: {
   targetEntityId: {
     description: dedent(`
       The entityId of the target entity of the link.
-      ${params.canLinkToExistingEntities ? "If the target is an existing entity, it must be a string. If it is a proposed entity, it must be a number." : ""}
+      ${
+        params.canLinkToExistingEntities
+          ? "If the target is an existing entity, it must be a string. If it is a proposed entity, it must be a number."
+          : ""
+      }
     `),
     ...(params.canLinkToExistingEntities
       ? {

@@ -113,7 +113,9 @@ const TableRow = memo(
             background: showProvenance
               ? palette.blue[15]
               : palette.common.white,
-            border: `1px solid ${showProvenance ? palette.blue[20] : "transparent"}`,
+            border: `1px solid ${
+              showProvenance ? palette.blue[20] : "transparent"
+            }`,
             mb: isLastRow || showProvenance ? 1 : 0,
             mt: isFirstRow ? 1 : 0,
             transition: transitions.create(["background", "border"]),

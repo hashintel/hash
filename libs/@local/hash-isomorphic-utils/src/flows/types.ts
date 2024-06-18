@@ -469,6 +469,11 @@ export type ExternalInputRequest = ExternalInputRequestSignal & {
   raisedAt: string;
 };
 
+export type FlowUsageRecordCustomMetadata = {
+  taskName?: string;
+  stepId?: string;
+};
+
 export const detailedFlowFields = [
   "inputs",
   "inputRequests",

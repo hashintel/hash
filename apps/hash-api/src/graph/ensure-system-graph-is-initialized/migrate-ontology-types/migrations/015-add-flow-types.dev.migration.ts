@@ -137,7 +137,7 @@ const migrate: MigrationFunction = async ({
   );
 
   /**
-   * Step 2: create the `Flow` entity type.
+   * Step 2: create the `Flow Run` entity type.
    */
 
   const outputsPropertyType = await createSystemPropertyTypeIfNotExists(
@@ -258,8 +258,7 @@ const migrate: MigrationFunction = async ({
   );
 
   /**
-   * Step 3: create a `Incurred In` link entity type, and update
-   * the `Usage Record` entity type to have it as an outgoing link to a `Flow`.
+   * Step 3: create a `Incurred In` link entity type
    */
 
   const incurredInLinkEntityType = await createSystemEntityTypeIfNotExists(
@@ -278,6 +277,12 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  /**
+   * Step 4: Update the Usage Record entity type to:
+   * 1. Accept an 'Incurred In' link
+   * 2. Accept custom metadata
+   */
+
   const currentUsageRecordEntityTypeId = getCurrentHashSystemEntityTypeId({
     entityTypeKey: "usageRecord",
     migrationState,
@@ -291,8 +296,28 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  const customMetadataPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Custom Metadata",
+        description: "Additional information about something.",
+        possibleValues: [{ primitiveDataType: "object" }],
+      },
+      webShortname: "hash",
+      migrationState,
+    },
+  );
+
   const newUsageRecordEntityTypeSchema: EntityType = {
     ...usageRecordEntityTypeSchema,
+    properties: {
+      ...usageRecordEntityTypeSchema.properties,
+      [customMetadataPropertyType.metadata.recordId.baseUrl]: {
+        $ref: customMetadataPropertyType.schema.$id,
+      },
+    },
     links: {
       ...usageRecordEntityTypeSchema.links,
       [incurredInLinkEntityType.schema.$id]: {

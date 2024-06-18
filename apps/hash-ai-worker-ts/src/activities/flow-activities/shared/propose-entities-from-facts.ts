@@ -30,13 +30,17 @@ export const proposeEntitiesFromFacts = async (params: {
 
       if (!dereferencedEntityType) {
         throw new Error(
-          `Could not find dereferenced entity type for entity summary: ${JSON.stringify(entitySummary)}`,
+          `Could not find dereferenced entity type for entity summary: ${JSON.stringify(
+            entitySummary,
+          )}`,
         );
       }
 
       if (!simplifiedPropertyTypeMappings) {
         throw new Error(
-          `Could not find simplified property type mappings for entity summary: ${JSON.stringify(entitySummary)}`,
+          `Could not find simplified property type mappings for entity summary: ${JSON.stringify(
+            entitySummary,
+          )}`,
         );
       }
 
@@ -95,7 +99,9 @@ export const proposeEntitiesFromFacts = async (params: {
       });
 
       logger.debug(
-        `Proposing "${entitySummary.name}" entity with facts: ${stringify(factsWithEntityAsSubject)}`,
+        `Proposing "${entitySummary.name}" entity with facts: ${stringify(
+          factsWithEntityAsSubject,
+        )}`,
       );
 
       /**
@@ -120,7 +126,9 @@ export const proposeEntitiesFromFacts = async (params: {
 
       if (proposeEntityFromFactsStatus.status !== "ok") {
         logger.error(
-          `Failed to propose entity from facts: ${stringify(proposeEntityFromFactsStatus)}`,
+          `Failed to propose entity from facts: ${stringify(
+            proposeEntityFromFactsStatus,
+          )}`,
         );
 
         return [];

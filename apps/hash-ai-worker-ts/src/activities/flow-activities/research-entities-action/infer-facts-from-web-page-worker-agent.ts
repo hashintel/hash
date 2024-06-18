@@ -97,7 +97,11 @@ const generateUserMessage = (params: {
           Prompt: ${prompt}
           Initial web page url: ${url}
           Entity Types: ${JSON.stringify(entityTypes)}
-          ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
+          ${
+            linkEntityTypes
+              ? `Link Types: ${JSON.stringify(linkEntityTypes)}`
+              : ""
+          }
           ${includeInnerHtml ? `Initial web page inner HTML: ${innerHtml}` : ""}
         `),
       },
@@ -129,7 +133,8 @@ const createInitialPlan = async (params: {
     ...(retryMessages ?? []),
   ];
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -140,6 +145,10 @@ const createInitialPlan = async (params: {
       toolChoice: "updatePlan",
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "worker-agent",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
@@ -162,7 +171,9 @@ const createInitialPlan = async (params: {
   }) => {
     if ((params.retryCount ?? 0) >= maxRetryCount) {
       throw new Error(
-        `Exceeded retry count when generating initial plan, with retry reasons: ${JSON.stringify(retryParams.retryMessageContent)}`,
+        `Exceeded retry count when generating initial plan, with retry reasons: ${JSON.stringify(
+          retryParams.retryMessageContent,
+        )}`,
       );
     }
 
@@ -237,8 +248,12 @@ const getNextToolCalls = async (params: {
       
       Here's a summary of what you've previously done:
 
-      You have previously inferred facts from the following webpages: ${JSON.stringify(state.inferredFactsFromWebPageUrls)}
-      You have previously inferred facts from the following files: ${JSON.stringify(state.filesUsedToInferFacts.map(({ url }) => url))}
+      You have previously inferred facts from the following webpages: ${JSON.stringify(
+        state.inferredFactsFromWebPageUrls,
+      )}
+      You have previously inferred facts from the following files: ${JSON.stringify(
+        state.filesUsedToInferFacts.map(({ url }) => url),
+      )}
       ${generatePreviouslyInferredFactsSystemPromptMessage(state)}
       ${
         state.inferredFactsAboutEntities.length > 0
@@ -263,7 +278,8 @@ const getNextToolCalls = async (params: {
     }),
   ];
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -274,6 +290,10 @@ const getNextToolCalls = async (params: {
       toolChoice: "required",
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "worker-agent",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
@@ -474,7 +494,11 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
                     return {
                       ...completedToolCall,
                       redactedOutputMessage: dedent(`
-                        The inner HTML of the web page with URL ${(completedToolCall.input as ToolCallArguments["getWebPageInnerHtml"]).url} has been redacted to reduce the length of this chat.
+                        The inner HTML of the web page with URL ${
+                          (
+                            completedToolCall.input as ToolCallArguments["getWebPageInnerHtml"]
+                          ).url
+                        } has been redacted to reduce the length of this chat.
                         If you want to see the inner HTML of this page, call the "getWebPageInnerHtml" tool again.
                       `),
                     };
@@ -587,7 +611,11 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
             return {
               ...toolCall,
               output: dedent(`
-                ${inferredFacts.length} facts were successfully inferred for the following entities: ${JSON.stringify(entitySummaries)}
+                ${
+                  inferredFacts.length
+                } facts were successfully inferred for the following entities: ${JSON.stringify(
+                  entitySummaries,
+                )}
               `),
             };
           } else if (toolCall.name === "queryFactsFromPdf") {
