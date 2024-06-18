@@ -38,12 +38,12 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
     const pages = await Promise.all(
       getAllPages<BlogPost>("blog")
         .sort((pageA, pageB) => {
-          const timeA = pageB.data.date
-            ? new Date(pageB.data.date).getTime()
+          const timeA = pageB.data.dateFirstPublished
+            ? new Date(pageB.data.dateFirstPublished).getTime()
             : 0;
 
-          const timeB = pageA.data.date
-            ? new Date(pageA.data.date).getTime()
+          const timeB = pageA.data.dateFirstPublished
+            ? new Date(pageA.data.dateFirstPublished).getTime()
             : 0;
 
           return timeA - timeB;
