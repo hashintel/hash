@@ -135,7 +135,7 @@ export const Pre = ({ children }: HTMLAttributes<HTMLElement>) => {
           display: "block",
           fontSize: "90%",
           color: theme.palette.white,
-          background: "#161a1f",
+          background: "#2d2d2d",
           padding: theme.spacing(3),
           borderColor: "#161a1f",
           borderWidth: 1,

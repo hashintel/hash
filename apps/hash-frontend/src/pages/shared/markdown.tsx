@@ -32,7 +32,8 @@ type MarkdownProps = {
 const borderRadius = "10px";
 
 const tableCellSx: SxProps<Theme> = {
-  padding: "10px 20px",
+  fontSize: 14,
+  padding: "6px 16px",
   borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
   "&:not(:last-of-type)": {
     borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
@@ -56,21 +57,21 @@ const components: Partial<Components> = {
     <Typography
       variant="h1"
       {...omitRefFromProps(props)}
-      sx={{ mt: 2.5, mb: 1.5 }}
+      sx={{ mt: 2.5, mb: 1.5, fontSize: 36 }}
     />
   ),
   h2: (props) => (
     <Typography
       variant="h2"
       {...omitRefFromProps(props)}
-      sx={{ mt: 2.5, mb: 1.5 }}
+      sx={{ mt: 2.5, mb: 1.5, fontSize: 32 }}
     />
   ),
   h3: (props) => (
     <Typography
       variant="h3"
       {...omitRefFromProps(props)}
-      sx={{ mt: 2, mb: 1.5 }}
+      sx={{ mt: 2, mb: 1.5, fontSize: 28 }}
     />
   ),
   h4: (props) => (
@@ -95,12 +96,14 @@ const components: Partial<Components> = {
     />
   ),
   img: (props) => (
-    <Box
-      component="img"
-      {...omitRefFromProps(props)}
-      alt={props.alt ?? ""}
-      sx={{ margin: "0 auto", maxHeight: 300 }}
-    />
+    <Box sx={{ width: "100%", textAlign: "center" }}>
+      <Box
+        component="img"
+        {...omitRefFromProps(props)}
+        alt={props.alt ?? ""}
+        sx={{ maxHeight: 300 }}
+      />
+    </Box>
   ),
   li: (props) => <ListItem {...omitRefFromProps(props)} />,
   ol: (props) => <OrderedList {...omitRefFromProps(props)} />,

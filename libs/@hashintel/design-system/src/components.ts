@@ -14,6 +14,7 @@ export * from "./icon-angle-right-regular";
 export * from "./icon-arrow-down-regular";
 export * from "./icon-arrow-left";
 export * from "./icon-arrow-right-regular";
+export * from "./icon-copy-regular";
 export * from "./icon-arrow-rotate-left";
 export * from "./icon-arrow-up-regular";
 export * from "./icon-arrow-up-right";
