@@ -1,3 +1,4 @@
+#![feature(lint_reasons)]
 #![allow(clippy::too_many_lines)]
 
 mod api;
@@ -28,6 +29,7 @@ async fn test_schema() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
+#[expect(clippy::panic_in_result_fn)]
 async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     let mut api = api::connect();
 

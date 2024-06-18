@@ -77,11 +77,7 @@ impl<A> StoreWrapper<A>
 where
     A: AuthorizationApi,
 {
-    #[expect(
-        clippy::significant_drop_tightening,
-        clippy::too_many_lines,
-        reason = "The connection is required to borrow the client"
-    )]
+    #[expect(clippy::too_many_lines)]
     pub async fn new(
         bench_db_name: &str,
         fail_on_exists: bool,

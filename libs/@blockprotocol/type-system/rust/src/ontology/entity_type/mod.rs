@@ -39,7 +39,7 @@ pub struct EntityType {
 impl EntityType {
     /// Creates a new `EntityType`
     #[must_use]
-    pub fn new(
+    pub const fn new(
         id: VersionedUrl,
         title: String,
         description: Option<String>,
