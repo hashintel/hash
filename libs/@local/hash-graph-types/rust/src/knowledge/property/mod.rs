@@ -17,8 +17,8 @@ use type_system::{url::BaseUrl, JsonSchemaValueType};
 pub use self::{
     diff::PropertyDiff,
     metadata::{
-        ArrayMetadata, ObjectMetadata, PropertyMetadataArray, PropertyMetadataElement,
-        PropertyMetadataObject, PropertyObject, ValueMetadata,
+        ArrayMetadata, ObjectMetadata, PropertyMetadataElement, PropertyMetadataObject,
+        PropertyObject, ValueMetadata,
     },
     patch::PropertyPatchOperation,
     path::{PropertyPath, PropertyPathElement},
@@ -212,10 +212,10 @@ impl PropertyWithMetadata {
         match (property, metadata) {
             (
                 Property::Array(properties),
-                Some(PropertyMetadataElement::Array(PropertyMetadataArray {
+                Some(PropertyMetadataElement::Array {
                     value: metadata_elements,
                     metadata,
-                })),
+                }),
             ) => Ok(Self::Array {
                 elements: metadata_elements
                     .into_iter()
@@ -236,7 +236,7 @@ impl PropertyWithMetadata {
             (
                 Property::Object(properties),
                 Some(PropertyMetadataElement::Object(PropertyMetadataObject {
-                    value: mut metadata_elements,
+                    properties: mut metadata_elements,
                     metadata,
                 })),
             ) => Ok(Self::Object {
@@ -283,10 +283,10 @@ impl PropertyWithMetadata {
                     elements.into_iter().map(Self::into_parts).unzip();
                 (
                     Property::Array(properties),
-                    PropertyMetadataElement::Array(PropertyMetadataArray {
+                    PropertyMetadataElement::Array {
                         value: metadata_elements,
                         metadata,
-                    }),
+                    },
                 )
             }
             Self::Object {
@@ -303,7 +303,7 @@ impl PropertyWithMetadata {
                 (
                     Property::Object(PropertyObject::new(properties)),
                     PropertyMetadataElement::Object(PropertyMetadataObject {
-                        value: metadata_properties,
+                        properties: metadata_properties,
                         metadata,
                     }),
                 )

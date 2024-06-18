@@ -31,7 +31,7 @@ where
     D: Send + Sync + Debug + Serialize,
 {
     #[must_use]
-    pub fn new(code: StatusCode, message: Option<String>, contents: Vec<D>) -> Self {
+    pub const fn new(code: StatusCode, message: Option<String>, contents: Vec<D>) -> Self {
         Self {
             code,
             message,

@@ -1,5 +1,5 @@
 pub use self::{
-    array::{ArrayMetadata, PropertyMetadataArray},
+    array::ArrayMetadata,
     object::{ObjectMetadata, PropertyMetadataObject},
     value::ValueMetadata,
 };
@@ -44,15 +44,14 @@ pub enum PropertyPathError {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum PropertyMetadataElement {
-    Array(PropertyMetadataArray),
+    Array {
+        value: Vec<Self>,
+        metadata: ArrayMetadata,
+    },
     Object(PropertyMetadataObject),
-    Value { metadata: ValueMetadata },
-}
-
-impl From<PropertyMetadataArray> for PropertyMetadataElement {
-    fn from(array: PropertyMetadataArray) -> Self {
-        Self::Array(array)
-    }
+    Value {
+        metadata: ValueMetadata,
+    },
 }
 
 impl From<PropertyMetadataObject> for PropertyMetadataElement {
