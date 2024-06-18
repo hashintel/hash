@@ -1,4 +1,5 @@
 {
+  "name": "hash",
   "private": true,
   "description": "HASH monorepo",
   "workspaces": {
