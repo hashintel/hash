@@ -22,18 +22,12 @@ runs:
 
         while IFS= read -r line; do
           DIRECTORY=$(dirname "$line")
-          echo "Processing $DIRECTORY..."
           # Create a dummy crate if it does not exist
-          # check Cargo.toml for this
           if [[ ! -f "out/$DIRECTORY/Cargo.toml" ]]; then
             mkdir -p "out/$DIRECTORY/src"
             echo > "out/$DIRECTORY/src/lib.rs"
             echo -e "[package]\nname = \"$(yq '.package.name' -p toml -oy $line)\"" > "out/$DIRECTORY/Cargo.toml"
-            echo "existing files:"
-            ls -Ar out/$DIRECTORY
           fi
-          cat "out/$DIRECTORY/Cargo.toml"
-          echo "Checking done"
         done < <(find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml)
 
     - name: Copy required files
