@@ -84,11 +84,19 @@ export const BlogPostHead: FunctionComponent<{
 
   const fullTitle = `${pageTitle ? `${pageTitle} – ` : ""}HASH Developer Blog`;
 
-  const dateFirstPublished = dateFirstPublishedInput ? new Date(dateFirstPublishedInput) : null;
-  const dateFirstPublishedIso = dateFirstPublished ? dateFirstPublished.toISOString() : null;
+  const dateFirstPublished = dateFirstPublishedInput
+    ? new Date(dateFirstPublishedInput)
+    : null;
+  const dateFirstPublishedIso = dateFirstPublished
+    ? dateFirstPublished.toISOString()
+    : null;
 
-  const dateLastUpdated = dateLastUpdatedInput ? new Date(dateLastUpdatedInput) : null;
-  const dateLastUpdatedIso = dateLastUpdated ? dateLastUpdated.toISOString() : null;
+  const dateLastUpdated = dateLastUpdatedInput
+    ? new Date(dateLastUpdatedInput)
+    : null;
+  const dateLastUpdatedIso = dateLastUpdated
+    ? dateLastUpdated.toISOString()
+    : null;
 
   return (
     <>
