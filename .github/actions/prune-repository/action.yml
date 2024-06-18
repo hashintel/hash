@@ -24,7 +24,8 @@ runs:
           DIRECTORY=$(dirname "$line")
           echo "Processing $DIRECTORY..."
           # Create a dummy crate if it does not exist
-          if [[ ! -d "out/$DIRECTORY" ]]; then
+          # check Cargo.toml for this
+          if [[ ! -f "out/$DIRECTORY/Cargo.toml" ]]; then
             mkdir -p "out/$DIRECTORY/src"
             echo > "out/$DIRECTORY/src/lib.rs"
             echo -e "[package]\nname = \"$(yq '.package.name' -p toml -oy $line)\"" > "out/$DIRECTORY/Cargo.toml"
