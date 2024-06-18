@@ -85,6 +85,7 @@ export const createHashInstance: ImpureGraphFunction<
         subject: {
           kind: "accountGroup",
           subjectId: hashInstanceAdminsAccountGroupId,
+          subjectSet: "member",
         },
       },
     ],

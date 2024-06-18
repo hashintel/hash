@@ -16,7 +16,6 @@ import type {
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type { CreateEmbeddingResponse } from "openai/resources";
 
-import { createInferenceUsageRecordActivity } from "./activities/create-inference-usage-record-activity";
 import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "./activities/get-dereferenced-entity-types-activity";
 import { getWebPageActivity } from "./activities/get-web-page-activity";
@@ -30,7 +29,6 @@ import {
   createEntityTypeEmbeddings,
   createPropertyTypeEmbeddings,
 } from "./activities/shared/embeddings";
-import { userExceededServiceUsageLimitActivity } from "./activities/user-exceeded-service-usage-limit-activity";
 
 export { createGraphActivities } from "./activities/graph";
 
@@ -129,28 +127,4 @@ export const createAiActivities = ({
   },
 
   inferEntitiesFromWebPageActivity,
-
-  async userExceededServiceUsageLimitActivity(
-    params: Omit<
-      Parameters<typeof userExceededServiceUsageLimitActivity>[0],
-      "graphApiClient"
-    >,
-  ) {
-    return userExceededServiceUsageLimitActivity({
-      ...params,
-      graphApiClient,
-    });
-  },
-
-  async createInferenceUsageRecordActivity(
-    params: Omit<
-      Parameters<typeof createInferenceUsageRecordActivity>[0],
-      "graphApiClient"
-    >,
-  ) {
-    return createInferenceUsageRecordActivity({
-      ...params,
-      graphApiClient,
-    });
-  },
 });

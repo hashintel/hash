@@ -23,8 +23,6 @@ const actionDefinitionIds = [
 
 export type ActionDefinitionId = (typeof actionDefinitionIds)[number];
 
-const defaultModel: InferenceModelName = "gpt-4-turbo";
-
 const actionDefinitionsAsConst = {
   generateWebQueries: {
     actionDefinitionId: "generateWebQueries",
@@ -45,7 +43,7 @@ const actionDefinitionsAsConst = {
         array: false,
         default: {
           kind: "Text",
-          value: defaultModel,
+          value: "gpt-4-turbo" satisfies InferenceModelName,
         },
       },
     ],
@@ -175,7 +173,7 @@ const actionDefinitionsAsConst = {
         required: true,
         default: {
           kind: "Text",
-          value: defaultModel,
+          value: "gpt-4-turbo" satisfies InferenceModelName,
         },
         array: false,
       },
@@ -359,7 +357,7 @@ const actionDefinitionsAsConst = {
         array: false,
         default: {
           kind: "Text",
-          value: defaultModel,
+          value: "claude-3-haiku" satisfies InferenceModelName,
         },
       },
       {

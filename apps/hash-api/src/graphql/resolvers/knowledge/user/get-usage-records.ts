@@ -1,5 +1,6 @@
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
-import { getUserServiceUsage } from "@local/hash-backend-utils/service-usage";
+import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -55,15 +56,19 @@ export const getUsageRecordsResolver: ResolverFn<
   );
 
   const records: UserUsageRecords[] = [];
+  // @todo support getting org usage records
   for (const user of users) {
     const { shortname } = simplifyProperties(user.properties as UserProperties);
-    const usageRecords = await getUserServiceUsage(
+
+    const userAccountId = extractAccountId(
+      user.metadata.recordId.entityId as AccountEntityId,
+    );
+
+    const usageRecords = await getWebServiceUsage(
       { graphApi: dataSources.graphApi },
-      authentication,
       {
-        userAccountId: extractAccountId(
-          user.metadata.recordId.entityId as AccountEntityId,
-        ),
+        userAccountId,
+        webId: userAccountId as OwnedById,
       },
     );
     records.push({ shortname: shortname ?? "NO SHORTNAME", usageRecords });

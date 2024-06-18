@@ -3636,6 +3636,7 @@
             "type": "object",
             "required": [
               "subjectId",
+              "subjectSet",
               "kind"
             ],
             "properties": {
@@ -3647,6 +3648,9 @@
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
+              },
+              "subjectSet": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }
@@ -3708,6 +3712,7 @@
             "type": "object",
             "required": [
               "subjectId",
+              "subjectSet",
               "kind"
             ],
             "properties": {
@@ -3719,6 +3724,9 @@
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
+              },
+              "subjectSet": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }
@@ -4073,6 +4081,13 @@
         "discriminator": {
           "propertyName": "kind"
         }
+      },
+      "EntitySubjectSet": {
+        "type": "string",
+        "enum": [
+          "administrator",
+          "member"
+        ]
       },
       "EntityTemporalMetadata": {
         "type": "object",
@@ -4573,6 +4588,7 @@
             "type": "object",
             "required": [
               "subjectId",
+              "subjectSet",
               "kind"
             ],
             "properties": {
@@ -4584,6 +4600,9 @@
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
+              },
+              "subjectSet": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }

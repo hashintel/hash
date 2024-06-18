@@ -76,6 +76,13 @@ export const generateToolDefinitions = <
       Start fact gathering sub-tasks to gather facts required to complete the research task.
       Make use of this tool if the research task can be broken down into smaller sub-tasks.
       For example: "Find the technical specifications of the product with name X, including specification x, y and z".
+      
+      Subtasks must be independent and not overlap in any way with the information they gather.
+      Subtasks run independently, and cannot share information between them.
+      When gathering facts about a specific set of entities in multiple subtasks,
+        you must name and specify which entities to focus on for each subtask.
+      Do not leave it up to the subtasks to decide which entities to focus on,
+        as this could result in looking up information about different entities in each subtask.
     `),
       inputSchema: {
         type: "object",

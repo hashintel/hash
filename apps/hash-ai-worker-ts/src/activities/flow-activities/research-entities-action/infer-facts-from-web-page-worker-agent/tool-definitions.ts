@@ -109,11 +109,11 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
       ],
     },
   },
-  queryPdf: {
-    name: "queryPdf",
+  queryFactsFromPdf: {
+    name: "queryFactsFromPdf",
     description: dedent(`
-      Query a PDF document hosted at a URL.
-      Use this tool to get relevant text out of a PDF document.
+      Query facts from PDF document hosted at a URL.
+      Use this tool to get relevant facts about entities, from a PDF document.
     `),
     inputSchema: {
       type: "object",
@@ -145,91 +145,28 @@ export const toolDefinitions: Record<ToolName, LlmToolDefinition<ToolName>> = {
             This can be a table, a paragraph, or any other relevant content.
           `),
         },
-      },
-      required: ["fileUrl", "description", "explanation", "exampleText"],
-    },
-  },
-  /**
-   * @todo: consider unifying this with the `inferEntitiesFromWebPage` tool call,
-   * ensuring there are no regressions in the agent's ability to infer entities
-   * from paginated tables.
-   */
-  inferFactsFromText: {
-    name: "inferFactsFromText",
-    description: "Infer facts about entities from text.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        explanation: {
+        relevantEntitiesPrompt: {
           type: "string",
           description: dedent(`
-            An explanation of why this tool call is required to satisfy the task,
-              and how it aligns with the current plan.
-
-            Provide your step by step thinking for why the provided text is sufficient
-              to infer the required entities and links to satisfy the research task.
-          `),
-          // Potentially also ask why other text is unsuitable
-        },
-        fileUrl: {
-          type: "string",
-          description: "The absolute URL of the file where the text is from.",
-        },
-        text: {
-          type: "string",
-          description: dedent(`
-            The text to infer facts about entities from.
-
-            Include any relevant sections, paragraphs, tables, or other content that describe entities of the requested type(s).
-
-            When including a table, you must include table headers and any other relevant information to help the inference agent understand the data.
-
-            Do not under any circumstance truncate or provide partial text which may lead to missed entities
-              or properties.
-
-            You must provide as much text as necessary to infer all the relevant
-              facts about the entities and their links in a single tool call.
-            `),
-        },
-
-        prompt: {
-          type: "string",
-          description: dedent(`
-            A prompt instructing the inference agent which facts about entities
-              should be inferred from the HTML content.
-
-            Do not specify any information of the structure of the entities, as this is predefined by
-              the entity type.
+            A description of the relevant entities you want to gather facts about from the PDF document.
+            This should include the entity type and any relevant properties.
           `),
         },
-        // validAt: {
-        //   type: "string",
-        //   format: "date-time",
-        //   description: dedent(`
-        //     A date-time string in ISO 8601 format, representing when the provided text content is valid at.
-        //     If you don't know, assume it is the current date and time.
-        //     The current time is "${new Date().toISOString()}".
-        //   `),
-        // },
-        // includeExistingEntityIds: {
-        //   type: "array",
-        //   items: {
-        //     type: "string",
-        //   },
-        //   description: dedent(`
-        //     An array of IDs of existing entities that have been provided.
-        //     This is required for the inference agent to infer links between
-        //       the entities it proposed in the text, and existing entities which
-        //       have been provided by the user.
-        //   `),
-        // },
+        entityTypeIds: {
+          type: "array",
+          items: { type: "string" },
+          description: dedent(`
+            The entity type IDs for the relevant entities you want to gather facts about from the PDF document.
+          `),
+        },
       },
       required: [
-        "explanation",
         "fileUrl",
-        "text",
-        "prompt",
-        // "validAt",
+        "description",
+        "explanation",
+        "exampleText",
+        "relevantEntitiesPrompt",
+        "entityTypeIds",
       ],
     },
   },
@@ -328,21 +265,13 @@ export type ToolCallArguments = Subtype<
     terminate: {
       explanation: string;
     };
-    queryPdf: {
+    queryFactsFromPdf: {
       explanation: string;
       fileUrl: string;
       description: string;
       exampleText: string;
-    };
-    inferFactsFromText: {
-      explanation: string;
-      text: string;
-      /**
-       * @todo H-2728 store the webpage URL from which this file was discovered as part of the provenance on the file entity
-       */
-      fileUrl: string;
-      prompt: string;
-      // includeExistingEntityIds?: string[];
+      relevantEntitiesPrompt: string;
+      entityTypeIds: string[];
     };
   }
 >;

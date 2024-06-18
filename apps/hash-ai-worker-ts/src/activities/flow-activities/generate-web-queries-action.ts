@@ -8,7 +8,7 @@ import { getLlmResponse } from "../shared/get-llm-response";
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types";
 import { graphApiClient } from "../shared/graph-api-client";
-import { modelAliasToSpecificModel } from "../shared/openai-client";
+import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model";
 import type { FlowActionActivity } from "./types";
 
 const webQueriesSystemPrompt = dedent(`
@@ -66,7 +66,7 @@ export const generateWebQueriesAction: FlowActionActivity = async ({
           content: [{ type: "text", text: prompt }],
         },
       ],
-      model: modelAliasToSpecificModel[model],
+      model: inferenceModelAliasToSpecificModel[model],
       tools,
     },
     {

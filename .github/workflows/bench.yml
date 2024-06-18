@@ -25,7 +25,7 @@ jobs:
       integration: ${{ steps.packages.outputs.integration }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 2
 
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 2
 
@@ -93,7 +93,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@d0c2bb4cffa2484ea6862a142a14b7ac5057c74a # v2.38.0
+        uses: taiki-e/install-action@47943d5b8d7736809817cbcd80f31e7c7d6538ad # v2.39.1
         with:
           tool: just@1.13.0,critcmp@0.1.8
 
@@ -212,7 +212,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 2
 
@@ -241,7 +241,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@d0c2bb4cffa2484ea6862a142a14b7ac5057c74a # v2.38.0
+        uses: taiki-e/install-action@47943d5b8d7736809817cbcd80f31e7c7d6538ad # v2.39.1
         with:
           tool: just@1.13.0,critcmp@0.1.8
 
@@ -393,7 +393,7 @@ jobs:
           [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@d6bddf945c2aaf4f04fd87dbaa7d3dccf31efda4
+        uses: rtCamp/action-slack-notify@4c6d89edb6a46b698c3c9c6fd890946d510d0b7b
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
@@ -406,7 +406,7 @@ jobs:
 
       - name: Checkout
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Download reports' artifacts
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'

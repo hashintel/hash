@@ -5,6 +5,7 @@ import {
   CircleEllipsisRegularIcon,
   CloseIcon,
 } from "@hashintel/design-system";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import type {
   FlowDefinition,
@@ -30,6 +31,7 @@ import {
   useStatusForStep,
   useStatusForSteps,
 } from "../../../shared/flow-runs-context";
+import { useFlowRunsUsage } from "../../../shared/use-flow-runs-usage";
 import { SectionLabel } from "./section-label";
 import { flowSectionBorderRadius } from "./shared/styles";
 import type {
@@ -251,7 +253,7 @@ const GroupStatus = ({
               color: ({ palette }) =>
                 groupStatus === "In Progress"
                   ? palette.blue[70]
-                  : groupStatus === "Error"
+                  : groupStatus === "Errored"
                     ? palette.error.main
                     : palette.common.black,
             }}
@@ -293,15 +295,23 @@ const GroupStatus = ({
 
 type FlowRunSidebarProps = {
   flowDefinition: FlowDefinition;
+  flowRunId: EntityUuid;
   groups: FlowMaybeGrouped["groups"];
   name: FlowRun["name"];
 };
 
 export const FlowRunSidebar = ({
   flowDefinition,
+  flowRunId,
   groups,
   name,
 }: FlowRunSidebarProps) => {
+  const { isUsageAvailable, usageByFlowRun } = useFlowRunsUsage({
+    flowRunIds: [flowRunId],
+  });
+
+  const usage = usageByFlowRun[flowRunId];
+
   const nameParts = useMemo<{ text: string; url?: boolean }[]>(() => {
     const parts = name.split(/( )/g);
     const urlRegex = /^https?:\/\//;
@@ -356,6 +366,42 @@ export const FlowRunSidebar = ({
           </Box>
         </SidebarSection>
       </Box>
+      {isUsageAvailable && usage ? (
+        <Box sx={{ mt: 2 }}>
+          <SectionLabel text="Cost" />
+          <SidebarSection>
+            <Box>
+              <Typography
+                variant="smallTextParagraphs"
+                sx={{ color: ({ palette }) => palette.gray[80] }}
+              >
+                <Box component="span" fontWeight={500}>
+                  Total:
+                </Box>{" "}
+                ${usage.total.toFixed(2)}
+              </Typography>
+            </Box>
+            {usage.records
+              .sort((a, b) => b.totalCostInUsd - a.totalCostInUsd)
+              .map((record) => (
+                <Box key={record.featureName}>
+                  <Typography
+                    variant="smallTextParagraphs"
+                    sx={{ color: ({ palette }) => palette.gray[50] }}
+                  >
+                    <Box component="span" fontWeight={500}>
+                      {record.featureName
+                        .replace(/-(\b\d{4}[-]?\d{2}[-]?\d{2}\b)$/, "")
+                        .trim()}
+                      :
+                    </Box>{" "}
+                    ${record.totalCostInUsd.toFixed(2)}
+                  </Typography>
+                </Box>
+              ))}
+          </SidebarSection>
+        </Box>
+      ) : null}
     </Box>
   );
 };

@@ -1,8 +1,9 @@
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
-import { getUserServiceUsage } from "@local/hash-backend-utils/service-usage";
+import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 
@@ -11,27 +12,26 @@ const usageCostLimit = {
     day: 30,
     month: 150,
   },
-  user: {
+  web: {
     day: 10,
     month: 50,
   },
 };
 
-export const userExceededServiceUsageLimitActivity = async (params: {
+export const checkWebServiceUsageNotExceeded = async (params: {
   graphApiClient: GraphApi;
   userAccountId: AccountId;
+  webId: OwnedById;
 }): Promise<Status<never>> => {
-  const { graphApiClient, userAccountId } = params;
+  const { graphApiClient, userAccountId, webId } = params;
 
   const now = new Date();
 
   const userAuthenticationInfo = { actorId: userAccountId };
 
-  const userServiceUsage = await getUserServiceUsage(
+  const webServiceUsage = await getWebServiceUsage(
     { graphApi: graphApiClient },
-    userAuthenticationInfo,
     {
-      userAccountId,
       decisionTimeInterval: {
         start: {
           kind: "inclusive",
@@ -41,10 +41,12 @@ export const userExceededServiceUsageLimitActivity = async (params: {
         },
         end: { kind: "inclusive", limit: now.toISOString() as Timestamp },
       },
+      userAccountId,
+      webId,
     },
   );
 
-  const { lastDaysCost, lastThirtyDaysCost } = userServiceUsage.reduce(
+  const { lastDaysCost, lastThirtyDaysCost } = webServiceUsage.reduce(
     (acc, usageRecord) => {
       acc.lastDaysCost += usageRecord.last24hoursTotalCostInUsd;
       acc.lastThirtyDaysCost += usageRecord.totalCostInUsd;
@@ -60,13 +62,17 @@ export const userExceededServiceUsageLimitActivity = async (params: {
   );
 
   const { day: dayLimit, month: monthLimit } =
-    usageCostLimit[isUserAdmin ? "admin" : "user"];
+    usageCostLimit[isUserAdmin ? "admin" : "web"];
+
+  const errorPrefix = isUserAdmin
+    ? "You have exceeded your admin"
+    : "The web has exceeded its";
 
   if (lastDaysCost >= dayLimit) {
     return {
       code: StatusCode.ResourceExhausted,
       contents: [],
-      message: `You have exceeded your daily usage limit of ${dayLimit}.`,
+      message: `${errorPrefix} daily usage limit of ${dayLimit}.`,
     };
   }
 
@@ -74,7 +80,7 @@ export const userExceededServiceUsageLimitActivity = async (params: {
     return {
       code: StatusCode.ResourceExhausted,
       contents: [],
-      message: `You have exceeded your monthly usage limit of ${monthLimit}.`,
+      message: `${errorPrefix} monthly usage limit of ${monthLimit}.`,
     };
   }
 

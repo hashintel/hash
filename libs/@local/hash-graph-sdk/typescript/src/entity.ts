@@ -141,11 +141,13 @@ export class Entity<
             },
           },
         },
-        linkData: {
-          ...entity.linkData,
-          leftEntityId: entity.linkData?.leftEntityId as EntityId,
-          rightEntityId: entity.linkData?.rightEntityId as EntityId,
-        },
+        linkData: entity.linkData
+          ? {
+              ...entity.linkData,
+              leftEntityId: entity.linkData.leftEntityId as EntityId,
+              rightEntityId: entity.linkData.rightEntityId as EntityId,
+            }
+          : undefined,
       };
     } else {
       throw new Error(

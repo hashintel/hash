@@ -23,7 +23,7 @@ jobs:
       sourcemaps: ${{ steps.packages.outputs.sourcemaps }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 2
 
@@ -67,7 +67,7 @@ jobs:
             automation/data/pipelines/hash/${{ env.VAULT_ROLE }} sentry_auth_token | SENTRY_AUTH_TOKEN
 
       - name: Checkout
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Install turbo
         uses: ./.github/actions/install-turbo
@@ -100,7 +100,7 @@ jobs:
           [[ ${{ needs.sourcemaps.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@d6bddf945c2aaf4f04fd87dbaa7d3dccf31efda4
+        uses: rtCamp/action-slack-notify@4c6d89edb6a46b698c3c9c6fd890946d510d0b7b
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

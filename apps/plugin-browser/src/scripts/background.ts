@@ -63,13 +63,13 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
             setTimeout(resolve, 2_000);
           });
 
-          const pageDetails = await (browser.tabs.sendMessage(tabId, {
+          const webPage = await (browser.tabs.sendMessage(tabId, {
             type: "get-tab-content",
           } satisfies GetTabContentRequest) as Promise<GetTabContentReturn>);
 
           const applicableRules = automaticInferenceConfig.rules.filter(
             ({ restrictToDomains }) => {
-              const pageHostname = new URL(pageDetails.pageUrl).hostname;
+              const pageHostname = new URL(webPage.url).hostname;
 
               if (
                 pageHostname === "app.hash.ai" ||
@@ -103,9 +103,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
               entityTypeIds: entityTypeIdsToInfer,
               model: automaticInferenceConfig.model,
               ownedById: automaticInferenceConfig.ownedById,
-              sourceTitle: pageDetails.pageTitle,
-              sourceUrl: pageDetails.pageUrl,
-              textInput: pageDetails.content,
+              sourceWebPage: webPage,
               type: "infer-entities",
             },
             "automatic",
