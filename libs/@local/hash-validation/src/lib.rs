@@ -156,7 +156,9 @@ pub trait EntityProvider {
 mod tests {
     use std::collections::HashMap;
 
-    use graph_types::knowledge::{Property, PropertyObject};
+    use graph_types::knowledge::{
+        Property, PropertyObject, PropertyWithMetadata, PropertyWithMetadataObject,
+    };
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{DataType, EntityType, PropertyType};
@@ -320,7 +322,8 @@ mod tests {
         let properties =
             serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string");
 
-        properties
+        PropertyWithMetadataObject::from_parts(properties, None)
+            .expect("failed to create property with metadata")
             .validate(&entity_type, components, &provider)
             .await
     }
@@ -349,7 +352,8 @@ mod tests {
         let property_type: PropertyType =
             serde_json::from_str(property_type).expect("failed to parse property type");
 
-        property
+        PropertyWithMetadata::from_parts(property, None)
+            .expect("failed to create property with metadata")
             .validate(&property_type, components, &provider)
             .await
     }
@@ -366,6 +370,9 @@ mod tests {
         let data_type: DataType =
             serde_json::from_str(data_type).expect("failed to parse data type");
 
-        property.validate(&data_type, components, &()).await
+        PropertyWithMetadata::from_parts(property, None)
+            .expect("failed to create property with metadata")
+            .validate(&data_type, components, &())
+            .await
     }
 }

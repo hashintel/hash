@@ -12,8 +12,7 @@ use graph_types::{
             ProvidedEntityEditionProvenance,
         },
         link::LinkData,
-        Confidence, PropertyDiff, PropertyMetadataObject, PropertyObject, PropertyPatchOperation,
-        PropertyPath,
+        Confidence, PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -184,13 +183,10 @@ pub struct CreateEntityParams<R> {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
     pub entity_type_ids: Vec<VersionedUrl>,
-    pub properties: PropertyObject,
+    pub properties: PropertyWithMetadataObject,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "PropertyMetadataObject::is_empty")]
-    pub property_metadata: PropertyMetadataObject,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
@@ -207,14 +203,7 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub entity_types: EntityValidationType<'a>,
     #[serde(borrow)]
-    pub properties: Cow<'a, PropertyObject>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(
-        borrow,
-        default,
-        skip_serializing_if = "PropertyMetadataObject::is_empty"
-    )]
-    pub property_metadata: Cow<'a, PropertyMetadataObject>,
+    pub properties: Cow<'a, PropertyWithMetadataObject>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,

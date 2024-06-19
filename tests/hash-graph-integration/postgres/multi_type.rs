@@ -15,7 +15,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{Entity, ProvidedEntityEditionProvenance},
-        PropertyMetadataObject, PropertyObject,
+        PropertyObject, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -79,9 +79,9 @@ async fn empty_entity() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![],
-                properties: PropertyObject::empty(),
+                properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -106,9 +106,9 @@ async fn initial_person() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -242,9 +242,9 @@ async fn create_multi() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id(), org_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],

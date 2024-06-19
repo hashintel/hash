@@ -17,7 +17,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{EntityUuid, ProvidedEntityEditionProvenance},
-        PropertyMetadataObject, PropertyObject,
+        PropertyObject, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -168,9 +168,9 @@ async fn insert<A: AuthorizationApi>(
                 entity_uuid: Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
                 decision_time: None,
                 entity_type_ids: vec![type_id.clone()],
-                properties: properties.clone(),
+                properties: PropertyWithMetadataObject::from_parts(properties.clone(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],

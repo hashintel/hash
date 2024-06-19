@@ -7,7 +7,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{EntityId, ProvidedEntityEditionProvenance},
-        Property, PropertyMetadataObject, PropertyObject, PropertyPatchOperation, PropertyPath,
+        Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -87,9 +87,9 @@ async fn initial_draft() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: true,
                 relationships: [],
@@ -258,9 +258,9 @@ async fn no_initial_draft() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -416,9 +416,9 @@ async fn multiple_drafts() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],

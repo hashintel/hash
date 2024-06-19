@@ -6,7 +6,7 @@ use graph_types::{
     knowledge::{
         entity::{EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        PropertyMetadataObject, PropertyObject, PropertyProvenance,
+        PropertyObject, PropertyProvenance, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -16,6 +16,7 @@ use uuid::Uuid;
 use crate::DatabaseTestWrapper;
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn insert() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -50,9 +51,12 @@ async fn insert() {
             VersionedUrl::from_str("https://blockprotocol.org/@alice/types/entity-type/person/v/1")
                 .expect("couldn't construct Versioned URL"),
         ],
-        properties: serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity"),
+        properties: PropertyWithMetadataObject::from_parts(
+            serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity"),
+            None,
+        )
+        .expect("could not create property with metadata object"),
         confidence: None,
-        property_metadata: PropertyMetadataObject::default(),
         link_data: None,
         draft: false,
         relationships: [],
@@ -68,9 +72,12 @@ async fn insert() {
             VersionedUrl::from_str("https://blockprotocol.org/@alice/types/entity-type/person/v/1")
                 .expect("couldn't construct Versioned URL"),
         ],
-        properties: serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity"),
+        properties: PropertyWithMetadataObject::from_parts(
+            serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity"),
+            None,
+        )
+        .expect("could not create property with metadata object"),
         confidence: None,
-        property_metadata: PropertyMetadataObject::default(),
         link_data: None,
         draft: false,
         relationships: [],
@@ -87,9 +94,9 @@ async fn insert() {
             )
             .expect("couldn't construct Versioned URL"),
         ],
-        properties: PropertyObject::empty(),
+        properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+            .expect("could not create property with metadata object"),
         confidence: None,
-        property_metadata: PropertyMetadataObject::default(),
         link_data: Some(LinkData {
             left_entity_id: EntityId {
                 owned_by_id,

@@ -13,8 +13,8 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance, Property, PropertyMetadataObject, PropertyObject,
-        PropertyPatchOperation, PropertyPath,
+        entity::ProvidedEntityEditionProvenance, Property, PropertyObject, PropertyPatchOperation,
+        PropertyPath, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -64,9 +64,9 @@ async fn insert() {
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
                 }],
-                properties: person.clone(),
+                properties: PropertyWithMetadataObject::from_parts(person.clone(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -135,9 +135,9 @@ async fn query() {
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
                 }],
-                properties: organization.clone(),
+                properties: PropertyWithMetadataObject::from_parts(organization.clone(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -208,9 +208,9 @@ async fn update() {
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
                 }],
-                properties: page_v1.clone(),
+                properties: PropertyWithMetadataObject::from_parts(page_v1.clone(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],

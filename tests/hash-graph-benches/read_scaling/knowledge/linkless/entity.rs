@@ -19,7 +19,7 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{EntityMetadata, ProvidedEntityEditionProvenance},
-        PropertyMetadataObject, PropertyObject,
+        PropertyObject, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -105,9 +105,9 @@ async fn seed_db<A: AuthorizationApi>(
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![entity_type_id],
-                properties,
+                properties: PropertyWithMetadataObject::from_parts(properties, None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],

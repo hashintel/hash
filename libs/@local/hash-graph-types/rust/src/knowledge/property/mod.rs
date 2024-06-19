@@ -59,6 +59,15 @@ pub enum PropertyWithMetadata {
 }
 
 impl PropertyWithMetadata {
+    #[must_use]
+    pub fn json_type(&self) -> JsonSchemaValueType {
+        match self {
+            Self::Array { .. } => JsonSchemaValueType::Array,
+            Self::Object { .. } => JsonSchemaValueType::Object,
+            Self::Value { value, .. } => JsonSchemaValueType::from(value),
+        }
+    }
+
     fn get_mut(
         &mut self,
         path: &[PropertyPathElement<'_>],
@@ -310,12 +319,9 @@ impl PropertyWithMetadata {
 
     pub fn into_parts(self) -> (Property, PropertyMetadataElement) {
         match self {
-            Self::Array {
-                value: elements,
-                metadata,
-            } => {
+            Self::Array { value, metadata } => {
                 let (properties, metadata_elements) =
-                    elements.into_iter().map(Self::into_parts).unzip();
+                    value.into_iter().map(Self::into_parts).unzip();
                 (
                     Property::Array(properties),
                     PropertyMetadataElement::Array {
@@ -324,11 +330,8 @@ impl PropertyWithMetadata {
                     },
                 )
             }
-            Self::Object {
-                value: properties,
-                metadata,
-            } => {
-                let (properties, metadata_properties) = properties
+            Self::Object { value, metadata } => {
+                let (properties, metadata_properties) = value
                     .into_iter()
                     .map(|(base_url, property_with_metadata)| {
                         let (property, metadata) = property_with_metadata.into_parts();
@@ -351,20 +354,81 @@ impl PropertyWithMetadata {
     }
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PropertyWithMetadataObject {
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub value: HashMap<BaseUrl, PropertyWithMetadata>,
+    #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
+    pub metadata: ObjectMetadata,
+}
+
+impl PropertyWithMetadataObject {
+    /// Creates a unified representation of the property and its metadata.
+    ///
+    /// # Errors
+    ///
+    /// - If the property and metadata types do not match.
+    pub fn from_parts(
+        properties: PropertyObject,
+        metadata: Option<PropertyMetadataObject>,
+    ) -> Result<Self, Report<PropertyPathError>> {
+        Ok(if let Some(mut metadata_elements) = metadata {
+            Self {
+                value: properties
+                    .into_iter()
+                    .map(|(key, property)| {
+                        let metadata = metadata_elements.value.remove(&key);
+                        Ok::<_, Report<PropertyPathError>>((
+                            key,
+                            PropertyWithMetadata::from_parts(property, metadata)?,
+                        ))
+                    })
+                    .collect::<Result<_, _>>()?,
+                metadata: metadata_elements.metadata,
+            }
+        } else {
+            Self {
+                value: properties
+                    .into_iter()
+                    .map(|(key, property)| {
+                        Ok::<_, Report<PropertyPathError>>((
+                            key,
+                            PropertyWithMetadata::from_parts(property, None)?,
+                        ))
+                    })
+                    .collect::<Result<_, _>>()?,
+                metadata: ObjectMetadata::default(),
+            }
+        })
+    }
+
+    #[must_use]
+    pub fn into_parts(self) -> (PropertyObject, PropertyMetadataObject) {
+        let (properties, metadata_properties) = self
+            .value
+            .into_iter()
+            .map(|(base_url, property_with_metadata)| {
+                let (property, metadata) = property_with_metadata.into_parts();
+                ((base_url.clone(), property), (base_url, metadata))
+            })
+            .unzip();
+        (
+            PropertyObject::new(properties),
+            PropertyMetadataObject {
+                value: metadata_properties,
+                metadata: self.metadata,
+            },
+        )
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Error)]
 #[error("Failed to apply patch")]
 pub struct PatchError;
 
 impl Property {
-    #[must_use]
-    pub fn json_type(&self) -> JsonSchemaValueType {
-        match self {
-            Self::Array(_) => JsonSchemaValueType::Array,
-            Self::Object(_) => JsonSchemaValueType::Object,
-            Self::Value(property) => JsonSchemaValueType::from(property),
-        }
-    }
-
     pub gen fn properties(&self) -> (PropertyPath<'_>, &JsonValue) {
         let mut elements = PropertyPath::default();
         match self {

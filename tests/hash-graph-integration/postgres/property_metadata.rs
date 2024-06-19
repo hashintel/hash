@@ -13,7 +13,7 @@ use graph_types::{
         entity::{Location, ProvidedEntityEditionProvenance, SourceProvenance, SourceType},
         Confidence, ObjectMetadata, Property, PropertyMetadataElement, PropertyMetadataObject,
         PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
-        PropertyProvenance, ValueMetadata,
+        PropertyProvenance, PropertyWithMetadataObject, ValueMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -132,6 +132,7 @@ fn alice() -> PropertyObject {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn initial_metadata() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
@@ -161,9 +162,12 @@ async fn initial_metadata() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(
+                    alice(),
+                    Some(entity_property_metadata.clone()),
+                )
+                .expect("could not create property with metadata object"),
                 confidence: Confidence::new(0.5),
-                property_metadata: entity_property_metadata.clone(),
                 link_data: None,
                 draft: true,
                 relationships: [],
@@ -256,9 +260,9 @@ async fn no_initial_metadata() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -438,9 +442,9 @@ async fn properties_add() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -523,9 +527,9 @@ async fn properties_remove() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],

@@ -1311,7 +1311,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ValidateEntityParams"
+                "$ref": "#/components/schemas/ValidateEntityRequest"
               }
             }
           },
@@ -7891,7 +7891,7 @@
         },
         "additionalProperties": false
       },
-      "ValidateEntityParams": {
+      "ValidateEntityRequest": {
         "type": "object",
         "required": [
           "entityTypes",

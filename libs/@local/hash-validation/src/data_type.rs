@@ -7,7 +7,7 @@ use std::sync::OnceLock;
 
 use email_address::EmailAddress;
 use error_stack::{bail, ensure, Report, ResultExt};
-use graph_types::knowledge::Property;
+use graph_types::knowledge::{Property, PropertyWithMetadata};
 use iso8601_duration::Duration;
 use regex::Regex;
 use serde_json::Value as JsonValue;
@@ -419,17 +419,17 @@ fn check_string_additional_property<'a>(
     Ok(())
 }
 
-impl<P: Sync> Schema<Property, P> for DataType {
+impl<P: Sync> Schema<PropertyWithMetadata, P> for DataType {
     type Error = DataValidationError;
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a Property,
+        value: &'a PropertyWithMetadata,
         _: ValidateEntityComponents,
         _: &'a P,
     ) -> Result<(), Report<DataValidationError>> {
         match (self.json_type(), value) {
-            (JsonSchemaValueType::Number, Property::Value(value)) => {
+            (JsonSchemaValueType::Number, PropertyWithMetadata::Value { value, metadata: _ }) => {
                 #[expect(clippy::float_arithmetic)]
                 check_numeric_additional_property(
                     value,
@@ -439,7 +439,7 @@ impl<P: Sync> Schema<Property, P> for DataType {
                     |number, multiple| number % multiple < f64::EPSILON,
                 )?;
             }
-            (JsonSchemaValueType::Integer, Property::Value(value)) => {
+            (JsonSchemaValueType::Integer, PropertyWithMetadata::Value { value, metadata: _ }) => {
                 check_numeric_additional_property(
                     value,
                     self.additional_properties(),
@@ -449,7 +449,7 @@ impl<P: Sync> Schema<Property, P> for DataType {
                     |number, multiple| number % multiple == 0,
                 )?;
             }
-            (JsonSchemaValueType::String, Property::Value(value)) => {
+            (JsonSchemaValueType::String, PropertyWithMetadata::Value { value, metadata: _ }) => {
                 check_string_additional_property(
                     value,
                     self.additional_properties(),
@@ -468,21 +468,25 @@ impl<P: Sync> Schema<Property, P> for DataType {
 
         for (additional_key, additional_property) in self.additional_properties() {
             match additional_key.as_str() {
-                "const" => ensure!(
-                    value == additional_property,
-                    Report::new(DataTypeConstraint::Const {
-                        actual: value.clone(),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                ),
+                "const" => {
+                    let (actual, _) = value.clone().into_parts();
+                    ensure!(
+                        actual == *additional_property,
+                        Report::new(DataTypeConstraint::Const {
+                            actual,
+                            expected: additional_property.clone(),
+                        })
+                        .change_context(DataValidationError::ConstraintUnfulfilled)
+                    );
+                }
                 "enum" => {
+                    let (actual, _) = value.clone().into_parts();
                     ensure!(
                         additional_property
                             .as_array()
-                            .is_some_and(|array| array.iter().any(|expected| value == expected)),
+                            .is_some_and(|array| array.iter().any(|expected| actual == *expected)),
                         Report::new(DataTypeConstraint::Enum {
-                            actual: value.clone(),
+                            actual,
                             expected: additional_property.clone(),
                         })
                         .change_context(DataValidationError::ConstraintUnfulfilled)
@@ -509,7 +513,7 @@ impl<P: Sync> Schema<Property, P> for DataType {
     }
 }
 
-impl Validate<DataType, ()> for Property {
+impl Validate<DataType, ()> for PropertyWithMetadata {
     type Error = DataValidationError;
 
     async fn validate(
@@ -522,7 +526,7 @@ impl Validate<DataType, ()> for Property {
     }
 }
 
-impl<P> Schema<Property, P> for DataTypeReference
+impl<P> Schema<PropertyWithMetadata, P> for DataTypeReference
 where
     P: OntologyTypeProvider<DataType> + Sync,
 {
@@ -530,7 +534,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a Property,
+        value: &'a PropertyWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
@@ -549,7 +553,7 @@ where
     }
 }
 
-impl<P> Validate<DataTypeReference, P> for Property
+impl<P> Validate<DataTypeReference, P> for PropertyWithMetadata
 where
     P: OntologyTypeProvider<DataType> + Sync,
 {

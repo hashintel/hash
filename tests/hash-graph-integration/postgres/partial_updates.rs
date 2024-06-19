@@ -15,8 +15,8 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance, Property, PropertyMetadataObject, PropertyObject,
-        PropertyPatchOperation, PropertyPathElement,
+        entity::ProvidedEntityEditionProvenance, Property, PropertyObject, PropertyPatchOperation,
+        PropertyPathElement, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -88,9 +88,9 @@ async fn properties_add() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -164,9 +164,9 @@ async fn properties_remove() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -236,9 +236,9 @@ async fn properties_replace() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -312,9 +312,9 @@ async fn type_ids() {
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: vec![person_entity_type_id()],
-                properties: PropertyObject::empty(),
+                properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
