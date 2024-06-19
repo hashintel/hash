@@ -1,6 +1,6 @@
 {
   "extends": ["//"],
-  "pipeline": {
+  "tasks": {
     "build:wasm": {
       "outputs": ["pkg/**"]
     }

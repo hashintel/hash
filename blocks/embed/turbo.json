@@ -1,6 +1,6 @@
 {
   "extends": ["//"],
-  "pipeline": {
+  "tasks": {
     "schema": {
       "inputs": ["./package.json"],
       "outputs": ["./src/types.gen.ts"]
