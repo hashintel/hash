@@ -75,7 +75,16 @@ export const getLlmResponse = async <T extends LlmParams>(
 
   const timeBeforeApiCall = Date.now();
 
-  logger.debug(`Getting LLM response for model ${llmParams.model}`);
+  const { taskName, stepId } = customMetadata ?? {};
+  let debugMessage = `Getting LLM response for model ${llmParams.model}`;
+  if (taskName) {
+    debugMessage += ` for task ${taskName}`;
+  }
+  if (stepId) {
+    debugMessage += ` in step ${stepId}`;
+  }
+
+  logger.debug(debugMessage);
 
   const llmResponse = (
     isLlmParamsAnthropicLlmParams(llmParams)
@@ -197,7 +206,7 @@ export const getLlmResponse = async <T extends LlmParams>(
   }
 
   if (["development", "test"].includes(process.env.NODE_ENV ?? "")) {
-    logLlmRequest({ llmParams, llmResponse });
+    logLlmRequest({ customMetadata, llmParams, llmResponse });
   }
 
   return llmResponse;
