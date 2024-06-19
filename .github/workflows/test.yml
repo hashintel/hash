@@ -190,7 +190,7 @@ jobs:
         env:
           TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
         run: |
-          turbo run test:unit --filter "${{ matrix.package }}"
+          turbo run test:unit --env-mode=loose --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
       - name: Show disk usage
@@ -246,7 +246,7 @@ jobs:
       - name: Find test steps to run
         id: tests
         run: |
-          TEST_TASKS=$(turbo run test:integration --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
+          TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
           REQUIRES_GRAPH=$(echo "$TEST_TASKS" | jq -s '[.[] | select((.package == "@apps/hash-graph" or .package == "@rust/graph") and .task == "build")] != []')
           REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
           REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
@@ -346,7 +346,7 @@ jobs:
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
         run: |
-          turbo run test:integration --filter "${{ matrix.package }}"
+          turbo run test:integration --env-mode=loose --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
       - name: Show disk usage
@@ -463,7 +463,7 @@ jobs:
 
       - name: Migrate HASH-API
         run: |
-          turbo run build --filter "@apps/hash-api"
+          turbo run build --env-mode=loose --filter "@apps/hash-api"
           yarn workspace @apps/hash-api ensure-system-graph-is-initialized
 
       - name: Launch HASH-API
@@ -473,7 +473,7 @@ jobs:
 
       - name: Launch frontend
         run: |
-          turbo run build --filter "@apps/hash-frontend"
+          turbo run build --env-mode=loose --filter "@apps/hash-frontend"
           yarn workspace @apps/hash-frontend start 2>&1 | tee var/logs/frontend.log &
           yarn wait-on --timeout 60000 http://0.0.0.0:3000
 
@@ -482,7 +482,7 @@ jobs:
 
       - name: Run tests
         run: |
-          turbo run test:system --filter "${{ matrix.package }}"
+          turbo run test:system --env-mode=loose --filter "${{ matrix.package }}"
 
       - name: Show disk usage
         run: df -h
