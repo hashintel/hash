@@ -444,8 +444,6 @@ export const proposeEntityFromFacts = async (params: {
 
     const proposedOutgoingLinkEntities: ProposedEntity[] = [];
 
-    const { stepId } = await getFlowContext();
-
     const editionProvenance: ProvidedEntityEditionProvenance = {
       actorType: "ai",
       // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
