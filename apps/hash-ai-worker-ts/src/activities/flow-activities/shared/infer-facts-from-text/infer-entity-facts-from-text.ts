@@ -204,7 +204,7 @@ export const inferEntityFactsFromText = async (params: {
     {
       customMetadata: {
         stepId,
-        taskName: "entity-facts-from-text",
+        taskName: "facts-from-text",
       },
       userAccountId: userAuthentication.actorId,
       graphApiClient,

@@ -138,7 +138,7 @@ export const getEntitySummariesFromText = async (params: {
     {
       customMetadata: {
         stepId,
-        taskName: "entity-summaries-from-text",
+        taskName: "summaries-from-text",
       },
       userAccountId: userAuthentication.actorId,
       graphApiClient,

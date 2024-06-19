@@ -147,7 +147,7 @@ export const checkSubTasksAgent = async (params: {
     {
       customMetadata: {
         stepId,
-        taskName: "check-sub-tasks",
+        taskName: "check-subtasks",
       },
       userAccountId: userAuthentication.actorId,
       graphApiClient,

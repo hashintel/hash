@@ -72,7 +72,7 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
     {
       customMetadata: {
         stepId,
-        taskName: "get-web-page-summary",
+        taskName: "summarize-web-page",
       },
       userAccountId: userAuthentication.actorId,
       graphApiClient,

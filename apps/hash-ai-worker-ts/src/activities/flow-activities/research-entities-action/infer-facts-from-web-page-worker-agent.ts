@@ -147,7 +147,7 @@ const createInitialPlan = async (params: {
     {
       customMetadata: {
         stepId,
-        taskName: "worker-agent",
+        taskName: "worker",
       },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
@@ -292,7 +292,7 @@ const getNextToolCalls = async (params: {
     {
       customMetadata: {
         stepId,
-        taskName: "worker-agent",
+        taskName: "worker",
       },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
