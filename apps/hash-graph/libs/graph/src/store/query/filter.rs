@@ -30,7 +30,7 @@ use crate::{
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum Filter<'p, R: QueryRecord + ?Sized> {
+pub enum Filter<'p, R: QueryRecord> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
@@ -225,7 +225,7 @@ where
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum FilterExpression<'p, R: QueryRecord + ?Sized> {
+pub enum FilterExpression<'p, R: QueryRecord> {
     Path(R::QueryPath<'p>),
     Parameter(Parameter<'p>),
 }
