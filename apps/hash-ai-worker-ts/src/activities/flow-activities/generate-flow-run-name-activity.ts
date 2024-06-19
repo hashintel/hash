@@ -111,9 +111,8 @@ export const generateFlowRunName = async (
     } webpage: ${webPage.url}`;
   }
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
-
-  const { stepId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const usageTrackingParams: UsageTrackingParams = {
     customMetadata: { taskName: "name-flow", stepId },

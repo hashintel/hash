@@ -568,7 +568,7 @@ const parseCoordinatorInputs = async (params: {
     .map(({ schema }) => schema);
 
   return {
-    humanInputCanBeRequested: testingParams?.humanInputCanBeRequested ?? false,
+    humanInputCanBeRequested: testingParams?.humanInputCanBeRequested ?? true,
     prompt,
     entityTypes,
     linkEntityTypes: linkEntityTypes.length > 0 ? linkEntityTypes : undefined,
