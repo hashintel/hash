@@ -31,15 +31,8 @@
       "commitMessageTopic": "GitHub Action `{{depName}}`",
       "additionalBranchPrefix": "gha/",
       "pinDigests": true,
-      "dependencyDashboardApproval": false
-    },
-    {
-      "packageRules": [
-        {
-          "matchPackageNames": ["taiki-e/install-action"],
-          "schedule": ["after 9pm on sunday"]
-        }
-      ]
+      "dependencyDashboardApproval": false,
+      "schedule": ["before 2am on saturday"]
     },
     {
       "packageRules": [
