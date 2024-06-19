@@ -16,8 +16,8 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 
 import { getFlowContext } from "../shared/get-flow-context";
+import type { UsageTrackingParams } from "../shared/get-llm-response";
 import { getLlmResponse } from "../shared/get-llm-response";
-import type { UsageTrackingParams } from "../shared/get-llm-response/get-openai-reponse";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message";
 import { graphApiClient } from "../shared/graph-api-client";
 
@@ -62,7 +62,9 @@ const getModelSuggestedFlowRunName = async (
 
   if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to generate flow run name - ${llmResponse.status}:${"message" in llmResponse ? llmResponse.message : "unknown"}`,
+      `Failed to generate flow run name - ${llmResponse.status}:${
+        "message" in llmResponse ? llmResponse.message : "unknown"
+      }`,
     );
   }
 
@@ -101,12 +103,19 @@ export const generateFlowRunName = async (
       throw new Error(`Web page not found in browser flow trigger outputs`);
     }
 
-    return `${flowDefinition.flowDefinitionId === automaticBrowserInferenceFlowDefinition.flowDefinitionId ? "Auto-analyze" : "Analyze"} webpage: ${webPage.url}`;
+    return `${
+      flowDefinition.flowDefinitionId ===
+      automaticBrowserInferenceFlowDefinition.flowDefinitionId
+        ? "Auto-analyze"
+        : "Analyze"
+    } webpage: ${webPage.url}`;
   }
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const usageTrackingParams: UsageTrackingParams = {
+    customMetadata: { taskName: "name-flow", stepId },
     userAccountId: userAuthentication.actorId,
     graphApiClient,
     incurredInEntities: [{ entityId: flowEntityId }],
@@ -136,8 +145,12 @@ export const generateFlowRunName = async (
   );
 
   return getModelSuggestedFlowRunName(
-    `The workflow template is named ${flowDefinition.name} with a description of ${flowDefinition.description}.
-    The inputs to the workflow run to be named: ${inputsOfInterest?.map((input) => JSON.stringify(input)).join("\n")}`,
+    `The workflow template is named ${
+      flowDefinition.name
+    } with a description of ${flowDefinition.description}.
+    The inputs to the workflow run to be named: ${inputsOfInterest
+      ?.map((input) => JSON.stringify(input))
+      .join("\n")}`,
     usageTrackingParams,
   );
 };

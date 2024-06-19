@@ -142,9 +142,21 @@ const generateSystemPromptPrefix = (params: { input: SubTaskAgentInput }) => {
     The user will provide you with:
       - Goal: the research goal you need to satisfy to complete the research task
       - Entity Types: a list of entity types of the entities that you may need to discover facts about
-      ${linkEntityTypes ? `- Link Entity Types: a list of link entity types of the entities that you may need to discover facts about` : ""}
-      ${relevantEntities.length > 0 ? `- Relevant Entities: a list entities which have already been discovered and may be relevant to the research goal` : ""}
-      ${existingFactsAboutRelevantEntities.length > 0 ? `- Existing Facts About Relevant Entities: a list of facts that have already been discovered about the relevant entities` : ""}
+      ${
+        linkEntityTypes
+          ? `- Link Entity Types: a list of link entity types of the entities that you may need to discover facts about`
+          : ""
+      }
+      ${
+        relevantEntities.length > 0
+          ? `- Relevant Entities: a list entities which have already been discovered and may be relevant to the research goal`
+          : ""
+      }
+      ${
+        existingFactsAboutRelevantEntities.length > 0
+          ? `- Existing Facts About Relevant Entities: a list of facts that have already been discovered about the relevant entities`
+          : ""
+      }
 
     The user will provide you with a research goal, and you are tasked with
       finding the facts with the provided tools to satisfy the research goal.
@@ -191,10 +203,22 @@ const generateInitialUserMessage = (params: {
         text: dedent(`
 Goal: ${goal}
 Entity Types:
-${entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
+${entityTypes
+  .map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType }))
+  .join("\n")}
 ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
-${relevantEntities.length > 0 ? `Relevant Entities: ${JSON.stringify(relevantEntities)}` : ""}
-${existingFactsAboutRelevantEntities.length > 0 ? `Existing Facts About Relevant Entities: ${JSON.stringify(existingFactsAboutRelevantEntities)}` : ""}
+${
+  relevantEntities.length > 0
+    ? `Relevant Entities: ${JSON.stringify(relevantEntities)}`
+    : ""
+}
+${
+  existingFactsAboutRelevantEntities.length > 0
+    ? `Existing Facts About Relevant Entities: ${JSON.stringify(
+        existingFactsAboutRelevantEntities,
+      )}`
+    : ""
+}
       `),
       },
     ],
@@ -212,7 +236,8 @@ const createInitialPlan = async (params: {
     Do not make any other tool calls.
   `);
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions({
@@ -229,6 +254,10 @@ const createInitialPlan = async (params: {
       toolChoice: "updatePlan" satisfies SubTaskAgentToolName,
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "subtask",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
@@ -339,7 +368,8 @@ const getNextToolCalls = async (params: {
     }),
   );
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -350,6 +380,10 @@ const getNextToolCalls = async (params: {
       toolChoice: "required",
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "subtask",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
@@ -508,7 +542,9 @@ export const runSubTaskAgent = async (params: {
                           invalidEntityTypeIds,
                         )}
 
-                        Valid entity type IDs are: ${JSON.stringify(validEntityTypeIds)}
+                        Valid entity type IDs are: ${JSON.stringify(
+                          validEntityTypeIds,
+                        )}
                       `)
                       : ""
                   }
@@ -519,7 +555,9 @@ export const runSubTaskAgent = async (params: {
                           invalidLinkEntityTypeIds,
                         )}
                         
-                        The valid link entity types type IDs are: ${JSON.stringify(validLinkEntityTypeIds)}
+                        The valid link entity types type IDs are: ${JSON.stringify(
+                          validLinkEntityTypeIds,
+                        )}
                       `)
                       : ""
                   }
@@ -569,7 +607,9 @@ export const runSubTaskAgent = async (params: {
                 );
                 filesUsedToInferFacts.push(...content.filesUsedToInferFacts);
 
-                outputMessage += `Inferred ${content.inferredFacts.length} facts on the web page with url ${url} for the following entities: ${stringify(
+                outputMessage += `Inferred ${
+                  content.inferredFacts.length
+                } facts on the web page with url ${url} for the following entities: ${stringify(
                   content.inferredFactsAboutEntities.map(
                     ({ name, summary }) => ({
                       name,

@@ -91,7 +91,8 @@ export const checkSubTasksAgent = async (params: {
       don't name and specify which entities to focus on. Otherwise each subtask may look up information about different entities.
   `;
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const submitVerdictToolDefinition: LlmToolDefinition<"submitVerdict"> = {
     name: "submitVerdict",
@@ -144,6 +145,10 @@ export const checkSubTasksAgent = async (params: {
       toolChoice: "required",
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "check-subtasks",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],

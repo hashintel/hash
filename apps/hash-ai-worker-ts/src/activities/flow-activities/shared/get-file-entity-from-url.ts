@@ -159,7 +159,9 @@ export const getFileEntityFromUrl = async (params: {
   try {
     localFilePath = await downloadFileToFileSystem(originalUrl);
   } catch (err) {
-    const message = `Error downloading file from URL: ${(err as Error).message}`;
+    const message = `Error downloading file from URL: ${
+      (err as Error).message
+    }`;
 
     logger.error(message);
 

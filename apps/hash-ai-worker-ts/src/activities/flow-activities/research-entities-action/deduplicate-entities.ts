@@ -102,7 +102,8 @@ export const deduplicateEntities = async (params: {
 > => {
   const { entities, model } = params;
 
-  const { flowEntityId, userAuthentication, webId } = await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -122,7 +123,11 @@ export const deduplicateEntities = async (params: {
                     Name: ${entitySummary.name}
                     Type: ${entitySummary.entityTypeId}
                     Summary: ${entitySummary.summary}
-                    ID: ${"localId" in entitySummary ? entitySummary.localId : entitySummary.entityId}
+                    ID: ${
+                      "localId" in entitySummary
+                        ? entitySummary.localId
+                        : entitySummary.entityId
+                    }
                     `,
                   )
                   .join("\n"),
@@ -134,6 +139,10 @@ export const deduplicateEntities = async (params: {
       model: model ?? defaultModel,
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "deduplicate-entities",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
@@ -161,7 +170,11 @@ export const deduplicateEntities = async (params: {
 
   if (toolCalls.length > 1) {
     throw new Error(
-      `Expected only one tool call in message: ${JSON.stringify(message, null, 2)}`,
+      `Expected only one tool call in message: ${JSON.stringify(
+        message,
+        null,
+        2,
+      )}`,
     );
   }
 

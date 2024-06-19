@@ -139,10 +139,20 @@ const constructUserMessage = (params: {
         type: "text",
         text: dedent(`
           Text: ${text}
-          Subject Entities: ${JSON.stringify(subjectEntities.map(({ localId, name }) => ({ localId, name })))}
+          Subject Entities: ${JSON.stringify(
+            subjectEntities.map(({ localId, name }) => ({ localId, name })),
+          )}
           Relevant Properties: ${JSON.stringify(relevantProperties)}
-          Relevant Outgoing Links: ${JSON.stringify(Object.values(dereferencedEntityType.links ?? {}))}
-          Potential Object Entities: ${JSON.stringify(potentialObjectEntities.map(({ localId, name, summary }) => ({ localId, name, summary })))}
+          Relevant Outgoing Links: ${JSON.stringify(
+            Object.values(dereferencedEntityType.links ?? {}),
+          )}
+          Potential Object Entities: ${JSON.stringify(
+            potentialObjectEntities.map(({ localId, name, summary }) => ({
+              localId,
+              name,
+              summary,
+            })),
+          )}
         `),
       },
     ],
@@ -170,7 +180,8 @@ export const inferEntityFactsFromText = async (params: {
     retryContext,
   } = params;
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -191,6 +202,10 @@ export const inferEntityFactsFromText = async (params: {
       ],
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "facts-from-text",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
@@ -292,7 +307,9 @@ export const inferEntityFactsFromText = async (params: {
 
     if (retryCount >= retryMax) {
       logger.debug(
-        `Exceeded the retry limit for inferring facts from text, abandoning the following invalid facts: ${stringify(invalidFacts)}`,
+        `Exceeded the retry limit for inferring facts from text, abandoning the following invalid facts: ${stringify(
+          invalidFacts,
+        )}`,
       );
       /**
        * If some of the facts are repeatedly invalid, we handle this gracefully
@@ -337,7 +354,9 @@ export const inferEntityFactsFromText = async (params: {
     );
 
     logger.debug(
-      `Retrying inferring facts from text with the following tool call responses: ${stringify(toolCallResponses)}`,
+      `Retrying inferring facts from text with the following tool call responses: ${stringify(
+        toolCallResponses,
+      )}`,
     );
 
     return inferEntityFactsFromText({

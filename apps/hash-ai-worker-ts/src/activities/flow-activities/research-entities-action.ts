@@ -325,7 +325,15 @@ export const researchEntitiesAction: FlowActionActivity<{
                     invalidEntityIds,
                   )}
 
-                  ${state.proposedEntities.length > 0 ? `Valid entity IDs are: ${JSON.stringify(state.proposedEntities.map(({ localEntityId }) => localEntityId))}` : `You haven't proposed any entities so far with the "proposeEntitiesFromFacts" tool.`}
+                  ${
+                    state.proposedEntities.length > 0
+                      ? `Valid entity IDs are: ${JSON.stringify(
+                          state.proposedEntities.map(
+                            ({ localEntityId }) => localEntityId,
+                          ),
+                        )}`
+                      : `You haven't proposed any entities so far with the "proposeEntitiesFromFacts" tool.`
+                  }
                 `),
                 isError: true,
               };
@@ -335,7 +343,9 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             return {
               ...toolCall,
-              output: `The entities with IDs ${JSON.stringify(entityIds)} were successfully submitted.`,
+              output: `The entities with IDs ${JSON.stringify(
+                entityIds,
+              )} were successfully submitted.`,
             };
           } else if (toolCall.name === "webSearch") {
             const { output } = await handleWebSearchToolCall({
@@ -386,7 +396,9 @@ export const researchEntitiesAction: FlowActionActivity<{
                           invalidEntityTypeIds,
                         )}
 
-                        Valid entity type IDs are: ${JSON.stringify(validEntityTypeIds)}
+                        Valid entity type IDs are: ${JSON.stringify(
+                          validEntityTypeIds,
+                        )}
                       `)
                       : ""
                   }
@@ -397,7 +409,9 @@ export const researchEntitiesAction: FlowActionActivity<{
                           invalidLinkEntityTypeIds,
                         )}
                         
-                        The valid link entity types type IDs are: ${JSON.stringify(validLinkEntityTypeIds)}
+                        The valid link entity types type IDs are: ${JSON.stringify(
+                          validLinkEntityTypeIds,
+                        )}
                       `)
                       : ""
                   }
@@ -447,7 +461,9 @@ export const researchEntitiesAction: FlowActionActivity<{
               );
               filesUsedToInferFacts.push(...content.filesUsedToInferFacts);
 
-              outputMessage += `Inferred ${content.inferredFacts.length} facts on the web page with url ${url} for the following entities: ${stringify(
+              outputMessage += `Inferred ${
+                content.inferredFacts.length
+              } facts on the web page with url ${url} for the following entities: ${stringify(
                 content.inferredFactsAboutEntities.map(({ name, summary }) => ({
                   name,
                   summary,

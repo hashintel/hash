@@ -38,7 +38,9 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
       return (
         <TextField
           onChange={(event) => setValue(event.target.value)}
-          placeholder={`${required ? "Required" : "Optional"} to start the flow`}
+          placeholder={`${
+            required ? "Required" : "Optional"
+          } to start the flow`}
           sx={textFieldSx}
           value={payload.value}
         />
@@ -54,7 +56,9 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
               event.target.value !== "" ? Number(event.target.value) : "",
             )
           }
-          placeholder={`${required ? "Required" : "Optional"} to start the flow`}
+          placeholder={`${
+            required ? "Required" : "Optional"
+          } to start the flow`}
           sx={textFieldSx}
           type="number"
           value={payload.value}

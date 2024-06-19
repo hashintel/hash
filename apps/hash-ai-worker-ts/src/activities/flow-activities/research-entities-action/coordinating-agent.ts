@@ -199,7 +199,12 @@ const generateProgressReport = (params: {
           : "You have not previously submitted any proposed links."
       }
 
-      ${submittedProposedEntities.length > 0 || submittedProposedLinks.length > 0 ? 'If the submitted entities and links satisfy the research prompt, call the "complete" tool.' : ""}
+      ${
+        submittedProposedEntities.length > 0 ||
+        submittedProposedLinks.length > 0
+          ? 'If the submitted entities and links satisfy the research prompt, call the "complete" tool.'
+          : ""
+      }
 
       You have previously proposed the following plan:
       ${state.plan}
@@ -235,7 +240,10 @@ const getNextToolCalls = async (params: {
   const { input, state, forcedToolCall } = params;
 
   const systemPrompt = dedent(`
-      ${generateSystemPromptPrefix({ input, questionsAndAnswers: state.questionsAndAnswers })}
+      ${generateSystemPromptPrefix({
+        input,
+        questionsAndAnswers: state.questionsAndAnswers,
+      })}
 
       Make as many tool calls as are required to progress towards completing the task.
     `);
@@ -283,7 +291,8 @@ const getNextToolCalls = async (params: {
     }),
   );
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -294,6 +303,10 @@ const getNextToolCalls = async (params: {
       toolChoice: forcedToolCall ?? "required",
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "coordinator",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
@@ -330,7 +343,9 @@ const createInitialPlan = async (params: {
       input.humanInputCanBeRequested
         ? dedent(`
           You must ${questionsAndAnswers ? "now" : "first"} do one of:
-          1. Ask the user ${questionsAndAnswers ? "further" : ""} questions to help clarify the research brief. You should ask questions if:
+          1. Ask the user ${
+            questionsAndAnswers ? "further" : ""
+          } questions to help clarify the research brief. You should ask questions if:
             - The scope of the research is unclear (e.g. how much information is desired in response)
             - The scope of the research task is very broad (e.g. the prompt is vague)
             - The research brief or terms within it are ambiguous
@@ -339,7 +354,9 @@ const createInitialPlan = async (params: {
 
           2. Provide a plan of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
 
-          Please now either ask the user your questions, or produce the initial plan if there are no ${questionsAndAnswers ? "more " : ""}useful questions to ask.
+          Please now either ask the user your questions, or produce the initial plan if there are no ${
+            questionsAndAnswers ? "more " : ""
+          }useful questions to ask.
           
           You must now make either a "requestHumanInput" or a "updatePlan" tool call – definitions for the other tools are only provided to help you produce a plan.
     `)
@@ -350,7 +367,8 @@ const createInitialPlan = async (params: {
     }
   `);
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions<["complete"]>({
@@ -372,6 +390,10 @@ const createInitialPlan = async (params: {
       toolChoice: input.humanInputCanBeRequested ? "required" : "updatePlan",
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "coordinator",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
@@ -419,7 +441,9 @@ const createInitialPlan = async (params: {
     }
 
     logger.debug(
-      `Retrying to create initial plan with retry message: ${stringify(retryParams.retryMessage)}`,
+      `Retrying to create initial plan with retry message: ${stringify(
+        retryParams.retryMessage,
+      )}`,
     );
 
     return createInitialPlan({
@@ -457,7 +481,11 @@ const createInitialPlan = async (params: {
         content: [
           {
             type: "text",
-            text: `You didn't make any tool calls, you must call the ${input.humanInputCanBeRequested ? `"requestHumanInput" tool or the` : ""}"updatePlan" tool.`,
+            text: `You didn't make any tool calls, you must call the ${
+              input.humanInputCanBeRequested
+                ? `"requestHumanInput" tool or the`
+                : ""
+            }"updatePlan" tool.`,
           },
         ],
       },
@@ -470,7 +498,11 @@ const createInitialPlan = async (params: {
       content: toolCalls.map(({ name, id }) => ({
         type: "tool_result",
         tool_use_id: id,
-        content: `You cannot call the "${name}" tool yet, you must call the ${input.humanInputCanBeRequested ? `"requestHumanInput" tool or the` : ""}"updatePlan" tool first.`,
+        content: `You cannot call the "${name}" tool yet, you must call the ${
+          input.humanInputCanBeRequested
+            ? `"requestHumanInput" tool or the`
+            : ""
+        }"updatePlan" tool first.`,
         is_error: true,
       })),
     },
@@ -536,7 +568,7 @@ const parseCoordinatorInputs = async (params: {
     .map(({ schema }) => schema);
 
   return {
-    humanInputCanBeRequested: testingParams?.humanInputCanBeRequested ?? false,
+    humanInputCanBeRequested: testingParams?.humanInputCanBeRequested ?? true,
     prompt,
     entityTypes,
     linkEntityTypes: linkEntityTypes.length > 0 ? linkEntityTypes : undefined,

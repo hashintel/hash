@@ -122,7 +122,9 @@ export const handleQueryPdfToolCall = async (params: {
   }
 
   logger.debug(
-    `Vector DB query returned ${textChunks.length} chunks: ${stringify(textChunks)}`,
+    `Vector DB query returned ${textChunks.length} chunks: ${stringify(
+      textChunks,
+    )}`,
   );
 
   const filteredAndRankedTextChunksResponse =
@@ -167,7 +169,9 @@ export const handleQueryPdfToolCall = async (params: {
 
   const textToInferFactsFrom = dedent(`
     Here is a list of the most relevant sections of the PDF file with file URL ${fileUrl}:
-    ${orderedRelevantTextChunks.map((text, index) => `Relevant section ${index + 1}: ${text}`).join("\n")}
+    ${orderedRelevantTextChunks
+      .map((text, index) => `Relevant section ${index + 1}: ${text}`)
+      .join("\n")}
     `);
 
   const dereferencedEntityTypes = input.entityTypes.filter(({ $id }) =>

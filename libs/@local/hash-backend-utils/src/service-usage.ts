@@ -20,7 +20,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
-import { getAggregateUsageRecords } from "@local/hash-isomorphic-utils/service-usage";
+import { getAggregateUsageRecordsByServiceFeature } from "@local/hash-isomorphic-utils/service-usage";
 import {
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
@@ -95,7 +95,7 @@ export const getWebServiceUsage = async (
 
   const serviceUsageRecords = getRoots(serviceUsageRecordSubgraph);
 
-  const aggregateUsageRecords = getAggregateUsageRecords({
+  const aggregateUsageRecords = getAggregateUsageRecordsByServiceFeature({
     decisionTimeInterval,
     serviceUsageRecords,
     serviceUsageRecordSubgraph,
@@ -107,18 +107,35 @@ export const getWebServiceUsage = async (
 export const createUsageRecord = async (
   context: { graphApi: GraphApi },
   {
+    additionalViewers,
     assignUsageToWebId,
+    customMetadata,
     serviceName,
     featureName,
     inputUnitCount,
     outputUnitCount,
     userAccountId,
   }: {
+    /**
+     * Grant view access on the usage record to these additional accounts
+     */
+    additionalViewers?: AccountId[];
+    /**
+     * The web the usage will be assigned to (user or org)
+     */
     assignUsageToWebId: OwnedById;
+    /**
+     * Additional arbitrary metadata to store on the usage record.
+     */
+    customMetadata?: Record<string, unknown> | null;
     serviceName: string;
     featureName: string;
     inputUnitCount?: number;
     outputUnitCount?: number;
+    /**
+     * The user that is incurring the usage (e.g. the user that triggered the flow)
+     * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
+     */
     userAccountId: AccountId;
   },
 ) => {
@@ -128,6 +145,11 @@ export const createUsageRecord = async (
     "https://hash.ai/@hash/types/property-type/output-unit-count/":
       outputUnitCount,
   };
+
+  if (customMetadata) {
+    properties["https://hash.ai/@hash/types/property-type/custom-metadata/"] =
+      customMetadata;
+  }
 
   /**
    * We want to assign usage to the web, which may be an org, but be able to identify which users
@@ -216,6 +238,16 @@ export const createUsageRecord = async (
         kind: "accountGroup",
         subjectId: assignUsageToWebId as AccountGroupId,
         subjectSet: "administrator",
+      },
+    });
+  }
+
+  for (const additionalViewer of additionalViewers ?? []) {
+    entityRelationships.push({
+      relation: "viewer",
+      subject: {
+        kind: "account",
+        subjectId: additionalViewer,
       },
     });
   }

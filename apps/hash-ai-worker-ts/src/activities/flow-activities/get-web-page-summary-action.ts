@@ -46,7 +46,8 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
     numberOfSentences: numberOfSentences!,
   });
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -69,6 +70,10 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
       model: inferenceModelAliasToSpecificModel[model],
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "summarize-web-page",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],

@@ -162,9 +162,15 @@ export type UsageRecordOutgoingLinksByLinkEntityTypeId = {
 };
 
 /**
+ * Additional information about something.
+ */
+export type CustomMetadataPropertyValue = ObjectDataType;
+
+/**
  * A record of usage of a service
  */
 export type UsageRecordProperties = {
+  "https://hash.ai/@hash/types/property-type/custom-metadata/"?: CustomMetadataPropertyValue;
   "https://hash.ai/@hash/types/property-type/input-unit-count/"?: InputUnitCountPropertyValue;
   "https://hash.ai/@hash/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValue;
 };

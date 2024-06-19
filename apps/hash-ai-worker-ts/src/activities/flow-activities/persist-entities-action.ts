@@ -66,7 +66,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
       if (!sourceEntityId || !targetEntityId) {
         failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
           proposedEntity: unresolvedEntity,
-          message: `Expected both sourceEntityLocalId and targetEntityLocalId to be set, but got sourceEntityId='${JSON.stringify(sourceEntityId)}' and targetEntityId='${JSON.stringify(targetEntityId)}'`,
+          message: `Expected both sourceEntityLocalId and targetEntityLocalId to be set, but got sourceEntityId='${JSON.stringify(
+            sourceEntityId,
+          )}' and targetEntityId='${JSON.stringify(targetEntityId)}'`,
         };
         continue;
       }
@@ -86,7 +88,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
       if (!leftEntityId) {
         failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
           proposedEntity: unresolvedEntity,
-          message: `Linked entity with sourceEntityId='${JSON.stringify(sourceEntityId)}' has not been successfully persisted`,
+          message: `Linked entity with sourceEntityId='${JSON.stringify(
+            sourceEntityId,
+          )}' has not been successfully persisted`,
         };
         continue;
       }
@@ -94,7 +98,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
       if (!rightEntityId) {
         failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
           proposedEntity: unresolvedEntity,
-          message: `Linked entity with targetEntityId='${JSON.stringify(targetEntityId)}' has not been successfully persisted`,
+          message: `Linked entity with targetEntityId='${JSON.stringify(
+            targetEntityId,
+          )}' has not been successfully persisted`,
         };
         continue;
       }
@@ -131,7 +137,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     if (Array.isArray(output?.value)) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
         proposedEntity: unresolvedEntity,
-        message: `Expected a single persisted entity, but received ${!output ? "no outputs" : `an array of length ${output.value.length}`}`,
+        message: `Expected a single persisted entity, but received ${
+          !output ? "no outputs" : `an array of length ${output.value.length}`
+        }`,
       };
       continue;
     }
@@ -143,7 +151,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
           ? new Entity(output.value.existingEntity)
           : undefined,
         proposedEntity: entityWithResolvedLinks,
-        message: `${persistedEntityOutputs.code}: ${persistedEntityOutputs.message ?? `no further details available`}`,
+        message: `${persistedEntityOutputs.code}: ${
+          persistedEntityOutputs.message ?? `no further details available`
+        }`,
       };
       continue;
     }

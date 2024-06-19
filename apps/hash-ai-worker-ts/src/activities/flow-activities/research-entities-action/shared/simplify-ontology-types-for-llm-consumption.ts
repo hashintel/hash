@@ -29,7 +29,11 @@ const simplifyPropertyTypeForLlmConsumption = (params: {
 Property Type ID: "${propertyType.$id}"
 Title: ${title}
 Description: ${description}
-Possible Values: ${propertyType.oneOf.map((propertyTypeValue) => simplifyMinimalPropertyTypeValueForLlmConsumption({ propertyTypeValue })).join("\n")}
+Possible Values: ${propertyType.oneOf
+    .map((propertyTypeValue) =>
+      simplifyMinimalPropertyTypeValueForLlmConsumption({ propertyTypeValue }),
+    )
+    .join("\n")}
 ----------------------- END OF "${title}" PROPERTY TYPE DEFINITION --------------------
   `;
 };

@@ -93,6 +93,7 @@ export const compareLlmResponses = async () => {
           model,
         },
         {
+          customMetadata: null,
           userAccountId,
           webId,
           incurredInEntities: [],

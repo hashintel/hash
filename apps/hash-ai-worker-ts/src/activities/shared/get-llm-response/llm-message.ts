@@ -72,7 +72,9 @@ export const mapAnthropicMessageToLlmMessage = (params: {
                 throw new Error("Image content not supported");
               } else if (content.type === "tool_result") {
                 throw new Error(
-                  `Anthropic assistant message contains a tool result: ${JSON.stringify(content)}`,
+                  `Anthropic assistant message contains a tool result: ${JSON.stringify(
+                    content,
+                  )}`,
                 );
               }
 

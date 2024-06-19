@@ -1,5 +1,6 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
+import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
@@ -8,6 +9,79 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
+
+const generateAggregateUsageKey = ({
+  serviceName,
+  featureName,
+}: {
+  serviceName: string;
+  featureName: string;
+}) => `${serviceName}:${featureName}`;
+
+const getServiceFeatureForUsage = ({
+  serviceUsageRecordSubgraph,
+  usageRecord,
+}: {
+  serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
+  usageRecord: Entity<UsageRecordProperties>;
+}) => {
+  const linkedEntities = getOutgoingLinkAndTargetEntities(
+    serviceUsageRecordSubgraph,
+    usageRecord.metadata.recordId.entityId,
+  );
+
+  const serviceFeatureLinkAndEntities = linkedEntities.filter(
+    ({ linkEntity }) =>
+      linkEntity[0]!.metadata.entityTypeId ===
+      systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+  );
+  if (serviceFeatureLinkAndEntities.length !== 1) {
+    throw new Error(
+      `Expected exactly one service feature link for service usage record ${usageRecord.metadata.recordId.entityId}, got ${serviceFeatureLinkAndEntities.length}.`,
+    );
+  }
+
+  const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
+    .rightEntity[0]! as Entity<ServiceFeatureProperties>;
+
+  const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
+    serviceFeatureEntity.properties,
+  );
+  if (!serviceUnitCost) {
+    throw new Error("Cannot calculate usage cost without service unit cost.");
+  }
+
+  const applicablePrice = serviceUnitCost.find((entry) => {
+    const { appliesUntil, appliesFrom } = simplifyProperties(entry);
+    if (
+      appliesUntil &&
+      appliesUntil <= usageRecord.metadata.provenance.createdAtTransactionTime
+    ) {
+      return false;
+    }
+    if (!appliesFrom) {
+      return false;
+    }
+    return (
+      appliesFrom <= usageRecord.metadata.provenance.createdAtTransactionTime
+    );
+  });
+
+  if (!applicablePrice) {
+    const serviceFeatureKey = generateAggregateUsageKey({
+      serviceName,
+      featureName,
+    });
+
+    throw new Error(
+      `No applicable price found for service feature ${serviceFeatureKey}.`,
+    );
+  }
+
+  const { inputUnitCost, outputUnitCost } = simplifyProperties(applicablePrice);
+
+  return { inputUnitCost, outputUnitCost, serviceName, featureName };
+};
 
 export type AggregatedUsageRecord = {
   serviceName: string;
@@ -19,15 +93,7 @@ export type AggregatedUsageRecord = {
   limitedToPeriod: BoundedTimeInterval | null;
 };
 
-const generateAggregateUsageKey = ({
-  serviceName,
-  featureName,
-}: {
-  serviceName: string;
-  featureName: string;
-}) => `${serviceName}:${featureName}`;
-
-export const getAggregateUsageRecords = ({
+export const getAggregateUsageRecordsByServiceFeature = ({
   decisionTimeInterval,
   serviceUsageRecords,
   serviceUsageRecordSubgraph,
@@ -40,40 +106,20 @@ export const getAggregateUsageRecords = ({
     {};
 
   for (const record of serviceUsageRecords) {
-    const linkedEntities = getOutgoingLinkAndTargetEntities(
-      serviceUsageRecordSubgraph,
-      record.metadata.recordId.entityId,
-    );
+    const { inputUnitCost, outputUnitCost, serviceName, featureName } =
+      getServiceFeatureForUsage({
+        serviceUsageRecordSubgraph,
+        usageRecord: record,
+      });
 
-    const serviceFeatureLinkAndEntities = linkedEntities.filter(
-      ({ linkEntity }) =>
-        linkEntity[0]!.metadata.entityTypeId ===
-        systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+    const { inputUnitCount, outputUnitCount } = simplifyProperties(
+      record.properties,
     );
-    if (serviceFeatureLinkAndEntities.length !== 1) {
-      throw new Error(
-        `Expected exactly one service feature link for service usage record ${record.metadata.recordId.entityId}, got ${serviceFeatureLinkAndEntities.length}.`,
-      );
-    }
-
-    const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
-      .rightEntity[0]! as Entity<ServiceFeatureProperties>;
-
-    const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
-      serviceFeatureEntity.properties,
-    );
-    if (!serviceUnitCost) {
-      throw new Error("Cannot calculate usage cost without service unit cost.");
-    }
 
     const serviceFeatureKey = generateAggregateUsageKey({
       serviceName,
       featureName,
     });
-
-    const { inputUnitCount, outputUnitCount } = simplifyProperties(
-      record.properties,
-    );
 
     aggregateUsageByServiceFeature[serviceFeatureKey] ??= {
       serviceName,
@@ -90,29 +136,6 @@ export const getAggregateUsageRecords = ({
       inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;
     aggregateUsage.totalOutputUnitCount +=
       outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0;
-
-    const applicablePrice = serviceUnitCost.find((entry) => {
-      const { appliesUntil, appliesFrom } = simplifyProperties(entry);
-      if (
-        appliesUntil &&
-        appliesUntil <= record.metadata.provenance.createdAtTransactionTime
-      ) {
-        return false;
-      }
-      if (!appliesFrom) {
-        return false;
-      }
-      return appliesFrom <= record.metadata.provenance.createdAtTransactionTime;
-    });
-
-    if (!applicablePrice) {
-      throw new Error(
-        `No applicable price found for service feature ${serviceFeatureKey}.`,
-      );
-    }
-
-    const { inputUnitCost, outputUnitCost } =
-      simplifyProperties(applicablePrice);
 
     const inputCost =
       (inputUnitCount ?? 0) *
@@ -133,4 +156,63 @@ export const getAggregateUsageRecords = ({
   }
 
   return Object.values(aggregateUsageByServiceFeature);
+};
+
+export type AggregatedUsageByTask = {
+  taskName: string;
+  totalInputUnitCount: number;
+  totalOutputUnitCount: number;
+  totalCostInUsd: number;
+};
+
+export const getAggregateUsageRecordsByTask = ({
+  serviceUsageRecords,
+  serviceUsageRecordSubgraph,
+}: {
+  serviceUsageRecords: Entity<UsageRecordProperties>[];
+  serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
+}): AggregatedUsageByTask[] => {
+  const aggregateUsageByTask: Record<string, AggregatedUsageByTask> = {};
+
+  for (const record of serviceUsageRecords) {
+    const { inputUnitCount, outputUnitCount, customMetadata } =
+      simplifyProperties(record.properties);
+
+    const taskName = (
+      customMetadata as FlowUsageRecordCustomMetadata | undefined
+    )?.taskName;
+    if (!taskName) {
+      continue;
+    }
+
+    const { inputUnitCost, outputUnitCost } = getServiceFeatureForUsage({
+      serviceUsageRecordSubgraph,
+      usageRecord: record,
+    });
+
+    aggregateUsageByTask[taskName] ??= {
+      taskName,
+      totalCostInUsd: 0,
+      totalInputUnitCount: 0,
+      totalOutputUnitCount: 0,
+    };
+    const aggregateUsage = aggregateUsageByTask[taskName]!;
+
+    aggregateUsage.totalInputUnitCount +=
+      inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;
+    aggregateUsage.totalOutputUnitCount +=
+      outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0;
+
+    const inputCost =
+      (inputUnitCount ?? 0) *
+      (inputUnitCost && inputUnitCost >= 0 ? inputUnitCost : 0);
+    const outputCost =
+      (outputUnitCount ?? 0) *
+      (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
+    const totalCost = inputCost + outputCost;
+
+    aggregateUsage.totalCostInUsd += totalCost;
+  }
+
+  return Object.values(aggregateUsageByTask);
 };

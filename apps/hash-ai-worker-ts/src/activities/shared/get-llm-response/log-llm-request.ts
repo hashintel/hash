@@ -8,6 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export const logLlmRequest = <T extends LlmParams>(params: {
+  customMetadata: {
+    stepId?: string;
+    taskName?: string;
+  } | null;
   llmParams: T;
   llmResponse: LlmResponse<T>;
 }) => {
@@ -23,8 +27,11 @@ export const logLlmRequest = <T extends LlmParams>(params: {
 
   const logFilePath = path.join(logFolderPath, `${now.toISOString()}.json`);
 
+  const { customMetadata } = params;
+  const { taskName, stepId } = customMetadata ?? {};
+
   writeFileSync(
     logFilePath,
-    JSON.stringify({ llmParams, llmResponse }, null, 2),
+    JSON.stringify({ taskName, stepId, llmParams, llmResponse }, null, 2),
   );
 };
