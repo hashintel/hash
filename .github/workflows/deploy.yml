@@ -84,7 +84,7 @@ jobs:
         run: yarn sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
 
       - name: Build sourcemaps
-        run: turbo run sentry:sourcemaps --filter --env-mode=loose "${{ matrix.package }}"
+        run: turbo run sentry:sourcemaps --env-mode=loose --filter "${{ matrix.package }}"
 
   passed:
     name: Deployments passed
