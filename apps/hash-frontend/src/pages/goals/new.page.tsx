@@ -18,6 +18,7 @@ import {
   goalFlowDefinitionWithSpreadsheetDeliverable,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
+import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import {
   autocompleteClasses,
   Box,
@@ -167,7 +168,7 @@ const NewGoalPageContent = () => {
   const createGoal = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (submittable) {
+    if (!submittable) {
       return;
     }
 
@@ -253,7 +254,7 @@ const NewGoalPageContent = () => {
     }
 
     await apolloClient.refetchQueries({
-      include: ["getFlowRuns"],
+      include: [getFlowRunsQuery],
     });
 
     const { shortname } = getOwner({ ownedById: webId });

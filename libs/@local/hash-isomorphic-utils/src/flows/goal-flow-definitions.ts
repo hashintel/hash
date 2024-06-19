@@ -313,7 +313,7 @@ export const goalFlowDefinitionWithReportDeliverable: FlowDefinition = {
       description: "Research and persist entities",
     },
     {
-      groupId: 3,
+      groupId: 2,
       description: "Write report",
     },
   ],

@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { Chip } from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
@@ -10,9 +11,10 @@ import type {
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { TableCell } from "@mui/material";
+import { Box, TableCell } from "@mui/material";
 import { memo, useMemo, useState } from "react";
 
+import { TypeSlideOverStack } from "../../../../shared/entity-type-page/type-slide-over-stack";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -27,7 +29,7 @@ import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 
-type FieldId = "status" | "entityTypeTitle" | "entityLabel";
+type FieldId = "status" | "entityTypeId" | "entityLabel";
 
 const columns: VirtualizedTableColumn<FieldId>[] = [
   {
@@ -38,7 +40,7 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
   },
   {
     label: "Type",
-    id: "entityTypeTitle",
+    id: "entityTypeId",
     sortable: true,
     width: 120,
   },
@@ -50,9 +52,21 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
   },
 ];
 
+type ResultSlideOver =
+  | {
+      type: "entity";
+      entityId: EntityId;
+    }
+  | {
+      type: "entityType";
+      entityTypeId: VersionedUrl;
+    }
+  | null;
+
 type EntityResultRow = {
   entityLabel: string;
-  entityTypeTitle: string;
+  entityTypeId: string;
+  setSlideOver: (slideOver: ResultSlideOver) => void;
   status: "Proposed" | "New" | "Updated";
 };
 
@@ -67,10 +81,38 @@ const cellSx = {
 };
 
 const TableRow = memo(({ row }: { row: EntityResultRow }) => {
+  const entityTypeTitle =
+    row.entityTypeId.split("/").at(-3)?.replaceAll("-", " ") ?? "";
+
   return (
     <>
       <TableCell sx={cellSx}>{row.status}</TableCell>
-      <TableCell sx={cellSx}>{row.entityTypeTitle}</TableCell>
+      <TableCell sx={{ ...cellSx, px: 0.5 }}>
+        <Box
+          component="button"
+          onClick={() =>
+            row.setSlideOver({
+              type: "entityType",
+              entityTypeId: row.entityTypeId as VersionedUrl,
+            })
+          }
+          sx={{ background: "none", border: "none", p: 0 }}
+        >
+          <Chip
+            color="blue"
+            label={entityTypeTitle}
+            sx={{
+              cursor: "pointer !important",
+              ml: 1,
+              "& span": {
+                fontSize: 11,
+                padding: "2px 10px",
+                textTransform: "capitalize",
+              },
+            }}
+          />
+        </Box>
+      </TableCell>
       <TableCell sx={cellSx}>{row.entityLabel}</TableCell>
     </>
   );
@@ -89,6 +131,8 @@ export const EntityResultTable = ({
     field: "entityLabel",
     direction: "asc",
   });
+
+  const [slideOver, setSlideOver] = useState<ResultSlideOver>(null);
 
   const hasData = persistedEntities.length || proposedEntities.length;
 
@@ -129,15 +173,12 @@ export const EntityResultTable = ({
         } as EntityMetadata,
       });
 
-      const entityTitle = entityTypeId.split("/").at(-3) ?? "";
-      const capitalizedTitle =
-        entityTitle.charAt(0).toUpperCase() + entityTitle.slice(1);
-
       rowData.push({
         id: entityId,
         data: {
           entityLabel,
-          entityTypeTitle: capitalizedTitle,
+          entityTypeId,
+          setSlideOver,
           status:
             "localEntityId" in record
               ? "Proposed"
@@ -157,26 +198,34 @@ export const EntityResultTable = ({
   }, [persistedEntities, proposedEntities, sort]);
 
   return (
-    <OutputContainer
-      sx={{
-        flex: 1,
-        minWidth: 400,
-      }}
-    >
-      {hasData ? (
-        <VirtualizedTable
-          columns={columns}
-          createRowContent={createRowContent}
-          rows={rows}
-          sort={sort}
-          setSort={setSort}
+    <>
+      {slideOver?.type === "entityType" ? (
+        <TypeSlideOverStack
+          rootTypeId={slideOver.entityTypeId}
+          onClose={() => setSlideOver(null)}
         />
-      ) : (
-        <EmptyOutputBox
-          Icon={outputIcons.table}
-          label="Entities proposed and affected by this flow will appear in a table here"
-        />
-      )}
-    </OutputContainer>
+      ) : null}
+      <OutputContainer
+        sx={{
+          flex: 1,
+          minWidth: 400,
+        }}
+      >
+        {hasData ? (
+          <VirtualizedTable
+            columns={columns}
+            createRowContent={createRowContent}
+            rows={rows}
+            sort={sort}
+            setSort={setSort}
+          />
+        ) : (
+          <EmptyOutputBox
+            Icon={outputIcons.table}
+            label="Entities proposed and affected by this flow will appear in a table here"
+          />
+        )}
+      </OutputContainer>
+    </>
   );
 };

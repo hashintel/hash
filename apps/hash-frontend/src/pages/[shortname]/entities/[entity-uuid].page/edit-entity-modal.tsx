@@ -15,6 +15,7 @@ interface EditEntityModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: () => void;
+  readonly?: boolean;
   entitySubgraph: Subgraph<EntityRootType>;
 }
 
@@ -22,6 +23,7 @@ export const EditEntityModal = ({
   open,
   onClose,
   onSubmit,
+  readonly = false,
   entitySubgraph,
 }: EditEntityModalProps) => {
   const [localEntitySubgraph, setLocalEntitySubgraph] =
@@ -137,7 +139,7 @@ export const EditEntityModal = ({
       </Typography>
 
       <EntityEditor
-        readonly={false}
+        readonly={readonly}
         onEntityUpdated={null}
         entitySubgraph={localEntitySubgraph}
         setEntity={(entity) => {
