@@ -185,24 +185,18 @@ export const getAggregateUsageRecordsByTask = ({
       continue;
     }
 
-    const { inputUnitCost, outputUnitCost, serviceName, featureName } =
-      getServiceFeatureForUsage({
-        serviceUsageRecordSubgraph,
-        usageRecord: record,
-      });
-
-    const serviceFeatureKey = generateAggregateUsageKey({
-      serviceName,
-      featureName,
+    const { inputUnitCost, outputUnitCost } = getServiceFeatureForUsage({
+      serviceUsageRecordSubgraph,
+      usageRecord: record,
     });
 
-    aggregateUsageByTask[serviceFeatureKey] ??= {
+    aggregateUsageByTask[taskName] ??= {
       taskName,
       totalCostInUsd: 0,
       totalInputUnitCount: 0,
       totalOutputUnitCount: 0,
     };
-    const aggregateUsage = aggregateUsageByTask[serviceFeatureKey]!;
+    const aggregateUsage = aggregateUsageByTask[taskName]!;
 
     aggregateUsage.totalInputUnitCount +=
       inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;

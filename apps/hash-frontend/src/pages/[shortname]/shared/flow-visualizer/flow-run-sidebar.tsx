@@ -309,6 +309,7 @@ export const FlowRunSidebar = ({
   const { isUsageAvailable, usageByFlowRun } = useFlowRunsUsage({
     flowRunIds: [flowRunId],
   });
+  const [showUsageBreakdown, setShowUsageBreakdown] = useState(false);
 
   const usage = usageByFlowRun[flowRunId];
 
@@ -370,7 +371,12 @@ export const FlowRunSidebar = ({
         <Box sx={{ mt: 2 }}>
           <SectionLabel text="Cost" />
           <SidebarSection>
-            <Box>
+            <Stack
+              direction="row"
+              alignItems="center"
+              onClick={() => setShowUsageBreakdown(!showUsageBreakdown)}
+              sx={{ cursor: "pointer" }}
+            >
               <Typography
                 variant="smallTextParagraphs"
                 sx={{ color: ({ palette }) => palette.gray[80] }}
@@ -380,50 +386,65 @@ export const FlowRunSidebar = ({
                 </Box>{" "}
                 ${usage.total.toFixed(2)}
               </Typography>
-            </Box>
-            <Box
-              sx={{
-                pb: 2,
-                mb: 2,
-                borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
-              }}
-            >
-              {usage.recordsByServiceFeature
-                .sort((a, b) => b.totalCostInUsd - a.totalCostInUsd)
-                .map((record) => (
-                  <Box key={record.featureName}>
-                    <Typography
-                      variant="smallTextParagraphs"
-                      sx={{ color: ({ palette }) => palette.gray[50] }}
-                    >
-                      <Box component="span" fontWeight={500}>
-                        {record.featureName
-                          .replace(/-(\b\d{4}[-]?\d{2}[-]?\d{2}\b)$/, "")
-                          .trim()}
-                        :
-                      </Box>{" "}
-                      ${record.totalCostInUsd.toFixed(2)}
-                    </Typography>
-                  </Box>
-                ))}
-            </Box>
-            <Box>
-              {usage.recordsByTask
-                .sort((a, b) => b.totalCostInUsd - a.totalCostInUsd)
-                .map((record) => (
-                  <Box key={record.taskName}>
-                    <Typography
-                      variant="smallTextParagraphs"
-                      sx={{ color: ({ palette }) => palette.gray[50] }}
-                    >
-                      <Box component="span" fontWeight={500}>
-                        {record.taskName}:
-                      </Box>{" "}
-                      ${record.totalCostInUsd.toFixed(2)}
-                    </Typography>
-                  </Box>
-                ))}
-            </Box>
+              <CaretDownSolidIcon
+                sx={{
+                  color: ({ palette }) => palette.gray[50],
+                  height: 14,
+                  transform: !showUsageBreakdown
+                    ? "rotate(-90deg)"
+                    : "translateY(-1px)",
+                  transition: ({ transitions }) =>
+                    transitions.create("transform"),
+                }}
+              />
+            </Stack>
+            <Collapse in={showUsageBreakdown}>
+              <Box
+                sx={{
+                  pb: 0.5,
+                  mb: 0.5,
+                  mt: 0.5,
+                  borderBottom: ({ palette }) =>
+                    `1px solid ${palette.gray[30]}`,
+                }}
+              >
+                {usage.recordsByServiceFeature
+                  .sort((a, b) => b.totalCostInUsd - a.totalCostInUsd)
+                  .map((record) => (
+                    <Box key={record.featureName}>
+                      <Typography
+                        variant="smallTextParagraphs"
+                        sx={{ color: ({ palette }) => palette.gray[50] }}
+                      >
+                        <Box component="span" fontWeight={500}>
+                          {record.featureName
+                            .replace(/-(\b\d{4}[-]?\d{2}[-]?\d{2}\b)$/, "")
+                            .trim()}
+                          :
+                        </Box>{" "}
+                        ${record.totalCostInUsd.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  ))}
+              </Box>
+              <Box>
+                {usage.recordsByTask
+                  .sort((a, b) => b.totalCostInUsd - a.totalCostInUsd)
+                  .map((record) => (
+                    <Box key={record.taskName}>
+                      <Typography
+                        variant="smallTextParagraphs"
+                        sx={{ color: ({ palette }) => palette.gray[50] }}
+                      >
+                        <Box component="span" fontWeight={500}>
+                          {record.taskName}:
+                        </Box>{" "}
+                        ${record.totalCostInUsd.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  ))}
+              </Box>
+            </Collapse>
           </SidebarSection>
         </Box>
       ) : null}

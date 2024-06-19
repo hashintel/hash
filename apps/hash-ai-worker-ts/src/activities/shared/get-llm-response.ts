@@ -104,6 +104,7 @@ export const getLlmResponse = async <T extends LlmParams>(
       usageRecordEntity = await createUsageRecord(
         { graphApi: graphApiClient },
         {
+          additionalViewers: [aiAssistantAccountId],
           assignUsageToWebId: webId,
           customMetadata,
           serviceName: isLlmParamsAnthropicLlmParams(llmParams)
@@ -118,9 +119,7 @@ export const getLlmResponse = async <T extends LlmParams>(
     } catch (error) {
       return {
         status: "internal-error",
-        message: `Failed to create usage record for AI assistant: ${stringify(
-          error,
-        )}`,
+        message: `Failed to create usage record: ${stringify(error)}`,
       };
     }
 

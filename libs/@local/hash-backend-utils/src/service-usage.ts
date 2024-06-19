@@ -107,6 +107,7 @@ export const getWebServiceUsage = async (
 export const createUsageRecord = async (
   context: { graphApi: GraphApi },
   {
+    additionalViewers,
     assignUsageToWebId,
     customMetadata,
     serviceName,
@@ -115,12 +116,26 @@ export const createUsageRecord = async (
     outputUnitCount,
     userAccountId,
   }: {
+    /**
+     * Grant view access on the usage record to these additional accounts
+     */
+    additionalViewers?: AccountId[];
+    /**
+     * The web the usage will be assigned to (user or org)
+     */
     assignUsageToWebId: OwnedById;
+    /**
+     * Additional arbitrary metadata to store on the usage record.
+     */
     customMetadata?: Record<string, unknown> | null;
     serviceName: string;
     featureName: string;
     inputUnitCount?: number;
     outputUnitCount?: number;
+    /**
+     * The user that is incurring the usage (e.g. the user that triggered the flow)
+     * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
+     */
     userAccountId: AccountId;
   },
 ) => {
@@ -223,6 +238,16 @@ export const createUsageRecord = async (
         kind: "accountGroup",
         subjectId: assignUsageToWebId as AccountGroupId,
         subjectSet: "administrator",
+      },
+    });
+  }
+
+  for (const additionalViewer of additionalViewers ?? []) {
+    entityRelationships.push({
+      relation: "viewer",
+      subject: {
+        kind: "account",
+        subjectId: additionalViewer,
       },
     });
   }
