@@ -127,7 +127,7 @@ impl Entity {
     ) -> Result<(), Report<PatchError>> {
         let mut properties_with_metadata = PropertyWithMetadata::from_parts(
             Property::Object(self.properties.clone()),
-            Some(PropertyMetadataElement::Object(
+            Some(PropertyMetadataElement::from(
                 self.metadata.properties.clone(),
             )),
         )
@@ -169,13 +169,21 @@ impl Entity {
             }
         }
 
-        let (Property::Object(properties), PropertyMetadataElement::Object(metadata)) =
-            properties_with_metadata.into_parts()
+        let (
+            Property::Object(properties),
+            PropertyMetadataElement::Object {
+                value: metadata_object,
+                metadata,
+            },
+        ) = properties_with_metadata.into_parts()
         else {
             unreachable!("patching should not change the property type");
         };
         self.properties = properties;
-        self.metadata.properties = metadata;
+        self.metadata.properties = PropertyMetadataObject {
+            value: metadata_object,
+            metadata,
+        };
 
         Ok(())
     }

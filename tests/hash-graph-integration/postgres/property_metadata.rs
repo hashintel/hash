@@ -557,13 +557,13 @@ async fn properties_remove() {
                         path: once(PropertyPathElement::from(interests_property_type_id()))
                             .collect(),
                         value: Property::Object(PropertyObject::new(HashMap::new())),
-                        metadata: Some(PropertyMetadataElement::Object(PropertyMetadataObject {
+                        metadata: Some(PropertyMetadataElement::Object {
                             value: HashMap::new(),
                             metadata: ObjectMetadata {
                                 confidence: Confidence::new(0.4),
                                 provenance: property_provenance_a(),
                             },
-                        })),
+                        }),
                     },
                     PropertyPatchOperation::Add {
                         path: film_path.clone(),
@@ -602,7 +602,7 @@ async fn properties_remove() {
                 ),
                 (
                     interests_property_type_id(),
-                    PropertyMetadataElement::Object(PropertyMetadataObject {
+                    PropertyMetadataElement::Object {
                         value: HashMap::from([(
                             film_property_type_id(),
                             PropertyMetadataElement::Value {
@@ -617,7 +617,7 @@ async fn properties_remove() {
                             provenance: property_provenance_a(),
                             confidence: Confidence::new(0.4),
                         },
-                    })
+                    }
                 ),
             ]),
             metadata: ObjectMetadata::default(),

@@ -54,7 +54,7 @@ pub struct Location {
 /// The source material used in producing a value.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SourceProvenance {
     /// The type of source material.
     #[serde(rename = "type")]

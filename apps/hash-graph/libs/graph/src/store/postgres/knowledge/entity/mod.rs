@@ -497,14 +497,27 @@ where
         let mut entities = Vec::with_capacity(params.len());
 
         for params in params {
-            let (Property::Object(properties), PropertyMetadataElement::Object(property_metadata)) =
-                PropertyWithMetadata::from_parts(
-                    Property::Object(params.properties),
-                    Some(PropertyMetadataElement::Object(params.property_metadata)),
+            let (properties, property_metadata) = if let (
+                Property::Object(properties),
+                PropertyMetadataElement::Object {
+                    value: object_metadata,
+                    metadata,
+                },
+            ) = PropertyWithMetadata::from_parts(
+                Property::Object(params.properties),
+                Some(PropertyMetadataElement::from(params.property_metadata)),
+            )
+            .change_context(InsertionError)?
+            .into_parts()
+            {
+                (
+                    properties,
+                    PropertyMetadataObject {
+                        value: object_metadata,
+                        metadata,
+                    },
                 )
-                .change_context(InsertionError)?
-                .into_parts()
-            else {
+            } else {
                 return Err(Report::new(InsertionError)
                     .attach(StatusCode::InvalidArgument)
                     .attach_printable("Properties must be an object"));

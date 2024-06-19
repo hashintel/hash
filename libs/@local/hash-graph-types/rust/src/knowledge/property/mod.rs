@@ -40,13 +40,15 @@ pub enum Property {
 #[serde(tag = "type", deny_unknown_fields)]
 pub enum PropertyWithMetadata {
     Array {
-        elements: Vec<Self>,
-        // #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        value: Vec<Self>,
+        #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
         metadata: ArrayMetadata,
     },
     Object {
-        properties: HashMap<BaseUrl, Self>,
-        // #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
+        #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+        value: HashMap<BaseUrl, Self>,
+        #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
         metadata: ObjectMetadata,
     },
     Value {
@@ -64,7 +66,12 @@ impl PropertyWithMetadata {
         let mut value = self;
         for path_element in path {
             match (value, path_element) {
-                (Self::Array { elements, .. }, PropertyPathElement::Index(index)) => {
+                (
+                    Self::Array {
+                        value: elements, ..
+                    },
+                    PropertyPathElement::Index(index),
+                ) => {
                     let len = elements.len();
                     value = elements
                         .get_mut(*index)
@@ -75,7 +82,12 @@ impl PropertyWithMetadata {
                         key: key.clone().into_owned(),
                     }));
                 }
-                (Self::Object { properties, .. }, PropertyPathElement::Property(key)) => {
+                (
+                    Self::Object {
+                        value: properties, ..
+                    },
+                    PropertyPathElement::Property(key),
+                ) => {
                     value = properties.get_mut(key.as_ref()).ok_or_else(|| {
                         PropertyPathError::InvalidKey {
                             key: key.clone().into_owned(),
@@ -115,7 +127,12 @@ impl PropertyWithMetadata {
 
         let parent = self.get_mut(path.as_ref())?;
         match (parent, last) {
-            (Self::Array { elements, .. }, PropertyPathElement::Index(index)) => {
+            (
+                Self::Array {
+                    value: elements, ..
+                },
+                PropertyPathElement::Index(index),
+            ) => {
                 if index <= elements.len() {
                     elements.insert(index, value);
                     Ok(())
@@ -131,7 +148,12 @@ impl PropertyWithMetadata {
                     key: key.clone().into_owned(),
                 }))
             }
-            (Self::Object { properties, .. }, PropertyPathElement::Property(key)) => {
+            (
+                Self::Object {
+                    value: properties, ..
+                },
+                PropertyPathElement::Property(key),
+            ) => {
                 properties.insert(key.into_owned(), value);
                 Ok(())
             }
@@ -171,7 +193,12 @@ impl PropertyWithMetadata {
         };
         let parent = self.get_mut(path)?;
         match (parent, last) {
-            (Self::Array { elements, .. }, PropertyPathElement::Index(index)) => {
+            (
+                Self::Array {
+                    value: elements, ..
+                },
+                PropertyPathElement::Index(index),
+            ) => {
                 if *index <= elements.len() {
                     elements.remove(*index);
                     Ok(())
@@ -187,7 +214,12 @@ impl PropertyWithMetadata {
                     key: key.clone().into_owned(),
                 }))
             }
-            (Self::Object { properties, .. }, PropertyPathElement::Property(key)) => {
+            (
+                Self::Object {
+                    value: properties, ..
+                },
+                PropertyPathElement::Property(key),
+            ) => {
                 properties.remove(key);
                 Ok(())
             }
@@ -217,7 +249,7 @@ impl PropertyWithMetadata {
                     metadata,
                 }),
             ) => Ok(Self::Array {
-                elements: metadata_elements
+                value: metadata_elements
                     .into_iter()
                     .map(Some)
                     .chain(iter::repeat_with(|| None))
@@ -227,7 +259,7 @@ impl PropertyWithMetadata {
                 metadata,
             }),
             (Property::Array(properties), None) => Ok(Self::Array {
-                elements: properties
+                value: properties
                     .into_iter()
                     .map(|property| Self::from_parts(property, None))
                     .collect::<Result<_, _>>()?,
@@ -235,12 +267,12 @@ impl PropertyWithMetadata {
             }),
             (
                 Property::Object(properties),
-                Some(PropertyMetadataElement::Object(PropertyMetadataObject {
-                    properties: mut metadata_elements,
+                Some(PropertyMetadataElement::Object {
+                    value: mut metadata_elements,
                     metadata,
-                })),
+                }),
             ) => Ok(Self::Object {
-                properties: properties
+                value: properties
                     .into_iter()
                     .map(|(key, property)| {
                         let metadata = metadata_elements.remove(&key);
@@ -253,7 +285,7 @@ impl PropertyWithMetadata {
                 metadata,
             }),
             (Property::Object(properties), None) => Ok(Self::Object {
-                properties: properties
+                value: properties
                     .into_iter()
                     .map(|(key, property)| {
                         Ok::<_, Report<PropertyPathError>>((key, Self::from_parts(property, None)?))
@@ -278,7 +310,10 @@ impl PropertyWithMetadata {
 
     pub fn into_parts(self) -> (Property, PropertyMetadataElement) {
         match self {
-            Self::Array { elements, metadata } => {
+            Self::Array {
+                value: elements,
+                metadata,
+            } => {
                 let (properties, metadata_elements) =
                     elements.into_iter().map(Self::into_parts).unzip();
                 (
@@ -290,7 +325,7 @@ impl PropertyWithMetadata {
                 )
             }
             Self::Object {
-                properties,
+                value: properties,
                 metadata,
             } => {
                 let (properties, metadata_properties) = properties
@@ -302,10 +337,10 @@ impl PropertyWithMetadata {
                     .unzip();
                 (
                     Property::Object(PropertyObject::new(properties)),
-                    PropertyMetadataElement::Object(PropertyMetadataObject {
-                        properties: metadata_properties,
+                    PropertyMetadataElement::Object {
+                        value: metadata_properties,
                         metadata,
-                    }),
+                    },
                 )
             }
             Self::Value { value, metadata } => (

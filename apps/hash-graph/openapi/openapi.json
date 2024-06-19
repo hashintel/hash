@@ -6690,28 +6690,35 @@
           "propertyName": "op"
         }
       },
-      "PropertyMetadataArray": {
-        "type": "object",
-        "properties": {
-          "metadata": {
-            "$ref": "#/components/schemas/ArrayMetadata"
-          },
-          "value": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PropertyMetadataElement"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
       "PropertyMetadataElement": {
         "oneOf": [
           {
-            "$ref": "#/components/schemas/PropertyMetadataArray"
+            "type": "object",
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ArrayMetadata"
+              },
+              "value": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PropertyMetadataElement"
+                }
+              }
+            }
           },
           {
-            "$ref": "#/components/schemas/PropertyMetadataObject"
+            "type": "object",
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ObjectMetadata"
+              },
+              "value": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/PropertyMetadataElement"
+                }
+              }
+            }
           },
           {
             "type": "object",
@@ -6856,7 +6863,8 @@
               "$ref": "#/components/schemas/SourceProvenance"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PropertyTypeEditorSubject": {
         "oneOf": [
