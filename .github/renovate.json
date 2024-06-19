@@ -32,7 +32,7 @@
       "additionalBranchPrefix": "gha/",
       "pinDigests": true,
       "dependencyDashboardApproval": false,
-      "schedule": ["after 5am on saturday"]
+      "schedule": ["before 2am on saturday"]
     },
     {
       "packageRules": [
