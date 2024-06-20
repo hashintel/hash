@@ -11,7 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import { format } from "date-fns";
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 
 import { CircleInfoIcon } from "../../../../../../shared/icons/circle-info-icon";
 import type {
@@ -36,36 +36,43 @@ export const historyTableRowHeight = 43;
 const generateNumberColumnWidth = (rowCount: number) =>
   Math.max(50, rowCount.toString().length * 15);
 
-const createColumns = (rowCount: number): VirtualizedTableColumn<FieldId>[] => [
-  {
-    id: "number",
-    label: "#",
-    sortable: false,
-    textSx: { color: ({ palette }) => palette.gray[50], fontWeight: 400 },
-    width: generateNumberColumnWidth(rowCount) + 16,
-  },
-  {
-    id: "event",
-    label: "Event",
-    sortable: false,
-    textSx: { fontWeight: 600 },
-    width: "100%",
-  },
-  {
-    id: "time",
-    label: "Timestamp",
-    sortable: true,
-    textSx: { fontWeight: 600 },
-    width: 180,
-  },
-  {
-    id: "actions",
-    label: "Actions",
-    sortable: false,
-    textSx: { fontWeight: 600 },
-    width: 110,
-  },
-];
+const timeWidth = 180;
+const actionsWidth = 110;
+
+const createColumns = (rowCount: number): VirtualizedTableColumn<FieldId>[] => {
+  const numberWidth = generateNumberColumnWidth(rowCount) + 16;
+
+  return [
+    {
+      id: "number",
+      label: "#",
+      sortable: false,
+      textSx: { color: ({ palette }) => palette.gray[50], fontWeight: 400 },
+      width: numberWidth,
+    },
+    {
+      id: "event",
+      label: "Event",
+      sortable: false,
+      textSx: { fontWeight: 600 },
+      width: `calc(100% - ${numberWidth + timeWidth + actionsWidth}px)`,
+    },
+    {
+      id: "time",
+      label: "Timestamp",
+      sortable: true,
+      textSx: { fontWeight: 600 },
+      width: timeWidth,
+    },
+    {
+      id: "actions",
+      label: "Actions",
+      sortable: false,
+      textSx: { fontWeight: 600 },
+      width: actionsWidth,
+    },
+  ];
+};
 
 const typographySx: SxProps<Theme> = {
   fontSize: 14,
@@ -96,6 +103,8 @@ const TableRow = memo(
     const [showProvenance, setShowProvenance] = useState(false);
 
     const [editionNumber, changedPropertyNumber] = number.split(".");
+
+    const provenanceRef = useRef<HTMLDivElement>(null);
 
     return (
       <TableCell
@@ -148,12 +157,14 @@ const TableRow = memo(
                 lineHeight: 1.4,
                 flexGrow: 1,
                 justifyContent: "flex-start",
+                maxWidth: `calc(100% - ${numberColumnWidth + timeWidth + actionsWidth}px)`,
               }}
             >
               <Stack
                 direction="row"
                 justifyContent="flex-start"
                 alignItems="center"
+                sx={{ maxWidth: "100%" }}
               >
                 <EventDetail event={event} subgraph={subgraph} />
               </Stack>
@@ -177,7 +188,15 @@ const TableRow = memo(
             >
               <IconButton
                 aria-label="Show provenance"
-                onClick={() => setShowProvenance((prev) => !prev)}
+                onClick={() => {
+                  setShowProvenance((prev) => !prev);
+                  setTimeout(() => {
+                    provenanceRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "end",
+                    });
+                  }, 200);
+                }}
                 sx={{
                   "&:hover": { background: "none" },
                   "& svg": { fontSize: 14 },
@@ -203,7 +222,7 @@ const TableRow = memo(
               </IconButton>
             </Stack>
           </Stack>
-          <Collapse in={showProvenance} timeout={200}>
+          <Collapse in={showProvenance} ref={provenanceRef} timeout={200}>
             <Provenance event={event} subgraph={subgraph} />
           </Collapse>
         </Box>

@@ -21,8 +21,12 @@ export const EventDetail = ({
       return (
         <>
           <Chip>{entityLabel}</Chip>
-          <Box mx={1}>created with type</Box>
-          <Chip type>{event.entityType.title}</Chip>
+          <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
+            created with type
+          </Box>
+          <Chip showInFull type>
+            {event.entityType.title}
+          </Chip>
         </>
       );
     }
@@ -33,7 +37,12 @@ export const EventDetail = ({
         case "added": {
           return (
             <>
-              <Chip type>{propertyType.title}</Chip> <Box mx={1}>added as</Box>
+              <Chip showInFull type>
+                {propertyType.title}
+              </Chip>{" "}
+              <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
+                added as
+              </Box>
               <Chip value>{diff.added}</Chip>
             </>
           );
@@ -41,8 +50,12 @@ export const EventDetail = ({
         case "removed": {
           return (
             <>
-              <Chip type>{propertyType.title}</Chip>{" "}
-              <Box mx={1}>removed, was</Box>
+              <Chip showInFull type>
+                {propertyType.title}
+              </Chip>{" "}
+              <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
+                removed, was
+              </Box>
               <Chip value>{diff.removed}</Chip>
             </>
           );
@@ -50,8 +63,12 @@ export const EventDetail = ({
         case "changed": {
           return (
             <>
-              <Chip type>{propertyType.title}</Chip>{" "}
-              <Box mx={1}>updated from</Box>
+              <Chip showInFull type>
+                {propertyType.title}
+              </Chip>{" "}
+              <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
+                updated from
+              </Box>
               <Chip value>{diff.old}</Chip>
               <Box mx={1}>to</Box>
               <Chip value>{diff.new}</Chip>

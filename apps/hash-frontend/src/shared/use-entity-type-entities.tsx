@@ -134,11 +134,15 @@ export const useEntityTypeEntities = (params: {
     [variables],
   );
 
-  const subgraph = data?.getEntitySubgraph.subgraph
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.getEntitySubgraph.subgraph,
-      )
-    : undefined;
+  const subgraph = useMemo(
+    () =>
+      data?.getEntitySubgraph.subgraph
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+            data.getEntitySubgraph.subgraph,
+          )
+        : undefined,
+    [data?.getEntitySubgraph.subgraph],
+  );
 
   const entities = useMemo(
     () => (subgraph ? getRoots(subgraph) : undefined),
