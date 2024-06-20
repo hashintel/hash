@@ -25,6 +25,7 @@ export type MetricDefinition = {
 export type MetricResultsForModel = {
   model: LlmParams["model"];
   metricResults: {
+    responseTimeInSeconds: number;
     metric: MetricDefinition;
     result: MetricResult;
   }[];

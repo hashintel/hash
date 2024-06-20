@@ -7,7 +7,6 @@ import type { LlmParams } from "./get-llm-response/types";
 import { improveSystemPrompt } from "./optimize-system-prompt/improve-system-prompt";
 import type {
   MetricDefinition,
-  MetricResult,
   MetricResultsForModel,
   MetricResultsForSystemPrompt,
 } from "./optimize-system-prompt/types";
@@ -32,6 +31,7 @@ const saveAllResultsToCSV = (params: {
     "System Prompt",
     "Metric Name",
     "Score",
+    "Response Time",
     "Natural Language Report",
     "Encountered Error",
     "Additional Info",
@@ -40,12 +40,13 @@ const saveAllResultsToCSV = (params: {
   const rows = results.flatMap(
     ({ systemPrompt, iteration, metricResultsForModels }) =>
       metricResultsForModels.flatMap(({ model, metricResults }) =>
-        metricResults.map(({ metric, result }) => [
+        metricResults.map(({ metric, result, responseTimeInSeconds }) => [
           iteration.toString(),
           escapeCSV(model),
           escapeCSV(systemPrompt),
           escapeCSV(metric.name),
           result.score.toString(),
+          `${responseTimeInSeconds.toString()} seconds`,
           escapeCSV(result.naturalLanguageReport),
           result.encounteredError
             ? escapeCSV(result.encounteredError.status)
@@ -152,13 +153,12 @@ const runMetricsForModels = async (params: {
 }): Promise<MetricResultsForModel[]> => {
   const { metrics, models, systemPrompt } = params;
 
-  const results = await Promise.all(
+  const results = await Promise.all<MetricResultsForModel>(
     models.map(async (model) => {
-      const metricResults = await Promise.all<{
-        metric: MetricDefinition;
-        result: MetricResult;
-      }>(
+      const metricResults = await Promise.all(
         metrics.map(async (metricDefinition) => {
+          const startTime = new Date();
+
           const result = await metricDefinition.executeMetric({
             testingParams: {
               model,
@@ -166,8 +166,14 @@ const runMetricsForModels = async (params: {
             },
           });
 
+          const endTime = new Date();
+
+          const responseTimeInSeconds =
+            (endTime.getTime() - startTime.getTime()) / 1000;
+
           return {
             metric: metricDefinition,
+            responseTimeInSeconds,
             result,
           };
         }),
