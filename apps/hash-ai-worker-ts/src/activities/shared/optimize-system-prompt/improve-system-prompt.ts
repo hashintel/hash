@@ -125,6 +125,7 @@ export const improveSystemPrompt = async (params: {
       graphApiClient,
       incurredInEntities: [],
       webId,
+      customMetadata: null,
     },
   );
 

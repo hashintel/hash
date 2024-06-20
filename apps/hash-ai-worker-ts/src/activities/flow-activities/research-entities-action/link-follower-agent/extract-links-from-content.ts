@@ -94,7 +94,8 @@ export const extractLinksFromContent = async (params: {
 }) => {
   const { content, prompt, testingParams } = params;
 
-  const { userAuthentication, webId } = await getFlowContext();
+  const { userAuthentication, webId, flowEntityId, stepId } =
+    await getFlowContext();
 
   const text = content.htmlContent;
 
@@ -124,7 +125,8 @@ export const extractLinksFromContent = async (params: {
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       webId,
-      incurredInEntities: [],
+      incurredInEntities: [{ entityId: flowEntityId }],
+      customMetadata: { taskName: "extract-links-from-content", stepId },
     },
   );
 
