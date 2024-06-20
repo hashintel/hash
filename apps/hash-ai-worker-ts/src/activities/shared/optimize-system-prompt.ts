@@ -206,13 +206,13 @@ export const optimizeSystemPrompt = async (params: {
   const results: MetricResultsForSystemPrompt[] = [];
 
   let currentSystemPrompt = initialSystemPrompt;
-  let currentIteration = 0;
+  let currentIteration = 1;
 
   if (!existsSync(directoryPath)) {
     mkdirSync(directoryPath, { recursive: true });
   }
 
-  while (currentIteration < numberOfIterations) {
+  while (currentIteration <= numberOfIterations) {
     const metricResultsForModels = await runMetricsForModels({
       metrics,
       models,
@@ -237,13 +237,21 @@ export const optimizeSystemPrompt = async (params: {
       filePrefix: runStartTimestamp,
     });
 
+    currentIteration += 1;
+
+    /**
+     * If the current iteration is greater than the number of iterations, there
+     * is no need to improve the system prompt further.
+     */
+    if (currentIteration > numberOfIterations) {
+      break;
+    }
+
     const { updatedSystemPrompt } = await improveSystemPrompt({
       previousSystemPrompt: currentSystemPrompt,
       results,
     });
 
     currentSystemPrompt = updatedSystemPrompt;
-
-    currentIteration += 1;
   }
 };
