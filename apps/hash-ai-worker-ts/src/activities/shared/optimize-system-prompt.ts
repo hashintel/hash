@@ -91,6 +91,7 @@ const saveSummaryToCSV = (params: {
   const headers = [
     "Iteration",
     "System Prompt",
+    "Overall Score",
     ...models.map((model) => `Average Score for ${model}`),
     ...metrics.map((metric) => `Average Score for ${metric.name}`),
   ];
@@ -104,24 +105,33 @@ const saveSummaryToCSV = (params: {
             metricResults.map(({ result }) => result.score),
           );
 
-        return scores.reduce((acc, score) => acc + score, 0) / scores.length;
+        return scores.length > 0
+          ? scores.reduce((acc, score) => acc + score, 0) / scores.length
+          : 0;
       });
 
       const metricAverageScores = metrics.map((metric) => {
         const scores = metricResultsForModels.flatMap(({ metricResults }) => {
           const result = metricResults.find(
-            ({ metric: currentMetric }) => currentMetric === metric,
+            ({ metric: currentMetric }) => currentMetric.name === metric.name,
           );
 
           return result ? [result.result.score] : [];
         });
 
-        return scores.reduce((acc, score) => acc + score, 0) / scores.length;
+        return scores.length > 0
+          ? scores.reduce((acc, score) => acc + score, 0) / scores.length
+          : 0;
       });
+
+      const allScores = [...modelAverageScores, ...metricAverageScores];
+      const overallScore =
+        allScores.reduce((acc, score) => acc + score, 0) / allScores.length;
 
       return [
         iteration.toString(),
         escapeCSV(systemPrompt),
+        overallScore.toString(),
         ...modelAverageScores.map((score) => score.toString()),
         ...metricAverageScores.map((score) => score.toString()),
       ];
