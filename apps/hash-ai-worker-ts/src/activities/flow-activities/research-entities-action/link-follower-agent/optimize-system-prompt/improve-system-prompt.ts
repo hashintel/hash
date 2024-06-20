@@ -9,22 +9,24 @@ import {
 } from "../../../../shared/get-llm-response/llm-message";
 import type { LlmToolDefinition } from "../../../../shared/get-llm-response/types";
 import { graphApiClient } from "../../../../shared/graph-api-client";
-import type { MetricResultsForModel } from "./types";
+import type { MetricResultsForSystemPrompt } from "./types";
 
-const systemPrompt = dedent(`
+const improveSystemPromptSystemPrompt = dedent(`
   You are an LLM prompt optimization agent.
 
   The user will provide you with:
-    - Previously system prompt: the previously used system prompt.
     - Metric definitions: a list of metric definitions, where each definition includes:
         - name: the name of the metric.
         - description: a description of what the metric is measuring, and how it's score is calculated.
-    - Results: the results obtained when running all the metrics with various LLM models, which includes:
-        - model: the name of the LLM model.
-        - metric: the name of the metric.
-        - score: The score achieved, expressed as number between 0 and 1 (where 0 is a complete failure, and 1 is perfect).
-        - report: A report explaining the results.
-        - error: Any encountered error.
+    
+    - Previously tested system prompts: a list of previously tested system prompts, which includes:
+        - systemPrompt: the system prompt that was tested.
+        - metricResultsForModels: the results obtained when running all the metrics with various LLM models, which includes:
+            - model: the name of the LLM model.
+            - metric: the name of the metric.
+            - score: The score achieved, expressed as number between 0 and 1 (where 0 is a complete failure, and 1 is perfect).
+            - report: A report explaining the results.
+            - error: Any encountered error.
 
   Carefully examine all the metric results.
   Your task is to propose a new system prompt that will improve the performance of the LLM model across all metrics.
@@ -56,15 +58,17 @@ const proposeSystemPromptToolDefinition: LlmToolDefinition<"proposeSystemPrompt"
 
 export const improveSystemPrompt = async (params: {
   previousSystemPrompt: string;
-  results: MetricResultsForModel[];
+  results: MetricResultsForSystemPrompt[];
 }): Promise<{
   updatedSystemPrompt: string;
 }> => {
   const { previousSystemPrompt, results } = params;
 
   const metricDefinitions = results
-    .map((result) =>
-      result.metricResults.map((metricResult) => metricResult.metric),
+    .map(({ metricResultsForModels }) =>
+      metricResultsForModels
+        .map(({ metricResults }) => metricResults.map(({ metric }) => metric))
+        .flat(),
     )
     .flat()
     .filter(
@@ -85,16 +89,20 @@ export const improveSystemPrompt = async (params: {
               description,
             })),
           )}
-          Results: ${JSON.stringify(
-            params.results.map(({ model, metricResults }) =>
-              metricResults.map(({ metric, result }) => ({
-                model,
-                metric: metric.name,
-                score: result.score,
-                report: result.naturalLanguageReport,
-                error: result.encounteredError,
-              })),
-            ),
+          Previously tested system prompts: ${JSON.stringify(
+            results.map(({ systemPrompt, metricResultsForModels }) => ({
+              systemPrompt,
+              metricResultsForModels: metricResultsForModels.map(
+                ({ model, metricResults }) =>
+                  metricResults.map(({ metric, result }) => ({
+                    model,
+                    metric: metric.name,
+                    score: result.score,
+                    report: result.naturalLanguageReport,
+                    error: result.encounteredError,
+                  })),
+              ),
+            })),
           )}
         `),
       },
@@ -109,7 +117,7 @@ export const improveSystemPrompt = async (params: {
       messages: [userMessage],
       toolChoice: proposeSystemPromptToolDefinition.name,
       tools: [proposeSystemPromptToolDefinition],
-      systemPrompt,
+      systemPrompt: improveSystemPromptSystemPrompt,
       temperature: 1,
     },
     {

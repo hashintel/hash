@@ -32,3 +32,9 @@ export type MetricResultsForModel = {
     result: MetricResult;
   }[];
 };
+
+export type MetricResultsForSystemPrompt = {
+  systemPrompt: string;
+  iteration: number;
+  metricResultsForModels: MetricResultsForModel[];
+};

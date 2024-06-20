@@ -9,11 +9,8 @@ import type {
   MetricDefinition,
   MetricResult,
   MetricResultsForModel,
+  MetricResultsForSystemPrompt,
 } from "./optimize-system-prompt/types";
-
-type MetricResultsForModelWithIteration = MetricResultsForModel & {
-  iteration: number;
-};
 
 const escapeCSV = (value: string) => {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
@@ -25,7 +22,7 @@ const escapeCSV = (value: string) => {
 const saveResultsToCSV = (params: {
   directoryPath: string;
   fileName: string;
-  results: MetricResultsForModelWithIteration[];
+  results: MetricResultsForSystemPrompt[];
 }) => {
   const { results, directoryPath, fileName } = params;
 
@@ -40,19 +37,24 @@ const saveResultsToCSV = (params: {
     "Additional Info",
   ];
 
-  const rows = results.map(({ metricResults, iteration }) =>
-    metricResults.map(({ metric, result }) => [
-      iteration.toString(),
-      escapeCSV(result.testingParams.model),
-      escapeCSV(result.testingParams.systemPrompt),
-      escapeCSV(metric.name),
-      result.score.toString(),
-      escapeCSV(result.naturalLanguageReport),
-      result.encounteredError ? escapeCSV(result.encounteredError.status) : "",
-      result.additionalInfo
-        ? escapeCSV(JSON.stringify(result.additionalInfo, null, 2))
-        : "",
-    ]),
+  const rows = results.flatMap(
+    ({ systemPrompt, iteration, metricResultsForModels }) =>
+      metricResultsForModels.flatMap(({ model, metricResults }) =>
+        metricResults.map(({ metric, result }) => [
+          iteration.toString(),
+          escapeCSV(model),
+          escapeCSV(systemPrompt),
+          escapeCSV(metric.name),
+          result.score.toString(),
+          escapeCSV(result.naturalLanguageReport),
+          result.encounteredError
+            ? escapeCSV(result.encounteredError.status)
+            : "",
+          result.additionalInfo
+            ? escapeCSV(JSON.stringify(result.additionalInfo, null, 2))
+            : "",
+        ]),
+      ),
   );
 
   const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
@@ -112,43 +114,42 @@ export const optimizeSystemPrompt = async (params: {
     directoryPath,
   } = params;
 
-  let systemPrompt = initialSystemPrompt;
-  let currentIteration = 0;
+  const runStartTimestamp = new Date().toISOString();
 
-  const allResults: MetricResultsForModelWithIteration[] = [];
+  const results: MetricResultsForSystemPrompt[] = [];
+
+  let currentSystemPrompt = initialSystemPrompt;
+  let currentIteration = 0;
 
   if (!existsSync(directoryPath)) {
     mkdirSync(directoryPath, { recursive: true });
   }
 
   while (currentIteration < numberOfIterations) {
-    const results = await runMetricsForModels({
+    const metricResultsForModels = await runMetricsForModels({
       metrics,
       models,
-      systemPrompt,
+      systemPrompt: currentSystemPrompt,
     });
 
-    // eslint-disable-next-line no-loop-func
-    const resultsWithIteration = results.map((result) => ({
-      ...result,
+    results.push({
+      metricResultsForModels,
+      systemPrompt: currentSystemPrompt,
       iteration: currentIteration,
-    }));
-
-    allResults.push(...resultsWithIteration);
+    });
 
     saveResultsToCSV({
       directoryPath,
-      /** @todo: generate name based on timestamp */
-      fileName: "results",
-      results: allResults,
-    });
-
-    const { updatedSystemPrompt } = await improveSystemPrompt({
-      previousSystemPrompt: systemPrompt,
+      fileName: `results-${runStartTimestamp}`,
       results,
     });
 
-    systemPrompt = updatedSystemPrompt;
+    const { updatedSystemPrompt } = await improveSystemPrompt({
+      previousSystemPrompt: currentSystemPrompt,
+      results,
+    });
+
+    currentSystemPrompt = updatedSystemPrompt;
 
     currentIteration += 1;
   }
