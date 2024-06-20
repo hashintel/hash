@@ -1,9 +1,9 @@
-import "../../../../shared/testing-utilities/mock-get-flow-context";
+import "../../shared/testing-utilities/mock-get-flow-context";
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { LlmParams } from "../../../shared/get-llm-response/types";
+import type { LlmParams } from "./get-llm-response/types";
 import { improveSystemPrompt } from "./optimize-system-prompt/improve-system-prompt";
 import type {
   MetricDefinition,
@@ -133,9 +133,9 @@ export const optimizeSystemPrompt = async (params: {
     });
 
     results.push({
-      metricResultsForModels,
       systemPrompt: currentSystemPrompt,
       iteration: currentIteration,
+      metricResultsForModels,
     });
 
     saveResultsToCSV({

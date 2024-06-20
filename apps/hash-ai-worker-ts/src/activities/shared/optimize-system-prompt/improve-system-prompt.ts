@@ -1,14 +1,14 @@
 import dedent from "dedent";
 
-import { logger } from "../../../../shared/activity-logger";
-import { getFlowContext } from "../../../../shared/get-flow-context";
-import { getLlmResponse } from "../../../../shared/get-llm-response";
+import { logger } from "../activity-logger";
+import { getFlowContext } from "../get-flow-context";
+import { getLlmResponse } from "../get-llm-response";
 import {
   getToolCallsFromLlmAssistantMessage,
   type LlmUserMessage,
-} from "../../../../shared/get-llm-response/llm-message";
-import type { LlmToolDefinition } from "../../../../shared/get-llm-response/types";
-import { graphApiClient } from "../../../../shared/graph-api-client";
+} from "../get-llm-response/llm-message";
+import type { LlmToolDefinition } from "../get-llm-response/types";
+import { graphApiClient } from "../graph-api-client";
 import type { MetricResultsForSystemPrompt } from "./types";
 
 const improveSystemPromptSystemPrompt = dedent(`
