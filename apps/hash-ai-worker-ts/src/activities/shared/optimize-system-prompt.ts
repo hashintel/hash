@@ -19,12 +19,12 @@ const escapeCSV = (value: string) => {
   return value;
 };
 
-const saveResultsToCSV = (params: {
+const saveAllResultsToCSV = (params: {
   directoryPath: string;
-  fileName: string;
+  filePrefix: string;
   results: MetricResultsForSystemPrompt[];
 }) => {
-  const { results, directoryPath, fileName } = params;
+  const { results, directoryPath, filePrefix } = params;
 
   const headers = [
     "Iteration",
@@ -59,7 +59,78 @@ const saveResultsToCSV = (params: {
 
   const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
 
-  const filePath = join(directoryPath, `${fileName}.csv`);
+  const filePath = join(directoryPath, `${filePrefix}-metric-results.csv`);
+
+  writeFileSync(filePath, csvContent, "utf8");
+};
+
+const saveSummaryToCSV = (params: {
+  results: MetricResultsForSystemPrompt[];
+  directoryPath: string;
+  filePrefix: string;
+}) => {
+  const { results, directoryPath, filePrefix } = params;
+
+  const models = results
+    .flatMap(({ metricResultsForModels }) =>
+      metricResultsForModels.map(({ model }) => model),
+    )
+    .filter((value, index, all) => all.indexOf(value) === index);
+
+  const metrics = results
+    .flatMap(({ metricResultsForModels }) =>
+      metricResultsForModels.flatMap(({ metricResults }) =>
+        metricResults.map(({ metric }) => metric),
+      ),
+    )
+    .filter(
+      (metric, index, all) =>
+        all.findIndex(({ name }) => metric.name === name) === index,
+    );
+
+  const headers = [
+    "Iteration",
+    "System Prompt",
+    ...models.map((model) => `Average Score for ${model}`),
+    ...metrics.map((metric) => `Average Score for ${metric.name}`),
+  ];
+
+  const rows = results.map(
+    ({ systemPrompt, iteration, metricResultsForModels }) => {
+      const modelAverageScores = models.map((model) => {
+        const scores = metricResultsForModels
+          .filter(({ model: currentModel }) => currentModel === model)
+          .flatMap(({ metricResults }) =>
+            metricResults.map(({ result }) => result.score),
+          );
+
+        return scores.reduce((acc, score) => acc + score, 0) / scores.length;
+      });
+
+      const metricAverageScores = metrics.map((metric) => {
+        const scores = metricResultsForModels.flatMap(({ metricResults }) => {
+          const result = metricResults.find(
+            ({ metric: currentMetric }) => currentMetric === metric,
+          );
+
+          return result ? [result.result.score] : [];
+        });
+
+        return scores.reduce((acc, score) => acc + score, 0) / scores.length;
+      });
+
+      return [
+        iteration.toString(),
+        escapeCSV(systemPrompt),
+        ...modelAverageScores.map((score) => score.toString()),
+        ...metricAverageScores.map((score) => score.toString()),
+      ];
+    },
+  );
+
+  const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
+
+  const filePath = join(directoryPath, `${filePrefix}-summary.csv`);
 
   writeFileSync(filePath, csvContent, "utf8");
 };
@@ -138,10 +209,16 @@ export const optimizeSystemPrompt = async (params: {
       metricResultsForModels,
     });
 
-    saveResultsToCSV({
+    saveAllResultsToCSV({
       directoryPath,
-      fileName: `results-${runStartTimestamp}`,
+      filePrefix: runStartTimestamp,
       results,
+    });
+
+    saveSummaryToCSV({
+      results,
+      directoryPath,
+      filePrefix: runStartTimestamp,
     });
 
     const { updatedSystemPrompt } = await improveSystemPrompt({
