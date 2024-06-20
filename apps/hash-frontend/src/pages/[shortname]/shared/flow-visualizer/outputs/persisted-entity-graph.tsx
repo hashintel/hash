@@ -14,11 +14,13 @@ import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 
 type PersistedEntityGraphProps = {
+  onEntityClick: (entity: Entity) => void;
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
 };
 
 export const PersistedEntityGraph = ({
+  onEntityClick,
   persistedEntities,
   persistedEntitiesSubgraph,
 }: PersistedEntityGraphProps) => {
@@ -67,6 +69,7 @@ export const PersistedEntityGraph = ({
     <OutputContainer sx={{ flex: 1.5 }}>
       <EntitiesGraphChart
         entities={deduplicatedPersistedEntities}
+        onEntityClick={(entity) => onEntityClick(entity)}
         subgraph={
           persistedEntitiesSubgraph as unknown as BpSubgraph<BpEntityRootType>
         } // @todo sort out this param to EntitiesGraphChart

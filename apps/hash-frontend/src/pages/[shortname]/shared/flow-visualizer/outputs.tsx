@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Filter } from "@local/hash-graph-client";
@@ -27,8 +28,11 @@ import type {
   GetEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { TypeSlideOverStack } from "../../../shared/entity-type-page/type-slide-over-stack";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../shared/get-file-properties";
+import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
+import { EditEntitySlideOver } from "../../entities/[entity-uuid].page/edit-entity-slide-over";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
 import { EntityResultTable } from "./outputs/entity-result-table";
@@ -145,6 +149,17 @@ const VisibilityButton = ({
   </IconButton>
 );
 
+type ResultSlideOver =
+  | {
+      type: "entity";
+      entity: Entity;
+    }
+  | {
+      type: "entityType";
+      entityTypeId: VersionedUrl;
+    }
+  | null;
+
 type OutputsProps = {
   persistedEntities: PersistedEntity[];
   proposedEntities: ProposedEntity[];
@@ -174,6 +189,8 @@ export const Outputs = ({
       deliverables: true,
     },
   );
+
+  const [slideOver, setSlideOver] = useState<ResultSlideOver>(null);
 
   const persistedEntitiesFilter = useMemo<Filter>(
     () => ({
@@ -230,8 +247,43 @@ export const Outputs = ({
     );
   }, [entitiesSubgraphData]);
 
+  const selectedEntitySubgraph = useMemo(() => {
+    const defaultEntity = persistedEntities[0]?.entity
+      ? new Entity(persistedEntities[0].entity)
+      : undefined;
+
+    const selectedEntity =
+      slideOver?.type === "entity" ? slideOver.entity : defaultEntity;
+
+    if (!persistedEntitiesSubgraph || !selectedEntity) {
+      return undefined;
+    }
+
+    return generateEntityRootedSubgraph(
+      selectedEntity,
+      persistedEntitiesSubgraph,
+    );
+  }, [persistedEntities, persistedEntitiesSubgraph, slideOver]);
+
   return (
     <>
+      {slideOver?.type === "entityType" && (
+        <TypeSlideOverStack
+          rootTypeId={slideOver.entityTypeId}
+          onClose={() => setSlideOver(null)}
+        />
+      )}
+      {selectedEntitySubgraph && (
+        <EditEntitySlideOver
+          entitySubgraph={selectedEntitySubgraph}
+          open={slideOver?.type === "entity"}
+          onClose={() => setSlideOver(null)}
+          onSubmit={() => {
+            throw new Error("Editing not permitted in this context");
+          }}
+          readonly
+        />
+      )}
       <Stack alignItems="center" direction="row" gap={2} mb={0.5}>
         <SectionLabel text="Outputs" />
         {typedEntries(sectionVisibility).map(([section, visible]) => (
@@ -261,6 +313,10 @@ export const Outputs = ({
       >
         {sectionVisibility.table && (
           <EntityResultTable
+            onEntityClick={(entity) => setSlideOver({ type: "entity", entity })}
+            onEntityTypeClick={(entityTypeId) =>
+              setSlideOver({ type: "entityType", entityTypeId })
+            }
             persistedEntities={persistedEntities}
             persistedEntitiesSubgraph={persistedEntitiesSubgraph}
             proposedEntities={proposedEntities}
@@ -269,6 +325,7 @@ export const Outputs = ({
 
         {sectionVisibility.graph && (
           <PersistedEntityGraph
+            onEntityClick={(entity) => setSlideOver({ type: "entity", entity })}
             persistedEntities={persistedEntities}
             persistedEntitiesSubgraph={persistedEntitiesSubgraph}
           />

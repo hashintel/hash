@@ -40,7 +40,7 @@ register_hash_namespace() {
   echo "Registering namespace: \`HASH\`"
   if ! temporal operator namespace describe HASH; then
     echo "Default namespace \`HASH\` not found. Creating..."
-    temporal operator namespace create --retention 1 --description "HASH namespace for Temporal Server." HASH
+    temporal operator namespace create --retention 7 --description "HASH namespace for Temporal Server." HASH
     echo "Default namespace \`HASH\` registration complete."
   else
     echo "Default namespace \`HASH\` already registered."
