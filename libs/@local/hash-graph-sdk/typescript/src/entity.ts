@@ -29,7 +29,6 @@ import type {
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { isArray } from "lodash";
 import zip from "lodash/zip";
 
 import type { AuthenticationContext } from "./authentication-context";
@@ -104,7 +103,7 @@ const isGraphApiEntity = <Properties extends EntityPropertiesObject>(
   );
 };
 
-export const flattenedPropertyMetadataMap = (
+export const flattenPropertyMetadata = (
   metadata: PropertyMetadataObject,
 ): {
   path: PropertyPath;
@@ -120,7 +119,7 @@ export const flattenedPropertyMetadataMap = (
     element: PropertyMetadataElement,
   ): void => {
     if ("value" in element && element.value) {
-      if (isArray(element.value)) {
+      if (Array.isArray(element.value)) {
         for (const [index, value] of element.value.entries()) {
           visitElement([...path, index], value);
         }
@@ -288,12 +287,12 @@ export class Entity<
         return undefined;
       }
       if (typeof key === "number") {
-        if (isArray(map.value)) {
+        if (Array.isArray(map.value)) {
           return map.value[key];
         } else {
           return undefined;
         }
-      } else if (!isArray(map.value)) {
+      } else if (!Array.isArray(map.value)) {
         return map.value[key];
       } else {
         return undefined;
@@ -301,11 +300,11 @@ export class Entity<
     }, this.#entity.metadata.properties)?.metadata;
   }
 
-  public flattenedProperties(): {
+  public flattenedPropertiesMetadata(): {
     path: PropertyPath;
     metadata: PropertyMetadataElement["metadata"];
   }[] {
-    return flattenedPropertyMetadataMap(this.#entity.metadata.properties ?? {});
+    return flattenPropertyMetadata(this.#entity.metadata.properties ?? {});
   }
 
   public get linkData(): LinkData | undefined {

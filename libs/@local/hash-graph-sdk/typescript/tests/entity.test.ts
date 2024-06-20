@@ -178,7 +178,7 @@ test("propertyMetadata access", () => {
 test("flattened properties", () => {
   const entityInstance = new Entity(createTestEntity());
 
-  expect(entityInstance.flattenedProperties()).toStrictEqual([
+  expect(entityInstance.flattenedPropertiesMetadata()).toStrictEqual([
     {
       path: [base_url_a, base_url_aa, base_url_aaa],
       metadata: { confidence: 0.1 },

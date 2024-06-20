@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
-import { flattenedPropertyMetadataMap } from "@local/hash-graph-sdk/entity";
+import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
@@ -764,7 +764,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     .flatMap((submittedProposedEntity) => {
       const sourcesUsedToProposeEntity = [
         ...(submittedProposedEntity.provenance?.sources ?? []),
-        ...flattenedPropertyMetadataMap(
+        ...flattenPropertyMetadata(
           submittedProposedEntity.propertyMetadata ?? {},
         ).flatMap(({ metadata }) => metadata.provenance?.sources ?? []),
       ];
