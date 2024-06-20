@@ -17,7 +17,6 @@ export type MetricResult = {
 export type MetricDefinition = {
   name: string;
   description: string;
-  maximumScore: number;
   executeMetric: (params: {
     testingParams: {
       model: LlmParams["model"];

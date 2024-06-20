@@ -19,11 +19,10 @@ const systemPrompt = dedent(`
     - Metric definitions: a list of metric definitions, where each definition includes:
         - name: the name of the metric.
         - description: a description of what the metric is measuring, and how it's score is calculated.
-        - maximumScore: the maximum score that can be achieved for the metric.
     - Results: the results obtained when running all the metrics with various LLM models, which includes:
         - model: the name of the LLM model.
         - metric: the name of the metric.
-        - score: The score achieved.
+        - score: The score achieved, expressed as number between 0 and 1 (where 0 is a complete failure, and 1 is perfect).
         - report: A report explaining the results.
         - error: Any encountered error.
 
@@ -80,10 +79,9 @@ export const improveSystemPrompt = async (params: {
         text: dedent(`
           Previously used system prompt: "${previousSystemPrompt}".
           Metric definitions: ${JSON.stringify(
-            metricDefinitions.map(({ name, description, maximumScore }) => ({
+            metricDefinitions.map(({ name, description }) => ({
               name,
               description,
-              maximumScore,
             })),
           )}
           Results: ${JSON.stringify(
