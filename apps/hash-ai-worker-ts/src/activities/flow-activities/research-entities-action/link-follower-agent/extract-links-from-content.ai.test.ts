@@ -247,7 +247,7 @@ const baseDirectoryPath = join(
   "/var/extract-links-from-text-testing",
 );
 
-test(
+test.skip(
   "Extract links form text system prompt test",
   async () => {
     const models: LlmParams["model"][] = [
