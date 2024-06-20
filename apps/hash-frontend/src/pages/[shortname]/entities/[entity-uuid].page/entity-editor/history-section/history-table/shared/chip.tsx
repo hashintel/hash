@@ -5,10 +5,12 @@ import type { PropsWithChildren } from "react";
 export const Chip = ({
   children,
   type,
+  showInFull,
   sx,
   value,
 }: PropsWithChildren<{
   type?: boolean;
+  showInFull?: boolean;
   sx?: SxProps<Theme>;
   value?: boolean;
 }>) => (
@@ -22,12 +24,14 @@ export const Chip = ({
         borderRadius: type ? 4 : 2,
         fontWeight: 500,
         fontSize: 12,
-        maxWidth: 200,
         px: value ? 1.2 : 1,
         py: 0.5,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
         whiteSpace: "nowrap",
+        ...(showInFull
+          ? {}
+          : {
+              overflow: "hidden",
+            }),
       }),
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}
