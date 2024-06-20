@@ -1,5 +1,6 @@
 use alloc::borrow::Cow;
 use core::{error::Error, fmt};
+use std::collections::HashSet;
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
@@ -37,10 +38,9 @@ use crate::{
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-#[expect(clippy::large_enum_variant)]
 pub enum EntityValidationType<'a> {
     Schema(Vec<EntityType>),
-    Id(Cow<'a, [VersionedUrl]>),
+    Id(Cow<'a, HashSet<VersionedUrl>>),
     #[serde(skip)]
     ClosedSchema(Cow<'a, ClosedEntityType>),
 }
@@ -182,7 +182,7 @@ pub struct CreateEntityParams<R> {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
-    pub entity_type_ids: Vec<VersionedUrl>,
+    pub entity_type_ids: HashSet<VersionedUrl>,
     pub properties: PropertyWithMetadataObject,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -278,10 +278,9 @@ pub struct PatchEntityParams {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub entity_type_ids: Vec<VersionedUrl>,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
+    pub entity_type_ids: HashSet<VersionedUrl>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub properties: Vec<PropertyPatchOperation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]

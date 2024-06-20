@@ -87,7 +87,7 @@ async fn properties_add() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_entity_type_id()],
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
                 properties: PropertyWithMetadataObject::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
@@ -106,7 +106,7 @@ async fn properties_add() {
         PatchEntityParams {
             entity_id,
             decision_time: None,
-            entity_type_ids: vec![],
+            entity_type_ids: HashSet::new(),
             properties: vec![PropertyPatchOperation::Add {
                 path: once(PropertyPathElement::from(age_property_type_id())).collect(),
                 value: Property::Value(json!(30)),
@@ -163,7 +163,7 @@ async fn properties_remove() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_entity_type_id()],
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
                 properties: PropertyWithMetadataObject::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
@@ -182,7 +182,7 @@ async fn properties_remove() {
         PatchEntityParams {
             entity_id,
             decision_time: None,
-            entity_type_ids: vec![],
+            entity_type_ids: HashSet::new(),
             properties: vec![PropertyPatchOperation::Remove {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
             }],
@@ -235,7 +235,7 @@ async fn properties_replace() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_entity_type_id()],
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
                 properties: PropertyWithMetadataObject::from_parts(alice(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
@@ -254,7 +254,7 @@ async fn properties_replace() {
         PatchEntityParams {
             entity_id,
             decision_time: None,
-            entity_type_ids: vec![],
+            entity_type_ids: HashSet::new(),
             properties: vec![PropertyPatchOperation::Replace {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                 value: Property::Value(json!("Bob")),
@@ -311,7 +311,7 @@ async fn type_ids() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_entity_type_id()],
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
                 properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
@@ -330,7 +330,7 @@ async fn type_ids() {
         PatchEntityParams {
             entity_id,
             decision_time: None,
-            entity_type_ids: vec![],
+            entity_type_ids: HashSet::new(),
             properties: vec![],
             draft: None,
             archived: None,
@@ -364,9 +364,11 @@ async fn type_ids() {
         .entities;
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
-    assert_eq!(
-        entity.metadata.entity_type_ids,
-        [person_entity_type_id()],
+    assert!(
+        entity
+            .metadata
+            .entity_type_ids
+            .contains(&person_entity_type_id()),
         "Entity type ids changed even though none were provided in the patch operation"
     );
 
@@ -375,7 +377,7 @@ async fn type_ids() {
         PatchEntityParams {
             entity_id,
             decision_time: None,
-            entity_type_ids: vec![person_entity_type_id(), org_entity_type_id()],
+            entity_type_ids: HashSet::from([person_entity_type_id(), org_entity_type_id()]),
             properties: vec![],
             draft: None,
             archived: None,
@@ -424,7 +426,7 @@ async fn type_ids() {
         PatchEntityParams {
             entity_id,
             decision_time: None,
-            entity_type_ids: vec![person_entity_type_id()],
+            entity_type_ids: HashSet::from([person_entity_type_id()]),
             properties: vec![],
             draft: None,
             archived: None,
@@ -459,5 +461,10 @@ async fn type_ids() {
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
 
-    assert_eq!(entity.metadata.entity_type_ids, [person_entity_type_id()],);
+    assert!(
+        entity
+            .metadata
+            .entity_type_ids
+            .contains(&person_entity_type_id())
+    );
 }

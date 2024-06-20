@@ -1,6 +1,7 @@
 mod provenance;
 
 use core::{fmt, str::FromStr};
+use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt};
 #[cfg(feature = "postgres")]
@@ -92,7 +93,8 @@ impl fmt::Display for DraftId {
 pub struct EntityMetadata {
     pub record_id: EntityRecordId,
     pub temporal_versioning: EntityTemporalMetadata,
-    pub entity_type_ids: Vec<VersionedUrl>,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
+    pub entity_type_ids: HashSet<VersionedUrl>,
     pub archived: bool,
     pub provenance: EntityProvenance,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]

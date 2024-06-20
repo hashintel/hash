@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use std::collections::HashSet;
 
 use graph::{
     knowledge::EntityQueryPath,
@@ -75,7 +76,7 @@ async fn insert() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_type_id.clone()],
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
                 properties: PropertyWithMetadataObject::from_parts(alice, None)
                     .expect("could not create property with metadata object"),
                 link_data: None,
@@ -95,7 +96,7 @@ async fn insert() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_type_id.clone()],
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
                 properties: PropertyWithMetadataObject::from_parts(bob, None)
                     .expect("could not create property with metadata object"),
                 link_data: None,
@@ -122,7 +123,7 @@ async fn insert() {
             owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             entity_uuid: None,
             decision_time: None,
-            entity_type_ids: vec![friend_of_type_id.clone()],
+            entity_type_ids: HashSet::from([friend_of_type_id.clone()]),
             properties: PropertyWithMetadataObject::from_parts(friend_of, None)
                 .expect("could not create property with metadata object"),
             link_data: Some(LinkData {
@@ -279,7 +280,7 @@ async fn get_entity_links() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_type_id.clone()],
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
                 properties: PropertyWithMetadataObject::from_parts(alice, None)
                     .expect("could not create property with metadata object"),
                 link_data: None,
@@ -299,7 +300,7 @@ async fn get_entity_links() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_type_id.clone()],
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
                 properties: PropertyWithMetadataObject::from_parts(bob, None)
                     .expect("could not create property with metadata object"),
                 link_data: None,
@@ -319,7 +320,7 @@ async fn get_entity_links() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_type_id.clone()],
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
                 properties: PropertyWithMetadataObject::from_parts(charles, None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
@@ -338,7 +339,7 @@ async fn get_entity_links() {
             owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             entity_uuid: None,
             decision_time: None,
-            entity_type_ids: vec![friend_link_type_id.clone()],
+            entity_type_ids: HashSet::from([friend_link_type_id.clone()]),
             properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
                 .expect("could not create property with metadata object"),
             link_data: Some(LinkData {
@@ -364,7 +365,7 @@ async fn get_entity_links() {
             owned_by_id: OwnedById::new(api.account_id.into_uuid()),
             entity_uuid: None,
             decision_time: None,
-            entity_type_ids: vec![acquaintance_entity_link_type_id.clone()],
+            entity_type_ids: HashSet::from([acquaintance_entity_link_type_id.clone()]),
             properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
                 .expect("could not create property with metadata object"),
             link_data: Some(LinkData {
@@ -415,17 +416,18 @@ async fn get_entity_links() {
         .expect("could not get entities")
         .entities;
 
-    assert!(
-        links_from_source
-            .iter()
-            .any(|link_entity| link_entity.metadata.entity_type_ids[0] == friend_link_type_id)
-    );
-    assert!(
-        links_from_source
-            .iter()
-            .any(|link_entity| link_entity.metadata.entity_type_ids[0]
-                == acquaintance_entity_link_type_id)
-    );
+    assert!(links_from_source.iter().any(|link_entity| {
+        link_entity
+            .metadata
+            .entity_type_ids
+            .contains(&friend_link_type_id)
+    }));
+    assert!(links_from_source.iter().any(|link_entity| {
+        link_entity
+            .metadata
+            .entity_type_ids
+            .contains(&acquaintance_entity_link_type_id)
+    }));
 
     let link_datas = links_from_source
         .iter()
@@ -499,7 +501,7 @@ async fn remove_link() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_type_id.clone()],
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
                 properties: PropertyWithMetadataObject::from_parts(alice, None)
                     .expect("could not create property with metadata object"),
                 link_data: None,
@@ -519,7 +521,7 @@ async fn remove_link() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_type_id.clone()],
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
                 properties: PropertyWithMetadataObject::from_parts(bob, None)
                     .expect("could not create property with metadata object"),
                 link_data: None,
@@ -539,7 +541,7 @@ async fn remove_link() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![friend_link_type_id.clone()],
+                entity_type_ids: HashSet::from([friend_link_type_id.clone()]),
                 properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
                     .expect("could not create property with metadata object"),
                 link_data: Some(LinkData {
@@ -598,7 +600,7 @@ async fn remove_link() {
             decision_time: None,
             archived: Some(true),
             draft: None,
-            entity_type_ids: vec![],
+            entity_type_ids: HashSet::new(),
             properties: vec![],
             confidence: None,
             provenance: ProvidedEntityEditionProvenance::default(),

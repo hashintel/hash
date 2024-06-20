@@ -1,4 +1,5 @@
 use core::borrow::Borrow;
+use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
@@ -40,7 +41,7 @@ pub enum EntityValidationError {
     #[error("Entities without a type are not allowed")]
     EmptyEntityTypes,
     #[error("the validator was unable to read the entity type `{ids:?}`")]
-    EntityTypeRetrieval { ids: Vec<VersionedUrl> },
+    EntityTypeRetrieval { ids: HashSet<VersionedUrl> },
     #[error("the validator was unable to read the entity `{id}`")]
     EntityRetrieval { id: EntityId },
     #[error("The link type `{link_types:?}` is not allowed")]

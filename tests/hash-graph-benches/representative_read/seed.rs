@@ -1,5 +1,5 @@
 use core::{iter::repeat, str::FromStr};
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 use authorization::{schema::WebOwnerSubject, AuthorizationApi};
 use graph::store::{
@@ -175,7 +175,7 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                     entity_uuid: None,
                     decision_time: None,
-                    entity_type_ids: vec![entity_type_id],
+                    entity_type_ids: HashSet::from([entity_type_id]),
                     properties: PropertyWithMetadataObject::from_parts(properties, None)
                         .expect("could not create property with metadata object"),
                     confidence: None,
@@ -210,7 +210,7 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
                             owned_by_id: OwnedById::new(account_id.into_uuid()),
                             entity_uuid: None,
                             decision_time: None,
-                            entity_type_ids: vec![entity_type_id.clone()],
+                            entity_type_ids: HashSet::from([entity_type_id.clone()]),
                             properties: PropertyWithMetadataObject::from_parts(
                                 PropertyObject::empty(),
                                 None,

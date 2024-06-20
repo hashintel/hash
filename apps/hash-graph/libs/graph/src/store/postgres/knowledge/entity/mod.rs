@@ -1618,7 +1618,7 @@ where
     async fn insert_entity_edition(
         &self,
         archived: bool,
-        entity_type_ids: &[VersionedUrl],
+        entity_type_ids: &HashSet<VersionedUrl>,
         properties: &PropertyObject,
         confidence: Option<Confidence>,
         provenance: &EntityEditionProvenance,

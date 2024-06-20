@@ -1,6 +1,7 @@
 //! Web routes for CRU operations on entities.
 
 use alloc::{borrow::Cow, sync::Arc};
+use std::collections::HashSet;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -225,7 +226,8 @@ pub struct CreateEntityRequest {
     #[serde(default)]
     #[schema(nullable = false)]
     pub decision_time: Option<Timestamp<DecisionTime>>,
-    pub entity_type_ids: Vec<VersionedUrl>,
+    #[schema(value_type = Vec<VersionedUrl>)]
+    pub entity_type_ids: HashSet<VersionedUrl>,
     pub properties: PropertyObject,
     #[schema(nullable = false)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -362,7 +364,7 @@ where
             actor_id,
             params
                 .into_iter()
-                .map(|params| params.try_into())
+                .map(CreateEntityParams::try_from)
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(report_to_response)?,
         )
