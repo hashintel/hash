@@ -85,6 +85,9 @@ const submitLinksTool: LlmToolDefinition<"submitLinks"> = {
 };
 
 export const extractLinksFromContent = async (params: {
+  /**
+   * @todo: consider other forms of content when they become relevant (e.g. PDF chunks)
+   */
   content: WebPage;
   prompt: string;
   testingParams?: {

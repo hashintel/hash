@@ -213,6 +213,9 @@ export const optimizeSystemPrompt = async (params: {
   }
 
   while (currentIteration <= numberOfIterations) {
+    /**
+     * Run the metrics for all models using the current system prompt.
+     */
     const metricResultsForModels = await runMetricsForModels({
       metrics,
       models,
@@ -247,6 +250,9 @@ export const optimizeSystemPrompt = async (params: {
       break;
     }
 
+    /**
+     * Update the system prompt based on the results of the metrics.
+     */
     const { updatedSystemPrompt } = await improveSystemPrompt({
       previousSystemPrompt: currentSystemPrompt,
       results,

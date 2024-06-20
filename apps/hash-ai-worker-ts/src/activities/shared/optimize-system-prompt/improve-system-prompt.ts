@@ -90,6 +90,10 @@ export const improveSystemPrompt = async (params: {
             })),
           )}
           Previously tested system prompts: ${JSON.stringify(
+            /**
+             * @todo: consider reducing the amount of data sent to the LLM about prior system prompts,
+             * by reporting averages, or omitting the lowest performing system prompts.
+             */
             results.map(({ systemPrompt, metricResultsForModels }) => ({
               systemPrompt,
               metricResultsForModels: metricResultsForModels.map(
@@ -154,6 +158,9 @@ export const improveSystemPrompt = async (params: {
     };
 
   logger.debug(`Proposed system prompt: ${improvedSystemPrompt}`);
+  /**
+   * @todo: consider persisting the reasoning in the output CSV files.
+   */
   logger.debug(`Reasoning: ${reasoning}`);
 
   return { updatedSystemPrompt: improvedSystemPrompt };
