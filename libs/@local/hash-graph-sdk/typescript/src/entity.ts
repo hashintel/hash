@@ -6,7 +6,7 @@ import type {
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
   PropertyProvenance,
-} from "@local/hash-graph-client/api";
+} from "@local/hash-graph-client";
 import type {
   CreatedById,
   EditionArchivedById,
@@ -16,14 +16,26 @@ import type {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
+  EntityPropertyValue,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
   EntityUuid,
   LinkData,
+  PropertyArrayWithMetadata,
   PropertyMetadataElement,
   PropertyMetadataObject,
+  PropertyObjectWithMetadata,
   PropertyPath,
+  PropertyValueWithMetadata,
+  PropertyWithMetadata,
 } from "@local/hash-graph-types/entity";
+import {
+  isArrayMetadata,
+  isObjectMetadata,
+  isValueMetadata,
+} from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
@@ -102,6 +114,169 @@ const isGraphApiEntity = <Properties extends EntityPropertiesObject>(
   );
 };
 
+const mergePropertiesAndMetadata = (
+  property: EntityPropertyValue,
+  metadata?: PropertyMetadataElement,
+): PropertyWithMetadata => {
+  if (Array.isArray(property)) {
+    if (!metadata) {
+      return {
+        value: property.map((element) =>
+          mergePropertiesAndMetadata(element, undefined),
+        ),
+        metadata: undefined,
+      } satisfies PropertyArrayWithMetadata;
+    }
+    if (isArrayMetadata(metadata)) {
+      return {
+        value: property.map((element, index) =>
+          mergePropertiesAndMetadata(element, metadata.value[index]),
+        ),
+        metadata: metadata.metadata,
+      } satisfies PropertyArrayWithMetadata;
+    }
+    if (isObjectMetadata(metadata)) {
+      throw new Error(
+        `Expected metadata to be an array, but got metadata for property object: ${JSON.stringify(
+          metadata,
+          null,
+          2,
+        )}`,
+      );
+    }
+    // Metadata is for a value, so we treat the property as a value
+    return {
+      value: property,
+      metadata: metadata.metadata,
+    } satisfies PropertyValueWithMetadata;
+  }
+
+  if (typeof property === "object" && property !== null) {
+    if (!metadata) {
+      const returnedValues: Record<BaseUrl, PropertyWithMetadata> = {};
+      let isPropertyObject = true;
+      for (const [key, value] of typedEntries(property)) {
+        if (!isBaseUrl(key)) {
+          isPropertyObject = false;
+          break;
+        }
+        returnedValues[key] = mergePropertiesAndMetadata(value, undefined);
+      }
+      if (isPropertyObject) {
+        // we assume that the property is a property object if all keys are base urls.
+        // This is not strictly the case as the property could be a value object with base urls as
+        // keys, but we don't have a way to distinguish between the two.
+        return {
+          value: returnedValues,
+        } satisfies PropertyObjectWithMetadata;
+      }
+      // If the keys are not base urls, we treat the object as a value
+      return {
+        value: property,
+        metadata: {},
+      } satisfies PropertyValueWithMetadata;
+    }
+    if (isObjectMetadata(metadata)) {
+      return {
+        value: Object.fromEntries(
+          Object.entries(property)
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
+            .filter(([_key, value]) => value !== undefined)
+            .map(([key, value]) => {
+              if (!isBaseUrl(key)) {
+                throw new Error(
+                  `Expected property key to be a base URL, but got ${JSON.stringify(
+                    key,
+                    null,
+                    2,
+                  )}`,
+                );
+              }
+              return [
+                key,
+                mergePropertiesAndMetadata(value, metadata.value[key]),
+              ];
+            }),
+        ),
+        metadata: metadata.metadata,
+      } satisfies PropertyObjectWithMetadata;
+    }
+    if (isArrayMetadata(metadata)) {
+      throw new Error(
+        `Expected metadata to be an object, but got metadata for property array: ${JSON.stringify(
+          metadata,
+          null,
+          2,
+        )}`,
+      );
+    }
+    // Metadata is for a value, so we treat the property as a value
+    return {
+      value: property,
+      metadata: metadata.metadata,
+    } satisfies PropertyValueWithMetadata;
+  }
+
+  // The property is not an array or object, so we treat it as a value
+  if (!metadata) {
+    return {
+      value: property,
+      metadata: {},
+    } satisfies PropertyValueWithMetadata;
+  }
+
+  if (isValueMetadata(metadata)) {
+    return {
+      value: property,
+      metadata: metadata.metadata,
+    } satisfies PropertyValueWithMetadata;
+  }
+
+  if (isArrayMetadata(metadata)) {
+    throw new Error(
+      `Expected metadata to be a value, but got metadata for property array: ${JSON.stringify(
+        metadata,
+        null,
+        2,
+      )}`,
+    );
+  } else {
+    throw new Error(
+      `Expected metadata to be a value, but got metadata for property object: ${JSON.stringify(
+        metadata,
+        null,
+        2,
+      )}`,
+    );
+  }
+};
+
+const mergePropertyObjectAndMetadata = (
+  property: EntityPropertiesObject,
+  metadata?: PropertyMetadataObject,
+): PropertyObjectWithMetadata => {
+  return {
+    value: Object.fromEntries(
+      Object.entries(property)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
+        .filter(([_key, value]) => value !== undefined)
+        .map(([key, value]) => {
+          if (!isBaseUrl(key)) {
+            throw new Error(
+              `Expected property key to be a base URL, but got ${JSON.stringify(
+                key,
+                null,
+                2,
+              )}`,
+            );
+          }
+          return [key, mergePropertiesAndMetadata(value, metadata?.value[key])];
+        }),
+    ),
+    metadata: metadata?.metadata,
+  } satisfies PropertyObjectWithMetadata;
+};
+
 export const flattenPropertyMetadata = (
   metadata: PropertyMetadataObject,
 ): {
@@ -117,7 +292,7 @@ export const flattenPropertyMetadata = (
     path: PropertyPath,
     element: PropertyMetadataElement,
   ): void => {
-    if ("value" in element && element.value) {
+    if ("value" in element) {
       if (Array.isArray(element.value)) {
         for (const [index, value] of element.value.entries()) {
           visitElement([...path, index], value);
@@ -275,7 +450,7 @@ export class Entity<
     path: PropertyPath,
   ): PropertyMetadataElement["metadata"] {
     return path.reduce<PropertyMetadataElement | undefined>((map, key) => {
-      if (!map || !("value" in map) || !map.value) {
+      if (!map || !("value" in map)) {
         return undefined;
       }
       if (typeof key === "number") {
@@ -296,7 +471,9 @@ export class Entity<
     path: PropertyPath;
     metadata: PropertyMetadataElement["metadata"];
   }[] {
-    return flattenPropertyMetadata(this.#entity.metadata.properties ?? {});
+    return flattenPropertyMetadata(
+      this.#entity.metadata.properties ?? { value: {} },
+    );
   }
 
   public get linkData(): LinkData | undefined {

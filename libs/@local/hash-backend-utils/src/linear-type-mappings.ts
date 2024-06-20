@@ -1,6 +1,5 @@
 /* eslint-disable no-param-reassign */
 
-import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Issue, Organization, User } from "@linear/sdk";
 import type {
@@ -9,6 +8,7 @@ import type {
   UpdateUserInput,
 } from "@linear/sdk/dist/_generated_documents";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityPropertyValue } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   blockProtocolPropertyTypes,

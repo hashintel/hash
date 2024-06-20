@@ -404,7 +404,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                         The following link entity type IDs are invalid: ${JSON.stringify(
                           invalidLinkEntityTypeIds,
                         )}
-                        
+
                         The valid link entity types type IDs are: ${JSON.stringify(
                           validLinkEntityTypeIds,
                         )}
@@ -792,7 +792,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       const sourcesUsedToProposeEntity = [
         ...(submittedProposedEntity.provenance?.sources ?? []),
         ...flattenPropertyMetadata(
-          submittedProposedEntity.propertyMetadata ?? {},
+          submittedProposedEntity.propertyMetadata ?? { value: {} },
         ).flatMap(({ metadata }) => metadata.provenance?.sources ?? []),
       ];
 
@@ -831,7 +831,7 @@ export const researchEntitiesAction: FlowActionActivity<{
        * @todo: H-2728 set the web page this file was discovered in (if applicable) in the property provenance
        * for the `fileUrl`
        */
-      propertyMetadata: {},
+      propertyMetadata: { value: {} },
       provenance: fileEditionProvenance,
       entityTypeId,
       localEntityId: generateUuid(),

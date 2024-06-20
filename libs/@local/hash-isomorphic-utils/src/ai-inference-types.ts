@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
-import type { EntityPropertyValue } from "@blockprotocol/graph/temporal";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityPropertyValue } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   AutomaticInferenceArguments,

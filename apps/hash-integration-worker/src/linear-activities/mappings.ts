@@ -1,4 +1,3 @@
-import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   SupportedLinearTypeNames,
@@ -13,6 +12,7 @@ import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
   EntityPropertiesObject,
+  EntityPropertyValue,
 } from "@local/hash-graph-types/entity";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 

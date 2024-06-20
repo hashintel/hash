@@ -1,4 +1,4 @@
-import type { EntityPropertyValue } from "@blockprotocol/graph";
+import type { JsonValue } from "@blockprotocol/graph";
 import type {
   EntityMetadata as EntityMetadataBp,
   EntityRecordId as EntityRecordIdBp,
@@ -83,6 +83,20 @@ export type PropertyMetadataElement =
   | PropertyMetadataObject
   | PropertyMetadataValue;
 
+export const isValueMetadata = (
+  metadata: PropertyMetadataElement,
+): metadata is PropertyMetadataValue => !("value" in metadata);
+
+export const isArrayMetadata = (
+  metadata: PropertyMetadataElement,
+): metadata is PropertyMetadataArray =>
+  !isValueMetadata(metadata) && Array.isArray(metadata.value);
+
+export const isObjectMetadata = (
+  metadata: PropertyMetadataElement,
+): metadata is PropertyMetadataObject =>
+  !isValueMetadata(metadata) && !Array.isArray(metadata.value);
+
 export interface PropertyMetadataValue {
   metadata: Omit<ValueMetadata, "dataTypeId"> & {
     dataTypeId?: VersionedUrl;
@@ -90,13 +104,33 @@ export interface PropertyMetadataValue {
 }
 
 export interface PropertyMetadataObject {
-  value?: Record<BaseUrl, PropertyMetadataElement>;
+  value: Record<BaseUrl, PropertyMetadataElement>;
   metadata?: ObjectMetadata;
 }
 
 export interface PropertyMetadataArray {
-  value?: PropertyMetadataElement[];
+  value: PropertyMetadataElement[];
   metadata?: ArrayMetadata;
+}
+
+export type PropertyWithMetadata =
+  | PropertyArrayWithMetadata
+  | PropertyObjectWithMetadata
+  | PropertyValueWithMetadata;
+
+export interface PropertyValueWithMetadata {
+  value: JsonValue;
+  metadata: PropertyMetadataValue["metadata"];
+}
+
+export interface PropertyObjectWithMetadata {
+  value: Record<BaseUrl, PropertyWithMetadata>;
+  metadata?: PropertyMetadataObject["metadata"];
+}
+
+export interface PropertyArrayWithMetadata {
+  value: PropertyWithMetadata[];
+  metadata?: PropertyMetadataArray["metadata"];
 }
 
 export type PropertyPath = (BaseUrl | number)[];
@@ -126,4 +160,11 @@ export type EntityEditionProvenance = {
   sources?: Array<SourceProvenance>;
 };
 
-export type EntityPropertiesObject = Record<BaseUrl, EntityPropertyValue>;
+export type EntityPropertyValue =
+  | EntityPropertyValue[]
+  | EntityPropertiesObject
+  | JsonValue;
+
+export type EntityPropertiesObject = {
+  [key: BaseUrl]: EntityPropertyValue;
+};

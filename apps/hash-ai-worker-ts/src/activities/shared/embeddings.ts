@@ -1,7 +1,9 @@
-import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Embedding, PropertyType } from "@local/hash-graph-client";
-import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type {
+  EntityPropertiesObject,
+  EntityPropertyValue,
+} from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
