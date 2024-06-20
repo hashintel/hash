@@ -11,7 +11,7 @@ import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgra
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
 
-interface EditEntityModalProps {
+interface EditEntitySlideOverProps {
   open: boolean;
   onClose: () => void;
   onSubmit: () => void;
@@ -19,13 +19,16 @@ interface EditEntityModalProps {
   entitySubgraph: Subgraph<EntityRootType>;
 }
 
-export const EditEntityModal = ({
+/**
+ * @todo move this to a shared location (it's also used in the Flows output and draft entities views)
+ */
+export const EditEntitySlideOver = ({
   open,
   onClose,
   onSubmit,
   readonly = false,
   entitySubgraph,
-}: EditEntityModalProps) => {
+}: EditEntitySlideOverProps) => {
   const [localEntitySubgraph, setLocalEntitySubgraph] =
     useState<Subgraph<EntityRootType>>(entitySubgraph);
 
@@ -165,18 +168,20 @@ export const EditEntityModal = ({
         setDraftLinksToArchive={setDraftLinksToArchive}
       />
 
-      <Stack direction="row" gap={3}>
-        <Button
-          onClick={handleSaveChanges}
-          loading={savingChanges}
-          disabled={submitDisabled}
-        >
-          Save Changes
-        </Button>
-        <Button onClick={handleCancel} variant="tertiary">
-          Cancel
-        </Button>
-      </Stack>
+      {!readonly && (
+        <Stack direction="row" gap={3}>
+          <Button
+            onClick={handleSaveChanges}
+            loading={savingChanges}
+            disabled={submitDisabled}
+          >
+            Save Changes
+          </Button>
+          <Button onClick={handleCancel} variant="tertiary">
+            Cancel
+          </Button>
+        </Stack>
+      )}
     </Drawer>
   );
 };

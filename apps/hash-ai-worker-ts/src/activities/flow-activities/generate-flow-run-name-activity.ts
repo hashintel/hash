@@ -6,10 +6,8 @@ import type {
   AutomaticInferenceTriggerInputName,
   ManualInferenceTriggerInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import {
-  goalFlowDefinitionIds,
-  GoalFlowTriggerInput,
-} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type {
   FlowDefinition,
   FlowTrigger,

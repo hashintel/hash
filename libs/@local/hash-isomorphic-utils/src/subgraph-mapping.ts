@@ -197,9 +197,9 @@ export const serializeSubgraph = (subgraph: Subgraph): SerializedSubgraph => ({
   temporalAxes: subgraph.temporalAxes,
 });
 
-export const deserializeSubgraph = (
+export const deserializeSubgraph = <RootType extends SubgraphRootType>(
   subgraph: SerializedSubgraph,
-): Subgraph => ({
+): Subgraph<RootType> => ({
   roots: subgraph.roots,
   vertices: deserializeGraphVertices(subgraph.vertices),
   edges: subgraph.edges,

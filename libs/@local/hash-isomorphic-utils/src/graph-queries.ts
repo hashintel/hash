@@ -17,7 +17,6 @@ import type {
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,
   QueryTemporalAxesUnresolved,
-  Subgraph,
   SubgraphRootType,
 } from "@local/hash-subgraph";
 import { splitEntityId } from "@local/hash-subgraph";
@@ -274,7 +273,7 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
   RootType extends SubgraphRootType,
 >(
   subgraph: SubgraphFieldsFragment,
-) => deserializeSubgraph(subgraph) as Subgraph<RootType>;
+) => deserializeSubgraph<RootType>(subgraph);
 
 export const createDefaultAuthorizationRelationships = (params: {
   actorId: AccountId;

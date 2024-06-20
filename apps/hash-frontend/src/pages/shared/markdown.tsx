@@ -57,42 +57,42 @@ const components: Partial<Components> = {
     <Typography
       variant="h1"
       {...omitRefFromProps(props)}
-      sx={{ mt: 2.5, mb: 1.5, fontSize: 36 }}
+      sx={{ mt: 4, mb: 1.5, fontSize: 36 }}
     />
   ),
   h2: (props) => (
     <Typography
       variant="h2"
       {...omitRefFromProps(props)}
-      sx={{ mt: 2.5, mb: 1.5, fontSize: 32 }}
+      sx={{ mt: 3.5, mb: 1.5, fontSize: 32 }}
     />
   ),
   h3: (props) => (
     <Typography
       variant="h3"
       {...omitRefFromProps(props)}
-      sx={{ mt: 2, mb: 1.5, fontSize: 28 }}
+      sx={{ mt: 2.5, mb: 1.5, fontSize: 28 }}
     />
   ),
   h4: (props) => (
     <Typography
       variant="h4"
       {...omitRefFromProps(props)}
-      sx={{ mt: 2, mb: 1.5 }}
+      sx={{ mt: 2.5, mb: 1.5 }}
     />
   ),
   h5: (props) => (
     <Typography
       variant="h5"
       {...omitRefFromProps(props)}
-      sx={{ mt: 2, mb: 1.5 }}
+      sx={{ mt: 2.5, mb: 1.5 }}
     />
   ),
   h6: (props) => (
     <Typography
       variant="h5"
       {...omitRefFromProps(props)}
-      sx={{ mt: 2, mb: 1.5 }}
+      sx={{ mt: 2.5, mb: 1.5 }}
     />
   ),
   img: (props) => (
@@ -142,8 +142,19 @@ const components: Partial<Components> = {
 
 export const Markdown = ({ markdown }: MarkdownProps) => {
   return (
-    <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
-      {markdown}
-    </ReactMarkdown>
+    <Box
+      sx={{
+        /**
+         * we need first-child here because we only want 0 margin on the first element in the Markdown, not the first of every type
+         * the warning is related to (a) emotion injecting script tags in places (b) in SSR. it doesn't matter here
+         */
+        /* emotion-disable-server-rendering-unsafe-selector-warning-please-do-not-use-this-the-warning-exists-for-a-reason */
+        "& :first-child:not(style)": { mt: 0 },
+      }}
+    >
+      <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
+        {markdown}
+      </ReactMarkdown>
+    </Box>
   );
 };

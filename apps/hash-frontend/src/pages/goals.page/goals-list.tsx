@@ -1,3 +1,4 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { Box } from "@mui/material";
 import { useMemo } from "react";
@@ -23,7 +24,7 @@ export const GoalsList = () => {
     const webByWebId: Record<string, GoalSummary["web"]> = {};
 
     for (const run of flowRuns) {
-      if (!goalFlowDefinitionIds.includes(run.flowDefinitionId)) {
+      if (!goalFlowDefinitionIds.includes(run.flowDefinitionId as EntityUuid)) {
         continue;
       }
 

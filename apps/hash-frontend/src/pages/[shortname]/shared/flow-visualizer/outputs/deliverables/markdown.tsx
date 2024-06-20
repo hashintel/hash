@@ -8,7 +8,6 @@ import { Tabs } from "../../../../../../shared/ui/tabs";
 import { useFlowRunsContext } from "../../../../../shared/flow-runs-context";
 import { Markdown } from "../../../../../shared/markdown";
 import type { DeliverableData } from "./shared/types";
-import { Snippet } from "../../../../../shared/markdown/elements/snippet";
 import { Pre } from "../../../../../shared/markdown/elements";
 
 export const MarkdownDeliverable = ({
@@ -144,7 +143,7 @@ export const MarkdownDeliverable = ({
               />
             </Box>
           </Stack>
-          <Box pt={2} pb={4} px={3}>
+          <Box pt={3} pb={4} px={3}>
             {selectedTab === "Preview" ? (
               <Markdown markdown={markdown} />
             ) : (

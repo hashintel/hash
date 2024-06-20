@@ -1,16 +1,32 @@
+import { useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { Filter } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   PersistedEntity,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
+import {
+  currentTimeInstantTemporalAxes,
+  fullOntologyResolveDepths,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { isNotNullish } from "@local/hash-isomorphic-utils/types";
+import type { EntityRootType } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 
-import type { FlowRun } from "../../../../graphql/api-types.gen";
+import type {
+  FlowRun,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
+} from "../../../../graphql/api-types.gen";
+import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../shared/get-file-properties";
 import { Deliverables } from "./outputs/deliverables";
@@ -159,6 +175,61 @@ export const Outputs = ({
     },
   );
 
+  const persistedEntitiesFilter = useMemo<Filter>(
+    () => ({
+      any: persistedEntities
+        .map((persistedEntity) => {
+          if (!persistedEntity.entity) {
+            return null;
+          }
+
+          const entity = new Entity(persistedEntity.entity);
+          return {
+            equal: [
+              { path: ["uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  entity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          };
+        })
+        .filter(isNotNullish),
+    }),
+    [persistedEntities],
+  );
+
+  const { data: entitiesSubgraphData } = useQuery<
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
+    variables: {
+      includePermissions: false,
+      request: {
+        filter: persistedEntitiesFilter,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          ...fullOntologyResolveDepths,
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: true,
+      },
+    },
+    skip: !persistedEntities.length,
+    fetchPolicy: "network-only",
+  });
+
+  const persistedEntitiesSubgraph = useMemo(() => {
+    if (!entitiesSubgraphData) {
+      return undefined;
+    }
+
+    return deserializeSubgraph<EntityRootType>(
+      entitiesSubgraphData.getEntitySubgraph.subgraph,
+    );
+  }, [entitiesSubgraphData]);
+
   return (
     <>
       <Stack alignItems="center" direction="row" gap={2} mb={0.5}>
@@ -191,12 +262,16 @@ export const Outputs = ({
         {sectionVisibility.table && (
           <EntityResultTable
             persistedEntities={persistedEntities}
+            persistedEntitiesSubgraph={persistedEntitiesSubgraph}
             proposedEntities={proposedEntities}
           />
         )}
 
         {sectionVisibility.graph && (
-          <PersistedEntityGraph persistedEntities={persistedEntities} />
+          <PersistedEntityGraph
+            persistedEntities={persistedEntities}
+            persistedEntitiesSubgraph={persistedEntitiesSubgraph}
+          />
         )}
 
         {sectionVisibility.deliverables && (

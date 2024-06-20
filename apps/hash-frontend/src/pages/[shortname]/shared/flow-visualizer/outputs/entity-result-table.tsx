@@ -11,10 +11,12 @@ import type {
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, TableCell } from "@mui/material";
 import { memo, useMemo, useState } from "react";
 
 import { TypeSlideOverStack } from "../../../../shared/entity-type-page/type-slide-over-stack";
+import { generateEntityRootedSubgraph } from "../../../../shared/subgraphs";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -25,6 +27,7 @@ import {
   defaultCellSx,
   VirtualizedTable,
 } from "../../../../shared/virtualized-table";
+import { EditEntitySlideOver } from "../../../entities/[entity-uuid].page/edit-entity-slide-over";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
@@ -55,7 +58,7 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
 type ResultSlideOver =
   | {
       type: "entity";
-      entityId: EntityId;
+      entity: Entity;
     }
   | {
       type: "entityType";
@@ -66,13 +69,9 @@ type ResultSlideOver =
 type EntityResultRow = {
   entityLabel: string;
   entityTypeId: string;
+  persistedEntity?: Entity;
   setSlideOver: (slideOver: ResultSlideOver) => void;
   status: "Proposed" | "New" | "Updated";
-};
-
-type EntityResultTableProps = {
-  persistedEntities: PersistedEntity[];
-  proposedEntities: ProposedEntity[];
 };
 
 const cellSx = {
@@ -113,7 +112,31 @@ const TableRow = memo(({ row }: { row: EntityResultRow }) => {
           />
         </Box>
       </TableCell>
-      <TableCell sx={cellSx}>{row.entityLabel}</TableCell>
+      <TableCell sx={cellSx}>
+        {row.persistedEntity ? (
+          <Box
+            component="button"
+            onClick={() =>
+              row.setSlideOver({
+                type: "entity",
+                entity: row.persistedEntity!,
+              })
+            }
+            sx={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: ({ palette }) => palette.blue[70],
+              p: 0,
+              textAlign: "left",
+            }}
+          >
+            {row.entityLabel}
+          </Box>
+        ) : (
+          row.entityLabel
+        )}
+      </TableCell>
     </>
   );
 });
@@ -123,8 +146,15 @@ const createRowContent: CreateVirtualizedRowContentFn<EntityResultRow> = (
   row,
 ) => <TableRow row={row.data} />;
 
+type EntityResultTableProps = {
+  persistedEntities: PersistedEntity[];
+  persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
+  proposedEntities: ProposedEntity[];
+};
+
 export const EntityResultTable = ({
   persistedEntities,
+  persistedEntitiesSubgraph,
   proposedEntities,
 }: EntityResultTableProps) => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
@@ -162,22 +192,26 @@ export const EntityResultTable = ({
           ? entity.entityTypeId
           : entity.metadata.entityTypeId;
 
-      const entityLabel = generateEntityLabel(null, {
-        properties: entity.properties,
-        metadata: {
-          recordId: {
-            editionId: "irrelevant-here",
-            entityId: `ownedBy~${entityId}` as EntityId,
-          } satisfies EntityRecordId,
-          entityTypeId: entityTypeId satisfies VersionedUrl,
-        } as EntityMetadata,
-      });
+      const entityLabel = generateEntityLabel(
+        persistedEntitiesSubgraph ?? null,
+        {
+          properties: entity.properties,
+          metadata: {
+            recordId: {
+              editionId: "irrelevant-here",
+              entityId: `ownedBy~${entityId}` as EntityId,
+            } satisfies EntityRecordId,
+            entityTypeId: entityTypeId satisfies VersionedUrl,
+          } as EntityMetadata,
+        },
+      );
 
       rowData.push({
         id: entityId,
         data: {
           entityLabel,
           entityTypeId,
+          persistedEntity: "metadata" in entity ? entity : undefined,
           setSlideOver,
           status:
             "localEntityId" in record
@@ -195,16 +229,45 @@ export const EntityResultTable = ({
 
       return a.data[field].localeCompare(b.data[field]) * direction;
     });
-  }, [persistedEntities, proposedEntities, sort]);
+  }, [persistedEntities, persistedEntitiesSubgraph, proposedEntities, sort]);
+
+  const selectedEntitySubgraph = useMemo(() => {
+    const defaultEntity = persistedEntities[0]?.entity
+      ? new Entity(persistedEntities[0].entity)
+      : undefined;
+
+    const selectedEntity =
+      slideOver?.type === "entity" ? slideOver.entity : defaultEntity;
+
+    if (!persistedEntitiesSubgraph || !selectedEntity) {
+      return undefined;
+    }
+
+    return generateEntityRootedSubgraph(
+      selectedEntity,
+      persistedEntitiesSubgraph,
+    );
+  }, [slideOver, persistedEntitiesSubgraph]);
 
   return (
     <>
-      {slideOver?.type === "entityType" ? (
+      {slideOver?.type === "entityType" && (
         <TypeSlideOverStack
           rootTypeId={slideOver.entityTypeId}
           onClose={() => setSlideOver(null)}
         />
-      ) : null}
+      )}
+      {selectedEntitySubgraph && (
+        <EditEntitySlideOver
+          entitySubgraph={selectedEntitySubgraph}
+          open={slideOver?.type === "entity"}
+          onClose={() => setSlideOver(null)}
+          onSubmit={() => {
+            throw new Error("Editing not permitted in this context");
+          }}
+          readonly
+        />
+      )}
       <OutputContainer
         sx={{
           flex: 1,
