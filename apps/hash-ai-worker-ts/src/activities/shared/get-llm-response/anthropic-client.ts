@@ -46,7 +46,7 @@ export const anthropicMessageModelToContextWindow: Record<
   "claude-3-opus-20240229": 200_000,
 };
 
-/** @see https://docs.anthropic.com/claude/docs/models-overview#model-comparison */
+/** @see https://docs.anthropic.com/en/docs/about-claude/models#model-comparison */
 export const anthropicMessageModelToMaxOutput: Record<
   AnthropicMessageModel,
   number
