@@ -132,6 +132,11 @@ export type LlmErrorResponse =
       anthropicApiError?: AnthropicApiError;
     }
   | {
+      status: "exceeded-maximum-output-tokens";
+      requestMaxTokens?: number;
+      response: AnthropicMessagesCreateResponse | OpenAiChatCompletion;
+    }
+  | {
       status: "exceeded-usage-limit";
       message: string;
     }

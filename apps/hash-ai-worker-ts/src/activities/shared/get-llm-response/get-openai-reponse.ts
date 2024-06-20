@@ -393,6 +393,14 @@ export const getOpenAiResponse = async <ToolName extends string>(
     });
   }
 
+  if (firstChoice.finish_reason === "length") {
+    return {
+      status: "exceeded-maximum-output-tokens",
+      response: openAiResponse,
+      requestMaxTokens: params.max_tokens ?? undefined,
+    };
+  }
+
   const parsedToolCalls: ParsedLlmToolCall<ToolName>[] = [];
 
   const retryMessageContent: LlmUserMessage["content"] = [];

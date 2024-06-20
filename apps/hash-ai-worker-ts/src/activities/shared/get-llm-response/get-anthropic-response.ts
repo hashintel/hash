@@ -333,6 +333,14 @@ export const getAnthropicResponse = async <ToolName extends string>(
     };
   }
 
+  if (anthropicResponse.stop_reason === "max_tokens") {
+    return {
+      status: "exceeded-maximum-output-tokens",
+      requestMaxTokens: maxTokens,
+      response: anthropicResponse,
+    };
+  }
+
   const currentRequestTime = Date.now() - timeBeforeRequest;
 
   const { previousUsage, retryCount = 0 } = retryContext ?? {};
