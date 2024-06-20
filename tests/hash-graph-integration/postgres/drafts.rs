@@ -7,8 +7,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{EntityId, ProvidedEntityEditionProvenance},
-        Property, PropertyMetadataMap, PropertyObject, PropertyPatchOperation, PropertyPath,
-        PropertyProvenance,
+        Property, PropertyMetadataObject, PropertyObject, PropertyPatchOperation, PropertyPath,
     },
     owned_by_id::OwnedById,
 };
@@ -90,7 +89,7 @@ async fn initial_draft() {
                 entity_type_ids: vec![person_entity_type_id()],
                 properties: alice(),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
+                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: true,
                 relationships: [],
@@ -125,8 +124,7 @@ async fn initial_draft() {
                 properties: vec![PropertyPatchOperation::Replace {
                     path: PropertyPath::default(),
                     value: Property::Object(bob()),
-                    confidence: None,
-                    provenance: PropertyProvenance::default(),
+                    metadata: None,
                 }],
                 entity_type_ids: vec![],
                 archived: None,
@@ -177,8 +175,7 @@ async fn initial_draft() {
                 properties: vec![PropertyPatchOperation::Replace {
                     path: PropertyPath::default(),
                     value: Property::Object(charles()),
-                    confidence: None,
-                    provenance: PropertyProvenance::default(),
+                    metadata: None,
                 }],
                 entity_type_ids: vec![],
                 archived: None,
@@ -263,7 +260,7 @@ async fn no_initial_draft() {
                 entity_type_ids: vec![person_entity_type_id()],
                 properties: alice(),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
+                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -303,8 +300,7 @@ async fn no_initial_draft() {
                     properties: vec![PropertyPatchOperation::Replace {
                         path: PropertyPath::default(),
                         value: Property::Object(bob()),
-                        confidence: None,
-                        provenance: PropertyProvenance::default(),
+                        metadata: None,
                     }],
                     entity_type_ids: vec![],
                     archived: None,
@@ -360,8 +356,7 @@ async fn no_initial_draft() {
                     properties: vec![PropertyPatchOperation::Replace {
                         path: PropertyPath::default(),
                         value: Property::Object(charles()),
-                        confidence: None,
-                        provenance: PropertyProvenance::default(),
+                        metadata: None,
                     }],
                     entity_type_ids: vec![],
                     archived: None,
@@ -423,7 +418,7 @@ async fn multiple_drafts() {
                 entity_type_ids: vec![person_entity_type_id()],
                 properties: alice(),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
+                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -463,8 +458,7 @@ async fn multiple_drafts() {
                     properties: vec![PropertyPatchOperation::Replace {
                         path: PropertyPath::default(),
                         value: Property::Object(bob()),
-                        confidence: None,
-                        provenance: PropertyProvenance::default(),
+                        metadata: None,
                     }],
                     entity_type_ids: vec![],
                     archived: None,
@@ -523,8 +517,7 @@ async fn multiple_drafts() {
                     properties: vec![PropertyPatchOperation::Replace {
                         path: PropertyPath::default(),
                         value: Property::Object(charles()),
-                        confidence: None,
-                        provenance: PropertyProvenance::default(),
+                        metadata: None,
                     }],
                     entity_type_ids: vec![],
                     archived: None,

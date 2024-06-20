@@ -13,8 +13,8 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance, Property, PropertyMetadataMap, PropertyObject,
-        PropertyPatchOperation, PropertyPath, PropertyProvenance,
+        entity::ProvidedEntityEditionProvenance, Property, PropertyMetadataObject, PropertyObject,
+        PropertyPatchOperation, PropertyPath,
     },
     owned_by_id::OwnedById,
 };
@@ -66,7 +66,7 @@ async fn insert() {
                 }],
                 properties: person.clone(),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
+                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -137,7 +137,7 @@ async fn query() {
                 }],
                 properties: organization.clone(),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
+                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -210,7 +210,7 @@ async fn update() {
                 }],
                 properties: page_v1.clone(),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
+                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -228,8 +228,7 @@ async fn update() {
                 properties: vec![PropertyPatchOperation::Replace {
                     path: PropertyPath::default(),
                     value: Property::Object(page_v2.clone()),
-                    confidence: None,
-                    provenance: PropertyProvenance::default(),
+                    metadata: None,
                 }],
                 entity_type_ids: vec![],
                 archived: None,

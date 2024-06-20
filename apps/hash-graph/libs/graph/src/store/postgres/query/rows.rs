@@ -4,7 +4,7 @@ use graph_types::{
         entity::{
             DraftId, EntityEditionId, EntityEditionProvenance, EntityUuid, InferredEntityProvenance,
         },
-        Confidence, PropertyObject, PropertyPath, PropertyProvenance,
+        Confidence, PropertyMetadataObject, PropertyObject, PropertyProvenance,
     },
     ontology::{DataTypeId, EntityTypeId, OntologyEditionProvenance, PropertyTypeId},
     owned_by_id::OwnedById,
@@ -73,6 +73,7 @@ pub struct EntityEditionRow {
     pub archived: bool,
     pub confidence: Option<Confidence>,
     pub provenance: EntityEditionProvenance,
+    pub property_metadata: PropertyMetadataObject,
 }
 
 #[derive(Debug, ToSql)]
@@ -134,15 +135,6 @@ pub struct EntityIdRow {
 pub struct EntityIsOfTypeRow {
     pub entity_edition_id: EntityEditionId,
     pub entity_type_ontology_id: EntityTypeId,
-}
-
-#[derive(Debug, ToSql)]
-#[postgres(name = "entity_property")]
-pub struct EntityPropertyRow<'p> {
-    pub entity_edition_id: EntityEditionId,
-    pub property_path: PropertyPath<'p>,
-    pub confidence: Option<Confidence>,
-    pub provenance: PropertyProvenance,
 }
 
 #[derive(Debug, ToSql)]

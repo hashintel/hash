@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
+import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
@@ -779,9 +780,9 @@ export const researchEntitiesAction: FlowActionActivity<{
     .flatMap((submittedProposedEntity) => {
       const sourcesUsedToProposeEntity = [
         ...(submittedProposedEntity.provenance?.sources ?? []),
-        ...(submittedProposedEntity.propertyMetadata?.flatMap(
-          ({ metadata }) => metadata.provenance?.sources ?? [],
-        ) ?? []),
+        ...flattenPropertyMetadata(
+          submittedProposedEntity.propertyMetadata ?? {},
+        ).flatMap(({ metadata }) => metadata.provenance?.sources ?? []),
       ];
 
       return sourcesUsedToProposeEntity.flatMap(({ location }) => {
@@ -819,7 +820,7 @@ export const researchEntitiesAction: FlowActionActivity<{
        * @todo: H-2728 set the web page this file was discovered in (if applicable) in the property provenance
        * for the `fileUrl`
        */
-      propertyMetadata: [],
+      propertyMetadata: {},
       provenance: fileEditionProvenance,
       entityTypeId,
       localEntityId: generateUuid(),

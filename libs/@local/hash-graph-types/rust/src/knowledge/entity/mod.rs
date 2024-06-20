@@ -2,7 +2,7 @@ mod provenance;
 
 use core::{fmt, str::FromStr};
 
-use error_stack::Report;
+use error_stack::{Report, ResultExt};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -19,8 +19,9 @@ pub use self::provenance::{
 use crate::{
     knowledge::{
         link::LinkData,
-        property::{PatchError, PropertyMetadataMap},
-        Confidence, PropertyObject, PropertyPatchOperation,
+        property::{PatchError, PropertyMetadataObject},
+        Confidence, Property, PropertyMetadataElement, PropertyObject, PropertyPatchOperation,
+        PropertyWithMetadata,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -97,8 +98,8 @@ pub struct EntityMetadata {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
-    #[serde(default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
-    pub properties: PropertyMetadataMap<'static>,
+    #[serde(default, skip_serializing_if = "PropertyMetadataObject::is_empty")]
+    pub properties: PropertyMetadataObject,
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -122,10 +123,67 @@ impl Entity {
     /// Returns an error if the patch operation failed
     pub fn patch(
         &mut self,
-        operations: &[PropertyPatchOperation],
+        operations: impl IntoIterator<Item = PropertyPatchOperation>,
     ) -> Result<(), Report<PatchError>> {
-        self.properties.patch(operations)?;
-        self.metadata.properties.patch(operations);
+        let mut properties_with_metadata = PropertyWithMetadata::from_parts(
+            Property::Object(self.properties.clone()),
+            Some(PropertyMetadataElement::from(
+                self.metadata.properties.clone(),
+            )),
+        )
+        .change_context(PatchError)?;
+
+        for operation in operations {
+            match operation {
+                PropertyPatchOperation::Add {
+                    path,
+                    value,
+                    metadata,
+                } => {
+                    properties_with_metadata
+                        .add(
+                            path,
+                            PropertyWithMetadata::from_parts(value, metadata)
+                                .change_context(PatchError)?,
+                        )
+                        .change_context(PatchError)?;
+                }
+                PropertyPatchOperation::Remove { path } => {
+                    properties_with_metadata
+                        .remove(&path)
+                        .change_context(PatchError)?;
+                }
+                PropertyPatchOperation::Replace {
+                    path,
+                    value,
+                    metadata,
+                } => {
+                    properties_with_metadata
+                        .replace(
+                            &path,
+                            PropertyWithMetadata::from_parts(value, metadata)
+                                .change_context(PatchError)?,
+                        )
+                        .change_context(PatchError)?;
+                }
+            }
+        }
+
+        let (
+            Property::Object(properties),
+            PropertyMetadataElement::Object {
+                value: metadata_object,
+                metadata,
+            },
+        ) = properties_with_metadata.into_parts()
+        else {
+            unreachable!("patching should not change the property type");
+        };
+        self.properties = properties;
+        self.metadata.properties = PropertyMetadataObject {
+            value: metadata_object,
+            metadata,
+        };
 
         Ok(())
     }

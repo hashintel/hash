@@ -6,7 +6,7 @@ use graph_types::{
     knowledge::{
         entity::{EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        PropertyMetadataMap, PropertyObject, PropertyProvenance,
+        PropertyMetadataObject, PropertyObject, PropertyProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -52,7 +52,7 @@ async fn insert() {
         ],
         properties: serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity"),
         confidence: None,
-        property_metadata: PropertyMetadataMap::default(),
+        property_metadata: PropertyMetadataObject::default(),
         link_data: None,
         draft: false,
         relationships: [],
@@ -70,7 +70,7 @@ async fn insert() {
         ],
         properties: serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity"),
         confidence: None,
-        property_metadata: PropertyMetadataMap::default(),
+        property_metadata: PropertyMetadataObject::default(),
         link_data: None,
         draft: false,
         relationships: [],
@@ -89,7 +89,7 @@ async fn insert() {
         ],
         properties: PropertyObject::empty(),
         confidence: None,
-        property_metadata: PropertyMetadataMap::default(),
+        property_metadata: PropertyMetadataObject::default(),
         link_data: Some(LinkData {
             left_entity_id: EntityId {
                 owned_by_id,

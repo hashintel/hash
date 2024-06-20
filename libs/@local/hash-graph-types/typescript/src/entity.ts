@@ -10,8 +10,11 @@ import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ActorType,
+  ArrayMetadata,
+  ObjectMetadata,
   ProvidedEntityEditionProvenanceOrigin,
   SourceProvenance,
+  ValueMetadata,
 } from "@local/hash-graph-client";
 
 import type {
@@ -74,6 +77,29 @@ export type EntityMetadata = Subtype<
     provenance: EntityProvenance;
   }
 >;
+
+export type PropertyMetadataElement =
+  | PropertyMetadataArray
+  | PropertyMetadataObject
+  | PropertyMetadataValue;
+
+export interface PropertyMetadataValue {
+  metadata: Omit<ValueMetadata, "dataTypeId"> & {
+    dataTypeId?: VersionedUrl;
+  };
+}
+
+export interface PropertyMetadataObject {
+  value?: Record<BaseUrl, PropertyMetadataElement>;
+  metadata?: ObjectMetadata;
+}
+
+export interface PropertyMetadataArray {
+  value?: PropertyMetadataElement[];
+  metadata?: ArrayMetadata;
+}
+
+export type PropertyPath = (BaseUrl | number)[];
 
 export type LinkData = Subtype<
   LinkDataBp,

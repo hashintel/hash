@@ -1,5 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyPath } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { Subgraph } from "@local/hash-subgraph";
@@ -69,7 +69,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
       propertyDiff,
     ] of diffData.diff.properties.entries()) {
       const propertyProvenance = changedEntityEdition.propertyMetadata(
-        propertyDiff.path,
+        propertyDiff.path as PropertyPath,
       )?.provenance;
 
       /**

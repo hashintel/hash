@@ -13,7 +13,7 @@ use graph_types::{
     knowledge::{
         entity::{EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        PropertyMetadataMap, PropertyObject, PropertyProvenance,
+        PropertyMetadataObject, PropertyObject, PropertyProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -178,7 +178,7 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
                     entity_type_ids: vec![entity_type_id],
                     properties,
                     confidence: None,
-                    property_metadata: PropertyMetadataMap::default(),
+                    property_metadata: PropertyMetadataObject::default(),
                     link_data: None,
                     draft: false,
                     relationships: [],
@@ -213,7 +213,7 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
                             entity_type_ids: vec![entity_type_id.clone()],
                             properties: PropertyObject::empty(),
                             confidence: None,
-                            property_metadata: PropertyMetadataMap::default(),
+                            property_metadata: PropertyMetadataObject::default(),
                             link_data: Some(LinkData {
                                 left_entity_id: left_entity_metadata.record_id.entity_id,
                                 right_entity_id: right_entity_metadata.record_id.entity_id,

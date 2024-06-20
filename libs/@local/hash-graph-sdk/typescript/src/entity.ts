@@ -1,12 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
-  PropertyMetadata,
-  PropertyMetadataMap,
-  PropertyPath,
   PropertyProvenance,
 } from "@local/hash-graph-client/api";
 import type {
@@ -22,27 +20,29 @@ import type {
   EntityTemporalVersioningMetadata,
   EntityUuid,
   LinkData,
+  PropertyMetadataElement,
+  PropertyMetadataObject,
+  PropertyPath,
 } from "@local/hash-graph-types/entity";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import isEqual from "lodash/isEqual";
 import zip from "lodash/zip";
 
 import type { AuthenticationContext } from "./authentication-context";
 
 export type CreateEntityParameters = Omit<
   GraphApiCreateEntityRequest,
-  "entityTypeIds" | "decisionTime" | "draft"
+  "entityTypeIds" | "decisionTime" | "draft" | "propertyMetadata"
 > & {
   ownedById: OwnedById;
   properties: EntityPropertiesObject;
   linkData?: LinkData;
   entityTypeId: VersionedUrl;
   entityUuid?: EntityUuid;
-  propertyMetadata?: PropertyMetadataMap;
+  propertyMetadata?: PropertyMetadataObject;
   draft?: boolean;
 };
 
@@ -70,7 +70,7 @@ type EntityData<
 > = {
   metadata: EntityMetadata & {
     confidence?: number;
-    properties?: PropertyMetadataMap;
+    properties?: PropertyMetadataObject;
   };
   properties: Properties;
   linkData?: LinkData & {
@@ -103,6 +103,46 @@ const isGraphApiEntity = <Properties extends EntityPropertiesObject>(
   );
 };
 
+export const flattenPropertyMetadata = (
+  metadata: PropertyMetadataObject,
+): {
+  path: PropertyPath;
+  metadata: Required<PropertyMetadataElement>["metadata"];
+}[] => {
+  const flattened: {
+    path: PropertyPath;
+    metadata: Required<PropertyMetadataElement>["metadata"];
+  }[] = [];
+
+  const visitElement = (
+    path: PropertyPath,
+    element: PropertyMetadataElement,
+  ): void => {
+    if ("value" in element && element.value) {
+      if (Array.isArray(element.value)) {
+        for (const [index, value] of element.value.entries()) {
+          visitElement([...path, index], value);
+        }
+      } else {
+        for (const [key, value] of typedEntries(element.value)) {
+          visitElement([...path, key], value);
+        }
+      }
+    }
+
+    if (element.metadata) {
+      flattened.push({
+        path,
+        metadata: element.metadata,
+      });
+    }
+  };
+
+  visitElement([], metadata);
+
+  return flattened;
+};
+
 export class Entity<
   Properties extends EntityPropertiesObject = EntityPropertiesObject,
 > {
@@ -121,6 +161,7 @@ export class Entity<
           entityTypeId: entity.metadata.entityTypeIds[0] as VersionedUrl,
           temporalVersioning: entity.metadata
             .temporalVersioning as EntityTemporalVersioningMetadata,
+          properties: entity.metadata.properties as PropertyMetadataObject,
           provenance: {
             ...entity.metadata.provenance,
             createdById: entity.metadata.provenance.createdById as CreatedById,
@@ -238,10 +279,32 @@ export class Entity<
     return this.#entity.properties;
   }
 
-  public propertyMetadata(path: PropertyPath): PropertyMetadata | undefined {
-    return this.#entity.metadata.properties?.find((map) =>
-      isEqual(map.path, path),
-    )?.metadata;
+  public propertyMetadata(
+    path: PropertyPath,
+  ): PropertyMetadataElement["metadata"] {
+    return path.reduce<PropertyMetadataElement | undefined>((map, key) => {
+      if (!map || !("value" in map) || !map.value) {
+        return undefined;
+      }
+      if (typeof key === "number") {
+        if (Array.isArray(map.value)) {
+          return map.value[key];
+        } else {
+          return undefined;
+        }
+      } else if (!Array.isArray(map.value)) {
+        return map.value[key];
+      } else {
+        return undefined;
+      }
+    }, this.#entity.metadata.properties)?.metadata;
+  }
+
+  public flattenedPropertiesMetadata(): {
+    path: PropertyPath;
+    metadata: PropertyMetadataElement["metadata"];
+  }[] {
+    return flattenPropertyMetadata(this.#entity.metadata.properties ?? {});
   }
 
   public get linkData(): LinkData | undefined {

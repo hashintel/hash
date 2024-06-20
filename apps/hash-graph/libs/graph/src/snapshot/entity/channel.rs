@@ -16,8 +16,7 @@ use crate::{
     snapshot::{entity::EntityRowBatch, EntitySnapshotRecord, SnapshotRestoreError},
     store::postgres::query::rows::{
         EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
-        EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityPropertyRow,
-        EntityTemporalMetadataRow,
+        EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
     },
 };
 
@@ -32,7 +31,6 @@ pub struct EntitySender {
     edition: Sender<EntityEditionRow>,
     is_of_type: Sender<EntityIsOfTypeRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
-    property: Sender<EntityPropertyRow<'static>>,
     left_links: Sender<EntityHasLeftEntityRow>,
     right_links: Sender<EntityHasRightEntityRow>,
 }
@@ -59,9 +57,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.temporal_metadata.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll temporal metadata sender")?;
-        ready!(self.property.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll property sender")?;
         ready!(self.left_links.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll left entity link edges sender")?;
@@ -96,18 +91,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 .attach_printable("could not send entity draft id")?;
         }
 
-        for (path, metadata) in entity.metadata.properties {
-            self.property
-                .start_send_unpin(EntityPropertyRow {
-                    entity_edition_id: entity.metadata.record_id.edition_id,
-                    property_path: path,
-                    confidence: metadata.confidence,
-                    provenance: metadata.provenance,
-                })
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity property")?;
-        }
-
         self.edition
             .start_send_unpin(EntityEditionRow {
                 entity_edition_id: entity.metadata.record_id.edition_id,
@@ -115,6 +98,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 archived: entity.metadata.archived,
                 confidence: entity.metadata.confidence,
                 provenance: entity.metadata.provenance.edition,
+                property_metadata: entity.metadata.properties,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send entity edition")?;
@@ -185,9 +169,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.temporal_metadata.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush temporal metadata sender")?;
-        ready!(self.property.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush property sender")?;
         ready!(self.left_links.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush left entity link edges sender")?;
@@ -214,9 +195,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.temporal_metadata.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close temporal metadata sender")?;
-        ready!(self.property.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close property sender")?;
         ready!(self.left_links.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close entity link edges sender")?;
@@ -260,7 +238,6 @@ pub fn channel(
     let (edition_tx, edition_rx) = mpsc::channel(chunk_size);
     let (type_tx, type_rx) = mpsc::channel(chunk_size);
     let (temporal_metadata_tx, temporal_metadata_rx) = mpsc::channel(chunk_size);
-    let (property_tx, property_rx) = mpsc::channel(chunk_size);
     let (left_links_tx, left_links_rx) = mpsc::channel(chunk_size);
     let (right_links_tx, right_links_rx) = mpsc::channel(chunk_size);
 
@@ -271,7 +248,6 @@ pub fn channel(
             edition: edition_tx,
             is_of_type: type_tx,
             temporal_metadata: temporal_metadata_tx,
-            property: property_tx,
             left_links: left_links_tx,
             right_links: right_links_tx,
         },
@@ -304,10 +280,6 @@ pub fn channel(
                 right_links_rx
                     .ready_chunks(chunk_size)
                     .map(EntityRowBatch::RightLinks)
-                    .boxed(),
-                property_rx
-                    .ready_chunks(chunk_size)
-                    .map(EntityRowBatch::Property)
                     .boxed(),
                 relation_rx
                     .ready_chunks(chunk_size)

@@ -4,7 +4,6 @@ use graph_types::{
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityProvenance, EntityRecordId, EntityUuid},
         link::LinkData,
-        Confidence, PropertyMetadata, PropertyMetadataMap, PropertyPath, PropertyProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -186,15 +185,13 @@ pub struct EntityRecordRowIndices {
 
     pub provenance: usize,
     pub edition_provenance: usize,
+    pub property_metadata: usize,
 
     pub entity_confidence: usize,
     pub left_entity_confidence: usize,
     pub right_entity_confidence: usize,
     pub left_entity_provenance: usize,
     pub right_entity_provenance: usize,
-    pub property_paths: usize,
-    pub property_confidences: usize,
-    pub property_provenance: usize,
 
     pub archived: usize,
 }
@@ -288,30 +285,9 @@ impl QueryRecordDecode for Entity {
             tracing::trace!(%entity_id, %distance, "Entity embedding was calculated");
         }
 
-        let property_metadata: PropertyMetadataMap = row
-            .get::<_, Option<Vec<PropertyPath<'_>>>>(indices.property_paths)
-            .unwrap_or_default()
-            .into_iter()
-            .zip(
-                row.get::<_, Option<Vec<Option<Confidence>>>>(indices.property_confidences)
-                    .unwrap_or_default(),
-            )
-            .zip(
-                row.get::<_, Option<Vec<PropertyProvenance>>>(indices.property_provenance)
-                    .unwrap_or_default(),
-            )
-            .filter_map(|((path, confidence), provenance)| {
-                (confidence.is_some() || !provenance.is_empty()).then(|| {
-                    (
-                        path.into_owned(),
-                        PropertyMetadata {
-                            confidence,
-                            provenance,
-                        },
-                    )
-                })
-            })
-            .collect();
+        let property_metadata = row
+            .get::<_, Option<_>>(indices.property_metadata)
+            .unwrap_or_default();
 
         Self {
             properties: row.get(indices.properties),
@@ -400,8 +376,8 @@ impl PostgresRecord for Entity {
             provenance: compiler.add_selection_path(&EntityQueryPath::Provenance(None)),
             edition_provenance: compiler
                 .add_selection_path(&EntityQueryPath::EditionProvenance(None)),
-            property_provenance: compiler
-                .add_selection_path(&EntityQueryPath::PropertyProvenance(None)),
+            property_metadata: compiler
+                .add_selection_path(&EntityQueryPath::PropertyMetadata(None)),
 
             entity_confidence: compiler.add_selection_path(&EntityQueryPath::EntityConfidence),
             left_entity_confidence: compiler
@@ -412,9 +388,6 @@ impl PostgresRecord for Entity {
                 .add_selection_path(&EntityQueryPath::RightEntityConfidence),
             right_entity_provenance: compiler
                 .add_selection_path(&EntityQueryPath::RightEntityProvenance),
-            property_paths: compiler.add_selection_path(&EntityQueryPath::PropertyPaths),
-            property_confidences: compiler
-                .add_selection_path(&EntityQueryPath::PropertyConfidences),
 
             archived: compiler.add_selection_path(&EntityQueryPath::Archived),
         }

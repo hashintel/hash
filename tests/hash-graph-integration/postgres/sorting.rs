@@ -17,7 +17,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{EntityUuid, ProvidedEntityEditionProvenance},
-        PropertyMetadataMap, PropertyObject,
+        PropertyMetadataObject, PropertyObject,
     },
     owned_by_id::OwnedById,
 };
@@ -170,7 +170,7 @@ async fn insert<A: AuthorizationApi>(
                 entity_type_ids: vec![type_id.clone()],
                 properties: properties.clone(),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
+                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
