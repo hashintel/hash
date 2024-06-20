@@ -17,7 +17,7 @@ export type Link = {
 
 const defaultModel: LlmParams["model"] = "claude-3-sonnet-20240229";
 
-export const extractLinksFromTextSystemPrompt = dedent(`
+export const extractLinksFromContentSystemPrompt = dedent(`
   You are a comprehensive link extractor agent.
 
   The user will provide you with:
@@ -84,7 +84,7 @@ const submitLinksTool: LlmToolDefinition<"submitLinks"> = {
   },
 };
 
-export const extractLinksFromText = async (params: {
+export const extractLinksFromContent = async (params: {
   content: WebPage;
   prompt: string;
   testingParams?: {
@@ -101,7 +101,7 @@ export const extractLinksFromText = async (params: {
   const response = await getLlmResponse(
     {
       systemPrompt:
-        testingParams?.systemPrompt ?? extractLinksFromTextSystemPrompt,
+        testingParams?.systemPrompt ?? extractLinksFromContentSystemPrompt,
       messages: [
         {
           role: "user",

@@ -11,9 +11,9 @@ import type { LlmParams } from "../../../shared/get-llm-response/types";
 import { optimizeSystemPrompt } from "../../../shared/optimize-system-prompt";
 import type { MetricDefinition } from "../../../shared/optimize-system-prompt/types";
 import {
-  extractLinksFromText,
-  extractLinksFromTextSystemPrompt,
-} from "./extract-links-from-text";
+  extractLinksFromContent,
+  extractLinksFromContentSystemPrompt,
+} from "./extract-links-from-content";
 
 const ftse350MetricPrompt = "Find all the FTSE350 stock market constituents.";
 
@@ -37,7 +37,7 @@ const ftse350Metric: MetricDefinition = {
   executeMetric: async (params) => {
     const { testingParams } = params;
 
-    const response = await extractLinksFromText({
+    const response = await extractLinksFromContent({
       content: ftse350WebPage,
       prompt: ftse350MetricPrompt,
       testingParams,
@@ -114,7 +114,7 @@ const marksAndSpencersAnnualInvestorsReport: MetricDefinition = {
   executeMetric: async (params) => {
     const { testingParams } = params;
 
-    const response = await extractLinksFromText({
+    const response = await extractLinksFromContent({
       content: marksAndSpencersInvestorsPage,
       prompt: marksAndSpencerInvestorsPrompt,
       testingParams,
@@ -185,7 +185,7 @@ const graphicsCardSpecificationMetric: MetricDefinition = {
   executeMetric: async (params) => {
     const { testingParams } = params;
 
-    const response = await extractLinksFromText({
+    const response = await extractLinksFromContent({
       content: gpuSpecsPage,
       prompt: graphicsCardSpecificationPrompt,
       testingParams,
@@ -258,7 +258,7 @@ test(
 
     await optimizeSystemPrompt({
       models,
-      initialSystemPrompt: extractLinksFromTextSystemPrompt,
+      initialSystemPrompt: extractLinksFromContentSystemPrompt,
       directoryPath: baseDirectoryPath,
       metrics,
       numberOfIterations: 4,
