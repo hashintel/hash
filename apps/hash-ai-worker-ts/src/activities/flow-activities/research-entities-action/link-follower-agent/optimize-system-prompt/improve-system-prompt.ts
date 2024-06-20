@@ -28,6 +28,7 @@ const systemPrompt = dedent(`
 
   Carefully examine all the metric results.
   Your task is to propose a new system prompt that will improve the performance of the LLM model across all metrics.
+  Be creative, you can propose a completely new prompt or a slight modification of the previous prompt.
 `);
 
 const proposeSystemPromptToolDefinition: LlmToolDefinition<"proposeSystemPrompt"> =
@@ -109,6 +110,7 @@ export const improveSystemPrompt = async (params: {
       toolChoice: proposeSystemPromptToolDefinition.name,
       tools: [proposeSystemPromptToolDefinition],
       systemPrompt,
+      temperature: 1,
     },
     {
       userAccountId: userAuthentication.actorId,
