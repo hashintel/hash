@@ -39,7 +39,7 @@ import { updateStateFromInferredFacts } from "./infer-facts-from-web-page-worker
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
-const model: LlmParams["model"] = "claude-3-sonnet-20240229";
+const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
 const generateSystemMessagePrefix = (params: {
   input: InferFactsFromWebPageWorkerAgentInput;

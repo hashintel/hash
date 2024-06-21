@@ -89,7 +89,7 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
   },
 };
 
-const defaultModel: LlmParams["model"] = "claude-3-opus-20240229";
+const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
 export const deduplicateEntities = async (params: {
   entities: (LocalEntitySummary | ExistingEntitySummary)[];

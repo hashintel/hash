@@ -18,7 +18,9 @@ import type { LlmAssistantMessage, LlmMessage } from "./llm-message";
 export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
   description: string;
-  inputSchema: JSONSchema;
+  inputSchema: Omit<JSONSchema, "type"> & {
+    type: "object";
+  };
   sanitizeInputBeforeValidation?: (rawInput: object) => object;
 };
 
@@ -130,6 +132,11 @@ export type LlmErrorResponse =
       status: "api-error";
       openAiApiError?: OpenAiApiError;
       anthropicApiError?: AnthropicApiError;
+    }
+  | {
+      status: "exceeded-maximum-output-tokens";
+      requestMaxTokens?: number;
+      response: AnthropicMessagesCreateResponse | OpenAiChatCompletion;
     }
   | {
       status: "exceeded-usage-limit";

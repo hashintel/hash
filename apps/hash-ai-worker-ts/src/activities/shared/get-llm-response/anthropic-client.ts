@@ -2,14 +2,12 @@ import AnthropicBedrock from "@anthropic-ai/bedrock-sdk";
 import Anthropic from "@anthropic-ai/sdk";
 import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources";
 import type {
-  ImageBlockParam,
   Message,
   MessageCreateParamsBase,
   MessageParam,
-  TextBlockParam,
+  ToolUseBlock,
 } from "@anthropic-ai/sdk/resources/messages";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import type { JSONSchema } from "openai/lib/jsonschema";
 
 const anthropicApiKey = getRequiredEnv("ANTHROPIC_API_KEY");
 
@@ -17,13 +15,8 @@ export const anthropic = new Anthropic({
   apiKey: anthropicApiKey,
 });
 
-export type AnthropicToolDefinition = {
-  name: string;
-  description: string;
-  input_schema: JSONSchema;
-};
-
 const anthropicMessageModels = [
+  "claude-3-5-sonnet-20240620",
   "claude-3-opus-20240229",
   "claude-3-sonnet-20240229",
   "claude-3-haiku-20240307",
@@ -44,9 +37,10 @@ export const anthropicMessageModelToContextWindow: Record<
   "claude-3-haiku-20240307": 200_000,
   "claude-3-sonnet-20240229": 200_000,
   "claude-3-opus-20240229": 200_000,
+  "claude-3-5-sonnet-20240620": 200_000,
 };
 
-/** @see https://docs.anthropic.com/claude/docs/models-overview#model-comparison */
+/** @see https://docs.anthropic.com/en/docs/about-claude/models#model-comparison */
 export const anthropicMessageModelToMaxOutput: Record<
   AnthropicMessageModel,
   number
@@ -54,51 +48,23 @@ export const anthropicMessageModelToMaxOutput: Record<
   "claude-3-haiku-20240307": 4096,
   "claude-3-sonnet-20240229": 4096,
   "claude-3-opus-20240229": 4096,
-};
-
-/**
- * @todo: deprecate these types and function when the Anthropic SDK is updated
- * to account for the new `tools` parameter.
- */
-type ToolUseContent = {
-  type: "tool_use";
-  id: string;
-  name: string;
-  input: object;
-};
-
-type ToolResultContent = {
-  type: "tool_result";
-  tool_use_id: string;
-  content: string;
-  is_error?: true;
-};
-
-export type MessageContent =
-  | (TextBlockParam | ImageBlockParam | ToolUseContent | ToolResultContent)[]
-  | string;
-
-export type AnthropicMessage = Omit<MessageParam, "content"> & {
-  content: MessageContent;
+  "claude-3-5-sonnet-20240620": 4096,
 };
 
 export type AnthropicMessagesCreateParams = {
-  tools?: AnthropicToolDefinition[];
   tool_choice?:
     | { type: "tool"; name: string }
     | { type: "any" }
     | { type: "auto" };
   model: AnthropicMessageModel;
-  messages: AnthropicMessage[];
+  messages: MessageParam[];
 } & Omit<MessageCreateParamsNonStreaming, "model" | "messages">;
 
-type AnthropicMessagesCreateResponseContent =
-  | Message["content"][number]
-  | ToolUseContent;
+type AnthropicMessagesCreateResponseContent = Message["content"][number];
 
-export const isAnthropicContentToolUseContent = (
+export const isAnthropicContentToolUseBlock = (
   content: AnthropicMessagesCreateResponseContent,
-): content is ToolUseContent => content.type === "tool_use";
+): content is ToolUseBlock => content.type === "tool_use";
 
 export type AnthropicMessagesCreateResponse = Omit<
   Message,
@@ -129,6 +95,7 @@ const anthropicBedrockModels = [
   "anthropic.claude-3-sonnet-20240229-v1:0",
   "anthropic.claude-3-haiku-20240307-v1:0",
   "anthropic.claude-3-opus-20240229-v1:0",
+  "anthropic.claude-3-5-sonnet-20240620-v1:0",
 ] as const;
 
 type AnthropicBedrockModel = (typeof anthropicBedrockModels)[number];
@@ -141,11 +108,16 @@ export const anthropicModelToBedrockModel: Record<
   "claude-3-sonnet-20240229": "anthropic.claude-3-sonnet-20240229-v1:0",
   "claude-3-haiku-20240307": "anthropic.claude-3-haiku-20240307-v1:0",
   "claude-3-opus-20240229": "anthropic.claude-3-opus-20240229-v1:0",
+  "claude-3-5-sonnet-20240620": "anthropic.claude-3-5-sonnet-20240620-v1:0",
 };
 
 const anthropicApiProviders = ["anthropic", "amazon-bedrock"] as const;
 
 export type AnthropicApiProvider = (typeof anthropicApiProviders)[number];
+
+type AnthropicBedrockMessagesCreateParams = Parameters<
+  typeof anthropicBedrockClient.messages.create
+>[0];
 
 export const createAnthropicMessagesWithTools = async (params: {
   payload: AnthropicMessagesCreateParams;
@@ -163,7 +135,11 @@ export const createAnthropicMessagesWithTools = async (params: {
     const bedrockModel = anthropicModelToBedrockModel[payload.model];
     response = (await anthropicBedrockClient.messages.create(
       {
-        ...(payload as MessageCreateParamsNonStreaming),
+        /**
+         * @todo: replace with `MessageCreateParamsNonStreaming` once the Bedrock SDK
+         * has been updated to be in sync with the Anthropic SDK.
+         */
+        ...(payload as AnthropicBedrockMessagesCreateParams),
         model: bedrockModel,
       },
       {

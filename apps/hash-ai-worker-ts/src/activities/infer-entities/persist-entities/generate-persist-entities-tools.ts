@@ -142,7 +142,7 @@ export const generatePersistEntitiesTools = (params: {
             e.g. by updating an entity's 'description' property to incorporate new information.
         `),
       inputSchema: {
-        type: "object",
+        type: "object" as const,
         properties: entityTypes.reduce<Record<string, JSONSchema>>(
           (acc, { schema }) => {
             const entityTypeId = schema.$id;
