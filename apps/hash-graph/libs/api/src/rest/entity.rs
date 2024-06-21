@@ -275,7 +275,7 @@ impl TryFrom<CreateEntityRequest> for CreateEntityParams<Vec<EntityRelationAndSu
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the created entity", body = EntityMetadata),
+        (status = 200, content_type = "application/json", description = "The created entity", body = Entity),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity Type URL was not found"),
@@ -292,7 +292,7 @@ async fn create_entity<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<EntityMetadata>, Response>
+) -> Result<Json<Entity>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -325,7 +325,7 @@ where
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the created entity", body = [EntityMetadata]),
+        (status = 200, content_type = "application/json", description = "The created entities", body = [Entity]),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity Type URL was not found"),
@@ -342,7 +342,7 @@ async fn create_entities<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<Vec<EntityMetadata>>, Response>
+) -> Result<Json<Vec<Entity>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,

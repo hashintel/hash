@@ -37,7 +37,7 @@ pub enum Property {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(tag = "type", deny_unknown_fields)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum PropertyWithMetadata {
     Array {
         #[serde(default, skip_serializing_if = "Vec::is_empty")]

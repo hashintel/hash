@@ -839,11 +839,11 @@
         },
         "responses": {
           "200": {
-            "description": "The metadata of the created entity",
+            "description": "The created entity",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EntityMetadata"
+                  "$ref": "#/components/schemas/Entity"
                 }
               }
             }
@@ -945,13 +945,13 @@
         },
         "responses": {
           "200": {
-            "description": "The metadata of the created entity",
+            "description": "The created entities",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/EntityMetadata"
+                    "$ref": "#/components/schemas/Entity"
                   }
                 }
               }

@@ -117,7 +117,7 @@ async fn insert() {
         provenance: ProvidedEntityEditionProvenance::default(),
     };
 
-    let metadata = api
+    let entities = api
         .create_entities(
             api.account_id,
             vec![alice_entity, friendship_entity, bob_entity],
@@ -125,6 +125,9 @@ async fn insert() {
         .await
         .expect("could not create entity");
 
-    assert_eq!(metadata[0].record_id.entity_id.entity_uuid, alice_id);
-    assert_eq!(metadata[2].record_id.entity_id.entity_uuid, bob_id);
+    assert_eq!(
+        entities[0].metadata.record_id.entity_id.entity_uuid,
+        alice_id
+    );
+    assert_eq!(entities[2].metadata.record_id.entity_id.entity_uuid, bob_id);
 }

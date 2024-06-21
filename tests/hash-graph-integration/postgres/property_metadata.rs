@@ -154,7 +154,7 @@ async fn initial_metadata() {
         },
     };
 
-    let entity_metadata = api
+    let entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -177,8 +177,8 @@ async fn initial_metadata() {
         .await
         .expect("could not create entity");
 
-    assert_eq!(entity_metadata.confidence, Confidence::new(0.5));
-    assert_eq!(entity_metadata.properties, entity_property_metadata);
+    assert_eq!(entity.metadata.confidence, Confidence::new(0.5));
+    assert_eq!(entity.metadata.properties, entity_property_metadata);
 
     let name_property_metadata = PropertyMetadataElement::Value {
         metadata: ValueMetadata {
@@ -191,7 +191,7 @@ async fn initial_metadata() {
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity_metadata.record_id.entity_id,
+                entity_id: entity.metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: once(PropertyPathElement::Property(Cow::Owned(
                         name_property_type_id(),
@@ -226,7 +226,7 @@ async fn initial_metadata() {
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity_metadata.record_id.entity_id,
+                entity_id: entity.metadata.record_id.entity_id,
                 properties: Vec::new(),
                 entity_type_ids: HashSet::new(),
                 archived: None,
@@ -252,7 +252,7 @@ async fn no_initial_metadata() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
-    let entity_metadata = api
+    let entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -272,9 +272,9 @@ async fn no_initial_metadata() {
         .await
         .expect("could not create entity");
 
-    assert!(entity_metadata.confidence.is_none());
+    assert!(entity.metadata.confidence.is_none());
     assert_eq!(
-        entity_metadata.properties,
+        entity.metadata.properties,
         PropertyMetadataObject {
             value: HashMap::from([(
                 name_property_type_id(),
@@ -294,7 +294,7 @@ async fn no_initial_metadata() {
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity_metadata.record_id.entity_id,
+                entity_id: entity.metadata.record_id.entity_id,
                 properties: Vec::new(),
                 entity_type_ids: HashSet::new(),
                 archived: None,
@@ -307,13 +307,13 @@ async fn no_initial_metadata() {
         .await
         .expect("could not update entity");
 
-    assert_eq!(entity_metadata, updated_entity.metadata);
+    assert_eq!(entity, updated_entity);
 
     let updated_entity = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity_metadata.record_id.entity_id,
+                entity_id: entity.metadata.record_id.entity_id,
                 properties: Vec::new(),
                 entity_type_ids: HashSet::new(),
                 archived: None,
@@ -328,7 +328,7 @@ async fn no_initial_metadata() {
 
     assert_eq!(updated_entity.metadata.confidence, Confidence::new(0.5));
     assert_eq!(
-        entity_metadata.properties,
+        entity.metadata.properties,
         PropertyMetadataObject {
             value: HashMap::from([(
                 name_property_type_id(),
@@ -348,7 +348,7 @@ async fn no_initial_metadata() {
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity_metadata.record_id.entity_id,
+                entity_id: entity.metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                     value: Property::Value(json!("Alice")),
@@ -393,7 +393,7 @@ async fn no_initial_metadata() {
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity_metadata.record_id.entity_id,
+                entity_id: entity.metadata.record_id.entity_id,
                 properties: Vec::new(),
                 entity_type_ids: HashSet::new(),
                 archived: None,
@@ -453,7 +453,7 @@ async fn properties_add() {
         )
         .await
         .expect("could not create entity");
-    let entity_id = entity.record_id.entity_id;
+    let entity_id = entity.metadata.record_id.entity_id;
 
     let path: PropertyPath = once(PropertyPathElement::from(age_property_type_id())).collect();
     let updated_entity = api
@@ -538,7 +538,7 @@ async fn properties_remove() {
         )
         .await
         .expect("could not create entity");
-    let entity_id = entity.record_id.entity_id;
+    let entity_id = entity.metadata.record_id.entity_id;
 
     let interests_path: PropertyPath =
         once(PropertyPathElement::from(interests_property_type_id())).collect();

@@ -99,7 +99,7 @@ async fn properties_add() {
         )
         .await
         .expect("could not create entity");
-    let entity_id = entity.record_id.entity_id;
+    let entity_id = entity.metadata.record_id.entity_id;
 
     api.patch_entity(
         api.account_id,
@@ -175,7 +175,7 @@ async fn properties_remove() {
         )
         .await
         .expect("could not create entity");
-    let entity_id = entity.record_id.entity_id;
+    let entity_id = entity.metadata.record_id.entity_id;
 
     api.patch_entity(
         api.account_id,
@@ -247,7 +247,7 @@ async fn properties_replace() {
         )
         .await
         .expect("could not create entity");
-    let entity_id = entity.record_id.entity_id;
+    let entity_id = entity.metadata.record_id.entity_id;
 
     api.patch_entity(
         api.account_id,
@@ -323,7 +323,7 @@ async fn type_ids() {
         )
         .await
         .expect("could not create entity");
-    let entity_id = entity.record_id.entity_id;
+    let entity_id = entity.metadata.record_id.entity_id;
 
     api.patch_entity(
         api.account_id,

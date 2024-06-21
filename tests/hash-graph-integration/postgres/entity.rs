@@ -52,7 +52,7 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    let metadata = api
+    let entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -82,7 +82,7 @@ async fn insert() {
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -122,7 +122,7 @@ async fn query() {
         .await
         .expect("could not seed database");
 
-    let metadata = api
+    let entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -153,7 +153,7 @@ async fn query() {
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -196,7 +196,7 @@ async fn update() {
         .await
         .expect("could not seed database:");
 
-    let v1_metadata = api
+    let v1_entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -222,11 +222,11 @@ async fn update() {
         .await
         .expect("could not create entity");
 
-    let v2 = api
+    let v2_entity = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: v1_metadata.record_id.entity_id,
+                entity_id: v1_entity.metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: PropertyPath::default(),
                     value: Property::Object(page_v2.clone()),
@@ -247,7 +247,7 @@ async fn update() {
         .count_entities(
             api.account_id,
             CountEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v2.metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -266,7 +266,7 @@ async fn update() {
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v2.metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(None, None),
@@ -289,13 +289,13 @@ async fn update() {
     assert_eq!(entity_v2.properties.properties(), page_v2.properties());
 
     let ClosedTemporalBound::Inclusive(entity_v1_timestamp) =
-        *v1_metadata.temporal_versioning.decision_time.start();
+        *v1_entity.metadata.temporal_versioning.decision_time.start();
 
     let mut response_v1 = api
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v1_metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(v1_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -319,12 +319,12 @@ async fn update() {
     assert_eq!(entity_v1.properties.properties(), page_v1.properties());
 
     let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
-        *v2.metadata.temporal_versioning.decision_time.start();
+        *v2_entity.metadata.temporal_versioning.decision_time.start();
     let mut response_v2 = api
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v2.metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(

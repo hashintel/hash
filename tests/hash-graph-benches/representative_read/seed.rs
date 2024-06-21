@@ -205,31 +205,29 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
                 entity_uuids[*left_entity_index]
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
-                    .map(
-                        |(left_entity_metadata, right_entity_metadata)| CreateEntityParams {
-                            owned_by_id: OwnedById::new(account_id.into_uuid()),
-                            entity_uuid: None,
-                            decision_time: None,
-                            entity_type_ids: HashSet::from([entity_type_id.clone()]),
-                            properties: PropertyWithMetadataObject::from_parts(
-                                PropertyObject::empty(),
-                                None,
-                            )
-                            .expect("could not create property with metadata object"),
-                            confidence: None,
-                            link_data: Some(LinkData {
-                                left_entity_id: left_entity_metadata.record_id.entity_id,
-                                right_entity_id: right_entity_metadata.record_id.entity_id,
-                                left_entity_confidence: None,
-                                left_entity_provenance: PropertyProvenance::default(),
-                                right_entity_confidence: None,
-                                right_entity_provenance: PropertyProvenance::default(),
-                            }),
-                            draft: false,
-                            relationships: [],
-                            provenance: ProvidedEntityEditionProvenance::default(),
-                        },
-                    )
+                    .map(|(left_entity, right_entity)| CreateEntityParams {
+                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        entity_uuid: None,
+                        decision_time: None,
+                        entity_type_ids: HashSet::from([entity_type_id.clone()]),
+                        properties: PropertyWithMetadataObject::from_parts(
+                            PropertyObject::empty(),
+                            None,
+                        )
+                        .expect("could not create property with metadata object"),
+                        confidence: None,
+                        link_data: Some(LinkData {
+                            left_entity_id: left_entity.metadata.record_id.entity_id,
+                            right_entity_id: right_entity.metadata.record_id.entity_id,
+                            left_entity_confidence: None,
+                            left_entity_provenance: PropertyProvenance::default(),
+                            right_entity_confidence: None,
+                            right_entity_provenance: PropertyProvenance::default(),
+                        }),
+                        draft: false,
+                        relationships: [],
+                        provenance: ProvidedEntityEditionProvenance::default(),
+                    })
                     .collect(),
             )
             .await
