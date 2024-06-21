@@ -199,7 +199,7 @@ export const handleQueryPdfToolCall = async (params: {
   await updateStateFromInferredFacts({
     state,
     inferredFacts: facts,
-    inferredFactsAboutEntities: entitySummaries,
+    entitySummaries: entitySummaries,
     filesUsedToInferFacts: [
       {
         url: fileUrl,

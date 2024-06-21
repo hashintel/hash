@@ -32,6 +32,7 @@ import { inferFactsFromWebPageWorkerAgent } from "./research-entities-action/inf
 import type { AccessedRemoteFile } from "./research-entities-action/infer-facts-from-web-page-worker-agent/types";
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent";
 import type { CompletedToolCall } from "./research-entities-action/types";
+import { nullReturns } from "./research-entities-action/types";
 import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "./shared/infer-facts-from-text/types";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
@@ -79,31 +80,36 @@ const adjustDuplicates = (params: {
 };
 
 const updateStateFromInferredFacts = async (params: {
-  skipDeduplication: boolean;
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
   inferredFacts: Fact[];
-  inferredFactsAboutEntities: LocalEntitySummary[];
+  entitySummaries: LocalEntitySummary[];
   filesUsedToInferFacts: AccessedRemoteFile[];
 }) => {
   const {
     input,
     state,
-    inferredFactsAboutEntities,
+    entitySummaries,
     inferredFacts,
     filesUsedToInferFacts,
-    skipDeduplication,
   } = params;
 
-  if (skipDeduplication) {
-    state.inferredFactsAboutEntities = inferredFactsAboutEntities;
+  if (
+    (input.existingEntities ?? []).length === 0 &&
+    state.entitySummaries.length === 0
+  ) {
+    /**
+     * If there are no existing inferred facts about entities, there
+     * is no need to deduplicate entities.
+     */
+    state.entitySummaries = entitySummaries;
     state.inferredFacts = inferredFacts;
   } else {
     const { duplicates } = await deduplicateEntities({
       entities: [
         ...(input.existingEntitySummaries ?? []),
-        ...inferredFactsAboutEntities,
-        ...state.inferredFactsAboutEntities,
+        ...entitySummaries,
+        ...state.entitySummaries,
       ],
     });
 
@@ -146,9 +152,9 @@ const updateStateFromInferredFacts = async (params: {
     });
 
     state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
-    state.inferredFactsAboutEntities = [
-      ...state.inferredFactsAboutEntities,
-      ...inferredFactsAboutEntities,
+    state.entitySummaries = [
+      ...state.entitySummaries,
+      ...entitySummaries,
     ].filter(
       ({ localId }) =>
         !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
@@ -168,17 +174,6 @@ const updateStateFromInferredFacts = async (params: {
             localEntityId: duplicate.canonicalId,
           }
         : proposedEntity;
-    });
-    /**
-     * Account for any previously submitted entity ID which has been marked
-     * as a duplicate.
-     */
-    state.submittedEntityIds = state.submittedEntityIds.map((entityId) => {
-      const duplicate = duplicates.find(({ duplicateIds }) =>
-        duplicateIds.includes(entityId),
-      );
-
-      return duplicate ? duplicate.canonicalId : entityId;
     });
   }
 
@@ -213,16 +208,19 @@ export const researchEntitiesAction: FlowActionActivity<{
       });
 
     state = {
-      plan: initialPlan,
-      proposedEntities: [],
-      submittedEntityIds: [],
-      previousCalls: [],
-      inferredFactsAboutEntities: [],
+      entitySummaries: [],
       filesUsedToInferFacts: [],
-      inferredFacts: [],
-      hasConductedCheckStep: false,
       filesUsedToProposeEntities: [],
+      hasConductedCheckStep: false,
+      inferredFacts: [],
+      plan: initialPlan,
+      previousCalls: [],
+      proposedEntities: [],
       questionsAndAnswers,
+      submittedEntityIds: [],
+      webPagesNotVisited: [],
+      webPageUrlsVisited: [],
+      webQueriesMade: [],
     };
 
     if (testingParams?.persistState) {
@@ -236,7 +234,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       state,
     });
 
-  const getSubmittedProposedEntities = () =>
+  const getSubmittedEntities = () =>
     state.proposedEntities.filter(({ localEntityId }) =>
       state.submittedEntityIds.includes(localEntityId),
     );
@@ -270,8 +268,9 @@ export const researchEntitiesAction: FlowActionActivity<{
             state.plan = plan;
 
             return {
+              ...nullReturns,
               ...toolCall,
-              output: `The plan has been successfully updated.`,
+              message: `The plan has been successfully updated.`,
             };
           } else if (toolCall.name === "requestHumanInput") {
             const { questions } =
@@ -280,7 +279,8 @@ export const researchEntitiesAction: FlowActionActivity<{
             if (questions.length === 0) {
               return {
                 ...toolCall,
-                output: "No questions were provided.",
+                ...nullReturns,
+                message: "No questions were provided.",
                 isError: true,
               };
             }
@@ -299,59 +299,21 @@ export const researchEntitiesAction: FlowActionActivity<{
               (state.questionsAndAnswers ?? "") + response;
 
             return {
+              ...nullReturns,
               ...toolCall,
-              output: response,
-            };
-          } else if (toolCall.name === "submitProposedEntities") {
-            const { entityIds } =
-              toolCall.input as CoordinatorToolCallArguments["submitProposedEntities"];
-
-            const invalidEntityIds = entityIds.filter(
-              (entityId) =>
-                !state.proposedEntities.some(
-                  ({ localEntityId }) => localEntityId === entityId,
-                ),
-            );
-
-            if (invalidEntityIds.length > 0) {
-              return {
-                ...toolCall,
-                output: dedent(`
-                  The following entity IDs do not correspond to any proposed entities: ${JSON.stringify(
-                    invalidEntityIds,
-                  )}
-
-                  ${
-                    state.proposedEntities.length > 0
-                      ? `Valid entity IDs are: ${JSON.stringify(
-                          state.proposedEntities.map(
-                            ({ localEntityId }) => localEntityId,
-                          ),
-                        )}`
-                      : `You haven't proposed any entities so far with the "proposeEntitiesFromFacts" tool.`
-                  }
-                `),
-                isError: true,
-              };
-            }
-
-            state.submittedEntityIds.push(...entityIds);
-
-            return {
-              ...toolCall,
-              output: `The entities with IDs ${JSON.stringify(
-                entityIds,
-              )} were successfully submitted.`,
+              message: response,
             };
           } else if (toolCall.name === "webSearch") {
-            const { output } = await handleWebSearchToolCall({
+            const webPageSummaries = await handleWebSearchToolCall({
               input:
                 toolCall.input as CoordinatorToolCallArguments["webSearch"],
             });
 
             return {
+              ...nullReturns,
               ...toolCall,
-              output,
+              message: "Search successful",
+              webPagesFromSearchQuery: webPageSummaries,
             };
           } else if (toolCall.name === "inferFactsFromWebPages") {
             const { webPages } =
@@ -384,7 +346,8 @@ export const researchEntitiesAction: FlowActionActivity<{
             ) {
               return {
                 ...toolCall,
-                output: dedent(`
+                ...nullReturns,
+                message: dedent(`
                   ${
                     invalidEntityTypeIds.length > 0
                       ? dedent(`
@@ -439,7 +402,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             let outputMessage = "";
 
             const inferredFacts: Fact[] = [];
-            const inferredFactsAboutEntities: LocalEntitySummary[] = [];
+            const entitySummaries: LocalEntitySummary[] = [];
             const filesUsedToInferFacts: AccessedRemoteFile[] = [];
 
             for (const { status, url } of statusesWithUrl) {
@@ -452,15 +415,13 @@ export const researchEntitiesAction: FlowActionActivity<{
               const content = status.contents[0]!;
 
               inferredFacts.push(...content.inferredFacts);
-              inferredFactsAboutEntities.push(
-                ...content.inferredFactsAboutEntities,
-              );
+              entitySummaries.push(...content.entitySummaries);
               filesUsedToInferFacts.push(...content.filesUsedToInferFacts);
 
               outputMessage += `Inferred ${
                 content.inferredFacts.length
               } facts on the web page with url ${url} for the following entities: ${stringify(
-                content.inferredFactsAboutEntities.map(({ name, summary }) => ({
+                content.entitySummaries.map(({ name, summary }) => ({
                   name,
                   summary,
                 })),
@@ -476,21 +437,13 @@ export const researchEntitiesAction: FlowActionActivity<{
                 conduct additional research per entity in parallel.
             `);
 
-            if (inferredFactsAboutEntities.length > 0) {
+            if (entitySummaries.length > 0) {
               await updateStateFromInferredFacts({
                 input,
                 state,
                 inferredFacts,
-                inferredFactsAboutEntities,
+                entitySummaries,
                 filesUsedToInferFacts,
-                /**
-                 * Skip deduplication if facts were only inferred from a single web page,
-                 * and there are no existing entities or inferred facts about entities.
-                 */
-                skipDeduplication:
-                  webPages.length === 1 &&
-                  (input.existingEntities ?? []).length === 0 &&
-                  state.inferredFactsAboutEntities.length === 0,
               });
 
               return {
@@ -507,7 +460,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             const { entityIds } =
               toolCall.input as CoordinatorToolCallArguments["proposeEntitiesFromFacts"];
 
-            const entitySummaries = state.inferredFactsAboutEntities.filter(
+            const entitySummaries = state.entitySummaries.filter(
               ({ localId }) => entityIds.includes(localId),
             );
 
@@ -591,10 +544,9 @@ export const researchEntitiesAction: FlowActionActivity<{
                     ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
                   );
 
-                  const relevantEntities =
-                    state.inferredFactsAboutEntities.filter(({ localId }) =>
-                      relevantEntityIds.includes(localId),
-                    );
+                  const relevantEntities = state.entitySummaries.filter(
+                    ({ localId }) => relevantEntityIds.includes(localId),
+                  );
 
                   const existingFactsAboutRelevantEntities =
                     state.inferredFacts.filter(({ subjectEntityLocalId }) =>
@@ -626,13 +578,13 @@ export const researchEntitiesAction: FlowActionActivity<{
             );
 
             const inferredFacts: Fact[] = [];
-            const inferredFactsAboutEntities: LocalEntitySummary[] = [];
+            const entitySummaries: LocalEntitySummary[] = [];
             const filesUsedToInferFacts: AccessedRemoteFile[] = [];
 
             let output: string = "";
 
             for (const { response, subTask } of responsesWithSubTask) {
-              inferredFactsAboutEntities.push(...response.discoveredEntities);
+              entitySummaries.push(...response.discoveredEntities);
               inferredFacts.push(...response.discoveredFacts);
               filesUsedToInferFacts.push(...response.filesUsedToInferFacts);
 
@@ -651,21 +603,13 @@ export const researchEntitiesAction: FlowActionActivity<{
               output += `The sub-task with goal "${goal}" was rejected for the following reason: ${reason}\n`;
             }
 
-            if (inferredFactsAboutEntities.length > 0) {
+            if (entitySummaries.length > 0) {
               await updateStateFromInferredFacts({
                 input,
                 state,
                 inferredFacts,
-                inferredFactsAboutEntities,
+                entitySummaries,
                 filesUsedToInferFacts,
-                /**
-                 * Skip deduplication if facts were only gathered in a single sub-task,
-                 * and there are no existing entities or inferred facts about entities.
-                 */
-                skipDeduplication:
-                  acceptedSubTasks.length === 1 &&
-                  (input.existingEntities ?? []).length === 0 &&
-                  state.inferredFactsAboutEntities.length === 0,
               });
             }
 
@@ -681,11 +625,45 @@ export const researchEntitiesAction: FlowActionActivity<{
                 warnings.push("No entities have been proposed.");
               }
 
-              const submittedProposedEntities = getSubmittedProposedEntities();
+              const { entityIds } =
+                toolCall.input as CoordinatorToolCallArguments["complete"];
+
+              const invalidEntityIds = entityIds.filter(
+                (entityId) =>
+                  !state.proposedEntities.some(
+                    ({ localEntityId }) => localEntityId === entityId,
+                  ),
+              );
+
+              if (invalidEntityIds.length > 0) {
+                return {
+                  ...nullReturns,
+                  ...toolCall,
+                  message: dedent(`
+                  The following entity IDs do not correspond to any proposed entities: ${JSON.stringify(
+                    invalidEntityIds,
+                  )}
+
+                  ${
+                    state.proposedEntities.length > 0
+                      ? `Valid entity IDs are: ${JSON.stringify(
+                          state.proposedEntities.map(
+                            ({ localEntityId }) => localEntityId,
+                          ),
+                        )}`
+                      : `You haven't discovered any entities yet.`
+                  }
+                `),
+                  isError: true,
+                };
+              }
+
+              state.submittedEntityIds = entityIds;
+              const submittedEntities = getSubmittedEntities();
 
               const missingEntityTypes = input.entityTypes.filter(
                 ({ $id }) =>
-                  !submittedProposedEntities.some(
+                  !submittedEntities.some(
                     ({ entityTypeId }) => entityTypeId === $id,
                   ),
               );
@@ -700,7 +678,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
               const missingLinkEntityTypes = input.linkEntityTypes?.filter(
                 ({ $id }) =>
-                  !submittedProposedEntities.some(
+                  !submittedEntities.some(
                     ({ entityTypeId }) => entityTypeId === $id,
                   ),
               );
@@ -720,8 +698,9 @@ export const researchEntitiesAction: FlowActionActivity<{
                   `Conducting check step with warnings: ${stringify(warnings)}`,
                 );
                 return {
+                  ...nullReturns,
                   ...toolCall,
-                  output: dedent(`
+                  message: dedent(`
                     Are you sure the research task is complete considering the following warnings?
 
                     Warnings:
@@ -739,12 +718,36 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             return {
               ...toolCall,
-              output: `The research task has been completed.`,
+              message: `The research task has been completed.`,
             };
           }
 
           throw new Error(`Unimplemented tool call: ${toolCall.name}`);
         },
+      ),
+    );
+
+    const webPageUrlsVisited = completedToolCalls.flatMap(
+      ({ webPageUrlsVisited: urlsVisited }) => urlsVisited ?? [],
+    );
+
+    state.webPageUrlsVisited = [
+      ...new Set([...webPageUrlsVisited, ...state.webPageUrlsVisited]),
+    ];
+
+    const newWebPages = completedToolCalls
+      .flatMap(({ webPagesFromSearchQuery }) => webPagesFromSearchQuery ?? [])
+      .filter(
+        (webPage) =>
+          !state.webPagesNotVisited.find((page) => page.url === webPage.url) &&
+          !state.webPageUrlsVisited.includes(webPage.url),
+      );
+
+    state.webPagesNotVisited.push(...newWebPages);
+
+    state.webQueriesMade.push(
+      ...completedToolCalls.flatMap(
+        ({ webQueriesMade }) => webQueriesMade ?? [],
       ),
     );
 
@@ -754,7 +757,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
     /**
      * Check whether the research task has completed after processing the tool calls,
-     * incase the agent has made other tool calls at the same time as the "complete" tool call.
+     * in case the agent has made other tool calls at the same time as the "complete" tool call.
      */
     if (isCompleted) {
       if (state.hasConductedCheckStep) {
@@ -785,14 +788,14 @@ export const researchEntitiesAction: FlowActionActivity<{
     toolCalls: initialToolCalls,
   });
 
-  const submittedProposedEntities = getSubmittedProposedEntities();
+  const submittedEntities = getSubmittedEntities();
 
-  const filesUsedToProposeSubmittedEntities = submittedProposedEntities
-    .flatMap((submittedProposedEntity) => {
+  const filesUsedToProposeSubmittedEntities = submittedEntities
+    .flatMap((submittedEntity) => {
       const sourcesUsedToProposeEntity = [
-        ...(submittedProposedEntity.provenance?.sources ?? []),
+        ...(submittedEntity.provenance?.sources ?? []),
         ...flattenPropertyMetadata(
-          submittedProposedEntity.propertyMetadata ?? {},
+          submittedEntity.propertyMetadata ?? {},
         ).flatMap(({ metadata }) => metadata.provenance?.sources ?? []),
       ];
 
@@ -852,9 +855,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     })),
   );
 
-  logger.debug(
-    `Submitted Proposed Entities: ${stringify(submittedProposedEntities)}`,
-  );
+  logger.debug(`Submitted Entities: ${stringify(submittedEntities)}`);
   logger.debug(`File Entities Proposed: ${stringify(fileEntityProposals)}`);
 
   return {
@@ -867,7 +868,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
             payload: {
               kind: "ProposedEntity",
-              value: [...submittedProposedEntities, ...fileEntityProposals],
+              value: [...submittedEntities, ...fileEntityProposals],
             },
           },
         ],

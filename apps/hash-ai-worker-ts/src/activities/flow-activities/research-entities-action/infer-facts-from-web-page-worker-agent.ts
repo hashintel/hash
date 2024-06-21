@@ -256,7 +256,7 @@ const getNextToolCalls = async (params: {
       )}
       ${generatePreviouslyInferredFactsSystemPromptMessage(state)}
       ${
-        state.inferredFactsAboutEntities.length > 0
+        state.entitySummaries.length > 0
           ? `If the facts about entities satisfy the user's research prompt, you may call the "complete" tool.`
           : ""
       }
@@ -345,7 +345,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
   };
 }): Promise<
   Status<{
-    inferredFactsAboutEntities: LocalEntitySummary[];
+    entitySummaries: LocalEntitySummary[];
     inferredFacts: Fact[];
     filesUsedToInferFacts: AccessedRemoteFile[];
     suggestionForNextSteps: string;
@@ -385,7 +385,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
     state = {
       currentPlan: initialPlan,
       previousCalls: [],
-      inferredFactsAboutEntities: [],
+      entitySummaries: [],
       inferredFacts: [],
       inferredFactsFromWebPageUrls: [],
       filesQueried: [],
@@ -604,7 +604,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
             await updateStateFromInferredFacts({
               state,
               inferredFacts: inferredFactsWithSource,
-              inferredFactsAboutEntities: entitySummaries,
+              entitySummaries: entitySummaries,
               filesUsedToInferFacts: [],
             });
 
@@ -680,7 +680,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
     contents: [
       {
         inferredFacts: state.inferredFacts,
-        inferredFactsAboutEntities: state.inferredFactsAboutEntities,
+        entitySummaries: state.entitySummaries,
         filesUsedToInferFacts: state.filesUsedToInferFacts,
         suggestionForNextSteps,
       },

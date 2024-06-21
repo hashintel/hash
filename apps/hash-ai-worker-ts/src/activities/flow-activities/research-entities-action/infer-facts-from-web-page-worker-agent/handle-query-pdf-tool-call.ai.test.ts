@@ -18,7 +18,7 @@ test.skip(
     const state: InferFactsFromWebPageWorkerAgentState = {
       currentPlan: "",
       previousCalls: [],
-      inferredFactsAboutEntities: [],
+      entitySummaries: [],
       inferredFacts: [],
       inferredFactsFromWebPageUrls: [],
       filesQueried: [],

@@ -176,7 +176,7 @@ export type SubTaskAgentInput = {
 
 export type SubTaskAgentState = {
   plan: string;
-  inferredFactsAboutEntities: LocalEntitySummary[];
+  entitySummaries: LocalEntitySummary[];
   inferredFacts: Fact[];
   previousCalls: {
     completedToolCalls: CompletedToolCall<SubTaskAgentToolName>[];
@@ -438,7 +438,7 @@ export const runSubTaskAgent = async (params: {
     state = {
       plan: initialPlan,
       inferredFacts: [],
-      inferredFactsAboutEntities: [],
+      entitySummaries: [],
       previousCalls: [],
       filesUsedToInferFacts: [],
     };
@@ -589,7 +589,7 @@ export const runSubTaskAgent = async (params: {
               let outputMessage = "";
 
               const inferredFacts: Fact[] = [];
-              const inferredFactsAboutEntities: LocalEntitySummary[] = [];
+              const entitySummaries: LocalEntitySummary[] = [];
               const filesUsedToInferFacts: AccessedRemoteFile[] = [];
 
               for (const { status, url } of statusesWithUrl) {
@@ -602,20 +602,16 @@ export const runSubTaskAgent = async (params: {
                 const content = status.contents[0]!;
 
                 inferredFacts.push(...content.inferredFacts);
-                inferredFactsAboutEntities.push(
-                  ...content.inferredFactsAboutEntities,
-                );
+                entitySummaries.push(...content.entitySummaries);
                 filesUsedToInferFacts.push(...content.filesUsedToInferFacts);
 
                 outputMessage += `Inferred ${
                   content.inferredFacts.length
                 } facts on the web page with url ${url} for the following entities: ${stringify(
-                  content.inferredFactsAboutEntities.map(
-                    ({ name, summary }) => ({
-                      name,
-                      summary,
-                    }),
-                  ),
+                  content.entitySummaries.map(({ name, summary }) => ({
+                    name,
+                    summary,
+                  })),
                 )}. ${content.suggestionForNextSteps}\n`;
               }
 
@@ -628,12 +624,12 @@ export const runSubTaskAgent = async (params: {
                * @todo: deduplicate the entity summaries from existing entities provided as input.
                */
 
-              if (inferredFactsAboutEntities.length > 0) {
+              if (entitySummaries.length > 0) {
                 const { duplicates } = await deduplicateEntities({
                   entities: [
                     ...input.relevantEntities,
-                    ...inferredFactsAboutEntities,
-                    ...state.inferredFactsAboutEntities,
+                    ...entitySummaries,
+                    ...state.entitySummaries,
                   ],
                 });
 
@@ -699,9 +695,9 @@ export const runSubTaskAgent = async (params: {
                 state.inferredFacts.push(
                   ...inferredFactsWithDeduplicatedEntities,
                 );
-                state.inferredFactsAboutEntities = [
-                  ...state.inferredFactsAboutEntities,
-                  ...inferredFactsAboutEntities,
+                state.entitySummaries = [
+                  ...state.entitySummaries,
+                  ...entitySummaries,
                 ].filter(
                   ({ localId }) =>
                     !duplicates.some(({ duplicateIds }) =>
@@ -758,7 +754,7 @@ export const runSubTaskAgent = async (params: {
   return {
     ...result,
     filesUsedToInferFacts: state.filesUsedToInferFacts,
-    discoveredEntities: state.inferredFactsAboutEntities,
+    discoveredEntities: state.entitySummaries,
     discoveredFacts: state.inferredFacts,
   };
 };

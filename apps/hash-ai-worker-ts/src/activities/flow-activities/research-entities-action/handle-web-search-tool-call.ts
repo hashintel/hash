@@ -11,10 +11,11 @@ import { logProgress } from "../../shared/log-progress";
 import { getWebPageSummaryAction } from "../get-web-page-summary-action";
 import { webSearchAction } from "../web-search-action";
 import type { CoordinatorToolCallArguments } from "./coordinator-tools";
+import type { WebPageSummary } from "./types";
 
 export const handleWebSearchToolCall = async (params: {
   input: CoordinatorToolCallArguments["webSearch"];
-}): Promise<{ output: string }> => {
+}): Promise<WebPageSummary[]> => {
   const { query, explanation } = params.input;
 
   const response = await webSearchAction({
@@ -63,12 +64,12 @@ export const handleWebSearchToolCall = async (params: {
   const webPageUrls = webPageUrlsOutput.payload.value as string[];
 
   const webPageUrlsWithSummaries = await Promise.all(
-    webPageUrls.map(async (webPageUrl) => {
+    webPageUrls.map(async (url) => {
       const webPageSummaryResponse = await getWebPageSummaryAction({
         inputs: [
           {
             inputName: "url" satisfies InputNameForAction<"getWebPageSummary">,
-            payload: { kind: "Text", value: webPageUrl },
+            payload: { kind: "Text", value: url },
           },
           ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
             ({ name, default: defaultValue }) =>
@@ -86,8 +87,8 @@ export const handleWebSearchToolCall = async (params: {
        */
       if (response.code !== StatusCode.Ok) {
         return {
-          webPageUrl,
-          summary: `An unexpected error occurred trying to summarize the web page at url ${webPageUrl}.`,
+          url,
+          summary: `An unexpected error occurred trying to summarize the web page at url ${url}.`,
         };
       }
 
@@ -102,7 +103,7 @@ export const handleWebSearchToolCall = async (params: {
 
       if (!titleOutput) {
         throw new Error(
-          `No title output was found when calling "getSummariesOfWebPages" for the web page at url ${webPageUrl}.`,
+          `No title output was found when calling "getSummariesOfWebPages" for the web page at url ${url}.`,
         );
       }
 
@@ -116,7 +117,7 @@ export const handleWebSearchToolCall = async (params: {
 
       if (!summaryOutput) {
         throw new Error(
-          `No summary output was found when calling "getSummariesOfWebPages" for the web page at url ${webPageUrl}.`,
+          `No summary output was found when calling "getSummariesOfWebPages" for the web page at url ${url}.`,
         );
       }
 
@@ -130,26 +131,17 @@ export const handleWebSearchToolCall = async (params: {
           recordedAt: new Date().toISOString(),
           stepId: Context.current().info.activityId,
           type: "VisitedWebPage",
-          webPage: { url: webPageUrl, title },
+          webPage: { url, title },
           explanation,
         },
       ]);
 
       return {
-        webPageUrl,
+        url,
         summary,
       };
     }),
   );
 
-  return {
-    output: webPageUrlsWithSummaries
-      .map(
-        ({ webPageUrl, summary }, index) => `
--------------------- SEARCH RESULT ${index + 1} --------------------
-URL: ${webPageUrl}
-Summary: ${summary}`,
-      )
-      .join("\n"),
-  };
+  return webPageUrlsWithSummaries;
 };

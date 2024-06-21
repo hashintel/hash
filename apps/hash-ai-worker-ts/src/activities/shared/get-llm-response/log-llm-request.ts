@@ -23,12 +23,15 @@ export const logLlmRequest = <T extends LlmParams>(params: {
     mkdirSync(logFolderPath);
   }
 
-  const now = new Date();
-
-  const logFilePath = path.join(logFolderPath, `${now.toISOString()}.json`);
-
   const { customMetadata } = params;
   const { taskName, stepId } = customMetadata ?? {};
+
+  const now = new Date();
+
+  let logFilePath = path.join(logFolderPath, `${now.toISOString()}.json`);
+  if (taskName) {
+    logFilePath += `-${taskName}`;
+  }
 
   writeFileSync(
     logFilePath,

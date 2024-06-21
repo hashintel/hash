@@ -9,29 +9,22 @@ import type {
 export const updateStateFromInferredFacts = async (params: {
   state: InferFactsFromWebPageWorkerAgentState;
   inferredFacts: Fact[];
-  inferredFactsAboutEntities: LocalEntitySummary[];
+  entitySummaries: LocalEntitySummary[];
   filesUsedToInferFacts: AccessedRemoteFile[];
 }) => {
-  const {
-    state,
-    inferredFacts,
-    inferredFactsAboutEntities,
-    filesUsedToInferFacts,
-  } = params;
+  const { state, inferredFacts, entitySummaries, filesUsedToInferFacts } =
+    params;
 
-  if (state.inferredFactsAboutEntities.length === 0) {
+  if (state.entitySummaries.length === 0) {
     /**
      * If there are no existing inferred facts about entities, there
      * is no need to deduplicate entities.
      */
-    state.inferredFactsAboutEntities = inferredFactsAboutEntities;
+    state.entitySummaries = entitySummaries;
     state.inferredFacts = inferredFacts;
   } else {
     const { duplicates } = await deduplicateEntities({
-      entities: [
-        ...inferredFactsAboutEntities,
-        ...state.inferredFactsAboutEntities,
-      ],
+      entities: [...entitySummaries, ...state.entitySummaries],
     });
 
     const inferredFactsWithDeduplicatedEntities = inferredFacts.map((fact) => {
@@ -56,9 +49,9 @@ export const updateStateFromInferredFacts = async (params: {
     });
 
     state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
-    state.inferredFactsAboutEntities = [
-      ...state.inferredFactsAboutEntities,
-      ...inferredFactsAboutEntities,
+    state.entitySummaries = [
+      ...state.entitySummaries,
+      ...entitySummaries,
     ].filter(
       ({ localId }) =>
         !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),

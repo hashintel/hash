@@ -38,7 +38,7 @@ export type InferFactsFromWebPageWorkerAgentState = {
   previousCalls: {
     completedToolCalls: CompletedToolCall<ToolName>[];
   }[];
-  inferredFactsAboutEntities: LocalEntitySummary[];
+  entitySummaries: LocalEntitySummary[];
   inferredFacts: Fact[];
   inferredFactsFromWebPageUrls: string[];
   filesQueried: AccessedRemoteFile[];

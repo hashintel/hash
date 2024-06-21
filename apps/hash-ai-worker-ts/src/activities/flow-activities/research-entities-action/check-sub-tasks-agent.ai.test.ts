@@ -37,7 +37,7 @@ test.skip(
       state: {
         plan: "",
         previousCalls: [],
-        inferredFactsAboutEntities: [],
+        entitySummaries: [],
         inferredFacts: [],
         filesUsedToInferFacts: [],
         proposedEntities: [],

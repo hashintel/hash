@@ -20,11 +20,15 @@ export const mapPreviousCallsToLlmMessages = (params: {
           ? index >= all.length - omitToolCallOutputsPriorReverseIndex
           : true;
 
-      return completedToolCalls.length > 0
+      const toolCallsToInclude = completedToolCalls.filter(
+        (call) => !call.removeFromHistory,
+      );
+
+      return toolCallsToInclude.length > 0
         ? [
             {
               role: "assistant",
-              content: completedToolCalls.map(
+              content: toolCallsToInclude.map(
                 /** @todo: consider also omitting large arguments from prior tool calls */
                 ({ id, name, input }) => ({
                   type: "tool_use",
@@ -36,7 +40,7 @@ export const mapPreviousCallsToLlmMessages = (params: {
             } satisfies LlmAssistantMessage,
             {
               role: "user",
-              content: completedToolCalls.map((completedToolCall) => ({
+              content: toolCallsToInclude.map((completedToolCall) => ({
                 type: "tool_result",
                 tool_use_id: completedToolCall.id,
                 content: isAfterOmitIndex
