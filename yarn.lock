@@ -33,7 +33,21 @@
     "@smithy/types" "^2.3.4"
     "@smithy/util-base64" "^2.0.0"
 
-"@anthropic-ai/sdk@0.21.0", "@anthropic-ai/sdk@^0":
+"@anthropic-ai/sdk@0.24.0":
+  version "0.24.0"
+  resolved "https://registry.yarnpkg.com/@anthropic-ai/sdk/-/sdk-0.24.0.tgz#6dd50f4e7f3fee35457852de844b047cd6221364"
+  integrity sha512-iMb1bQimQrSw/Rq6duPiuCJ7uvlSciq5PWp17jVOfy5dK2EJY36ol10ttwb+Zf6yzkKHMdt+vNIpznj/HsPXOg==
+  dependencies:
+    "@types/node" "^18.11.18"
+    "@types/node-fetch" "^2.6.4"
+    abort-controller "^3.0.0"
+    agentkeepalive "^4.2.1"
+    form-data-encoder "1.7.2"
+    formdata-node "^4.3.2"
+    node-fetch "^2.6.7"
+    web-streams-polyfill "^3.2.1"
+
+"@anthropic-ai/sdk@^0":
   version "0.21.0"
   resolved "https://registry.yarnpkg.com/@anthropic-ai/sdk/-/sdk-0.21.0.tgz#87b7b2626e6bc227d421ff77d2d022394d32def3"
   integrity sha512-Bh4DU7zQA95yM0D+pCAMrBiVbIlhLNYlpj0PcMrVJSm2Od/xoEj90KOWlECMrkfMOv7+rVnR6bLdWutH6MS2Og==

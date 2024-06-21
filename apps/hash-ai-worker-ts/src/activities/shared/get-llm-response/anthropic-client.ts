@@ -24,6 +24,7 @@ export type AnthropicToolDefinition = {
 };
 
 const anthropicMessageModels = [
+  "claude-3-5-sonnet-20240620",
   "claude-3-opus-20240229",
   "claude-3-sonnet-20240229",
   "claude-3-haiku-20240307",
@@ -44,6 +45,7 @@ export const anthropicMessageModelToContextWindow: Record<
   "claude-3-haiku-20240307": 200_000,
   "claude-3-sonnet-20240229": 200_000,
   "claude-3-opus-20240229": 200_000,
+  "claude-3-5-sonnet-20240620": 200_000,
 };
 
 /** @see https://docs.anthropic.com/en/docs/about-claude/models#model-comparison */
@@ -54,6 +56,7 @@ export const anthropicMessageModelToMaxOutput: Record<
   "claude-3-haiku-20240307": 4096,
   "claude-3-sonnet-20240229": 4096,
   "claude-3-opus-20240229": 4096,
+  "claude-3-5-sonnet-20240620": 4096,
 };
 
 /**
@@ -129,6 +132,7 @@ const anthropicBedrockModels = [
   "anthropic.claude-3-sonnet-20240229-v1:0",
   "anthropic.claude-3-haiku-20240307-v1:0",
   "anthropic.claude-3-opus-20240229-v1:0",
+  "anthropic.claude-3-5-sonnet-20240620-v1:0",
 ] as const;
 
 type AnthropicBedrockModel = (typeof anthropicBedrockModels)[number];
@@ -141,6 +145,7 @@ export const anthropicModelToBedrockModel: Record<
   "claude-3-sonnet-20240229": "anthropic.claude-3-sonnet-20240229-v1:0",
   "claude-3-haiku-20240307": "anthropic.claude-3-haiku-20240307-v1:0",
   "claude-3-opus-20240229": "anthropic.claude-3-opus-20240229-v1:0",
+  "claude-3-5-sonnet-20240620": "anthropic.claude-3-5-sonnet-20240620-v1:0",
 };
 
 const anthropicApiProviders = ["anthropic", "amazon-bedrock"] as const;
