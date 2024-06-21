@@ -11,7 +11,6 @@ import { EChart } from "@hashintel/design-system";
 import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 const generateEntityLabel = (
@@ -22,20 +21,20 @@ const generateEntityLabel = (
   return hashGenerateEntityLabel(subgraph as any, entity as any);
 };
 
-export const EntitiesGraphChart: FunctionComponent<{
-  entities?: Entity[];
-  filterEntity?: (entity: Entity) => boolean;
-  onEntityClick?: (entity: Entity) => void;
-  isPrimaryEntity?: (entity: Entity) => boolean;
-  subgraph?: Subgraph<EntityRootType>;
-  sx?: BoxProps["sx"];
-}> = ({
+export const EntitiesGraphChart = <T extends Entity>({
   entities,
   filterEntity,
   isPrimaryEntity,
   subgraph,
   sx,
   onEntityClick,
+}: {
+  entities?: T[];
+  filterEntity?: (entity: T) => boolean;
+  onEntityClick?: (entity: T) => void;
+  isPrimaryEntity?: (entity: T) => boolean;
+  subgraph?: Subgraph<EntityRootType>;
+  sx?: BoxProps["sx"];
 }) => {
   const [chart, setChart] = useState<Chart>();
 
@@ -54,8 +53,8 @@ export const EntitiesGraphChart: FunctionComponent<{
         ? entities.filter(
             (
               entity,
-            ): entity is Entity & {
-              linkData: NonNullable<Entity["linkData"]>;
+            ): entity is T & {
+              linkData: NonNullable<T["linkData"]>;
             } =>
               !!entity.linkData &&
               nonLinkEntities.some(

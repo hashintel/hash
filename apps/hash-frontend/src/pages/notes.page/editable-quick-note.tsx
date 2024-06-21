@@ -133,7 +133,7 @@ export const EditableQuickNote: FunctionComponent<{
             blockCollectionEntityId,
             blockCollectionSubgraph: deserializeSubgraph(
               data.getEntity.subgraph,
-            ) as Subgraph<EntityRootType>,
+            ),
           })
         : undefined,
     [blockCollectionEntityId, data],

@@ -6,7 +6,7 @@ import {
   CloseIcon,
 } from "@hashintel/design-system";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
-import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type {
   FlowDefinition,
   StepDefinition,
@@ -328,8 +328,7 @@ export const FlowRunSidebar = ({
       <Box sx={{ mb: 2 }}>
         <SectionLabel
           text={
-            flowDefinition.flowDefinitionId ===
-            goalFlowDefinition.flowDefinitionId
+            goalFlowDefinitionIds.includes(flowDefinition.flowDefinitionId)
               ? "Goal"
               : "Description"
           }

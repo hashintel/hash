@@ -28,7 +28,7 @@ import { useUserBlocks } from "../../../../blocks/user-blocks";
 import { useUsers } from "../../../../components/hooks/use-users";
 import { getBlockDomId } from "../../../../shared/get-block-dom-id";
 import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
-import { EditEntityModal } from "../../../[shortname]/entities/[entity-uuid].page/edit-entity-modal";
+import { EditEntitySlideOver } from "../../../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import { useBlockContext } from "../block-context";
 import { BlockContextMenuItem } from "./block-context-menu-item";
 import { BlockListMenuContent } from "./block-list-menu-content";
@@ -245,7 +245,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         />
       ) : null}
       {blockSubgraph && (
-        <EditEntityModal
+        <EditEntitySlideOver
           open={entityEditorOpen}
           onClose={() => setEntityEditorOpen(false)}
           entitySubgraph={

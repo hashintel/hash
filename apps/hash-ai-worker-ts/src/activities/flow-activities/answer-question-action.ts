@@ -151,7 +151,7 @@ type ModelResponseArgs = {
 
 const maximumIterations = 10;
 
-const model: PermittedOpenAiModel = "gpt-4-0125-preview";
+const model: PermittedOpenAiModel = "gpt-4o";
 
 const callModel = async (
   messages: OpenAI.ChatCompletionCreateParams["messages"],

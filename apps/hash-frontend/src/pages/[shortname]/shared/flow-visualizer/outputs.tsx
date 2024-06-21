@@ -1,20 +1,40 @@
+import { useQuery } from "@apollo/client";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { Filter } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   PersistedEntity,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
+import {
+  currentTimeInstantTemporalAxes,
+  fullOntologyResolveDepths,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { isNotNullish } from "@local/hash-isomorphic-utils/types";
+import type { EntityRootType } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 
-import type { FlowRun } from "../../../../graphql/api-types.gen";
+import type {
+  FlowRun,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
+} from "../../../../graphql/api-types.gen";
+import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { TypeSlideOverStack } from "../../../shared/entity-type-page/type-slide-over-stack";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../shared/get-file-properties";
-import type { DeliverableData } from "./outputs/deliverables";
+import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
+import { EditEntitySlideOver } from "../../entities/[entity-uuid].page/edit-entity-slide-over";
 import { Deliverables } from "./outputs/deliverables";
+import type { DeliverableData } from "./outputs/deliverables/shared/types";
 import { EntityResultTable } from "./outputs/entity-result-table";
 import { PersistedEntityGraph } from "./outputs/persisted-entity-graph";
 import { outputIcons } from "./outputs/shared/icons";
@@ -30,6 +50,16 @@ export const getDeliverables = (
   for (const output of flowOutputs ?? []) {
     const { payload } = output;
 
+    if (payload.kind === "FormattedText" && !Array.isArray(payload.value)) {
+      if (payload.value.format === "Markdown") {
+        const markdown = payload.value.content;
+        deliverables.push({
+          displayName: "Markdown",
+          type: "markdown",
+          markdown,
+        });
+      }
+    }
     if (payload.kind === "PersistedEntity" && !Array.isArray(payload.value)) {
       if (!payload.value.entity) {
         continue;
@@ -119,6 +149,17 @@ const VisibilityButton = ({
   </IconButton>
 );
 
+type ResultSlideOver =
+  | {
+      type: "entity";
+      entity: Entity;
+    }
+  | {
+      type: "entityType";
+      entityTypeId: VersionedUrl;
+    }
+  | null;
+
 type OutputsProps = {
   persistedEntities: PersistedEntity[];
   proposedEntities: ProposedEntity[];
@@ -149,8 +190,100 @@ export const Outputs = ({
     },
   );
 
+  const [slideOver, setSlideOver] = useState<ResultSlideOver>(null);
+
+  const persistedEntitiesFilter = useMemo<Filter>(
+    () => ({
+      any: persistedEntities
+        .map((persistedEntity) => {
+          if (!persistedEntity.entity) {
+            return null;
+          }
+
+          const entity = new Entity(persistedEntity.entity);
+          return {
+            equal: [
+              { path: ["uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  entity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          };
+        })
+        .filter(isNotNullish),
+    }),
+    [persistedEntities],
+  );
+
+  const { data: entitiesSubgraphData } = useQuery<
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
+    variables: {
+      includePermissions: false,
+      request: {
+        filter: persistedEntitiesFilter,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          ...fullOntologyResolveDepths,
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: true,
+      },
+    },
+    skip: !persistedEntities.length,
+    fetchPolicy: "network-only",
+  });
+
+  const persistedEntitiesSubgraph = useMemo(() => {
+    if (!entitiesSubgraphData) {
+      return undefined;
+    }
+
+    return deserializeSubgraph<EntityRootType>(
+      entitiesSubgraphData.getEntitySubgraph.subgraph,
+    );
+  }, [entitiesSubgraphData]);
+
+  const selectedEntitySubgraph = useMemo(() => {
+    const defaultEntity = persistedEntities[0]?.entity
+      ? new Entity(persistedEntities[0].entity)
+      : undefined;
+
+    const selectedEntity =
+      slideOver?.type === "entity" ? slideOver.entity : defaultEntity;
+
+    if (!persistedEntitiesSubgraph || !selectedEntity) {
+      return undefined;
+    }
+
+    return generateEntityRootedSubgraph(
+      selectedEntity,
+      persistedEntitiesSubgraph,
+    );
+  }, [persistedEntities, persistedEntitiesSubgraph, slideOver]);
+
   return (
     <>
+      {slideOver?.type === "entityType" && (
+        <TypeSlideOverStack
+          rootTypeId={slideOver.entityTypeId}
+          onClose={() => setSlideOver(null)}
+        />
+      )}
+      {selectedEntitySubgraph && (
+        <EditEntitySlideOver
+          entitySubgraph={selectedEntitySubgraph}
+          open={slideOver?.type === "entity"}
+          onClose={() => setSlideOver(null)}
+          onSubmit={() => {
+            throw new Error("Editing not permitted in this context");
+          }}
+          readonly
+        />
+      )}
       <Stack alignItems="center" direction="row" gap={2} mb={0.5}>
         <SectionLabel text="Outputs" />
         {typedEntries(sectionVisibility).map(([section, visible]) => (
@@ -180,13 +313,22 @@ export const Outputs = ({
       >
         {sectionVisibility.table && (
           <EntityResultTable
+            onEntityClick={(entity) => setSlideOver({ type: "entity", entity })}
+            onEntityTypeClick={(entityTypeId) =>
+              setSlideOver({ type: "entityType", entityTypeId })
+            }
             persistedEntities={persistedEntities}
+            persistedEntitiesSubgraph={persistedEntitiesSubgraph}
             proposedEntities={proposedEntities}
           />
         )}
 
         {sectionVisibility.graph && (
-          <PersistedEntityGraph persistedEntities={persistedEntities} />
+          <PersistedEntityGraph
+            onEntityClick={(entity) => setSlideOver({ type: "entity", entity })}
+            persistedEntities={persistedEntities}
+            persistedEntitiesSubgraph={persistedEntitiesSubgraph}
+          />
         )}
 
         {sectionVisibility.deliverables && (

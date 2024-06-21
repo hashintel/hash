@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { Chip } from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
@@ -10,7 +11,8 @@ import type {
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { TableCell } from "@mui/material";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { Box, TableCell } from "@mui/material";
 import { memo, useMemo, useState } from "react";
 
 import type {
@@ -27,7 +29,7 @@ import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 
-type FieldId = "status" | "entityTypeTitle" | "entityLabel";
+type FieldId = "status" | "entityTypeId" | "entityLabel";
 
 const columns: VirtualizedTableColumn<FieldId>[] = [
   {
@@ -38,7 +40,7 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
   },
   {
     label: "Type",
-    id: "entityTypeTitle",
+    id: "entityTypeId",
     sortable: true,
     width: 120,
   },
@@ -52,13 +54,11 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
 
 type EntityResultRow = {
   entityLabel: string;
-  entityTypeTitle: string;
+  entityTypeId: string;
+  onEntityClick: (entity: Entity) => void;
+  onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
+  persistedEntity?: Entity;
   status: "Proposed" | "New" | "Updated";
-};
-
-type EntityResultTableProps = {
-  persistedEntities: PersistedEntity[];
-  proposedEntities: ProposedEntity[];
 };
 
 const cellSx = {
@@ -67,11 +67,55 @@ const cellSx = {
 };
 
 const TableRow = memo(({ row }: { row: EntityResultRow }) => {
+  const entityTypeTitle =
+    row.entityTypeId.split("/").at(-3)?.replaceAll("-", " ") ?? "";
+
   return (
     <>
       <TableCell sx={cellSx}>{row.status}</TableCell>
-      <TableCell sx={cellSx}>{row.entityTypeTitle}</TableCell>
-      <TableCell sx={cellSx}>{row.entityLabel}</TableCell>
+      <TableCell sx={{ ...cellSx, px: 0.5 }}>
+        <Box
+          component="button"
+          onClick={() =>
+            row.onEntityTypeClick(row.entityTypeId as VersionedUrl)
+          }
+          sx={{ background: "none", border: "none", p: 0 }}
+        >
+          <Chip
+            color="blue"
+            label={entityTypeTitle}
+            sx={{
+              cursor: "pointer !important",
+              ml: 1,
+              "& span": {
+                fontSize: 11,
+                padding: "2px 10px",
+                textTransform: "capitalize",
+              },
+            }}
+          />
+        </Box>
+      </TableCell>
+      <TableCell sx={cellSx}>
+        {row.persistedEntity ? (
+          <Box
+            component="button"
+            onClick={() => row.onEntityClick(row.persistedEntity!)}
+            sx={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: ({ palette }) => palette.blue[70],
+              p: 0,
+              textAlign: "left",
+            }}
+          >
+            {row.entityLabel}
+          </Box>
+        ) : (
+          row.entityLabel
+        )}
+      </TableCell>
     </>
   );
 });
@@ -81,8 +125,19 @@ const createRowContent: CreateVirtualizedRowContentFn<EntityResultRow> = (
   row,
 ) => <TableRow row={row.data} />;
 
+type EntityResultTableProps = {
+  onEntityClick: (entity: Entity) => void;
+  onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
+  persistedEntities: PersistedEntity[];
+  persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
+  proposedEntities: ProposedEntity[];
+};
+
 export const EntityResultTable = ({
+  onEntityClick,
+  onEntityTypeClick,
   persistedEntities,
+  persistedEntitiesSubgraph,
   proposedEntities,
 }: EntityResultTableProps) => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
@@ -118,26 +173,28 @@ export const EntityResultTable = ({
           ? entity.entityTypeId
           : entity.metadata.entityTypeId;
 
-      const entityLabel = generateEntityLabel(null, {
-        properties: entity.properties,
-        metadata: {
-          recordId: {
-            editionId: "irrelevant-here",
-            entityId: `ownedBy~${entityId}` as EntityId,
-          } satisfies EntityRecordId,
-          entityTypeId: entityTypeId satisfies VersionedUrl,
-        } as EntityMetadata,
-      });
-
-      const entityTitle = entityTypeId.split("/").at(-3) ?? "";
-      const capitalizedTitle =
-        entityTitle.charAt(0).toUpperCase() + entityTitle.slice(1);
+      const entityLabel = generateEntityLabel(
+        persistedEntitiesSubgraph ?? null,
+        {
+          properties: entity.properties,
+          metadata: {
+            recordId: {
+              editionId: "irrelevant-here",
+              entityId: `ownedBy~${entityId}` as EntityId,
+            } satisfies EntityRecordId,
+            entityTypeId: entityTypeId satisfies VersionedUrl,
+          } as EntityMetadata,
+        },
+      );
 
       rowData.push({
         id: entityId,
         data: {
           entityLabel,
-          entityTypeTitle: capitalizedTitle,
+          entityTypeId,
+          onEntityClick,
+          onEntityTypeClick,
+          persistedEntity: "metadata" in entity ? entity : undefined,
           status:
             "localEntityId" in record
               ? "Proposed"
@@ -154,7 +211,14 @@ export const EntityResultTable = ({
 
       return a.data[field].localeCompare(b.data[field]) * direction;
     });
-  }, [persistedEntities, proposedEntities, sort]);
+  }, [
+    onEntityClick,
+    onEntityTypeClick,
+    persistedEntities,
+    persistedEntitiesSubgraph,
+    proposedEntities,
+    sort,
+  ]);
 
   return (
     <OutputContainer
