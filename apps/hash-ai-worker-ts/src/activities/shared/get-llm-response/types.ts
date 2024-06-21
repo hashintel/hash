@@ -18,7 +18,9 @@ import type { LlmAssistantMessage, LlmMessage } from "./llm-message";
 export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
   description: string;
-  inputSchema: JSONSchema;
+  inputSchema: Omit<JSONSchema, "type"> & {
+    type: "object";
+  };
   sanitizeInputBeforeValidation?: (rawInput: object) => object;
 };
 

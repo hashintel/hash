@@ -1,11 +1,13 @@
 import type {
+  MessageParam as AnthropicMessage,
+  ToolResultBlockParam as AnthropicToolResultBlockParam,
+} from "@anthropic-ai/sdk/resources";
+import type {
   ChatCompletionAssistantMessageParam,
   ChatCompletionMessageParam as OpenAiMessage,
   ChatCompletionToolMessageParam,
   ChatCompletionUserMessageParam,
 } from "openai/resources";
-
-import type { AnthropicMessage } from "./anthropic-client";
 
 export type LlmMessageTextContent = {
   type: "text";
@@ -48,7 +50,14 @@ export const mapLlmMessageToAnthropicMessage = (params: {
   message: LlmMessage;
 }): AnthropicMessage => ({
   role: params.message.role,
-  content: params.message.content,
+  content: params.message.content.map((content) =>
+    content.type === "tool_result"
+      ? ({
+          ...content,
+          content: [{ type: "text", text: content.content }],
+        } satisfies AnthropicToolResultBlockParam)
+      : content,
+  ),
 });
 
 export const mapAnthropicMessageToLlmMessage = (params: {
@@ -76,6 +85,13 @@ export const mapAnthropicMessageToLlmMessage = (params: {
                     content,
                   )}`,
                 );
+              } else if (content.type === "tool_use") {
+                return {
+                  type: "tool_use" as const,
+                  id: content.id,
+                  name: content.name,
+                  input: content.input as object,
+                } satisfies LlmMessageToolUseContent;
               }
 
               return content;
@@ -93,14 +109,37 @@ export const mapAnthropicMessageToLlmMessage = (params: {
               text: anthropicMessage.content,
             },
           ]
-        : anthropicMessage.content.map((content) => {
-            if (content.type === "image") {
+        : anthropicMessage.content.map((block) => {
+            if (block.type === "image") {
               throw new Error("Image content not supported");
-            } else if (content.type === "tool_use") {
+            } else if (block.type === "tool_use") {
               throw new Error("Tool use content not supported");
+            } else if (block.type === "tool_result") {
+              /**
+               * Currently images are not supported in LLM messages,
+               * so we filter them out from the content.
+               *
+               * @todo: add support for images in LLM messages, including
+               * the content in the tool result.
+               */
+              const textBlocks = block.content?.map((content) => {
+                if (content.type === "text") {
+                  return content;
+                }
+
+                throw new Error(
+                  `Unexpected content type in tool result: ${content.type}`,
+                );
+              });
+
+              return {
+                type: "tool_result" as const,
+                tool_use_id: block.tool_use_id,
+                content: textBlocks?.join("\n") ?? "",
+              } satisfies LlmMessageToolResultContent;
             }
 
-            return content;
+            return block;
           }),
   };
 };

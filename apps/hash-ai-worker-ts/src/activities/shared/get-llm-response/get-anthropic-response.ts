@@ -1,6 +1,7 @@
 import type { Headers } from "@anthropic-ai/sdk/core";
 import type { RateLimitError } from "@anthropic-ai/sdk/error";
 import { APIError } from "@anthropic-ai/sdk/error";
+import type { Tool } from "@anthropic-ai/sdk/resources";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
 
@@ -10,12 +11,11 @@ import type {
   AnthropicApiProvider,
   AnthropicMessagesCreateParams,
   AnthropicMessagesCreateResponse,
-  AnthropicToolDefinition,
 } from "./anthropic-client";
 import {
   anthropicMessageModelToMaxOutput,
   createAnthropicMessagesWithTools,
-  isAnthropicContentToolUseContent,
+  isAnthropicContentToolUseBlock,
 } from "./anthropic-client";
 import {
   defaultRateLimitRetryDelay,
@@ -45,7 +45,7 @@ import {
 
 const mapLlmToolDefinitionToAnthropicToolDefinition = (
   tool: LlmToolDefinition,
-): AnthropicToolDefinition => ({
+): Tool => ({
   name: tool.name,
   description: tool.description,
   input_schema: tool.inputSchema,
@@ -55,8 +55,8 @@ const parseToolCallsFromAnthropicResponse = (
   response: AnthropicMessagesCreateResponse,
 ): ParsedLlmToolCall[] =>
   response.content
-    .filter(isAnthropicContentToolUseContent)
-    .map(({ id, name, input }) => ({ id, name, input }));
+    .filter(isAnthropicContentToolUseBlock)
+    .map(({ id, name, input }) => ({ id, name, input: input as object }));
 
 const mapAnthropicStopReasonToLlmStopReason = (
   stopReason: AnthropicResponse["stop_reason"],

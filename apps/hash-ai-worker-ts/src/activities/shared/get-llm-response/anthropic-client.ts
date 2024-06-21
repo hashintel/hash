@@ -2,26 +2,18 @@ import AnthropicBedrock from "@anthropic-ai/bedrock-sdk";
 import Anthropic from "@anthropic-ai/sdk";
 import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources";
 import type {
-  ImageBlockParam,
   Message,
   MessageCreateParamsBase,
   MessageParam,
-  TextBlockParam,
+  ToolUseBlock,
 } from "@anthropic-ai/sdk/resources/messages";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import type { JSONSchema } from "openai/lib/jsonschema";
 
 const anthropicApiKey = getRequiredEnv("ANTHROPIC_API_KEY");
 
 export const anthropic = new Anthropic({
   apiKey: anthropicApiKey,
 });
-
-export type AnthropicToolDefinition = {
-  name: string;
-  description: string;
-  input_schema: JSONSchema;
-};
 
 const anthropicMessageModels = [
   "claude-3-5-sonnet-20240620",
@@ -59,49 +51,20 @@ export const anthropicMessageModelToMaxOutput: Record<
   "claude-3-5-sonnet-20240620": 4096,
 };
 
-/**
- * @todo: deprecate these types and function when the Anthropic SDK is updated
- * to account for the new `tools` parameter.
- */
-type ToolUseContent = {
-  type: "tool_use";
-  id: string;
-  name: string;
-  input: object;
-};
-
-type ToolResultContent = {
-  type: "tool_result";
-  tool_use_id: string;
-  content: string;
-  is_error?: true;
-};
-
-export type MessageContent =
-  | (TextBlockParam | ImageBlockParam | ToolUseContent | ToolResultContent)[]
-  | string;
-
-export type AnthropicMessage = Omit<MessageParam, "content"> & {
-  content: MessageContent;
-};
-
 export type AnthropicMessagesCreateParams = {
-  tools?: AnthropicToolDefinition[];
   tool_choice?:
     | { type: "tool"; name: string }
     | { type: "any" }
     | { type: "auto" };
   model: AnthropicMessageModel;
-  messages: AnthropicMessage[];
+  messages: MessageParam[];
 } & Omit<MessageCreateParamsNonStreaming, "model" | "messages">;
 
-type AnthropicMessagesCreateResponseContent =
-  | Message["content"][number]
-  | ToolUseContent;
+type AnthropicMessagesCreateResponseContent = Message["content"][number];
 
-export const isAnthropicContentToolUseContent = (
+export const isAnthropicContentToolUseBlock = (
   content: AnthropicMessagesCreateResponseContent,
-): content is ToolUseContent => content.type === "tool_use";
+): content is ToolUseBlock => content.type === "tool_use";
 
 export type AnthropicMessagesCreateResponse = Omit<
   Message,
