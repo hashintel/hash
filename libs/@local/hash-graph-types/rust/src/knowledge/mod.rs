@@ -6,7 +6,8 @@ pub use self::{
     property::{
         ArrayMetadata, ObjectMetadata, Property, PropertyDiff, PropertyMetadataElement,
         PropertyMetadataObject, PropertyObject, PropertyPatchOperation, PropertyPath,
-        PropertyPathElement, PropertyProvenance, PropertyWithMetadata, ValueMetadata,
+        PropertyPathElement, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
+        ValueMetadata,
     },
 };
 

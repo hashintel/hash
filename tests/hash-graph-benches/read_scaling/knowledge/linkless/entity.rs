@@ -1,4 +1,5 @@
 use core::{iter::repeat, str::FromStr};
+use std::collections::HashSet;
 
 use authorization::{schema::WebOwnerSubject, AuthorizationApi, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
@@ -19,7 +20,7 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{EntityMetadata, ProvidedEntityEditionProvenance},
-        PropertyMetadataObject, PropertyObject,
+        PropertyObject, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -104,10 +105,10 @@ async fn seed_db<A: AuthorizationApi>(
                 owned_by_id: OwnedById::new(account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![entity_type_id],
-                properties,
+                entity_type_ids: HashSet::from([entity_type_id]),
+                properties: PropertyWithMetadataObject::from_parts(properties, None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],

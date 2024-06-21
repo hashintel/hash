@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 use core::{iter::once, str::FromStr};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use authorization::AuthorizationApi;
 use graph::store::{
@@ -13,7 +13,7 @@ use graph_types::{
         entity::{Location, ProvidedEntityEditionProvenance, SourceProvenance, SourceType},
         Confidence, ObjectMetadata, Property, PropertyMetadataElement, PropertyMetadataObject,
         PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
-        PropertyProvenance, ValueMetadata,
+        PropertyProvenance, PropertyWithMetadataObject, ValueMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -132,6 +132,7 @@ fn alice() -> PropertyObject {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn initial_metadata() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
@@ -160,10 +161,13 @@ async fn initial_metadata() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(
+                    alice(),
+                    Some(entity_property_metadata.clone()),
+                )
+                .expect("could not create property with metadata object"),
                 confidence: Confidence::new(0.5),
-                property_metadata: entity_property_metadata.clone(),
                 link_data: None,
                 draft: true,
                 relationships: [],
@@ -196,7 +200,7 @@ async fn initial_metadata() {
                     value: Property::Value(json!("Bob")),
                     metadata: Some(name_property_metadata.clone()),
                 }],
-                entity_type_ids: vec![],
+                entity_type_ids: HashSet::new(),
                 archived: None,
                 draft: None,
                 decision_time: None,
@@ -224,7 +228,7 @@ async fn initial_metadata() {
             PatchEntityParams {
                 entity_id: entity_metadata.record_id.entity_id,
                 properties: Vec::new(),
-                entity_type_ids: vec![],
+                entity_type_ids: HashSet::new(),
                 archived: None,
                 draft: None,
                 decision_time: None,
@@ -255,10 +259,10 @@ async fn no_initial_metadata() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -292,7 +296,7 @@ async fn no_initial_metadata() {
             PatchEntityParams {
                 entity_id: entity_metadata.record_id.entity_id,
                 properties: Vec::new(),
-                entity_type_ids: vec![],
+                entity_type_ids: HashSet::new(),
                 archived: None,
                 draft: None,
                 decision_time: None,
@@ -311,7 +315,7 @@ async fn no_initial_metadata() {
             PatchEntityParams {
                 entity_id: entity_metadata.record_id.entity_id,
                 properties: Vec::new(),
-                entity_type_ids: vec![],
+                entity_type_ids: HashSet::new(),
                 archived: None,
                 draft: None,
                 decision_time: None,
@@ -356,7 +360,7 @@ async fn no_initial_metadata() {
                         },
                     }),
                 }],
-                entity_type_ids: vec![],
+                entity_type_ids: HashSet::new(),
                 archived: None,
                 draft: None,
                 decision_time: None,
@@ -391,7 +395,7 @@ async fn no_initial_metadata() {
             PatchEntityParams {
                 entity_id: entity_metadata.record_id.entity_id,
                 properties: Vec::new(),
-                entity_type_ids: vec![],
+                entity_type_ids: HashSet::new(),
                 archived: None,
                 draft: None,
                 decision_time: None,
@@ -437,10 +441,10 @@ async fn properties_add() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -458,7 +462,7 @@ async fn properties_add() {
             PatchEntityParams {
                 entity_id,
                 decision_time: None,
-                entity_type_ids: vec![],
+                entity_type_ids: HashSet::new(),
                 properties: vec![PropertyPatchOperation::Add {
                     path: path.clone(),
                     value: Property::Value(json!(30)),
@@ -522,10 +526,10 @@ async fn properties_remove() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![person_entity_type_id()],
-                properties: alice(),
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -551,7 +555,7 @@ async fn properties_remove() {
             PatchEntityParams {
                 entity_id,
                 decision_time: None,
-                entity_type_ids: vec![],
+                entity_type_ids: HashSet::new(),
                 properties: vec![
                     PropertyPatchOperation::Add {
                         path: once(PropertyPathElement::from(interests_property_type_id()))
@@ -630,7 +634,7 @@ async fn properties_remove() {
             PatchEntityParams {
                 entity_id,
                 decision_time: None,
-                entity_type_ids: vec![],
+                entity_type_ids: HashSet::new(),
                 properties: vec![PropertyPatchOperation::Remove {
                     path: interests_path,
                 }],

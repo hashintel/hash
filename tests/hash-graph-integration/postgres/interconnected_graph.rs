@@ -1,4 +1,5 @@
 use core::str::FromStr;
+use std::collections::HashSet;
 
 use graph::store::{knowledge::CreateEntityParams, EntityStore};
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -6,7 +7,7 @@ use graph_types::{
     knowledge::{
         entity::{EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        PropertyMetadataObject, PropertyObject, PropertyProvenance,
+        PropertyObject, PropertyProvenance, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -16,6 +17,7 @@ use uuid::Uuid;
 use crate::DatabaseTestWrapper;
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn insert() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -46,13 +48,16 @@ async fn insert() {
         owned_by_id,
         entity_uuid: Some(alice_id),
         decision_time: None,
-        entity_type_ids: vec![
-            VersionedUrl::from_str("https://blockprotocol.org/@alice/types/entity-type/person/v/1")
-                .expect("couldn't construct Versioned URL"),
-        ],
-        properties: serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity"),
+        entity_type_ids: HashSet::from([VersionedUrl::from_str(
+            "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
+        )
+        .expect("couldn't construct Versioned URL")]),
+        properties: PropertyWithMetadataObject::from_parts(
+            serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity"),
+            None,
+        )
+        .expect("could not create property with metadata object"),
         confidence: None,
-        property_metadata: PropertyMetadataObject::default(),
         link_data: None,
         draft: false,
         relationships: [],
@@ -64,13 +69,16 @@ async fn insert() {
         owned_by_id,
         entity_uuid: Some(bob_id),
         decision_time: None,
-        entity_type_ids: vec![
-            VersionedUrl::from_str("https://blockprotocol.org/@alice/types/entity-type/person/v/1")
-                .expect("couldn't construct Versioned URL"),
-        ],
-        properties: serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity"),
+        entity_type_ids: HashSet::from([VersionedUrl::from_str(
+            "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
+        )
+        .expect("couldn't construct Versioned URL")]),
+        properties: PropertyWithMetadataObject::from_parts(
+            serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity"),
+            None,
+        )
+        .expect("could not create property with metadata object"),
         confidence: None,
-        property_metadata: PropertyMetadataObject::default(),
         link_data: None,
         draft: false,
         relationships: [],
@@ -81,15 +89,13 @@ async fn insert() {
         owned_by_id: OwnedById::new(api.account_id.into_uuid()),
         entity_uuid: None,
         decision_time: None,
-        entity_type_ids: vec![
-            VersionedUrl::from_str(
-                "https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1",
-            )
-            .expect("couldn't construct Versioned URL"),
-        ],
-        properties: PropertyObject::empty(),
+        entity_type_ids: HashSet::from([VersionedUrl::from_str(
+            "https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1",
+        )
+        .expect("couldn't construct Versioned URL")]),
+        properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+            .expect("could not create property with metadata object"),
         confidence: None,
-        property_metadata: PropertyMetadataObject::default(),
         link_data: Some(LinkData {
             left_entity_id: EntityId {
                 owned_by_id,

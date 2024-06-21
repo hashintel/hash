@@ -2,7 +2,7 @@ use core::{borrow::Borrow, num::NonZero};
 use std::collections::HashMap;
 
 use error_stack::{bail, Report, ResultExt};
-use graph_types::knowledge::Property;
+use graph_types::knowledge::PropertyWithMetadata;
 use thiserror::Error;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
@@ -58,7 +58,7 @@ pub enum PropertyValidationError {
     },
 }
 
-impl<P> Schema<Property, P> for PropertyType
+impl<P> Schema<PropertyWithMetadata, P> for PropertyType
 where
     P: OntologyTypeProvider<Self> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -66,7 +66,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a Property,
+        value: &'a PropertyWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<PropertyValidationError>> {
@@ -82,7 +82,7 @@ where
     }
 }
 
-impl<P> Validate<PropertyType, P> for Property
+impl<P> Validate<PropertyType, P> for PropertyWithMetadata
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -98,7 +98,7 @@ where
     }
 }
 
-impl<P> Schema<Property, P> for PropertyTypeReference
+impl<P> Schema<PropertyWithMetadata, P> for PropertyTypeReference
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -106,7 +106,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a Property,
+        value: &'a PropertyWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
@@ -125,7 +125,7 @@ where
     }
 }
 
-impl<P> Validate<PropertyTypeReference, P> for Property
+impl<P> Validate<PropertyTypeReference, P> for PropertyWithMetadata
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -226,16 +226,16 @@ where
     }
 }
 
-impl<P, S> Schema<Property, P> for ValueOrArray<S>
+impl<P, S> Schema<PropertyWithMetadata, P> for ValueOrArray<S>
 where
     P: Sync,
-    S: Schema<Property, P, Error = PropertyValidationError> + Sync,
+    S: Schema<PropertyWithMetadata, P, Error = PropertyValidationError> + Sync,
 {
     type Error = PropertyValidationError;
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a Property,
+        value: &'a PropertyWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
@@ -243,8 +243,8 @@ where
             (value, Self::Value(schema)) => {
                 schema.validate_value(value, components, provider).await
             }
-            (Property::Array(array), Self::Array(schema)) => {
-                schema.validate_value(array, components, provider).await
+            (PropertyWithMetadata::Array { value, metadata: _ }, Self::Array(schema)) => {
+                schema.validate_value(value, components, provider).await
             }
             (_, Self::Array(_)) => {
                 bail!(PropertyValidationError::InvalidType {
@@ -256,7 +256,7 @@ where
     }
 }
 
-impl<P, const MIN: usize> Schema<HashMap<BaseUrl, Property>, P>
+impl<P, const MIN: usize> Schema<HashMap<BaseUrl, PropertyWithMetadata>, P>
     for Object<ValueOrArray<PropertyTypeReference>, MIN>
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
@@ -265,7 +265,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a HashMap<BaseUrl, Property>,
+        value: &'a HashMap<BaseUrl, PropertyWithMetadata>,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
@@ -309,7 +309,7 @@ where
     }
 }
 
-impl<P> Schema<Property, P> for PropertyValues
+impl<P> Schema<PropertyWithMetadata, P> for PropertyValues
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -317,7 +317,7 @@ where
 
     fn validate_value<'a>(
         &'a self,
-        value: &'a Property,
+        value: &'a PropertyWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + '_ {
@@ -329,33 +329,33 @@ where
                     .change_context(PropertyValidationError::DataTypeValidation {
                         id: reference.url().clone(),
                     }),
-                (Property::Array(values), Self::ArrayOfPropertyValues(schema)) => {
-                    schema.validate_value(values, components, provider).await
-                }
-                (Property::Array(_), Self::PropertyTypeObject(_)) => {
+                (
+                    PropertyWithMetadata::Array { value, metadata: _ },
+                    Self::ArrayOfPropertyValues(schema),
+                ) => schema.validate_value(value, components, provider).await,
+                (PropertyWithMetadata::Array { .. }, Self::PropertyTypeObject(_)) => {
                     Err(Report::new(PropertyValidationError::InvalidType {
                         actual: JsonSchemaValueType::Array,
                         expected: JsonSchemaValueType::Object,
                     }))
                 }
-                (Property::Object(object), Self::PropertyTypeObject(schema)) => {
-                    schema
-                        .validate_value(object.properties(), components, provider)
-                        .await
-                }
-                (Property::Object(_), Self::ArrayOfPropertyValues(_)) => {
+                (
+                    PropertyWithMetadata::Object { value, metadata: _ },
+                    Self::PropertyTypeObject(schema),
+                ) => schema.validate_value(value, components, provider).await,
+                (PropertyWithMetadata::Object { .. }, Self::ArrayOfPropertyValues(_)) => {
                     Err(Report::new(PropertyValidationError::InvalidType {
                         actual: JsonSchemaValueType::Object,
                         expected: JsonSchemaValueType::Array,
                     }))
                 }
-                (Property::Value(_), Self::ArrayOfPropertyValues(_)) => {
+                (PropertyWithMetadata::Value { .. }, Self::ArrayOfPropertyValues(_)) => {
                     Err(Report::new(PropertyValidationError::InvalidType {
                         actual: value.json_type(),
                         expected: JsonSchemaValueType::Array,
                     }))
                 }
-                (Property::Value(_), Self::PropertyTypeObject(_)) => {
+                (PropertyWithMetadata::Value { .. }, Self::PropertyTypeObject(_)) => {
                     Err(Report::new(PropertyValidationError::InvalidType {
                         actual: value.json_type(),
                         expected: JsonSchemaValueType::Object,

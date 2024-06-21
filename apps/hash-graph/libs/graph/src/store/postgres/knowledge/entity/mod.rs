@@ -24,8 +24,8 @@ use graph_types::{
             EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
             InferredEntityProvenance,
         },
-        Confidence, Property, PropertyMetadataElement, PropertyMetadataObject, PropertyObject,
-        PropertyPath, PropertyWithMetadata,
+        Confidence, PropertyMetadataObject, PropertyObject, PropertyPath,
+        PropertyWithMetadataObject,
     },
     ontology::EntityTypeId,
     owned_by_id::OwnedById,
@@ -497,31 +497,7 @@ where
         let mut entities = Vec::with_capacity(params.len());
 
         for params in params {
-            let (properties, property_metadata) = if let (
-                Property::Object(properties),
-                PropertyMetadataElement::Object {
-                    value: object_metadata,
-                    metadata,
-                },
-            ) = PropertyWithMetadata::from_parts(
-                Property::Object(params.properties),
-                Some(PropertyMetadataElement::from(params.property_metadata)),
-            )
-            .change_context(InsertionError)?
-            .into_parts()
-            {
-                (
-                    properties,
-                    PropertyMetadataObject {
-                        value: object_metadata,
-                        metadata,
-                    },
-                )
-            } else {
-                return Err(Report::new(InsertionError)
-                    .attach(StatusCode::InvalidArgument)
-                    .attach_printable("Properties must be an object"));
-            };
+            let (properties, property_metadata) = params.properties.into_parts();
 
             let decision_time = params
                 .decision_time
@@ -782,24 +758,29 @@ where
 
         let validation_params = entities
             .iter()
-            .map(|entity| ValidateEntityParams {
-                entity_types: EntityValidationType::Id(Cow::Borrowed(
-                    &entity.metadata.entity_type_ids,
-                )),
-                properties: Cow::Borrowed(&entity.properties),
-                property_metadata: Cow::Borrowed(&entity.metadata.properties),
-                link_data: entity.link_data.as_ref().map(Cow::Borrowed),
-                components: if entity.metadata.record_id.entity_id.draft_id.is_some() {
-                    ValidateEntityComponents {
-                        num_items: false,
-                        required_properties: false,
-                        ..ValidateEntityComponents::full()
-                    }
-                } else {
-                    ValidateEntityComponents::full()
-                },
+            .map(|entity| {
+                Ok(ValidateEntityParams {
+                    entity_types: EntityValidationType::Id(Cow::Borrowed(
+                        &entity.metadata.entity_type_ids,
+                    )),
+                    properties: Cow::Owned(PropertyWithMetadataObject::from_parts(
+                        entity.properties.clone(),
+                        Some(entity.metadata.properties.clone()),
+                    )?),
+                    link_data: entity.link_data.as_ref().map(Cow::Borrowed),
+                    components: if entity.metadata.record_id.entity_id.draft_id.is_some() {
+                        ValidateEntityComponents {
+                            num_items: false,
+                            required_properties: false,
+                            ..ValidateEntityComponents::full()
+                        }
+                    } else {
+                        ValidateEntityComponents::full()
+                    },
+                })
             })
-            .collect();
+            .collect::<Result<Vec<_>, _>>()
+            .change_context(InsertionError)?;
 
         transaction
             .validate_entities(actor_id, Consistency::FullyConsistent, validation_params)
@@ -935,22 +916,6 @@ where
             if let Err(error) = params
                 .properties
                 .validate(&schema, params.components, &validator_provider)
-                .await
-            {
-                if let Err(ref mut report) = status {
-                    report.extend_one(error);
-                } else {
-                    status = Err(error);
-                }
-            }
-
-            if let Err(error) = params
-                .property_metadata
-                .validate(
-                    params.properties.as_ref(),
-                    params.components,
-                    &validator_provider,
-                )
                 .await
             {
                 if let Err(ref mut report) = status {
@@ -1464,8 +1429,13 @@ where
                 Consistency::FullyConsistent,
                 ValidateEntityParams {
                     entity_types: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
-                    properties: Cow::Borrowed(&properties),
-                    property_metadata: Cow::Borrowed(&property_metadata),
+                    properties: Cow::Owned(
+                        PropertyWithMetadataObject::from_parts(
+                            properties.clone(),
+                            Some(property_metadata.clone()),
+                        )
+                        .change_context(UpdateError)?,
+                    ),
                     link_data: link_data.as_ref().map(Cow::Borrowed),
                     components: validation_components,
                 },
@@ -1648,7 +1618,7 @@ where
     async fn insert_entity_edition(
         &self,
         archived: bool,
-        entity_type_ids: &[VersionedUrl],
+        entity_type_ids: &HashSet<VersionedUrl>,
         properties: &PropertyObject,
         confidence: Option<Confidence>,
         provenance: &EntityEditionProvenance,

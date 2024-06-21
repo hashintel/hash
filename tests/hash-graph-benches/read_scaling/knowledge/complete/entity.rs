@@ -1,4 +1,5 @@
 use core::{iter::repeat, str::FromStr};
+use std::collections::HashSet;
 
 use authorization::{schema::WebOwnerSubject, AuthorizationApi, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
@@ -24,7 +25,7 @@ use graph_types::{
     knowledge::{
         entity::{EntityMetadata, ProvidedEntityEditionProvenance},
         link::LinkData,
-        PropertyMetadataObject, PropertyObject, PropertyProvenance,
+        PropertyObject, PropertyProvenance, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -122,10 +123,10 @@ async fn seed_db<A: AuthorizationApi>(
                 owned_by_id,
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![entity_type.id().clone()],
-                properties,
+                entity_type_ids: HashSet::from([entity_type.id().clone()]),
+                properties: PropertyWithMetadataObject::from_parts(properties, None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -149,10 +150,13 @@ async fn seed_db<A: AuthorizationApi>(
                             owned_by_id,
                             entity_uuid: None,
                             decision_time: None,
-                            entity_type_ids: vec![link_type.id().clone()],
-                            properties: PropertyObject::empty(),
+                            entity_type_ids: HashSet::from([link_type.id().clone()]),
+                            properties: PropertyWithMetadataObject::from_parts(
+                                PropertyObject::empty(),
+                                None,
+                            )
+                            .expect("could not create property with metadata object"),
                             confidence: None,
-                            property_metadata: PropertyMetadataObject::default(),
                             link_data: Some(LinkData {
                                 left_entity_id: entity_a_metadata.record_id.entity_id,
                                 right_entity_id: entity_b_metadata.record_id.entity_id,

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use graph::{
     store::{
         knowledge::{
@@ -13,8 +15,8 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance, Property, PropertyMetadataObject, PropertyObject,
-        PropertyPatchOperation, PropertyPath,
+        entity::ProvidedEntityEditionProvenance, Property, PropertyObject, PropertyPatchOperation,
+        PropertyPath, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -57,16 +59,16 @@ async fn insert() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![VersionedUrl {
+                entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(
                         "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
-                }],
-                properties: person.clone(),
+                }]),
+                properties: PropertyWithMetadataObject::from_parts(person.clone(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -127,17 +129,17 @@ async fn query() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![VersionedUrl {
+                entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(
                         "https://blockprotocol.org/@alice/types/entity-type/organization/"
                             .to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
-                }],
-                properties: organization.clone(),
+                }]),
+                properties: PropertyWithMetadataObject::from_parts(organization.clone(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -201,16 +203,16 @@ async fn update() {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![VersionedUrl {
+                entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(
                         "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
-                }],
-                properties: page_v1.clone(),
+                }]),
+                properties: PropertyWithMetadataObject::from_parts(page_v1.clone(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataObject::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -230,7 +232,7 @@ async fn update() {
                     value: Property::Object(page_v2.clone()),
                     metadata: None,
                 }],
-                entity_type_ids: vec![],
+                entity_type_ids: HashSet::new(),
                 archived: None,
                 draft: None,
                 decision_time: None,

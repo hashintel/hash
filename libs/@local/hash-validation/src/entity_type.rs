@@ -1,11 +1,12 @@
 use core::borrow::Borrow;
+use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 use graph_types::knowledge::{
     entity::{Entity, EntityId},
     link::LinkData,
-    PropertyObject, PropertyPath,
+    PropertyPath, PropertyWithMetadataObject,
 };
 use thiserror::Error;
 use type_system::{
@@ -40,7 +41,7 @@ pub enum EntityValidationError {
     #[error("Entities without a type are not allowed")]
     EmptyEntityTypes,
     #[error("the validator was unable to read the entity type `{ids:?}`")]
-    EntityTypeRetrieval { ids: Vec<VersionedUrl> },
+    EntityTypeRetrieval { ids: HashSet<VersionedUrl> },
     #[error("the validator was unable to read the entity `{id}`")]
     EntityRetrieval { id: EntityId },
     #[error("The link type `{link_types:?}` is not allowed")]
@@ -51,7 +52,7 @@ pub enum EntityValidationError {
     InvalidPropertyPath { path: PropertyPath<'static> },
 }
 
-impl<P> Schema<PropertyObject, P> for ClosedEntityType
+impl<P> Schema<PropertyWithMetadataObject, P> for ClosedEntityType
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -59,7 +60,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a PropertyObject,
+        value: &'a PropertyWithMetadataObject,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
@@ -68,7 +69,7 @@ where
         //   see https://linear.app/hash/issue/BP-33
         Object::<_, 0>::new(self.properties.clone(), self.required.clone())
             .expect("`Object` was already validated")
-            .validate_value(value.properties(), components, provider)
+            .validate_value(&value.value, components, provider)
             .await
             .change_context(EntityValidationError::InvalidProperties)
             .attach_lazy(|| Expected::EntityType(self.clone()))
@@ -76,7 +77,7 @@ where
     }
 }
 
-impl<P> Validate<ClosedEntityType, P> for PropertyObject
+impl<P> Validate<ClosedEntityType, P> for PropertyWithMetadataObject
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -163,9 +164,24 @@ where
         if self.metadata.entity_type_ids.is_empty() {
             extend_report!(status, EntityValidationError::EmptyEntityTypes);
         }
-        if let Err(error) = self.properties.validate(schema, components, context).await {
-            extend_report!(status, error);
+
+        match PropertyWithMetadataObject::from_parts(
+            self.properties.clone(),
+            Some(self.metadata.properties.clone()),
+        ) {
+            Ok(properties) => {
+                if let Err(error) = properties.validate(schema, components, context).await {
+                    extend_report!(status, error);
+                }
+            }
+            Err(error) => {
+                extend_report!(
+                    status,
+                    error.change_context(EntityValidationError::InvalidProperties)
+                );
+            }
         }
+
         if let Err(error) = self
             .link_data
             .as_ref()
