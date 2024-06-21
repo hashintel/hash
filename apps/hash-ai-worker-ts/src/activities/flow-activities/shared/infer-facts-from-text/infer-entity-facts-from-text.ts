@@ -213,7 +213,71 @@ export const inferEntityFactsFromText = async (params: {
     },
   );
 
-  if (llmResponse.status !== "ok") {
+  const retry = (retryParams: {
+    allValidInferredFacts: Fact[];
+    retryMessages: LlmMessage[];
+  }) => {
+    const { allValidInferredFacts, retryMessages } = retryParams;
+
+    const { retryCount = 0 } = retryContext ?? {};
+
+    if (retryCount >= retryMax) {
+      logger.debug(
+        "Exceeded the retry limit for inferring facts from text, returning the previously inferred facts.",
+      );
+      /**
+       * If some of the facts are repeatedly invalid, we handle this gracefully
+       * by returning all the valid facts which were parsed.
+       */
+      return {
+        facts: allValidInferredFacts,
+      };
+    }
+
+    return inferEntityFactsFromText({
+      ...params,
+      retryContext: {
+        previousValidFacts: allValidInferredFacts,
+        retryMessages,
+        retryCount: retryCount + 1,
+      },
+    });
+  };
+
+  if (llmResponse.status === "exceeded-maximum-output-tokens") {
+    /**
+     * @todo: ideally instead of retrying and asking for fewer facts, we would either:
+     *  - provide information on which facts are relevant, so that these aren't omitted
+     *  - gather facts on smaller chunks of text, so that obtaining all the facts for an
+     *    entity doesn't exceed the maximum output token limit
+     */
+    return retry({
+      allValidInferredFacts: params.retryContext?.previousValidFacts ?? [],
+      retryMessages: [
+        {
+          role: "assistant",
+          content: [
+            {
+              type: "text",
+              text: "The response exceeded the maximum token limit.",
+            },
+          ],
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: dedent(`
+                You attempted to submit too many facts.
+                Try again by submitting fewer facts (less than 40).
+              `),
+            },
+          ],
+        },
+      ],
+    });
+  } else if (llmResponse.status !== "ok") {
     throw new Error(
       `Failed to get response from LLM: ${stringify(llmResponse)}`,
     );
@@ -303,23 +367,6 @@ export const inferEntityFactsFromText = async (params: {
   /** @todo: check if there are subject entities for which no facts have been provided */
 
   if (invalidFacts.length > 0) {
-    const { retryCount = 0 } = retryContext ?? {};
-
-    if (retryCount >= retryMax) {
-      logger.debug(
-        `Exceeded the retry limit for inferring facts from text, abandoning the following invalid facts: ${stringify(
-          invalidFacts,
-        )}`,
-      );
-      /**
-       * If some of the facts are repeatedly invalid, we handle this gracefully
-       * by returning all the valid facts which were parsed.
-       */
-      return {
-        facts: allValidInferredFacts,
-      };
-    }
-
     const toolCallResponses = toolCalls.map<LlmMessageToolResultContent>(
       (toolCall) => {
         const invalidFactsProvidedInToolCall = invalidFacts.filter(
@@ -359,19 +406,15 @@ export const inferEntityFactsFromText = async (params: {
       )}`,
     );
 
-    return inferEntityFactsFromText({
-      ...params,
-      retryContext: {
-        previousValidFacts: allValidInferredFacts,
-        retryMessages: [
-          llmResponse.message,
-          {
-            role: "user",
-            content: toolCallResponses,
-          },
-        ],
-        retryCount: retryCount + 1,
-      },
+    return retry({
+      allValidInferredFacts,
+      retryMessages: [
+        llmResponse.message,
+        {
+          role: "user",
+          content: toolCallResponses,
+        },
+      ],
     });
   }
 
