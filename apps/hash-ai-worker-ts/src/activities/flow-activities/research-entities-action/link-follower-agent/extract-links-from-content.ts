@@ -15,7 +15,7 @@ export type Link = {
   description: string;
 };
 
-const defaultModel: LlmParams["model"] = "claude-3-sonnet-20240229";
+const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
 export const extractLinksFromContentSystemPrompt = dedent(`
   You are a comprehensive link extractor agent.
