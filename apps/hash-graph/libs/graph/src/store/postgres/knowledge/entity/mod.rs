@@ -292,6 +292,7 @@ where
 
     #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_entities(&mut self) -> Result<(), DeletionError> {
+        tracing::debug!("Deleting all entities");
         self.as_client()
             .client()
             .simple_query(
@@ -477,7 +478,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: Vec<CreateEntityParams<R>>,
-    ) -> Result<Vec<EntityMetadata>, InsertionError>
+    ) -> Result<Vec<Entity>, InsertionError>
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
@@ -818,7 +819,7 @@ where
                     .change_context(InsertionError)?;
             }
 
-            Ok(entities.into_iter().map(|entity| entity.metadata).collect())
+            Ok(entities)
         }
     }
 

@@ -100,11 +100,12 @@ async fn initial_draft() {
         )
         .await
         .expect("could not create entity");
-    assert!(entity.record_id.entity_id.draft_id.is_some());
-    assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
-    assert!(entity.record_id.entity_id.draft_id.is_some());
+    assert!(entity.metadata.record_id.entity_id.draft_id.is_some());
+    assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
+    assert!(entity.metadata.record_id.entity_id.draft_id.is_some());
     assert!(
         entity
+            .metadata
             .provenance
             .inferred
             .first_non_draft_created_at_decision_time
@@ -112,6 +113,7 @@ async fn initial_draft() {
     );
     assert!(
         entity
+            .metadata
             .provenance
             .inferred
             .first_non_draft_created_at_transaction_time
@@ -122,7 +124,7 @@ async fn initial_draft() {
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
+                entity_id: entity.metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: PropertyPath::default(),
                     value: Property::Object(bob()),
@@ -141,7 +143,7 @@ async fn initial_draft() {
 
     assert_eq!(
         updated_entity.metadata.record_id.entity_id,
-        entity.record_id.entity_id
+        entity.metadata.record_id.entity_id
     );
     assert!(check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
     assert!(
@@ -271,15 +273,16 @@ async fn no_initial_draft() {
         )
         .await
         .expect("could not create entity");
-    assert!(entity.record_id.entity_id.draft_id.is_none());
-    assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
+    assert!(entity.metadata.record_id.entity_id.draft_id.is_none());
+    assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
 
     let ClosedTemporalBound::Inclusive(undraft_transaction_time) =
-        entity.temporal_versioning.transaction_time.start();
+        entity.metadata.temporal_versioning.transaction_time.start();
     let ClosedTemporalBound::Inclusive(undraft_decision_time) =
-        entity.temporal_versioning.decision_time.start();
+        entity.metadata.temporal_versioning.decision_time.start();
     assert_eq!(
         entity
+            .metadata
             .provenance
             .inferred
             .first_non_draft_created_at_transaction_time,
@@ -287,6 +290,7 @@ async fn no_initial_draft() {
     );
     assert_eq!(
         entity
+            .metadata
             .provenance
             .inferred
             .first_non_draft_created_at_decision_time,
@@ -298,7 +302,7 @@ async fn no_initial_draft() {
             .patch_entity(
                 api.account_id,
                 PatchEntityParams {
-                    entity_id: entity.record_id.entity_id,
+                    entity_id: entity.metadata.record_id.entity_id,
                     properties: vec![PropertyPatchOperation::Replace {
                         path: PropertyPath::default(),
                         value: Property::Object(bob()),
@@ -316,11 +320,11 @@ async fn no_initial_draft() {
             .expect("could not update entity");
 
         assert_eq!(
-            entity.record_id.entity_id.owned_by_id,
+            entity.metadata.record_id.entity_id.owned_by_id,
             updated_entity.metadata.record_id.entity_id.owned_by_id
         );
         assert_eq!(
-            entity.record_id.entity_id.entity_uuid,
+            entity.metadata.record_id.entity_id.entity_uuid,
             updated_entity.metadata.record_id.entity_id.entity_uuid
         );
         assert!(
@@ -331,7 +335,7 @@ async fn no_initial_draft() {
                 .draft_id
                 .is_some()
         );
-        assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
+        assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
         assert!(check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
         assert_eq!(
             updated_entity
@@ -372,7 +376,7 @@ async fn no_initial_draft() {
             .expect("could not update entity");
 
         assert_eq!(
-            entity.record_id.entity_id,
+            entity.metadata.record_id.entity_id,
             updated_live_entity.metadata.record_id.entity_id
         );
         assert!(
@@ -429,14 +433,15 @@ async fn multiple_drafts() {
         )
         .await
         .expect("could not create entity");
-    assert!(entity.record_id.entity_id.draft_id.is_none());
-    assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
+    assert!(entity.metadata.record_id.entity_id.draft_id.is_none());
+    assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
     let ClosedTemporalBound::Inclusive(undraft_transaction_time) =
-        entity.temporal_versioning.transaction_time.start();
+        entity.metadata.temporal_versioning.transaction_time.start();
     let ClosedTemporalBound::Inclusive(undraft_decision_time) =
-        entity.temporal_versioning.decision_time.start();
+        entity.metadata.temporal_versioning.decision_time.start();
     assert_eq!(
         entity
+            .metadata
             .provenance
             .inferred
             .first_non_draft_created_at_transaction_time,
@@ -444,6 +449,7 @@ async fn multiple_drafts() {
     );
     assert_eq!(
         entity
+            .metadata
             .provenance
             .inferred
             .first_non_draft_created_at_decision_time,
@@ -456,7 +462,7 @@ async fn multiple_drafts() {
             .patch_entity(
                 api.account_id,
                 PatchEntityParams {
-                    entity_id: entity.record_id.entity_id,
+                    entity_id: entity.metadata.record_id.entity_id,
                     properties: vec![PropertyPatchOperation::Replace {
                         path: PropertyPath::default(),
                         value: Property::Object(bob()),
@@ -474,11 +480,11 @@ async fn multiple_drafts() {
             .expect("could not update entity");
 
         assert_eq!(
-            entity.record_id.entity_id.owned_by_id,
+            entity.metadata.record_id.entity_id.owned_by_id,
             updated_entity.metadata.record_id.entity_id.owned_by_id
         );
         assert_eq!(
-            entity.record_id.entity_id.entity_uuid,
+            entity.metadata.record_id.entity_id.entity_uuid,
             updated_entity.metadata.record_id.entity_id.entity_uuid
         );
         assert!(
@@ -489,7 +495,7 @@ async fn multiple_drafts() {
                 .draft_id
                 .is_some()
         );
-        assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
+        assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
         assert!(check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
         assert_eq!(
             updated_entity
@@ -533,7 +539,7 @@ async fn multiple_drafts() {
             .expect("could not update entity");
 
         assert_eq!(
-            entity.record_id.entity_id,
+            entity.metadata.record_id.entity_id,
             updated_live_entity.metadata.record_id.entity_id
         );
         assert!(!check_entity_exists(&api, draft).await);

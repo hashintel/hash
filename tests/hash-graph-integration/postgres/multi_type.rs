@@ -99,7 +99,7 @@ async fn initial_person() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
-    let entity_metadata = api
+    let entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -120,7 +120,8 @@ async fn initial_person() {
         .expect("could not create entity");
 
     assert!(
-        entity_metadata
+        entity
+            .metadata
             .entity_type_ids
             .contains(&person_entity_type_id())
     );
@@ -147,20 +148,13 @@ async fn initial_person() {
         .expect("could not get entities")
         .entities;
 
-    assert_eq!(
-        entities,
-        [Entity {
-            metadata: entity_metadata.clone(),
-            properties: alice(),
-            link_data: None
-        }]
-    );
+    assert_eq!(entities[0], entity);
 
     let updated_entity = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity_metadata.record_id.entity_id,
+                entity_id: entity.metadata.record_id.entity_id,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id(), org_entity_type_id()]),
                 properties: vec![],
@@ -247,7 +241,7 @@ async fn create_multi() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
-    let entity_metadata = api
+    let entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -268,12 +262,14 @@ async fn create_multi() {
         .expect("could not create entity");
 
     assert!(
-        entity_metadata
+        entity
+            .metadata
             .entity_type_ids
             .contains(&person_entity_type_id()),
     );
     assert!(
-        entity_metadata
+        entity
+            .metadata
             .entity_type_ids
             .contains(&org_entity_type_id()),
     );
@@ -323,20 +319,13 @@ async fn create_multi() {
         .entities;
 
     assert_eq!(person_entities, org_entities);
-    assert_eq!(
-        person_entities,
-        [Entity {
-            metadata: entity_metadata.clone(),
-            properties: alice(),
-            link_data: None
-        }]
-    );
+    assert_eq!(person_entities[0], entity);
 
     let updated_entity = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: entity_metadata.record_id.entity_id,
+                entity_id: entity.metadata.record_id.entity_id,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
                 properties: vec![],

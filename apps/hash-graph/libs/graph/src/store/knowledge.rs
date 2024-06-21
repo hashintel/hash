@@ -8,10 +8,7 @@ use futures::TryFutureExt;
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{
-            Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid,
-            ProvidedEntityEditionProvenance,
-        },
+        entity::{Entity, EntityEmbedding, EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
         Confidence, PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
     },
@@ -182,6 +179,7 @@ pub struct CreateEntityParams<R> {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
     pub entity_type_ids: HashSet<VersionedUrl>,
     pub properties: PropertyWithMetadataObject,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -350,7 +348,7 @@ pub trait EntityStore {
         &mut self,
         actor_id: AccountId,
         params: CreateEntityParams<R>,
-    ) -> impl Future<Output = Result<EntityMetadata, Report<InsertionError>>> + Send
+    ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
@@ -367,7 +365,7 @@ pub trait EntityStore {
         &mut self,
         actor_id: AccountId,
         params: Vec<CreateEntityParams<R>>,
-    ) -> impl Future<Output = Result<Vec<EntityMetadata>, Report<InsertionError>>> + Send
+    ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send;
 

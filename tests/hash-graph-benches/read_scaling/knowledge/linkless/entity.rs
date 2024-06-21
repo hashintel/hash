@@ -19,7 +19,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{EntityMetadata, ProvidedEntityEditionProvenance},
+        entity::{Entity, ProvidedEntityEditionProvenance},
         PropertyObject, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
@@ -42,7 +42,7 @@ async fn seed_db<A: AuthorizationApi>(
     account_id: AccountId,
     store_wrapper: &mut StoreWrapper<A>,
     total: usize,
-) -> Vec<EntityMetadata> {
+) -> Vec<Entity> {
     let mut transaction = store_wrapper
         .store
         .transaction()
@@ -98,7 +98,7 @@ async fn seed_db<A: AuthorizationApi>(
         serde_json::from_str(entity_type::BOOK_V1).expect("could not parse entity type");
     let entity_type_id = entity_type.id().clone();
 
-    let entity_metadata_list = transaction
+    let entity_list = transaction
         .create_entities(
             account_id,
             repeat(CreateEntityParams {
@@ -132,7 +132,7 @@ async fn seed_db<A: AuthorizationApi>(
         now.elapsed().expect("could not get elapsed time")
     );
 
-    entity_metadata_list
+    entity_list
 }
 
 pub fn bench_get_entity_by_id<A: AuthorizationApi>(
@@ -140,7 +140,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
-    entity_metadata_list: &[EntityMetadata],
+    entity_metadata_list: &[Entity],
 ) {
     b.to_async(runtime).iter_batched(
         || {
@@ -148,7 +148,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
             // query
             entity_metadata_list
                 .iter()
-                .map(|metadata| metadata.record_id)
+                .map(|entity| entity.metadata.record_id)
                 .choose(&mut thread_rng())
                 .expect("could not choose random entity")
         },
@@ -202,9 +202,9 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_uuids),
-            |b, (_account_id, entity_metadata_list)| {
+            |b, (_account_id, entity_list)| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
-                bench_get_entity_by_id(b, &runtime, store, account_id, entity_metadata_list);
+                bench_get_entity_by_id(b, &runtime, store, account_id, entity_list);
             },
         );
     }

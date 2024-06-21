@@ -69,7 +69,7 @@ async fn insert() {
         version: OntologyTypeVersion::new(1),
     };
 
-    let alice_metadata = api
+    let alice_entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -89,7 +89,7 @@ async fn insert() {
         .await
         .expect("could not create entity");
 
-    let bob_metadata = api
+    let bob_entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -127,8 +127,8 @@ async fn insert() {
             properties: PropertyWithMetadataObject::from_parts(friend_of, None)
                 .expect("could not create property with metadata object"),
             link_data: Some(LinkData {
-                left_entity_id: alice_metadata.record_id.entity_id,
-                right_entity_id: bob_metadata.record_id.entity_id,
+                left_entity_id: alice_entity.metadata.record_id.entity_id,
+                right_entity_id: bob_entity.metadata.record_id.entity_id,
                 left_entity_confidence: None,
                 left_entity_provenance: PropertyProvenance::default(),
                 right_entity_confidence: None,
@@ -155,7 +155,12 @@ async fn insert() {
                             direction: EdgeDirection::Outgoing,
                         })),
                         Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
+                            alice_entity
+                                .metadata
+                                .record_id
+                                .entity_id
+                                .entity_uuid
+                                .into_uuid(),
                         ))),
                     ),
                     Filter::Equal(
@@ -165,7 +170,12 @@ async fn insert() {
                             direction: EdgeDirection::Outgoing,
                         })),
                         Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_metadata.record_id.entity_id.owned_by_id.into_uuid(),
+                            alice_entity
+                                .metadata
+                                .record_id
+                                .entity_id
+                                .owned_by_id
+                                .into_uuid(),
                         ))),
                     ),
                     Filter::Equal(
@@ -216,8 +226,14 @@ async fn insert() {
 
     let link_data = link_entity.link_data.expect("entity is not a link");
 
-    assert_eq!(link_data.left_entity_id, alice_metadata.record_id.entity_id);
-    assert_eq!(link_data.right_entity_id, bob_metadata.record_id.entity_id);
+    assert_eq!(
+        link_data.left_entity_id,
+        alice_entity.metadata.record_id.entity_id
+    );
+    assert_eq!(
+        link_data.right_entity_id,
+        bob_entity.metadata.record_id.entity_id
+    );
 }
 
 #[tokio::test]
@@ -273,7 +289,7 @@ async fn get_entity_links() {
         version: OntologyTypeVersion::new(1),
     };
 
-    let alice_metadata = api
+    let alice_entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -293,7 +309,7 @@ async fn get_entity_links() {
         .await
         .expect("could not create entity");
 
-    let bob_metadata = api
+    let bob_entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -343,8 +359,8 @@ async fn get_entity_links() {
             properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
                 .expect("could not create property with metadata object"),
             link_data: Some(LinkData {
-                left_entity_id: alice_metadata.record_id.entity_id,
-                right_entity_id: bob_metadata.record_id.entity_id,
+                left_entity_id: alice_entity.metadata.record_id.entity_id,
+                right_entity_id: bob_entity.metadata.record_id.entity_id,
                 left_entity_confidence: None,
                 left_entity_provenance: PropertyProvenance::default(),
                 right_entity_confidence: None,
@@ -369,8 +385,8 @@ async fn get_entity_links() {
             properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
                 .expect("could not create property with metadata object"),
             link_data: Some(LinkData {
-                left_entity_id: alice_metadata.record_id.entity_id,
-                right_entity_id: charles_metadata.record_id.entity_id,
+                left_entity_id: alice_entity.metadata.record_id.entity_id,
+                right_entity_id: charles_metadata.metadata.record_id.entity_id,
                 left_entity_confidence: None,
                 left_entity_provenance: PropertyProvenance::default(),
                 right_entity_confidence: None,
@@ -396,7 +412,12 @@ async fn get_entity_links() {
                         direction: EdgeDirection::Outgoing,
                     })),
                     Some(FilterExpression::Parameter(Parameter::Uuid(
-                        alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
+                        alice_entity
+                            .metadata
+                            .record_id
+                            .entity_id
+                            .entity_uuid
+                            .into_uuid(),
                     ))),
                 ),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
@@ -436,18 +457,16 @@ async fn get_entity_links() {
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.left_entity_id == alice_metadata.record_id.entity_id)
+            .any(|link_data| link_data.left_entity_id == alice_entity.metadata.record_id.entity_id)
     );
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.right_entity_id == bob_metadata.record_id.entity_id)
+            .any(|link_data| link_data.right_entity_id == bob_entity.metadata.record_id.entity_id)
     );
-    assert!(
-        link_datas
-            .iter()
-            .any(|link_data| link_data.right_entity_id == charles_metadata.record_id.entity_id)
-    );
+    assert!(link_datas.iter().any(
+        |link_data| link_data.right_entity_id == charles_metadata.metadata.record_id.entity_id
+    ));
 }
 
 #[tokio::test]
@@ -494,7 +513,7 @@ async fn remove_link() {
         version: OntologyTypeVersion::new(1),
     };
 
-    let alice_metadata = api
+    let alice_entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -514,7 +533,7 @@ async fn remove_link() {
         .await
         .expect("could not create entity");
 
-    let bob_metadata = api
+    let bob_entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
@@ -545,8 +564,8 @@ async fn remove_link() {
                 properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
                     .expect("could not create property with metadata object"),
                 link_data: Some(LinkData {
-                    left_entity_id: alice_metadata.record_id.entity_id,
-                    right_entity_id: bob_metadata.record_id.entity_id,
+                    left_entity_id: alice_entity.metadata.record_id.entity_id,
+                    right_entity_id: bob_entity.metadata.record_id.entity_id,
                     left_entity_confidence: None,
                     left_entity_provenance: PropertyProvenance::default(),
                     right_entity_confidence: None,
@@ -573,7 +592,12 @@ async fn remove_link() {
                             direction: EdgeDirection::Outgoing,
                         })),
                         Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
+                            alice_entity
+                                .metadata
+                                .record_id
+                                .entity_id
+                                .entity_uuid
+                                .into_uuid(),
                         ))),
                     ),
                     Filter::Equal(
@@ -596,7 +620,7 @@ async fn remove_link() {
     api.patch_entity(
         api.account_id,
         PatchEntityParams {
-            entity_id: link_entity_metadata.record_id.entity_id,
+            entity_id: link_entity_metadata.metadata.record_id.entity_id,
             decision_time: None,
             archived: Some(true),
             draft: None,
@@ -621,7 +645,12 @@ async fn remove_link() {
                             direction: EdgeDirection::Outgoing,
                         })),
                         Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_metadata.record_id.entity_id.entity_uuid.into_uuid(),
+                            alice_entity
+                                .metadata
+                                .record_id
+                                .entity_id
+                                .entity_uuid
+                                .into_uuid(),
                         ))),
                     ),
                     Filter::Equal(

@@ -29,7 +29,6 @@ import type {
   CreatedAtTransactionTime,
 } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import zip from "lodash/zip";
 
 import type { AuthenticationContext } from "./authentication-context";
 
@@ -221,15 +220,8 @@ export class Entity<
           ...rest,
         })),
       )
-      .then(({ data }) =>
-        zip(params, data).map(
-          ([request, metadata]) =>
-            new Entity({
-              metadata: metadata!,
-              properties: request!.properties,
-              linkData: request!.linkData,
-            }),
-        ),
+      .then(({ data: entities }) =>
+        entities.map((entity) => new Entity(entity)),
       );
   }
 
@@ -351,15 +343,8 @@ export class LinkEntity<
           ...rest,
         })),
       )
-      .then(({ data }) =>
-        zip(params, data).map(
-          ([request, metadata]) =>
-            new LinkEntity({
-              metadata: metadata!,
-              properties: request!.properties,
-              linkData: request!.linkData,
-            }),
-        ),
+      .then(({ data: entities }) =>
+        entities.map((entity) => new LinkEntity(entity)),
       );
   }
 

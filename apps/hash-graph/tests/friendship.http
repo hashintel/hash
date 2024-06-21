@@ -1277,9 +1277,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_a_entity_id", response.body.recordId.entityId);
-    client.global.set("person_a_owned_by_id", response.body.recordId.entityId.split("~")[0])
-    client.global.set("person_a_entity_uuid", response.body.recordId.entityId.split("~")[1])
+    client.global.set("person_a_entity_id", response.body.metadata.recordId.entityId);
+    client.global.set("person_a_owned_by_id", response.body.metadata.recordId.entityId.split("~")[0])
+    client.global.set("person_a_entity_uuid", response.body.metadata.recordId.entityId.split("~")[1])
 %}
 
 ### Allow the friendship entity link type to be instantiated by the account
@@ -1449,10 +1449,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_b_entity_id", response.body.recordId.entityId);
-    client.global.set("person_b_entity_uuid", response.body.recordId.entityId.split("~")[1])
-    client.global.set("person_b_transaction_time", response.body.temporalVersioning.transactionTime.start.limit);
-    client.global.set("person_b_decision_time", response.body.temporalVersioning.decisionTime.start.limit);
+    client.global.set("person_b_entity_id", response.body.metadata.recordId.entityId);
+    client.global.set("person_b_entity_uuid", response.body.metadata.recordId.entityId.split("~")[1])
+    client.global.set("person_b_transaction_time", response.body.metadata.temporalVersioning.transactionTime.start.limit);
+    client.global.set("person_b_decision_time", response.body.metadata.temporalVersioning.decisionTime.start.limit);
 %}
 
 ### Update Bob entity embeddings
@@ -1598,7 +1598,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("link_entity_id", response.body.recordId.entityId);
+    client.global.set("link_entity_id", response.body.metadata.recordId.entityId);
 %}
 
 ### Publish second person entity
@@ -2099,7 +2099,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_c_entity_id", response.body.recordId.entityId);
+    client.global.set("person_c_entity_id", response.body.metadata.recordId.entityId);
 %}
 
 ### Update third Person entity
