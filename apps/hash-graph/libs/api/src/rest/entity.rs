@@ -1,7 +1,6 @@
 //! Web routes for CRU operations on entities.
 
-use alloc::{borrow::Cow, sync::Arc};
-use std::collections::HashSet;
+use alloc::sync::Arc;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -20,13 +19,13 @@ use axum::{
     routing::{get, post},
     Extension, Router,
 };
-use error_stack::{Context, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use graph::{
     knowledge::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
-            CountEntitiesParams, CreateEntityParams, DiffEntityParams, DiffEntityResult,
+            CountEntitiesParams, CreateEntityRequest, DiffEntityParams, DiffEntityResult,
             GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, PatchEntityParams,
             UpdateEntityEmbeddingsParams, ValidateEntityParams,
         },
@@ -47,15 +46,14 @@ use graph_types::{
         link::LinkData,
         ArrayMetadata, Confidence, ObjectMetadata, Property, PropertyDiff, PropertyMetadataElement,
         PropertyMetadataObject, PropertyObject, PropertyPatchOperation, PropertyPath,
-        PropertyPathElement, PropertyProvenance, PropertyWithMetadataObject, ValueMetadata,
+        PropertyPathElement, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
+        ValueMetadata,
     },
     owned_by_id::OwnedById,
     Embedding,
 };
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
-use temporal_versioning::{DecisionTime, Timestamp};
-use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 use validation::ValidateEntityComponents;
 
@@ -89,7 +87,9 @@ use crate::rest::{
     components(
         schemas(
             CreateEntityRequest,
-            ValidateEntityRequest,
+            PropertyWithMetadata,
+            PropertyWithMetadataObject,
+            ValidateEntityParams,
             CountEntitiesParams,
             EntityValidationType,
             ValidateEntityComponents,
@@ -216,56 +216,6 @@ impl RoutedResource for EntityResource {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct CreateEntityRequest {
-    pub owned_by_id: OwnedById,
-    #[serde(default)]
-    #[schema(nullable = false)]
-    pub entity_uuid: Option<EntityUuid>,
-    #[serde(default)]
-    #[schema(nullable = false)]
-    pub decision_time: Option<Timestamp<DecisionTime>>,
-    #[schema(value_type = Vec<VersionedUrl>)]
-    pub entity_type_ids: HashSet<VersionedUrl>,
-    pub properties: PropertyObject,
-    #[schema(nullable = false)]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub confidence: Option<Confidence>,
-    #[schema(nullable = false)]
-    #[serde(default, skip_serializing_if = "PropertyMetadataObject::is_empty")]
-    pub property_metadata: PropertyMetadataObject,
-    #[serde(default)]
-    #[schema(nullable = false)]
-    pub link_data: Option<LinkData>,
-    pub draft: bool,
-    pub relationships: Vec<EntityRelationAndSubject>,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
-    pub provenance: ProvidedEntityEditionProvenance,
-}
-
-impl TryFrom<CreateEntityRequest> for CreateEntityParams<Vec<EntityRelationAndSubject>> {
-    type Error = Report<impl Context>;
-
-    fn try_from(value: CreateEntityRequest) -> Result<Self, Self::Error> {
-        Ok(Self {
-            owned_by_id: value.owned_by_id,
-            entity_uuid: value.entity_uuid,
-            decision_time: value.decision_time,
-            entity_type_ids: value.entity_type_ids,
-            properties: PropertyWithMetadataObject::from_parts(
-                value.properties,
-                Some(value.property_metadata),
-            )?,
-            confidence: value.confidence,
-            link_data: value.link_data,
-            draft: value.draft,
-            relationships: value.relationships,
-            provenance: value.provenance,
-        })
-    }
-}
-
 #[utoipa::path(
     post,
     path = "/entities",
@@ -310,7 +260,7 @@ where
         .map_err(report_to_response)?;
 
     store
-        .create_entity(actor_id, params.try_into().map_err(report_to_response)?)
+        .create_entity(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -360,40 +310,16 @@ where
         .map_err(report_to_response)?;
 
     store
-        .create_entities(
-            actor_id,
-            params
-                .into_iter()
-                .map(CreateEntityParams::try_from)
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(report_to_response)?,
-        )
+        .create_entities(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(Json)
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct ValidateEntityRequest<'a> {
-    #[serde(borrow)]
-    pub entity_types: EntityValidationType<'a>,
-    pub properties: PropertyObject,
-    #[schema(nullable = false)]
-    #[serde(default, skip_serializing_if = "PropertyMetadataObject::is_empty")]
-    pub property_metadata: PropertyMetadataObject,
-    #[serde(default)]
-    #[schema(nullable = false)]
-    pub link_data: Option<LinkData>,
-    #[serde(default)]
-    #[schema(nullable = false)]
-    pub components: ValidateEntityComponents,
-}
-
 #[utoipa::path(
     post,
     path = "/entities/validate",
-    request_body = ValidateEntityRequest,
+    request_body = ValidateEntityParams,
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -421,7 +347,7 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let params = ValidateEntityRequest::deserialize(&body).map_err(report_to_response)?;
+    let params = ValidateEntityParams::deserialize(&body).map_err(report_to_response)?;
 
     let authorization_api = authorization_api_pool
         .acquire()
@@ -434,22 +360,7 @@ where
         .map_err(report_to_response)?;
 
     store
-        .validate_entity(
-            actor_id,
-            Consistency::FullyConsistent,
-            ValidateEntityParams {
-                entity_types: params.entity_types,
-                properties: Cow::Owned(
-                    PropertyWithMetadataObject::from_parts(
-                        params.properties,
-                        Some(params.property_metadata),
-                    )
-                    .map_err(report_to_response)?,
-                ),
-                link_data: params.link_data.map(Cow::Owned),
-                components: params.components,
-            },
-        )
+        .validate_entity(actor_id, Consistency::FullyConsistent, params)
         .await
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;

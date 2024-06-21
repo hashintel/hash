@@ -46,7 +46,7 @@ import type { AuthenticationContext } from "./authentication-context";
 
 export type CreateEntityParameters = Omit<
   GraphApiCreateEntityRequest,
-  "entityTypeIds" | "decisionTime" | "draft" | "propertyMetadata"
+  "entityTypeIds" | "decisionTime" | "draft" | "properties"
 > & {
   ownedById: OwnedById;
   properties: EntityPropertiesObject;
@@ -389,11 +389,17 @@ export class Entity<
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(({ entityTypeId, draft, ...rest }) => ({
-          entityTypeIds: [entityTypeId],
-          draft: draft ?? false,
-          ...rest,
-        })),
+        params.map(
+          ({ entityTypeId, draft, properties, propertyMetadata, ...rest }) => ({
+            entityTypeIds: [entityTypeId],
+            draft: draft ?? false,
+            properties: mergePropertyObjectAndMetadata(
+              properties,
+              propertyMetadata,
+            ),
+            ...rest,
+          }),
+        ),
       )
       .then(({ data: entities }) =>
         entities.map((entity) => new Entity(entity)),
@@ -514,11 +520,17 @@ export class LinkEntity<
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(({ entityTypeId, draft, ...rest }) => ({
-          entityTypeIds: [entityTypeId],
-          draft: draft ?? false,
-          ...rest,
-        })),
+        params.map(
+          ({ entityTypeId, draft, properties, propertyMetadata, ...rest }) => ({
+            entityTypeIds: [entityTypeId],
+            draft: draft ?? false,
+            properties: mergePropertyObjectAndMetadata(
+              properties,
+              propertyMetadata,
+            ),
+            ...rest,
+          }),
+        ),
       )
       .then(({ data: entities }) =>
         entities.map((entity) => new LinkEntity(entity)),

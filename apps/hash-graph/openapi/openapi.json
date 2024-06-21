@@ -1311,7 +1311,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ValidateEntityRequest"
+                "$ref": "#/components/schemas/ValidateEntityParams"
               }
             }
           },
@@ -3178,14 +3178,7 @@
             "$ref": "#/components/schemas/OwnedById"
           },
           "properties": {
-            "$ref": "#/components/schemas/PropertyObject"
-          },
-          "propertyMetadata": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PropertyMetadataObject"
-              }
-            ]
+            "$ref": "#/components/schemas/PropertyWithMetadataObject"
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedEntityEditionProvenance"
@@ -7182,6 +7175,66 @@
           }
         }
       },
+      "PropertyWithMetadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ArrayMetadata"
+              },
+              "value": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PropertyWithMetadata"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ObjectMetadata"
+              },
+              "value": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/PropertyWithMetadata"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "value",
+              "metadata"
+            ],
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ValueMetadata"
+              },
+              "value": {}
+            }
+          }
+        ]
+      },
+      "PropertyWithMetadataObject": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ObjectMetadata"
+          },
+          "value": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyWithMetadata"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "ProvidedEntityEditionProvenance": {
         "type": "object",
         "properties": {
@@ -7891,7 +7944,7 @@
         },
         "additionalProperties": false
       },
-      "ValidateEntityRequest": {
+      "ValidateEntityParams": {
         "type": "object",
         "required": [
           "entityTypes",
@@ -7916,14 +7969,7 @@
             ]
           },
           "properties": {
-            "$ref": "#/components/schemas/PropertyObject"
-          },
-          "propertyMetadata": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PropertyMetadataObject"
-              }
-            ]
+            "$ref": "#/components/schemas/PropertyWithMetadataObject"
           }
         },
         "additionalProperties": false
