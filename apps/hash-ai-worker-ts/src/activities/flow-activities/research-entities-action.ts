@@ -78,6 +78,7 @@ const adjustDuplicates = (params: {
 };
 
 const updateStateFromInferredFacts = async (params: {
+  skipDeduplication: boolean;
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
   inferredFacts: Fact[];
@@ -90,16 +91,10 @@ const updateStateFromInferredFacts = async (params: {
     inferredFactsAboutEntities,
     inferredFacts,
     filesUsedToInferFacts,
+    skipDeduplication,
   } = params;
 
-  if (
-    (input.existingEntities ?? []).length === 0 &&
-    state.inferredFactsAboutEntities.length === 0
-  ) {
-    /**
-     * If there are no existing inferred facts about entities, there
-     * is no need to deduplicate entities.
-     */
+  if (skipDeduplication) {
     state.inferredFactsAboutEntities = inferredFactsAboutEntities;
     state.inferredFacts = inferredFacts;
   } else {
@@ -487,6 +482,14 @@ export const researchEntitiesAction: FlowActionActivity<{
                 inferredFacts,
                 inferredFactsAboutEntities,
                 filesUsedToInferFacts,
+                /**
+                 * Skip deduplication if facts were only inferred from a single web page,
+                 * and there are no existing entities or inferred facts about entities.
+                 */
+                skipDeduplication:
+                  webPages.length === 1 &&
+                  (input.existingEntities ?? []).length === 0 &&
+                  state.inferredFactsAboutEntities.length === 0,
               });
 
               return {
@@ -654,6 +657,14 @@ export const researchEntitiesAction: FlowActionActivity<{
                 inferredFacts,
                 inferredFactsAboutEntities,
                 filesUsedToInferFacts,
+                /**
+                 * Skip deduplication if facts were only gathered in a single sub-task,
+                 * and there are no existing entities or inferred facts about entities.
+                 */
+                skipDeduplication:
+                  acceptedSubTasks.length === 1 &&
+                  (input.existingEntities ?? []).length === 0 &&
+                  state.inferredFactsAboutEntities.length === 0,
               });
             }
 
