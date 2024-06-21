@@ -152,6 +152,10 @@ const anthropicApiProviders = ["anthropic", "amazon-bedrock"] as const;
 
 export type AnthropicApiProvider = (typeof anthropicApiProviders)[number];
 
+type AnthropicBedrockMessagesCreateParams = Parameters<
+  typeof anthropicBedrockClient.messages.create
+>[0];
+
 export const createAnthropicMessagesWithTools = async (params: {
   payload: AnthropicMessagesCreateParams;
   provider: AnthropicApiProvider;
@@ -168,7 +172,11 @@ export const createAnthropicMessagesWithTools = async (params: {
     const bedrockModel = anthropicModelToBedrockModel[payload.model];
     response = (await anthropicBedrockClient.messages.create(
       {
-        ...(payload as MessageCreateParamsNonStreaming),
+        /**
+         * @todo: replace with `MessageCreateParamsNonStreaming` once the Bedrock SDK
+         * has been updated to be in sync with the Anthropic SDK.
+         */
+        ...(payload as AnthropicBedrockMessagesCreateParams),
         model: bedrockModel,
       },
       {
