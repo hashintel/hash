@@ -186,7 +186,7 @@ export const proposeEntities = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "claude-3-opus-20240229",
+      model: "claude-3-5-sonnet-20240620",
       maxTokens,
       systemPrompt: inferEntitiesSystemPrompt,
       messages,

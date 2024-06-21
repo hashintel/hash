@@ -36,7 +36,7 @@ import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
-const model: LlmParams["model"] = "claude-3-opus-20240229";
+const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
 const omittedCoordinatorToolNames = [
   "complete",
