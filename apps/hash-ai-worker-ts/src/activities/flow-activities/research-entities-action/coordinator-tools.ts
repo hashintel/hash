@@ -64,7 +64,7 @@ export const generateToolDefinitions = <
               description:
                 "A question to help clarify or complete the research task",
             },
-            description: "A list of questions to ask the user",
+            description: "An array of questions to ask the user",
           },
         },
         required: ["explanation", "questions"],
