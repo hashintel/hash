@@ -281,17 +281,11 @@ const getNextToolCalls = async (params: {
 
   const messages: LlmMessage[] = [
     generateInitialUserMessage({ input }),
-    ...llmMessagesFromPreviousToolCalls.slice(0, -1),
-    lastUserMessage
-      ? ({
-          ...lastUserMessage,
-          content: [
-            ...lastUserMessage.content,
-            // Add the progress report to the most recent user message.
-            progressReport,
-          ],
-        } satisfies LlmUserMessage)
-      : [],
+    ...llmMessagesFromPreviousToolCalls,
+    {
+      role: "user",
+      content: [progressReport],
+    } satisfies LlmMessage,
   ].flat();
 
   const tools = Object.values(
