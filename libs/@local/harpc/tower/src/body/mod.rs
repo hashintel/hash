@@ -7,6 +7,7 @@ pub mod size_hint;
 pub mod timeout;
 
 use core::{
+    ops::DerefMut,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -90,8 +91,8 @@ pub(crate) type BodyFrame<B> = Frame<<B as Body>::Data, <B as Body>::Control>;
 pub(crate) type BodyFrameResult<B> = Result<BodyFrame<B>, <B as Body>::Error>;
 
 pub trait Body {
-    type Data: Buf;
     type Control;
+    type Data: Buf;
 
     type Error;
 
@@ -101,5 +102,102 @@ pub trait Body {
 
     fn size_hint(&self) -> SizeHint {
         SizeHint::default()
+    }
+}
+
+impl<B> Body for &mut B
+where
+    B: Body + Unpin + ?Sized,
+{
+    type Control = B::Control;
+    type Data = B::Data;
+    type Error = B::Error;
+
+    fn poll_frame(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context,
+    ) -> Poll<Option<BodyFrameResult<Self>>> {
+        Pin::new(&mut **self).poll_frame(cx)
+    }
+
+    fn is_complete(&self) -> Option<bool> {
+        Pin::new(&**self).is_complete()
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        Pin::new(&**self).size_hint()
+    }
+}
+
+impl<P> Body for Pin<P>
+where
+    P: Unpin + DerefMut<Target: Body>,
+{
+    type Control = <P::Target as Body>::Control;
+    type Data = <P::Target as Body>::Data;
+    type Error = <P::Target as Body>::Error;
+
+    fn poll_frame(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<BodyFrameResult<Self>>> {
+        Pin::get_mut(self).as_mut().poll_frame(cx)
+    }
+
+    fn is_complete(&self) -> Option<bool> {
+        self.as_ref().is_complete()
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        self.as_ref().size_hint()
+    }
+}
+
+impl<B> Body for Box<B>
+where
+    B: Body + Unpin + ?Sized,
+{
+    type Control = B::Control;
+    type Data = B::Data;
+    type Error = B::Error;
+
+    fn poll_frame(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context,
+    ) -> Poll<Option<BodyFrameResult<Self>>> {
+        Pin::new(&mut **self).poll_frame(cx)
+    }
+
+    fn is_complete(&self) -> Option<bool> {
+        self.as_ref().is_complete()
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        self.as_ref().size_hint()
+    }
+}
+
+pub trait BodyExt: Body {
+    fn poll_frame_unpin(&mut self, cx: &mut Context) -> Poll<Option<BodyFrameResult<Self>>>
+    where
+        Self: Unpin,
+    {
+        Pin::new(self).poll_frame(cx)
+    }
+
+    fn frame(
+        &mut self,
+    ) -> impl Future<Output = Option<Result<Frame<Self::Data, Self::Control>, Self::Error>>>
+    where
+        Self: Unpin,
+    {
+        struct FrameFuture<'a, T: ?Sized>(&'a mut T);
+
+        impl<'a, T: Body + Unpin + ?Sized> Future for FrameFuture<'a, T> {
+            type Output = Option<Result<Frame<T::Data, T::Control>, T::Error>>;
+
+            fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+                Pin::new(&mut self.0).poll_frame(cx)
+            }
+        }
+
+        FrameFuture(self)
     }
 }
