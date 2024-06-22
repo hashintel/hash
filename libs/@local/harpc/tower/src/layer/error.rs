@@ -6,7 +6,7 @@ use harpc_wire_protocol::response::kind::ResponseKind;
 use tower::{Layer, Service, ServiceExt};
 
 use crate::{
-    body::{control::Controlled, full::Full, Body},
+    body::{controlled::Controlled, full::Full, Body},
     either::Either,
     request::Request,
     response::{Parts, Response},

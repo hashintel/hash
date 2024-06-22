@@ -2,7 +2,7 @@ use harpc_net::session::{error::TransactionError, server::SessionId};
 use harpc_wire_protocol::response::kind::ResponseKind;
 
 use crate::{
-    body::{control::Controlled, full::Full, Body},
+    body::{controlled::Controlled, full::Full, Body},
     extensions::Extensions,
 };
 

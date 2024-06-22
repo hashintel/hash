@@ -1,4 +1,4 @@
-pub mod control;
+pub mod controlled;
 pub mod full;
 pub mod limited;
 pub mod map;
