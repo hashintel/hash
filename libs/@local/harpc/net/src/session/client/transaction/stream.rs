@@ -7,6 +7,16 @@ use harpc_wire_protocol::response::kind::ErrorCode;
 
 use crate::stream::TerminatedChannelStream;
 
+pub trait TransactionStream {
+    /// Returns the state of the stream.
+    ///
+    /// This is used to track (and report) on the state of the underlying stream.
+    ///
+    /// Only available after the stream has been terminated.
+    #[must_use]
+    fn state(&self) -> Option<&StreamState>;
+}
+
 /// The state of a stream.
 ///
 /// This is used to track (and report) on the state of the underlying stream
@@ -62,14 +72,10 @@ impl ErrorStream {
     pub const fn code(&self) -> ErrorCode {
         self.code
     }
+}
 
-    /// Returns the state of the stream.
-    ///
-    /// This is used to track (and report) on the state of the underlying stream.
-    ///
-    /// Only available after the stream has been terminated.
-    #[must_use]
-    pub fn state(&self) -> Option<&StreamState> {
+impl TransactionStream for ErrorStream {
+    fn state(&self) -> Option<&StreamState> {
         if !self.inner.is_terminated() {
             return None;
         }
@@ -102,14 +108,8 @@ pub struct ValueStream {
     pub(crate) state: StreamState,
 }
 
-impl ValueStream {
-    /// Returns the state of the stream.
-    ///
-    /// This is used to track (and report) on the state of the underlying stream.
-    ///
-    /// Only available after the stream has been terminated.
-    #[must_use]
-    pub fn state(&self) -> Option<&StreamState> {
+impl TransactionStream for ValueStream {
+    fn state(&self) -> Option<&StreamState> {
         if !self.inner.is_terminated() {
             return None;
         }

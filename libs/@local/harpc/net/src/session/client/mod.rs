@@ -10,7 +10,7 @@ use self::connection::ConnectionParts;
 pub use self::{
     config::SessionConfig,
     connection::{Connection, ResponseStream},
-    transaction::stream::{ErrorStream, ValueStream},
+    transaction::stream::{ErrorStream, TransactionStream, ValueStream},
 };
 use super::error::SessionError;
 use crate::transport::{connection::OutgoingConnection, TransportLayer};

@@ -86,8 +86,8 @@ impl<D, C> Frame<D, C> {
     }
 }
 
-type BodyFrame<B> = Frame<<B as Body>::Data, <B as Body>::Control>;
-type BodyFrameResult<B> = Result<BodyFrame<B>, <B as Body>::Error>;
+pub(crate) type BodyFrame<B> = Frame<<B as Body>::Data, <B as Body>::Control>;
+pub(crate) type BodyFrameResult<B> = Result<BodyFrame<B>, <B as Body>::Error>;
 
 pub trait Body {
     type Data: Buf;

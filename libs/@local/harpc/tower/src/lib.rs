@@ -9,6 +9,7 @@ pub mod body;
 pub mod either;
 pub mod extensions;
 pub mod layer;
+pub mod net;
 pub mod request;
 pub mod response;
 

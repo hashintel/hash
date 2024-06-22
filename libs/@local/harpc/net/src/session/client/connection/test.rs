@@ -50,7 +50,7 @@ use crate::{
                 ConnectionResponseDelegateTask,
             },
             transaction::{stream::StreamState, ClientTransactionPermit},
-            ValueStream,
+            TransactionStream, ValueStream,
         },
         gc::ConnectionGarbageCollectorTask,
         test::Descriptor,
