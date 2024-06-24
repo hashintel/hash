@@ -3538,10 +3538,16 @@
       },
       "DiffEntityResult": {
         "type": "object",
-        "required": [
-          "properties"
-        ],
         "properties": {
+          "draftState": {
+            "type": "boolean"
+          },
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeIdDiff"
+            }
+          },
           "properties": {
             "type": "array",
             "items": {
@@ -4177,6 +4183,49 @@
           "entityTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
           }
+        }
+      },
+      "EntityTypeIdDiff": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "added",
+              "op"
+            ],
+            "properties": {
+              "added": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              },
+              "op": {
+                "type": "string",
+                "enum": [
+                  "added"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "removed",
+              "op"
+            ],
+            "properties": {
+              "op": {
+                "type": "string",
+                "enum": [
+                  "removed"
+                ]
+              },
+              "removed": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "op"
         }
       },
       "EntityTypeInstantiatorSubject": {
