@@ -347,7 +347,10 @@ export const inferEntityFactsFromText = async (params: {
           invalidReason: `The fact does not start with "${subjectEntity.name}" as the subject of the fact. Facts must have the subject entity as the singular subject.`,
           toolCallId: toolCall.id,
         });
-      } else if (objectEntity && !fact.text.endsWith(objectEntity.name)) {
+      } else if (
+        objectEntity &&
+        !fact.text.replace(/\.$/, "").endsWith(objectEntity.name)
+      ) {
         invalidFacts.push({
           ...fact,
           invalidReason: `The fact does not end with "${objectEntity.name}" as the object of the fact. Facts must have the object entity as the singular object, and specify any prepositional phrases via the "prepositionalPhrases" argument.`,

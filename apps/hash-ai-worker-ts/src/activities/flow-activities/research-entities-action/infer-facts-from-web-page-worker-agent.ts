@@ -458,7 +458,16 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
               };
             }
 
-            const urlHeadFetch = await fetch(toolCallUrl, { method: "HEAD" });
+            let urlHeadFetch: Response;
+            try {
+              urlHeadFetch = await fetch(toolCallUrl, { method: "HEAD" });
+            } catch (err) {
+              return {
+                ...toolCall,
+                output: `Error fetching URL: ${(err as Error).message}`,
+                isError: true,
+              };
+            }
 
             /**
              * Only check the content type of the URL if the HEAD request was successful.

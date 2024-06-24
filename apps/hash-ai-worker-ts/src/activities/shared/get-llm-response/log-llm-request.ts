@@ -28,10 +28,10 @@ export const logLlmRequest = <T extends LlmParams>(params: {
 
   const now = new Date();
 
-  let logFilePath = path.join(logFolderPath, `${now.toISOString()}.json`);
-  if (taskName) {
-    logFilePath += `-${taskName}`;
-  }
+  const logFilePath = path.join(
+    logFolderPath,
+    `${now.toISOString()}${taskName ? `-${taskName}` : ""}.json`,
+  );
 
   writeFileSync(
     logFilePath,

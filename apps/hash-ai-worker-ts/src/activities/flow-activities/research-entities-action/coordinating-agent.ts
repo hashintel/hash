@@ -121,7 +121,7 @@ const generateSystemPromptPrefix = (params: {
 const generateInitialUserMessage = (params: {
   input: CoordinatingAgentInput;
   questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
-}): LlmUserMessage => {
+}): LlmMessageTextContent => {
   const {
     prompt,
     reportSpecification,
@@ -131,11 +131,8 @@ const generateInitialUserMessage = (params: {
   } = params.input;
 
   return {
-    role: "user",
-    content: [
-      {
-        type: "text",
-        text: dedent(`
+    type: "text",
+    text: dedent(`
 <ResearchPrompt>${prompt}</ResearchPrompt>
 ${reportSpecification ? `<ReportSpecification>${reportSpecification}<ReportSpecification>` : ""}
 <EntityTypes>
@@ -152,8 +149,6 @@ ${
 }
 ${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
       `),
-      },
-    ],
   };
 };
 
@@ -321,15 +316,17 @@ const getNextToolCalls = async (params: {
   const progressReport = generateProgressReport({ input, state });
 
   const messages: LlmMessage[] = [
-    generateInitialUserMessage({
-      input,
-      questionsAndAnswers: state.questionsAndAnswers,
-    }),
-    ...llmMessagesFromPreviousToolCalls,
     {
       role: "user",
-      content: [progressReport],
-    } satisfies LlmMessage,
+      content: [
+        generateInitialUserMessage({
+          input,
+          questionsAndAnswers: state.questionsAndAnswers,
+        }),
+        progressReport,
+      ],
+    } satisfies LlmUserMessage,
+    ...llmMessagesFromPreviousToolCalls,
   ].flat();
 
   const tools = Object.values(
@@ -437,7 +434,10 @@ const createInitialPlan = async (params: {
     {
       systemPrompt,
       messages: [
-        generateInitialUserMessage({ input, questionsAndAnswers }),
+        {
+          role: "user",
+          content: [generateInitialUserMessage({ input, questionsAndAnswers })],
+        } satisfies LlmUserMessage,
         ...(retryContext?.retryMessages ?? []),
       ],
       model,
