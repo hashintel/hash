@@ -6,9 +6,7 @@ import type { Fact } from "../../shared/infer-facts-from-text/types";
 import type { CompletedToolCall } from "../types";
 
 const toolNames = [
-  // "getWebPageInnerText",
   "getWebPageInnerHtml",
-  // "getWebPageSummary",
   "inferFactsFromWebPage",
   "complete",
   "terminate",
@@ -17,9 +15,6 @@ const toolNames = [
 ] as const;
 
 export type ToolName = (typeof toolNames)[number];
-
-export const isToolName = (value: string): value is ToolName =>
-  toolNames.includes(value as ToolName);
 
 export type AccessedRemoteFile = {
   /**

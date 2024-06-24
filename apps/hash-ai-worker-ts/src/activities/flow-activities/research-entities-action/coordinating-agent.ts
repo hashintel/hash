@@ -42,7 +42,7 @@ import {
 } from "./shared/simplify-for-llm-consumption";
 import type { ExistingEntitySummary } from "./summarize-existing-entities";
 import { summarizeExistingEntities } from "./summarize-existing-entities";
-import type { CompletedToolCall, WebPageSummary } from "./types";
+import type { CompletedCoordinatorToolCall, WebPageSummary } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
 const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
@@ -160,13 +160,15 @@ ${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : 
 export type CoordinatingAgentState = {
   plan: string;
   previousCalls: {
-    completedToolCalls: CompletedToolCall<CoordinatorToolName>[];
+    completedToolCalls: CompletedCoordinatorToolCall<CoordinatorToolName>[];
   }[];
   entitySummaries: LocalEntitySummary[];
   inferredFacts: Fact[];
   filesUsedToInferFacts: AccessedRemoteFile[];
   filesUsedToProposeEntities: AccessedRemoteFile[];
   proposedEntities: ProposedEntity[];
+  subTasksCompleted: string[];
+  suggestionsForNextStepsMade: string[];
   submittedEntityIds: string[];
   webPageUrlsVisited: string[];
   webPagesNotVisited: WebPageSummary[];
@@ -181,7 +183,13 @@ const generateProgressReport = (params: {
 }): LlmMessageTextContent => {
   const { state } = params;
 
-  const { webPagesNotVisited, webPageUrlsVisited, webQueriesMade } = state;
+  const {
+    subTasksCompleted,
+    suggestionsForNextStepsMade,
+    webPagesNotVisited,
+    webPageUrlsVisited,
+    webQueriesMade,
+  } = state;
 
   const proposedEntities = state.proposedEntities.filter(
     (proposedEntity) => !("sourceEntityId" in proposedEntity),
@@ -215,6 +223,14 @@ const generateProgressReport = (params: {
       </DiscoveredLinks>
     `);
     }
+
+    progressReport += dedent`
+    If further research is needed to fill more properties of any entities or links,
+      consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
+
+    Do not sequentially conduct additional web searches for each of the entities,
+      instead start multiple sub-tasks via the "startFactGatheringSubTasks" tool to
+      conduct additional research per entity in parallel.`;
   }
   if (
     webPageUrlsVisited.length > 0 ||
@@ -245,6 +261,24 @@ const generateProgressReport = (params: {
         </WebSearchesMade>
       `);
     }
+  }
+
+  if (suggestionsForNextStepsMade.length > 0) {
+    progressReport += dedent(`
+      We have received the following suggestions for next steps (some may now be redundant or already have been acted upon):
+      <SuggestionsForNextSteps>
+      ${suggestionsForNextStepsMade.join("\n")}
+      </SuggestionsForNextSteps>
+    `);
+  }
+
+  if (subTasksCompleted.length > 0) {
+    progressReport += dedent(`
+      You have completed the following sub-tasks:
+      <SubTasksCompleted>
+      ${subTasksCompleted.join("\n")}
+      </SubTasksCompleted>
+    `);
   }
 
   return {

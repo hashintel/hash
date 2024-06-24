@@ -32,7 +32,7 @@ import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-p
 import { handleWebSearchToolCall } from "./handle-web-search-tool-call";
 import { inferFactsFromWebPageWorkerAgent } from "./infer-facts-from-web-page-worker-agent";
 import type { AccessedRemoteFile } from "./infer-facts-from-web-page-worker-agent/types";
-import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption";
+import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-for-llm-consumption";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
@@ -41,9 +41,7 @@ const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 const omittedCoordinatorToolNames = [
   "complete",
   "startFactGatheringSubTasks",
-  "proposeEntitiesFromFacts",
   "requestHumanInput",
-  "submitProposedEntities",
   "terminate",
 ] as const;
 
@@ -492,10 +490,19 @@ export const runSubTaskAgent = async (params: {
                 output: `The plan has been successfully updated.`,
               };
             } else if (toolCall.name === "webSearch") {
-              const { output } = await handleWebSearchToolCall({
+              const webPageSummaries = await handleWebSearchToolCall({
                 input:
                   toolCall.input as SubTaskAgentToolCallArguments["webSearch"],
               });
+
+              const output = webPageSummaries
+                .map(
+                  ({ url, summary }, index) => `
+-------------------- SEARCH RESULT ${index + 1} --------------------
+URL: ${url}
+Summary: ${summary}`,
+                )
+                .join("\n");
 
               return {
                 ...toolCall,

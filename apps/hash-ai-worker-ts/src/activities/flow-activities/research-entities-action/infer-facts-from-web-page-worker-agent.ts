@@ -493,7 +493,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
                   if (completedToolCall.name === "getWebPageInnerHtml") {
                     return {
                       ...completedToolCall,
-                      redactedOutputMessage: dedent(`
+                      output: dedent(`
                         The inner HTML of the web page with URL ${
                           (
                             completedToolCall.input as ToolCallArguments["getWebPageInnerHtml"]
@@ -604,7 +604,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
             await updateStateFromInferredFacts({
               state,
               inferredFacts: inferredFactsWithSource,
-              entitySummaries: entitySummaries,
+              entitySummaries,
               filesUsedToInferFacts: [],
             });
 
@@ -637,7 +637,7 @@ export const inferFactsFromWebPageWorkerAgent = async (params: {
 
     /**
      * Check whether the research task has completed after processing the tool calls,
-     * incase the agent has made other tool calls at the same time as the "complete" tool call.
+     * in case the agent has made other tool calls at the same time as the "complete" tool call.
      */
     if (completeToolCall) {
       const { suggestionForNextSteps } =
