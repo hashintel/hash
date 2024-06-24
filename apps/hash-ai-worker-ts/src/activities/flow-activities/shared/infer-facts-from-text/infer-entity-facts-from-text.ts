@@ -303,9 +303,13 @@ export const inferEntityFactsFromText = async (params: {
     };
 
     const newFacts: Fact[] = input.facts.flatMap((fact) => {
-      const subjectEntity = subjectEntities.find(
-        ({ localId }) => localId === fact.subjectEntityLocalId,
-      );
+      const subjectEntity =
+        subjectEntities.find(
+          ({ localId }) => localId === fact.subjectEntityLocalId,
+        ) ??
+        potentialObjectEntities.find(
+          ({ localId }) => localId === fact.subjectEntityLocalId,
+        );
 
       if (!subjectEntity) {
         invalidFacts.push({
