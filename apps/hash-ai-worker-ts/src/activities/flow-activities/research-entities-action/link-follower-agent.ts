@@ -43,6 +43,7 @@ export const linkFollowerAgent = async (
 
   let allEntitySummaries: LocalEntitySummary[] = [];
   let allFacts: Fact[] = [];
+  let suggestionForNextSteps = "";
 
   while (webPagesToExplore.length > 0) {
     const { possibleNextLinks, inferredFacts, inferredFactsAboutEntities } =
@@ -219,8 +220,14 @@ export const linkFollowerAgent = async (
       logger.debug(`Exploring additional links: ${stringify(links)}`);
 
       webPagesToExplore.push(...nextWebPages);
+    } else {
+      /**
+       * Otherwise, the tool call is either `complete` or `terminate`
+       * and we can set the suggestion for next steps.
+       */
+
+      suggestionForNextSteps = nextToolCall.input.suggestionForNextSteps;
     }
-    /** @todo: handle `complete` or `terminate` tool calls here */
   }
 
   return {
@@ -229,7 +236,6 @@ export const linkFollowerAgent = async (
     entitySummaries: allEntitySummaries,
     /** @todo: support inferring facts from files */
     filesUsedToInferEntities: [],
-    /** @todo: add suggestion for next steps */
-    suggestionForNextSteps: "",
+    suggestionForNextSteps,
   };
 };

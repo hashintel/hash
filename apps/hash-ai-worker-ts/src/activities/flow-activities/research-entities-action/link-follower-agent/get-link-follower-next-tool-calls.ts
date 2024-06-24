@@ -101,6 +101,15 @@ const toolNames = ["exploreLinks", "complete", "terminate"] as const;
 
 type ToolName = (typeof toolNames)[number];
 
+const suggestionForNextStepsDefinition = {
+  type: "string",
+  description: dedent(`
+    A suggestion for how to find any relevant facts that could be used to provide values for additional properties.
+    This should be a detailed explanation of how you would go about finding the missing facts from online resources.
+    If the you've encountered URLs for web pages which may be relevant, you must include them in the suggestion.
+  `),
+};
+
 const tools: LlmToolDefinition<ToolName>[] = [
   {
     name: "exploreLinks",
@@ -138,13 +147,14 @@ const tools: LlmToolDefinition<ToolName>[] = [
     inputSchema: {
       type: "object",
       properties: {
+        suggestionForNextSteps: suggestionForNextStepsDefinition,
         explanation: {
           type: "string",
           description:
             "The reason the task is complete based on the facts gathered",
         },
       },
-      required: ["explanation"],
+      required: ["explanation", "suggestionForNextSteps"],
     },
   },
   {
@@ -158,13 +168,14 @@ const tools: LlmToolDefinition<ToolName>[] = [
     inputSchema: {
       type: "object",
       properties: {
+        suggestionForNextSteps: suggestionForNextStepsDefinition,
         explanation: {
           type: "string",
           description:
             "The reason the task cannot be progressed with the provided tools",
         },
       },
-      required: ["explanation"],
+      required: ["explanation", "suggestionForNextSteps"],
     },
   },
 ];
@@ -180,9 +191,11 @@ export type ToolCallInputs = Subtype<
     };
     complete: {
       explanation: string;
+      suggestionForNextSteps: string;
     };
     terminate: {
       explanation: string;
+      suggestionForNextSteps: string;
     };
   }
 >;

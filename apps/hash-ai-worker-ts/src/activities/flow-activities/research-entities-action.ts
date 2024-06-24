@@ -443,12 +443,6 @@ export const researchEntitiesAction: FlowActionActivity<{
             const filesUsedToInferFacts: AccessedRemoteFile[] = [];
 
             for (const { response, url } of responsesWithUrl) {
-              // if (response.status !== "ok") {
-              //   outputMessage += `An error occurred when inferring facts from the web page with url ${url}: ${status.message}\n`;
-
-              //   continue;
-              // }
-
               inferredFacts.push(...response.facts);
               inferredFactsAboutEntities.push(...response.entitySummaries);
               filesUsedToInferFacts.push(...response.filesUsedToInferEntities);
