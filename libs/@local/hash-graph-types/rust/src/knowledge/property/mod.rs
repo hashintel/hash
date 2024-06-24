@@ -15,7 +15,7 @@ use thiserror::Error;
 use type_system::{url::BaseUrl, JsonSchemaValueType};
 
 pub use self::{
-    diff::PropertyDiff,
+    diff::{EntityTypeIdDiff, PropertyDiff},
     metadata::{
         ArrayMetadata, ObjectMetadata, PropertyMetadataElement, PropertyMetadataObject,
         PropertyObject, ValueMetadata,

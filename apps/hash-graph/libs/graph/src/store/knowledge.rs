@@ -10,7 +10,8 @@ use graph_types::{
     knowledge::{
         entity::{Entity, EntityEmbedding, EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        Confidence, PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
+        Confidence, EntityTypeIdDiff, PropertyDiff, PropertyPatchOperation, PropertyPath,
+        PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -328,7 +329,13 @@ pub struct DiffEntityParams {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DiffEntityResult<'e> {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub properties: Vec<PropertyDiff<'e>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub entity_type_ids: Vec<EntityTypeIdDiff<'e>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub draft_state: Option<bool>,
 }
 
 /// Describes the API of a store implementation for [Entities].
@@ -476,8 +483,35 @@ pub trait EntityStore {
                 .map(PropertyDiff::into_owned)
                 .collect();
 
+            let removed_types = first_entity
+                .metadata
+                .entity_type_ids
+                .difference(&second_entity.metadata.entity_type_ids)
+                .map(|removed| EntityTypeIdDiff::Removed {
+                    removed: Cow::Borrowed(removed),
+                });
+            let added_types = second_entity
+                .metadata
+                .entity_type_ids
+                .difference(&first_entity.metadata.entity_type_ids)
+                .map(|added| EntityTypeIdDiff::Added {
+                    added: Cow::Borrowed(added),
+                });
+            let first_is_draft = first_entity.metadata.record_id.entity_id.draft_id.is_some();
+            let second_is_draft = second_entity
+                .metadata
+                .record_id
+                .entity_id
+                .draft_id
+                .is_some();
+
             Ok(DiffEntityResult {
                 properties: property_diff,
+                entity_type_ids: removed_types
+                    .chain(added_types)
+                    .map(EntityTypeIdDiff::into_owned)
+                    .collect(),
+                draft_state: (first_is_draft != second_is_draft).then_some(second_is_draft),
             })
         }
     }

@@ -60,50 +60,61 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
       );
     }
 
-    /**
-     * @todo H-2774 – also handle 'changed type' and 'change draft status' events
-     */
-
-    for (const [
-      changedPropertyIndex,
-      propertyDiff,
-    ] of diffData.diff.properties.entries()) {
-      const propertyProvenance = changedEntityEdition.propertyMetadata(
-        propertyDiff.path as PropertyPath,
-      )?.provenance;
-
+    if (diffData.diff.draftState !== undefined) {
       /**
-       * @todo H-2775 – handle property objects and changes to array contents
+       * @todo H-2774 – handle 'change draft status' events
        */
-      const propertyBaseUrl = propertyDiff.path[0] as BaseUrl;
-      try {
-        const propertyTypeWithMetadata = getPropertyTypeForEntity(
-          subgraph,
-          firstEntityEdition.metadata.entityTypeId,
+      const _newDraftState = diffData.diff.draftState;
+    }
 
-          propertyBaseUrl,
-        );
+    if (diffData.diff.entityTypeIds) {
+      /**
+       * @todo H-2774 – handle 'change draft status' events
+       */
+    }
 
-        events.push({
-          /**
-           * The original entity is not included in the diffs, so the 0-based index needs +2
-           */
-          number: `${changedEntityIndex + 2}.${changedPropertyIndex + 1}`,
-          provenance: {
-            edition: changedEntityEdition.metadata.provenance.edition,
-            property: propertyProvenance,
-          },
-          propertyType: propertyTypeWithMetadata.propertyType,
-          timestamp:
-            changedEntityEdition.metadata.temporalVersioning.decisionTime.start
-              .limit,
-          type: "property-update",
-          diff: propertyDiff,
-        });
-      } catch (err) {
-        throw new Error(
-          `Could not find property type with baseUrl ${propertyBaseUrl} for entity type with id ${firstEntityEdition.metadata.entityTypeId} in subgraph`,
-        );
+    if (diffData.diff.properties) {
+      for (const [
+        changedPropertyIndex,
+        propertyDiff,
+      ] of diffData.diff.properties.entries()) {
+        const propertyProvenance = changedEntityEdition.propertyMetadata(
+          propertyDiff.path as PropertyPath,
+        )?.provenance;
+
+        /**
+         * @todo H-2775 – handle property objects and changes to array contents
+         */
+        const propertyBaseUrl = propertyDiff.path[0] as BaseUrl;
+        try {
+          const propertyTypeWithMetadata = getPropertyTypeForEntity(
+            subgraph,
+            firstEntityEdition.metadata.entityTypeId,
+
+            propertyBaseUrl,
+          );
+
+          events.push({
+            /**
+             * The original entity is not included in the diffs, so the 0-based index needs +2
+             */
+            number: `${changedEntityIndex + 2}.${changedPropertyIndex + 1}`,
+            provenance: {
+              edition: changedEntityEdition.metadata.provenance.edition,
+              property: propertyProvenance,
+            },
+            propertyType: propertyTypeWithMetadata.propertyType,
+            timestamp:
+              changedEntityEdition.metadata.temporalVersioning.decisionTime
+                .start.limit,
+            type: "property-update",
+            diff: propertyDiff,
+          });
+        } catch (err) {
+          throw new Error(
+            `Could not find property type with baseUrl ${propertyBaseUrl} for entity type with id ${firstEntityEdition.metadata.entityTypeId} in subgraph`,
+          );
+        }
       }
     }
   }
