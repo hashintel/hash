@@ -28,8 +28,8 @@ import type { DuplicateReport } from "./research-entities-action/deduplicate-ent
 import { deduplicateEntities } from "./research-entities-action/deduplicate-entities";
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
 import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call";
-import { inferFactsFromWebPageWorkerAgent } from "./research-entities-action/infer-facts-from-web-page-worker-agent";
 import type { AccessedRemoteFile } from "./research-entities-action/infer-facts-from-web-page-worker-agent/types";
+import { linkFollowerAgent } from "./research-entities-action/link-follower-agent";
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent";
 import type { CompletedToolCall } from "./research-entities-action/types";
 import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text";
@@ -417,21 +417,21 @@ export const researchEntitiesAction: FlowActionActivity<{
               };
             }
 
-            const statusesWithUrl = await Promise.all(
+            const responsesWithUrl = await Promise.all(
               webPages.map(
                 async ({ url, prompt, entityTypeIds, linkEntityTypeIds }) => {
-                  const status = await inferFactsFromWebPageWorkerAgent({
-                    prompt,
+                  const response = await linkFollowerAgent({
+                    url,
+                    task: prompt,
                     entityTypes: input.entityTypes.filter(({ $id }) =>
                       entityTypeIds.includes($id),
                     ),
                     linkEntityTypes: input.linkEntityTypes?.filter(
                       ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
                     ),
-                    url,
                   });
 
-                  return { status, url };
+                  return { response, url };
                 },
               ),
             );
@@ -442,29 +442,25 @@ export const researchEntitiesAction: FlowActionActivity<{
             const inferredFactsAboutEntities: LocalEntitySummary[] = [];
             const filesUsedToInferFacts: AccessedRemoteFile[] = [];
 
-            for (const { status, url } of statusesWithUrl) {
-              if (status.code !== StatusCode.Ok) {
-                outputMessage += `An error occurred when inferring facts from the web page with url ${url}: ${status.message}\n`;
+            for (const { response, url } of responsesWithUrl) {
+              // if (response.status !== "ok") {
+              //   outputMessage += `An error occurred when inferring facts from the web page with url ${url}: ${status.message}\n`;
 
-                continue;
-              }
+              //   continue;
+              // }
 
-              const content = status.contents[0]!;
-
-              inferredFacts.push(...content.inferredFacts);
-              inferredFactsAboutEntities.push(
-                ...content.inferredFactsAboutEntities,
-              );
-              filesUsedToInferFacts.push(...content.filesUsedToInferFacts);
+              inferredFacts.push(...response.facts);
+              inferredFactsAboutEntities.push(...response.entitySummaries);
+              filesUsedToInferFacts.push(...response.filesUsedToInferEntities);
 
               outputMessage += `Inferred ${
-                content.inferredFacts.length
+                response.facts.length
               } facts on the web page with url ${url} for the following entities: ${stringify(
-                content.inferredFactsAboutEntities.map(({ name, summary }) => ({
+                response.entitySummaries.map(({ name, summary }) => ({
                   name,
                   summary,
                 })),
-              )}. ${content.suggestionForNextSteps}\n`;
+              )}. ${response.suggestionForNextSteps}\n`;
             }
 
             outputMessage += dedent(`
