@@ -6732,10 +6732,11 @@
           "propertyName": "op"
         }
       },
-      "PropertyMetadataElement": {
+      "PropertyMetadata": {
         "oneOf": [
           {
             "type": "object",
+            "title": "PropertyMetadataArray",
             "properties": {
               "metadata": {
                 "$ref": "#/components/schemas/ArrayMetadata"
@@ -6743,13 +6744,14 @@
               "value": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/PropertyMetadataElement"
+                  "$ref": "#/components/schemas/PropertyMetadata"
                 }
               }
             }
           },
           {
             "type": "object",
+            "title": "PropertyMetadataObject",
             "properties": {
               "metadata": {
                 "$ref": "#/components/schemas/ObjectMetadata"
@@ -6757,13 +6759,14 @@
               "value": {
                 "type": "object",
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/PropertyMetadataElement"
+                  "$ref": "#/components/schemas/PropertyMetadata"
                 }
               }
             }
           },
           {
             "type": "object",
+            "title": "PropertyMetadataValue",
             "required": [
               "metadata"
             ],
@@ -6784,7 +6787,7 @@
           "value": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/PropertyMetadataElement"
+              "$ref": "#/components/schemas/PropertyMetadata"
             }
           }
         },
@@ -6809,7 +6812,7 @@
               "metadata": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/PropertyMetadataElement"
+                    "$ref": "#/components/schemas/PropertyMetadata"
                   }
                 ]
               },
@@ -6856,7 +6859,7 @@
               "metadata": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/PropertyMetadataElement"
+                    "$ref": "#/components/schemas/PropertyMetadata"
                   }
                 ]
               },
@@ -7228,6 +7231,7 @@
         "oneOf": [
           {
             "type": "object",
+            "title": "PropertyWithMetadataArray",
             "properties": {
               "metadata": {
                 "$ref": "#/components/schemas/ArrayMetadata"
@@ -7242,6 +7246,7 @@
           },
           {
             "type": "object",
+            "title": "PropertyWithMetadataObject",
             "properties": {
               "metadata": {
                 "$ref": "#/components/schemas/ObjectMetadata"
@@ -7256,6 +7261,7 @@
           },
           {
             "type": "object",
+            "title": "PropertyWithMetadataValue",
             "required": [
               "value",
               "metadata"

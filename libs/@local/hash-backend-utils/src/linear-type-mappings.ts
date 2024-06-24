@@ -8,7 +8,7 @@ import type {
   UpdateUserInput,
 } from "@linear/sdk/dist/_generated_documents";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityPropertyValue } from "@local/hash-graph-types/entity";
+import type { Property } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   blockProtocolPropertyTypes,
@@ -59,7 +59,7 @@ const getLinearIdFromEntity = (entity: Entity): string => {
 type PropertyMapping<
   LinearType extends SupportedLinearTypeNames,
   Key extends keyof SupportedLinearTypes[LinearType],
-  HashPropertyValue extends EntityPropertyValue = EntityPropertyValue,
+  HashPropertyValue extends Property = Property,
 > = {
   linearPropertyKey: Key;
   hashPropertyTypeId: VersionedUrl;

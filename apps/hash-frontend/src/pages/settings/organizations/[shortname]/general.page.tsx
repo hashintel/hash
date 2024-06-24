@@ -43,7 +43,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
       "https://hash.ai/@hash/types/property-type/shortname/": org.shortname,
       "https://hash.ai/@hash/types/property-type/organization-name/":
         orgData.name,
-      // @todo this is tedious, either enable TS's exact-optional-property-types or allow 'undefined' as a value in EntityPropertiesObject
+      // @todo this is tedious, either enable TS's exact-optional-property-types or allow 'undefined' as a value in PropertyObject
       ...(orgData.description
         ? {
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":

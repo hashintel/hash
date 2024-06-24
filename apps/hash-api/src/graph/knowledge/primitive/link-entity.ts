@@ -4,10 +4,7 @@ import type {
   Entity,
 } from "@local/hash-graph-sdk/entity";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityPropertiesObject,
-  LinkData,
-} from "@local/hash-graph-types/entity";
+import type { LinkData, PropertyObject } from "@local/hash-graph-types/entity";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import {
@@ -101,7 +98,7 @@ export const createLinkEntity: ImpureGraphFunction<
 export const updateLinkEntity: ImpureGraphFunction<
   {
     linkEntity: LinkEntity;
-    properties?: EntityPropertiesObject;
+    properties?: PropertyObject;
     draft?: boolean;
     provenance?: ProvidedEntityEditionProvenance;
   },

@@ -11,8 +11,8 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
-  EntityPropertiesObject,
-  EntityPropertyValue,
+  Property,
+  PropertyObject,
 } from "@local/hash-graph-types/entity";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -32,7 +32,7 @@ export const mapLinearDataToEntity = <
 
   const mapping = getLinearMappingByLinearType({ linearType });
 
-  const properties: EntityPropertiesObject = {};
+  const properties: PropertyObject = {};
 
   for (const {
     linearPropertyKey,
@@ -45,7 +45,7 @@ export const mapLinearDataToEntity = <
       typeof linearValue !== "undefined"
         ? mapLinearValueToHashValue
           ? mapLinearValueToHashValue(linearValue)
-          : (linearValue as EntityPropertyValue)
+          : (linearValue as Property)
         : undefined;
 
     if (typeof mappedValue === "undefined") {

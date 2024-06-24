@@ -9,7 +9,7 @@ use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use type_system::url::BaseUrl;
 
-use crate::knowledge::{Confidence, PropertyMetadataElement, PropertyProvenance};
+use crate::knowledge::{Confidence, PropertyMetadata, PropertyProvenance};
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -34,7 +34,7 @@ impl ObjectMetadata {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyMetadataObject {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub value: HashMap<BaseUrl, PropertyMetadataElement>,
+    pub value: HashMap<BaseUrl, PropertyMetadata>,
     #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
     pub metadata: ObjectMetadata,
 }

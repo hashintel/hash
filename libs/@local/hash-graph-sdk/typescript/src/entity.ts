@@ -15,15 +15,15 @@ import type {
 import type {
   EntityId,
   EntityMetadata,
-  EntityPropertiesObject,
-  EntityPropertyValue,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
   EntityUuid,
   LinkData,
+  Property,
   PropertyArrayWithMetadata,
-  PropertyMetadataElement,
+  PropertyMetadata,
   PropertyMetadataObject,
+  PropertyObject,
   PropertyObjectWithMetadata,
   PropertyPath,
   PropertyValueWithMetadata,
@@ -49,7 +49,7 @@ export type CreateEntityParameters = Omit<
   "entityTypeIds" | "decisionTime" | "draft" | "properties"
 > & {
   ownedById: OwnedById;
-  properties: EntityPropertiesObject;
+  properties: PropertyObject;
   linkData?: LinkData;
   entityTypeId: VersionedUrl;
   entityUuid?: EntityUuid;
@@ -70,15 +70,13 @@ type TypeId = typeof typeId;
 
 export interface SerializedEntity<
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Properties extends EntityPropertiesObject = EntityPropertiesObject,
+  Properties extends PropertyObject = PropertyObject,
 > {
   // Prevents the type from being created from outside the module
   [typeId]: TypeId;
 }
 
-type EntityData<
-  Properties extends EntityPropertiesObject = EntityPropertiesObject,
-> = {
+type EntityData<Properties extends PropertyObject = PropertyObject> = {
   metadata: EntityMetadata & {
     confidence?: number;
     properties?: PropertyMetadataObject;
@@ -92,11 +90,11 @@ type EntityData<
   };
 };
 
-type EntityInput<Properties extends EntityPropertiesObject> =
+type EntityInput<Properties extends PropertyObject> =
   | GraphApiEntity
   | SerializedEntity<Properties>;
 
-const isSerializedEntity = <Properties extends EntityPropertiesObject>(
+const isSerializedEntity = <Properties extends PropertyObject>(
   entity: EntityInput<Properties>,
 ): entity is SerializedEntity => {
   return (
@@ -105,7 +103,7 @@ const isSerializedEntity = <Properties extends EntityPropertiesObject>(
   );
 };
 
-const isGraphApiEntity = <Properties extends EntityPropertiesObject>(
+const isGraphApiEntity = <Properties extends PropertyObject>(
   entity: EntityInput<Properties>,
 ): entity is GraphApiEntity => {
   return (
@@ -115,8 +113,8 @@ const isGraphApiEntity = <Properties extends EntityPropertiesObject>(
 };
 
 const mergePropertiesAndMetadata = (
-  property: EntityPropertyValue,
-  metadata?: PropertyMetadataElement,
+  property: Property,
+  metadata?: PropertyMetadata,
 ): PropertyWithMetadata => {
   if (Array.isArray(property)) {
     if (!metadata) {
@@ -234,7 +232,7 @@ const mergePropertiesAndMetadata = (
 
   if (isArrayMetadata(metadata)) {
     throw new Error(
-      `Expected metadata to be a value, but got metadata for property array: ${JSON.stringify(
+      `Expected metadata to be for a value, but got metadata for property array: ${JSON.stringify(
         metadata,
         null,
         2,
@@ -242,7 +240,7 @@ const mergePropertiesAndMetadata = (
     );
   } else {
     throw new Error(
-      `Expected metadata to be a value, but got metadata for property object: ${JSON.stringify(
+      `Expected metadata to be for a value, but got metadata for property object: ${JSON.stringify(
         metadata,
         null,
         2,
@@ -252,7 +250,7 @@ const mergePropertiesAndMetadata = (
 };
 
 const mergePropertyObjectAndMetadata = (
-  property: EntityPropertiesObject,
+  property: PropertyObject,
   metadata?: PropertyMetadataObject,
 ): PropertyObjectWithMetadata => {
   return {
@@ -281,16 +279,16 @@ export const flattenPropertyMetadata = (
   metadata: PropertyMetadataObject,
 ): {
   path: PropertyPath;
-  metadata: Required<PropertyMetadataElement>["metadata"];
+  metadata: Required<PropertyMetadata>["metadata"];
 }[] => {
   const flattened: {
     path: PropertyPath;
-    metadata: Required<PropertyMetadataElement>["metadata"];
+    metadata: Required<PropertyMetadata>["metadata"];
   }[] = [];
 
   const visitElement = (
     path: PropertyPath,
-    element: PropertyMetadataElement,
+    element: PropertyMetadata,
   ): void => {
     if ("value" in element) {
       if (Array.isArray(element.value)) {
@@ -317,9 +315,7 @@ export const flattenPropertyMetadata = (
   return flattened;
 };
 
-export class Entity<
-  Properties extends EntityPropertiesObject = EntityPropertiesObject,
-> {
+export class Entity<Properties extends PropertyObject = PropertyObject> {
   #entity: EntityData<Properties>;
 
   constructor(entity: EntityInput<Properties>) {
@@ -452,10 +448,8 @@ export class Entity<
     return this.#entity.properties;
   }
 
-  public propertyMetadata(
-    path: PropertyPath,
-  ): PropertyMetadataElement["metadata"] {
-    return path.reduce<PropertyMetadataElement | undefined>((map, key) => {
+  public propertyMetadata(path: PropertyPath): PropertyMetadata["metadata"] {
+    return path.reduce<PropertyMetadata | undefined>((map, key) => {
       if (!map || !("value" in map)) {
         return undefined;
       }
@@ -475,7 +469,7 @@ export class Entity<
 
   public flattenedPropertiesMetadata(): {
     path: PropertyPath;
-    metadata: PropertyMetadataElement["metadata"];
+    metadata: PropertyMetadata["metadata"];
   }[] {
     return flattenPropertyMetadata(
       this.#entity.metadata.properties ?? { value: {} },
@@ -496,7 +490,7 @@ export class Entity<
 }
 
 export class LinkEntity<
-  Properties extends EntityPropertiesObject = EntityPropertiesObject,
+  Properties extends PropertyObject = PropertyObject,
 > extends Entity<Properties> {
   constructor(entity: EntityInput<Properties> | Entity) {
     const input = (entity instanceof Entity ? entity.toJSON() : entity) as

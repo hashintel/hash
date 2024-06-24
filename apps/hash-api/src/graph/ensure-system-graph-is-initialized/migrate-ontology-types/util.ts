@@ -27,7 +27,7 @@ import type {
   UpdatePropertyType,
 } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type { PropertyObject } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   ConstructDataTypeParams,
@@ -1219,7 +1219,7 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
     migrationState: MigrationState;
     migrateProperties?: Record<
       BaseUrl,
-      (previousProperties: EntityPropertiesObject) => EntityPropertiesObject
+      (previousProperties: PropertyObject) => PropertyObject
     >;
   },
   Promise<void>,

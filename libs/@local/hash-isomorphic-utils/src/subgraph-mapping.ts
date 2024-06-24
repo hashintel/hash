@@ -10,10 +10,7 @@ import type {
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type {
-  EntityId,
-  EntityPropertiesObject,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -59,7 +56,7 @@ export const mapGraphApiEntityToEntity = (
         systemEntityTypes.user.entityTypeId,
       )
         ? entity.properties
-        : Object.entries(entity.properties).reduce<EntityPropertiesObject>(
+        : Object.entries(entity.properties).reduce<PropertyObject>(
             (acc, [key, value]) => {
               const ownedById = extractOwnedByIdFromEntityId(
                 entity.metadata.recordId.entityId as EntityId,
@@ -76,7 +73,7 @@ export const mapGraphApiEntityToEntity = (
               }
               return acc;
             },
-            {} as EntityPropertiesObject,
+            {} as PropertyObject,
           ),
   });
 

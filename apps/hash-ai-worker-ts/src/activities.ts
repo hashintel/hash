@@ -3,7 +3,7 @@ import type {
   EntityEmbedding,
   GraphApi,
 } from "@local/hash-graph-client";
-import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type { PropertyObject } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -83,7 +83,7 @@ export const createAiActivities = ({
   },
 
   async createEntityEmbeddingsActivity(params: {
-    entityProperties: EntityPropertiesObject;
+    entityProperties: PropertyObject;
     propertyTypes: PropertyTypeWithMetadata[];
   }): Promise<{
     embeddings: EntityEmbedding[];

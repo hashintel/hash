@@ -10,7 +10,7 @@ import type { JSONSchema } from "openai/lib/jsonschema";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
 import { generateSimplifiedTypeId } from "./generate-simplified-type-id";
-import type { EntityPropertyValueWithSimplifiedProperties } from "./map-simplified-properties-to-properties";
+import type { PropertyValueWithSimplifiedProperties } from "./map-simplified-properties-to-properties";
 import { stripIdsFromDereferencedProperties } from "./strip-ids-from-dereferenced-properties";
 
 export type ProposeEntitiesToolName = "abandon_entities" | "create_entities";
@@ -19,7 +19,7 @@ type ProposedEntityWithSimplifiedProperties = DistributiveOmit<
   ProposedEntity,
   "properties"
 > & {
-  properties?: Record<string, EntityPropertyValueWithSimplifiedProperties>;
+  properties?: Record<string, PropertyValueWithSimplifiedProperties>;
 };
 
 export type ProposedEntityToolCreationsByType = Record<

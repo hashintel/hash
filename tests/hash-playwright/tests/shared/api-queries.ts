@@ -1,9 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityPropertiesObject,
-  LinkData,
-} from "@local/hash-graph-types/entity";
+import type { LinkData, PropertyObject } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
@@ -59,7 +56,7 @@ export const createEntity = async (
   params: {
     draft: boolean;
     entityTypeId: VersionedUrl;
-    properties: EntityPropertiesObject;
+    properties: PropertyObject;
     linkData?: LinkData;
     linkedEntities?: LinkedEntityDefinition[];
     ownedById: OwnedById;

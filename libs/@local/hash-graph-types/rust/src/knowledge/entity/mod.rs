@@ -1,3 +1,4 @@
+mod diff;
 mod provenance;
 
 use core::{fmt, str::FromStr};
@@ -13,15 +14,19 @@ use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
-pub use self::provenance::{
-    ActorType, EntityEditionProvenance, EntityProvenance, InferredEntityProvenance, Location,
-    OriginProvenance, OriginType, ProvidedEntityEditionProvenance, SourceProvenance, SourceType,
+pub use self::{
+    diff::EntityTypeIdDiff,
+    provenance::{
+        ActorType, EntityEditionProvenance, EntityProvenance, InferredEntityProvenance, Location,
+        OriginProvenance, OriginType, ProvidedEntityEditionProvenance, SourceProvenance,
+        SourceType,
+    },
 };
 use crate::{
     knowledge::{
         link::LinkData,
         property::{PatchError, PropertyMetadataObject},
-        Confidence, Property, PropertyMetadataElement, PropertyObject, PropertyPatchOperation,
+        Confidence, Property, PropertyMetadata, PropertyObject, PropertyPatchOperation,
         PropertyWithMetadata,
     },
     owned_by_id::OwnedById,
@@ -129,9 +134,10 @@ impl Entity {
     ) -> Result<(), Report<PatchError>> {
         let mut properties_with_metadata = PropertyWithMetadata::from_parts(
             Property::Object(self.properties.clone()),
-            Some(PropertyMetadataElement::from(
-                self.metadata.properties.clone(),
-            )),
+            Some(PropertyMetadata::Object {
+                value: self.metadata.properties.value.clone(),
+                metadata: self.metadata.properties.metadata.clone(),
+            }),
         )
         .change_context(PatchError)?;
 
@@ -173,7 +179,7 @@ impl Entity {
 
         let (
             Property::Object(properties),
-            PropertyMetadataElement::Object {
+            PropertyMetadata::Object {
                 value: metadata_object,
                 metadata,
             },

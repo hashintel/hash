@@ -12,7 +12,7 @@ import type {
 } from "../shared/generate-propose-entities-tools";
 import { generateProposeEntitiesTools } from "../shared/generate-propose-entities-tools";
 import { generateSimplifiedTypeId } from "../shared/generate-simplified-type-id";
-import type { EntityPropertyValueWithSimplifiedProperties } from "../shared/map-simplified-properties-to-properties";
+import type { PropertyValueWithSimplifiedProperties } from "../shared/map-simplified-properties-to-properties";
 import { stripIdsFromDereferencedProperties } from "../shared/strip-ids-from-dereferenced-properties";
 
 export type PersistEntitiesToolName =
@@ -24,7 +24,7 @@ export type ProposedEntityToolUpdatesByType = Record<
   {
     entityId: number;
     updateEntityId: string;
-    properties: Record<string, EntityPropertyValueWithSimplifiedProperties>;
+    properties: Record<string, PropertyValueWithSimplifiedProperties>;
   }[]
 >;
 
