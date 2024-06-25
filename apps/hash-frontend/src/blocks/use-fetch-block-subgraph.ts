@@ -1,10 +1,7 @@
 import { useLazyQuery } from "@apollo/client";
 import type { Entity as EntityBp } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type {
-  EntityId,
-  EntityPropertiesObject,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
@@ -30,7 +27,7 @@ type SubgraphAndPermissions = Omit<SubgraphAndPermissionsGQL, "subgraph"> & {
 export const useFetchBlockSubgraph = (): ((
   blockEntityTypeId: VersionedUrl,
   blockEntityId?: EntityId,
-  fallbackBlockProperties?: EntityPropertiesObject,
+  fallbackBlockProperties?: PropertyObject,
 ) => Promise<
   Omit<SubgraphAndPermissions, "subgraph"> & {
     subgraph: Subgraph<EntityRootType>;
@@ -47,7 +44,7 @@ export const useFetchBlockSubgraph = (): ((
     async (
       blockEntityTypeId: VersionedUrl,
       blockEntityId?: EntityId,
-      fallbackBlockProperties?: EntityPropertiesObject,
+      fallbackBlockProperties?: PropertyObject,
     ) => {
       const depths: GraphResolveDepths = {
         constrainsValuesOn: { outgoing: 255 },

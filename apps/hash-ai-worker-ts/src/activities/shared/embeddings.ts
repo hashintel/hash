@@ -1,7 +1,6 @@
-import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Embedding, PropertyType } from "@local/hash-graph-client";
-import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type { Property, PropertyObject } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -31,7 +30,7 @@ export const createEmbeddings = async (params: { input: string[] }) => {
 
 const createPropertyEmbeddingInput = (params: {
   propertyTypeSchema: Pick<PropertyType, "title">;
-  propertyValue: EntityPropertyValue;
+  propertyValue: Property;
 }): string => {
   return `${params.propertyTypeSchema.title}: ${
     typeof params.propertyValue === "string"
@@ -44,7 +43,7 @@ const createPropertyEmbeddingInput = (params: {
  * Creates embeddings for (a) each property and finally (b) a new line-separated list of all properties.
  */
 export const createEntityEmbeddings = async (params: {
-  entityProperties: EntityPropertiesObject;
+  entityProperties: PropertyObject;
   propertyTypes: { title: string; $id: VersionedUrl }[];
 }): Promise<{
   embeddings: {

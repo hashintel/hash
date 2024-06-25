@@ -1,6 +1,5 @@
-import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityMetadata } from "@local/hash-graph-types/entity";
+import type { EntityMetadata, Property } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -106,7 +105,7 @@ export const generateEntityLabel = (
 
   const simplifiedProperties = simplifyProperties(
     entityToLabel.properties,
-  ) as Record<string, EntityPropertyValue>;
+  ) as Record<string, Property>;
 
   // fallback to some likely display name properties
   const options = [

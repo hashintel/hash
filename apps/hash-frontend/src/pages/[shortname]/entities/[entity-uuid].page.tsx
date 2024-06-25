@@ -3,8 +3,8 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   DraftId,
   EntityId,
-  EntityPropertiesObject,
   EntityUuid,
+  PropertyObject,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
@@ -195,9 +195,7 @@ const Page: NextPageWithLayout = () => {
   };
 
   const [savingChanges, setSavingChanges] = useState(false);
-  const handleSaveChanges = async (
-    overrideProperties?: EntityPropertiesObject,
-  ) => {
+  const handleSaveChanges = async (overrideProperties?: PropertyObject) => {
     if (!entitySubgraphFromDb || !draftEntitySubgraph) {
       return;
     }

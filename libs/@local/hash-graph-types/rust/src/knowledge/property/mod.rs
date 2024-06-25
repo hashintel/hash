@@ -1,8 +1,8 @@
 mod diff;
 mod metadata;
+mod object;
 mod patch;
 mod path;
-mod provenance;
 
 use alloc::borrow::Cow;
 use core::{cmp::Ordering, fmt, iter, mem};
@@ -11,20 +11,21 @@ use std::{collections::HashMap, io};
 use error_stack::Report;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use thiserror::Error;
-use type_system::{url::BaseUrl, JsonSchemaValueType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    JsonSchemaValueType,
+};
 
 pub use self::{
     diff::PropertyDiff,
     metadata::{
-        ArrayMetadata, ObjectMetadata, PropertyMetadataElement, PropertyMetadataObject,
-        PropertyObject, ValueMetadata,
+        ArrayMetadata, ObjectMetadata, PropertyMetadata, PropertyMetadataObject,
+        PropertyProvenance, ValueMetadata,
     },
-    patch::PropertyPatchOperation,
+    object::{PropertyObject, PropertyWithMetadataObject},
+    patch::{PatchError, PropertyPatchOperation},
     path::{PropertyPath, PropertyPathElement},
-    provenance::PropertyProvenance,
 };
-use crate::knowledge::property::metadata::PropertyPathError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -39,23 +40,43 @@ pub enum Property {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum PropertyWithMetadata {
+    #[cfg_attr(feature = "utoipa", schema(title = "PropertyWithMetadataArray"))]
     Array {
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         value: Vec<Self>,
         #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
         metadata: ArrayMetadata,
     },
+    #[cfg_attr(feature = "utoipa", schema(title = "PropertyWithMetadataObject"))]
     Object {
         #[serde(default, skip_serializing_if = "HashMap::is_empty")]
         value: HashMap<BaseUrl, Self>,
         #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
         metadata: ObjectMetadata,
     },
+    #[cfg_attr(feature = "utoipa", schema(title = "PropertyWithMetadataValue"))]
     Value {
-        #[cfg_attr(feature = "utoipa", schema(value_type = Value))]
-        value: JsonValue,
+        value: serde_json::Value,
         metadata: ValueMetadata,
     },
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum PropertyPathError {
+    #[error("Property path is empty")]
+    EmptyPath,
+    #[error("Property path index `{index}` is out of bounds, length is `{len}`")]
+    IndexOutOfBounds { index: usize, len: usize },
+    #[error("Property path key `{key}` does not exist")]
+    InvalidKey { key: BaseUrl },
+    #[error("Expected object but got array index `{index}`")]
+    UnexpectedIndex { index: usize },
+    #[error("Expected array but got object key `{key}`")]
+    UnexpectedKey { key: BaseUrl },
+    #[error("Tried to add value to existing value")]
+    UnexpectedValue,
+    #[error("Properties and metadata do not match")]
+    PropertyMetadataMismatch,
 }
 
 impl PropertyWithMetadata {
@@ -65,6 +86,15 @@ impl PropertyWithMetadata {
             Self::Array { .. } => JsonSchemaValueType::Array,
             Self::Object { .. } => JsonSchemaValueType::Object,
             Self::Value { value, .. } => JsonSchemaValueType::from(value),
+        }
+    }
+
+    #[must_use]
+    pub const fn data_type_id(&self) -> Option<&VersionedUrl> {
+        if let Self::Value { metadata, .. } = self {
+            metadata.data_type_id.as_ref()
+        } else {
+            None
         }
     }
 
@@ -248,12 +278,12 @@ impl PropertyWithMetadata {
     /// - If the property and metadata types do not match.
     pub fn from_parts(
         property: Property,
-        metadata: Option<PropertyMetadataElement>,
+        metadata: Option<PropertyMetadata>,
     ) -> Result<Self, Report<PropertyPathError>> {
         match (property, metadata) {
             (
                 Property::Array(properties),
-                Some(PropertyMetadataElement::Array {
+                Some(PropertyMetadata::Array {
                     value: metadata_elements,
                     metadata,
                 }),
@@ -276,7 +306,7 @@ impl PropertyWithMetadata {
             }),
             (
                 Property::Object(properties),
-                Some(PropertyMetadataElement::Object {
+                Some(PropertyMetadata::Object {
                     value: mut metadata_elements,
                     metadata,
                 }),
@@ -302,7 +332,7 @@ impl PropertyWithMetadata {
                     .collect::<Result<_, _>>()?,
                 metadata: ObjectMetadata::default(),
             }),
-            (Property::Value(value), Some(PropertyMetadataElement::Value { metadata })) => {
+            (Property::Value(value), Some(PropertyMetadata::Value { metadata })) => {
                 Ok(Self::Value { value, metadata })
             }
             (Property::Value(value), None) => Ok(Self::Value {
@@ -317,14 +347,14 @@ impl PropertyWithMetadata {
         }
     }
 
-    pub fn into_parts(self) -> (Property, PropertyMetadataElement) {
+    pub fn into_parts(self) -> (Property, PropertyMetadata) {
         match self {
             Self::Array { value, metadata } => {
                 let (properties, metadata_elements) =
                     value.into_iter().map(Self::into_parts).unzip();
                 (
                     Property::Array(properties),
-                    PropertyMetadataElement::Array {
+                    PropertyMetadata::Array {
                         value: metadata_elements,
                         metadata,
                     },
@@ -340,93 +370,18 @@ impl PropertyWithMetadata {
                     .unzip();
                 (
                     Property::Object(PropertyObject::new(properties)),
-                    PropertyMetadataElement::Object {
+                    PropertyMetadata::Object {
                         value: metadata_properties,
                         metadata,
                     },
                 )
             }
-            Self::Value { value, metadata } => (
-                Property::Value(value),
-                PropertyMetadataElement::Value { metadata },
-            ),
+            Self::Value { value, metadata } => {
+                (Property::Value(value), PropertyMetadata::Value { metadata })
+            }
         }
     }
 }
-
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PropertyWithMetadataObject {
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub value: HashMap<BaseUrl, PropertyWithMetadata>,
-    #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
-    pub metadata: ObjectMetadata,
-}
-
-impl PropertyWithMetadataObject {
-    /// Creates a unified representation of the property and its metadata.
-    ///
-    /// # Errors
-    ///
-    /// - If the property and metadata types do not match.
-    pub fn from_parts(
-        properties: PropertyObject,
-        metadata: Option<PropertyMetadataObject>,
-    ) -> Result<Self, Report<PropertyPathError>> {
-        Ok(if let Some(mut metadata_elements) = metadata {
-            Self {
-                value: properties
-                    .into_iter()
-                    .map(|(key, property)| {
-                        let metadata = metadata_elements.value.remove(&key);
-                        Ok::<_, Report<PropertyPathError>>((
-                            key,
-                            PropertyWithMetadata::from_parts(property, metadata)?,
-                        ))
-                    })
-                    .collect::<Result<_, _>>()?,
-                metadata: metadata_elements.metadata,
-            }
-        } else {
-            Self {
-                value: properties
-                    .into_iter()
-                    .map(|(key, property)| {
-                        Ok::<_, Report<PropertyPathError>>((
-                            key,
-                            PropertyWithMetadata::from_parts(property, None)?,
-                        ))
-                    })
-                    .collect::<Result<_, _>>()?,
-                metadata: ObjectMetadata::default(),
-            }
-        })
-    }
-
-    #[must_use]
-    pub fn into_parts(self) -> (PropertyObject, PropertyMetadataObject) {
-        let (properties, metadata_properties) = self
-            .value
-            .into_iter()
-            .map(|(base_url, property_with_metadata)| {
-                let (property, metadata) = property_with_metadata.into_parts();
-                ((base_url.clone(), property), (base_url, metadata))
-            })
-            .unzip();
-        (
-            PropertyObject::new(properties),
-            PropertyMetadataObject {
-                value: metadata_properties,
-                metadata: self.metadata,
-            },
-        )
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Error)]
-#[error("Failed to apply patch")]
-pub struct PatchError;
 
 impl Property {
     pub gen fn properties(&self) -> (PropertyPath<'_>, &JsonValue) {
@@ -517,7 +472,7 @@ impl Property {
         }
     }
 
-    pub(super) gen fn diff_object<'a>(
+    gen fn diff_object<'a>(
         lhs: &'a HashMap<BaseUrl, Self>,
         rhs: &'a HashMap<BaseUrl, Self>,
         path: &mut PropertyPath<'a>,

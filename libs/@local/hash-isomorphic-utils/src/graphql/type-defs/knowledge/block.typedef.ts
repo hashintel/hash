@@ -17,7 +17,7 @@ export const blockTypedef = gql`
     """
     Properties of entity.
     """
-    properties: EntityPropertiesObject!
+    properties: PropertyObject!
   }
 
   extend type Query {

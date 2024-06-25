@@ -1241,7 +1241,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "entityTypes": ["http://localhost:3000/@alice/types/entity-type/person/v/1"],
   "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Alice"
+    "value": {
+      "http://localhost:3000/@alice/types/property-type/name/": {
+        "value": "Alice",
+        "metadata": {
+          "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      }
+    }
   }
 }
 
@@ -1260,7 +1267,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "ownedById": "{{account_id}}",
   "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Alice"
+    "value": {
+      "http://localhost:3000/@alice/types/property-type/name/": {
+        "value": "Alice",
+        "metadata": {
+          "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      }
+    }
   },
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/1"],
   "draft": false,
@@ -1355,7 +1369,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "entityTypes": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
+    "value": {
+      "http://localhost:3000/@alice/types/property-type/name/": {
+        "value": "Alice Allison",
+        "metadata": {
+          "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      }
+    }
   }
 }
 
@@ -1431,8 +1452,20 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "ownedById": "{{account_id}}",
   "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Bob",
-    "http://localhost:3000/@alice/types/property-type/height/": 1.8
+    "value": {
+      "http://localhost:3000/@alice/types/property-type/name/": {
+        "value": "Bob",
+        "metadata": {
+          "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      },
+      "http://localhost:3000/@alice/types/property-type/height/": {
+        "value": 1.8,
+        "metadata": {
+          "dataTypeId": "http://localhost:3000/@alice/types/data-type/meter/v/2"
+        }
+      }
+    }
   },
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "draft": true,
@@ -2081,7 +2114,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "ownedById": "{{account_id}}",
   "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Charles"
+    "value": {
+      "http://localhost:3000/@alice/types/property-type/name/": {
+        "value": "Charles",
+        "metadata": {
+          "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      }
+    }
   },
   "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/person/v/2"],
   "draft": false,

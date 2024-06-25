@@ -1,7 +1,4 @@
-import type {
-  EntityId,
-  EntityPropertiesObject,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Draft } from "immer";
@@ -295,7 +292,7 @@ const entityStoreReducer = (
                 );
               } else {
                 draftEntity.properties = castDraft(
-                  action.payload.properties as EntityPropertiesObject,
+                  action.payload.properties as PropertyObject,
                 );
               }
             }
