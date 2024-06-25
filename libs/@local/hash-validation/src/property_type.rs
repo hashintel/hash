@@ -1,7 +1,7 @@
 use core::{borrow::Borrow, num::NonZero};
 use std::collections::HashMap;
 
-use error_stack::{bail, Report, ResultExt};
+use error_stack::{bail, ensure, Report, ResultExt};
 use graph_types::knowledge::PropertyWithMetadata;
 use thiserror::Error;
 use type_system::{
@@ -55,6 +55,14 @@ pub enum PropertyValidationError {
     InvalidType {
         actual: JsonSchemaValueType,
         expected: JsonSchemaValueType,
+    },
+    #[error(
+        "The provided data type is not allowed on the property, expected `{expected}`, got \
+         `{actual}`"
+    )]
+    InvalidDataType {
+        actual: VersionedUrl,
+        expected: VersionedUrl,
     },
 }
 
@@ -323,12 +331,23 @@ where
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + '_ {
         Box::pin(async move {
             match (value, self) {
-                (value, Self::DataTypeReference(reference)) => reference
-                    .validate_value(value, components, provider)
-                    .await
-                    .change_context(PropertyValidationError::DataTypeValidation {
-                        id: reference.url().clone(),
-                    }),
+                (value, Self::DataTypeReference(reference)) => {
+                    if let Some(data_type_id) = value.data_type_id() {
+                        ensure!(
+                            reference.url() == data_type_id,
+                            PropertyValidationError::InvalidDataType {
+                                actual: data_type_id.clone(),
+                                expected: reference.url().clone(),
+                            }
+                        );
+                    }
+                    reference
+                        .validate_value(value, components, provider)
+                        .await
+                        .change_context(PropertyValidationError::DataTypeValidation {
+                            id: reference.url().clone(),
+                        })
+                }
                 (
                     PropertyWithMetadata::Array { value, metadata: _ },
                     Self::ArrayOfPropertyValues(schema),

@@ -109,6 +109,14 @@ pub enum DataValidationError {
         actual: JsonSchemaValueType,
         expected: JsonSchemaValueType,
     },
+    #[error(
+        "the value provided does not match the data type in the metadata, expected `{expected}`, \
+         got `{actual}`"
+    )]
+    InvalidDataType {
+        actual: VersionedUrl,
+        expected: VersionedUrl,
+    },
     #[error("a constraint was not fulfilled")]
     ConstraintUnfulfilled,
     #[error("the schema contains an unknown data type: `{schema}`")]
@@ -428,6 +436,16 @@ impl<P: Sync> Schema<PropertyWithMetadata, P> for DataType {
         _: ValidateEntityComponents,
         _: &'a P,
     ) -> Result<(), Report<DataValidationError>> {
+        if let Some(data_type_id) = value.data_type_id() {
+            ensure!(
+                data_type_id == self.id(),
+                DataValidationError::InvalidDataType {
+                    actual: self.id().clone(),
+                    expected: data_type_id.clone(),
+                }
+            );
+        }
+
         match (self.json_type(), value) {
             (JsonSchemaValueType::Number, PropertyWithMetadata::Value { value, metadata: _ }) => {
                 #[expect(clippy::float_arithmetic)]
