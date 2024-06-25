@@ -51,7 +51,6 @@ const generateToolDefinitions = (params: {
                   - must be standalone, and not depend on any contextual information to make sense
                   - must not contain any pronouns, and refer to all entities by their provided "name"
                   - must not be lists or contain multiple pieces of information, each piece of information must be expressed as a standalone fact
-                  - must not contain conjunctions or compound sentences, and therefore must not contain "and", "or", "but" or a comma (",")
                   - must not include prepositional phrases, these must be provided separately in the "prepositionalPhrases" argument
                   - must include full and complete units when specifying numeric data as the object of the fact
                 `),
@@ -110,6 +109,10 @@ const systemPrompt = dedent(`
 
   These facts will be later used to construct the entities with the properties and links which the user will specify.
   If any information in the text is relevant for constructing the relevant properties or outgoing links, you must include them as facts.
+  
+  Each fact should be in the format <subject> <predicate> <object>, where the subject is the singular subject of the fact.
+  Example:
+  [{ text: "Company X acquired Company Y.", prepositionalPhrases: ["in 2019", "for $10 million"], subjectEntityLocalId: "abc", objectEntityLocalId: "123" }]
 `);
 
 const constructUserMessage = (params: {
@@ -302,7 +305,13 @@ export const inferEntityFactsFromText = async (params: {
       }[];
     };
 
-    const newFacts: Fact[] = input.facts.flatMap((fact) => {
+    for (const unfinishedFact of input.facts) {
+      const fact = {
+        ...unfinishedFact,
+        objectEntityLocalId: unfinishedFact.objectEntityLocalId ?? undefined,
+        factId: generateUuid(),
+      };
+
       const subjectEntity =
         subjectEntities.find(
           ({ localId }) => localId === fact.subjectEntityLocalId,
@@ -313,37 +322,31 @@ export const inferEntityFactsFromText = async (params: {
 
       if (!subjectEntity) {
         invalidFacts.push({
-          factId: generateUuid(),
-          text: fact.text,
-          subjectEntityLocalId: fact.subjectEntityLocalId,
-          objectEntityLocalId: fact.objectEntityLocalId ?? undefined,
-          prepositionalPhrases: fact.prepositionalPhrases,
+          ...fact,
           invalidReason: `An invalid "subjectEntityLocalId" has been provided: ${fact.subjectEntityLocalId}`,
           toolCallId: toolCall.id,
         });
 
-        return [];
+        continue;
       }
 
-      return {
-        factId: generateUuid(),
-        text: fact.text,
-        subjectEntityLocalId: subjectEntity.localId,
-        objectEntityLocalId: fact.objectEntityLocalId ?? undefined,
-        prepositionalPhrases: fact.prepositionalPhrases,
-      };
-    });
+      const objectEntity =
+        potentialObjectEntities.find(
+          ({ localId }) => localId === fact.objectEntityLocalId,
+        ) ??
+        subjectEntities.find(
+          ({ localId }) => localId === fact.objectEntityLocalId,
+        );
 
-    for (const fact of newFacts) {
-      const objectEntity = potentialObjectEntities.find(
-        ({ localId }) => localId === fact.objectEntityLocalId,
-      );
+      if (fact.objectEntityLocalId && !objectEntity) {
+        invalidFacts.push({
+          ...fact,
+          invalidReason: `An invalid "objectEntityLocalId" has been provided: ${fact.objectEntityLocalId}`,
+          toolCallId: toolCall.id,
+        });
 
-      const subjectEntity = subjectEntities.find(
-        ({ localId }) => localId === fact.subjectEntityLocalId,
-      )!;
-
-      /** @todo: ensure the provided `objectEntityLocalId` matches an ID in `potentialObjectEntities` */
+        continue;
+      }
 
       if (!fact.text.startsWith(subjectEntity.name)) {
         invalidFacts.push({

@@ -70,8 +70,7 @@ const generateSystemPromptPrefix = (params: {
     Your job is to do research to gather facts about those types of entities, consistent with the research brief,
     as well as relevant entities that they link to – forming a graph.
     
-    You will have tools provided to you to gather facts about entities and submit the proposed entities to the user.
-    Note that only proposed entities will be provided to the user, not the inferred facts.
+    You will have tools provided to you to gather facts, which will be automatically converted into entities.
 
     The user provides you with:
       - Prompt: the text prompt you need to satisfy to complete the research task
@@ -93,8 +92,7 @@ const generateSystemPromptPrefix = (params: {
       ${
         existingEntities
           ? dedent(`
-      - Existing Entities: a list of existing entities, that may contain relevant information
-        and you may want to link to from the proposed entities.
+      - Existing Entities: a list of existing entities, that may contain relevant information.
       `)
           : ""
       }
@@ -113,8 +111,8 @@ const generateSystemPromptPrefix = (params: {
     Don't start sub-tasks in parallel which duplicate or overlap, or where one will depend on the result of another (do it in sequence).
     For simpler research tasks you might not need sub-tasks.
 
-    The "complete" tool for completing the research task will only be available once you have submitted
-      proposed entities that satisfy the research prompt.
+    The "complete" tool for completing the research task will only be available once you have gathered facts.
+    When declaring the job complete, you specify which of the proposed entities should be included in the final return to the user.
   `);
 };
 
@@ -198,7 +196,7 @@ const generateProgressReport = (params: {
       ${state.plan}
 
       If you want to deviate from this plan or improve it, update it using the "updatePlan" tool.
-      You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
+      You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.\n\n
       `;
 
   if (proposedEntities.length > 0 || proposedLinks.length > 0) {

@@ -37,6 +37,7 @@ import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-enti
 import type { Fact } from "./shared/infer-facts-from-text/types";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
 import type { FlowActionActivity } from "./types";
+import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 
 const adjustDuplicates = (params: {
   duplicates: DuplicateReport[];
@@ -104,7 +105,9 @@ const updateStateFromInferredFacts = async (params: {
   /**
    * Step 1: Deduplication (if necessary)
    */
-  if (
+  if (newEntitySummaries.length === 0) {
+    // do nothing – there are no new entities to deduplicate
+  } else if (
     (input.existingEntities ?? []).length === 0 &&
     state.entitySummaries.length === 0
   ) {
@@ -169,22 +172,20 @@ const updateStateFromInferredFacts = async (params: {
       ({ localId }) =>
         !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
     );
+
     /**
      * Account for any previously proposed entities with a local ID which has
      * been marked as a duplicate.
      */
-    state.proposedEntities = state.proposedEntities.map((proposedEntity) => {
-      const duplicate = duplicates.find(({ duplicateIds }) =>
-        duplicateIds.includes(proposedEntity.localEntityId),
-      );
+    state.proposedEntities = state.proposedEntities
+      .map((proposedEntity) => {
+        const duplicate = duplicates.find(({ duplicateIds }) =>
+          duplicateIds.includes(proposedEntity.localEntityId),
+        );
 
-      return duplicate
-        ? {
-            ...proposedEntity,
-            localEntityId: duplicate.canonicalId,
-          }
-        : proposedEntity;
-    });
+        return duplicate ? null : proposedEntity;
+      })
+      .filter(isNotNullish);
   }
 
   state.filesUsedToInferFacts.push(...newFilesUsedToInferFacts);
@@ -197,13 +198,12 @@ const updateStateFromInferredFacts = async (params: {
    * Take the set of entityIds which appear in new summaries, or as the subject or object of new facts
    */
   const entityIdsToPropose = [
-    ...new Set(
+    ...new Set([
       ...newEntitySummaries.map(({ localId }) => localId),
-      ...newFacts.flatMap(({ subjectEntityLocalId, objectEntityLocalId }) => [
-        subjectEntityLocalId,
-        objectEntityLocalId,
-      ]),
-    ),
+      ...newFacts.flatMap(({ subjectEntityLocalId, objectEntityLocalId }) =>
+        [subjectEntityLocalId, objectEntityLocalId].filter(isNotNullish),
+      ),
+    ]),
   ];
 
   /**
@@ -491,6 +491,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             const suggestionsForNextStepsMade: string[] = [];
 
             for (const { status, url } of statusesWithUrl) {
+              logger.debug(stringify({ url, status }));
               if (status.code !== StatusCode.Ok) {
                 errorMessage += `An error occurred when inferring facts from the web page with url ${url}: ${status.message}\n`;
 
@@ -572,12 +573,12 @@ export const researchEntitiesAction: FlowActionActivity<{
                   );
 
                   const relevantEntities = state.entitySummaries.filter(
-                    ({ localId }) => relevantEntityIds.includes(localId),
+                    ({ localId }) => relevantEntityIds?.includes(localId),
                   );
 
                   const existingFactsAboutRelevantEntities =
                     state.inferredFacts.filter(({ subjectEntityLocalId }) =>
-                      relevantEntityIds.includes(subjectEntityLocalId),
+                      relevantEntityIds?.includes(subjectEntityLocalId),
                     );
 
                   logProgress([

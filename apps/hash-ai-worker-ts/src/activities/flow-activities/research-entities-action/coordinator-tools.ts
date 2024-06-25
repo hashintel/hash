@@ -313,7 +313,7 @@ export type CoordinatorToolCallArguments = Subtype<
       subTasks: {
         goal: string;
         explanation: string;
-        relevantEntityIds: string[];
+        relevantEntityIds?: string[];
         entityTypeIds: string[];
         linkEntityTypeIds?: string[];
       }[];
