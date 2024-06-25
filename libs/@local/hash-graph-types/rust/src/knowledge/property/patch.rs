@@ -1,6 +1,7 @@
 use serde::Deserialize;
+use thiserror::Error;
 
-use crate::knowledge::{Property, PropertyMetadataElement, PropertyPath};
+use crate::knowledge::{Property, PropertyMetadata, PropertyPath};
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -11,7 +12,7 @@ pub enum PropertyPatchOperation {
         value: Property,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-        metadata: Option<PropertyMetadataElement>,
+        metadata: Option<PropertyMetadata>,
     },
     Remove {
         path: PropertyPath<'static>,
@@ -21,6 +22,9 @@ pub enum PropertyPatchOperation {
         value: Property,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-        metadata: Option<PropertyMetadataElement>,
+        metadata: Option<PropertyMetadata>,
     },
 }
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Error)]
+#[error("Failed to apply patch")]
+pub struct PatchError;

@@ -1,10 +1,7 @@
 import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityId,
-  EntityPropertiesObject,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { PropsWithChildren } from "react";
@@ -57,7 +54,7 @@ type FileLinkData = {
   // The entityTypeId of the link entity to create
   linkEntityTypeId: VersionedUrl;
   // The properties for the link entity to create, if any
-  linkProperties?: EntityPropertiesObject;
+  linkProperties?: PropertyObject;
   /**
    * If true, don't actually create or delete the specified link entity, just track this metadata in the upload object
    *

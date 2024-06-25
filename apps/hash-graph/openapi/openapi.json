@@ -1311,7 +1311,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ValidateEntityRequest"
+                "$ref": "#/components/schemas/ValidateEntityParams"
               }
             }
           },
@@ -3178,14 +3178,7 @@
             "$ref": "#/components/schemas/OwnedById"
           },
           "properties": {
-            "$ref": "#/components/schemas/PropertyObject"
-          },
-          "propertyMetadata": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PropertyMetadataObject"
-              }
-            ]
+            "$ref": "#/components/schemas/PropertyWithMetadataObject"
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedEntityEditionProvenance"
@@ -6739,10 +6732,11 @@
           "propertyName": "op"
         }
       },
-      "PropertyMetadataElement": {
+      "PropertyMetadata": {
         "oneOf": [
           {
             "type": "object",
+            "title": "PropertyMetadataArray",
             "properties": {
               "metadata": {
                 "$ref": "#/components/schemas/ArrayMetadata"
@@ -6750,13 +6744,14 @@
               "value": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/PropertyMetadataElement"
+                  "$ref": "#/components/schemas/PropertyMetadata"
                 }
               }
             }
           },
           {
             "type": "object",
+            "title": "PropertyMetadataObject",
             "properties": {
               "metadata": {
                 "$ref": "#/components/schemas/ObjectMetadata"
@@ -6764,13 +6759,14 @@
               "value": {
                 "type": "object",
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/PropertyMetadataElement"
+                  "$ref": "#/components/schemas/PropertyMetadata"
                 }
               }
             }
           },
           {
             "type": "object",
+            "title": "PropertyMetadataValue",
             "required": [
               "metadata"
             ],
@@ -6791,7 +6787,7 @@
           "value": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/PropertyMetadataElement"
+              "$ref": "#/components/schemas/PropertyMetadata"
             }
           }
         },
@@ -6816,7 +6812,7 @@
               "metadata": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/PropertyMetadataElement"
+                    "$ref": "#/components/schemas/PropertyMetadata"
                   }
                 ]
               },
@@ -6863,7 +6859,7 @@
               "metadata": {
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/PropertyMetadataElement"
+                    "$ref": "#/components/schemas/PropertyMetadata"
                   }
                 ]
               },
@@ -7230,6 +7226,69 @@
             "$ref": "./models/property_type.json"
           }
         }
+      },
+      "PropertyWithMetadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "PropertyWithMetadataArray",
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ArrayMetadata"
+              },
+              "value": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PropertyWithMetadata"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "PropertyWithMetadataObject",
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ObjectMetadata"
+              },
+              "value": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/PropertyWithMetadata"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "PropertyWithMetadataValue",
+            "required": [
+              "value",
+              "metadata"
+            ],
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ValueMetadata"
+              },
+              "value": {}
+            }
+          }
+        ]
+      },
+      "PropertyWithMetadataObject": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ObjectMetadata"
+          },
+          "value": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyWithMetadata"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "ProvidedEntityEditionProvenance": {
         "type": "object",
@@ -7940,7 +7999,7 @@
         },
         "additionalProperties": false
       },
-      "ValidateEntityRequest": {
+      "ValidateEntityParams": {
         "type": "object",
         "required": [
           "entityTypes",
@@ -7965,14 +8024,7 @@
             ]
           },
           "properties": {
-            "$ref": "#/components/schemas/PropertyObject"
-          },
-          "propertyMetadata": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PropertyMetadataObject"
-              }
-            ]
+            "$ref": "#/components/schemas/PropertyWithMetadataObject"
           }
         },
         "additionalProperties": false

@@ -13,10 +13,7 @@ import {
 } from "@blockprotocol/graph/temporal";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityId,
-  EntityPropertiesObject,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -50,9 +47,10 @@ export type EntityTypeVertex = Subtype<
   }
 >;
 
-export type EntityVertex<
-  Properties extends EntityPropertiesObject = EntityPropertiesObject,
-> = { kind: "entity"; inner: Entity<Properties> };
+export type EntityVertex<Properties extends PropertyObject = PropertyObject> = {
+  kind: "entity";
+  inner: Entity<Properties>;
+};
 export type SerializedEntityVertex = {
   kind: "entity";
   inner: SerializedEntity;

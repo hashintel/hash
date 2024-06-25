@@ -33,7 +33,7 @@ export const pageTypedef = gql`
     """
     Properties of entity.
     """
-    properties: EntityPropertiesObject!
+    properties: PropertyObject!
     """
     The permissions the requesting user has on the page
     """

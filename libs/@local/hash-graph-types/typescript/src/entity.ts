@@ -1,4 +1,3 @@
-import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type {
   EntityMetadata as EntityMetadataBp,
   EntityRecordId as EntityRecordIdBp,
@@ -78,26 +77,133 @@ export type EntityMetadata = Subtype<
   }
 >;
 
-export type PropertyMetadataElement =
+/**
+ * The value of a property.
+ *
+ * Inside a property, a `Value` is the leaf node of the property tree.
+ */
+export type PropertyValue =
+  | null
+  | boolean
+  | number
+  | string
+  | PropertyValue[]
+  | { [key: string]: PropertyValue };
+
+/**
+ * A list of properties.
+ */
+export type PropertyArray = Property[];
+
+/**
+ * A mapping of property base URLs to their values.
+ */
+export type PropertyObject = {
+  [key: BaseUrl]: Property;
+};
+
+/**
+ * A property is a tree structure that represents a property of an entity.
+ *
+ * In many cases, this will be a simple value, but it can also be an object or
+ * an array with various nested properties.
+ *
+ * With only a `Property` provided it's impossible to distinguish between
+ * a `Value` and an `Object` or `Array`. For this, the metadata is required.
+ */
+export type Property = PropertyValue | PropertyArray | PropertyObject;
+
+/**
+ * The metadata for a `PropertyValue`.
+ */
+export type PropertyMetadataValue = {
+  metadata: Omit<ValueMetadata, "dataTypeId"> & {
+    dataTypeId?: VersionedUrl;
+  };
+};
+
+/**
+ * The metadata for a `PropertyArray`.
+ *
+ * It contains metadata for the array itself and for each of its elements.
+ */
+export type PropertyMetadataArray = {
+  value: PropertyMetadata[];
+  metadata?: ArrayMetadata;
+};
+
+/**
+ * The metadata for a `PropertyObject`.
+ *
+ * It contains metadata for the object itself and for each of its properties.
+ */
+export type PropertyMetadataObject = {
+  value: Record<BaseUrl, PropertyMetadata>;
+  metadata?: ObjectMetadata;
+};
+
+export type PropertyMetadata =
   | PropertyMetadataArray
   | PropertyMetadataObject
   | PropertyMetadataValue;
 
-export interface PropertyMetadataValue {
-  metadata: Omit<ValueMetadata, "dataTypeId"> & {
-    dataTypeId?: VersionedUrl;
-  };
+export const isValueMetadata = (
+  metadata: PropertyMetadata,
+): metadata is PropertyMetadataValue => !("value" in metadata);
+
+export const isArrayMetadata = (
+  metadata: PropertyMetadata,
+): metadata is PropertyMetadataArray =>
+  !isValueMetadata(metadata) && Array.isArray(metadata.value);
+
+export const isObjectMetadata = (
+  metadata: PropertyMetadata,
+): metadata is PropertyMetadataObject =>
+  !isValueMetadata(metadata) && !Array.isArray(metadata.value);
+
+/**
+ * A compound type that contains both the value and the metadata of a property
+ * value.
+ *
+ * It consists of the `value`, which is the actual property value, and the
+ * `metadata` for the value itself.
+ */
+export interface PropertyValueWithMetadata {
+  value: PropertyValue;
+  metadata: PropertyMetadataValue["metadata"];
 }
 
-export interface PropertyMetadataObject {
-  value?: Record<BaseUrl, PropertyMetadataElement>;
-  metadata?: ObjectMetadata;
+/**
+ * A compound type that contains both the value and the metadata of a property
+ * array.
+ *
+ * It consists of the `value`, which is the actual property array, and the
+ * `metadata` of the array itself.
+ */
+export interface PropertyArrayWithMetadata {
+  value: PropertyWithMetadata[];
+  metadata?: PropertyMetadataArray["metadata"];
 }
 
-export interface PropertyMetadataArray {
-  value?: PropertyMetadataElement[];
-  metadata?: ArrayMetadata;
+/**
+ * A compound type that contains both the value and the metadata of a property
+ * object.
+ *
+ * It consists of the `value`, which is the actual property object, and the
+ * `metadata` of the object itself.
+ */
+export interface PropertyObjectWithMetadata {
+  value: Record<BaseUrl, PropertyWithMetadata>;
+  metadata?: PropertyMetadataObject["metadata"];
 }
+
+/**
+ * A compound type that contains both the value and the metadata of a property.
+ */
+export type PropertyWithMetadata =
+  | PropertyArrayWithMetadata
+  | PropertyObjectWithMetadata
+  | PropertyValueWithMetadata;
 
 export type PropertyPath = (BaseUrl | number)[];
 
@@ -125,5 +231,3 @@ export type EntityEditionProvenance = {
   origin?: ProvidedEntityEditionProvenanceOrigin;
   sources?: Array<SourceProvenance>;
 };
-
-export type EntityPropertiesObject = Record<BaseUrl, EntityPropertyValue>;

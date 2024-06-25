@@ -1,8 +1,8 @@
-import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type { PropertyObject } from "@local/hash-graph-types/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
-export const getFileProperties = (properties: EntityPropertiesObject) => {
+export const getFileProperties = (properties: PropertyObject) => {
   const { description, displayName, fileUrl, fileName, mimeType, fileSize } =
     simplifyProperties(properties as FileProperties);
 
@@ -19,9 +19,7 @@ export const getFileProperties = (properties: EntityPropertiesObject) => {
   };
 };
 
-export const getImageUrlFromEntityProperties = (
-  properties: EntityPropertiesObject,
-) => {
+export const getImageUrlFromEntityProperties = (properties: PropertyObject) => {
   const { isImage, fileUrl } = getFileProperties(properties);
 
   return isImage ? fileUrl : undefined;

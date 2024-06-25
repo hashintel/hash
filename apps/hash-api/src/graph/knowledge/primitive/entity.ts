@@ -24,8 +24,8 @@ import type {
 } from "@local/hash-graph-types/account";
 import type {
   EntityId,
-  EntityPropertiesObject,
   LinkData,
+  PropertyObject,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -73,7 +73,7 @@ import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 /** @todo: potentially directly export this from the subgraph package */
-export type PropertyValue = EntityPropertiesObject[BaseUrl];
+export type PropertyValue = PropertyObject[BaseUrl];
 
 /**
  * Create an entity.
@@ -411,7 +411,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     entityTypeId: VersionedUrl;
-    properties: EntityPropertiesObject;
+    properties: PropertyObject;
     linkedEntities?: LinkedEntityDefinition[];
     relationships: EntityRelationAndSubject[];
     draft?: boolean;
@@ -549,7 +549,7 @@ export const updateEntity: ImpureGraphFunction<
   {
     entity: Entity;
     entityTypeId?: VersionedUrl;
-    properties: EntityPropertiesObject;
+    properties: PropertyObject;
     draft?: boolean;
     provenance?: ProvidedEntityEditionProvenance;
   },
@@ -628,7 +628,7 @@ export const updateEntityProperties: ImpureGraphFunction<
 
   return await updateEntity(ctx, authentication, {
     entity,
-    properties: updatedProperties.reduce<EntityPropertiesObject>(
+    properties: updatedProperties.reduce<PropertyObject>(
       (prev, { propertyTypeBaseUrl, value }) =>
         value !== undefined
           ? {

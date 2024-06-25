@@ -1,6 +1,6 @@
 import { OntologyChip } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type { PropertyObject } from "@local/hash-graph-types/entity";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { NextSeo } from "next-seo";
@@ -24,9 +24,7 @@ interface EntityEditorPageProps extends EntityEditorProps {
   isQueryEntity?: boolean;
   isDraft?: boolean;
   isModifyingEntity?: boolean;
-  handleSaveChanges: (
-    overrideProperties?: EntityPropertiesObject,
-  ) => Promise<void>;
+  handleSaveChanges: (overrideProperties?: PropertyObject) => Promise<void>;
 }
 
 export const EntityEditorPage = ({

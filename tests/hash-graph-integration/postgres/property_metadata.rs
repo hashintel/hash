@@ -11,7 +11,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{Location, ProvidedEntityEditionProvenance, SourceProvenance, SourceType},
-        Confidence, ObjectMetadata, Property, PropertyMetadataElement, PropertyMetadataObject,
+        Confidence, ObjectMetadata, Property, PropertyMetadata, PropertyMetadataObject,
         PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
         PropertyProvenance, PropertyWithMetadataObject, ValueMetadata,
     },
@@ -140,7 +140,7 @@ async fn initial_metadata() {
     let entity_property_metadata = PropertyMetadataObject {
         value: HashMap::from([(
             name_property_type_id(),
-            PropertyMetadataElement::Value {
+            PropertyMetadata::Value {
                 metadata: ValueMetadata {
                     provenance: property_provenance_a(),
                     confidence: Confidence::new(0.5),
@@ -180,7 +180,7 @@ async fn initial_metadata() {
     assert_eq!(entity.metadata.confidence, Confidence::new(0.5));
     assert_eq!(entity.metadata.properties, entity_property_metadata);
 
-    let name_property_metadata = PropertyMetadataElement::Value {
+    let name_property_metadata = PropertyMetadata::Value {
         metadata: ValueMetadata {
             provenance: property_provenance_a(),
             confidence: Confidence::new(0.6),
@@ -278,7 +278,7 @@ async fn no_initial_metadata() {
         PropertyMetadataObject {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadataElement::Value {
+                PropertyMetadata::Value {
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: None,
@@ -332,7 +332,7 @@ async fn no_initial_metadata() {
         PropertyMetadataObject {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadataElement::Value {
+                PropertyMetadata::Value {
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: None,
@@ -352,7 +352,7 @@ async fn no_initial_metadata() {
                 properties: vec![PropertyPatchOperation::Replace {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
                     value: Property::Value(json!("Alice")),
-                    metadata: Some(PropertyMetadataElement::Value {
+                    metadata: Some(PropertyMetadata::Value {
                         metadata: ValueMetadata {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
@@ -377,7 +377,7 @@ async fn no_initial_metadata() {
         PropertyMetadataObject {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadataElement::Value {
+                PropertyMetadata::Value {
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: Confidence::new(0.5),
@@ -412,7 +412,7 @@ async fn no_initial_metadata() {
         PropertyMetadataObject {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadataElement::Value {
+                PropertyMetadata::Value {
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: Confidence::new(0.5),
@@ -466,7 +466,7 @@ async fn properties_add() {
                 properties: vec![PropertyPatchOperation::Add {
                     path: path.clone(),
                     value: Property::Value(json!(30)),
-                    metadata: Some(PropertyMetadataElement::Value {
+                    metadata: Some(PropertyMetadata::Value {
                         metadata: ValueMetadata {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
@@ -489,7 +489,7 @@ async fn properties_add() {
             value: HashMap::from([
                 (
                     name_property_type_id(),
-                    PropertyMetadataElement::Value {
+                    PropertyMetadata::Value {
                         metadata: ValueMetadata {
                             provenance: PropertyProvenance::default(),
                             confidence: None,
@@ -499,7 +499,7 @@ async fn properties_add() {
                 ),
                 (
                     age_property_type_id(),
-                    PropertyMetadataElement::Value {
+                    PropertyMetadata::Value {
                         metadata: ValueMetadata {
                             provenance: PropertyProvenance::default(),
                             confidence: Confidence::new(0.5),
@@ -561,7 +561,7 @@ async fn properties_remove() {
                         path: once(PropertyPathElement::from(interests_property_type_id()))
                             .collect(),
                         value: Property::Object(PropertyObject::new(HashMap::new())),
-                        metadata: Some(PropertyMetadataElement::Object {
+                        metadata: Some(PropertyMetadata::Object {
                             value: HashMap::new(),
                             metadata: ObjectMetadata {
                                 confidence: Confidence::new(0.4),
@@ -572,7 +572,7 @@ async fn properties_remove() {
                     PropertyPatchOperation::Add {
                         path: film_path.clone(),
                         value: Property::Value(json!("Fight Club")),
-                        metadata: Some(PropertyMetadataElement::Value {
+                        metadata: Some(PropertyMetadata::Value {
                             metadata: ValueMetadata {
                                 confidence: Confidence::new(0.5),
                                 data_type_id: None,
@@ -596,7 +596,7 @@ async fn properties_remove() {
             value: HashMap::from([
                 (
                     name_property_type_id(),
-                    PropertyMetadataElement::Value {
+                    PropertyMetadata::Value {
                         metadata: ValueMetadata {
                             provenance: PropertyProvenance::default(),
                             confidence: None,
@@ -606,10 +606,10 @@ async fn properties_remove() {
                 ),
                 (
                     interests_property_type_id(),
-                    PropertyMetadataElement::Object {
+                    PropertyMetadata::Object {
                         value: HashMap::from([(
                             film_property_type_id(),
-                            PropertyMetadataElement::Value {
+                            PropertyMetadata::Value {
                                 metadata: ValueMetadata {
                                     provenance: property_provenance_b(),
                                     confidence: Confidence::new(0.5),
@@ -652,7 +652,7 @@ async fn properties_remove() {
         PropertyMetadataObject {
             value: HashMap::from([(
                 name_property_type_id(),
-                PropertyMetadataElement::Value {
+                PropertyMetadata::Value {
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: None,

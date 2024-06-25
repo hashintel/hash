@@ -5,10 +5,7 @@ import type {
 } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type {
-  EntityId,
-  EntityPropertiesObject,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -82,7 +79,7 @@ export const getLatestEntityById = async (params: {
   return entity;
 };
 
-export const getEntityUpdate = <T extends EntityPropertiesObject>({
+export const getEntityUpdate = <T extends PropertyObject>({
   existingEntity,
   newProperties,
 }: {

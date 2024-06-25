@@ -8,8 +8,8 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
-  EntityPropertiesObject,
   EntityRecordId,
+  PropertyObject,
 } from "@local/hash-graph-types/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
@@ -68,7 +68,7 @@ export type BlockLoaderProps = {
    * Properties to be used when the blockEntityId is not yet available for fetching the block from the API.
    * Used when new entities are created mid-session.
    */
-  fallbackBlockProperties?: EntityPropertiesObject;
+  fallbackBlockProperties?: PropertyObject;
   onBlockLoaded: () => void;
   userPermissionsOnEntities?: UserPermissionsOnEntities;
   wrappingEntityId: string;
@@ -83,9 +83,7 @@ export type BlockLoaderProps = {
  * the block as a plain string (a predictable format), complying with the schema in both cases.
  * Here we translate our rich text tokens into a plain string for passing into the block.
  */
-const rewrittenPropertiesForTextualContent = (
-  properties: EntityPropertiesObject,
-) => {
+const rewrittenPropertiesForTextualContent = (properties: PropertyObject) => {
   const textTokens = properties[textualContentPropertyTypeBaseUrl] as
     | TextualContentPropertyValue
     | undefined;

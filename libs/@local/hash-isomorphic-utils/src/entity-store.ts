@@ -2,9 +2,9 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
-  EntityPropertiesObject,
   EntityTemporalVersioningMetadata,
   LinkData,
+  PropertyObject,
 } from "@local/hash-graph-types/entity";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { Draft } from "immer";
@@ -31,7 +31,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
-  properties: EntityPropertiesObject;
+  properties: PropertyObject;
   linkData?: LinkData;
 
   componentId?: string;

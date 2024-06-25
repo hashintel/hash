@@ -1,18 +1,20 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type {
+  PropertyObject,
+  PropertyValue,
+} from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { JsonValue } from "@local/hash-subgraph";
 
-export type EntityPropertyValueWithSimplifiedProperties =
-  | JsonValue
-  | EntityPropertiesObjectWithSimplifiedProperties;
+export type PropertyValueWithSimplifiedProperties =
+  | PropertyValue
+  | PropertiesObjectWithSimplifiedProperties;
 
-export type EntityPropertiesObjectWithSimplifiedProperties = {
-  [_: string]: EntityPropertyValueWithSimplifiedProperties;
+export type PropertiesObjectWithSimplifiedProperties = {
+  [_: string]: PropertyValueWithSimplifiedProperties;
 };
 
 const mapSimplifiedPropertyValueToPropertyValue = (params: {
-  simplifiedPropertyValue: EntityPropertyValueWithSimplifiedProperties;
+  simplifiedPropertyValue: PropertyValueWithSimplifiedProperties;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
 }): Entity["properties"][BaseUrl] => {
   const { simplifiedPropertyValue, simplifiedPropertyTypeMappings } = params;
@@ -33,7 +35,7 @@ const mapSimplifiedPropertyValueToPropertyValue = (params: {
     );
   }
 
-  return Object.entries(simplifiedPropertyValue).reduce<EntityPropertiesObject>(
+  return Object.entries(simplifiedPropertyValue).reduce<PropertyObject>(
     (acc, [maybeSimplifiedId, value]) => {
       const baseUrl = simplifiedPropertyTypeMappings[maybeSimplifiedId];
 
@@ -65,10 +67,7 @@ const mapSimplifiedPropertyValueToPropertyValue = (params: {
 };
 
 export const mapSimplifiedPropertiesToProperties = (params: {
-  simplifiedProperties: Record<
-    string,
-    EntityPropertyValueWithSimplifiedProperties
-  >;
+  simplifiedProperties: Record<string, PropertyValueWithSimplifiedProperties>;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
 }): Entity["properties"] => {
   const { simplifiedProperties, simplifiedPropertyTypeMappings } = params;

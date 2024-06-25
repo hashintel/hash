@@ -10,7 +10,7 @@ import dedent from "dedent";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
 import { extractErrorMessage } from "../../../infer-entities/shared/extract-validation-failure-details";
-import type { EntityPropertyValueWithSimplifiedProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties";
+import type { PropertyValueWithSimplifiedProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties";
 import { mapSimplifiedPropertiesToProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties";
 import { stripIdsFromDereferencedProperties } from "../../../infer-entities/shared/strip-ids-from-dereferenced-properties";
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type";
@@ -80,7 +80,7 @@ type InputPropertiesObject = {
 
 const mapInputPropertiesToPropertiesObject = (params: {
   inputProperties: InputPropertiesObject;
-}): Record<string, EntityPropertyValueWithSimplifiedProperties> => {
+}): Record<string, PropertyValueWithSimplifiedProperties> => {
   const { inputProperties } = params;
 
   return Object.entries(inputProperties).reduce(
@@ -101,7 +101,9 @@ const generatePropertyMetadata = (params: {
 }): { propertyMetadata: ProposedEntity["propertyMetadata"] } => {
   const { inputProperties, facts, simplifiedPropertyTypeMappings } = params;
 
-  const propertyMetadata: NonNullable<ProposedEntity["propertyMetadata"]> = {};
+  const propertyMetadata: NonNullable<ProposedEntity["propertyMetadata"]> = {
+    value: {},
+  };
 
   for (const [
     simplifiedPropertyKey,
@@ -137,7 +139,6 @@ const generatePropertyMetadata = (params: {
       );
     }
 
-    propertyMetadata.value ??= {};
     propertyMetadata.value[baseUrl] = {
       metadata: { provenance: { sources: sourcesUsedToDetermineValue } },
     };

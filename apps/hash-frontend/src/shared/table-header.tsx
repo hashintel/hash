@@ -16,9 +16,9 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
+import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import {
   extractOwnedByIdFromEntityId,
-  isBaseUrl,
   isExternalOntologyElementMetadata,
 } from "@local/hash-subgraph";
 import type { SxProps, Theme, TooltipProps } from "@mui/material";

@@ -35,8 +35,7 @@ export const scalars = {
   GetEntitySubgraphRequest: "@local/hash-graph-client#GetEntitySubgraphRequest",
   EntityTemporalVersioningMetadata:
     "@local/hash-graph-types/entity#EntityTemporalVersioningMetadata",
-  EntityPropertiesObject:
-    "@local/hash-graph-types/entity#EntityPropertiesObject",
+  PropertyObject: "@local/hash-graph-types/entity#PropertyObject",
   DiffEntityInput: "@local/hash-subgraph#DiffEntityInput",
   DiffEntityResult: "@local/hash-graph-client#DiffEntityResult",
 

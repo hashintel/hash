@@ -5,9 +5,9 @@ import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
-  EntityPropertiesObject,
   EntityUuid,
   PropertyMetadataObject,
+  PropertyObject,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
@@ -42,7 +42,7 @@ export type ProposedEntity = {
   localEntityId: string;
   entityTypeId: VersionedUrl;
   summary?: string;
-  properties: EntityPropertiesObject;
+  properties: PropertyObject;
   sourceEntityId?: LocalOrExistingEntityId;
   targetEntityId?: LocalOrExistingEntityId;
 };

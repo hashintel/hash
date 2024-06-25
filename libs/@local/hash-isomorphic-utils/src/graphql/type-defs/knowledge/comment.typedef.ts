@@ -45,7 +45,7 @@ export const commentTypedef = gql`
     """
     Properties of entity.
     """
-    properties: EntityPropertiesObject!
+    properties: PropertyObject!
     """
     Whether or not the requesting user can edit this comment
     """

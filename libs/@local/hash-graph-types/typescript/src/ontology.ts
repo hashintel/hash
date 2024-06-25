@@ -4,6 +4,7 @@ import type {
   OntologyElementMetadata as OntologyElementMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph/temporal";
+import { validateBaseUrl } from "@blockprotocol/type-system";
 import type {
   BaseUrl as BaseUrlBp,
   DataType,
@@ -31,6 +32,10 @@ import type {
 import type { OwnedById } from "./web";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
+
+export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
+  return validateBaseUrl(baseUrl).type === "Ok";
+};
 
 export type OntologyProvenance = {
   edition: OntologyEditionProvenance;

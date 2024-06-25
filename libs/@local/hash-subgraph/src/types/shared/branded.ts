@@ -1,5 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { validateBaseUrl } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
 import type {
   DataTypeRelationAndSubject as DataTypeRelationAndSubjectGraph,
@@ -19,13 +18,8 @@ import type {
   EntityUuid,
 } from "@local/hash-graph-types/entity";
 import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { validate as validateUuid } from "uuid";
-
-export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
-  return validateBaseUrl(baseUrl).type === "Ok";
-};
 
 export const isEntityId = (entityId: string): entityId is EntityId => {
   const [accountId, entityUuid] = entityId.split(ENTITY_ID_DELIMITER);

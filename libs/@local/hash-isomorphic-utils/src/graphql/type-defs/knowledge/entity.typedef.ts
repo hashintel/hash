@@ -4,7 +4,7 @@ export const entityTypedef = gql`
   scalar EntityId
   scalar EntityRecordId
   scalar SerializedEntity
-  scalar EntityPropertiesObject
+  scalar PropertyObject
   scalar EntityMetadata
   scalar EntityRelationAndSubject
   scalar GetEntitySubgraphRequest
@@ -41,7 +41,7 @@ export const entityTypedef = gql`
     """
     The properties of the new entity.
     """
-    entityProperties: EntityPropertiesObject
+    entityProperties: PropertyObject
     """
     Associated Entities to either create/get and link to this entity.
     """
@@ -167,7 +167,7 @@ export const entityTypedef = gql`
     """
     The updated properties of the entity.
     """
-    updatedProperties: EntityPropertiesObject!
+    updatedProperties: PropertyObject!
     """
     The new type of the updated entity
     """
@@ -194,7 +194,7 @@ export const entityTypedef = gql`
       """
       The properties of the new entity.
       """
-      properties: EntityPropertiesObject!
+      properties: PropertyObject!
       """
       Associated Entities to either create or get, and then link to this entity.
       """
