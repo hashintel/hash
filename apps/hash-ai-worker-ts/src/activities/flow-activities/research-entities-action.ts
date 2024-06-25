@@ -495,7 +495,6 @@ export const researchEntitiesAction: FlowActionActivity<{
             const suggestionsForNextStepsMade: string[] = [];
 
             for (const { status, url } of statusesWithUrl) {
-              logger.debug(stringify({ url, status }));
               if (status.code !== StatusCode.Ok) {
                 errorMessage += `An error occurred when inferring facts from the web page with url ${url}: ${status.message}\n`;
 
