@@ -6,6 +6,7 @@ import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/act
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -37,7 +38,6 @@ import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-enti
 import type { Fact } from "./shared/infer-facts-from-text/types";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
 import type { FlowActionActivity } from "./types";
-import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 
 const adjustDuplicates = (params: {
   duplicates: DuplicateReport[];
@@ -105,19 +105,15 @@ const updateStateFromInferredFacts = async (params: {
   /**
    * Step 1: Deduplication (if necessary)
    */
+
+  const canonicalEntityIdsForNewDuplicates: string[] = [];
   if (newEntitySummaries.length === 0) {
     // do nothing – there are no new entities to deduplicate
-  } else if (
-    (input.existingEntities ?? []).length === 0 &&
-    state.entitySummaries.length === 0
-  ) {
-    /**
-     * If there are no existing inferred facts about entities, there
-     * is no need to deduplicate entities.
-     */
-    state.entitySummaries = newEntitySummaries;
-    state.inferredFacts = newFacts;
   } else {
+    /**
+     * We need to deduplicate newly discovered entities (which may contain duplicates within them)
+     * alongside any existing entities.
+     */
     const { duplicates } = await deduplicateEntities({
       entities: [
         ...(input.existingEntitySummaries ?? []),
@@ -142,6 +138,10 @@ const updateStateFromInferredFacts = async (params: {
       duplicates,
       entityIdsWhichCannotBeDeduplicated,
     });
+
+    canonicalEntityIdsForNewDuplicates.push(
+      ...adjustedDuplicates.map(({ canonicalId }) => canonicalId),
+    );
 
     const inferredFactsWithDeduplicatedEntities = newFacts.map((fact) => {
       const { subjectEntityLocalId, objectEntityLocalId } = fact;
@@ -195,7 +195,10 @@ const updateStateFromInferredFacts = async (params: {
    */
 
   /**
-   * Take the set of entityIds which appear in new summaries, or as the subject or object of new facts
+   * We want to (re)propose entities which may have new information, via one of:
+   * 1. Appearing as a new summary
+   * 2. Being the subject or object of a new fact
+   * 3. Having been identified as the canonical version of a new duplicate (which means it may have had new facts discovered)
    */
   const entityIdsToPropose = [
     ...new Set([
@@ -203,6 +206,7 @@ const updateStateFromInferredFacts = async (params: {
       ...newFacts.flatMap(({ subjectEntityLocalId, objectEntityLocalId }) =>
         [subjectEntityLocalId, objectEntityLocalId].filter(isNotNullish),
       ),
+      ...canonicalEntityIdsForNewDuplicates,
     ]),
   ];
 

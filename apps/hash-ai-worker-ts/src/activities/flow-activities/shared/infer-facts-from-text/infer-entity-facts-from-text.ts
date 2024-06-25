@@ -39,7 +39,8 @@ const generateToolDefinitions = (params: {
             properties: {
               subjectEntityLocalId: {
                 type: "string",
-                description: "The local ID of the subject entity of the fact.",
+                description:
+                  "The local ID of the subject entity of the fact. Must be defined. If you don't have a relevant subject entity, don't include the fact.",
               },
               text: {
                 type: "string",
@@ -113,6 +114,7 @@ const systemPrompt = dedent(`
   Each fact should be in the format <subject> <predicate> <object>, where the subject is the singular subject of the fact.
   Example:
   [{ text: "Company X acquired Company Y.", prepositionalPhrases: ["in 2019", "for $10 million"], subjectEntityLocalId: "abc", objectEntityLocalId: "123" }]
+  Don't include facts which start with a subject you can't provide an id for.
 `);
 
 const constructUserMessage = (params: {
@@ -281,9 +283,9 @@ export const inferEntityFactsFromText = async (params: {
       ],
     });
   } else if (llmResponse.status !== "ok") {
-    throw new Error(
-      `Failed to get response from LLM: ${stringify(llmResponse)}`,
-    );
+    return {
+      facts: params.retryContext?.previousValidFacts ?? [],
+    };
   }
 
   const validFacts: Fact[] = [];
