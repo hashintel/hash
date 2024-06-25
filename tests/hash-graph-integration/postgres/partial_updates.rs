@@ -15,8 +15,9 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance, Property, PropertyObject, PropertyPatchOperation,
-        PropertyPathElement, PropertyWithMetadataObject,
+        entity::ProvidedEntityEditionProvenance, PropertyObject, PropertyPatchOperation,
+        PropertyPathElement, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
+        ValueMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -109,8 +110,14 @@ async fn properties_add() {
             entity_type_ids: HashSet::new(),
             properties: vec![PropertyPatchOperation::Add {
                 path: once(PropertyPathElement::from(age_property_type_id())).collect(),
-                value: Property::Value(json!(30)),
-                metadata: None,
+                property: PropertyWithMetadata::Value {
+                    value: json!(30),
+                    metadata: ValueMetadata {
+                        confidence: None,
+                        data_type_id: None,
+                        provenance: PropertyProvenance::default(),
+                    },
+                },
             }],
             draft: None,
             archived: None,
@@ -257,8 +264,14 @@ async fn properties_replace() {
             entity_type_ids: HashSet::new(),
             properties: vec![PropertyPatchOperation::Replace {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                value: Property::Value(json!("Bob")),
-                metadata: None,
+                property: PropertyWithMetadata::Value {
+                    value: json!("Bob"),
+                    metadata: ValueMetadata {
+                        confidence: None,
+                        data_type_id: None,
+                        provenance: PropertyProvenance::default(),
+                    },
+                },
             }],
             draft: None,
             archived: None,

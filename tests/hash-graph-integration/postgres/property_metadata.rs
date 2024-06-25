@@ -13,7 +13,7 @@ use graph_types::{
         entity::{Location, ProvidedEntityEditionProvenance, SourceProvenance, SourceType},
         Confidence, ObjectMetadata, Property, PropertyMetadata, PropertyMetadataObject,
         PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
-        PropertyProvenance, PropertyWithMetadataObject, ValueMetadata,
+        PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject, ValueMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -197,8 +197,8 @@ async fn initial_metadata() {
                         name_property_type_id(),
                     )))
                     .collect(),
-                    value: Property::Value(json!("Bob")),
-                    metadata: Some(name_property_metadata.clone()),
+                    property: PropertyWithMetadata::from_parts(Property::Value(json!("Bob")), None)
+                        .expect("could not create property with metadata"),
                 }],
                 entity_type_ids: HashSet::new(),
                 archived: None,
@@ -351,14 +351,14 @@ async fn no_initial_metadata() {
                 entity_id: entity.metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                    value: Property::Value(json!("Alice")),
-                    metadata: Some(PropertyMetadata::Value {
+                    property: PropertyWithMetadata::Value {
+                        value: json!("Alice"),
                         metadata: ValueMetadata {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
                         },
-                    }),
+                    },
                 }],
                 entity_type_ids: HashSet::new(),
                 archived: None,
@@ -465,14 +465,14 @@ async fn properties_add() {
                 entity_type_ids: HashSet::new(),
                 properties: vec![PropertyPatchOperation::Add {
                     path: path.clone(),
-                    value: Property::Value(json!(30)),
-                    metadata: Some(PropertyMetadata::Value {
+                    property: PropertyWithMetadata::Value {
+                        value: json!(30),
                         metadata: ValueMetadata {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
                         },
-                    }),
+                    },
                 }],
                 draft: None,
                 archived: None,
@@ -560,25 +560,24 @@ async fn properties_remove() {
                     PropertyPatchOperation::Add {
                         path: once(PropertyPathElement::from(interests_property_type_id()))
                             .collect(),
-                        value: Property::Object(PropertyObject::new(HashMap::new())),
-                        metadata: Some(PropertyMetadata::Object {
+                        property: PropertyWithMetadata::Object {
                             value: HashMap::new(),
                             metadata: ObjectMetadata {
                                 confidence: Confidence::new(0.4),
                                 provenance: property_provenance_a(),
                             },
-                        }),
+                        },
                     },
                     PropertyPatchOperation::Add {
                         path: film_path.clone(),
-                        value: Property::Value(json!("Fight Club")),
-                        metadata: Some(PropertyMetadata::Value {
+                        property: PropertyWithMetadata::Value {
+                            value: json!("Fight Club"),
                             metadata: ValueMetadata {
                                 confidence: Confidence::new(0.5),
                                 data_type_id: None,
                                 provenance: property_provenance_b(),
                             },
-                        }),
+                        },
                     },
                 ],
                 draft: None,

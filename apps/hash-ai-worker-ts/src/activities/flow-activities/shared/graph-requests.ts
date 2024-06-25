@@ -1,11 +1,12 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type {
-  GraphApi,
-  PropertyPatchOperation,
-} from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  PropertyObject,
+  PropertyPatchOperation,
+} from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,

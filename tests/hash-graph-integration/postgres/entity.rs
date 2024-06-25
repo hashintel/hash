@@ -16,7 +16,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::ProvidedEntityEditionProvenance, Property, PropertyObject, PropertyPatchOperation,
-        PropertyPath, PropertyWithMetadataObject,
+        PropertyPath, PropertyWithMetadata, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -229,8 +229,11 @@ async fn update() {
                 entity_id: v1_entity.metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: PropertyPath::default(),
-                    value: Property::Object(page_v2.clone()),
-                    metadata: None,
+                    property: PropertyWithMetadata::from_parts(
+                        Property::Object(page_v2.clone()),
+                        None,
+                    )
+                    .expect("could not create property with metadata"),
                 }],
                 entity_type_ids: HashSet::new(),
                 archived: None,

@@ -25,6 +25,7 @@ import type {
   PropertyMetadataObject,
   PropertyObject,
   PropertyObjectWithMetadata,
+  PropertyPatchOperation,
   PropertyPath,
   PropertyValueWithMetadata,
   PropertyWithMetadata,
@@ -59,9 +60,10 @@ export type CreateEntityParameters = Omit<
 
 export type PatchEntityParameters = Omit<
   GraphApiPatchEntityParams,
-  "entityId" | "entityTypeIds" | "decisionTime"
+  "entityId" | "entityTypeIds" | "decisionTime" | "properties"
 > & {
   entityTypeId?: VersionedUrl;
+  properties?: PropertyPatchOperation[];
 };
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
@@ -405,12 +407,24 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    { entityTypeId, ...params }: PatchEntityParameters,
+    { entityTypeId, properties, ...params }: PatchEntityParameters,
   ): Promise<Entity<Properties>> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
         entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+        properties: properties?.map((operation) =>
+          operation.op === "remove"
+            ? operation
+            : {
+                op: operation.op,
+                path: operation.path,
+                property: mergePropertiesAndMetadata(
+                  operation.value,
+                  operation.metadata,
+                ),
+              },
+        ),
         ...params,
       })
       .then(({ data }) => new Entity<Properties>(data));
@@ -544,12 +558,24 @@ export class LinkEntity<
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    { entityTypeId, ...params }: PatchEntityParameters,
+    { entityTypeId, properties, ...params }: PatchEntityParameters,
   ): Promise<LinkEntity<Properties>> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
         entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+        properties: properties?.map((operation) =>
+          operation.op === "remove"
+            ? operation
+            : {
+                op: operation.op,
+                path: operation.path,
+                property: mergePropertiesAndMetadata(
+                  operation.value,
+                  operation.metadata,
+                ),
+              },
+        ),
         ...params,
       })
       .then(({ data }) => new LinkEntity<Properties>(data));

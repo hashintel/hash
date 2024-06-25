@@ -1,3 +1,4 @@
+rewriting static
 mod diff;
 mod provenance;
 
@@ -143,17 +144,9 @@ impl Entity {
 
         for operation in operations {
             match operation {
-                PropertyPatchOperation::Add {
-                    path,
-                    value,
-                    metadata,
-                } => {
+                PropertyPatchOperation::Add { path, property } => {
                     properties_with_metadata
-                        .add(
-                            path,
-                            PropertyWithMetadata::from_parts(value, metadata)
-                                .change_context(PatchError)?,
-                        )
+                        .add(path, property)
                         .change_context(PatchError)?;
                 }
                 PropertyPatchOperation::Remove { path } => {
@@ -161,17 +154,9 @@ impl Entity {
                         .remove(&path)
                         .change_context(PatchError)?;
                 }
-                PropertyPatchOperation::Replace {
-                    path,
-                    value,
-                    metadata,
-                } => {
+                PropertyPatchOperation::Replace { path, property } => {
                     properties_with_metadata
-                        .replace(
-                            &path,
-                            PropertyWithMetadata::from_parts(value, metadata)
-                                .change_context(PatchError)?,
-                        )
+                        .replace(&path, property)
                         .change_context(PatchError)?;
                 }
             }
