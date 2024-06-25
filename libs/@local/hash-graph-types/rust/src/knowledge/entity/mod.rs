@@ -1,4 +1,3 @@
-rewriting static
 mod diff;
 mod provenance;
 

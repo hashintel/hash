@@ -1399,7 +1399,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     {
       "op": "replace",
       "path": ["http://localhost:3000/@alice/types/property-type/name/"],
-      "value": "Alice Allison 3"
+      "property": {
+        "value": "Alice Allison 3",
+        "metadata": {
+          "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      }
     }
   ]
 }
@@ -2156,7 +2161,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     {
       "op": "replace",
       "path": ["http://localhost:3000/@alice/types/property-type/name/"],
-      "value": "Charles 2 draft"
+      "property": {
+        "value": "Charles 2 draft",
+        "metadata": {
+          "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      }
     }
   ]
 }
@@ -2181,7 +2191,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     {
       "op": "replace",
       "path": ["http://localhost:3000/@alice/types/property-type/name/"],
-      "value": "Charles 2"
+      "property": {
+        "value": "Charles 2",
+        "metadata": {
+          "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      }
     }
   ],
   "draft": false
