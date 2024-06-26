@@ -9,7 +9,8 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{EntityId, ProvidedEntityEditionProvenance},
-        Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
+        Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
+        PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -127,8 +128,8 @@ async fn initial_draft() {
                 entity_id: entity.metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: PropertyPath::default(),
-                    value: Property::Object(bob()),
-                    metadata: None,
+                    property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
+                        .expect("could not create property with metadata"),
                 }],
                 entity_type_ids: HashSet::new(),
                 archived: None,
@@ -178,8 +179,8 @@ async fn initial_draft() {
                 entity_id: updated_entity.metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: PropertyPath::default(),
-                    value: Property::Object(charles()),
-                    metadata: None,
+                    property: PropertyWithMetadata::from_parts(Property::Object(charles()), None)
+                        .expect("could not create property with metadata"),
                 }],
                 entity_type_ids: HashSet::new(),
                 archived: None,
@@ -305,8 +306,8 @@ async fn no_initial_draft() {
                     entity_id: entity.metadata.record_id.entity_id,
                     properties: vec![PropertyPatchOperation::Replace {
                         path: PropertyPath::default(),
-                        value: Property::Object(bob()),
-                        metadata: None,
+                        property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
+                            .expect("could not create property with metadata"),
                     }],
                     entity_type_ids: HashSet::new(),
                     archived: None,
@@ -361,8 +362,11 @@ async fn no_initial_draft() {
                     entity_id: updated_entity.metadata.record_id.entity_id,
                     properties: vec![PropertyPatchOperation::Replace {
                         path: PropertyPath::default(),
-                        value: Property::Object(charles()),
-                        metadata: None,
+                        property: PropertyWithMetadata::from_parts(
+                            Property::Object(charles()),
+                            None,
+                        )
+                        .expect("could not create property with metadata"),
                     }],
                     entity_type_ids: HashSet::new(),
                     archived: None,
@@ -465,8 +469,8 @@ async fn multiple_drafts() {
                     entity_id: entity.metadata.record_id.entity_id,
                     properties: vec![PropertyPatchOperation::Replace {
                         path: PropertyPath::default(),
-                        value: Property::Object(bob()),
-                        metadata: None,
+                        property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
+                            .expect("could not create property with metadata"),
                     }],
                     entity_type_ids: HashSet::new(),
                     archived: None,
@@ -524,8 +528,11 @@ async fn multiple_drafts() {
                     entity_id: draft,
                     properties: vec![PropertyPatchOperation::Replace {
                         path: PropertyPath::default(),
-                        value: Property::Object(charles()),
-                        metadata: None,
+                        property: PropertyWithMetadata::from_parts(
+                            Property::Object(charles()),
+                            None,
+                        )
+                        .expect("could not create property with metadata"),
                     }],
                     entity_type_ids: HashSet::new(),
                     archived: None,

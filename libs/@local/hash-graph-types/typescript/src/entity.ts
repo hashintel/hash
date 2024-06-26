@@ -231,3 +231,27 @@ export type EntityEditionProvenance = {
   origin?: ProvidedEntityEditionProvenanceOrigin;
   sources?: Array<SourceProvenance>;
 };
+
+type AddPropertyPatchOperation = {
+  op: "add";
+  path: PropertyPath;
+  value: PropertyValue;
+  metadata?: PropertyMetadata;
+};
+
+type RemovePropertyPatchOperation = {
+  op: "remove";
+  path: PropertyPath;
+};
+
+type ReplacePropertyPatchOperation = {
+  op: "replace";
+  path: PropertyPath;
+  value: PropertyValue;
+  metadata?: PropertyMetadata;
+};
+
+export type PropertyPatchOperation =
+  | AddPropertyPatchOperation
+  | RemovePropertyPatchOperation
+  | ReplacePropertyPatchOperation;
