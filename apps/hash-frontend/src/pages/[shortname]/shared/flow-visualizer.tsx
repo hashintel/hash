@@ -156,13 +156,14 @@ const getGraphFromFlowDefinition = (
     } else {
       const nextNode = derivedNodes[i + 1];
 
-      const thisGroup = node.data.groupId;
-      const nextGroup = nextNode?.data.groupId;
+      const groupForThisNode = node.data.groupId;
+      const groupForNextNode = nextNode?.data.groupId;
 
       if (
         nextNode &&
         nextNode.parentNode !== node.id &&
-        thisGroup === nextGroup
+        groupForThisNode === groupForNextNode &&
+        layerByStepId.get(node.id) !== layerByStepId.get(nextNode.id)
       ) {
         derivedEdges.push({
           id: `${node.id}-${nextNode.id}`,
