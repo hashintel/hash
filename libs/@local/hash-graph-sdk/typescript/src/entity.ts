@@ -156,6 +156,10 @@ const mergePropertiesAndMetadata = (
       const returnedValues: Record<BaseUrl, PropertyWithMetadata> = {};
       let isPropertyObject = true;
       for (const [key, value] of typedEntries(property)) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
+        if (value === undefined) {
+          continue;
+        }
         if (!isBaseUrl(key)) {
           isPropertyObject = false;
           break;

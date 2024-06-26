@@ -11,9 +11,9 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{Location, ProvidedEntityEditionProvenance, SourceProvenance, SourceType},
-        Confidence, ObjectMetadata, Property, PropertyMetadata, PropertyMetadataObject,
-        PropertyObject, PropertyPatchOperation, PropertyPath, PropertyPathElement,
-        PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject, ValueMetadata,
+        Confidence, ObjectMetadata, PropertyMetadata, PropertyMetadataObject, PropertyObject,
+        PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
+        PropertyWithMetadata, PropertyWithMetadataObject, ValueMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -180,12 +180,10 @@ async fn initial_metadata() {
     assert_eq!(entity.metadata.confidence, Confidence::new(0.5));
     assert_eq!(entity.metadata.properties, entity_property_metadata);
 
-    let name_property_metadata = PropertyMetadata::Value {
-        metadata: ValueMetadata {
-            provenance: property_provenance_a(),
-            confidence: Confidence::new(0.6),
-            data_type_id: None,
-        },
+    let name_property_metadata = ValueMetadata {
+        provenance: property_provenance_a(),
+        confidence: Confidence::new(0.6),
+        data_type_id: None,
     };
     let updated_entity = api
         .patch_entity(
@@ -197,8 +195,10 @@ async fn initial_metadata() {
                         name_property_type_id(),
                     )))
                     .collect(),
-                    property: PropertyWithMetadata::from_parts(Property::Value(json!("Bob")), None)
-                        .expect("could not create property with metadata"),
+                    property: PropertyWithMetadata::Value {
+                        value: json!("Bob"),
+                        metadata: name_property_metadata.clone(),
+                    },
                 }],
                 entity_type_ids: HashSet::new(),
                 archived: None,
@@ -214,7 +214,12 @@ async fn initial_metadata() {
     assert_eq!(
         updated_entity.metadata.properties,
         PropertyMetadataObject {
-            value: HashMap::from([(name_property_type_id(), name_property_metadata)]),
+            value: HashMap::from([(
+                name_property_type_id(),
+                PropertyMetadata::Value {
+                    metadata: name_property_metadata
+                }
+            )]),
             metadata: ObjectMetadata {
                 provenance: PropertyProvenance::default(),
                 confidence: Confidence::new(0.8),
