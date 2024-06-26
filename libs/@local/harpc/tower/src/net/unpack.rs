@@ -1,5 +1,6 @@
 use core::{
     mem,
+    ops::ControlFlow,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -59,7 +60,7 @@ impl Running {
     fn poll_exhausted(
         stream: ResponseStream,
         current: impl TransactionStream,
-    ) -> (State, Option<Poll<Option<BodyFrameResult<Unpack>>>>) {
+    ) -> (State, ControlFlow<Poll<Option<BodyFrameResult<Unpack>>>>) {
         // we have exhausted the stream, check if we're complete, in that case we're
         // done
         let state = current.state().unwrap_or_else(|| {
@@ -72,11 +73,14 @@ impl Running {
         // and return None, otherwise we're pending and wait for the next stream
         if state.is_end_of_response() {
             let state = State::Finished(Finished { complete: true });
-            (state, Some(Poll::Ready(None)))
+            (state, ControlFlow::Break(Poll::Ready(None)))
         } else {
             // we cannot return `Pending` here, because in that case we'd need to register some sort
             // of waker
-            (State::Waiting(Waiting { stream }), None)
+            (
+                State::Waiting(Waiting { stream }),
+                ControlFlow::Continue(()),
+            )
         }
     }
 
@@ -85,7 +89,7 @@ impl Running {
         mut current: T,
         pack: impl FnOnce(T) -> Result<ValueStream, ErrorStream>,
         cx: &mut Context,
-    ) -> (State, Option<Poll<Option<BodyFrameResult<Unpack>>>>) {
+    ) -> (State, ControlFlow<Poll<Option<BodyFrameResult<Unpack>>>>) {
         let Poll::Ready(value) = current.poll_next_unpin(cx) else {
             // we're just propagating the underlying stream `Pending`, this means we need to
             // register any waker
@@ -94,7 +98,7 @@ impl Running {
                     stream,
                     current: pack(current),
                 }),
-                Some(Poll::Pending),
+                ControlFlow::Break(Poll::Pending),
             );
         };
 
@@ -107,11 +111,11 @@ impl Running {
                 stream,
                 current: pack(current),
             }),
-            Some(Poll::Ready(Some(Ok(Frame::new_data(bytes))))),
+            ControlFlow::Break(Poll::Ready(Some(Ok(Frame::new_data(bytes))))),
         )
     }
 
-    fn poll(self, cx: &mut Context) -> (State, Option<Poll<Option<BodyFrameResult<Unpack>>>>) {
+    fn poll(self, cx: &mut Context) -> (State, ControlFlow<Poll<Option<BodyFrameResult<Unpack>>>>) {
         match self.current {
             Ok(current) => Self::poll_current(self.stream, current, Ok, cx),
             Err(current) => Self::poll_current(self.stream, current, Err, cx),
@@ -130,14 +134,17 @@ enum State {
 }
 
 impl State {
-    fn poll(self, cx: &mut Context) -> (State, Option<Poll<Option<BodyFrameResult<Unpack>>>>) {
+    fn poll(self, cx: &mut Context) -> (State, ControlFlow<Poll<Option<BodyFrameResult<Unpack>>>>) {
         match self {
             State::Waiting(waiting) => {
                 let (state, poll) = waiting.poll(cx);
-                (state, Some(poll))
+                (state, ControlFlow::Break(poll))
             }
             State::Running(running) => running.poll(cx),
-            State::Finished(finished) => (State::Finished(finished), Some(Poll::Ready(None))),
+            State::Finished(finished) => (
+                State::Finished(finished),
+                ControlFlow::Break(Poll::Ready(None)),
+            ),
         }
     }
 }
@@ -165,7 +172,7 @@ impl Unpack {
             let (next, poll) = state.poll(cx);
             state = next;
 
-            if let Some(poll) = poll {
+            if let Some(poll) = poll.break_value() {
                 // set the state back to the current value, to persist
                 self.state = state;
                 return poll;

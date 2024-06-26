@@ -2,7 +2,8 @@
     impl_trait_in_assoc_type,
     never_type,
     type_changing_struct_update,
-    min_exhaustive_patterns
+    min_exhaustive_patterns,
+    control_flow_enum
 )]
 
 pub mod body;
