@@ -9,6 +9,7 @@ import type { ProcessedCodegenParameters } from "../parameters";
 import type { CompiledTsType, LogLevel } from "../shared";
 import type { PreprocessContext } from "./preprocess";
 import type { TypeDependencyMap } from "./shared";
+import { JSONSchema } from "json-schema-to-typescript";
 
 export class CompileContext {
   readonly parameters: ProcessedCodegenParameters;
@@ -17,7 +18,10 @@ export class CompileContext {
   readonly dataTypes: Record<VersionedUrl, DataType>;
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
-  readonly allTypes: Record<VersionedUrl, DataType | PropertyType | EntityType>;
+  readonly allTypes: Record<
+    string,
+    DataType | PropertyType | EntityType | JSONSchema
+  >;
 
   readonly typeDependencyMap: TypeDependencyMap;
 

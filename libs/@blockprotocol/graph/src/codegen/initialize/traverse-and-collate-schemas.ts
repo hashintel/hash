@@ -12,6 +12,11 @@ import {
   isEntityType,
   isPropertyType,
 } from "./traverse/type-validation";
+import {
+  generateDataTypeWithMetadataSchema,
+  generateMetadataSchemaForPropertiesObject,
+  generatePropertyTypeWithMetadataSchema,
+} from "./metadata/generate-metadata-schema";
 
 /** A simple helper method which saves some duplication below, and avoids intermediary array allocations */
 const nestedForEach = <T>(arrays: T[][], callback: (ele: T) => void) => {
@@ -137,6 +142,10 @@ export const traverseAndCollateSchemas = async (
       fetchTypeAsJson(rewrittenTypeId).then((type) => {
         if (isDataType(type)) {
           initialContext.addDataType(type);
+          const withMetadata = generateDataTypeWithMetadataSchema(type);
+          if (!initialContext.metadataSchemas[withMetadata.$id]) {
+            initialContext.addMetadataSchema(withMetadata);
+          }
         } else if (isPropertyType(type)) {
           const {
             constrainsValuesOnDataTypes,
@@ -150,6 +159,11 @@ export const traverseAndCollateSchemas = async (
           );
 
           initialContext.addPropertyType(type);
+
+          const withMetadata = generatePropertyTypeWithMetadataSchema(type);
+          if (!initialContext.metadataSchemas[withMetadata.$id]) {
+            initialContext.addMetadataSchema(withMetadata);
+          }
         } else if (isEntityType(type)) {
           const {
             constrainsPropertiesOnPropertyTypes,
@@ -170,6 +184,14 @@ export const traverseAndCollateSchemas = async (
           );
 
           initialContext.addEntityType(type);
+
+          const withMetadata = generateMetadataSchemaForPropertiesObject(
+            type.properties,
+            type.required ?? [],
+          );
+          if (!initialContext.metadataSchemas[withMetadata.$id]) {
+            initialContext.addMetadataSchema(withMetadata);
+          }
         } else {
           throw new Error(`Unexpected type, was it malformed? URL: ${typeId}`);
         }

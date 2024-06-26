@@ -12,6 +12,7 @@ import type {
 import { processCodegenParameters } from "../parameters";
 import type { LogLevel } from "../shared";
 import { TypeDependencyMap } from "./shared";
+import { JSONSchema } from "json-schema-to-typescript";
 
 export class InitializeContext {
   readonly parameters: ProcessedCodegenParameters;
@@ -20,6 +21,7 @@ export class InitializeContext {
   dataTypes: Record<VersionedUrl, DataType> = {};
   propertyTypes: Record<VersionedUrl, PropertyType> = {};
   entityTypes: Record<VersionedUrl, EntityType> = {};
+  metadataSchemas: Record<string, JSONSchema> = {};
 
   typeDependencyMap: TypeDependencyMap = new TypeDependencyMap();
 
@@ -72,5 +74,9 @@ export class InitializeContext {
 
   addEntityType = (entityType: EntityType) => {
     this.entityTypes[entityType.$id] = entityType;
+  };
+
+  addMetadataSchema = (schema: JSONSchema & { $id: string }) => {
+    this.metadataSchemas[schema.$id] = schema;
   };
 }

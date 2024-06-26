@@ -9,6 +9,7 @@ import type { ProcessedCodegenParameters } from "../parameters";
 import type { CompiledTsType, LogLevel } from "../shared";
 import type { CompileContext } from "./compile";
 import type { TypeDependencyMap } from "./shared";
+import { JSONSchema } from "json-schema-to-typescript";
 
 type IdentifierSource = { definingPath: string } & (
   | {
@@ -37,7 +38,10 @@ export class PostprocessContext {
   readonly dataTypes: Record<VersionedUrl, DataType>;
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
-  readonly allTypes: Record<VersionedUrl, DataType | PropertyType | EntityType>;
+  readonly allTypes: Record<
+    string,
+    DataType | PropertyType | EntityType | JSONSchema
+  >;
 
   readonly typeDependencyMap: TypeDependencyMap;
 
@@ -76,26 +80,19 @@ export class PostprocessContext {
     this.linkTypeMap = compileContext.linkTypeMap;
     this.typeIdsToCompiledTypes = compileContext.typeIdsToCompiledTypes;
 
-    const graphModuleImportPath = "@blockprotocol/graph";
-
     this.IdentifiersToSources = {
       Entity: {
         locallyImportable: true,
-        source: { kind: "external", definingPath: graphModuleImportPath },
+        source: {
+          kind: "external",
+          definingPath: "@local/hash-graph-sdk/entity",
+        },
       },
-      LinkData: {
-        locallyImportable: true,
-        source: { kind: "external", definingPath: graphModuleImportPath },
-      },
-      JsonObject: {
-        locallyImportable: true,
-        source: { kind: "external", definingPath: graphModuleImportPath },
-      },
-      LinkAndRightEntity: {
+      LinkEntity: {
         locallyImportable: true,
         source: {
           kind: "external",
-          definingPath: graphModuleImportPath,
+          definingPath: "@local/hash-graph-sdk/entity",
         },
       },
     };

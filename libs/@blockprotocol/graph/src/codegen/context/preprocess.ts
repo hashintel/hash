@@ -9,6 +9,7 @@ import type { ProcessedCodegenParameters } from "../parameters";
 import type { LogLevel } from "../shared";
 import type { InitializeContext } from "./initialize";
 import type { TypeDependencyMap } from "./shared";
+import { JSONSchema } from "json-schema-to-typescript";
 
 export class PreprocessContext {
   readonly parameters: ProcessedCodegenParameters;
@@ -17,7 +18,11 @@ export class PreprocessContext {
   readonly dataTypes: Record<VersionedUrl, DataType>;
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
-  readonly allTypes: Record<VersionedUrl, DataType | PropertyType | EntityType>;
+  readonly metadataSchemas: Record<string, JSONSchema>;
+  readonly allTypes: Record<
+    string,
+    DataType | PropertyType | EntityType | JSONSchema
+  >;
 
   readonly typeDependencyMap: TypeDependencyMap;
 
@@ -30,12 +35,14 @@ export class PreprocessContext {
     this.dataTypes = initialContext.dataTypes;
     this.propertyTypes = initialContext.propertyTypes;
     this.entityTypes = initialContext.entityTypes;
+    this.metadataSchemas = initialContext.metadataSchemas;
     this.typeDependencyMap = initialContext.typeDependencyMap;
 
     this.allTypes = {
       ...this.dataTypes,
       ...this.propertyTypes,
       ...this.entityTypes,
+      ...this.metadataSchemas,
     };
   }
 
