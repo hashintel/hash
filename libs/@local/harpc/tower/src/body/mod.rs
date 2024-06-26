@@ -1,3 +1,4 @@
+pub mod boxed;
 pub mod controlled;
 pub mod empty;
 pub mod full;
@@ -5,6 +6,7 @@ pub mod limited;
 pub mod map;
 pub mod server;
 pub mod size_hint;
+pub mod stream;
 pub mod timeout;
 
 use core::{
@@ -16,6 +18,11 @@ use core::{
 use bytes::Buf;
 
 pub use self::size_hint::SizeHint;
+use self::{
+    boxed::{BoxBody, UnsyncBoxBody},
+    map::{MapControl, MapData, MapError},
+    stream::BodyStream,
+};
 
 pub enum Frame<D, C> {
     Data(D),
@@ -200,5 +207,51 @@ pub trait BodyExt: Body {
         }
 
         FrameFuture(self)
+    }
+
+    fn map_data<F, B>(self, f: F) -> MapData<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Data) -> B,
+        B: Buf,
+    {
+        MapData::new(self, f)
+    }
+
+    fn map_control<F, C>(self, f: F) -> MapControl<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Control) -> C,
+    {
+        MapControl::new(self, f)
+    }
+
+    fn map_err<F, E>(self, f: F) -> MapError<Self, F>
+    where
+        Self: Sized,
+        F: FnMut(Self::Error) -> E,
+    {
+        MapError::new(self, f)
+    }
+
+    fn boxed(self) -> BoxBody<Self::Data, Self::Control, Self::Error>
+    where
+        Self: Sized + Send + Sync + 'static,
+    {
+        BoxBody::new(self)
+    }
+
+    fn boxed_unsync(self) -> UnsyncBoxBody<Self::Data, Self::Control, Self::Error>
+    where
+        Self: Sized + Send + 'static,
+    {
+        UnsyncBoxBody::new(self)
+    }
+
+    fn into_stream(self) -> BodyStream<Self>
+    where
+        Self: Sized,
+    {
+        BodyStream::new(self)
     }
 }

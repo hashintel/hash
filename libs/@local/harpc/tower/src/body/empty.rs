@@ -9,7 +9,7 @@ use bytes::Buf;
 use super::{Body, Frame, SizeHint};
 
 pub struct Empty<B> {
-    _marker: PhantomData<B>,
+    _marker: PhantomData<fn() -> B>,
 }
 
 impl<B> Empty<B> {

@@ -17,8 +17,8 @@ pin_project_lite::pin_project! {
 }
 
 impl<B, F> MapData<B, F> {
-    pub fn new(body: B, map: F) -> Self {
-        Self { inner: body, map }
+    pub fn new(inner: B, map: F) -> Self {
+        Self { inner, map }
     }
 }
 
@@ -69,8 +69,8 @@ pin_project_lite::pin_project! {
 }
 
 impl<B, F> MapControl<B, F> {
-    pub fn new(body: B, map: F) -> Self {
-        Self { inner: body, map }
+    pub fn new(inner: B, map: F) -> Self {
+        Self { inner, map }
     }
 }
 
@@ -100,6 +100,52 @@ where
         };
 
         Poll::Ready(Some(Ok(body)))
+    }
+
+    fn is_complete(&self) -> Option<bool> {
+        self.inner.is_complete()
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        self.inner.size_hint()
+    }
+}
+
+pin_project_lite::pin_project! {
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct MapError<B, F> {
+        #[pin]
+        inner: B,
+        map: F,
+    }
+}
+
+impl<B, F> MapError<B, F> {
+    pub fn new(body: B, map: F) -> Self {
+        Self { inner: body, map }
+    }
+}
+
+impl<B, F, E> Body for MapError<B, F>
+where
+    B: Body,
+    F: FnMut(B::Error) -> E,
+{
+    type Control = B::Control;
+    type Data = B::Data;
+    type Error = E;
+
+    fn poll_frame(
+        self: Pin<&mut Self>,
+        cx: &mut Context,
+    ) -> Poll<Option<Result<Frame<Self::Data, Self::Control>, Self::Error>>> {
+        let this = self.project();
+
+        let Some(result) = ready!(this.inner.poll_frame(cx)) else {
+            return Poll::Ready(None);
+        };
+
+        Poll::Ready(Some(result.map_err(this.map)))
     }
 
     fn is_complete(&self) -> Option<bool> {
