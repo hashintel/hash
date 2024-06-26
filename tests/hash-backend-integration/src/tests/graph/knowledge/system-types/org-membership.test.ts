@@ -45,7 +45,6 @@ describe("OrgMembership", () => {
       graphContext,
       { actorId: testUser.accountId },
       "orgMembershipTest",
-      logger,
     );
 
     return async () => {
