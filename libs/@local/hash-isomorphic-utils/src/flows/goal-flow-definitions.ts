@@ -227,6 +227,7 @@ export const goalFlowDefinitionWithReportAndSpreadsheetDeliverable: FlowDefiniti
       outputs: [
         ...goalFlowDefinition.trigger.outputs,
         ...markdownReportTriggerInputs,
+        ...googleSheetTriggerInputs,
       ],
     },
     steps: [
