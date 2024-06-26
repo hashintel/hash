@@ -73,7 +73,6 @@ describe("Entity CRU", () => {
       graphContext,
       authentication,
       "entitytestorg",
-      logger,
     );
     await joinOrg(graphContext, authentication, {
       userEntityId: testUser2.entity.metadata.recordId.entityId,
