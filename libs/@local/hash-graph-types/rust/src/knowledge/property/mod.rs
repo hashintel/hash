@@ -11,7 +11,10 @@ use std::{collections::HashMap, io};
 use error_stack::Report;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use type_system::{url::BaseUrl, JsonSchemaValueType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    JsonSchemaValueType,
+};
 
 pub use self::{
     diff::PropertyDiff,
@@ -83,6 +86,15 @@ impl PropertyWithMetadata {
             Self::Array { .. } => JsonSchemaValueType::Array,
             Self::Object { .. } => JsonSchemaValueType::Object,
             Self::Value { value, .. } => JsonSchemaValueType::from(value),
+        }
+    }
+
+    #[must_use]
+    pub const fn data_type_id(&self) -> Option<&VersionedUrl> {
+        if let Self::Value { metadata, .. } = self {
+            metadata.data_type_id.as_ref()
+        } else {
+            None
         }
     }
 
