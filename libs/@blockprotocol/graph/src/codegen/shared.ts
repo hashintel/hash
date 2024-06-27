@@ -39,9 +39,10 @@ export type JsonSchema = SchemaWithOptional$id & {
 export const identifiersForExternalImports = [
   "LinkEntity",
   "Entity",
-  "PropertyProvenance",
   "ArrayMetadata",
+  "Confidence",
   "ObjectMetadata",
+  "PropertyProvenance",
 ] as const;
 
 export type IdentifierForExternalImport =
@@ -75,8 +76,16 @@ export const arrayMetadataSchema: JsonSchema = {
   const: redundantTypePlaceholder,
 };
 
+export const confidenceMetadataSchema: JsonSchema = {
+  $id: "https://hash.ai/@hash/schemas/confidence/v/1",
+  title: "Confidence",
+  kind: metadataSchemaKind,
+  const: redundantTypePlaceholder,
+};
+
 export const sharedMetadataSchemas = [
   propertyProvenanceSchema,
   objectMetadataSchema,
+  confidenceMetadataSchema,
   arrayMetadataSchema,
 ];

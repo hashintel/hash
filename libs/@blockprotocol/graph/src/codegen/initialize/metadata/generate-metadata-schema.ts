@@ -11,6 +11,7 @@ import type { JSONSchema as PartialJsonSchema } from "json-schema-to-typescript"
 import type { JsonSchema } from "../../shared";
 import {
   arrayMetadataSchema,
+  confidenceMetadataSchema,
   generatedTypeSuffix,
   metadataSchemaKind as kind,
   objectMetadataSchema,
@@ -73,9 +74,7 @@ export const generateDataTypeWithMetadataSchema = (
         type: "object",
         properties: {
           provenance: propertyProvenanceSchema,
-          confidence: {
-            $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-          },
+          confidence: confidenceMetadataSchema,
           dataTypeId: { const: dataTypeSchema.$id },
         },
         required: ["dataTypeId"],

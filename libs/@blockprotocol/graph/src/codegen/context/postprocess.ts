@@ -53,6 +53,13 @@ const externalIdentifiersToSource: Record<
       definingPath: "@local/hash-graph-sdk/entity",
     },
   },
+  Confidence: {
+    locallyImportable: true,
+    source: {
+      kind: "external",
+      definingPath: "@local/hash-graph-types/entity",
+    },
+  },
   ObjectMetadata: {
     locallyImportable: true,
     source: {
