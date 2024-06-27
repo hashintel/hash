@@ -170,6 +170,16 @@ const exploreResource = async (params: {
       sanitizeForLlm: true,
     });
 
+    logProgress([
+      {
+        recordedAt: new Date().toISOString(),
+        stepId,
+        type: "VisitedWebPage",
+        webPage: { url: webPage.url, title: webPage.title },
+        explanation: resource.reason,
+      },
+    ]);
+
     content = webPage.htmlContent;
   }
 
