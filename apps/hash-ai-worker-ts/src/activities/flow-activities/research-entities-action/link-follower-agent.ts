@@ -14,11 +14,11 @@ import { inferFactsFromText } from "../shared/infer-facts-from-text";
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../shared/infer-facts-from-text/types";
 import { deduplicateEntities } from "./deduplicate-entities";
-import { filterAndRankTextChunksAgent } from "./infer-facts-from-web-page-worker-agent/filter-and-rank-text-chunks-agent";
-import { indexPdfFile } from "./infer-facts-from-web-page-worker-agent/llama-index/index-pdf-file";
 import type { Link } from "./link-follower-agent/extract-links-from-content";
 import { extractLinksFromContent } from "./link-follower-agent/extract-links-from-content";
+import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls";
+import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file";
 
 type ResourceToExplore = {
   url: string;
