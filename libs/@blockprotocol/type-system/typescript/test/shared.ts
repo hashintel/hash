@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 
-import wasm from "@blockprotocol/type-system/wasm";
+import wasm from "@blockprotocol/type-system-rs/wasm?url";
 
 import { TypeSystemInitializer } from "../src/main";
 
