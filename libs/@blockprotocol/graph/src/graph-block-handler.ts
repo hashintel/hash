@@ -35,8 +35,8 @@ import type {
   UpdateEntityData,
   UploadFileData,
   UploadFileReturn,
-} from "./main.js";
-import type { GetEntityData, QueryEntitiesData } from "./types/entity.js";
+} from "./main";
+import type { GetEntityData, QueryEntitiesData } from "./types/entity";
 
 /**
  * Creates a handler for the graph module for the block.

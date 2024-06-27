@@ -1,4 +1,4 @@
-import type { OntologyTypeRecordId } from "../ontology.js";
+import type { OntologyTypeRecordId } from "../ontology";
 
 export interface OntologyElementMetadata {
   recordId: OntologyTypeRecordId;

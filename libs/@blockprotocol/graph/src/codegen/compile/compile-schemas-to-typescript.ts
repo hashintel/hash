@@ -8,11 +8,11 @@ import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
 import type { JSONSchema } from "json-schema-to-typescript";
 import { compile as compileJsonSchema } from "json-schema-to-typescript";
 
-import { mustBeDefined } from "../../util/must-be-defined.js";
-import { typedValues } from "../../util/typed-object-iter.js";
-import type { CompileContext } from "../context.js";
-import type { CompiledTsType } from "../shared.js";
-import { redundantTypePlaceholder } from "../shared.js";
+import { mustBeDefined } from "../../util/must-be-defined";
+import { typedValues } from "../../util/typed-object-iter";
+import type { CompileContext } from "../context";
+import type { CompiledTsType } from "../shared";
+import { redundantTypePlaceholder } from "../shared";
 
 const compileIndividualSchemaToTypescript = async (
   type: DataType | PropertyType | EntityType,

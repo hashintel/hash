@@ -3,9 +3,9 @@ import type {
   GraphElementVertexId,
   OntologyTypeRecordId,
   Subgraph,
-} from "../../types.js";
-import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
-import { typedEntries } from "../../util.js";
+} from "../../types";
+import { isEntityRecordId, isOntologyTypeRecordId } from "../../types";
+import { typedEntries } from "../../util";
 
 /**
  * Searches the vertices of the subgraph for an element that matches a given {@link EntityRecordId} or

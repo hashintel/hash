@@ -5,9 +5,9 @@ import type {
   Entity,
   EntityPropertiesObject,
   LinkEntityAndRightEntity,
-} from "./main.js";
-import { GraphBlockHandler } from "./main.js";
-import { getOutgoingLinkAndTargetEntities, getRoots } from "./stdlib.js";
+} from "./main";
+import { GraphBlockHandler } from "./main";
+import { getOutgoingLinkAndTargetEntities, getRoots } from "./stdlib";
 
 export interface BlockElementBase<
   RootEntity extends Entity = Entity,

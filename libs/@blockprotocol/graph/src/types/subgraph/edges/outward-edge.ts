@@ -1,19 +1,19 @@
-import type { EntityId } from "../../entity.js";
-import { isEntityRecordId } from "../../entity.js";
-import { isOntologyTypeRecordId } from "../../ontology.js";
+import type { EntityId } from "../../entity";
+import { isEntityRecordId } from "../../entity";
+import { isOntologyTypeRecordId } from "../../ontology";
 import type {
   LimitedTemporalBound,
   TemporalBound,
   TimeInterval,
   Timestamp,
-} from "../../temporal-versioning.js";
+} from "../../temporal-versioning";
 import {
   isKnowledgeGraphEdgeKind,
   isOntologyEdgeKind,
   isSharedEdgeKind,
-} from "./kind.js";
-import type { KnowledgeGraphOutwardEdge } from "./variants/knowledge.js";
-import type { OntologyOutwardEdge } from "./variants/ontology.js";
+} from "./kind";
+import type { KnowledgeGraphOutwardEdge } from "./variants/knowledge";
+import type { OntologyOutwardEdge } from "./variants/ontology";
 
 /**
  * A simple tuple type which identifies an {@link Entity} by its {@link EntityId}, at a given {@link Timestamp}.

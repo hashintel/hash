@@ -4,13 +4,10 @@ import {
   extractVersion,
 } from "@blockprotocol/type-system/slim";
 
-import type { PropertyTypeWithMetadata } from "../../../types/ontology/property-type.js";
-import type {
-  OntologyTypeVertexId,
-  Subgraph,
-} from "../../../types/subgraph.js";
-import { isPropertyTypeVertex } from "../../../types/subgraph/vertices.js";
-import { typedValues } from "../../../util.js";
+import type { PropertyTypeWithMetadata } from "../../../types/ontology/property-type";
+import type { OntologyTypeVertexId, Subgraph } from "../../../types/subgraph";
+import { isPropertyTypeVertex } from "../../../types/subgraph/vertices";
+import { typedValues } from "../../../util";
 
 /**
  * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph

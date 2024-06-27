@@ -1,6 +1,6 @@
-import { typedEntries } from "../../util/typed-object-iter.js";
-import type { CompileContext } from "../context/compile.js";
-import type { CompiledTsType } from "../shared.js";
+import { typedEntries } from "../../util/typed-object-iter";
+import type { CompileContext } from "../context/compile";
+import type { CompiledTsType } from "../shared";
 
 const replaceInterfaceWithTypeInCompiledTsType = (
   compiledTsType: CompiledTsType,

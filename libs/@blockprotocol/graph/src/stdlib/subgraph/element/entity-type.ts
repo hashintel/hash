@@ -4,13 +4,10 @@ import {
   extractVersion,
 } from "@blockprotocol/type-system/slim";
 
-import type { EntityTypeWithMetadata } from "../../../types/ontology/entity-type.js";
-import type {
-  OntologyTypeVertexId,
-  Subgraph,
-} from "../../../types/subgraph.js";
-import { isEntityTypeVertex } from "../../../types/subgraph/vertices.js";
-import { typedValues } from "../../../util.js";
+import type { EntityTypeWithMetadata } from "../../../types/ontology/entity-type";
+import type { OntologyTypeVertexId, Subgraph } from "../../../types/subgraph";
+import { isEntityTypeVertex } from "../../../types/subgraph/vertices";
+import { typedValues } from "../../../util";
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph

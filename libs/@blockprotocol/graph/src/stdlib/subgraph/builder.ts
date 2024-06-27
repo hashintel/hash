@@ -3,13 +3,13 @@ import {
   inferEntityEdgesInSubgraphByMutation,
   inferEntityTypeEdgesInSubgraphByMutation,
   inferPropertyTypeEdgesInSubgraphByMutation,
-} from "../../internal/mutate-subgraph/edge.js";
+} from "../../internal/mutate-subgraph/edge";
 import {
   addDataTypeVerticesToSubgraphByMutation,
   addEntityTypeVerticesToSubgraphByMutation,
   addEntityVerticesToSubgraphByMutation,
   addPropertyTypeVerticesToSubgraphByMutation,
-} from "../../internal/mutate-subgraph/element.js";
+} from "../../internal/mutate-subgraph/element";
 import type {
   DataTypeWithMetadata,
   Entity,
@@ -23,9 +23,9 @@ import type {
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphTemporalAxes,
-} from "../../types.js";
-import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
-import { typedEntries } from "../../util.js";
+} from "../../types";
+import { isEntityRecordId, isOntologyTypeRecordId } from "../../types";
+import { typedEntries } from "../../util";
 import { getVertexIdForRecordId } from "./vertex-id-for-element";
 
 /**

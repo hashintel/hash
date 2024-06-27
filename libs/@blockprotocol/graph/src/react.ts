@@ -8,9 +8,9 @@ import type {
   EntityVertexId,
   LinkEntityAndRightEntity,
   Subgraph,
-} from "./main.js";
-import { GraphBlockHandler, GraphEmbedderHandler } from "./main.js";
-import { getOutgoingLinkAndTargetEntities, getRoots } from "./stdlib.js";
+} from "./main";
+import { GraphBlockHandler, GraphEmbedderHandler } from "./main";
+import { getOutgoingLinkAndTargetEntities, getRoots } from "./stdlib";
 
 export type BlockComponent<RootEntity extends Entity = Entity> =
   FunctionComponent<BlockGraphProperties<RootEntity>>;

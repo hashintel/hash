@@ -7,7 +7,7 @@ import type {
   GraphEmbedderMessageCallbacks,
   GraphEmbedderMessages,
   Subgraph,
-} from "./main.js";
+} from "./main";
 
 /**
  * Creates a handler for the graph module for the embedder.

@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import { mustBeDefined } from "../../util/must-be-defined.js";
+import { mustBeDefined } from "../../util/must-be-defined";
 
 type TypeDependencies = {
   typeId: VersionedUrl;

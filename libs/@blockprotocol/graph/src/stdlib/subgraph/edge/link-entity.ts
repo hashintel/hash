@@ -2,23 +2,23 @@ import type {
   Entity,
   EntityId,
   LinkEntityAndRightEntity,
-} from "../../../types/entity.js";
-import type { Subgraph } from "../../../types/subgraph.js";
+} from "../../../types/entity";
+import type { Subgraph } from "../../../types/subgraph";
 import {
   isHasLeftEntityEdge,
   isHasRightEntityEdge,
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
-} from "../../../types/subgraph.js";
-import type { TimeInterval } from "../../../types/temporal-versioning.js";
-import { typedEntries } from "../../../util.js";
+} from "../../../types/subgraph";
+import type { TimeInterval } from "../../../types/temporal-versioning";
+import { typedEntries } from "../../../util";
 import {
   intervalForTimestamp,
   intervalIntersectionWithInterval,
   intervalIsStrictlyAfterInterval,
-} from "../../interval.js";
-import { getEntityRevisionsByEntityId } from "../element/entity.js";
-import { getLatestInstantIntervalForSubgraph } from "../temporal-axes.js";
+} from "../../interval";
+import { getEntityRevisionsByEntityId } from "../element/entity";
+import { getLatestInstantIntervalForSubgraph } from "../temporal-axes";
 
 const getUniqueEntitiesFilter = () => {
   const set = new Set();

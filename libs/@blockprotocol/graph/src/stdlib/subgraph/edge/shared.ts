@@ -11,7 +11,7 @@ import type {
   OntologyTypeVertexId,
   OutwardEdge,
   Subgraph,
-} from "../../../types/subgraph.js";
+} from "../../../types/subgraph";
 
 /**
  * This is a helper function to extract ontology edges given an `outwardEdgePredicate` function.

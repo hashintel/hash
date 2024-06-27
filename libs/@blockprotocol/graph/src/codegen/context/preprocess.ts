@@ -5,10 +5,10 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import type { ProcessedCodegenParameters } from "../parameters.js";
-import type { LogLevel } from "../shared.js";
-import type { InitializeContext } from "./initialize.js";
-import type { TypeDependencyMap } from "./shared.js";
+import type { ProcessedCodegenParameters } from "../parameters";
+import type { LogLevel } from "../shared";
+import type { InitializeContext } from "./initialize";
+import type { TypeDependencyMap } from "./shared";
 
 export class PreprocessContext {
   readonly parameters: ProcessedCodegenParameters;

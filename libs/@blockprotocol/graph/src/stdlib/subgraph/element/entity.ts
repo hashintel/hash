@@ -1,18 +1,14 @@
-import type {
-  Entity,
-  EntityId,
-  EntityRevisionId,
-} from "../../../types/entity.js";
-import type { Subgraph, Vertices } from "../../../types/subgraph.js";
-import { isEntityVertex } from "../../../types/subgraph/vertices.js";
-import type { TimeInterval } from "../../../types/temporal-versioning.js";
-import { mustBeDefined, typedEntries, typedValues } from "../../../util.js";
+import type { Entity, EntityId, EntityRevisionId } from "../../../types/entity";
+import type { Subgraph, Vertices } from "../../../types/subgraph";
+import { isEntityVertex } from "../../../types/subgraph/vertices";
+import type { TimeInterval } from "../../../types/temporal-versioning";
+import { mustBeDefined, typedEntries, typedValues } from "../../../util";
 import {
   intervalContainsTimestamp,
   intervalForTimestamp,
   intervalIsStrictlyAfterInterval,
   intervalOverlapsInterval,
-} from "../../interval.js";
+} from "../../interval";
 
 /**
  * Returns all {@link Entity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their

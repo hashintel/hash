@@ -1,4 +1,4 @@
-import type { Entity } from "./entity.js";
+import type { Entity } from "./entity";
 
 export type FileAtUrlData = {
   // Optionally describe the file
