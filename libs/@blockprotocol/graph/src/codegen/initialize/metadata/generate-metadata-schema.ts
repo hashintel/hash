@@ -46,7 +46,6 @@ const generateMetadataSchemaIdentifiers = ({
 /**
  * Generate a schema for a data type with metadata, which is an object with two properties:
  * { value: SomeLeafValue, metadata: { provenance?: PropertyProvenance, confidence?: number, dataTypeId: VersionedUrl }
- * }
  */
 export const generateDataTypeWithMetadataSchema = (
   dataTypeSchema: DataType,
@@ -180,6 +179,7 @@ export function generatePropertiesObjectWithMetadataSchema({
         required,
       },
     },
+    required: ["value"],
   };
 }
 
@@ -242,6 +242,5 @@ export const generatePropertyTypeWithMetadataSchema = (
     oneOf: propertyTypeSchema.oneOf.map((entry) =>
       generatePropertyValueWithMetadataTree(entry),
     ),
-    required: ["value"],
   };
 };

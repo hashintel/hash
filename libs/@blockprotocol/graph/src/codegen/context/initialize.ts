@@ -75,7 +75,7 @@ export class InitializeContext {
     this.entityTypes[entityType.$id] = entityType;
   };
 
-  addMetadataSchema = (schema: JsonSchema & { $id: string }) => {
+  addMetadataSchema = (schema: JsonSchema) => {
     this.metadataSchemas[schema.$id] = schema;
   };
 }
