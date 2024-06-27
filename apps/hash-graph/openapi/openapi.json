@@ -5461,7 +5461,7 @@
       },
       "GraphResolveDepths": {
         "type": "object",
-        "description": "@todo @see https://linear.app/hash/issue/H-3018",
+        "description": "@todo @see <https://linear.app/hash/issue/H-3018>",
         "required": [
           "inheritsFrom",
           "constrainsValuesOn",
