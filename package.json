@@ -30,7 +30,7 @@
     "generate-ontology-type-ids": "yarn workspace @apps/hash-api generate-ontology-type-ids",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "@TODO.1": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.2)",
-    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-dep=@blockprotocol/graph --ignore-dep=@blockprotocol/type-system --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
+    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-dep=@blockprotocol/graph --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "fix:eslint": "turbo --continue fix:eslint --",
     "fix:markdownlint": "markdownlint --dot --fix .",
     "fix:prettier": "prettier --write  --ignore-unknown .",
