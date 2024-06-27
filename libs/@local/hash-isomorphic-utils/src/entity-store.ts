@@ -29,7 +29,11 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
     entityTypeId?: VersionedUrl | null;
     temporalVersioning: EntityTemporalVersioningMetadata;
   };
-  /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
+  
+  /**
+   * @todo properly type this part of the DraftEntity type
+   * @see https://linear.app/hash/issue/H-3000
+  */
   blockChildEntity?: Type & { draftId?: string };
   properties: PropertyObject;
   linkData?: LinkData;
@@ -41,7 +45,10 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   //  keep a dict of entity ids to draft ids, and vice versa
   draftId: string;
 
-  /** @todo use updated at from the Graph API https://app.asana.com/0/0/1203099452204542/f */
+  /**
+   * @todo use updated at from the Graph API
+   * @see https://linear.app/hash/issue/H-3000
+  */
   // updatedAt: string;
 };
 

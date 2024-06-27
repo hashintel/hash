@@ -22,9 +22,9 @@ use uuid::Uuid;
 
 use crate::util::{seed, StoreWrapper};
 
-// TODO: This is quite temporary at the moment. We'll want a lot more variation, a greater
+// @todo This is quite temporary at the moment. We'll want a lot more variation, a greater
 //  quantity of types, increased number of versions, etc.
-//  https://app.asana.com/0/0/1203072189010768/f
+// @see https://linear.app/hash/issue/H-1628
 // WARNING: Careful when reordering these, unfortunately ordering matters here due to
 // interdependencies, it's flakey and a bit hacky
 const SEED_DATA_TYPES: [&str; 6] = [
@@ -326,8 +326,8 @@ async fn get_samples<A: AuthorizationApi>(
 pub async fn setup_and_extract_samples<A: AuthorizationApi>(
     store_wrapper: &mut StoreWrapper<A>,
 ) -> Samples {
-    // TODO: We'll want to test distribution across accounts
-    //  https://app.asana.com/0/1200211978612931/1203071961523000/f
+    // @todo We'll want to test distribution across accounts
+    // @see https://linear.app/hash/issue/H-3012
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id = AccountId::new(

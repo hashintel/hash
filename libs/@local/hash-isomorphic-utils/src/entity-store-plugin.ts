@@ -207,7 +207,10 @@ const setBlockChildEntity = (
       metadata: targetEntity.metadata,
       draftId: targetEntityDraftId,
       properties: castDraft(targetEntity.properties),
-      /** @todo use the actual updated date here https://app.asana.com/0/0/1203099452204542/f */
+      /**
+       * @todo use the actual updated date here
+       * @see https://linear.app/hash/issue/H-3000 
+      */
       // updatedAt: targetEntity.updatedAt,
     };
 
@@ -222,7 +225,10 @@ const setBlockChildEntity = (
     );
   }
 
-  // @todo sort out entity store types – search https://app.asana.com/0/0/1203099452204542/f
+  /**
+   * @todo sort out entity store types
+   * @see https://linear.app/hash/issue/H-3000
+  */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   draftBlockEntity.blockChildEntity = targetDraftEntity as any;
 };
