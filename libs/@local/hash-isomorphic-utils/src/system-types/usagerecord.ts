@@ -2,70 +2,111 @@
  * This file was automatically generated – do not edit it.
  */
 
+import type { ObjectMetadata } from "@local/hash-graph-client";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   AppliesFromPropertyValue,
+  AppliesFromPropertyValueWithMetadata,
   AppliesUntilPropertyValue,
+  AppliesUntilPropertyValueWithMetadata,
   DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   FeatureNamePropertyValue,
+  FeatureNamePropertyValueWithMetadata,
   FlowDefinitionIDPropertyValue,
+  FlowDefinitionIDPropertyValueWithMetadata,
   FlowRun,
   FlowRunOutgoingLinkAndTarget,
   FlowRunOutgoingLinksByLinkEntityTypeId,
   FlowRunProperties,
+  FlowRunPropertiesWithMetadata,
   InputUnitCostPropertyValue,
+  InputUnitCostPropertyValueWithMetadata,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  LinkPropertiesWithMetadata,
   NamePropertyValue,
+  NamePropertyValueWithMetadata,
   NumberDataType,
+  NumberDataTypeWithMetadata,
   ObjectDataType,
+  ObjectDataTypeWithMetadata,
   OutputsPropertyValue,
+  OutputsPropertyValueWithMetadata,
   OutputUnitCostPropertyValue,
+  OutputUnitCostPropertyValueWithMetadata,
   ServiceFeature,
   ServiceFeatureOutgoingLinkAndTarget,
   ServiceFeatureOutgoingLinksByLinkEntityTypeId,
   ServiceFeatureProperties,
+  ServiceFeaturePropertiesWithMetadata,
   ServiceNamePropertyValue,
+  ServiceNamePropertyValueWithMetadata,
   ServiceUnitCostPropertyValue,
+  ServiceUnitCostPropertyValueWithMetadata,
   StepPropertyValue,
+  StepPropertyValueWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
   TriggerDefinitionIDPropertyValue,
+  TriggerDefinitionIDPropertyValueWithMetadata,
   TriggerPropertyValue,
+  TriggerPropertyValueWithMetadata,
 } from "./shared";
 
 export type {
   AppliesFromPropertyValue,
+  AppliesFromPropertyValueWithMetadata,
   AppliesUntilPropertyValue,
+  AppliesUntilPropertyValueWithMetadata,
   DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   FeatureNamePropertyValue,
+  FeatureNamePropertyValueWithMetadata,
   FlowDefinitionIDPropertyValue,
+  FlowDefinitionIDPropertyValueWithMetadata,
   FlowRun,
   FlowRunOutgoingLinkAndTarget,
   FlowRunOutgoingLinksByLinkEntityTypeId,
   FlowRunProperties,
+  FlowRunPropertiesWithMetadata,
   InputUnitCostPropertyValue,
+  InputUnitCostPropertyValueWithMetadata,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  LinkPropertiesWithMetadata,
   NamePropertyValue,
+  NamePropertyValueWithMetadata,
   NumberDataType,
+  NumberDataTypeWithMetadata,
   ObjectDataType,
+  ObjectDataTypeWithMetadata,
   OutputsPropertyValue,
+  OutputsPropertyValueWithMetadata,
   OutputUnitCostPropertyValue,
+  OutputUnitCostPropertyValueWithMetadata,
   ServiceFeature,
   ServiceFeatureOutgoingLinkAndTarget,
   ServiceFeatureOutgoingLinksByLinkEntityTypeId,
   ServiceFeatureProperties,
+  ServiceFeaturePropertiesWithMetadata,
   ServiceNamePropertyValue,
+  ServiceNamePropertyValueWithMetadata,
   ServiceUnitCostPropertyValue,
+  ServiceUnitCostPropertyValueWithMetadata,
   StepPropertyValue,
+  StepPropertyValueWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
   TriggerDefinitionIDPropertyValue,
+  TriggerDefinitionIDPropertyValueWithMetadata,
   TriggerPropertyValue,
+  TriggerPropertyValueWithMetadata,
 };
 
 export type Created = LinkEntity<CreatedProperties>;
@@ -82,6 +123,19 @@ export type CreatedProperties1 = LinkProperties;
 
 export type CreatedProperties2 = {};
 
+export type CreatedPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value?: {};
+};
+
+/**
+ * Additional information about something.
+ */
+export type CustomMetadataPropertyValue = ObjectDataType;
+
+export type CustomMetadataPropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
+
 export type IncurredIn = LinkEntity<IncurredInProperties>;
 
 export type IncurredInOutgoingLinkAndTarget = never;
@@ -97,15 +151,26 @@ export type IncurredInProperties1 = LinkProperties;
 
 export type IncurredInProperties2 = {};
 
+export type IncurredInPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value?: {};
+};
+
 /**
  * How many input units were or will be used
  */
 export type InputUnitCountPropertyValue = NumberDataType;
 
+export type InputUnitCountPropertyValueWithMetadata =
+  NumberDataTypeWithMetadata;
+
 /**
  * How many output units were or will be used
  */
 export type OutputUnitCountPropertyValue = NumberDataType;
+
+export type OutputUnitCountPropertyValueWithMetadata =
+  NumberDataTypeWithMetadata;
 
 export type RecordsUsageOf = LinkEntity<RecordsUsageOfProperties>;
 
@@ -122,6 +187,11 @@ export type RecordsUsageOfProperties1 = LinkProperties;
 
 export type RecordsUsageOfProperties2 = {};
 
+export type RecordsUsageOfPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value?: {};
+};
+
 export type Updated = LinkEntity<UpdatedProperties>;
 
 export type UpdatedOutgoingLinkAndTarget = never;
@@ -135,6 +205,11 @@ export type UpdatedProperties = UpdatedProperties1 & UpdatedProperties2;
 export type UpdatedProperties1 = LinkProperties;
 
 export type UpdatedProperties2 = {};
+
+export type UpdatedPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value?: {};
+};
 
 export type UsageRecord = Entity<UsageRecordProperties>;
 
@@ -162,17 +237,21 @@ export type UsageRecordOutgoingLinksByLinkEntityTypeId = {
 };
 
 /**
- * Additional information about something.
- */
-export type CustomMetadataPropertyValue = ObjectDataType;
-
-/**
  * A record of usage of a service
  */
 export type UsageRecordProperties = {
   "https://hash.ai/@hash/types/property-type/custom-metadata/"?: CustomMetadataPropertyValue;
   "https://hash.ai/@hash/types/property-type/input-unit-count/"?: InputUnitCountPropertyValue;
   "https://hash.ai/@hash/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValue;
+};
+
+export type UsageRecordPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value?: {
+    "https://hash.ai/@hash/types/property-type/custom-metadata/"?: CustomMetadataPropertyValueWithMetadata;
+    "https://hash.ai/@hash/types/property-type/input-unit-count/"?: InputUnitCountPropertyValueWithMetadata;
+    "https://hash.ai/@hash/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValueWithMetadata;
+  };
 };
 
 export type UsageRecordRecordsUsageOfLink = {
