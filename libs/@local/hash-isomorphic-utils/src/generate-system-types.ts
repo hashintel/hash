@@ -71,8 +71,9 @@ const generateTypes = async (
 /**
  * Generate TypeScript types for the system types. The API and frontend must be running, i.e. `yarn dev`
  *
- * Note that because part of the system type definitions depend on an environment variable (the frontend origin),
- * you cannot use these types to check the correct value of keys and values that are URLs – they might be different at runtime.
+ * @todo H-2307 – if you run this as shown (with multiple namespaces), there will be an error
+ *   – you have to comment the others out and run them one at a time, in which case they all work fine.
+ *   need to hunt down where the interaction or shared state is between them.
  */
 const generateSystemTypeTypes = async () => {
   await generateTypes(systemEntityTypes, "system");
