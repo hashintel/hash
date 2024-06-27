@@ -566,8 +566,8 @@ where
     let data_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't patch schema and convert to Data Type");
         StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
-        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        // @todo We should probably return more information to the client
+        // @see https://linear.app/hash/issue/H-3009
     })?;
 
     let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {

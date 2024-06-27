@@ -64,10 +64,10 @@ fn store_acquisition_error(report: Report<impl Context>) -> Response {
              Graph with whatever information you can provide including request details and logs."
         )),
         vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-            // TODO: add information from the report here
-            //   https://app.asana.com/0/1203363157432094/1203639884730779/f
+            // @todo add information from the report here
+            // @see https://linear.app/hash/issue/H-3009
             HashMap::new(),
-            // TODO: We should encapsulate these Reasons within the type system, perhaps
+            // @todo We should encapsulate these Reasons within the type system, perhaps
             //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
             //  or perhaps as a big enum, or as an attachment
             "STORE_ACQUISITION_FAILURE".to_owned(),
