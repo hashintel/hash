@@ -67,8 +67,6 @@ export const generateEntityDefinitions = (
     ]),
   );
 
-  console.log({ entityTypeIdentifiersToIds });
-
   const entityTypeIdsToEntityDefinitions = Object.fromEntries(
     typedEntries(context.entityTypes).map(([entityTypeId, { title }]) => {
       return [
@@ -78,7 +76,6 @@ export const generateEntityDefinitions = (
     }),
   );
 
-  console.log(context.filesToDependentIdentifiers);
   for (const [file, dependentIdentifiers] of typedEntries(
     context.filesToDependentIdentifiers,
   )) {
@@ -88,7 +85,6 @@ export const generateEntityDefinitions = (
         const { entityName, isLinkType, compiledContents } = mustBeDefined(
           entityTypeIdsToEntityDefinitions[entityTypeId],
         );
-        console.log({ entityName, isLinkType, compiledContents });
 
         if (context.filesToDefinedIdentifiers[file]?.has(identifier)) {
           allocateEntityDefinitionToFile(

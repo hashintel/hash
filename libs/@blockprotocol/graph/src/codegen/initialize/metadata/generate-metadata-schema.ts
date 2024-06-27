@@ -143,6 +143,37 @@ export function generatePropertiesObjectWithMetadataSchema({
       }).valueWithMetadata$id
     : undefined;
 
+  const propertiesSchema = Object.entries(properties).reduce<PartialJsonSchema>(
+    (acc, [baseUrl, refSchema]) => {
+      const propertyWithMetadataRef = generateMetadataSchemaIdentifiers({
+        $id: "items" in refSchema ? refSchema.items.$ref : refSchema.$ref,
+      }).valueWithMetadata$id;
+
+      if ("items" in refSchema) {
+        acc[baseUrl] = {
+          type: "object",
+          properties: {
+            value: {
+              type: "array",
+              items: {
+                $ref: propertyWithMetadataRef,
+              },
+            },
+            metadata: arrayMetadataSchema,
+          },
+          required: ["value"],
+        };
+      } else {
+        acc[baseUrl] = {
+          $ref: propertyWithMetadataRef,
+        };
+      }
+
+      return acc;
+    },
+    {},
+  );
+
   return {
     type: "object",
     title,
@@ -152,39 +183,7 @@ export function generatePropertiesObjectWithMetadataSchema({
       metadata: objectMetadataSchema,
       value: {
         type: "object",
-        properties: Object.fromEntries(
-          Object.entries(properties).map(([baseUrl, refSchema]) => {
-            const propertyWithMetadataRef = generateMetadataSchemaIdentifiers({
-              $id: "items" in refSchema ? refSchema.items.$ref : refSchema.$ref,
-            }).valueWithMetadata$id;
-
-            if ("items" in refSchema) {
-              return [
-                baseUrl,
-                {
-                  type: "object",
-                  properties: {
-                    value: {
-                      type: "array",
-                      items: {
-                        $ref: propertyWithMetadataRef,
-                      },
-                    },
-                    metadata: arrayMetadataSchema,
-                  },
-                  required: ["value"],
-                },
-              ];
-            }
-
-            return [
-              baseUrl,
-              {
-                $ref: propertyWithMetadataRef,
-              },
-            ];
-          }),
-        ),
+        properties: propertiesSchema,
         required,
       },
     },
