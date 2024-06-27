@@ -1,6 +1,7 @@
 /**
- * @todo - Fix relevant portions of this file and remove the rest
- *   https://linear.app/hash/issue/H-591/add-ability-to-invite-users-to-org-via-email */
+ * @todo Fix relevant portions of this file and remove the rest
+ * @see https://linear.app/hash/issue/H-591
+*/
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 
