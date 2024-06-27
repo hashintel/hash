@@ -9,36 +9,13 @@ import { isPropertyValuesArray } from "@blockprotocol/type-system/slim";
 import type { JSONSchema as PartialJsonSchema } from "json-schema-to-typescript";
 
 import type { JsonSchema } from "../../shared";
-import { generatedTypeSuffix, redundantTypePlaceholder } from "../../shared";
-import { InitializeContext } from "../../context/initialize";
-
-const kind = "metadataSchema";
-
-/**
- * We already have types for these schemas generated from the Graph API,
- * so we just want this codegen to insert the title of the type rather than generate it again,
- * – we'll add import statements for the types in post-processing.
- */
-const propertyProvenanceSchema: JsonSchema = {
-  $id: "https://hash.ai/@hash/schemas/property-provenance/v/1",
-  title: "PropertyProvenance",
-  kind,
-  const: redundantTypePlaceholder,
-};
-
-const objectMetadataSchema: JsonSchema = {
-  $id: "https://hash.ai/@hash/schemas/object-metadata/v/1",
-  title: "ObjectMetadata",
-  kind,
-  const: redundantTypePlaceholder,
-};
-
-const arrayMetadataSchema: JsonSchema = {
-  $id: "https://hash.ai/@hash/schemas/array-metadata/v/1",
-  title: "ArrayMetadata",
-  kind,
-  const: redundantTypePlaceholder,
-};
+import {
+  arrayMetadataSchema,
+  generatedTypeSuffix,
+  metadataSchemaKind as kind,
+  objectMetadataSchema,
+  propertyProvenanceSchema,
+} from "../../shared";
 
 const generateMetadataSchemaTitles = ({
   title,
@@ -67,11 +44,11 @@ const generateMetadataSchemaIdentifiers = ({
 
 /**
  * Generate a schema for a data type with metadata, which is an object with two properties:
- * { value: SomeLeafValue, metadata: { provenance?: PropertyProvenance, confidence?: number, dataTypeId: VersionedUrl } }
+ * { value: SomeLeafValue, metadata: { provenance?: PropertyProvenance, confidence?: number, dataTypeId: VersionedUrl }
+ * }
  */
 export const generateDataTypeWithMetadataSchema = (
   dataTypeSchema: DataType,
-  context: InitializeContext,
 ): JsonSchema => {
   const { valueWithMetadata$id, metadata$id } =
     generateMetadataSchemaIdentifiers({
@@ -82,11 +59,6 @@ export const generateDataTypeWithMetadataSchema = (
     generateMetadataSchemaTitles({
       title: `${dataTypeSchema.title} ${generatedTypeSuffix.dataType}`,
     });
-
-  context.typeDependencyMap.addDependencyForType(
-    metadata$id,
-    propertyProvenanceSchema.$id,
-  );
 
   return {
     $id: valueWithMetadata$id,
@@ -113,7 +85,7 @@ export const generateDataTypeWithMetadataSchema = (
   };
 };
 
-type ParentType = {
+type EntityParentIdentifiers = {
   title: string;
   $id: VersionedUrl;
 };
@@ -121,48 +93,49 @@ type ParentType = {
 type ObjectWithMetadataParams = {
   properties: EntityType["properties"];
   required: string[];
-  identifiersForParentType: ParentType;
+  entityParentIdentifiers: EntityParentIdentifiers | null;
 };
 
-export function generatePropertiesObjectWithMetadataSchema(
-  { properties, required, identifiersForParentType }: ObjectWithMetadataParams,
-  context: InitializeContext,
-  createAddressableType: false,
-): PartialJsonSchema;
-export function generatePropertiesObjectWithMetadataSchema(
-  { properties, required, identifiersForParentType }: ObjectWithMetadataParams,
-  context: InitializeContext,
-  createAddressableType: true,
-): JsonSchema;
+export function generatePropertiesObjectWithMetadataSchema({
+  properties,
+  required,
+  entityParentIdentifiers,
+}: ObjectWithMetadataParams & {
+  entityParentIdentifiers: null;
+}): PartialJsonSchema;
+export function generatePropertiesObjectWithMetadataSchema({
+  properties,
+  required,
+  entityParentIdentifiers,
+}: ObjectWithMetadataParams & {
+  entityParentIdentifiers: EntityParentIdentifiers;
+}): JsonSchema;
 /**
  * Generate a schema for a properties object with metadata.
  *
- * The parent identifiers are used to ensure that any metadata type dependencies are included in the file alongside the generated type.
- *
- * If createAddressAbleType is true, it will also assign an $id to the type so that it appears separately.
+ * If entityParentIdentifiers is provided, it will also assign an $id to the type so that it appears separately.
  * The $id is derived from the parent and assumes that the parent is creating only a single properties object
  * – do not use this for properties objects defined within a property type, which may include multiple properties objects.
  */
-export function generatePropertiesObjectWithMetadataSchema(
-  { properties, required, identifiersForParentType }: ObjectWithMetadataParams,
-  context: InitializeContext,
-  createAddressableType: boolean,
-): JsonSchema | PartialJsonSchema {
-  const title = generateMetadataSchemaTitles({
-    title: `${identifiersForParentType.title} Properties`,
-  }).valueWithMetadataTitle;
+export function generatePropertiesObjectWithMetadataSchema({
+  properties,
+  required,
+  entityParentIdentifiers,
+}: ObjectWithMetadataParams): JsonSchema | PartialJsonSchema {
+  const title = entityParentIdentifiers
+    ? generateMetadataSchemaTitles({
+        title: `${entityParentIdentifiers.title} Properties`,
+      }).valueWithMetadataTitle
+    : undefined;
 
-  const $id = generateMetadataSchemaIdentifiers({
-    $id: identifiersForParentType.$id,
-  }).valueWithMetadata$id.replace(
-    "/with-metadata/",
-    "/properties-with-metadata/",
-  ) as VersionedUrl;
-
-  context.typeDependencyMap.addDependencyForType(
-    createAddressableType ? $id : identifiersForParentType.$id,
-    objectMetadataSchema.$id,
-  );
+  const $id = entityParentIdentifiers
+    ? (generateMetadataSchemaIdentifiers({
+        $id: entityParentIdentifiers.$id,
+      }).valueWithMetadata$id.replace(
+        "/with-metadata/",
+        "/properties-with-metadata/",
+      ) as VersionedUrl)
+    : undefined;
 
   const propertiesSchema = Object.entries(properties).reduce<PartialJsonSchema>(
     (acc, [baseUrl, refSchema]) => {
@@ -184,11 +157,6 @@ export function generatePropertiesObjectWithMetadataSchema(
           },
           required: ["value"],
         };
-
-        context.typeDependencyMap.addDependencyForType(
-          $id,
-          arrayMetadataSchema.$id,
-        );
       } else {
         acc[baseUrl] = {
           $ref: propertyWithMetadataRef,
@@ -202,8 +170,8 @@ export function generatePropertiesObjectWithMetadataSchema(
 
   return {
     type: "object",
-    title: createAddressableType ? title : undefined,
-    $id: createAddressableType ? $id : undefined,
+    title,
+    $id,
     kind,
     properties: {
       metadata: objectMetadataSchema,
@@ -218,8 +186,6 @@ export function generatePropertiesObjectWithMetadataSchema(
 
 const generatePropertyValueWithMetadataTree = (
   propertyValue: PropertyValues,
-  context: InitializeContext,
-  parent: ParentType,
 ): PartialJsonSchema => {
   if ("$ref" in propertyValue) {
     /**
@@ -234,31 +200,33 @@ const generatePropertyValueWithMetadataTree = (
 
   if (isPropertyValuesArray(propertyValue)) {
     return {
-      type: "array",
-      items: {
-        oneOf: propertyValue.items.oneOf.map((item) =>
-          generatePropertyValueWithMetadataTree(item, context, parent),
-        ),
+      type: "object",
+      properties: {
+        value: {
+          type: "array",
+          items: {
+            oneOf: propertyValue.items.oneOf.map((item) =>
+              generatePropertyValueWithMetadataTree(item),
+            ),
+          },
+        },
+        metadata: arrayMetadataSchema,
       },
+      required: ["value"],
     };
   }
 
   const { properties, required } = propertyValue;
 
-  return generatePropertiesObjectWithMetadataSchema(
-    {
-      properties,
-      required: required ?? [],
-      identifiersForParentType: parent,
-    },
-    context,
-    false,
-  );
+  return generatePropertiesObjectWithMetadataSchema({
+    properties,
+    required: required ?? [],
+    entityParentIdentifiers: null,
+  });
 };
 
 export const generatePropertyTypeWithMetadataSchema = (
   propertyTypeSchema: PropertyType,
-  context: InitializeContext,
 ): JsonSchema => {
   const { valueWithMetadata$id } = generateMetadataSchemaIdentifiers({
     $id: propertyTypeSchema.$id,
@@ -273,10 +241,7 @@ export const generatePropertyTypeWithMetadataSchema = (
     title: valueWithMetadataTitle,
     kind,
     oneOf: propertyTypeSchema.oneOf.map((entry) =>
-      generatePropertyValueWithMetadataTree(entry, context, {
-        title: propertyTypeSchema.title,
-        $id: propertyTypeSchema.$id,
-      }),
+      generatePropertyValueWithMetadataTree(entry),
     ),
     required: ["value"],
   };

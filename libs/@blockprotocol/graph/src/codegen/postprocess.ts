@@ -9,6 +9,7 @@ import { prepareFileContents } from "./postprocess/prepare-file-contents";
 import { prependBannerComments } from "./postprocess/prepend-banner-comments";
 import { prependImportsAndExports } from "./postprocess/prepend-imports-and-exports";
 import { writeToFiles } from "./postprocess/write-to-files";
+import { addMetadataDependenciesToFiles } from "./postprocess/add-metadata-dependencies-to-files";
 
 export const postprocess = async (context: PostprocessContext) => {
   allocateTypesToFiles(context);
@@ -18,6 +19,7 @@ export const postprocess = async (context: PostprocessContext) => {
   generateBlockEntityTypeAliases(context);
   generateBlockLinkTargetAliases(context);
   appendIdentifierDefinitionsToFileContents(context);
+  addMetadataDependenciesToFiles(context);
   prependImportsAndExports(context);
   prependBannerComments(context);
 

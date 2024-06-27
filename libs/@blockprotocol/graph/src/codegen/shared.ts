@@ -46,3 +46,37 @@ export const identifiersForExternalImports = [
 
 export type IdentifierForExternalImport =
   (typeof identifiersForExternalImports)[number];
+
+export const metadataSchemaKind = "metadataSchema";
+
+/**
+ * We already have types for these schemas generated from the Graph API,
+ * so we just want this codegen to insert the title of the type rather than generate it again,
+ * – we'll add import statements for the types in post-processing.
+ */
+export const propertyProvenanceSchema: JsonSchema = {
+  $id: "https://hash.ai/@hash/schemas/property-provenance/v/1",
+  title: "PropertyProvenance",
+  kind: metadataSchemaKind,
+  const: redundantTypePlaceholder,
+};
+
+export const objectMetadataSchema: JsonSchema = {
+  $id: "https://hash.ai/@hash/schemas/object-metadata/v/1",
+  title: "ObjectMetadata",
+  kind: metadataSchemaKind,
+  const: redundantTypePlaceholder,
+};
+
+export const arrayMetadataSchema: JsonSchema = {
+  $id: "https://hash.ai/@hash/schemas/array-metadata/v/1",
+  title: "ArrayMetadata",
+  kind: metadataSchemaKind,
+  const: redundantTypePlaceholder,
+};
+
+export const sharedMetadataSchemas = [
+  propertyProvenanceSchema,
+  objectMetadataSchema,
+  arrayMetadataSchema,
+];
