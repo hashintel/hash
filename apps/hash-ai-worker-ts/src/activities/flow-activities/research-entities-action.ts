@@ -1,10 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
+import { SourceType } from "@local/hash-graph-client";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -445,7 +447,26 @@ export const researchEntitiesAction: FlowActionActivity<{
             for (const { response, url } of responsesWithUrl) {
               inferredFacts.push(...response.facts);
               inferredFactsAboutEntities.push(...response.entitySummaries);
-              filesUsedToInferFacts.push(...response.filesUsedToInferEntities);
+
+              filesUsedToInferFacts.push(
+                ...response.facts
+                  .flatMap(({ sources }) => sources ?? [])
+                  .filter(
+                    (source) =>
+                      source.type === SourceType.Document &&
+                      !!source.location?.uri,
+                  )
+                  .map(
+                    (source) =>
+                      ({
+                        url: source.location!.uri!,
+                        loadedAt: source.loadedAt ?? new Date().toISOString(),
+                        entityTypeId:
+                          systemEntityTypes.pdfDocument.entityTypeId,
+                      }) satisfies AccessedRemoteFile,
+                  ),
+              );
+              // filesUsedToInferFacts.push(...response.filesUsedToInferEntities);
 
               outputMessage += `Inferred ${
                 response.facts.length

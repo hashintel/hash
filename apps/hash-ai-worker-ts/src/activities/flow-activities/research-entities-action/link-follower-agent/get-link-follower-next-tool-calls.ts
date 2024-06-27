@@ -133,8 +133,27 @@ const tools: LlmToolDefinition<ToolName>[] = [
                 type: "string",
                 description: "The reason for exploring this link",
               },
+              descriptionOfExpectedContent: {
+                type: "string",
+                description: dedent(`
+                  A description of the content you expect to find at the link.
+                  Describe what information you expect to find at the link, based on the text provided.
+                `),
+              },
+              exampleOfExpectedContent: {
+                type: "string",
+                description: dedent(`
+                  An example of the content you expect to find at the link.
+                  Provide an example of the information you expect to find at the link, based on the text provided.
+                `),
+              },
             },
-            required: ["url", "reason"],
+            required: [
+              "url",
+              "reason",
+              "descriptionOfExpectedContent",
+              "exampleOfExpectedContent",
+            ],
           },
         },
       },
@@ -187,6 +206,8 @@ export type ToolCallInputs = Subtype<
       links: {
         url: string;
         reason: string;
+        descriptionOfExpectedContent: string;
+        exampleOfExpectedContent: string;
       }[];
     };
     complete: {
