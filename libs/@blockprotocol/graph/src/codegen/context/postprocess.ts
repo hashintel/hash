@@ -6,10 +6,14 @@ import type {
 } from "@blockprotocol/type-system/slim";
 
 import type { ProcessedCodegenParameters } from "../parameters";
-import type { CompiledTsType, LogLevel } from "../shared";
+import type {
+  CompiledTsType,
+  IdentifierForExternalImport,
+  JsonSchema,
+  LogLevel,
+} from "../shared";
 import type { CompileContext } from "./compile";
 import type { TypeDependencyMap } from "./shared";
-import { JSONSchema } from "json-schema-to-typescript";
 
 type IdentifierSource = { definingPath: string } & (
   | {
@@ -31,6 +35,54 @@ export type IdentifierSources =
   | { locallyImportable: true; source: IdentifierSource }
   | { locallyImportable: false; source: IdentifierSource[] };
 
+const externalIdentifiersToSource: Record<
+  IdentifierForExternalImport,
+  IdentifierSources
+> = {
+  Entity: {
+    locallyImportable: true,
+    source: {
+      kind: "external",
+      definingPath: "@local/hash-graph-sdk/entity",
+    },
+  },
+  LinkEntity: {
+    locallyImportable: true,
+    source: {
+      kind: "external",
+      definingPath: "@local/hash-graph-sdk/entity",
+    },
+  },
+  ObjectMetadata: {
+    locallyImportable: true,
+    source: {
+      kind: "external",
+      definingPath: "@local/hash-graph-client",
+    },
+  },
+  ArrayMetadata: {
+    locallyImportable: true,
+    source: {
+      kind: "external",
+      definingPath: "@local/hash-graph-client",
+    },
+  },
+  PropertyProvenance: {
+    locallyImportable: true,
+    source: {
+      kind: "external",
+      definingPath: "@local/hash-graph-client",
+    },
+  },
+  Confidence: {
+    locallyImportable: true,
+    source: {
+      kind: "external",
+      definingPath: "@local/hash-graph-client",
+    },
+  },
+};
+
 export class PostprocessContext {
   readonly parameters: ProcessedCodegenParameters;
   readonly logLevel: LogLevel;
@@ -38,9 +90,10 @@ export class PostprocessContext {
   readonly dataTypes: Record<VersionedUrl, DataType>;
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
+  readonly metadataSchemas: Record<string, JsonSchema>;
   readonly allTypes: Record<
     string,
-    DataType | PropertyType | EntityType | JSONSchema
+    DataType | PropertyType | EntityType | JsonSchema
   >;
 
   readonly typeDependencyMap: TypeDependencyMap;
@@ -75,27 +128,15 @@ export class PostprocessContext {
     this.dataTypes = compileContext.dataTypes;
     this.propertyTypes = compileContext.propertyTypes;
     this.entityTypes = compileContext.entityTypes;
+    this.metadataSchemas = compileContext.metadataSchemas;
     this.allTypes = compileContext.allTypes;
     this.typeDependencyMap = compileContext.typeDependencyMap;
     this.linkTypeMap = compileContext.linkTypeMap;
     this.typeIdsToCompiledTypes = compileContext.typeIdsToCompiledTypes;
 
-    this.IdentifiersToSources = {
-      Entity: {
-        locallyImportable: true,
-        source: {
-          kind: "external",
-          definingPath: "@local/hash-graph-sdk/entity",
-        },
-      },
-      LinkEntity: {
-        locallyImportable: true,
-        source: {
-          kind: "external",
-          definingPath: "@local/hash-graph-sdk/entity",
-        },
-      },
-    };
+    this.IdentifiersToSources = externalIdentifiersToSource;
+
+    // console.log("MAP", JSON.stringify(this.typeDependencyMap, null, 2));
   }
 
   /* @todo - Replace this with a proper logging implementation */

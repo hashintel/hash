@@ -19,6 +19,11 @@ const inlineSort = <T>(
 export const prependImportsAndExports = (context: PostprocessContext): void => {
   context.logDebug("Adding imports and exports");
 
+  console.log(
+    "Files to deps",
+    JSON.stringify(context.filesToDependentIdentifiers, null, 2),
+  );
+
   for (const [file, dependentIdentifiers] of inlineSort(
     Object.entries(context.filesToDependentIdentifiers),
     ([fileA, _dependenciesA], [fileB, _dependenciesB]) =>

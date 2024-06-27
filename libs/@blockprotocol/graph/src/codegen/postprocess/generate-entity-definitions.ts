@@ -3,7 +3,10 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { mustBeDefined } from "../../util/must-be-defined";
 import { typedEntries } from "../../util/typed-object-iter";
 import type { PostprocessContext } from "../context/postprocess";
-import { entityDefinitionNameForEntityType } from "../shared";
+import {
+  entityDefinitionNameForEntityType,
+  identifiersForExternalImports,
+} from "../shared";
 
 const generateEntityDefinitionForEntityType = (
   entityTypeId: VersionedUrl,
@@ -37,8 +40,10 @@ const allocateEntityDefinitionToFile = (
     {
       definingPath: fileName,
       dependentOnIdentifiers: isLinkType
-        ? ["Entity", "LinkEntity"]
-        : ["Entity"],
+        ? [...identifiersForExternalImports]
+        : identifiersForExternalImports.filter(
+            (identifier) => identifier !== "LinkEntity",
+          ),
       compiledContents,
     },
     true,
@@ -62,6 +67,8 @@ export const generateEntityDefinitions = (
     ]),
   );
 
+  console.log({ entityTypeIdentifiersToIds });
+
   const entityTypeIdsToEntityDefinitions = Object.fromEntries(
     typedEntries(context.entityTypes).map(([entityTypeId, { title }]) => {
       return [
@@ -71,6 +78,7 @@ export const generateEntityDefinitions = (
     }),
   );
 
+  console.log(context.filesToDependentIdentifiers);
   for (const [file, dependentIdentifiers] of typedEntries(
     context.filesToDependentIdentifiers,
   )) {
@@ -80,6 +88,7 @@ export const generateEntityDefinitions = (
         const { entityName, isLinkType, compiledContents } = mustBeDefined(
           entityTypeIdsToEntityDefinitions[entityTypeId],
         );
+        console.log({ entityName, isLinkType, compiledContents });
 
         if (context.filesToDefinedIdentifiers[file]?.has(identifier)) {
           allocateEntityDefinitionToFile(

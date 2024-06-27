@@ -42,3 +42,25 @@ export const codegen = async (
     path.resolve(postProcessContext.parameters.outputFolder, fileName),
   );
 };
+
+await codegen({
+  outputFolder: `test-types/`,
+  targets: {
+    "user.ts": [
+      {
+        sourceTypeId: "https://hash.ai/@hash/types/entity-type/user/v/1",
+      },
+    ],
+  },
+  // getFetchUrlFromTypeId: (typeId: VersionedUrl) => {
+  //   if (typeId.startsWith("https://hash.ai/")) {
+  //     const rewrittenTypeId = typeId.replace(
+  //       "https://hash.ai/",
+  //       "http://localhost:3000/",
+  //     ) as VersionedUrl;
+  //
+  //     return rewrittenTypeId;
+  //   }
+  //   return typeId;
+  // },
+});

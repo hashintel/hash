@@ -10,9 +10,13 @@ import {
 } from "@blockprotocol/type-system/slim";
 import ts from "typescript";
 
-import { mustBeDefined } from "../../util/must-be-defined";
-import { typedEntries, typedKeys } from "../../util/typed-object-iter";
+import { mustBeDefined } from "../../shared/util/must-be-defined";
+import {
+  typedEntries,
+  typedKeys,
+} from "../../shared/util/typed-object-iter";
 import type { PreprocessContext } from "../context";
+import type { JsonSchema } from "../shared";
 import { generatedTypeSuffix } from "../shared";
 
 const typescriptKeywords = new Array(
@@ -63,10 +67,12 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
     dataType: Record<string, DataType[]>;
     propertyType: Record<string, PropertyType[]>;
     entityType: Record<string, EntityType[]>;
+    metadataSchema: Record<string, JsonSchema[]>;
   } = {
     dataType: {},
     propertyType: {},
     entityType: {},
+    metadataSchema: {},
   };
 
   const typeNameOverrides = context.parameters.typeNameOverrides;

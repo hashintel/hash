@@ -6,10 +6,9 @@ import type {
 } from "@blockprotocol/type-system/slim";
 
 import type { ProcessedCodegenParameters } from "../parameters";
-import type { LogLevel } from "../shared";
+import type { JsonSchema, LogLevel } from "../shared";
 import type { InitializeContext } from "./initialize";
 import type { TypeDependencyMap } from "./shared";
-import { JSONSchema } from "json-schema-to-typescript";
 
 export class PreprocessContext {
   readonly parameters: ProcessedCodegenParameters;
@@ -18,10 +17,10 @@ export class PreprocessContext {
   readonly dataTypes: Record<VersionedUrl, DataType>;
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
-  readonly metadataSchemas: Record<string, JSONSchema>;
+  readonly metadataSchemas: Record<string, JsonSchema>;
   readonly allTypes: Record<
     string,
-    DataType | PropertyType | EntityType | JSONSchema
+    DataType | PropertyType | EntityType | JsonSchema
   >;
 
   readonly typeDependencyMap: TypeDependencyMap;

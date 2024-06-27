@@ -1,3 +1,6 @@
+import type { JSONSchema as SchemaWithOptional$id } from "json-schema-to-typescript";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
+
 export type LogLevel = "silent" | "warn" | "info" | "debug" | "trace";
 
 /** The name of the file that contains types shared between generated files. */
@@ -11,6 +14,7 @@ export const generatedTypeSuffix = {
   dataType: "DataType",
   propertyType: "PropertyValue",
   entityType: "Properties",
+  metadataSchema: "",
 };
 
 const trimEntityTypeSuffixRegex = new RegExp(
@@ -25,3 +29,21 @@ export const entityDefinitionNameForEntityType = (typeName: string) =>
 export const redundantTypePlaceholder = "PLACEHOLDER";
 
 export type CompiledTsType = string;
+
+export type JsonSchema = SchemaWithOptional$id & {
+  $id: VersionedUrl;
+  title: string;
+  kind: "metadataSchema";
+};
+
+export const identifiersForExternalImports = [
+  "LinkEntity",
+  "Entity",
+  "Confidence",
+  "PropertyProvenance",
+  "ArrayMetadata",
+  "ObjectMetadata",
+] as const;
+
+export type IdentifierForExternalImport =
+  (typeof identifiersForExternalImports)[number];
