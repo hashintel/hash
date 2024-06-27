@@ -46,5 +46,5 @@ export type TikTokAccountProperties2 = {};
 
 export type TikTokAccountPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

@@ -50,7 +50,7 @@ export type FlowDefinitionProperties = {
 
 export type FlowDefinitionPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/output-definitions/": OutputDefinitionsPropertyValueWithMetadata;
@@ -89,7 +89,7 @@ export type TriggerDefinitionPropertyValue = {
 
 export type TriggerDefinitionPropertyValueWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/output-definitions/"?: OutputDefinitionsPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValueWithMetadata;
   };

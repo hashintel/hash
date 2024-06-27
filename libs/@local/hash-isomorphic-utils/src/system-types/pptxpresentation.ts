@@ -140,5 +140,5 @@ export type PPTXPresentationProperties2 = {};
 
 export type PPTXPresentationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

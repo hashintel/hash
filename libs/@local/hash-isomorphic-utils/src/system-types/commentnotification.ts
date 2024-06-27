@@ -555,7 +555,7 @@ export type CommentNotificationProperties2 = {};
 
 export type CommentNotificationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type CommentNotificationRepliedToCommentLink = {
@@ -590,7 +590,7 @@ export type RepliedToCommentProperties2 = {};
 
 export type RepliedToCommentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type TriggeredByComment = LinkEntity<TriggeredByCommentProperties>;
@@ -610,5 +610,5 @@ export type TriggeredByCommentProperties2 = {};
 
 export type TriggeredByCommentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

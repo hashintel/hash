@@ -565,7 +565,7 @@ export type MentionNotificationProperties2 = {};
 
 export type MentionNotificationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type MentionNotificationTriggeredByUserLink = {
@@ -590,7 +590,7 @@ export type OccurredInCommentProperties2 = {};
 
 export type OccurredInCommentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type OccurredInText = LinkEntity<OccurredInTextProperties>;
@@ -610,5 +610,5 @@ export type OccurredInTextProperties2 = {};
 
 export type OccurredInTextPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

@@ -140,5 +140,5 @@ export type DocumentProperties2 = {};
 
 export type DocumentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

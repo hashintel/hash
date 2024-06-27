@@ -8,6 +8,7 @@ import type {
   PropertyProvenance,
 } from "@local/hash-graph-client";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Confidence } from "@local/hash-graph-types/entity";
 
 export type Actor = Entity<ActorProperties>;
 
@@ -24,7 +25,7 @@ export type ActorProperties = {
 
 export type ActorPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValueWithMetadata;
   };
 };
@@ -68,7 +69,7 @@ export type AuthoredByProperties2 = {};
 
 export type AuthoredByPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -94,7 +95,7 @@ export type BlockCollectionProperties = {};
 
 export type BlockCollectionPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type BlockHasDataLink = { linkEntity: HasData; rightEntity: Entity };
@@ -114,7 +115,7 @@ export type BlockProperties = {
 
 export type BlockPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/component-id/": ComponentIdPropertyValueWithMetadata;
   };
 };
@@ -130,7 +131,7 @@ export type BooleanDataTypeWithMetadata = {
 };
 export type BooleanDataTypeMetadata = {
   provenance?: PropertyProvenance;
-  confidence?: NumberDataType;
+  confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
 };
 
@@ -152,7 +153,7 @@ export type BrowserPluginSettingsProperties = {
 
 export type BrowserPluginSettingsPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/": AutomaticInferenceConfigurationPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/browser-plugin-tab/": BrowserPluginTabPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/draft-note/"?: DraftNotePropertyValueWithMetadata;
@@ -203,7 +204,7 @@ export type CommentProperties = {
 
 export type CommentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/deleted-at/"?: DeletedAtPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/resolved-at/"?: ResolvedAtPropertyValueWithMetadata;
   };
@@ -235,7 +236,7 @@ export type DateTimeDataTypeWithMetadata = {
 };
 export type DateTimeDataTypeMetadata = {
   provenance?: PropertyProvenance;
-  confidence?: NumberDataType;
+  confidence?: Confidence;
   dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1";
 };
 
@@ -279,7 +280,7 @@ export type DocumentFileProperties2 = {
 
 export type DocumentFilePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
   };
 };
@@ -374,7 +375,7 @@ export type FileProperties = {
 
 export type FilePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValueWithMetadata;
@@ -483,7 +484,7 @@ export type FlowRunProperties = {
 
 export type FlowRunPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
@@ -517,7 +518,7 @@ export type HasAvatarProperties2 = {};
 
 export type HasAvatarPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type HasBio = LinkEntity<HasBioProperties>;
@@ -536,7 +537,7 @@ export type HasBioProperties2 = {};
 
 export type HasBioPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type HasCoverImage = LinkEntity<HasCoverImageProperties>;
@@ -556,7 +557,7 @@ export type HasCoverImageProperties2 = {};
 
 export type HasCoverImagePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type HasData = LinkEntity<HasDataProperties>;
@@ -575,7 +576,7 @@ export type HasDataProperties2 = {};
 
 export type HasDataPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type HasIndexedContent = LinkEntity<HasIndexedContentProperties>;
@@ -597,7 +598,7 @@ export type HasIndexedContentProperties2 = {
 
 export type HasIndexedContentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValueWithMetadata;
   };
 };
@@ -622,7 +623,7 @@ export type HasParentProperties2 = {};
 
 export type HasParentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -635,7 +636,7 @@ export type HasProperties2 = {};
 
 export type HasPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type HasServiceAccount = LinkEntity<HasServiceAccountProperties>;
@@ -655,7 +656,7 @@ export type HasServiceAccountProperties2 = {};
 
 export type HasServiceAccountPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type HasText = LinkEntity<HasTextProperties>;
@@ -674,7 +675,7 @@ export type HasTextProperties2 = {};
 
 export type HasTextPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -700,7 +701,7 @@ export type ImageProperties2 = {};
 
 export type ImagePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -727,7 +728,7 @@ export type IsMemberOfProperties2 = {};
 
 export type IsMemberOfPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -748,7 +749,7 @@ export type LinkProperties = {};
 
 export type LinkPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -798,7 +799,7 @@ export type NotificationProperties = {
 
 export type NotificationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/read-at/"?: ReadAtPropertyValueWithMetadata;
   };
@@ -815,7 +816,7 @@ export type NumberDataTypeWithMetadata = {
 };
 export type NumberDataTypeMetadata = {
   provenance?: PropertyProvenance;
-  confidence?: NumberDataType;
+  confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
 };
 
@@ -830,7 +831,7 @@ export type ObjectDataTypeWithMetadata = {
 };
 export type ObjectDataTypeMetadata = {
   provenance?: PropertyProvenance;
-  confidence?: NumberDataType;
+  confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
 };
 
@@ -851,7 +852,7 @@ export type OccurredInBlockProperties2 = {};
 
 export type OccurredInBlockPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type OccurredInEntity = LinkEntity<OccurredInEntityProperties>;
@@ -873,7 +874,7 @@ export type OccurredInEntityProperties2 = {
 
 export type OccurredInEntityPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/entity-edition-id/"?: EntityEditionIdPropertyValueWithMetadata;
   };
 };
@@ -955,7 +956,7 @@ export type OrganizationProperties = {
 
 export type OrganizationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/location/"?: LocationPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/organization-name/": OrganizationNamePropertyValueWithMetadata;
@@ -1034,7 +1035,7 @@ export type PageProperties2 = {
 
 export type PagePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/icon/"?: IconPropertyValueWithMetadata;
@@ -1078,7 +1079,7 @@ export type PresentationFileProperties2 = {
 
 export type PresentationFilePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
   };
 };
@@ -1107,7 +1108,7 @@ export type ProfileBioProperties2 = {};
 
 export type ProfileBioPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -1146,7 +1147,7 @@ export type ServiceAccountProperties = {
 
 export type ServiceAccountPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/profile-url/": ProfileURLPropertyValueWithMetadata;
   };
 };
@@ -1168,7 +1169,7 @@ export type ServiceFeatureProperties = {
 
 export type ServiceFeaturePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/feature-name/": FeatureNamePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/service-name/": ServiceNamePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/service-unit-cost/"?: {
@@ -1197,7 +1198,7 @@ export type ServiceUnitCostPropertyValue = {
 
 export type ServiceUnitCostPropertyValueWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/applies-from/": AppliesFromPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/applies-until/"?: AppliesUntilPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/input-unit-cost/"?: InputUnitCostPropertyValueWithMetadata;
@@ -1242,7 +1243,7 @@ export type TextDataTypeWithMetadata = {
 };
 export type TextDataTypeMetadata = {
   provenance?: PropertyProvenance;
-  confidence?: NumberDataType;
+  confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
 };
 
@@ -1259,7 +1260,7 @@ export type TextProperties = {
 
 export type TextPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValueWithMetadata;
   };
 };
@@ -1301,7 +1302,7 @@ export type TriggerPropertyValue = {
 
 export type TriggerPropertyValueWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValueWithMetadata;
   };
@@ -1324,7 +1325,7 @@ export type TriggeredByUserProperties2 = {};
 
 export type TriggeredByUserPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -1423,7 +1424,7 @@ export type UserProperties2 = {
 
 export type UserPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/email/": {
       value: EmailPropertyValueWithMetadata[];
       metadata?: ArrayMetadata;
@@ -1458,7 +1459,7 @@ export type UserSecretProperties = {
 
 export type UserSecretPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValueWithMetadata;

@@ -46,5 +46,5 @@ export type TwitterAccountProperties2 = {};
 
 export type TwitterAccountPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

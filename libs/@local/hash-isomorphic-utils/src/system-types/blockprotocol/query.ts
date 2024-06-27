@@ -36,7 +36,7 @@ export type QueryProperties = {
 
 export type QueryPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@hash/types/property-type/query/": QueryPropertyValueWithMetadata;
   };
 };

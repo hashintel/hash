@@ -35,7 +35,7 @@ export type AccountProperties = {
 
 export type AccountPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValueWithMetadata;
     "https://hash.ai/@google/types/property-type/account-id/": AccountIdPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValueWithMetadata;
@@ -86,7 +86,7 @@ export type LinkProperties = {};
 
 export type LinkPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -121,7 +121,7 @@ export type UserSecretProperties = {
 
 export type UserSecretPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValueWithMetadata;
@@ -145,7 +145,7 @@ export type UsesUserSecretProperties2 = {};
 
 export type UsesUserSecretPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**

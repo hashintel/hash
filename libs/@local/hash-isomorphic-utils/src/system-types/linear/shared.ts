@@ -8,6 +8,7 @@ import type {
   PropertyProvenance,
 } from "@local/hash-graph-client";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Confidence } from "@local/hash-graph-types/entity";
 
 /**
  * Whether the user account is active or disabled (suspended).
@@ -84,7 +85,7 @@ export type BelongsToOrganizationProperties2 = {};
 
 export type BelongsToOrganizationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -98,7 +99,7 @@ export type BooleanDataTypeWithMetadata = {
 };
 export type BooleanDataTypeMetadata = {
   provenance?: PropertyProvenance;
-  confidence?: NumberDataType;
+  confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
 };
 
@@ -250,7 +251,7 @@ export type HasAssigneeProperties2 = {};
 
 export type HasAssigneePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type HasCreator = LinkEntity<HasCreatorProperties>;
@@ -270,7 +271,7 @@ export type HasCreatorProperties2 = {};
 
 export type HasCreatorPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type HasSubscriber = LinkEntity<HasSubscriberProperties>;
@@ -290,7 +291,7 @@ export type HasSubscriberProperties2 = {};
 
 export type HasSubscriberPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -405,7 +406,7 @@ export type IssueProperties = {
 
 export type IssuePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/auto-archived-at/"?: AutoArchivedAtPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/auto-closed-at/"?: AutoClosedAtPropertyValueWithMetadata;
@@ -468,7 +469,7 @@ export type LinkProperties = {};
 
 export type LinkPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -504,7 +505,7 @@ export type NumberDataTypeWithMetadata = {
 };
 export type NumberDataTypeMetadata = {
   provenance?: PropertyProvenance;
-  confidence?: NumberDataType;
+  confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
 };
 
@@ -544,7 +545,7 @@ export type OrganizationProperties = {
 
 export type OrganizationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@linear/types/property-type/allow-members-to-invite/"?: AllowMembersToInvitePropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/allowed-auth-service/": {
       value: AllowedAuthServicePropertyValueWithMetadata[];
@@ -592,7 +593,7 @@ export type ParentProperties2 = {};
 
 export type ParentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -685,7 +686,7 @@ export type SnoozedByProperties2 = {};
 
 export type SnoozedByPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -732,7 +733,7 @@ export type StateProperties2 = {};
 
 export type StatePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -775,7 +776,7 @@ export type TextDataTypeWithMetadata = {
 };
 export type TextDataTypeMetadata = {
   provenance?: PropertyProvenance;
-  confidence?: NumberDataType;
+  confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
 };
 
@@ -878,7 +879,7 @@ export type UserProperties = {
 
 export type UserPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/active/": ActivePropertyValueWithMetadata;
@@ -917,5 +918,5 @@ export type WorkflowStateProperties = {};
 
 export type WorkflowStatePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

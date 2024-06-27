@@ -140,5 +140,5 @@ export type DOCXDocumentProperties2 = {};
 
 export type DOCXDocumentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

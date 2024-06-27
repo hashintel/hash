@@ -117,7 +117,7 @@ export type AssociatedWithAccountProperties2 = {};
 
 export type AssociatedWithAccountPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -217,7 +217,7 @@ export type FileProperties = {
 
 export type FilePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValueWithMetadata;
@@ -327,7 +327,7 @@ export type GoogleSheetsFileProperties2 = {
 
 export type GoogleSheetsFilePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
   };
@@ -396,7 +396,7 @@ export type SpreadsheetFileProperties2 = {};
 
 export type SpreadsheetFilePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**

@@ -56,7 +56,7 @@ export type MachineProperties2 = {
 
 export type MachinePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/machine-identifier/": MachineIdentifierPropertyValueWithMetadata;
   };

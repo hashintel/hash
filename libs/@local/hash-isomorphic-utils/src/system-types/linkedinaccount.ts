@@ -46,5 +46,5 @@ export type LinkedInAccountProperties2 = {};
 
 export type LinkedInAccountPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

@@ -18,5 +18,5 @@ export type ThingProperties = {};
 
 export type ThingPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

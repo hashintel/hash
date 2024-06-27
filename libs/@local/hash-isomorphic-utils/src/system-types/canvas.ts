@@ -135,7 +135,7 @@ export type CanvasProperties2 = {};
 
 export type CanvasPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type HasSpatiallyPositionedContent =
@@ -163,7 +163,7 @@ export type HasSpatiallyPositionedContentProperties2 = {
 
 export type HasSpatiallyPositionedContentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/height-in-pixels/": HeightInPixelsPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/rotation-in-rads/": RotationInRadsPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/width-in-pixels/": WidthInPixelsPropertyValueWithMetadata;

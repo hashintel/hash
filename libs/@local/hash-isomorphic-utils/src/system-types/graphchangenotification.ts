@@ -88,7 +88,7 @@ export type GraphChangeNotificationProperties2 = {
 
 export type GraphChangeNotificationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/graph-change-type/": GraphChangeTypePropertyValueWithMetadata;
   };
 };

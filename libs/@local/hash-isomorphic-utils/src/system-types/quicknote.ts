@@ -108,7 +108,7 @@ export type QuickNoteProperties2 = {
 
 export type QuickNotePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
   };
 };

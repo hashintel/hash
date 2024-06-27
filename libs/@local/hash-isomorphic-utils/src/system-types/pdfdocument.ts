@@ -140,5 +140,5 @@ export type PDFDocumentProperties2 = {};
 
 export type PDFDocumentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

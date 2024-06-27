@@ -46,5 +46,5 @@ export type GitHubAccountProperties2 = {};
 
 export type GitHubAccountPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

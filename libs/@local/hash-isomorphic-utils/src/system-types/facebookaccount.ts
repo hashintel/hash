@@ -46,5 +46,5 @@ export type FacebookAccountProperties2 = {};
 
 export type FacebookAccountPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

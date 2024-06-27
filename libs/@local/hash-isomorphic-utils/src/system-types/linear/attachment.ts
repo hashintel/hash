@@ -7,6 +7,7 @@ import type {
   PropertyProvenance,
 } from "@local/hash-graph-client";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Confidence } from "@local/hash-graph-types/entity";
 
 import type {
   ActivePropertyValue,
@@ -452,7 +453,7 @@ export type AttachmentProperties = {
 
 export type AttachmentPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/title/"?: TitlePropertyValueWithMetadata0;
     "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/attachment-url/": AttachmentURLPropertyValueWithMetadata;
@@ -491,7 +492,7 @@ export type BelongsToIssueProperties2 = {};
 
 export type BelongsToIssuePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -520,7 +521,7 @@ export type ObjectDataTypeWithMetadata = {
 };
 export type ObjectDataTypeMetadata = {
   provenance?: PropertyProvenance;
-  confidence?: NumberDataType;
+  confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
 };
 

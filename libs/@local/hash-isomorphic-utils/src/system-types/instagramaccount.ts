@@ -46,5 +46,5 @@ export type InstagramAccountProperties2 = {};
 
 export type InstagramAccountPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

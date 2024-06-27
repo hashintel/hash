@@ -125,7 +125,7 @@ export type CreatedProperties2 = {};
 
 export type CreatedPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -153,7 +153,7 @@ export type IncurredInProperties2 = {};
 
 export type IncurredInPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 /**
@@ -189,7 +189,7 @@ export type RecordsUsageOfProperties2 = {};
 
 export type RecordsUsageOfPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type Updated = LinkEntity<UpdatedProperties>;
@@ -208,7 +208,7 @@ export type UpdatedProperties2 = {};
 
 export type UpdatedPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };
 
 export type UsageRecord = Entity<UsageRecordProperties>;
@@ -247,7 +247,7 @@ export type UsageRecordProperties = {
 
 export type UsageRecordPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/custom-metadata/"?: CustomMetadataPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/input-unit-count/"?: InputUnitCountPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValueWithMetadata;

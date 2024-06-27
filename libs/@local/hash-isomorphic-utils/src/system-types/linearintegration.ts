@@ -415,7 +415,7 @@ export type LinearIntegrationProperties = {
 
 export type LinearIntegrationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
   };
 };
@@ -463,7 +463,7 @@ export type SyncLinearDataWithProperties2 = {
 
 export type SyncLinearDataWithPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/linear-team-id/"?: {
       value: LinearTeamIdPropertyValueWithMetadata[];
       metadata?: ArrayMetadata;
@@ -488,5 +488,5 @@ export type UsesUserSecretProperties2 = {};
 
 export type UsesUserSecretPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

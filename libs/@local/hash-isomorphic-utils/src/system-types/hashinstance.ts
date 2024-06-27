@@ -27,7 +27,7 @@ export type HASHInstanceProperties = {
 
 export type HASHInstancePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/pages-are-enabled/": PagesAreEnabledPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValueWithMetadata;

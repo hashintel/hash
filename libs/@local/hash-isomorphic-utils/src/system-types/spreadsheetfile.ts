@@ -122,5 +122,5 @@ export type SpreadsheetFileProperties2 = {};
 
 export type SpreadsheetFilePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {};
+  value: {};
 };

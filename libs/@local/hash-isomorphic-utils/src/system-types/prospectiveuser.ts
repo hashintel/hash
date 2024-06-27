@@ -57,7 +57,7 @@ export type ProspectiveUserProperties = {
 
 export type ProspectiveUserPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
-  value?: {
+  value: {
     "https://hash.ai/@hash/types/property-type/current-approach/": CurrentApproachPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/intended-use/": IntendedUsePropertyValueWithMetadata;
