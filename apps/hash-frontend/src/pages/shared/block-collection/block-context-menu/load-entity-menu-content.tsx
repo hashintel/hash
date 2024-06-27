@@ -98,7 +98,10 @@ export const LoadEntityMenuContent: FunctionComponent<
         return;
       }
 
-      /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
+      /**
+       * @todo properly type this part of the DraftEntity type
+       * @see https://linear.app/hash/issue/H-3000
+      */
       blockView.manager.replaceBlockChildEntity(
         blockEntityId,
         targetEntity as EntityStoreType,

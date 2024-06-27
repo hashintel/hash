@@ -257,7 +257,7 @@ export const createEditorView = (params: {
 
   /**
    * @todo the collab editor connection is disabled currently.
-   *   see https://app.asana.com/0/0/1203099452204542/f
+   * @see https://linear.app/hash/issue/H-3000
 
   connection = new EditorConnection(
     `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
