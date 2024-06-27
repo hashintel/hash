@@ -1,5 +1,5 @@
-import type { BaseUrl, EntityPropertiesObject } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityPropertiesObject } from "@blockprotocol/graph";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Box, Paper, Popper, Stack, Tooltip, Typography } from "@mui/material";
 import clsx from "clsx";
 import type { HTMLAttributes, ReactNode } from "react";

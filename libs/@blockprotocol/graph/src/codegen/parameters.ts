@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
 
-import { typedEntries, typedKeys } from "../shared/util/typed-object-iter.js";
+import { typedEntries, typedKeys } from "../util/typed-object-iter.js";
 
 /**
  * The input parameters of Codegen, prior to their validation.
@@ -37,9 +37,6 @@ export type CodegenParameters = {
           [sourceTypeId: string]: string;
         };
       };
-  /* @todo - Add support for generating Base URL aliases? */
-  /* @todo - Make the resolve depth configurable */
-  temporal?: boolean;
 };
 
 export const validateCodegenParameters = (
@@ -247,6 +244,5 @@ export const processCodegenParameters = (
     targets,
     typeIdAliases: parameters.typeIdAliases ?? { enabled: true },
     typeNameOverrides: parameters.typeNameOverrides ?? {},
-    temporal: parameters.temporal ?? false,
   };
 };

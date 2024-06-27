@@ -147,7 +147,6 @@ mod tests {
     //  entity types
 
     mod maybe_ordered_array {
-        use core::num::NonZero;
 
         use super::*;
         use crate::ontology::raw::Array;
@@ -278,7 +277,7 @@ mod tests {
                             array: Array::new(
                                 MaybeOneOfEntityTypeReference { inner: None },
                                 None,
-                                NonZero::new(10),
+                                Some(10),
                             ),
                             ordered: false,
                         },

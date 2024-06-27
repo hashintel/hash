@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import { mustBeDefined } from "../../shared/util/must-be-defined.js";
-import { typedEntries } from "../../shared/util/typed-object-iter.js";
+import { mustBeDefined } from "../../util/must-be-defined.js";
+import { typedEntries } from "../../util/typed-object-iter.js";
 import type { PostprocessContext } from "../context/postprocess.js";
 import { sharedTypeFileName } from "../shared.js";
 

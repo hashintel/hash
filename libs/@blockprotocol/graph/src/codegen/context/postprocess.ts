@@ -76,9 +76,7 @@ export class PostprocessContext {
     this.linkTypeMap = compileContext.linkTypeMap;
     this.typeIdsToCompiledTypes = compileContext.typeIdsToCompiledTypes;
 
-    const graphModuleImportPath = this.parameters.temporal
-      ? "@blockprotocol/graph/temporal"
-      : "@blockprotocol/graph";
+    const graphModuleImportPath = "@blockprotocol/graph";
 
     this.IdentifiersToSources = {
       Entity: {

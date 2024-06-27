@@ -1,6 +1,6 @@
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import { mustBeDefined, typedValues } from "../../shared/util.js";
+import { mustBeDefined, typedValues } from "../../util.js";
 import type { PreprocessContext } from "../context.js";
 import { primitiveLinkEntityTypeId } from "../shared.js";
 

@@ -1,5 +1,5 @@
-import type { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
-import { getLatestInstantIntervalForSubgraph as getLatestInstantIntervalForSubgraphBp } from "@blockprotocol/graph/temporal/stdlib";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import { getLatestInstantIntervalForSubgraph as getLatestInstantIntervalForSubgraphBp } from "@blockprotocol/graph/stdlib";
 import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
 import type { Subgraph } from "../../main";

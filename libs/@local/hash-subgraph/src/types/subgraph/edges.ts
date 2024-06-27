@@ -2,7 +2,7 @@ import {
   type Edges as EdgesBp,
   type KnowledgeGraphRootedEdges as KnowledgeGraphRootedEdgesBp,
   type OntologyRootedEdges as OntologyRootedEdgesBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";

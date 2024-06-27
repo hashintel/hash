@@ -2,8 +2,8 @@ import type {
   Entity as BpEntity,
   EntityRootType as BpEntityRootType,
   Subgraph as BpSubgraph,
-  VersionedUrl,
 } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
@@ -625,7 +625,7 @@ export const EntitiesTable: FunctionComponent<{
               ? true
               : internalWebIds.includes(
                   extractOwnedByIdFromEntityId(
-                    entity.metadata.recordId.entityId as EntityId,
+                    entity.metadata.recordId.entityId,
                   ),
                 )
           }

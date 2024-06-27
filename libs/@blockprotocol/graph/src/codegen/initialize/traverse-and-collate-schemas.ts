@@ -4,7 +4,7 @@ import {
   getReferencedIdsFromPropertyType,
 } from "@blockprotocol/type-system/slim";
 
-import { typedValues } from "../../shared/util/typed-object-iter";
+import { typedValues } from "../../util/typed-object-iter";
 import type { InitializeContext } from "../context.js";
 import { fetchTypeAsJson } from "./traverse/fetch.js";
 import {

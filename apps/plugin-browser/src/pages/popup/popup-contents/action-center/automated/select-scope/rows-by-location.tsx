@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { CloseIcon, IconButton } from "@hashintel/design-system";
 import { TableCell, TableRow } from "@mui/material";
 import { useCallback, useMemo } from "react";

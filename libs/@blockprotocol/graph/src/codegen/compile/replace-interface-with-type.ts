@@ -1,4 +1,4 @@
-import { typedEntries } from "../../shared/util/typed-object-iter.js";
+import { typedEntries } from "../../util/typed-object-iter.js";
 import type { CompileContext } from "../context/compile.js";
 import type { CompiledTsType } from "../shared.js";
 

@@ -8,8 +8,8 @@ import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
 import type { JSONSchema } from "json-schema-to-typescript";
 import { compile as compileJsonSchema } from "json-schema-to-typescript";
 
-import { mustBeDefined } from "../../shared/util/must-be-defined.js";
-import { typedValues } from "../../shared/util/typed-object-iter.js";
+import { mustBeDefined } from "../../util/must-be-defined.js";
+import { typedValues } from "../../util/typed-object-iter.js";
 import type { CompileContext } from "../context.js";
 import type { CompiledTsType } from "../shared.js";
 import { redundantTypePlaceholder } from "../shared.js";

@@ -2925,6 +2925,19 @@
     lit "^2.4.1"
     typescript "4.9.4"
 
+"@blockprotocol/graph@0.3.4":
+  version "0.3.4"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.3.4.tgz#1d2f66e726dc63a9ebb6ca0c25a8140d088b7b78"
+  integrity sha512-4H3Z3jrM0fNM6EyS70/HuRy7geApaFtuv9ELRX90s+tmFjiJ9lkZjhaIbu8rdJV3RygDZGG+S3TQjGBFYbR9VQ==
+  dependencies:
+    "@blockprotocol/core" "0.1.3"
+    "@blockprotocol/type-system" "0.1.1"
+    ajv "^8.11.2"
+    ajv-formats "^2.1.1"
+    json-schema-to-typescript "^11.0.2"
+    lit "^2.4.1"
+    typescript "4.9.4"
+
 "@blockprotocol/hook@0.0.8":
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.8.tgz#4e14843e0e589e8fd2c850605f0f93625afcfed5"
