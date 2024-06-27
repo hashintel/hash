@@ -20,18 +20,18 @@ import type { Link } from "./link-follower-agent/extract-links-from-content";
 import { extractLinksFromContent } from "./link-follower-agent/extract-links-from-content";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls";
 
-type LinkFollowerAgentInput = {
-  url: string;
-  task: string;
-  entityTypes: DereferencedEntityType[];
-  linkEntityTypes?: DereferencedEntityType[];
-};
-
 type ResourceToExplore = {
   url: string;
   descriptionOfExpectedContent: string;
   exampleOfExpectedContent: string;
   reason: string;
+};
+
+type LinkFollowerAgentInput = {
+  initialResource: ResourceToExplore;
+  task: string;
+  entityTypes: DereferencedEntityType[];
+  linkEntityTypes?: DereferencedEntityType[];
 };
 
 const isContentAtUrlPdfFile = async (params: { url: string }) => {
@@ -255,19 +255,11 @@ export const linkFollowerAgent = async (
   entitySummaries: LocalEntitySummary[];
   suggestionForNextSteps: string;
 }> => {
-  const { url, task } = params;
+  const { initialResource, task } = params;
 
   const exploredResources: ResourceToExplore[] = [];
 
-  let resourcesToExplore: ResourceToExplore[] = [
-    {
-      url,
-      /** @todo: require these as initial inputs */
-      descriptionOfExpectedContent: "",
-      exampleOfExpectedContent: "",
-      reason: "Initial resource",
-    },
-  ];
+  let resourcesToExplore: ResourceToExplore[] = [initialResource];
 
   let allEntitySummaries: LocalEntitySummary[] = [];
   let allFacts: Fact[] = [];

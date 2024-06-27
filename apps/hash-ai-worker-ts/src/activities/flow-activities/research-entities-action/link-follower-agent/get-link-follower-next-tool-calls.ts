@@ -137,14 +137,12 @@ const tools: LlmToolDefinition<ToolName>[] = [
                 type: "string",
                 description: dedent(`
                   A description of the content you expect to find at the link.
-                  Describe what information you expect to find at the link, based on the text provided.
                 `),
               },
               exampleOfExpectedContent: {
                 type: "string",
                 description: dedent(`
                   An example of the content you expect to find at the link.
-                  Provide an example of the information you expect to find at the link, based on the text provided.
                 `),
               },
             },

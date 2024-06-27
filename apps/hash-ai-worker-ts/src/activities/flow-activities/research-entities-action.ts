@@ -421,9 +421,22 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             const responsesWithUrl = await Promise.all(
               webPages.map(
-                async ({ url, prompt, entityTypeIds, linkEntityTypeIds }) => {
+                async ({
+                  url,
+                  prompt,
+                  entityTypeIds,
+                  linkEntityTypeIds,
+                  descriptionOfExpectedContent,
+                  exampleOfExpectedContent,
+                  reason,
+                }) => {
                   const response = await linkFollowerAgent({
-                    url,
+                    initialResource: {
+                      url,
+                      descriptionOfExpectedContent,
+                      exampleOfExpectedContent,
+                      reason,
+                    },
                     task: prompt,
                     entityTypes: input.entityTypes.filter(({ $id }) =>
                       entityTypeIds.includes($id),
