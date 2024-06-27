@@ -3,10 +3,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { mustBeDefined } from "../../util/must-be-defined";
 import { typedEntries } from "../../util/typed-object-iter";
 import type { PostprocessContext } from "../context/postprocess";
-import {
-  entityDefinitionNameForEntityType,
-  identifiersForExternalImports,
-} from "../shared";
+import { entityDefinitionNameForEntityType } from "../shared";
 
 const generateEntityDefinitionForEntityType = (
   entityTypeId: VersionedUrl,
@@ -40,10 +37,8 @@ const allocateEntityDefinitionToFile = (
     {
       definingPath: fileName,
       dependentOnIdentifiers: isLinkType
-        ? [...identifiersForExternalImports]
-        : identifiersForExternalImports.filter(
-            (identifier) => identifier !== "LinkEntity",
-          ),
+        ? ["Entity", "LinkEntity"]
+        : ["Entity"],
       compiledContents,
     },
     true,

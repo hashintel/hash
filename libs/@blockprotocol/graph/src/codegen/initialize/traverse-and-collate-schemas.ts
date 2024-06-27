@@ -144,7 +144,10 @@ export const traverseAndCollateSchemas = async (
         if (isDataType(type)) {
           initialContext.addDataType(type);
 
-          const withMetadata = generateDataTypeWithMetadataSchema(type);
+          const withMetadata = generateDataTypeWithMetadataSchema(
+            type,
+            initialContext,
+          );
           if (!initialContext.metadataSchemas[withMetadata.$id]) {
             initialContext.addMetadataSchema(withMetadata);
           }
@@ -166,7 +169,10 @@ export const traverseAndCollateSchemas = async (
 
           initialContext.addPropertyType(type);
 
-          const withMetadata = generatePropertyTypeWithMetadataSchema(type);
+          const withMetadata = generatePropertyTypeWithMetadataSchema(
+            type,
+            initialContext,
+          );
           if (!initialContext.metadataSchemas[withMetadata.$id]) {
             initialContext.addMetadataSchema(withMetadata);
           }
@@ -197,14 +203,18 @@ export const traverseAndCollateSchemas = async (
 
           const { properties, required, $id, title } = type;
 
-          const withMetadata = generatePropertiesObjectWithMetadataSchema({
-            properties,
-            required: required ?? [],
-            identifiersForAddressableEntityProperties: {
-              $id,
-              title: `${title} Properties`,
+          const withMetadata = generatePropertiesObjectWithMetadataSchema(
+            {
+              properties,
+              required: required ?? [],
+              identifiersForParentType: {
+                $id,
+                title,
+              },
             },
-          });
+            initialContext,
+            true,
+          );
           if (!initialContext.metadataSchemas[withMetadata.$id]) {
             initialContext.addMetadataSchema(withMetadata);
           }
