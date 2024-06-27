@@ -252,6 +252,7 @@ export const linkFollowerAgent = async (
 ): Promise<{
   status: "ok";
   facts: Fact[];
+  exploredResources: ResourceToExplore[];
   entitySummaries: LocalEntitySummary[];
   suggestionForNextSteps: string;
 }> => {
@@ -390,5 +391,6 @@ export const linkFollowerAgent = async (
     facts: allFacts,
     entitySummaries: allEntitySummaries,
     suggestionForNextSteps,
+    exploredResources,
   };
 };
