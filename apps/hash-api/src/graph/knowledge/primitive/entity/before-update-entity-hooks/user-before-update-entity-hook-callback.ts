@@ -42,10 +42,6 @@ const validateAccountShortname = async (
     throw new ApolloError(`Shortname "${shortname}" taken`, "NAME_TAKEN");
   }
 
-  /**
-   * @todo: enable admins to have a shortname under 4 characters
-   * @see https://app.asana.com/0/1201095311341924/1203285346775714/f
-   */
   if (shortname.length < shortnameMinimumLength) {
     throw new UserInputError("Shortname must be at least 4 characters long.");
   }

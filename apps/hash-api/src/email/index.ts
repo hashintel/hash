@@ -1,6 +1,6 @@
 /**
  * @todo - Fix relevant portions of this file and remove the rest
- *   https://app.asana.com/0/1201095311341924/1202980861294704 */
+ *   https://linear.app/hash/issue/H-591/add-ability-to-invite-users-to-org-via-email */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 

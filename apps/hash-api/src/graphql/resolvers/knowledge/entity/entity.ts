@@ -99,8 +99,7 @@ export const createEntityResolver: ResolverFn<
   /**
    * @todo: prevent callers of this mutation from being able to create restricted
    * system types (e.g. a `User` or an `Org`)
-   *
-   * @see https://app.asana.com/0/1202805690238892/1203084714149803/f
+   * @see https://linear.app/hash/issue/H-2993
    */
 
   let entity: Entity;
