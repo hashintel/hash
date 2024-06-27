@@ -39,7 +39,6 @@ export type JsonSchema = SchemaWithOptional$id & {
 export const identifiersForExternalImports = [
   "LinkEntity",
   "Entity",
-  "Confidence",
   "PropertyProvenance",
   "ArrayMetadata",
   "ObjectMetadata",

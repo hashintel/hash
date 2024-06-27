@@ -74,13 +74,6 @@ const externalIdentifiersToSource: Record<
       definingPath: "@local/hash-graph-client",
     },
   },
-  Confidence: {
-    locallyImportable: true,
-    source: {
-      kind: "external",
-      definingPath: "@local/hash-graph-client",
-    },
-  },
 };
 
 export class PostprocessContext {
@@ -90,9 +83,9 @@ export class PostprocessContext {
   readonly dataTypes: Record<VersionedUrl, DataType>;
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
-  readonly metadataSchemas: Record<string, JsonSchema>;
+  readonly metadataSchemas: Record<VersionedUrl, JsonSchema>;
   readonly allTypes: Record<
-    string,
+    VersionedUrl,
     DataType | PropertyType | EntityType | JsonSchema
   >;
 
@@ -135,8 +128,6 @@ export class PostprocessContext {
     this.typeIdsToCompiledTypes = compileContext.typeIdsToCompiledTypes;
 
     this.IdentifiersToSources = externalIdentifiersToSource;
-
-    // console.log("MAP", JSON.stringify(this.typeDependencyMap, null, 2));
   }
 
   /* @todo - Replace this with a proper logging implementation */

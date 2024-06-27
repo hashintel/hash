@@ -38,7 +38,10 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
 
   for (const [typeId, fileSet] of typedEntries(typesToFiles)) {
     const files = [...fileSet];
-    const type = mustBeDefined(context.allTypes[typeId]);
+    const type = mustBeDefined(
+      context.allTypes[typeId],
+      `Could not find ${typeId} in all types`,
+    );
 
     let definingFile;
     if (files.length > 1) {

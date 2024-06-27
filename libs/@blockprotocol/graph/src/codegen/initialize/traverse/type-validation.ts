@@ -3,7 +3,6 @@ import type {
   EntityType,
   PropertyType,
 } from "@blockprotocol/type-system/slim";
-import { JsonSchema } from "../../shared";
 
 const isObjectWithKindString = (
   obj: unknown,
@@ -31,9 +30,4 @@ export const isPropertyType = (type: any): type is PropertyType => {
 export const isEntityType = (type: any): type is EntityType => {
   /* @todo - check `validateEntityType` */
   return !!isObjectWithKindString(type, "entityType");
-};
-
-export const isMetadataSchema = (type: any): type is JsonSchema => {
-  /* @todo - check `validateEntityType` */
-  return !!isObjectWithKindString(type, "metadataSchema");
 };

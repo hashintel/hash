@@ -158,13 +158,13 @@ export const traverseAndCollateSchemas = async (
             constrainsPropertiesOnPropertyTypes,
           } = getReferencedIdsFromPropertyType(type);
 
-          initialContext.addPropertyType(type);
-
           nestedForEach(
             [constrainsValuesOnDataTypes, constrainsPropertiesOnPropertyTypes],
             (dependencyTypeId) =>
               traversalContext.encounter(typeId, dependencyTypeId),
           );
+
+          initialContext.addPropertyType(type);
 
           const withMetadata = generatePropertyTypeWithMetadataSchema(type);
           if (!initialContext.metadataSchemas[withMetadata.$id]) {

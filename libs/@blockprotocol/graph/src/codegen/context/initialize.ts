@@ -20,7 +20,7 @@ export class InitializeContext {
   dataTypes: Record<VersionedUrl, DataType> = {};
   propertyTypes: Record<VersionedUrl, PropertyType> = {};
   entityTypes: Record<VersionedUrl, EntityType> = {};
-  metadataSchemas: Record<string, JsonSchema> = {};
+  metadataSchemas: Record<VersionedUrl, JsonSchema> = {};
 
   typeDependencyMap: TypeDependencyMap = new TypeDependencyMap();
 

@@ -17,9 +17,9 @@ export class CompileContext {
   readonly dataTypes: Record<VersionedUrl, DataType>;
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
-  readonly metadataSchemas: Record<string, JsonSchema>;
+  readonly metadataSchemas: Record<VersionedUrl, JsonSchema>;
   readonly allTypes: Record<
-    string,
+    VersionedUrl,
     DataType | PropertyType | EntityType | JsonSchema
   >;
 

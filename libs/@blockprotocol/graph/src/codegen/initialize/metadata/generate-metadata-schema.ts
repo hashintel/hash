@@ -8,11 +8,8 @@ import type {
 import { isPropertyValuesArray } from "@blockprotocol/type-system/slim";
 import type { JSONSchema as PartialJsonSchema } from "json-schema-to-typescript";
 
-import {
-  generatedTypeSuffix,
-  JsonSchema,
-  redundantTypePlaceholder,
-} from "../../shared";
+import type { JsonSchema } from "../../shared";
+import { generatedTypeSuffix, redundantTypePlaceholder } from "../../shared";
 
 const kind = "metadataSchema";
 
@@ -21,13 +18,6 @@ const kind = "metadataSchema";
  * so we just want this codegen to insert the title of the type rather than generate it again,
  * – we'll add import statements for the types in post-processing.
  */
-const confidenceSchema: JsonSchema = {
-  $id: "https://hash.ai/@hash/schemas/array-metadata/v/1",
-  title: "Confidence",
-  kind,
-  const: redundantTypePlaceholder,
-};
-
 const propertyProvenanceSchema: JsonSchema = {
   $id: "https://hash.ai/@hash/schemas/property-provenance/v/1",
   title: "PropertyProvenance",
@@ -60,7 +50,7 @@ const generateMetadataSchemaIdentifiers = ({
   $id,
 }: Pick<PropertyType | DataType, "$id">) => ({
   valueWithMetadata$id: $id.replace(
-    /(\/types\/(?:property-type|data-type)\/)/,
+    /(\/types\/(?:entity-type|property-type|data-type)\/)/,
     /**
      * Insert the path segment /with-metadata/ into the VersionedUrl
      * @example "https://app.hash.ai/@hash/types/property-type/user/v/1" =>
@@ -100,7 +90,9 @@ export const generateDataTypeWithMetadataSchema = (
         type: "object",
         properties: {
           provenance: propertyProvenanceSchema,
-          confidence: confidenceSchema,
+          confidence: {
+            $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+          },
           dataTypeId: { const: dataTypeSchema.$id },
         },
         required: ["dataTypeId"],
