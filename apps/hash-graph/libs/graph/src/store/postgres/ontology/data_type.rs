@@ -212,9 +212,9 @@ where
         _: &Zookie<'static>,
         _: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        // TODO: data types currently have no references to other types, so we don't need to do
+        // @todo data types currently have no references to other types, so we don't need to do
         //       anything here
-        //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+        // @see https://linear.app/hash/issue/BP-104
 
         Ok(())
     }
