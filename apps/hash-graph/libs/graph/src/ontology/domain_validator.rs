@@ -144,10 +144,10 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
             });
         };
 
-        // @todo check that the user has write access to the shortname, this will require us
+        // TODO: check that the user has write access to the shortname, this will require us
         //  making the graph aware of shortnames. We can store them alongside accountIds. We should
         //  not have to make the graph aware of User entities being a thing however.
-        // @see https://linear.app/hash/issue/H-3010
+        //  See https://linear.app/hash/issue/H-3010
         Ok(())
     }
 }
@@ -174,10 +174,10 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
             });
         };
 
-        // @todo check that the user has write access to the shortname, this will require us
+        // TODO: check that the user has write access to the shortname, this will require us
         //  making the graph aware of shortnames. We can store them alongside accountIds. We should
         //  not have to make the graph aware of User entities being a thing however.
-        // @see https://linear.app/hash/issue/H-3010
+        //  See https://linear.app/hash/issue/H-3010
         Ok(())
     }
 }
