@@ -1,4 +1,4 @@
-import wasm from "@blockprotocol/type-system-rs/type-system.wasm";
+import wasm from "@blockprotocol/type-system-rs/wasm";
 
 import { setWasmInit } from "./common";
 

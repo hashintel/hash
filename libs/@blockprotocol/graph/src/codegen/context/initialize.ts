@@ -8,10 +8,10 @@ import type {
 import type {
   CodegenParameters,
   ProcessedCodegenParameters,
-} from "../parameters.js";
-import { processCodegenParameters } from "../parameters.js";
-import type { LogLevel } from "../shared.js";
-import { TypeDependencyMap } from "./shared.js";
+} from "../parameters";
+import { processCodegenParameters } from "../parameters";
+import type { LogLevel } from "../shared";
+import { TypeDependencyMap } from "./shared";
 
 export class InitializeContext {
   readonly parameters: ProcessedCodegenParameters;

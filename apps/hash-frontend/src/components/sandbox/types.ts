@@ -1,7 +1,7 @@
 import type {
   GraphEmbedderMessageCallbacks,
   JsonObject,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 
 import type { FetchEmbedCodeFn } from "../block-loader/fetch-embed-code";
 

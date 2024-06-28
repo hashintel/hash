@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { LinkData, PropertyObject } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";

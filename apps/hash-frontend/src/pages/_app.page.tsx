@@ -9,7 +9,7 @@ import "./prism.css";
 
 import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import wasm from "@blockprotocol/type-system/type-system.wasm";
+import wasm from "@blockprotocol/type-system/wasm";
 import type { EmotionCache } from "@emotion/react";
 import { CacheProvider } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
@@ -68,7 +68,7 @@ export const initWasm = async () => {
     // @ts-expect-error -- We need Node's native require here, and it's safe as this is a server-only block
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     const wasmPath = __non_webpack_require__.resolve(
-      "@blockprotocol/type-system/type-system.wasm",
+      "@blockprotocol/type-system/wasm",
     );
     const contents = await fs.readFile(wasmPath);
 

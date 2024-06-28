@@ -10,13 +10,10 @@ import {
 } from "@blockprotocol/type-system/slim";
 import ts from "typescript";
 
-import { mustBeDefined } from "../../shared/util/must-be-defined.js";
-import {
-  typedEntries,
-  typedKeys,
-} from "../../shared/util/typed-object-iter.js";
-import type { PreprocessContext } from "../context.js";
-import { generatedTypeSuffix } from "../shared.js";
+import { mustBeDefined } from "../../util/must-be-defined";
+import { typedEntries, typedKeys } from "../../util/typed-object-iter";
+import type { PreprocessContext } from "../context";
+import { generatedTypeSuffix } from "../shared";
 
 const typescriptKeywords = new Array(
   ts.SyntaxKind.LastKeyword - ts.SyntaxKind.FirstKeyword,

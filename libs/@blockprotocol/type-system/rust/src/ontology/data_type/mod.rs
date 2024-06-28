@@ -8,6 +8,8 @@ pub use error::ParseDataTypeError;
 use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
+#[cfg(target_arch = "wasm32")]
+use tsify::Tsify;
 
 use crate::{
     url::{BaseUrl, VersionedUrl},
@@ -20,6 +22,7 @@ pub(in crate::ontology) mod raw;
 mod wasm;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum JsonSchemaValueType {
     Null,

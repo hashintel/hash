@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 

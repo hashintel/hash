@@ -4,14 +4,14 @@ import {
   getReferencedIdsFromPropertyType,
 } from "@blockprotocol/type-system/slim";
 
-import { typedValues } from "../../shared/util/typed-object-iter";
-import type { InitializeContext } from "../context.js";
-import { fetchTypeAsJson } from "./traverse/fetch.js";
+import { typedValues } from "../../util/typed-object-iter";
+import type { InitializeContext } from "../context";
+import { fetchTypeAsJson } from "./traverse/fetch";
 import {
   isDataType,
   isEntityType,
   isPropertyType,
-} from "./traverse/type-validation.js";
+} from "./traverse/type-validation";
 
 /** A simple helper method which saves some duplication below, and avoids intermediary array allocations */
 const nestedForEach = <T>(arrays: T[][], callback: (ele: T) => void) => {

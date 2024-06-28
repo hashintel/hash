@@ -12,7 +12,7 @@ import {
   intervalUnionWithInterval as intervalUnionWithIntervalBp,
   sortIntervals as sortIntervalsBp,
   unionOfIntervals as unionOfIntervalsBp,
-} from "@blockprotocol/graph/temporal/stdlib";
+} from "@blockprotocol/graph/stdlib";
 import type {
   BoundedTimeInterval,
   LimitedTemporalBound,
