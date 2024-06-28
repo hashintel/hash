@@ -215,9 +215,9 @@ impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
     ) -> AddIdReturn<K> {
         let values = self.0.entry(key).or_default();
 
-        // @todo Further optimization could happen here. It's possible to return none, a single, or
+        // TODO: Further optimization could happen here. It's possible to return none, a single, or
         //       multiple entries depending on the existing depths and traversed interval.
-        // @see https://linear.app/hash/issue/H-3017
+        //       See https://linear.app/hash/issue/H-3017
         if values.iter().any(|&(existing_depths, traversed_interval)| {
             existing_depths.contains(graph_resolve_depths)
                 && traversed_interval.contains_interval(&interval)
