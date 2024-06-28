@@ -111,7 +111,7 @@ const generateSystemPromptPrefix = (params: {
     Don't start sub-tasks in parallel which duplicate or overlap, or where one will depend on the result of another (do it in sequence).
     For simpler research tasks you might not need sub-tasks.
 
-    The "complete" tool for completing the research task will only be available once you have gathered facts.
+    The "complete" tool for completing the research task will only be available once entities have been discovered.
     When declaring the job complete, you specify which of the proposed entities should be included in the final return to the user.
   `);
 };
