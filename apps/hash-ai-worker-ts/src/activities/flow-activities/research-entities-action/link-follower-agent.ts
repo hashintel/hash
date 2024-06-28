@@ -149,6 +149,13 @@ const exploreResource = async (params: {
        * errors encountered in the `filterAndRankTextChunksAgent` method differently
        * to how we're handling no relevant chunks in a valid response.
        */
+      if (filteredAndRankedTextChunksResponse.status !== "ok") {
+        logger.error(
+          `Error encountered when filtering and ranking text chunks: ${stringify(
+            filteredAndRankedTextChunksResponse,
+          )}`,
+        );
+      }
       return {
         status: "not-explored",
         reason: "No relevant sections found in the PDF.",
