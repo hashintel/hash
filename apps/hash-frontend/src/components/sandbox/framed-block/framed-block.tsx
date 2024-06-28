@@ -3,7 +3,7 @@ import "iframe-resizer/js/iframeResizer.contentWindow";
 import type {
   Entity,
   GraphEmbedderMessageCallbacks,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type * as Sentry from "@sentry/react";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useState } from "react";

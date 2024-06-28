@@ -5,9 +5,9 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import type { ProcessedCodegenParameters } from "../parameters.js";
-import type { CompiledTsType, LogLevel } from "../shared.js";
-import type { CompileContext } from "./compile.js";
+import type { ProcessedCodegenParameters } from "../parameters";
+import type { CompiledTsType, LogLevel } from "../shared";
+import type { CompileContext } from "./compile";
 import type { TypeDependencyMap } from "./shared";
 
 type IdentifierSource = { definingPath: string } & (
@@ -76,9 +76,7 @@ export class PostprocessContext {
     this.linkTypeMap = compileContext.linkTypeMap;
     this.typeIdsToCompiledTypes = compileContext.typeIdsToCompiledTypes;
 
-    const graphModuleImportPath = this.parameters.temporal
-      ? "@blockprotocol/graph/temporal"
-      : "@blockprotocol/graph";
+    const graphModuleImportPath = "@blockprotocol/graph";
 
     this.IdentifiersToSources = {
       Entity: {

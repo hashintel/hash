@@ -1,8 +1,6 @@
 pub(crate) mod error;
 pub(in crate::ontology) mod raw;
 
-use core::num::NonZero;
-
 use serde::{Deserialize, Serialize};
 
 use crate::{url::BaseUrl, PropertyTypeReference, ValidateUrl, ValidationError};
@@ -12,7 +10,7 @@ use crate::{url::BaseUrl, PropertyTypeReference, ValidateUrl, ValidationError};
 pub struct Array<T> {
     pub items: T,
     pub min_items: Option<usize>,
-    pub max_items: Option<NonZero<usize>>,
+    pub max_items: Option<usize>,
 }
 
 impl<'de> Deserialize<'de> for Array<PropertyTypeReference> {
@@ -27,11 +25,7 @@ impl<'de> Deserialize<'de> for Array<PropertyTypeReference> {
 
 impl<T> Array<T> {
     #[must_use]
-    pub const fn new(
-        items: T,
-        min_items: Option<usize>,
-        max_items: Option<NonZero<usize>>,
-    ) -> Self {
+    pub const fn new(items: T, min_items: Option<usize>, max_items: Option<usize>) -> Self {
         Self {
             items,
             min_items,
@@ -50,7 +44,7 @@ impl<T> Array<T> {
     }
 
     #[must_use]
-    pub const fn max_items(&self) -> Option<NonZero<usize>> {
+    pub const fn max_items(&self) -> Option<usize> {
         self.max_items
     }
 }

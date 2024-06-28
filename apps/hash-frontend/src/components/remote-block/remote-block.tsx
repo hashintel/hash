@@ -2,12 +2,12 @@ import type { BlockMetadata } from "@blockprotocol/core";
 import type {
   BlockGraphProperties,
   GraphEmbedderMessageCallbacks,
-} from "@blockprotocol/graph/temporal";
-import { useGraphEmbedderModule } from "@blockprotocol/graph/temporal/react";
+} from "@blockprotocol/graph";
+import { useGraphEmbedderModule } from "@blockprotocol/graph/react";
 import {
   getOutgoingLinksForEntity,
   getRoots,
-} from "@blockprotocol/graph/temporal/stdlib";
+} from "@blockprotocol/graph/stdlib";
 import { useHookEmbedderModule } from "@blockprotocol/hook/react";
 import { useServiceEmbedderModule } from "@blockprotocol/service/react";
 import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";

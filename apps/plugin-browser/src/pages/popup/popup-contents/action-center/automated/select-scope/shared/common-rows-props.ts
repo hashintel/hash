@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 import type { LocalStorage } from "../../../../../../../shared/storage";
 
