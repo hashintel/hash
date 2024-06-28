@@ -154,12 +154,10 @@ describe("Link entity", () => {
         {
           linkEntityType: friendLinkEntityType,
           destinationEntityTypes: ["SELF_REFERENCE"],
-          ordered: false,
         },
         {
           linkEntityType: acquaintanceLinkEntityType,
           destinationEntityTypes: ["SELF_REFERENCE"],
-          ordered: false,
         },
       ],
     });

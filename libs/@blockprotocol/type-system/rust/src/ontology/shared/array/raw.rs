@@ -244,5 +244,20 @@ mod tests {
                 Some(ValueOrArray::Array(expected)),
             );
         }
+
+        #[test]
+        fn additional_properties() {
+            let as_json = json!({
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "minItems": 10,
+                "maxItems": 20,
+                "additional": 30,
+            });
+
+            ensure_repr_failed_deserialization::<Array<StringTypeStruct>>(as_json);
+        }
     }
 }

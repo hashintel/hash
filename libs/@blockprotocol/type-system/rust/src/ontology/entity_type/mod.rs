@@ -57,7 +57,6 @@ impl EntityType {
                 (
                     <&EntityTypeReference>::from(link_entity_type),
                     destination_constraint_entity_types
-                        .array()
                         .items()
                         .as_ref()
                         .map(|one_of| one_of.possibilities.as_slice()),

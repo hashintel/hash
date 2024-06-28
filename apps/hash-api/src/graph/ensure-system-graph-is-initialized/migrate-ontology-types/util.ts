@@ -623,7 +623,6 @@ export type EntityTypeDefinition = {
     ];
     minItems?: number;
     maxItems?: number;
-    ordered?: boolean;
   }[];
 };
 
@@ -673,20 +672,13 @@ export const generateSystemEntityTypeSchema = (
     params.outgoingLinks?.reduce<EntityType["links"]>(
       (
         prev,
-        {
-          linkEntityType,
-          destinationEntityTypes,
-          ordered = false,
-          minItems,
-          maxItems,
-        },
+        { linkEntityType, destinationEntityTypes, minItems, maxItems },
       ): EntityType["links"] => ({
         ...prev,
         [typeof linkEntityType === "object"
           ? linkEntityType.schema.$id
           : linkEntityType]: {
           type: "array",
-          ordered,
           items: destinationEntityTypes
             ? {
                 oneOf: destinationEntityTypes.map(

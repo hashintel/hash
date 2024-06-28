@@ -321,7 +321,6 @@ const migrate: MigrationFunction = async ({
     links: {
       ...usageRecordEntityTypeSchema.links,
       [incurredInLinkEntityType.schema.$id]: {
-        ordered: false,
         type: "array",
         items: {
           oneOf: [{ $ref: flowEntityType.schema.$id }],

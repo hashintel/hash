@@ -139,7 +139,6 @@ const migrate: MigrationFunction = async ({
     links: {
       ...userEntityTypeSchema.links,
       [hasLinkEntityType.schema.$id]: {
-        ordered: false,
         type: "array",
         items: {
           oneOf: [{ $ref: browserPluginSettingsEntityType.schema.$id }],

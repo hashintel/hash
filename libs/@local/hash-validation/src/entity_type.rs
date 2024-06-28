@@ -277,7 +277,7 @@ where
             // At least one link type was found
             found_link_target = true;
 
-            let Some(allowed_targets) = maybe_allowed_targets.array().items() else {
+            let Some(allowed_targets) = maybe_allowed_targets.items() else {
                 continue;
             };
 

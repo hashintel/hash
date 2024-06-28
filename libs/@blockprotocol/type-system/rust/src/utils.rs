@@ -64,20 +64,17 @@ pub(crate) mod tests {
     where
         T: Debug + TryFrom<R>,
         T::Error: Debug,
-        R: Debug + Clone + From<T> + Serialize + DeserializeOwned,
+        R: Debug + Clone + From<T> + Serialize + DeserializeOwned + PartialEq,
     {
-        let value = serde_json::to_value(input).expect("failed to serialize");
-        let deserialized_repr: R =
-            serde_json::from_value(value.clone()).expect("failed to deserialize");
+        let value = serde_json::from_str::<serde_json::Value>(input).expect("failed to serialize");
+        let deserialized_repr: R = serde_json::from_value(value).expect("failed to deserialize");
         let deserialized: T = deserialized_repr
             .clone()
             .try_into()
             .expect("failed to convert");
         let re_serialized_repr: R = deserialized.into();
-        let re_serialized_value =
-            serde_json::to_value(&re_serialized_repr).expect("failed to serialize");
 
-        assert_eq!(value, re_serialized_value);
+        assert_eq!(deserialized_repr, re_serialized_repr);
 
         let _re_serialized_value =
             serde_json::to_value(re_serialized_repr).expect("failed to serialize");

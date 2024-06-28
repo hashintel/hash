@@ -14,7 +14,7 @@ mod shared;
 
 pub use data_type::{DataType, DataTypeReference, JsonSchemaValueType, ParseDataTypeError};
 pub use entity_type::{
-    links::{Links, MaybeOrderedArray, ParseLinksError},
+    links::{Links, ParseLinksError},
     ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
     MergeEntityTypeError, ParseEntityTypeError,
 };

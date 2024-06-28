@@ -21,7 +21,7 @@ enum PropertyTypeTag {
     PropertyType,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyType {
@@ -116,8 +116,8 @@ impl From<super::PropertyTypeReference> for PropertyTypeReference {
     }
 }
 
-#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(untagged)]
 pub enum PropertyValues {
     DataTypeReference(raw::DataTypeReference),

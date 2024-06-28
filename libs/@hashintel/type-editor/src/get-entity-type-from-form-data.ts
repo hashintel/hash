@@ -70,7 +70,6 @@ export const getEntityTypeFromFormData = (
       type: "array",
       minItems: link.minValue,
       ...(link.infinity ? {} : { maxItems: link.maxValue }),
-      ordered: false,
       items: link.entityTypes.length
         ? {
             oneOf: link.entityTypes.map((id) => ({ $ref: id })) as [
