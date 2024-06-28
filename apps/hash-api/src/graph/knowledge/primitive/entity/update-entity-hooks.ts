@@ -8,7 +8,7 @@ import type { ImpureGraphContext } from "../../../context-types";
 export type UpdateEntityHookCallback = (params: {
   context: ImpureGraphContext<false, true>;
   authentication: AuthenticationContext;
-  entity: Entity;
+  previousEntity: Entity;
   updatedProperties: PropertyObject;
 }) => Promise<void>;
 

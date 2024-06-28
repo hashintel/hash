@@ -15,10 +15,7 @@ import {
   shortnameMaximumLength,
   shortnameMinimumLength,
 } from "../../../system-types/account.fields";
-import {
-  getUserFromEntity,
-  updateUserKratosIdentityTraits,
-} from "../../../system-types/user";
+import { getUserFromEntity } from "../../../system-types/user";
 import type { UpdateEntityHookCallback } from "../update-entity-hooks";
 
 const validateAccountShortname = async (
@@ -51,16 +48,13 @@ const validateAccountShortname = async (
 };
 
 export const userBeforeEntityUpdateHookCallback: UpdateEntityHookCallback =
-  async ({ entity, updatedProperties, context }) => {
-    const user = getUserFromEntity({ entity });
+  async ({ previousEntity, updatedProperties, context }) => {
+    const user = getUserFromEntity({ entity: previousEntity });
 
     const currentShortname = user.shortname;
 
-    const {
-      email: updatedEmails,
-      shortname: updatedShortname,
-      displayName: updatedDisplayName,
-    } = simplifyProperties(updatedProperties as UserProperties);
+    const { shortname: updatedShortname, displayName: updatedDisplayName } =
+      simplifyProperties(updatedProperties as UserProperties);
 
     if (currentShortname !== updatedShortname) {
       if (!updatedShortname) {
@@ -131,24 +125,6 @@ export const userBeforeEntityUpdateHookCallback: UpdateEntityHookCallback =
             },
           },
         ],
-      );
-    }
-
-    const currentEmails = user.emails;
-
-    if (
-      currentEmails.toSorted().join().toLowerCase() !==
-      updatedEmails.toSorted().join().toLowerCase()
-    ) {
-      await updateUserKratosIdentityTraits(
-        context,
-        { actorId: user.accountId },
-        {
-          user,
-          updatedTraits: {
-            emails: updatedEmails,
-          },
-        },
       );
     }
   };

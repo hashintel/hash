@@ -26,8 +26,8 @@ import type { UpdateEntityHookCallback } from "../update-entity-hooks";
  * - the `Text` entity is in a comment that's on a page
  */
 export const textAfterUpdateEntityHookCallback: UpdateEntityHookCallback =
-  async ({ entity, updatedProperties, authentication, context }) => {
-    const text = getTextFromEntity({ entity });
+  async ({ previousEntity, updatedProperties, authentication, context }) => {
+    const text = getTextFromEntity({ entity: previousEntity });
 
     const { occurredInComment, occurredInEntity, occurredInBlock } =
       await getTextUpdateOccurredIn(context, authentication, {

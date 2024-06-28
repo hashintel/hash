@@ -26,6 +26,7 @@ import type {
   EntityId,
   LinkData,
   PropertyObject,
+  PropertyPatchOperation,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -539,6 +540,64 @@ export const createEntityWithLinks: ImpureGraphFunction<
 };
 
 /**
+ * Creates a partial properties object containing the values being added or replaced in the object.
+ *
+ * NOTE THAT:
+ * 1. The resulting object may not validate against the property type schema of the entity, because it may be missing
+ *    required properties, both at the root level and in any nested objects.
+ * 2. If the contents of arrays are changed past index 0, the array will be null
+ */
+const patchToPropertyObject = (
+  properties: PropertyPatchOperation[],
+): PropertyObject => {
+  return properties.reduce<PropertyObject>((object, patch) => {
+    const { op, path } = patch;
+    if (op === "add" || op === "replace") {
+      const { value } = patch;
+      let target: PropertyObject | unknown[] = object;
+      for (const [index, key] of path.entries()) {
+        if (index === path.length - 1) {
+          /**
+           * This is the final path segment, so we set the value here.
+           * The else branch will construct any intermediate objects or arrays.
+           */
+          if (typeof key === "number") {
+            if (!Array.isArray(target)) {
+              throw new Error(
+                `Cannot use index ${path} in non-array ${JSON.stringify(target)} at path ${path}`,
+              );
+            }
+            target[key] = value;
+          } else {
+            if (Array.isArray(target)) {
+              throw new Error(
+                `Cannot use key ${key} on array ${JSON.stringify(target)} at path ${path}`,
+              );
+            }
+            target[key] = value;
+          }
+        } else {
+          const nextKey = path[index + 1];
+          if (!nextKey) {
+            throw new Error(
+              `Index ${index + 1} somehow out of bounds for path ${path}`,
+            );
+          }
+
+          if (typeof nextKey === "number") {
+            target[key] ??= [];
+          } else {
+            target[key] ??= {};
+          }
+          target = target[key];
+        }
+      }
+    }
+    return object;
+  }, {});
+};
+
+/**
  * Update an entity.
  *
  * @param entity - the entity being updated
@@ -549,7 +608,7 @@ export const updateEntity: ImpureGraphFunction<
   {
     entity: Entity;
     entityTypeId?: VersionedUrl;
-    properties: PropertyObject;
+    properties?: PropertyPatchOperation[];
     draft?: boolean;
     provenance?: ProvidedEntityEditionProvenance;
   },
@@ -560,11 +619,13 @@ export const updateEntity: ImpureGraphFunction<
   const { entity, properties, entityTypeId, provenance } = params;
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
+    const updatedProperties = patchToPropertyObject(properties ?? []);
+
     if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
       await beforeUpdateHook.callback({
         context,
-        entity,
-        updatedProperties: properties,
+        previousEntity: entity,
+        updatedProperties,
         authentication,
       });
     }
@@ -579,13 +640,7 @@ export const updateEntity: ImpureGraphFunction<
     {
       entityTypeId,
       draft: params.draft,
-      properties: [
-        {
-          op: "replace",
-          path: [],
-          value: params.properties,
-        },
-      ],
+      properties: params.properties,
       provenance,
     },
   );
@@ -594,8 +649,8 @@ export const updateEntity: ImpureGraphFunction<
     if (afterUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
       void afterUpdateHook.callback({
         context,
-        entity,
-        updatedProperties: properties,
+        previousEntity: entity,
+        updatedProperties: updatedEntity.properties,
         authentication,
       });
     }
@@ -614,30 +669,18 @@ export const updateEntity: ImpureGraphFunction<
 export const updateEntityProperties: ImpureGraphFunction<
   {
     entity: Entity;
-    updatedProperties: {
-      propertyTypeBaseUrl: BaseUrl;
-      value: PropertyValue | undefined;
-    }[];
+    properties: PropertyPatchOperation[];
     provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { entity, updatedProperties, provenance } = params;
+  const { entity, properties, provenance } = params;
 
   return await updateEntity(ctx, authentication, {
     entity,
-    properties: updatedProperties.reduce<PropertyObject>(
-      (prev, { propertyTypeBaseUrl, value }) =>
-        value !== undefined
-          ? {
-              ...prev,
-              [propertyTypeBaseUrl]: value,
-            }
-          : prev,
-      entity.properties,
-    ),
+    properties,
     provenance,
   });
 };

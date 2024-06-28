@@ -30,10 +30,10 @@ type FileEntityToParseProperties =
   | PPTXPresentationProperties;
 
 export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCallback =
-  async ({ entity, updatedProperties, context, authentication }) => {
+  async ({ previousEntity, updatedProperties, context, authentication }) => {
     const { temporalClient } = context;
 
-    const fileEntity = entity as Entity<FileEntityToParseProperties>;
+    const fileEntity = previousEntity as Entity<FileEntityToParseProperties>;
 
     const {
       textualContent,
@@ -63,7 +63,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
         expiresInSeconds: 60 * 60, // 1 hour
       });
 
-      const workflowId = `${entity.metadata.recordId.editionId}-parse-text-from-file-workflow-id`;
+      const workflowId = `${previousEntity.metadata.recordId.editionId}-parse-text-from-file-workflow-id`;
 
       const fileEntityOwnedById = extractOwnedByIdFromEntityId(
         fileEntity.metadata.recordId.entityId,
