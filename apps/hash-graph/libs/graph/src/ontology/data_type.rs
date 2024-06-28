@@ -20,8 +20,8 @@ use crate::{
 /// element.
 ///
 /// [`DataType`]: type_system::DataType
-// @todo Adjust enum and docs when adding non-primitive data types
-// @see https://linear.app/hash/issue/BP-104
+// TODO: Adjust enum and docs when adding non-primitive data types
+//   See https://linear.app/hash/issue/BP-104
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DataTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`DataType`].
