@@ -369,7 +369,7 @@ async fn create_entity_type<S, A>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateEntityTypeRequest>,
-    // @todo We want to be able to return `Status` here we should try and create a general way to
+    // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
 ) -> Result<Json<ListOrValue<EntityTypeMetadata>>, Response>
 where
@@ -405,10 +405,10 @@ where
                         .to_owned(),
                 ),
                 vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                    // @todo add information from the report here
-                    // @see https://linear.app/hash/issue/H-3009
+                    // TODO: add information from the report here
+                    //   See https://linear.app/hash/issue/H-3009
                     HashMap::new(),
-                    // @todo We should encapsulate these Reasons within the type system, perhaps
+                    // TODO: We should encapsulate these Reasons within the type system, perhaps
                     //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
                     //  or perhaps as a big enum, or as an attachment
                     "STORE_ACQUISITION_FAILURE".to_owned(),
@@ -444,7 +444,7 @@ where
                                         .expect("Could not serialize entity type id"),
                                 ),
                             ]),
-                            // @todo We should encapsulate these Reasons within the type system, perhaps
+                            // TODO: We should encapsulate these Reasons within the type system, perhaps
                             //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
                             //  or perhaps as a big enum
                             "INVALID_TYPE_ID".to_owned()
@@ -497,7 +497,7 @@ where
                     ),
                     vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
                         metadata,
-                        // @todo We should encapsulate these Reasons within the type system,
+                        // TODO: We should encapsulate these Reasons within the type system,
                         //  perhaps requiring top level contexts to implement a trait
                         //  `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
                         "BASE_URI_ALREADY_EXISTS".to_owned(),
@@ -515,7 +515,7 @@ where
                 ),
                 vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
                     HashMap::new(),
-                    // @todo We should encapsulate these Reasons within the type system, perhaps
+                    // TODO: We should encapsulate these Reasons within the type system, perhaps
                     //  requiring top level contexts to implement a trait
                     //  `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
                     "INTERNAL".to_owned(),
@@ -581,7 +581,7 @@ async fn load_external_entity_type<S, A>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     Json(request): Json<LoadExternalEntityTypeRequest>,
-    // @todo We want to be able to return `Status` here we should try and create a general way to
+    // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
 ) -> Result<Json<EntityTypeMetadata>, Response>
 where
@@ -617,10 +617,10 @@ where
                         .to_owned(),
                 ),
                 vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                    // @todo add information from the report here
-                    // @see https://linear.app/hash/issue/H-3009
+                    // TODO: add information from the report here
+                    //   See https://linear.app/hash/issue/H-3009
                     HashMap::new(),
-                    // @todo We should encapsulate these Reasons within the type system, perhaps
+                    // TODO: We should encapsulate these Reasons within the type system, perhaps
                     //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
                     //  or perhaps as a big enum, or as an attachment
                     "STORE_ACQUISITION_FAILURE".to_owned(),
@@ -638,7 +638,7 @@ where
                 )
                 .await?
             else {
-                // @todo Make the type fetcher typed
+                // TODO: Make the type fetcher typed
                 panic!("`load_external_type` should have returned a `EntityTypeMetadata`");
             };
             Ok(Json(metadata))
@@ -875,10 +875,10 @@ where
 
     let entity_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
-        // Shame there isn't an UNPROCESSABLE_ENTITY_TYPE code :D
+        // TODO: Consider an UNPROCESSABLE_ENTITY_TYPE code?
         StatusCode::UNPROCESSABLE_ENTITY
-        // @todo We should probably return more information to the client
-        // https://linear.app/hash/issue/H-3009
+        // TODO: We should probably return more information to the client
+        //   See https://linear.app/hash/issue/H-3009
     })?;
 
     let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
