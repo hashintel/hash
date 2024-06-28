@@ -10,7 +10,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     url::{BaseUrl, VersionedUrl},
-    Array, DataTypeReference, Object, OneOf, ValidateUrl, ValidationError, ValueOrArray,
+    ArraySchema, DataTypeReference, ObjectSchema, OneOfSchema, ValidateUrl, ValidationError,
+    ValueOrArray,
 };
 
 mod error;
@@ -105,8 +106,8 @@ impl ValidateUrl for PropertyTypeReference {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
-    PropertyTypeObject(Object<ValueOrArray<PropertyTypeReference>, 1>),
-    ArrayOfPropertyValues(Array<OneOf<PropertyValues>>),
+    PropertyTypeObject(ObjectSchema<ValueOrArray<PropertyTypeReference>, 1>),
+    ArrayOfPropertyValues(ArraySchema<OneOfSchema<PropertyValues>>),
 }
 
 impl PropertyValues {

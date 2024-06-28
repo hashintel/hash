@@ -6,8 +6,8 @@ use graph_types::knowledge::PropertyWithMetadata;
 use thiserror::Error;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
-    Array, DataType, JsonSchemaValueType, Object, OneOf, PropertyType, PropertyTypeReference,
-    PropertyValues, ValueOrArray,
+    ArraySchema, DataType, JsonSchemaValueType, ObjectSchema, OneOfSchema, PropertyType,
+    PropertyTypeReference, PropertyValues, ValueOrArray,
 };
 
 use crate::{
@@ -81,7 +81,7 @@ where
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
-        OneOf::new(self.one_of.clone())
+        OneOfSchema::new(self.one_of.clone())
             .expect("was validated before")
             .validate_value(value, components, provider)
             .await
@@ -148,7 +148,7 @@ where
     }
 }
 
-impl<V, P, S> Schema<[V], P> for Array<S>
+impl<V, P, S> Schema<[V], P> for ArraySchema<S>
 where
     V: Sync,
     P: Sync,
@@ -204,7 +204,7 @@ where
     }
 }
 
-impl<V, P, S> Schema<V, P> for OneOf<S>
+impl<V, P, S> Schema<V, P> for OneOfSchema<S>
 where
     V: Sync,
     P: Sync,
@@ -264,7 +264,7 @@ where
 }
 
 impl<P, const MIN: usize> Schema<HashMap<BaseUrl, PropertyWithMetadata>, P>
-    for Object<ValueOrArray<PropertyTypeReference>, MIN>
+    for ObjectSchema<ValueOrArray<PropertyTypeReference>, MIN>
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {

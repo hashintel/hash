@@ -5,10 +5,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]
 use {tsify::Tsify, wasm_bindgen::prelude::*};
 
-use crate::{
-    ontology::raw::Array, raw, url::VersionedUrl, EntityTypeReference, OneOf, ParseLinksError,
-    ParseOneOfError,
-};
+use crate::{ontology::raw::ArraySchema, raw, url::VersionedUrl, ParseLinksError, ParseOneOfError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
@@ -18,11 +15,12 @@ pub struct Links {
         target_arch = "wasm32",
         tsify(
             optional,
-            type = "Record<VersionedUrl, Array<OneOf<EntityTypeReference>> | {}>"
+            type = "Record<VersionedUrl, ArraySchema<OneOfSchema<EntityTypeReference> | \
+                    Record<string, never>>>"
         )
     )]
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub links: HashMap<String, Array<MaybeOneOfEntityTypeReference>>,
+    pub links: HashMap<String, ArraySchema<MaybeOneOfEntityTypeReference>>,
 }
 
 impl TryFrom<Links> for super::Links {
@@ -60,28 +58,31 @@ impl From<super::Links> for Links {
 // Those structs can't apply serde's `default` or `skip_serializing_if` which means the option
 // doesn't de/serialize as required unless wrapped in an intermediary struct.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 pub struct MaybeOneOfEntityTypeReference {
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
-    inner: Option<raw::OneOf<raw::EntityTypeReference>>,
+    pub(crate) inner: Option<raw::OneOfSchema<raw::EntityTypeReference>>,
 }
 
 impl MaybeOneOfEntityTypeReference {
     #[must_use]
-    pub fn into_inner(self) -> Option<raw::OneOf<raw::EntityTypeReference>> {
+    pub fn into_inner(self) -> Option<raw::OneOfSchema<raw::EntityTypeReference>> {
         self.inner
     }
 }
 
-impl From<Option<OneOf<EntityTypeReference>>> for MaybeOneOfEntityTypeReference {
-    fn from(option: Option<OneOf<EntityTypeReference>>) -> Self {
+impl From<Option<super::OneOfSchema<super::EntityTypeReference>>>
+    for MaybeOneOfEntityTypeReference
+{
+    fn from(option: Option<super::OneOfSchema<super::EntityTypeReference>>) -> Self {
         Self {
             inner: option.map(core::convert::Into::into),
         }
     }
 }
 
-impl TryFrom<MaybeOneOfEntityTypeReference> for Option<OneOf<EntityTypeReference>> {
+impl TryFrom<MaybeOneOfEntityTypeReference>
+    for Option<super::OneOfSchema<super::EntityTypeReference>>
+{
     type Error = ParseOneOfError;
 
     fn try_from(value: MaybeOneOfEntityTypeReference) -> Result<Self, Self::Error> {
@@ -97,9 +98,64 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    // TODO - write some tests for validation of Link schemas, although most testing happens on
-    //  entity types
-    use crate::utils::tests::check_repr_serialization_from_value;
+    use crate::{
+        ontology::raw::{EntityTypeReference, OneOfSchema},
+        utils::tests::check_repr_serialization_from_value,
+    };
+
+    #[test]
+    fn empty() {
+        check_repr_serialization_from_value::<Links>(
+            json!({}),
+            Some(Links {
+                links: HashMap::new(),
+            }),
+        );
+    }
+
+    #[test]
+    fn unconstrained() {
+        check_repr_serialization_from_value::<Links>(
+            json!({ "links": {
+                "https://example.com/@example-org/types/entity-type/friend-of/v/1": {
+                    "type": "array",
+                    "items": {},
+                },
+            } }),
+            Some(Links {
+                links: HashMap::from([(
+                    "https://example.com/@example-org/types/entity-type/friend-of/v/1".to_owned(),
+                    ArraySchema::new(MaybeOneOfEntityTypeReference { inner: None }, None, None),
+                )]),
+            }),
+        );
+    }
+
+    #[test]
+    fn constrained() {
+        check_repr_serialization_from_value::<Links>(
+            json!({ "links": {
+                "https://example.com/@example-org/types/entity-type/friend-of/v/1": {
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            { "$ref": "https://example.com/@example-org/types/entity-type/person/v/1" },
+                        ],
+                    },
+                },
+            } }),
+            Some(Links {
+                links: HashMap::from([(
+                    "https://example.com/@example-org/types/entity-type/friend-of/v/1".to_owned(),
+                    ArraySchema::new(MaybeOneOfEntityTypeReference { inner: Some(OneOfSchema {
+                        possibilities: vec![EntityTypeReference {
+                         url:   "https://example.com/@example-org/types/entity-type/person/v/1".to_owned(),
+                        }]},
+                      )}, None, None),
+                )]),
+            }),
+        );
+    }
 
     #[test]
     #[expect(

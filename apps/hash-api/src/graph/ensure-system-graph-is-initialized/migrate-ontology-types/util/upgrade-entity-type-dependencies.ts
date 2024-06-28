@@ -55,18 +55,17 @@ export const upgradeEntityTypeDependencies = ({
     >((accumulator, [uncheckedLinkTypeId, linkSchema]) => {
       const schemaWithUpdatedDestinations = {
         ...linkSchema,
-        items: {
-          ...linkSchema.items,
-          oneOf:
-            "oneOf" in linkSchema.items
-              ? linkSchema.items.oneOf.map((reference) =>
+        items:
+          "oneOf" in linkSchema.items
+            ? {
+                oneOf: linkSchema.items.oneOf.map((reference) =>
                   replaceEntityTypeReference({
                     reference,
                     upgradedEntityTypeIds,
                   }),
-                )
-              : linkSchema.items,
-        },
+                ) as [EntityTypeReference, ...EntityTypeReference[]],
+              }
+            : linkSchema.items,
       };
 
       let linkTypeId = uncheckedLinkTypeId;

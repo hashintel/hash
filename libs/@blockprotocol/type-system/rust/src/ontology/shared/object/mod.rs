@@ -6,12 +6,12 @@ use std::collections::{HashMap, HashSet};
 use crate::{url::BaseUrl, ValidateUrl, ValidationError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Object<T, const MIN: usize = 0> {
+pub struct ObjectSchema<T, const MIN: usize = 0> {
     pub(crate) properties: HashMap<BaseUrl, T>,
     pub(crate) required: HashSet<BaseUrl>,
 }
 
-impl<T: ValidateUrl, const MIN: usize> Object<T, MIN> {
+impl<T: ValidateUrl, const MIN: usize> ObjectSchema<T, MIN> {
     /// Creates a new `Object` with the given properties and required properties.
     ///
     /// # Errors
@@ -52,7 +52,7 @@ impl<T: ValidateUrl, const MIN: usize> Object<T, MIN> {
     }
 }
 
-impl<T, const MIN: usize> Object<T, MIN> {
+impl<T, const MIN: usize> ObjectSchema<T, MIN> {
     /// Creates a new `Object` without validating.
     #[must_use]
     pub const fn new_unchecked(
@@ -76,7 +76,7 @@ impl<T, const MIN: usize> Object<T, MIN> {
     }
 }
 
-impl<T, const MIN: usize> Extend<Self> for Object<T, MIN> {
+impl<T, const MIN: usize> Extend<Self> for ObjectSchema<T, MIN> {
     fn extend<I: IntoIterator<Item = Self>>(&mut self, iter: I) {
         for property_object in iter {
             // TODO: We want to merge properties and bail on conflicting properties, however, we
@@ -91,7 +91,7 @@ impl<T, const MIN: usize> Extend<Self> for Object<T, MIN> {
     }
 }
 
-impl<T, const MIN: usize> FromIterator<Self> for Object<T, MIN> {
+impl<T, const MIN: usize> FromIterator<Self> for ObjectSchema<T, MIN> {
     fn from_iter<I: IntoIterator<Item = Self>>(iter: I) -> Self {
         let mut default = Self::default();
         default.extend(iter);
@@ -99,7 +99,7 @@ impl<T, const MIN: usize> FromIterator<Self> for Object<T, MIN> {
     }
 }
 
-impl<T, const MIN: usize> Default for Object<T, MIN> {
+impl<T, const MIN: usize> Default for ObjectSchema<T, MIN> {
     fn default() -> Self {
         Self {
             properties: HashMap::new(),
@@ -120,8 +120,8 @@ mod tests {
         ParsePropertyTypeObjectError, PropertyTypeReference, ValueOrArray,
     };
 
-    type ObjectRepr = raw::Object<raw::ValueOrArray<raw::PropertyTypeReference>>;
-    type Object = super::Object<ValueOrArray<PropertyTypeReference>, 1>;
+    type ObjectRepr = raw::ObjectSchema<raw::ValueOrArray<raw::PropertyTypeReference>>;
+    type Object = super::ObjectSchema<ValueOrArray<PropertyTypeReference>, 1>;
 
     #[test]
     fn empty() {

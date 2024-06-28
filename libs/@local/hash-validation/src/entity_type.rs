@@ -11,7 +11,7 @@ use graph_types::knowledge::{
 use thiserror::Error;
 use type_system::{
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    ClosedEntityType, DataType, Object, PropertyType,
+    ClosedEntityType, DataType, ObjectSchema, PropertyType,
 };
 
 use crate::{
@@ -67,7 +67,7 @@ where
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
-        Object::<_, 0>::new(self.properties.clone(), self.required.clone())
+        ObjectSchema::<_, 0>::new(self.properties.clone(), self.required.clone())
             .expect("`Object` was already validated")
             .validate_value(&value.value, components, provider)
             .await

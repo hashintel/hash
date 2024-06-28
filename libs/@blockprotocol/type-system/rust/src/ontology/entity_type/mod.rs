@@ -20,7 +20,7 @@ pub use self::{
 };
 use crate::{
     url::{BaseUrl, VersionedUrl},
-    AllOf, Links, Object, PropertyTypeReference, ValidateUrl, ValidationError, ValueOrArray,
+    AllOf, Links, ObjectSchema, PropertyTypeReference, ValidateUrl, ValidationError, ValueOrArray,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

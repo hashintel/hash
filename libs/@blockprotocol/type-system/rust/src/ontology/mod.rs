@@ -28,10 +28,10 @@ pub use shared::{
             ParseEntityTypeReferenceArrayError, ParseOneOfArrayError,
             ParsePropertyTypeReferenceArrayError,
         },
-        Array, ValueOrArray,
+        ArraySchema, ValueOrArray,
     },
-    object::{error::ParsePropertyTypeObjectError, Object},
-    one_of::{error::ParseOneOfError, OneOf},
+    object::{error::ParsePropertyTypeObjectError, ObjectSchema},
+    one_of::{error::ParseOneOfError, OneOfSchema},
     validate::{ValidateUrl, ValidationError},
 };
 
@@ -49,9 +49,9 @@ pub(crate) mod raw {
         property_type::raw::{PropertyType, PropertyTypeReference, PropertyValues},
         shared::{
             all_of::raw::AllOf,
-            array::raw::{Array, ValueOrArray},
-            object::raw::Object,
-            one_of::raw::OneOf,
+            array::raw::{ArraySchema, ValueOrArray},
+            object::raw::ObjectSchema,
+            one_of::raw::OneOfSchema,
         },
     };
 }

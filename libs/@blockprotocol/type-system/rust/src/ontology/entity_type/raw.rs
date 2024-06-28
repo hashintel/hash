@@ -47,7 +47,7 @@ pub struct EntityType {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub examples: Vec<HashMap<String, serde_json::Value>>,
     #[serde(flatten)]
-    pub property_object: raw::Object<raw::ValueOrArray<raw::PropertyTypeReference>>,
+    pub property_object: raw::ObjectSchema<raw::ValueOrArray<raw::PropertyTypeReference>>,
     #[serde(flatten)]
     pub links: raw::Links,
 }
@@ -82,8 +82,9 @@ impl TryFrom<EntityType> for super::EntityType {
             })
             .collect::<Result<_, _>>()?;
 
-        let property_object = super::Object::<_, 0>::try_from(entity_type_repr.property_object)
-            .map_err(ParseEntityTypeError::InvalidPropertyTypeObject)?;
+        let property_object =
+            super::ObjectSchema::<_, 0>::try_from(entity_type_repr.property_object)
+                .map_err(ParseEntityTypeError::InvalidPropertyTypeObject)?;
 
         let inherits_from = super::AllOf::try_from(entity_type_repr.all_of)
             .map_err(ParseEntityTypeError::InvalidAllOf)?;
@@ -123,7 +124,7 @@ impl From<super::EntityType> for EntityType {
             id: entity_type.id.to_string(),
             title: entity_type.title,
             description: entity_type.description,
-            property_object: super::Object::<_, 0> {
+            property_object: super::ObjectSchema::<_, 0> {
                 properties: entity_type.properties,
                 required: entity_type.required,
             }

@@ -39,7 +39,7 @@ pub struct PropertyType {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     #[serde(flatten)]
-    one_of: raw::OneOf<PropertyValues>,
+    one_of: raw::OneOfSchema<PropertyValues>,
 }
 
 impl TryFrom<PropertyType> for super::PropertyType {
@@ -59,7 +59,7 @@ impl TryFrom<PropertyType> for super::PropertyType {
             id,
             title: property_type_repr.title,
             description: property_type_repr.description,
-            one_of: super::OneOf::try_from(property_type_repr.one_of)
+            one_of: super::OneOfSchema::try_from(property_type_repr.one_of)
                 .map_err(|err| ParsePropertyTypeError::InvalidOneOf(Box::new(err)))?
                 .possibilities,
         })
@@ -74,7 +74,7 @@ impl From<super::PropertyType> for PropertyType {
             id: property_type.id.to_string(),
             title: property_type.title,
             description: property_type.description,
-            one_of: super::OneOf {
+            one_of: super::OneOfSchema {
                 possibilities: property_type.one_of,
             }
             .into(),
@@ -121,13 +121,8 @@ impl From<super::PropertyTypeReference> for PropertyTypeReference {
 #[serde(untagged)]
 pub enum PropertyValues {
     DataTypeReference(raw::DataTypeReference),
-    PropertyTypeObject(raw::Object<raw::ValueOrArray<PropertyTypeReference>>),
-    ArrayOfPropertyValues(
-        // This is a hack, currently recursive enums seem to break tsify
-        // https://github.com/madonoharu/tsify/issues/5
-        #[cfg_attr(target_arch = "wasm32", tsify(type = "Array<OneOf<PropertyValues>>"))]
-        raw::Array<raw::OneOf<PropertyValues>>,
-    ),
+    PropertyTypeObject(raw::ObjectSchema<raw::ValueOrArray<PropertyTypeReference>>),
+    ArrayOfPropertyValues(raw::ArraySchema<raw::OneOfSchema<PropertyValues>>),
 }
 
 impl TryFrom<PropertyValues> for super::PropertyValues {

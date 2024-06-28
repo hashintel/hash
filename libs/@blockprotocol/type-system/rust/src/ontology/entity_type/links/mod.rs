@@ -6,23 +6,27 @@ use std::collections::{hash_map::Entry, HashMap};
 pub use error::ParseLinksError;
 use serde::{Deserialize, Serialize};
 
-use crate::{url::VersionedUrl, Array, EntityTypeReference, OneOf};
+use crate::{url::VersionedUrl, ArraySchema, EntityTypeReference, OneOfSchema};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "raw::Links", into = "raw::Links")]
-pub struct Links(pub(crate) HashMap<VersionedUrl, Array<Option<OneOf<EntityTypeReference>>>>);
+pub struct Links(
+    pub(crate) HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>,
+);
 
 impl Links {
     /// Creates a new `Links` object.
     #[must_use]
     pub const fn new(
-        links: HashMap<VersionedUrl, Array<Option<OneOf<EntityTypeReference>>>>,
+        links: HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>,
     ) -> Self {
         Self(links)
     }
 
     #[must_use]
-    pub const fn links(&self) -> &HashMap<VersionedUrl, Array<Option<OneOf<EntityTypeReference>>>> {
+    pub const fn links(
+        &self,
+    ) -> &HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>> {
         &self.0
     }
 }

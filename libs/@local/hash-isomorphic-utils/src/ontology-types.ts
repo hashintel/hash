@@ -1,5 +1,7 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityTypeReference } from "@blockprotocol/type-system/dist/cjs";
+import type {
+  EntityTypeReference,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { EntityType } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -97,13 +99,7 @@ export const generateLinkMapWithConsistentSelfReferences = (
       const schemaWithConsistentSelfReferences = {
         ...linkSchema,
         items:
-          /**
-           * @todo remove array check when it's no longer possible for  the value of
-           * `oneOf` to be `{}`
-           *
-           * @see https://linear.app/hash/issue/BP-74/omit-emtpy-oneof-and-allof-in-types
-           */
-          "oneOf" in linkSchema.items && Array.isArray(linkSchema.items.oneOf)
+          "oneOf" in linkSchema.items
             ? {
                 oneOf: linkSchema.items.oneOf.map((item) => {
                   const isSelfReference = item.$ref === currentEntityTypeId;
@@ -120,7 +116,7 @@ export const generateLinkMapWithConsistentSelfReferences = (
                   return item;
                 }) as [EntityTypeReference, ...EntityTypeReference[]],
               }
-            : {},
+            : linkSchema.items,
       };
 
       accumulator[linkTypeId] = schemaWithConsistentSelfReferences;
