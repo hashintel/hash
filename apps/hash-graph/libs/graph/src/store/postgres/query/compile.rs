@@ -941,7 +941,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 //       We, however, need to make sure, that we only alter a join statement with a
                 //       table we don't require anymore.
                 //       The following code is a first attempt at this, but it is not working yet.
-                //       See https://linear.app/hash/issue/H-3015
+                //   see https://linear.app/hash/issue/H-3015
                 // if let Some(last_join) = self.statement.joins.pop() {
                 //     // Check if we are joining on the same column as the previous join
                 //     if last_join.join == current_column

@@ -184,7 +184,7 @@ impl OutgoingEdgeResolveDepth {
 }
 
 // TODO: Add documentation for depths parameters
-//   https://linear.app/hash/issue/H-3018 (sub-task noted in desc)
+//   see https://linear.app/hash/issue/H-3018 (sub-task noted in desc)
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

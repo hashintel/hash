@@ -114,9 +114,9 @@ impl ValidateOntologyType<DataType> for DomainValidator {
         };
 
         // TODO: check that the user has write access to the shortname, this will require us
-        //   making the graph aware of shortnames. We can store them alongside accountIds. We should
-        //   not have to make the graph aware of User entities being a thing however.
-        //   See https://linear.app/hash/issue/H-3010
+        //       making the graph aware of shortnames. We can store them alongside accountIds. We
+        //       should not have to make the graph aware of User entities being a thing however.
+        //   see https://linear.app/hash/issue/H-3010
         Ok(())
     }
 }
@@ -145,9 +145,9 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
         };
 
         // TODO: check that the user has write access to the shortname, this will require us
-        //  making the graph aware of shortnames. We can store them alongside accountIds. We should
-        //  not have to make the graph aware of User entities being a thing however.
-        //  See https://linear.app/hash/issue/H-3010
+        //       making the graph aware of shortnames. We can store them alongside accountIds. We
+        //       should  not have to make the graph aware of User entities being a thing however.
+        //   see https://linear.app/hash/issue/H-3010
         Ok(())
     }
 }
@@ -175,9 +175,9 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
         };
 
         // TODO: check that the user has write access to the shortname, this will require us
-        //  making the graph aware of shortnames. We can store them alongside accountIds. We should
-        //  not have to make the graph aware of User entities being a thing however.
-        //  See https://linear.app/hash/issue/H-3010
+        //       making the graph aware of shortnames. We can store them alongside accountIds. We
+        //       should not have to make the graph aware of User entities being a thing however.
+        //   see https://linear.app/hash/issue/H-3010
         Ok(())
     }
 }

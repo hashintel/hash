@@ -5461,7 +5461,6 @@
       },
       "GraphResolveDepths": {
         "type": "object",
-        "description": "TODO: DOC - <https://linear.app/hash/issue/H-3018>",
         "required": [
           "inheritsFrom",
           "constrainsValuesOn",

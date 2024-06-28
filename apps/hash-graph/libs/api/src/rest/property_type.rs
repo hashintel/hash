@@ -574,7 +574,7 @@ where
         tracing::error!(error=?report, "Couldn't patch schema and convert to Property Type");
         StatusCode::UNPROCESSABLE_ENTITY
         // TODO: We should probably return more information to the client
-        //   See https://linear.app/hash/issue/H-3009
+        //   see https://linear.app/hash/issue/H-3009
     })?;
 
     let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
