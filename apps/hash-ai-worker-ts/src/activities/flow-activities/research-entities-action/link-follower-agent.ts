@@ -62,7 +62,7 @@ const exploreResource = async (params: {
       resource: ResourceToExplore;
       possibleNextLinks: Link[];
       inferredFacts: Fact[];
-      inferredFactsAboutEntities: LocalEntitySummary[];
+      inferredEntitySummaries: LocalEntitySummary[];
     }
   | {
       status: "not-explored";
@@ -220,7 +220,7 @@ const exploreResource = async (params: {
 
   const {
     facts: inferredFactsFromContent,
-    entitySummaries: inferredFactsAboutEntitiesFromContent,
+    entitySummaries: inferredEntitySummariesFromContent,
   } = await inferFactsFromText({
     text: content,
     /** @todo: consider whether this should be a dedicated input */
@@ -253,7 +253,7 @@ const exploreResource = async (params: {
     resource,
     possibleNextLinks: relevantLinksFromContent,
     inferredFacts: inferredFactsWithSource,
-    inferredFactsAboutEntities: inferredFactsAboutEntitiesFromContent,
+    inferredEntitySummaries: inferredEntitySummariesFromContent,
   };
 };
 
@@ -285,7 +285,7 @@ export const linkFollowerAgent = async (
 
     let possibleNextLinks: Link[] = [];
     const inferredFacts: Fact[] = [];
-    const inferredFactsAboutEntities: LocalEntitySummary[] = [];
+    const inferredEntitySummaries: LocalEntitySummary[] = [];
 
     for (const response of exploredResourcesResponses) {
       exploredResources.push(response.resource);
@@ -305,7 +305,7 @@ export const linkFollowerAgent = async (
         );
 
         inferredFacts.push(...response.inferredFacts);
-        inferredFactsAboutEntities.push(...response.inferredFactsAboutEntities);
+        inferredEntitySummaries.push(...response.inferredEntitySummaries);
       } else {
         logger.debug(
           `Resource at URL ${response.resource.url} not explored: ${response.reason}`,
@@ -313,26 +313,26 @@ export const linkFollowerAgent = async (
       }
     }
 
-    if (inferredFactsAboutEntities.length > 0) {
+    if (inferredEntitySummaries.length > 0) {
       if (allEntitySummaries.length === 0 && resourcesToExplore.length === 1) {
         /**
          * If we previously haven't encountered any entities, and we only explored
          * a single resource, we can safely assume that any entities inferred
          * are unique and don't require deduplication.
          */
-        allEntitySummaries.push(...inferredFactsAboutEntities);
+        allEntitySummaries.push(...inferredEntitySummaries);
         allFacts.push(...inferredFacts);
       } else {
         /**
          * Otherwise we need to deduplicate the entities.
          */
         const { duplicates } = await deduplicateEntities({
-          entities: [...inferredFactsAboutEntities, ...allEntitySummaries],
+          entities: [...inferredEntitySummaries, ...allEntitySummaries],
         });
 
         allEntitySummaries = [
           ...allEntitySummaries,
-          ...inferredFactsAboutEntities,
+          ...inferredEntitySummaries,
         ].filter(
           ({ localId }) =>
             !duplicates.some(({ duplicateIds }) =>
