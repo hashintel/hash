@@ -88,6 +88,7 @@ const exploreResource = async (params: {
   });
 
   let content = "";
+  let resourceTitle: string | undefined = undefined;
 
   if (isResourcePdfFile) {
     const { vectorStoreIndex } = await indexPdfFile({
@@ -188,6 +189,8 @@ const exploreResource = async (params: {
       sanitizeForLlm: true,
     });
 
+    resourceTitle = webPage.title;
+
     logProgress([
       {
         recordedAt: new Date().toISOString(),
@@ -250,13 +253,28 @@ const exploreResource = async (params: {
     type: isResourcePdfFile ? SourceType.Document : SourceType.Webpage,
     location: {
       uri: resource.url,
-      /** @todo */
-      name: undefined,
+      /**
+       * @todo: extract the title from the PDF file using a pdf parsing package or an LLM.
+       */
+      name: resourceTitle,
+      /**
+       * @todo: generate a description of the resource via an LLM. Alternatively the
+       * `descriptionOfExpectedContent` of the resource could be used, but this is
+       * imperfect as it was not generated based on the content of the resource.
+       */
       description: undefined,
     },
     loadedAt: new Date().toISOString(),
-    /** @todo */
+    /**
+     * @todo: extract the authors of the resource via an LLM, if these are specified
+     * in teh content.
+     */
     authors: undefined,
+    /**
+     * @todo: extract the publication date and last updated date of the resource
+     * from the content via an LLM if it is specified, or in the case of web-pages this may be specified in the
+     * HTML headers of the web-page.
+     */
     firstPublished: undefined,
     lastUpdated: undefined,
   };
