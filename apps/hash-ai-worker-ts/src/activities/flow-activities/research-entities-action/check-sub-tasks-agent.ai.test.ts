@@ -39,11 +39,9 @@ test.skip(
         previousCalls: [],
         inferredFactsAboutEntities: [],
         inferredFacts: [],
-        filesUsedToInferFacts: [],
         proposedEntities: [],
         submittedEntityIds: [],
         hasConductedCheckStep: false,
-        filesUsedToProposeEntities: [],
         questionsAndAnswers: null,
       },
       subTasks: [

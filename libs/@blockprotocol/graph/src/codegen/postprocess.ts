@@ -1,14 +1,15 @@
-import type { PostprocessContext } from "./context/postprocess.js";
-import { allocateTypesToFiles } from "./postprocess/allocate-types-to-files.js";
-import { appendIdentifierDefinitionsToFileContents } from "./postprocess/append-identifier-definitions-to-file-contents.js";
-import { generateBlockEntityTypeAliases } from "./postprocess/generate-block-entity-type-aliases.js";
+import type { PostprocessContext } from "./context/postprocess";
+import { addMetadataDependenciesToFiles } from "./postprocess/add-metadata-dependencies-to-files";
+import { allocateTypesToFiles } from "./postprocess/allocate-types-to-files";
+import { appendIdentifierDefinitionsToFileContents } from "./postprocess/append-identifier-definitions-to-file-contents";
+import { generateBlockEntityTypeAliases } from "./postprocess/generate-block-entity-type-aliases";
 import { generateBlockLinkTargetAliases } from "./postprocess/generate-block-link-target-aliases";
-import { generateEntityDefinitions } from "./postprocess/generate-entity-definitions.js";
-import { generateLinkAndTargetDefinitions } from "./postprocess/generate-link-and-target-definitions.js";
-import { prepareFileContents } from "./postprocess/prepare-file-contents.js";
-import { prependBannerComments } from "./postprocess/prepend-banner-comments.js";
-import { prependImportsAndExports } from "./postprocess/prepend-imports-and-exports.js";
-import { writeToFiles } from "./postprocess/write-to-files.js";
+import { generateEntityDefinitions } from "./postprocess/generate-entity-definitions";
+import { generateLinkAndTargetDefinitions } from "./postprocess/generate-link-and-target-definitions";
+import { prepareFileContents } from "./postprocess/prepare-file-contents";
+import { prependBannerComments } from "./postprocess/prepend-banner-comments";
+import { prependImportsAndExports } from "./postprocess/prepend-imports-and-exports";
+import { writeToFiles } from "./postprocess/write-to-files";
 
 export const postprocess = async (context: PostprocessContext) => {
   allocateTypesToFiles(context);
@@ -18,6 +19,7 @@ export const postprocess = async (context: PostprocessContext) => {
   generateBlockEntityTypeAliases(context);
   generateBlockLinkTargetAliases(context);
   appendIdentifierDefinitionsToFileContents(context);
+  addMetadataDependenciesToFiles(context);
   prependImportsAndExports(context);
   prependBannerComments(context);
 

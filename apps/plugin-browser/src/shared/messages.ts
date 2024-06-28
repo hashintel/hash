@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";

@@ -17,7 +17,7 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@playwright/test": "1.44.1",
+    "@playwright/test": "1.45.0",
     "eslint": "8.57.0",
     "execa": "5.1.1",
     "graphql": "16.8.1",
@@ -29,6 +29,6 @@
     "@apps/hash-realtime": "0.0.0-private",
     "@apps/hash-search-loader": "0.0.0-private",
     "@apps/plugin-browser": "0.0.8",
-    "@blockprotocol/graph": "0.3.4"
+    "@blockprotocol/graph": "0.4.0-canary.0"
   }
 }

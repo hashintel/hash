@@ -2,7 +2,7 @@ import type {
   BlockGraphProperties,
   GraphEmbedderMessageCallbacks,
   Subgraph as BpSubgraph,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Entity } from "@local/hash-graph-sdk/entity";

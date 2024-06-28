@@ -3,7 +3,7 @@ import type {
   EntityRecordId as EntityRecordIdBp,
   EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
   LinkData as LinkDataBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
@@ -160,6 +160,8 @@ export const isObjectMetadata = (
   metadata: PropertyMetadata,
 ): metadata is PropertyMetadataObject =>
   !isValueMetadata(metadata) && !Array.isArray(metadata.value);
+
+export type Confidence = number;
 
 /**
  * A compound type that contains both the value and the metadata of a property

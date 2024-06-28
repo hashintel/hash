@@ -13,6 +13,7 @@ import {
 } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import {
   goalFlowDefinition,
+  goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
   goalFlowDefinitionWithReportDeliverable,
   goalFlowDefinitionWithSpreadsheetDeliverable,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
@@ -40,6 +41,7 @@ const exampleFlows: FlowDefinition[] = [
   goalFlowDefinition,
   goalFlowDefinitionWithReportDeliverable,
   goalFlowDefinitionWithSpreadsheetDeliverable,
+  goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
 ];
 
 export const FlowDefinitionsContextProvider = ({

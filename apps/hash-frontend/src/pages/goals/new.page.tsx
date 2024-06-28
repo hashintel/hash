@@ -7,17 +7,19 @@ import {
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import type {
-  GoalFlowTriggerInput,
-  GoogleSheetTriggerInput,
-  ReportTriggerInput,
-} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import {
   goalFlowDefinition,
+  goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
   goalFlowDefinitionWithReportDeliverable,
   goalFlowDefinitionWithSpreadsheetDeliverable,
+  type GoalFlowTriggerInput,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
+import type { GoogleSheetTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions/google-sheets";
+import type { ReportTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions/markdown-report";
+import type {
+  FlowDefinition,
+  StepOutput,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import {
   autocompleteClasses,
@@ -196,12 +198,40 @@ const NewGoalPageContent = () => {
       },
     ];
 
-    /**
-     * @todo handle flows with multiple deliverables – probably need to dynamically generate the definition,
-     *   and have an explicit flag for 'goal' definitions rather than relying on a static set of flowDefinitionIds
-     */
-    let flowDefinition = goalFlowDefinition;
-    if (deliverablesSettings.document) {
+    let flowDefinition: FlowDefinition = goalFlowDefinition;
+    if (deliverablesSettings.document && deliverablesSettings.spreadsheet) {
+      if (
+        !deliverablesSettings.document.brief ||
+        !deliverablesSettings.spreadsheet.googleSheet ||
+        !deliverablesSettings.spreadsheet.googleAccountId
+      ) {
+        return;
+      }
+      triggerOutputs.push(
+        {
+          outputName: "Report specification" satisfies ReportTriggerInput,
+          payload: {
+            kind: "Text",
+            value: `Produce a Markdown-formatted report on the following: ${deliverablesSettings.document.brief}`,
+          },
+        },
+        {
+          outputName: "Google Sheet" satisfies GoogleSheetTriggerInput,
+          payload: {
+            kind: "GoogleSheet",
+            value: deliverablesSettings.spreadsheet.googleSheet,
+          },
+        },
+        {
+          outputName: "Google Account" satisfies GoogleSheetTriggerInput,
+          payload: {
+            kind: "GoogleAccountId",
+            value: deliverablesSettings.spreadsheet.googleAccountId,
+          },
+        },
+      );
+      flowDefinition = goalFlowDefinitionWithReportAndSpreadsheetDeliverable;
+    } else if (deliverablesSettings.document) {
       if (!deliverablesSettings.document.brief) {
         return;
       }
@@ -220,20 +250,22 @@ const NewGoalPageContent = () => {
       ) {
         return;
       }
-      triggerOutputs.push({
-        outputName: "Google Sheet" satisfies GoogleSheetTriggerInput,
-        payload: {
-          kind: "GoogleSheet",
-          value: deliverablesSettings.spreadsheet.googleSheet,
+      triggerOutputs.push(
+        {
+          outputName: "Google Sheet" satisfies GoogleSheetTriggerInput,
+          payload: {
+            kind: "GoogleSheet",
+            value: deliverablesSettings.spreadsheet.googleSheet,
+          },
         },
-      });
-      triggerOutputs.push({
-        outputName: "Google Account" satisfies GoogleSheetTriggerInput,
-        payload: {
-          kind: "GoogleAccountId",
-          value: deliverablesSettings.spreadsheet.googleAccountId,
+        {
+          outputName: "Google Account" satisfies GoogleSheetTriggerInput,
+          payload: {
+            kind: "GoogleAccountId",
+            value: deliverablesSettings.spreadsheet.googleAccountId,
+          },
         },
-      });
+      );
       flowDefinition = goalFlowDefinitionWithSpreadsheetDeliverable;
     }
 
