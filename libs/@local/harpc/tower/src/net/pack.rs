@@ -1,7 +1,7 @@
 use core::{
     ops::ControlFlow,
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll},
 };
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};

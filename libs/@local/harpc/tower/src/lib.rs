@@ -5,10 +5,13 @@
     min_exhaustive_patterns,
     control_flow_enum
 )]
+#![cfg_attr(test, feature(noop_waker, assert_matches))]
+
+pub use self::extensions::Extensions;
 
 pub mod body;
 pub mod either;
-pub mod extensions;
+pub(crate) mod extensions;
 pub mod layer;
 pub mod net;
 pub mod request;

@@ -6,7 +6,7 @@
 ///
 /// * 0 for `lower`
 /// * `None` for `upper`.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct SizeHint {
     lower: u64,
     upper: Option<u64>,
