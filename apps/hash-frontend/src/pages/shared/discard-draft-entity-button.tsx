@@ -1,6 +1,8 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
@@ -21,6 +23,13 @@ import { useNotificationEntities } from "../../shared/notification-entities-cont
 import type { ButtonProps } from "../../shared/ui";
 import { Button } from "../../shared/ui";
 import { useNotificationsWithLinks } from "./notifications-with-links-context";
+
+const stripDraftIdFromEntityId = (entityId: EntityId) => {
+  return entityId
+    .split(ENTITY_ID_DELIMITER)
+    .slice(0, 2)
+    .join(ENTITY_ID_DELIMITER) as EntityId;
+};
 
 export const DiscardDraftEntityButton: FunctionComponent<
   {
@@ -71,13 +80,11 @@ export const DiscardDraftEntityButton: FunctionComponent<
   const discardDraftEntity = useCallback(
     async (params: { draftEntity: Entity }) => {
       await archiveRelatedNotifications(params);
-
       await archiveEntity({
         variables: {
           entityId: params.draftEntity.metadata.recordId.entityId,
         },
       });
-
       await refetchDraftEntities();
     },
     [archiveEntity, archiveRelatedNotifications, refetchDraftEntities],
@@ -90,20 +97,25 @@ export const DiscardDraftEntityButton: FunctionComponent<
 
   const isLinkEntity = !!draftEntity.linkData;
 
+  const draftEntityIdWithoutDraftId = useMemo(
+    () => stripDraftIdFromEntityId(draftEntity.metadata.recordId.entityId),
+    [draftEntity],
+  );
+
   const incomingDraftLinks = useMemo(
     () =>
       isLinkEntity
         ? undefined
         : getIncomingLinksForEntity(
             draftEntitySubgraph,
-            draftEntity.metadata.recordId.entityId,
+            draftEntityIdWithoutDraftId,
           ).filter(
             (linkEntity) =>
               !!extractDraftIdFromEntityId(
                 linkEntity.metadata.recordId.entityId,
               ),
           ),
-    [draftEntitySubgraph, draftEntity, isLinkEntity],
+    [draftEntitySubgraph, draftEntityIdWithoutDraftId, isLinkEntity],
   );
 
   const outgoingDraftLinks = useMemo(
@@ -112,14 +124,14 @@ export const DiscardDraftEntityButton: FunctionComponent<
         ? undefined
         : getOutgoingLinksForEntity(
             draftEntitySubgraph,
-            draftEntity.metadata.recordId.entityId,
+            draftEntityIdWithoutDraftId,
           ).filter(
             (linkEntity) =>
               !!extractDraftIdFromEntityId(
                 linkEntity.metadata.recordId.entityId,
               ),
           ),
-    [draftEntitySubgraph, draftEntity, isLinkEntity],
+    [draftEntitySubgraph, draftEntityIdWithoutDraftId, isLinkEntity],
   );
 
   const hasIncomingOrOutgoingDraftLinks = useMemo(
