@@ -305,7 +305,7 @@ export const DraftEntities: FunctionComponent<{
           <Typography textAlign="center">
             {draftEntitiesWithCreators?.length === 0
               ? "You have no drafts currently awaiting review."
-              : "No draft entities match the selected filters."}
+              : "No items entities match the selected filters."}
           </Typography>
         ) : (
           <>

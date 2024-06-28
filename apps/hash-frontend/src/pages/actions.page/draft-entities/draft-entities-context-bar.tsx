@@ -135,7 +135,7 @@ export const DraftEntitiesContextBar: FunctionComponent<{
             textTransform: "uppercase",
           }}
         >
-          {selectedDraftEntityIds.length} drafts{" "}
+          {selectedDraftEntityIds.length} items{" "}
           <Box
             component="span"
             sx={{
@@ -147,7 +147,6 @@ export const DraftEntitiesContextBar: FunctionComponent<{
             hasPartiallySelectedMatchingDraftEntities
               ? " (all on this page)"
               : ""}
-            .
           </Box>
         </Typography>
         {hasPartiallySelectedDisplayedDraftEntities ? (
@@ -165,7 +164,7 @@ export const DraftEntitiesContextBar: FunctionComponent<{
             endIcon={<CheckRegularIcon />}
           >
             Select all {matchingDraftEntities.length}{" "}
-            {isDefaultFilterState ? "drafts" : "matching current filters"}
+            {isDefaultFilterState ? "items" : "matching current filters"}
           </SelectAdditionalButton>
         ) : null}
       </Box>
@@ -178,7 +177,7 @@ export const DraftEntitiesContextBar: FunctionComponent<{
       >
         {matchingDraftEntities?.length}
         {isDisplayingAllDraftEntities ? " " : " matching "}
-        drafts
+        items
       </Typography>
     </Box>
   );
