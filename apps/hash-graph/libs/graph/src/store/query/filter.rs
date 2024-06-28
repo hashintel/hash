@@ -415,12 +415,12 @@ impl Parameter<'_> {
                 *self = Parameter::Text(Cow::Owned(string.clone()));
             }
             (Parameter::Text(_base_url), ParameterType::BaseUrl) => {
-                // @todo validate base url
-                // @see https://linear.app/hash/issue/H-3016
+                // TODO: validate base url
+                //   see https://linear.app/hash/issue/H-3016
             }
             (Parameter::Text(_versioned_url), ParameterType::VersionedUrl) => {
-                // @todo validate versioned url
-                // @see https://linear.app/hash/issue/H-3016
+                // TODO: validate versioned url
+                //   see https://linear.app/hash/issue/H-3016
             }
             (Parameter::Text(text), ParameterType::Uuid) => {
                 *self = Parameter::Uuid(Uuid::from_str(&*text).change_context_lazy(|| {
