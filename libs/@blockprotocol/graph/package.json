@@ -24,76 +24,40 @@
   },
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/cjs/main.d.ts",
-      "require": "./dist/cjs/main.cjs",
-      "import": "./dist/es/main.js"
-    },
-    "./codegen": {
-      "types": "./dist/cjs/codegen.d.ts",
-      "require": "./dist/cjs/codegen.cjs",
-      "import": "./dist/es/codegen.js"
-    },
-    "./custom-element": {
-      "types": "./dist/cjs/custom-element.d.ts",
-      "require": "./dist/cjs/custom-element.cjs",
-      "import": "./dist/es/custom-element.js"
-    },
-    "./graph-module-json": {
-      "types": "./dist/cjs/graph-module-json.d.ts",
-      "require": "./dist/cjs/graph-module-json.cjs",
-      "import": "./dist/es/graph-module-json.js"
-    },
-    "./internal": {
-      "types": "./dist/cjs/internal.d.ts",
-      "require": "./dist/cjs/internal.cjs",
-      "import": "./dist/es/internal.js"
-    },
-    "./react": {
-      "types": "./dist/cjs/react.d.ts",
-      "require": "./dist/cjs/react.cjs",
-      "import": "./dist/es/react.js"
-    },
-    "./stdlib": {
-      "types": "./dist/cjs/stdlib.d.ts",
-      "require": "./dist/cjs/stdlib.cjs",
-      "import": "./dist/es/stdlib.js"
-    }
+    ".": "./src/main.ts",
+    "./codegen": "./src/codegen.ts",
+    "./custom-element": "./src/custom-element.ts",
+    "./graph-module-json": "./src/graph-module-json.ts",
+    "./internal": "./src/internal.ts",
+    "./react": "./src/react.ts",
+    "./stdlib": "./src/stdlib.ts"
   },
-  "module": "./dist/es/main.js",
-  "types": "./dist/cjs/main.d.ts",
   "typesVersions": {
     "*": {
       ".": [
-        "./dist/cjs/main.d.ts"
+        "./src/main.ts"
       ],
       "codegen": [
-        "./dist/cjs/codegen.d.ts"
+        "./src/codegen.ts"
       ],
       "custom-element": [
-        "./dist/cjs/custom-element.d.ts"
+        "./src/custom-element.ts"
       ],
       "graph-module-json": [
-        "./dist/cjs/graph-module-json.d.ts"
+        "./src/graph-module-json.ts"
       ],
       "internal": [
-        "./dist/cjs/internal.d.ts"
+        "./src/internal.ts"
       ],
       "react": [
-        "./dist/cjs/react.d.ts"
+        "./src/react.ts"
       ],
       "stdlib": [
-        "./dist/cjs/stdlib.d.ts"
+        "./src/stdlib.ts"
       ]
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
-    "build": "yarn clean && yarn build:bundle",
-    "build:bundle": "node --max-old-space-size=8192 ../../../node_modules/rollup/dist/bin/rollup -c --bundleConfigAsCjs",
-    "clean": "rimraf ./dist/",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
@@ -111,15 +75,10 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@rollup/plugin-commonjs": "25.0.7",
-    "@rollup/plugin-json": "6.1.0",
-    "@rollup/plugin-typescript": "11.1.6",
     "@types/lodash.isequal": "4.5.8",
     "@types/node": "20.12.3",
     "@types/react": "18.2.68",
-    "eslint": "8.57.0",
-    "rimraf": "5.0.7",
-    "rollup": "4.12.0"
+    "eslint": "8.57.0"
   },
   "peerDependencies": {
     "react": "^18.0.0"
