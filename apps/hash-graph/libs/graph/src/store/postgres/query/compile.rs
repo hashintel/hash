@@ -933,7 +933,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     },
                 );
 
-                // @todo If we join on the same column as the previous join, we can reuse the that
+                // TODO: If we join on the same column as the previous join, we can reuse the that
                 //       join. For example, if we join on
                 //       `entities.entity_type_ontology_id = entity_type.ontology_id` and then on
                 //       `entity_type.ontology_id = ontology_ids.ontology_id`, we can merge the two
@@ -941,7 +941,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 //       We, however, need to make sure, that we only alter a join statement with a
                 //       table we don't require anymore.
                 //       The following code is a first attempt at this, but it is not working yet.
-                // @see https://linear.app/hash/issue/H-3015
+                //       See https://linear.app/hash/issue/H-3015
                 // if let Some(last_join) = self.statement.joins.pop() {
                 //     // Check if we are joining on the same column as the previous join
                 //     if last_join.join == current_column
