@@ -78,7 +78,34 @@ export const EventDetail = ({
       }
       break;
     }
-    case "type-update":
-      return <span>Updated type</span>;
+    case "type-update": {
+      const { entityType } = event;
+      return (
+        <>
+          <Chip showInFull type>
+            {entityType.title}
+          </Chip>{" "}
+          <Box ml={1} sx={{ whiteSpace: "nowrap" }}>
+            type {event.op}
+          </Box>
+          {event.op === "upgraded" && (
+            <Box ml={0.5}>
+              from v{entityType.oldVersion} to v{entityType.version}
+            </Box>
+          )}
+        </>
+      );
+    }
+    case "draft-status-change":
+      return (
+        <span>
+          {event.newDraftStatus
+            ? "Edition created as draft"
+            : "Live edition created from draft"}
+        </span>
+      );
+    default: {
+      throw new Error("Unhandled history event type");
+    }
   }
 };
