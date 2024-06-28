@@ -1,4 +1,4 @@
-import type { PostprocessContext } from "../context/postprocess.js";
+import type { PostprocessContext } from "../context/postprocess";
 import { sharedMetadataSchemas } from "../shared";
 
 /**

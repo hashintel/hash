@@ -1,7 +1,7 @@
-import type { PostprocessContext } from "./context/postprocess.js";
+import type { PostprocessContext } from "./context/postprocess";
 import { addMetadataDependenciesToFiles } from "./postprocess/add-metadata-dependencies-to-files";
-import { allocateTypesToFiles } from "./postprocess/allocate-types-to-files.js";
-import { appendIdentifierDefinitionsToFileContents } from "./postprocess/append-identifier-definitions-to-file-contents.js";
+import { allocateTypesToFiles } from "./postprocess/allocate-types-to-files";
+import { appendIdentifierDefinitionsToFileContents } from "./postprocess/append-identifier-definitions-to-file-contents";
 import { generateBlockEntityTypeAliases } from "./postprocess/generate-block-entity-type-aliases";
 import { generateBlockLinkTargetAliases } from "./postprocess/generate-block-link-target-aliases";
 import { generateEntityDefinitions } from "./postprocess/generate-entity-definitions";
