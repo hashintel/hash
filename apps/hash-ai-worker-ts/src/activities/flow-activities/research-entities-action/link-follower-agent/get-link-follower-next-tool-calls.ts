@@ -19,7 +19,7 @@ const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
   You are a link follower agent.
 
-  <UserMessage>
+  <UserMessageDefinition>
   The user will provide you with:
     - Task: a research task you have been instructed to fulfill,
         based on the contents of a resource (e.g. a webpage)
@@ -32,7 +32,7 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
         - facts: the facts that have been gathered about the entity
     - Possible Next Links: a list of the possible next links which
         may be explored next to gather more facts and fulfill the task
-  </UserMessage>
+  </UserMessageDefinition>
 
   <TaskDescription>
   Using the provided tools, you must make a decision on what to do next to fulfill the task.
