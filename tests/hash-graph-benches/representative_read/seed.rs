@@ -22,9 +22,9 @@ use uuid::Uuid;
 
 use crate::util::{seed, StoreWrapper};
 
-// @todo This is quite temporary at the moment. We'll want a lot more variation, a greater
+// SEE: This is quite temporary at the moment. We'll want a lot more variation, a greater
 //  quantity of types, increased number of versions, etc.
-// @see https://linear.app/hash/issue/H-1628
+//  See https://linear.app/hash/issue/H-1628
 // WARNING: Careful when reordering these, unfortunately ordering matters here due to
 // interdependencies, it's flakey and a bit hacky
 const SEED_DATA_TYPES: [&str; 6] = [
@@ -326,10 +326,11 @@ async fn get_samples<A: AuthorizationApi>(
 pub async fn setup_and_extract_samples<A: AuthorizationApi>(
     store_wrapper: &mut StoreWrapper<A>,
 ) -> Samples {
-    // @todo We'll want to test distribution across accounts
-    // @see https://linear.app/hash/issue/H-3012
-    // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
-    // parameter argument to criterion and get comparison analysis
+    // TODO: We'll want to test distribution across accounts
+    //   See https://linear.app/hash/issue/H-3012
+    //
+    //   We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
+    //   parameter argument to criterion and get comparison analysis
     let account_id = AccountId::new(
         Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"),
     );
