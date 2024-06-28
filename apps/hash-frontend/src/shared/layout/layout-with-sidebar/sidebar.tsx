@@ -121,7 +121,7 @@ export const PageSidebar: FunctionComponent = () => {
       ...workersSection,
       {
         title: "Inbox",
-        path: "/inbox",
+        path: "/actions",
         icon: <InboxIcon sx={{ fontSize: 16 }} />,
         tooltipTitle: "",
         count: (numberOfUnreadNotifications ?? 0) + numberOfPendingActions,
