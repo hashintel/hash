@@ -1,4 +1,3 @@
-import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
 import { getFlowContext } from "../../../shared/get-flow-context";
@@ -76,7 +75,7 @@ const submitLinksTool: LlmToolDefinition<"submitLinks"> = {
               `),
             },
           },
-          required: ["url", "description"],
+          required: ["url", "description", "reason"],
         },
       },
     },
@@ -85,22 +84,18 @@ const submitLinksTool: LlmToolDefinition<"submitLinks"> = {
 };
 
 export const extractLinksFromContent = async (params: {
-  /**
-   * @todo: consider other forms of content when they become relevant (e.g. PDF chunks)
-   */
-  content: WebPage;
+  contentUrl: string;
+  content: string;
   prompt: string;
   testingParams?: {
     model?: LlmParams["model"];
     systemPrompt?: string;
   };
 }) => {
-  const { content, prompt, testingParams } = params;
+  const { content, contentUrl, prompt, testingParams } = params;
 
   const { userAuthentication, webId, flowEntityId, stepId } =
     await getFlowContext();
-
-  const text = content.htmlContent;
 
   const response = await getLlmResponse(
     {
@@ -114,7 +109,7 @@ export const extractLinksFromContent = async (params: {
               type: "text",
               text: dedent(`
                 Prompt: ${prompt}
-                Text: ${text}
+                Text: ${content}
               `),
             },
           ],
@@ -137,7 +132,7 @@ export const extractLinksFromContent = async (params: {
     const { message } = response;
     const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
-    const baseUrl = new URL(content.url).origin;
+    const baseUrl = new URL(contentUrl).origin;
 
     const links = toolCalls.reduce<Link[]>((acc, toolCall) => {
       const { links: inputLinks } = toolCall.input as { links: Link[] };
