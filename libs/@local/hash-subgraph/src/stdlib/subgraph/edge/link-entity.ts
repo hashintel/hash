@@ -12,6 +12,7 @@ import {
   isHasRightEntityEdge,
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
+  stripDraftIdFromEntityId,
 } from "../../../main";
 import { getEntityRevisionsByEntityId } from "../../../stdlib";
 import {
@@ -32,13 +33,6 @@ const getUniqueEntitiesFilter = () => {
       return true;
     }
   };
-};
-
-const stripDraftIdFromEntityId = (entityId: EntityId) => {
-  return entityId
-    .split(ENTITY_ID_DELIMITER)
-    .slice(0, 2)
-    .join(ENTITY_ID_DELIMITER) as EntityId;
 };
 
 /**
