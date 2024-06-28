@@ -1,6 +1,9 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import {
+  ENTITY_ID_DELIMITER,
+  type EntityId,
+} from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
 import type { LinkEntityAndRightEntity, Subgraph } from "../../../main";
@@ -31,6 +34,13 @@ const getUniqueEntitiesFilter = () => {
   };
 };
 
+const stripDraftIdFromEntityId = (entityId: EntityId) => {
+  return entityId
+    .split(ENTITY_ID_DELIMITER)
+    .slice(0, 2)
+    .join(ENTITY_ID_DELIMITER) as EntityId;
+};
+
 /**
  * Get all outgoing link entities from a given {@link Entity}.
  *
@@ -57,7 +67,7 @@ export const getOutgoingLinksForEntity = (
       subgraph.temporalAxes.resolved.variable.interval.end.limit,
     );
 
-  const entityEdges = subgraph.edges[entityId];
+  const entityEdges = subgraph.edges[stripDraftIdFromEntityId(entityId)];
 
   if (!entityEdges) {
     return [];
@@ -132,7 +142,7 @@ export const getIncomingLinksForEntity = (
       subgraph.temporalAxes.resolved.variable.interval.end.limit,
     );
 
-  const entityEdges = subgraph.edges[entityId];
+  const entityEdges = subgraph.edges[stripDraftIdFromEntityId(entityId)];
 
   if (!entityEdges) {
     return [];
