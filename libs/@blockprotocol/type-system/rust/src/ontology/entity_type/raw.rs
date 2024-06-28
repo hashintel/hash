@@ -15,13 +15,14 @@ const META_SCHEMA_ID: &str = "https://blockprotocol.org/types/modules/graph/0.3/
 
 /// Will serialize as a constant value `"entityType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 enum EntityTypeTag {
     EntityType,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityType {
     #[cfg_attr(
@@ -30,13 +31,11 @@ pub struct EntityType {
     )]
     #[serde(rename = "$schema")]
     schema: String,
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "'entityType'"))]
     kind: EntityTypeTag,
     #[cfg_attr(target_arch = "wasm32", tsify(type = "VersionedUrl"))]
     #[serde(rename = "$id")]
     pub id: String,
     pub title: String,
-    #[cfg_attr(target_arch = "wasm32", tsify(optional))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(flatten)]
@@ -83,30 +82,25 @@ impl TryFrom<EntityType> for super::EntityType {
             })
             .collect::<Result<_, _>>()?;
 
-        let property_object = entity_type_repr
-            .property_object
-            .try_into()
+        let property_object = super::Object::<_, 0>::try_from(entity_type_repr.property_object)
             .map_err(ParseEntityTypeError::InvalidPropertyTypeObject)?;
 
-        let inherits_from = entity_type_repr
-            .all_of
-            .try_into()
+        let inherits_from = super::AllOf::try_from(entity_type_repr.all_of)
             .map_err(ParseEntityTypeError::InvalidAllOf)?;
 
-        let links = entity_type_repr
-            .links
-            .try_into()
+        let links = super::Links::try_from(entity_type_repr.links)
             .map_err(ParseEntityTypeError::InvalidLinks)?;
 
-        Ok(Self::new(
+        Ok(Self {
             id,
-            entity_type_repr.title,
-            entity_type_repr.description,
-            property_object,
-            inherits_from,
+            title: entity_type_repr.title,
+            description: entity_type_repr.description,
+            properties: property_object.properties,
+            required: property_object.required,
+            inherits_from: inherits_from.elements,
             links,
             examples,
-        ))
+        })
     }
 }
 
@@ -129,8 +123,12 @@ impl From<super::EntityType> for EntityType {
             id: entity_type.id.to_string(),
             title: entity_type.title,
             description: entity_type.description,
-            property_object: entity_type.property_object.into(),
-            all_of: entity_type.inherits_from.into(),
+            property_object: super::Object::<_, 0> {
+                properties: entity_type.properties,
+                required: entity_type.required,
+            }
+            .into(),
+            all_of: super::AllOf::new(entity_type.inherits_from).into(),
             examples,
             links: entity_type.links.into(),
         }
@@ -150,8 +148,9 @@ impl TryFrom<EntityTypeReference> for super::EntityTypeReference {
     type Error = ParseVersionedUrlError;
 
     fn try_from(entity_type_ref_repr: EntityTypeReference) -> Result<Self, Self::Error> {
-        let url = VersionedUrl::from_str(&entity_type_ref_repr.url)?;
-        Ok(Self::new(url))
+        Ok(Self {
+            url: VersionedUrl::from_str(&entity_type_ref_repr.url)?,
+        })
     }
 }
 
@@ -173,11 +172,9 @@ mod tests {
     fn merge_entity_type() {
         let building = check_serialization_from_str::<EntityType, raw::EntityType>(
             graph_test_data::entity_type::BUILDING_V1,
-            None,
         );
         let church: EntityType = check_serialization_from_str::<EntityType, raw::EntityType>(
             graph_test_data::entity_type::CHURCH_V1,
-            None,
         );
 
         let closed_church: ClosedEntityType = [building, church].into_iter().collect();

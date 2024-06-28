@@ -4,8 +4,8 @@ use tsify::Tsify;
 
 use crate::{raw, EntityTypeReference, ParseOneOfError, PropertyValues};
 
-#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OneOf<T> {
     #[cfg_attr(target_arch = "wasm32", tsify(type = "[T, ...T[]]"))]

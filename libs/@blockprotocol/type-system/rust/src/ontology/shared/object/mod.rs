@@ -130,7 +130,7 @@ mod tests {
                 "type": "object",
                 "properties": {}
             }),
-            ParsePropertyTypeObjectError::ValidationError(
+            &ParsePropertyTypeObjectError::ValidationError(
                 ValidationError::MismatchedPropertyCount {
                     actual: 0,
                     expected: 1,
@@ -148,7 +148,7 @@ mod tests {
                     "https://example.com/property_type_a/": { "$ref": "https://example.com/property_type_b/v/1" }
                 }
             }),
-            ParsePropertyTypeObjectError::ValidationError(ValidationError::BaseUrlMismatch {
+            &ParsePropertyTypeObjectError::ValidationError(ValidationError::BaseUrlMismatch {
                 base_url: BaseUrl::new("https://example.com/property_type_a/".to_owned())
                     .expect("failed to create BaseURI"),
                 versioned_url: VersionedUrl::from_str("https://example.com/property_type_b/v/1")
@@ -170,7 +170,7 @@ mod tests {
                     "https://example.com/property_type_c/"
                 ]
             }),
-            ParsePropertyTypeObjectError::ValidationError(
+            &ParsePropertyTypeObjectError::ValidationError(
                 ValidationError::MissingRequiredProperty(
                     BaseUrl::new("https://example.com/property_type_c/".to_owned())
                         .expect("failed to create BaseURI"),

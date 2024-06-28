@@ -15,13 +15,14 @@ const META_SCHEMA_ID: &str =
 
 /// Will serialize as a constant value `"propertyType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 enum PropertyTypeTag {
     PropertyType,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyType {
     #[cfg_attr(
@@ -30,13 +31,11 @@ pub struct PropertyType {
     )]
     #[serde(rename = "$schema")]
     schema: String,
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "'propertyType'"))]
     kind: PropertyTypeTag,
     #[cfg_attr(target_arch = "wasm32", tsify(type = "VersionedUrl"))]
     #[serde(rename = "$id")]
     id: String,
     title: String,
-    #[cfg_attr(target_arch = "wasm32", tsify(optional))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     #[serde(flatten)]
@@ -56,15 +55,14 @@ impl TryFrom<PropertyType> for super::PropertyType {
             ));
         }
 
-        Ok(Self::new(
+        Ok(Self {
             id,
-            property_type_repr.title,
-            property_type_repr.description,
-            property_type_repr
-                .one_of
-                .try_into()
-                .map_err(|err| ParsePropertyTypeError::InvalidOneOf(Box::new(err)))?,
-        ))
+            title: property_type_repr.title,
+            description: property_type_repr.description,
+            one_of: super::OneOf::try_from(property_type_repr.one_of)
+                .map_err(|err| ParsePropertyTypeError::InvalidOneOf(Box::new(err)))?
+                .possibilities,
+        })
     }
 }
 
@@ -76,7 +74,10 @@ impl From<super::PropertyType> for PropertyType {
             id: property_type.id.to_string(),
             title: property_type.title,
             description: property_type.description,
-            one_of: property_type.one_of.into(),
+            one_of: super::OneOf {
+                possibilities: property_type.one_of,
+            }
+            .into(),
         }
     }
 }
@@ -101,8 +102,9 @@ impl TryFrom<PropertyTypeReference> for super::PropertyTypeReference {
     type Error = ParseVersionedUrlError;
 
     fn try_from(property_type_ref_repr: PropertyTypeReference) -> Result<Self, Self::Error> {
-        let url = VersionedUrl::from_str(&property_type_ref_repr.url)?;
-        Ok(Self::new(url))
+        Ok(Self {
+            url: VersionedUrl::from_str(&property_type_ref_repr.url)?,
+        })
     }
 }
 

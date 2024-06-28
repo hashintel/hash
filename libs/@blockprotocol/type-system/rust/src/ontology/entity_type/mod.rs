@@ -20,92 +20,28 @@ pub use self::{
 };
 use crate::{
     url::{BaseUrl, VersionedUrl},
-    AllOf, Links, MaybeOrderedArray, Object, OneOf, PropertyTypeReference, ValidateUrl,
-    ValidationError, ValueOrArray,
+    AllOf, Links, Object, PropertyTypeReference, ValidateUrl, ValidationError, ValueOrArray,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "raw::EntityType", into = "raw::EntityType")]
 pub struct EntityType {
-    id: VersionedUrl,
-    title: String,
-    description: Option<String>,
-    property_object: Object<ValueOrArray<PropertyTypeReference>>,
-    pub inherits_from: AllOf<EntityTypeReference>,
-    links: Links,
-    examples: Vec<HashMap<BaseUrl, serde_json::Value>>,
+    pub id: VersionedUrl,
+    pub title: String,
+    pub description: Option<String>,
+    pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
+    pub required: HashSet<BaseUrl>,
+    pub inherits_from: Vec<EntityTypeReference>,
+    pub links: Links,
+    pub examples: Vec<HashMap<BaseUrl, serde_json::Value>>,
 }
 
 impl EntityType {
-    /// Creates a new `EntityType`
-    #[must_use]
-    pub const fn new(
-        id: VersionedUrl,
-        title: String,
-        description: Option<String>,
-        property_object: Object<ValueOrArray<PropertyTypeReference>>,
-        inherits_from: AllOf<EntityTypeReference>,
-        links: Links,
-        examples: Vec<HashMap<BaseUrl, serde_json::Value>>,
-    ) -> Self {
-        Self {
-            id,
-            title,
-            description,
-            property_object,
-            inherits_from,
-            links,
-            examples,
-        }
-    }
-
-    #[must_use]
-    pub const fn id(&self) -> &VersionedUrl {
-        &self.id
-    }
-
-    #[must_use]
-    pub fn title(&self) -> &str {
-        &self.title
-    }
-
-    #[must_use]
-    pub fn description(&self) -> Option<&str> {
-        self.description.as_deref()
-    }
-
-    #[must_use]
-    pub const fn inherits_from(&self) -> &AllOf<EntityTypeReference> {
-        &self.inherits_from
-    }
-
-    #[must_use]
-    pub const fn properties(&self) -> &HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>> {
-        self.property_object.properties()
-    }
-
-    #[must_use]
-    pub const fn required(&self) -> &HashSet<BaseUrl> {
-        self.property_object.required()
-    }
-
-    #[must_use]
-    pub const fn links(
-        &self,
-    ) -> &HashMap<VersionedUrl, MaybeOrderedArray<Option<OneOf<EntityTypeReference>>>> {
-        self.links.links()
-    }
-
-    #[must_use]
-    pub const fn examples(&self) -> &Vec<HashMap<BaseUrl, serde_json::Value>> {
-        &self.examples
-    }
-
     #[must_use]
     pub fn property_type_references(&self) -> HashSet<&PropertyTypeReference> {
-        self.properties()
-            .iter()
-            .map(|(_, property_def)| match property_def {
+        self.properties
+            .values()
+            .map(|property_def| match property_def {
                 ValueOrArray::Value(url) => url,
                 ValueOrArray::Array(array) => array.items(),
             })
@@ -114,7 +50,8 @@ impl EntityType {
 
     #[must_use]
     pub fn link_mappings(&self) -> HashMap<&EntityTypeReference, Option<&[EntityTypeReference]>> {
-        self.links()
+        self.links
+            .links()
             .iter()
             .map(|(link_entity_type, destination_constraint_entity_types)| {
                 (
@@ -123,7 +60,7 @@ impl EntityType {
                         .array()
                         .items()
                         .as_ref()
-                        .map(OneOf::one_of),
+                        .map(|one_of| one_of.possibilities.as_slice()),
                 )
             })
             .collect()
@@ -164,20 +101,7 @@ impl ToSql for EntityType {
 )]
 #[repr(transparent)]
 pub struct EntityTypeReference {
-    url: VersionedUrl,
-}
-
-impl EntityTypeReference {
-    /// Creates a new `EntityTypeReference` from the given [`VersionedUrl`].
-    #[must_use]
-    pub const fn new(url: VersionedUrl) -> Self {
-        Self { url }
-    }
-
-    #[must_use]
-    pub const fn url(&self) -> &VersionedUrl {
-        &self.url
-    }
+    pub url: VersionedUrl,
 }
 
 impl From<&VersionedUrl> for &EntityTypeReference {
@@ -195,12 +119,12 @@ impl Borrow<VersionedUrl> for EntityTypeReference {
 
 impl ValidateUrl for EntityTypeReference {
     fn validate_url(&self, base_url: &BaseUrl) -> Result<(), ValidationError> {
-        if base_url == &self.url().base_url {
+        if base_url == &self.url.base_url {
             Ok(())
         } else {
             Err(ValidationError::BaseUrlMismatch {
                 base_url: base_url.clone(),
-                versioned_url: self.url().clone(),
+                versioned_url: self.url.clone(),
             })
         }
     }
@@ -225,8 +149,7 @@ mod tests {
         let property_type_references = entity_type
             .property_type_references()
             .into_iter()
-            .map(PropertyTypeReference::url)
-            .cloned()
+            .map(|property_type_ref| property_type_ref.url.clone())
             .collect::<HashSet<_>>();
 
         assert_eq!(property_type_references, expected_property_type_references);
@@ -256,11 +179,11 @@ mod tests {
             .into_iter()
             .map(|(link_entity_type_url, entity_type_ref)| {
                 (
-                    link_entity_type_url.url().clone(),
+                    link_entity_type_url.url.clone(),
                     entity_type_ref.map_or(vec![], |inner| {
                         inner
                             .iter()
-                            .map(|reference| reference.url().clone())
+                            .map(|reference| reference.url.clone())
                             .collect()
                     }),
                 )
@@ -277,7 +200,6 @@ mod tests {
     fn book() {
         let entity_type = check_serialization_from_str::<EntityType, raw::EntityType>(
             graph_test_data::entity_type::BOOK_V1,
-            None,
         );
 
         test_property_type_references(
@@ -302,7 +224,6 @@ mod tests {
     fn address() {
         let entity_type = check_serialization_from_str::<EntityType, raw::EntityType>(
             graph_test_data::entity_type::UK_ADDRESS_V1,
-            None,
         );
 
         test_property_type_references(
@@ -321,7 +242,6 @@ mod tests {
     fn organization() {
         let entity_type = check_serialization_from_str::<EntityType, raw::EntityType>(
             graph_test_data::entity_type::ORGANIZATION_V1,
-            None,
         );
 
         test_property_type_references(
@@ -336,7 +256,6 @@ mod tests {
     fn building() {
         let entity_type = check_serialization_from_str::<EntityType, raw::EntityType>(
             graph_test_data::entity_type::BUILDING_V1,
-            None,
         );
 
         test_property_type_references(
@@ -363,7 +282,6 @@ mod tests {
     fn person() {
         let entity_type = check_serialization_from_str::<EntityType, raw::EntityType>(
             graph_test_data::entity_type::PERSON_V1,
-            None,
         );
 
         test_property_type_references(
@@ -394,7 +312,6 @@ mod tests {
     fn playlist() {
         let entity_type = check_serialization_from_str::<EntityType, raw::EntityType>(
             graph_test_data::entity_type::PLAYLIST_V1,
-            None,
         );
 
         test_property_type_references(
@@ -415,7 +332,6 @@ mod tests {
     fn song() {
         let entity_type = check_serialization_from_str::<EntityType, raw::EntityType>(
             graph_test_data::entity_type::SONG_V1,
-            None,
         );
 
         test_property_type_references(
@@ -430,7 +346,6 @@ mod tests {
     fn page() {
         let entity_type = check_serialization_from_str::<EntityType, raw::EntityType>(
             graph_test_data::entity_type::PAGE_V2,
-            None,
         );
 
         test_property_type_references(

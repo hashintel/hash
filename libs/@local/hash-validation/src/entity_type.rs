@@ -283,11 +283,11 @@ where
 
             // Link destinations are constrained, search for the right entity's type
             let mut found_match = false;
-            for allowed_target in allowed_targets.one_of() {
+            for allowed_target in allowed_targets.possibilities() {
                 if right_entity_type
                     .schemas
                     .keys()
-                    .any(|right_type| right_type.base_url == allowed_target.url().base_url)
+                    .any(|right_type| right_type.base_url == allowed_target.url.base_url)
                 {
                     found_match = true;
                     break;

@@ -10,23 +10,21 @@ use crate::{
 
 /// Will serialize as a constant value `"array"`
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 enum ArrayTypeTag {
     #[default]
     Array,
 }
 
-#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Array<T> {
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "'array'"))]
     r#type: ArrayTypeTag,
     pub items: T,
-    #[cfg_attr(target_arch = "wasm32", tsify(optional))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub min_items: Option<usize>,
-    #[cfg_attr(target_arch = "wasm32", tsify(optional))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_items: Option<usize>,
 }
@@ -111,8 +109,8 @@ where
     }
 }
 
-#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum ValueOrArray<T> {
     Value(T),

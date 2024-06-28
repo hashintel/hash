@@ -9,6 +9,7 @@ use crate::{raw, url::BaseUrl, ParsePropertyTypeObjectError, PropertyTypeReferen
 
 /// Will serialize as a constant value `"object"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 enum ObjectTypeTag {
     Object,
@@ -18,7 +19,6 @@ enum ObjectTypeTag {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Object<T> {
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "'object'"))]
     r#type: ObjectTypeTag,
     #[cfg_attr(target_arch = "wasm32", tsify(type = "Record<BaseUrl, T>"))]
     pub properties: HashMap<String, T>,

@@ -187,11 +187,11 @@ mod tests {
                 entity_types: entity_types.into_iter().collect(),
                 property_types: property_types
                     .into_iter()
-                    .map(|schema| (schema.id().clone(), schema))
+                    .map(|schema| (schema.id.clone(), schema))
                     .collect(),
                 data_types: data_types
                     .into_iter()
-                    .map(|schema| (schema.id().clone(), schema))
+                    .map(|schema| (schema.id.clone(), schema))
                     .collect(),
             }
         }
@@ -244,7 +244,7 @@ mod tests {
                     .await?
                     .inherits_from
                     .iter()
-                    .any(|id| id.url().base_url == *parent),
+                    .any(|id| id.url.base_url == *parent),
             )
         }
     }

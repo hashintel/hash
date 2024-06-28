@@ -18,56 +18,19 @@ pub(in crate::ontology) mod raw;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "raw::PropertyType", into = "raw::PropertyType")]
 pub struct PropertyType {
-    id: VersionedUrl,
-    title: String,
-    description: Option<String>,
-    one_of: OneOf<PropertyValues>,
+    pub id: VersionedUrl,
+    pub title: String,
+    pub description: Option<String>,
+    pub one_of: Vec<PropertyValues>,
 }
 
 impl PropertyType {
-    /// Creates a new `PropertyType`.
-    #[must_use]
-    pub const fn new(
-        id: VersionedUrl,
-        title: String,
-        description: Option<String>,
-        one_of: OneOf<PropertyValues>,
-    ) -> Self {
-        Self {
-            id,
-            title,
-            description,
-            one_of,
-        }
-    }
-
-    #[must_use]
-    pub const fn id(&self) -> &VersionedUrl {
-        &self.id
-    }
-
-    #[must_use]
-    pub fn title(&self) -> &str {
-        &self.title
-    }
-
-    #[must_use]
-    pub fn description(&self) -> Option<&str> {
-        self.description.as_deref()
-    }
-
-    #[must_use]
-    pub fn one_of(&self) -> &[PropertyValues] {
-        self.one_of.one_of()
-    }
-
     #[must_use]
     pub fn data_type_references(&self) -> HashSet<&DataTypeReference> {
         self.one_of
-            .one_of()
             .iter()
             .flat_map(|value| value.data_type_references().into_iter())
             .collect()
@@ -76,7 +39,6 @@ impl PropertyType {
     #[must_use]
     pub fn property_type_references(&self) -> HashSet<&PropertyTypeReference> {
         self.one_of
-            .one_of()
             .iter()
             .flat_map(|value| value.property_type_references().into_iter())
             .collect()
@@ -117,20 +79,7 @@ impl ToSql for PropertyType {
 )]
 #[repr(transparent)]
 pub struct PropertyTypeReference {
-    url: VersionedUrl,
-}
-
-impl PropertyTypeReference {
-    /// Creates a new `PropertyTypeReference` from the given [`VersionedUrl`].
-    #[must_use]
-    pub const fn new(url: VersionedUrl) -> Self {
-        Self { url }
-    }
-
-    #[must_use]
-    pub const fn url(&self) -> &VersionedUrl {
-        &self.url
-    }
+    pub url: VersionedUrl,
 }
 
 impl From<&VersionedUrl> for &PropertyTypeReference {
@@ -142,12 +91,12 @@ impl From<&VersionedUrl> for &PropertyTypeReference {
 
 impl ValidateUrl for PropertyTypeReference {
     fn validate_url(&self, base_url: &BaseUrl) -> Result<(), ValidationError> {
-        if base_url == &self.url().base_url {
+        if base_url == &self.url.base_url {
             Ok(())
         } else {
             Err(ValidationError::BaseUrlMismatch {
                 base_url: base_url.clone(),
-                versioned_url: self.url().clone(),
+                versioned_url: self.url.clone(),
             })
         }
     }
@@ -167,7 +116,7 @@ impl PropertyValues {
             Self::DataTypeReference(reference) => vec![reference],
             Self::ArrayOfPropertyValues(values) => values
                 .items()
-                .one_of()
+                .possibilities
                 .iter()
                 .flat_map(|value| value.data_type_references().into_iter())
                 .collect(),
@@ -181,7 +130,7 @@ impl PropertyValues {
             Self::DataTypeReference(_) => vec![],
             Self::ArrayOfPropertyValues(values) => values
                 .items()
-                .one_of()
+                .possibilities
                 .iter()
                 .flat_map(|value| value.property_type_references().into_iter())
                 .collect(),
@@ -222,7 +171,7 @@ mod tests {
         let data_type_references = property_type
             .data_type_references()
             .into_iter()
-            .map(DataTypeReference::url)
+            .map(|data_type_ref| &data_type_ref.url)
             .cloned()
             .collect::<HashSet<_>>();
 
@@ -241,8 +190,7 @@ mod tests {
         let property_type_references = property_type
             .property_type_references()
             .into_iter()
-            .map(PropertyTypeReference::url)
-            .cloned()
+            .map(|property_type_ref| property_type_ref.url.clone())
             .collect::<HashSet<_>>();
 
         assert_eq!(property_type_references, expected_property_type_references);
@@ -252,7 +200,6 @@ mod tests {
     fn favorite_quote() {
         let property_type = check_serialization_from_str::<PropertyType, raw::PropertyType>(
             graph_test_data::property_type::FAVORITE_QUOTE_V1,
-            None,
         );
 
         test_property_type_data_refs(
@@ -267,7 +214,6 @@ mod tests {
     fn age() {
         let property_type = check_serialization_from_str::<PropertyType, raw::PropertyType>(
             graph_test_data::property_type::AGE_V1,
-            None,
         );
 
         test_property_type_data_refs(
@@ -282,7 +228,6 @@ mod tests {
     fn user_id() {
         let property_type = check_serialization_from_str::<PropertyType, raw::PropertyType>(
             graph_test_data::property_type::USER_ID_V2,
-            None,
         );
 
         test_property_type_data_refs(
@@ -300,7 +245,6 @@ mod tests {
     fn contact_information() {
         let property_type = check_serialization_from_str::<PropertyType, raw::PropertyType>(
             graph_test_data::property_type::CONTACT_INFORMATION_V1,
-            None,
         );
 
         test_property_type_data_refs(&property_type, []);
@@ -318,7 +262,6 @@ mod tests {
     fn interests() {
         let property_type = check_serialization_from_str::<PropertyType, raw::PropertyType>(
             graph_test_data::property_type::INTERESTS_V1,
-            None,
         );
 
         test_property_type_data_refs(&property_type, []);
@@ -337,7 +280,6 @@ mod tests {
     fn numbers() {
         let property_type = check_serialization_from_str::<PropertyType, raw::PropertyType>(
             graph_test_data::property_type::NUMBERS_V1,
-            None,
         );
 
         test_property_type_data_refs(
@@ -352,7 +294,6 @@ mod tests {
     fn contrived_property() {
         let property_type = check_serialization_from_str::<PropertyType, raw::PropertyType>(
             graph_test_data::property_type::CONTRIVED_PROPERTY_V1,
-            None,
         );
 
         test_property_type_data_refs(
@@ -380,7 +321,7 @@ mod tests {
                   ]
                 }
             ),
-            ParsePropertyTypeError::InvalidMetaSchema(invalid_schema_url.to_owned()),
+            &ParsePropertyTypeError::InvalidMetaSchema(invalid_schema_url.to_owned()),
         );
     }
 
@@ -400,7 +341,7 @@ mod tests {
                   ]
                 }
             ),
-            ParsePropertyTypeError::InvalidVersionedUrl(ParseVersionedUrlError::MissingVersion),
+            &ParsePropertyTypeError::InvalidVersionedUrl(ParseVersionedUrlError::MissingVersion),
         );
     }
 
@@ -416,7 +357,7 @@ mod tests {
                   "oneOf": []
                 }
             ),
-            ParsePropertyTypeError::InvalidOneOf(Box::new(ParseOneOfError::ValidationError(
+            &ParsePropertyTypeError::InvalidOneOf(Box::new(ParseOneOfError::ValidationError(
                 ValidationError::EmptyOneOf,
             ))),
         );
@@ -438,7 +379,7 @@ mod tests {
                   ]
                 }
             ),
-            ParsePropertyTypeError::InvalidOneOf(Box::new(ParseOneOfError::PropertyValuesError(
+            &ParsePropertyTypeError::InvalidOneOf(Box::new(ParseOneOfError::PropertyValuesError(
                 ParsePropertyTypeError::InvalidDataTypeReference(
                     ParseVersionedUrlError::IncorrectFormatting,
                 ),
@@ -453,7 +394,7 @@ mod tests {
         )
         .expect("failed to create VersionedUrl");
 
-        let property_type_ref = PropertyTypeReference::new(url.clone());
+        let property_type_ref = PropertyTypeReference { url: url.clone() };
 
         property_type_ref
             .validate_url(&url.base_url)
@@ -469,7 +410,7 @@ mod tests {
             VersionedUrl::from_str("https://blockprotocol.org/@alice/types/property-type/name/v/1")
                 .expect("failed to parse VersionedUrl");
 
-        let property_type_ref = PropertyTypeReference::new(url_a);
+        let property_type_ref = PropertyTypeReference { url: url_a };
 
         property_type_ref
             .validate_url(&url_b.base_url)

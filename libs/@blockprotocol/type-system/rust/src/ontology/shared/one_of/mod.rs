@@ -28,12 +28,12 @@ impl<T> OneOf<T> {
     }
 
     #[must_use]
-    pub fn one_of(&self) -> &[T] {
+    pub fn possibilities(&self) -> &[T] {
         &self.possibilities
     }
 
     fn validate(&self) -> Result<(), ValidationError> {
-        if self.one_of().is_empty() {
+        if self.possibilities.is_empty() {
             return Err(ValidationError::EmptyOneOf);
         }
         Ok(())
@@ -58,7 +58,7 @@ mod tests {
             &json!({
                 "oneOf": []
             }),
-            ParseOneOfError::ValidationError(ValidationError::EmptyOneOf),
+            &ParseOneOfError::ValidationError(ValidationError::EmptyOneOf),
         );
     }
 }
