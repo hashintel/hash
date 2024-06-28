@@ -144,7 +144,11 @@ const exploreResource = async (params: {
       filteredAndRankedTextChunksResponse.status !== "ok" ||
       filteredAndRankedTextChunksResponse.orderedRelevantTextChunks.length === 0
     ) {
-      /** @todo: consider improving the error reporting of this */
+      /**
+       * @todo: consider improving the error reporting of this, by handling
+       * errors encountered in the `filterAndRankTextChunksAgent` method differently
+       * to how we're handling no relevant chunks in a valid response.
+       */
       return {
         status: "not-explored",
         reason: "No relevant sections found in the PDF.",
