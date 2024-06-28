@@ -7,8 +7,11 @@ import type {
   ActorOutgoingLinkAndTarget,
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
+  ActorPropertiesWithMetadata,
   DisplayNamePropertyValue,
+  DisplayNamePropertyValueWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 } from "./shared";
 
 export type {
@@ -16,6 +19,9 @@ export type {
   ActorOutgoingLinkAndTarget,
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
+  ActorPropertiesWithMetadata,
   DisplayNamePropertyValue,
+  DisplayNamePropertyValueWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 };

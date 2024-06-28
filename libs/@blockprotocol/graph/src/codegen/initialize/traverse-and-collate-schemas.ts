@@ -6,6 +6,11 @@ import {
 
 import { typedValues } from "../../util/typed-object-iter";
 import type { InitializeContext } from "../context";
+import {
+  generateDataTypeWithMetadataSchema,
+  generatePropertiesObjectWithMetadataSchema,
+  generatePropertyTypeWithMetadataSchema,
+} from "./metadata/generate-metadata-schema";
 import { fetchTypeAsJson } from "./traverse/fetch";
 import {
   isDataType,
@@ -87,6 +92,7 @@ class TraversalContext {
       const typeId = result.value;
       this.exploreQueue.delete(typeId);
       this.explored.add(typeId);
+      return typeId;
     } else {
       return undefined;
     }
@@ -134,9 +140,18 @@ export const traverseAndCollateSchemas = async (
       : typeId;
 
     addFetchPromise(
-      fetchTypeAsJson(rewrittenTypeId).then((type) => {
+      fetchTypeAsJson(rewrittenTypeId, initialContext).then((type) => {
         if (isDataType(type)) {
           initialContext.addDataType(type);
+
+          const withMetadata = generateDataTypeWithMetadataSchema(type);
+          if (!initialContext.metadataSchemas[withMetadata.$id]) {
+            initialContext.addMetadataSchema(withMetadata);
+          }
+          initialContext.typeDependencyMap.addDependencyForType(
+            typeId,
+            withMetadata.$id,
+          );
         } else if (isPropertyType(type)) {
           const {
             constrainsValuesOnDataTypes,
@@ -150,6 +165,15 @@ export const traverseAndCollateSchemas = async (
           );
 
           initialContext.addPropertyType(type);
+
+          const withMetadata = generatePropertyTypeWithMetadataSchema(type);
+          if (!initialContext.metadataSchemas[withMetadata.$id]) {
+            initialContext.addMetadataSchema(withMetadata);
+          }
+          initialContext.typeDependencyMap.addDependencyForType(
+            typeId,
+            withMetadata.$id,
+          );
         } else if (isEntityType(type)) {
           const {
             constrainsPropertiesOnPropertyTypes,
@@ -170,6 +194,24 @@ export const traverseAndCollateSchemas = async (
           );
 
           initialContext.addEntityType(type);
+
+          const { properties, required, $id, title } = type;
+
+          const withMetadata = generatePropertiesObjectWithMetadataSchema({
+            properties,
+            required: required ?? [],
+            entityParentIdentifiers: {
+              $id,
+              title,
+            },
+          });
+          if (!initialContext.metadataSchemas[withMetadata.$id]) {
+            initialContext.addMetadataSchema(withMetadata);
+          }
+          initialContext.typeDependencyMap.addDependencyForType(
+            typeId,
+            withMetadata.$id,
+          );
         } else {
           throw new Error(`Unexpected type, was it malformed? URL: ${typeId}`);
         }

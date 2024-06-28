@@ -4,22 +4,32 @@
 
 import type {
   ArchivedPropertyValue,
+  ArchivedPropertyValueWithMetadata,
   BooleanDataType,
+  BooleanDataTypeWithMetadata,
   Notification,
   NotificationOutgoingLinkAndTarget,
   NotificationOutgoingLinksByLinkEntityTypeId,
   NotificationProperties,
+  NotificationPropertiesWithMetadata,
   ReadAtPropertyValue,
+  ReadAtPropertyValueWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 } from "./shared";
 
 export type {
   ArchivedPropertyValue,
+  ArchivedPropertyValueWithMetadata,
   BooleanDataType,
+  BooleanDataTypeWithMetadata,
   Notification,
   NotificationOutgoingLinkAndTarget,
   NotificationOutgoingLinksByLinkEntityTypeId,
   NotificationProperties,
+  NotificationPropertiesWithMetadata,
   ReadAtPropertyValue,
+  ReadAtPropertyValueWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 };

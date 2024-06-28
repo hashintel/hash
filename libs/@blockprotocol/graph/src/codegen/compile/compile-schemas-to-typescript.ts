@@ -5,20 +5,19 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
-import type { JSONSchema } from "json-schema-to-typescript";
 import { compile as compileJsonSchema } from "json-schema-to-typescript";
 
 import { mustBeDefined } from "../../util/must-be-defined";
 import { typedValues } from "../../util/typed-object-iter";
 import type { CompileContext } from "../context";
-import type { CompiledTsType } from "../shared";
+import type { CompiledTsType, JsonSchema } from "../shared";
 import { redundantTypePlaceholder } from "../shared";
 
 const compileIndividualSchemaToTypescript = async (
-  type: DataType | PropertyType | EntityType,
+  type: DataType | PropertyType | EntityType | JsonSchema,
   context: CompileContext,
 ): Promise<CompiledTsType> =>
-  compileJsonSchema(type as JSONSchema, type.title, {
+  compileJsonSchema(type, type.title, {
     bannerComment: "",
     enableConstEnums: true,
     declareExternallyReferenced: true,
