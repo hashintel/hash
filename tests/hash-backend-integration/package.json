@@ -15,7 +15,7 @@
   "dependencies": {
     "@apps/hash-api": "0.0.0-private",
     "@apps/hash-graph": "0.0.0-private",
-    "@blockprotocol/type-system": "0.1.1",
+    "@blockprotocol/type-system": "0.1.2-canary.0",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
@@ -30,7 +30,7 @@
     "node-fetch": "2.7.0"
   },
   "devDependencies": {
-    "@blockprotocol/graph": "0.3.4",
+    "@blockprotocol/graph": "0.4.0-canary.0",
     "@graphql-codegen/cli": "5.0.0",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.7",

@@ -79,7 +79,7 @@ type RecursiveSelect<T, U, Reversed extends boolean = false> = T extends U
  * mapping in {@link GraphElementIdentifiers}.
  */
 /* @todo - unsure why this doesn't work
-import { type IdentifierForGraphElement as IdentifierForGraphElementBp }from "@blockprotocol/graph/temporal";
+import { type IdentifierForGraphElement as IdentifierForGraphElementBp }from "@blockprotocol/graph";
 export type IdentifierForGraphElement<
   Element extends GraphElementIdentifiers["element"],
 > = Subtype<
@@ -108,7 +108,7 @@ export type IdentifierForGraphElement<
  * associated mapping in {@link GraphElementIdentifiers}.
  */
 /* @todo - unsure why this doesn't work
-import { type GraphElementForIdentifier as GraphElementForIdentifierBp }from "@blockprotocol/graph/temporal";
+import { type GraphElementForIdentifier as GraphElementForIdentifierBp }from "@blockprotocol/graph";
 export type GraphElementForIdentifier<
   Identifier extends GraphElementIdentifiers["identifier"],
 > = Subtype<

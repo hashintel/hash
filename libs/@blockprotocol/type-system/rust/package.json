@@ -4,15 +4,15 @@
   "private": true,
   "exports": {
     ".": "./pkg/type-system.js",
-    "./type-system.wasm": "./pkg/type-system_bg.wasm"
+    "./wasm": "./pkg/type-system_bg.wasm"
   },
   "typesVersions": {
     "*": {
       "*": [
         "./pkg/type-system.d.ts"
       ],
-      "./type-system.wasm": [
-        "./pkg/type-system_bg.d.ts"
+      "./wasm": [
+        "./pkg/type-system_bg.wasm.d.ts"
       ]
     }
   },

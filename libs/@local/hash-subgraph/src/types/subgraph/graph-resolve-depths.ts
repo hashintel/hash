@@ -1,7 +1,7 @@
 import {
   type EdgeResolveDepths as EdgeResolveDepthsBp,
   type GraphResolveDepths as GraphResolveDepthsBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 
 export type OutgoingEdgeResolveDepth = {

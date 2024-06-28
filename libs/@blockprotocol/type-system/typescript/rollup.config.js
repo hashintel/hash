@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 import nodeResolve from "@rollup/plugin-node-resolve";
 import typescript from "@rollup/plugin-typescript";
 import { wasm } from "@rollup/plugin-wasm";
@@ -34,6 +37,22 @@ const rolls = (fmt, env) => ({
       outputToFilesystem: false,
     }),
     nodeResolve(),
+    {
+      name: "copy-pkg",
+      resolveImportMeta: () => `""`,
+      generateBundle() {
+        fs.mkdirSync(path.resolve(`dist/wasm`), { recursive: true });
+
+        fs.copyFileSync(
+          path.resolve("../rust/pkg/type-system_bg.wasm"),
+          path.resolve("dist/wasm/type-system.wasm"),
+        );
+        fs.copyFileSync(
+          path.resolve("../rust/pkg/type-system_bg.wasm.d.ts"),
+          path.resolve("dist/wasm/type-system.wasm.d.ts"),
+        );
+      },
+    },
   ],
 });
 

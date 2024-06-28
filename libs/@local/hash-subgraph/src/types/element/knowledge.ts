@@ -1,7 +1,7 @@
 import type {
   EntityRevisionId as EntityRevisionIdBp,
   isEntityRecordId as isEntityRecordIdBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { DiffEntityParams } from "@local/hash-graph-client";

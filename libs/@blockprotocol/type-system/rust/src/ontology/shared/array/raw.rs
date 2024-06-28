@@ -1,5 +1,3 @@
-use core::num::NonZero;
-
 use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]
 use tsify::Tsify;
@@ -30,15 +28,11 @@ pub struct Array<T> {
     pub min_items: Option<usize>,
     #[cfg_attr(target_arch = "wasm32", tsify(optional))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub max_items: Option<NonZero<usize>>,
+    pub max_items: Option<usize>,
 }
 
 impl<T> Array<T> {
-    pub const fn new(
-        items: T,
-        min_items: Option<usize>,
-        max_items: Option<NonZero<usize>>,
-    ) -> Self {
+    pub const fn new(items: T, min_items: Option<usize>, max_items: Option<usize>) -> Self {
         Self {
             r#type: ArrayTypeTag::Array,
             items,
@@ -202,7 +196,7 @@ mod tests {
                 r#type: ArrayTypeTag::Array,
                 items: StringTypeStruct::default(),
                 min_items: Some(10),
-                max_items: NonZero::new(20),
+                max_items: Some(20),
             }),
         );
     }

@@ -3,7 +3,6 @@ pub(in crate::ontology) mod raw;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
-use core::num::NonZero;
 use std::collections::{hash_map::Entry, HashMap};
 
 pub use error::ParseLinksError;
@@ -113,7 +112,7 @@ impl<T> MaybeOrderedArray<T> {
         ordered: bool,
         items: T,
         min_items: Option<usize>,
-        max_items: Option<NonZero<usize>>,
+        max_items: Option<usize>,
     ) -> Self {
         Self {
             array: Array::new(items, min_items, max_items),
