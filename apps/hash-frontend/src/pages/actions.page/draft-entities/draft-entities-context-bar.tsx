@@ -1,6 +1,6 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import { Box, Checkbox, Fade, styled, Typography } from "@mui/material";
+import { Box, Checkbox, styled, Typography } from "@mui/material";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useCallback } from "react";
 
@@ -107,71 +107,68 @@ export const DraftEntitiesContextBar: FunctionComponent<{
 
   return (
     <Box display="flex" justifyContent="space-between" marginBottom={1.5}>
-      <Fade in={selectedDraftEntityIds.length > 0}>
-        <Box display="flex" alignItems="center" columnGap={1}>
-          <Checkbox
-            checked={
-              hasSelectedAllDisplayedDraftEntities ||
-              hasSelectedAllMatchingDraftEntities
-            }
-            indeterminate={
-              hasPartiallySelectedDisplayedDraftEntities ||
-              (!hasSelectedAllDisplayedDraftEntities &&
-                hasPartiallySelectedMatchingDraftEntities)
-            }
-            onClick={handleCheckboxClick}
+      <Box display="flex" alignItems="center" columnGap={1}>
+        <Checkbox
+          checked={
+            hasSelectedAllDisplayedDraftEntities ||
+            hasSelectedAllMatchingDraftEntities
+          }
+          indeterminate={
+            hasPartiallySelectedDisplayedDraftEntities ||
+            (!hasSelectedAllDisplayedDraftEntities &&
+              hasPartiallySelectedMatchingDraftEntities)
+          }
+          onClick={handleCheckboxClick}
+          sx={{
+            svg: {
+              width: 18,
+              height: 18,
+            },
+          }}
+        />
+        <Typography
+          sx={{
+            display: "block",
+            fontSize: 12,
+            color: ({ palette }) => palette.common.black,
+            fontWeight: 600,
+            textTransform: "uppercase",
+          }}
+        >
+          {selectedDraftEntityIds.length} drafts{" "}
+          <Box
+            component="span"
             sx={{
-              svg: {
-                width: 18,
-                height: 18,
-              },
-            }}
-          />
-
-          <Typography
-            sx={{
-              display: "block",
-              fontSize: 12,
-              color: ({ palette }) => palette.common.black,
-              fontWeight: 600,
-              textTransform: "uppercase",
+              color: ({ palette }) => palette.gray[70],
             }}
           >
-            {selectedDraftEntityIds.length} drafts{" "}
-            <Box
-              component="span"
-              sx={{
-                color: ({ palette }) => palette.gray[70],
-              }}
-            >
-              selected
-              {hasSelectedAllDisplayedDraftEntities &&
-              hasPartiallySelectedMatchingDraftEntities
-                ? " (all on this page)"
-                : ""}
-              .
-            </Box>
-          </Typography>
-          {hasPartiallySelectedDisplayedDraftEntities ? (
-            <SelectAdditionalButton
-              variant="secondary_quiet"
-              onClick={handleSelectAllDisplayedDraftEntitiesClick}
-              endIcon={<CheckRegularIcon />}
-            >
-              Select all {displayedDraftEntities.length} on this page
-            </SelectAdditionalButton>
-          ) : hasPartiallySelectedMatchingDraftEntities ? (
-            <SelectAdditionalButton
-              variant="secondary_quiet"
-              onClick={handleSelectAllMatchingDraftEntitiesClick}
-              endIcon={<CheckRegularIcon />}
-            >
-              Select all {matchingDraftEntities.length}{" "}
-              {isDefaultFilterState ? "drafts" : "matching current filters"}
-            </SelectAdditionalButton>
-          ) : null}
-        </Box>
-      </Fade>
+            selected
+            {hasSelectedAllDisplayedDraftEntities &&
+            hasPartiallySelectedMatchingDraftEntities
+              ? " (all on this page)"
+              : ""}
+            .
+          </Box>
+        </Typography>
+        {hasPartiallySelectedDisplayedDraftEntities ? (
+          <SelectAdditionalButton
+            variant="secondary_quiet"
+            onClick={handleSelectAllDisplayedDraftEntitiesClick}
+            endIcon={<CheckRegularIcon />}
+          >
+            Select all {displayedDraftEntities.length} on this page
+          </SelectAdditionalButton>
+        ) : hasPartiallySelectedMatchingDraftEntities ? (
+          <SelectAdditionalButton
+            variant="secondary_quiet"
+            onClick={handleSelectAllMatchingDraftEntitiesClick}
+            endIcon={<CheckRegularIcon />}
+          >
+            Select all {matchingDraftEntities.length}{" "}
+            {isDefaultFilterState ? "drafts" : "matching current filters"}
+          </SelectAdditionalButton>
+        ) : null}
+      </Box>
       <Typography
         sx={{
           fontSize: 12,
