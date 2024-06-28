@@ -85,11 +85,12 @@ Entities: ${JSON.stringify(
               name,
               summary,
               entityType: entityTypeId,
-              facts: factsAboutEntity,
+              facts: JSON.stringify(
+                factsAboutEntity.map(simplifyFactForLlmConsumption),
+              ),
             };
           }),
         )}
-Facts Gathered: ${JSON.stringify(factsGathered.map(simplifyFactForLlmConsumption))}
 Possible Next Links: ${JSON.stringify(possibleNextLinks)}
     `),
       },
