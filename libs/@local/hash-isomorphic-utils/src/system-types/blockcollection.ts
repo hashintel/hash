@@ -7,6 +7,7 @@ import type {
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
+  BlockCollectionPropertiesWithMetadata,
 } from "./shared";
 
 export type {
@@ -14,4 +15,5 @@ export type {
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
+  BlockCollectionPropertiesWithMetadata,
 };

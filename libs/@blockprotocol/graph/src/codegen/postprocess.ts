@@ -1,4 +1,5 @@
 import type { PostprocessContext } from "./context/postprocess";
+import { addMetadataDependenciesToFiles } from "./postprocess/add-metadata-dependencies-to-files";
 import { allocateTypesToFiles } from "./postprocess/allocate-types-to-files";
 import { appendIdentifierDefinitionsToFileContents } from "./postprocess/append-identifier-definitions-to-file-contents";
 import { generateBlockEntityTypeAliases } from "./postprocess/generate-block-entity-type-aliases";
@@ -18,6 +19,7 @@ export const postprocess = async (context: PostprocessContext) => {
   generateBlockEntityTypeAliases(context);
   generateBlockLinkTargetAliases(context);
   appendIdentifierDefinitionsToFileContents(context);
+  addMetadataDependenciesToFiles(context);
   prependImportsAndExports(context);
   prependBannerComments(context);
 

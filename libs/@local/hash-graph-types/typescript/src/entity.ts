@@ -161,6 +161,8 @@ export const isObjectMetadata = (
 ): metadata is PropertyMetadataObject =>
   !isValueMetadata(metadata) && !Array.isArray(metadata.value);
 
+export type Confidence = number;
+
 /**
  * A compound type that contains both the value and the metadata of a property
  * value.
