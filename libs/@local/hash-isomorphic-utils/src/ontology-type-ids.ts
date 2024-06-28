@@ -387,6 +387,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/current-approach/",
   },
+  customMetadata: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/custom-metadata/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/custom-metadata/",
+  },
   dataAudience: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/data-audience/v/1",
@@ -498,6 +504,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/icon/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/icon/",
   },
+  inputTokenCost: {
+    propertyTypeId:
+      "https://hash.ai/@ftse/types/property-type/input-token-cost/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@ftse/types/property-type/input-token-cost/",
+  },
   inputUnitCost: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/input-unit-cost/v/1",
@@ -567,6 +579,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/output-definitions/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/output-definitions/",
+  },
+  outputTokenCost: {
+    propertyTypeId:
+      "https://hash.ai/@ftse/types/property-type/output-token-cost/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@ftse/types/property-type/output-token-cost/",
   },
   outputUnitCost: {
     propertyTypeId:
@@ -839,7 +857,7 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/watts/",
     title: "Watts",
     description:
-      "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
+      "A unit of power in the International System of Units (SI) equal to one joule per second.",
   },
 } as const;
 

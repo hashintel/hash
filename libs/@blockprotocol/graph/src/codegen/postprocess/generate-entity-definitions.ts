@@ -13,10 +13,10 @@ const generateEntityDefinitionForEntityType = (
   const typeName = title;
   const isLinkType = mustBeDefined(context.linkTypeMap[entityTypeId]);
 
-  const linkSuffix = isLinkType ? ` & { linkData: LinkData }` : "";
+  const entityTypeName = isLinkType ? "LinkEntity" : "Entity";
   const entityName = entityDefinitionNameForEntityType(typeName);
 
-  const compiledContents = `\nexport type ${entityName} = Entity<${typeName}>${linkSuffix}\n`;
+  const compiledContents = `\nexport type ${entityName} = ${entityTypeName}<${typeName}>\n`;
 
   return { entityName, isLinkType, compiledContents };
 };
@@ -36,7 +36,9 @@ const allocateEntityDefinitionToFile = (
     entityName,
     {
       definingPath: fileName,
-      dependentOnIdentifiers: isLinkType ? ["Entity", "LinkData"] : ["Entity"],
+      dependentOnIdentifiers: isLinkType
+        ? ["Entity", "LinkEntity"]
+        : ["Entity"],
       compiledContents,
     },
     true,
