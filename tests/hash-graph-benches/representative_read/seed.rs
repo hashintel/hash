@@ -327,10 +327,10 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
     store_wrapper: &mut StoreWrapper<A>,
 ) -> Samples {
     // TODO: We'll want to test distribution across accounts
-    //   See https://linear.app/hash/issue/H-3012
+    //   see https://linear.app/hash/issue/H-3012
     //
-    //   We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
-    //   parameter argument to criterion and get comparison analysis
+    // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
+    // parameter argument to criterion and get comparison analysis
     let account_id = AccountId::new(
         Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"),
     );
