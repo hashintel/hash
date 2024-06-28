@@ -127,14 +127,14 @@ export const PageSidebar: FunctionComponent = () => {
         count: (numberOfUnreadNotifications ?? 0) + numberOfPendingActions,
         children: [
           {
-            title: "Notifications",
-            path: "/inbox",
-            count: numberOfUnreadNotifications,
-          },
-          {
             title: "Actions",
             path: "/actions",
             count: numberOfPendingActions,
+          },
+          {
+            title: "Notifications",
+            path: "/inbox",
+            count: numberOfUnreadNotifications,
           },
         ],
       },
