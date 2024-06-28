@@ -30,7 +30,6 @@ import type { DuplicateReport } from "./research-entities-action/deduplicate-ent
 import { deduplicateEntities } from "./research-entities-action/deduplicate-entities";
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
 import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call";
-import type { AccessedRemoteFile } from "./research-entities-action/infer-facts-from-web-page-worker-agent/types";
 import { linkFollowerAgent } from "./research-entities-action/link-follower-agent";
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent";
 import type { CompletedToolCall } from "./research-entities-action/types";
@@ -38,6 +37,12 @@ import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-enti
 import type { Fact } from "./shared/infer-facts-from-text/types";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
 import type { FlowActionActivity } from "./types";
+
+export type AccessedRemoteFile = {
+  entityTypeId: VersionedUrl;
+  url: string;
+  loadedAt: string;
+};
 
 const adjustDuplicates = (params: {
   duplicates: DuplicateReport[];
@@ -86,14 +91,12 @@ const updateStateFromInferredFacts = async (params: {
   state: CoordinatingAgentState;
   inferredFacts: Fact[];
   inferredFactsAboutEntities: LocalEntitySummary[];
-  filesUsedToInferFacts: AccessedRemoteFile[];
 }) => {
   const {
     input,
     state,
     inferredFactsAboutEntities,
     inferredFacts,
-    filesUsedToInferFacts,
     skipDeduplication,
   } = params;
 
@@ -183,8 +186,6 @@ const updateStateFromInferredFacts = async (params: {
       return duplicate ? duplicate.canonicalId : entityId;
     });
   }
-
-  state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
 };
 
 export const researchEntitiesAction: FlowActionActivity<{
@@ -220,10 +221,8 @@ export const researchEntitiesAction: FlowActionActivity<{
       submittedEntityIds: [],
       previousCalls: [],
       inferredFactsAboutEntities: [],
-      filesUsedToInferFacts: [],
       inferredFacts: [],
       hasConductedCheckStep: false,
-      filesUsedToProposeEntities: [],
       questionsAndAnswers,
     };
 
@@ -455,31 +454,10 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             const inferredFacts: Fact[] = [];
             const inferredFactsAboutEntities: LocalEntitySummary[] = [];
-            const filesUsedToInferFacts: AccessedRemoteFile[] = [];
 
             for (const { response, url } of responsesWithUrl) {
               inferredFacts.push(...response.facts);
               inferredFactsAboutEntities.push(...response.entitySummaries);
-
-              filesUsedToInferFacts.push(
-                ...response.facts
-                  .flatMap(({ sources }) => sources ?? [])
-                  .filter(
-                    (source) =>
-                      source.type === SourceType.Document &&
-                      !!source.location?.uri,
-                  )
-                  .map(
-                    (source) =>
-                      ({
-                        url: source.location!.uri!,
-                        loadedAt: source.loadedAt ?? new Date().toISOString(),
-                        entityTypeId:
-                          systemEntityTypes.pdfDocument.entityTypeId,
-                      }) satisfies AccessedRemoteFile,
-                  ),
-              );
-              // filesUsedToInferFacts.push(...response.filesUsedToInferEntities);
 
               outputMessage += `Inferred ${
                 response.facts.length
@@ -506,7 +484,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                 state,
                 inferredFacts,
                 inferredFactsAboutEntities,
-                filesUsedToInferFacts,
                 /**
                  * Skip deduplication if facts were only inferred from a single web page,
                  * and there are no existing entities or inferred facts about entities.
@@ -651,14 +628,12 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             const inferredFacts: Fact[] = [];
             const inferredFactsAboutEntities: LocalEntitySummary[] = [];
-            const filesUsedToInferFacts: AccessedRemoteFile[] = [];
 
             let output: string = "";
 
             for (const { response, subTask } of responsesWithSubTask) {
               inferredFactsAboutEntities.push(...response.discoveredEntities);
               inferredFacts.push(...response.discoveredFacts);
-              filesUsedToInferFacts.push(...response.filesUsedToInferFacts);
 
               if (response.status === "ok") {
                 output += `The sub-task with goal "${subTask.goal}" resulted in ${response.discoveredFacts.length} new facts. ${response.explanation}\n`;
@@ -681,7 +656,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                 state,
                 inferredFacts,
                 inferredFactsAboutEntities,
-                filesUsedToInferFacts,
                 /**
                  * Skip deduplication if facts were only gathered in a single sub-task,
                  * and there are no existing entities or inferred facts about entities.
@@ -820,12 +794,15 @@ export const researchEntitiesAction: FlowActionActivity<{
         ).flatMap(({ metadata }) => metadata.provenance?.sources ?? []),
       ];
 
-      return sourcesUsedToProposeEntity.flatMap(({ location }) => {
-        const { uri } = location ?? {};
+      return sourcesUsedToProposeEntity.flatMap((source) => {
+        if (source.location?.uri && source.type === SourceType.Document) {
+          return {
+            url: source.location.uri,
+            entityTypeId: systemEntityTypes.pdfDocument.entityTypeId,
+          };
+        }
 
-        return (
-          state.filesUsedToProposeEntities.find(({ url }) => url === uri) ?? []
-        );
+        return [];
       });
     })
     .filter(

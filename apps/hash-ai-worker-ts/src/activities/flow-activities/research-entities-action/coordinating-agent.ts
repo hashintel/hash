@@ -36,7 +36,6 @@ import type {
 import { generateToolDefinitions } from "./coordinator-tools";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { getAnswersFromHuman } from "./get-answers-from-human";
-import type { AccessedRemoteFile } from "./infer-facts-from-web-page-worker-agent/types";
 import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption";
 import type { ExistingEntitySummary } from "./summarize-existing-entities";
 import { summarizeExistingEntities } from "./summarize-existing-entities";
@@ -163,11 +162,9 @@ export type CoordinatingAgentState = {
   }[];
   inferredFactsAboutEntities: LocalEntitySummary[];
   inferredFacts: Fact[];
-  filesUsedToInferFacts: AccessedRemoteFile[];
   proposedEntities: ProposedEntity[];
   submittedEntityIds: string[];
   hasConductedCheckStep: boolean;
-  filesUsedToProposeEntities: AccessedRemoteFile[];
   questionsAndAnswers: string | null;
 };
 
