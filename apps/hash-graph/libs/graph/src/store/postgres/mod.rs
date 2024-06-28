@@ -572,7 +572,7 @@ where
                 .change_context(InsertionError)?;
         }
 
-        // @todo should we check that the `link_entity_type_ref` is a link entity type?
+        // TODO: should we check that the `link_entity_type_ref` is a link entity type?
         for (link_reference, destinations) in entity_type.link_mappings() {
             self.as_client()
                 .query_one(
