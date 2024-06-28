@@ -2,10 +2,10 @@
  * This is currently duplicated line-for-line between Image and Video blocks.
  * We intend to find a way to share these between blocks using components, or
  * make these blocks variants.
- * 
+ *
  * @todo Deduplicate this file
  * @see https://linear.app/hash/issue/H-3022
-*/
+ */
 import type {
   BlockGraphProperties,
   UpdateEntityData,

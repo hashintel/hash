@@ -117,10 +117,10 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
           alignItems: "center",
           backgroundColor: "#ffffff",
           borderRadius: "1rem",
-          /** 
+          /**
            * @todo use shadows from MUI theme
            * @see https://linear.app/hash/issue/H-2999
-          */
+           */
           boxShadow:
             "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
           display: "flex",

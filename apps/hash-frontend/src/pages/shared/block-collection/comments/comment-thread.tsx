@@ -107,7 +107,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
           /**
            * @todo The provenance fields shouldn't be used for this
            * @see https://linear.app/hash/issue/H-3003
-          */ 
+           */
           authenticatedUser.accountId === authorId ||
           authenticatedUser.accountId ===
             comment.parent.metadata.provenance.edition.createdById

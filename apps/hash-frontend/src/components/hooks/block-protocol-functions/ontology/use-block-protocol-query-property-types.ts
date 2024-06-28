@@ -39,7 +39,7 @@ export const useBlockProtocolQueryPropertyTypes = (): {
        *   This may mean having the backend use structural querying and relaying
        *   or doing it from here.
        * @see https://linear.app/hash/issue/H-2998
-      */
+       */
       const response = await queryFn({
         variables: {
           constrainsValuesOn: { outgoing: 255 },

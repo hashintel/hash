@@ -101,7 +101,7 @@ export const LoadEntityMenuContent: FunctionComponent<
       /**
        * @todo properly type this part of the DraftEntity type
        * @see https://linear.app/hash/issue/H-3000
-      */
+       */
       blockView.manager.replaceBlockChildEntity(
         blockEntityId,
         targetEntity as EntityStoreType,

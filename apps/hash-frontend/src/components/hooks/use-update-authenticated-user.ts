@@ -82,7 +82,7 @@ export const useUpdateAuthenticatedUser = () => {
         /**
          * @todo use a partial update mutation instead
          * @see https://linear.app/hash/issue/H-2997
-        */
+         */
         const { properties: currentProperties } = latestUserEntity;
 
         const { errors } = await updateEntity({

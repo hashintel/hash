@@ -150,7 +150,7 @@ export class ProsemirrorManager {
         /**
          * @todo Make these errors instead of logs
          * @see https://linear.app/hash/issue/H-3000
-        */
+         */
         // eslint-disable-next-line no-console
         console.error("Block entity missing from store");
       }
@@ -162,8 +162,8 @@ export class ProsemirrorManager {
 
       /**
        * @todo this any type coercion is incorrect, we need to adjust typings
-       * @see https://linear.app/hash/issue/H-3000 
-      */
+       * @see https://linear.app/hash/issue/H-3000
+       */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       blockEntity = entityInStore as any;
     }

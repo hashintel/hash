@@ -39,7 +39,7 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
         /**
          * @todo use shadows from MUI theme
          * @see https://linear.app/hash/issue/H-2999
-        */ 
+         */
         boxShadow:
           "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
         left: "50%",

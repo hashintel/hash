@@ -53,10 +53,10 @@ const BlockHandle: ForwardRefRenderFunction<
   const blockView = useBlockView();
 
   const updateChildEntity = (properties: JsonObject) => {
-    /** 
+    /**
      *  @todo properly type this part of the DraftEntity type
      *  @see https://linear.app/hash/issue/H-3000
-    */
+     */
     const childEntity = blockEntity?.blockChildEntity;
     if (!childEntity) {
       throw new Error(`No child entity on block to update`);

@@ -97,7 +97,7 @@ const acquireReplicationSlot = async (
      *   make sure that this use case falls under that category.
      * @see https://linear.app/hash/issue/H-3013
      * @see https://docs.citusdata.com/en/stable/develop/reference_workarounds.html#sql-support-and-workarounds
-    */
+     */
     const slotIsOwned = await tx.maybeOneFirst(sql`
       select ownership_expires_at > now() as owned from realtime.ownership
       where slot_name = ${slotName}

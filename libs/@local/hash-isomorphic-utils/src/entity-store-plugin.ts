@@ -209,8 +209,8 @@ const setBlockChildEntity = (
       properties: castDraft(targetEntity.properties),
       /**
        * @todo use the actual updated date here
-       * @see https://linear.app/hash/issue/H-3000 
-      */
+       * @see https://linear.app/hash/issue/H-3000
+       */
       // updatedAt: targetEntity.updatedAt,
     };
 
@@ -228,7 +228,7 @@ const setBlockChildEntity = (
   /**
    * @todo sort out entity store types
    * @see https://linear.app/hash/issue/H-3000
-  */
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   draftBlockEntity.blockChildEntity = targetDraftEntity as any;
 };

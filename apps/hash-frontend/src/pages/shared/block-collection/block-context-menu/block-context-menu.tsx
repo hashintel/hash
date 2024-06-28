@@ -93,10 +93,10 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const entityId = blockEntity?.metadata.recordId.entityId ?? null;
 
   const menuItems = useMemo(() => {
-    /** 
+    /**
      * @todo properly type this part of the DraftEntity type
      * @see https://linear.app/hash/issue/H-3000
-    */
+     */
     const hasChildEntityWithData =
       Object.keys(blockEntity?.blockChildEntity?.properties ?? []).length > 0;
     const items = [
@@ -348,9 +348,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
           } */}
           </Typography>
           {/**
-            * @todo re-implement after collab works
-            * @see https://linear.app/hash/issue/H-3000 
-          */}
+           * @todo re-implement after collab works
+           * @see https://linear.app/hash/issue/H-3000
+           */}
           {/* {typeof blockEntity?.properties.entity.updatedAt === "string" && (
             <Typography
               variant="microText"
