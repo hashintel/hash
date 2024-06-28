@@ -36,19 +36,26 @@ type LinkFollowerAgentInput = {
 
 const isContentAtUrlPdfFile = async (params: { url: string }) => {
   const { url } = params;
-  const urlHeadFetch = await fetch(url, { method: "HEAD" });
 
-  /**
-   * Only check the content type of the URL if the HEAD request was successful.
-   *
-   * This may be because the web page requires an authenticated user to access it.
-   */
-  if (urlHeadFetch.ok) {
-    const contentType = urlHeadFetch.headers.get("Content-Type");
+  try {
+    const urlHeadFetch = await fetch(url, { method: "HEAD" });
 
-    if (contentType && contentType.includes("application/pdf")) {
-      return true;
+    /**
+     * Only check the content type of the URL if the HEAD request was successful.
+     *
+     * This may be because the web page requires an authenticated user to access it.
+     */
+    if (urlHeadFetch.ok) {
+      const contentType = urlHeadFetch.headers.get("Content-Type");
+
+      if (contentType && contentType.includes("application/pdf")) {
+        return true;
+      }
     }
+  } catch (error) {
+    logger.error(
+      `Error encountered when checking if content at URL ${url} is a PDF file: ${stringify(error)}`,
+    );
   }
   return false;
 };
