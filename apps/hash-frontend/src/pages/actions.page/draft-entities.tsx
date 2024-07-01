@@ -304,8 +304,8 @@ export const DraftEntities: FunctionComponent<{
         filteredAndSortedDraftEntitiesWithCreatedAt.length === 0 ? (
           <Typography textAlign="center">
             {draftEntitiesWithCreators?.length === 0
-              ? "You have no drafts currently awaiting review."
-              : "No draft entities match the selected filters."}
+              ? "You have no actions currently awaiting review."
+              : "No items entities match the selected filters."}
           </Typography>
         ) : (
           <>

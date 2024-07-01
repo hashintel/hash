@@ -52,6 +52,11 @@ export const splitEntityId = (
   return [ownedById as OwnedById, entityUuid as EntityUuid, draftId as DraftId];
 };
 
+export const stripDraftIdFromEntityId = (entityId: EntityId) => {
+  const [ownedById, entityUuid] = splitEntityId(entityId);
+  return entityIdFromComponents(ownedById, entityUuid);
+};
+
 export const extractOwnedByIdFromEntityId = (entityId: EntityId): OwnedById => {
   return splitEntityId(entityId)[0];
 };
