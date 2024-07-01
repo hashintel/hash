@@ -125,6 +125,13 @@
       "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
     },
     {
+      "automerge": false,
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["typescript"],
+      "dependencyDashboardApproval": false,
+      "assignees": ["CiaranMn"]
+    },
+    {
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["httpyac"],
       "dependencyDashboardApproval": false
