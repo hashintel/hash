@@ -33,7 +33,8 @@ where
 {
     type Rejection = Response;
 
-    // TODO - can we generally add `RequestInfo` including information such as the route -- https://github.com/tokio-rs/axum/blob/main/examples/customize-extractor-error/src/custom_extractor.rs
+    // TODO: can we generally add `RequestInfo` including information such as the route
+    //   see https://github.com/tokio-rs/axum/blob/main/examples/customize-extractor-error/src/custom_extractor.rs
     async fn from_request(req: Request<Body>, state: &S) -> Result<Self, Self::Rejection> {
         if json_content_type(req.headers()) {
             let bytes = Bytes::from_request(req, state).await.map_err(|err| {

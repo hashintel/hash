@@ -2,7 +2,8 @@
 // @ts-nocheck
 /**
  * @todo remove above ts-nocheck as we start re-enabling OpenSearch indexing
- *   https://app.asana.com/0/1200211978612931/1202938382575963/f
+ * @see https://linear.app/hash/issue/H-3020
+ * @see https://linear.app/hash/issue/H-3021
  */
 import { DbAdapter } from "@apps/hash-api/src/db";
 import { EntityType as DbEntityType } from "@apps/hash-api/src/db/adapter";

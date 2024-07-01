@@ -183,7 +183,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         // correct but doing `unwrap_or_else`.
         // TODO: we might be able to expose that through the type system?
         // TODO: instead of doing this we need to use `NoneDeserializer`,
-        //  this needs `.context()` on access rules to ensure proper ownership
+        //       this needs `.context()` on access rules to ensure proper ownership
         let a = array
             .next()
             .unwrap_or_else(|| {
@@ -281,8 +281,8 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
 impl Reflection for Example {
     fn schema(doc: &mut Document) -> Schema {
         // TODO: we cannot express or constraints right now
-        //  we would need to say: object if e.g. JSON-schema, other format might do both
-        //  blueprint must support "struct"
+        //       we would need to say: object if e.g. JSON-schema, other format might do both
+        //       blueprint must support "struct"
         Schema::new("object").with(
             "properties",
             Properties([
@@ -342,7 +342,7 @@ fn struct_object_out_of_order_ok() {
 }
 
 // TODO: key missing instead of value missing (or discriminant missing) ~> only possible with
-//  IdentifierVisitor?
+//       IdentifierVisitor?
 #[test]
 fn struct_object_missing_err() {
     assert_tokens_error::<Example>(

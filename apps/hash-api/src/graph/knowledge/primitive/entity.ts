@@ -449,7 +449,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
   /**
    * @todo Once the graph API validates the required links of entities on creation, this may have to be reworked in
    *   order to create valid entities. this code currently creates entities first, then links them together. See
-   *   https://app.asana.com/0/1202805690238892/1203046447168478/f
+   *   https://linear.app/hash/issue/H-2986
    */
   const entities = await Promise.all(
     entitiesInTree.map(async (definition) => {
