@@ -20,11 +20,13 @@
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
   "schedule": ["before 4am every weekday", "every weekend"],
+  "assigneesFromCodeOwners": true,
 
   "packageRules": [
     {
       "extends": ["packages:linters", "packages:test"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchManagers": ["github-actions"],
@@ -32,6 +34,7 @@
       "additionalBranchPrefix": "gha/",
       "pinDigests": true,
       "dependencyDashboardApproval": false,
+      "assignees": ["TimDiekmann"],
       "schedule": ["before 2am on saturday"]
     },
     {
@@ -48,19 +51,22 @@
     {
       "matchManagers": ["docker-compose", "dockerfile"],
       "commitMessageTopic": "Docker tag `{{depName}}`",
-      "additionalBranchPrefix": "docker/"
+      "additionalBranchPrefix": "docker/",
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchManagers": ["npm"],
       "commitMessageTopic": "npm package `{{depName}}`",
-      "additionalBranchPrefix": "js/"
+      "additionalBranchPrefix": "js/",
+      "assignees": ["CiaranMn"]
     },
     {
       "matchManagers": ["cargo"],
       "commitMessageTopic": "Rust crate `{{depName}}`",
       "additionalBranchPrefix": "rs/",
       "reviewers": ["team:Rust"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchDepTypes": ["devDependencies"],
@@ -79,7 +85,8 @@
         "@redocly/cli"
       ],
       "excludePackageNames": ["prettier-plugin-sql"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "assignees": ["TimDiekmann"]
     },
     {
       "groupName": "LLM provider SDK npm packages",
@@ -131,13 +138,15 @@
     {
       "groupName": "OpenTelemetry npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@opentelemetry/"]
+      "matchPackagePatterns": ["^@opentelemetry/"],
+      "assignees": ["TimDiekmann"]
     },
     {
       "groupName": "Playwright npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "assignees": ["CiaranMn"]
     },
     {
       "groupName": "Prettier npm packages",
@@ -154,7 +163,8 @@
     {
       "groupName": "Sentry npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@sentry/"]
+      "matchPackagePatterns": ["^@sentry/"],
+      "assignees": ["TimDiekmann"]
     },
     {
       "groupName": "Signia npm packages",
@@ -173,7 +183,8 @@
       "commitMessageTopic": "Rust toolchains",
       "reviewers": ["team:Rust"],
       "dependencyDashboardApproval": false,
-      "schedule": ["before 11am"]
+      "schedule": ["before 11am"],
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchManagers": ["cargo"],
