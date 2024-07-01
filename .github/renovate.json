@@ -26,7 +26,7 @@
     {
       "extends": ["packages:linters", "packages:test"],
       "dependencyDashboardApproval": false,
-      "assignees": "TimDiekmann"
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchManagers": ["github-actions"],
@@ -34,7 +34,7 @@
       "additionalBranchPrefix": "gha/",
       "pinDigests": true,
       "dependencyDashboardApproval": false,
-      "assignees": "TimDiekmann",
+      "assignees": ["TimDiekmann"],
       "schedule": ["before 2am on saturday"]
     },
     {
@@ -52,13 +52,13 @@
       "matchManagers": ["docker-compose", "dockerfile"],
       "commitMessageTopic": "Docker tag `{{depName}}`",
       "additionalBranchPrefix": "docker/",
-      "assignees": "TimDiekmann"
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchManagers": ["npm"],
       "commitMessageTopic": "npm package `{{depName}}`",
       "additionalBranchPrefix": "js/",
-      "assignees": "CiaranMn"
+      "assignees": ["CiaranMn"]
     },
     {
       "matchManagers": ["cargo"],
@@ -66,7 +66,7 @@
       "additionalBranchPrefix": "rs/",
       "reviewers": ["team:Rust"],
       "dependencyDashboardApproval": false,
-      "assignees": "TimDiekmann"
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchDepTypes": ["devDependencies"],
@@ -86,7 +86,7 @@
       ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false,
-      "assignees": "TimDiekmann"
+      "assignees": ["TimDiekmann"]
     },
     {
       "groupName": "LLM provider SDK npm packages",
@@ -139,14 +139,14 @@
       "groupName": "OpenTelemetry npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@opentelemetry/"],
-      "assignees": "TimDiekmann"
+      "assignees": ["TimDiekmann"]
     },
     {
       "groupName": "Playwright npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"],
       "dependencyDashboardApproval": false,
-      "assignees": "CiaranMn"
+      "assignees": ["CiaranMn"]
     },
     {
       "groupName": "Prettier npm packages",
@@ -164,7 +164,7 @@
       "groupName": "Sentry npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@sentry/"],
-      "assignees": "TimDiekmann"
+      "assignees": ["TimDiekmann"]
     },
     {
       "groupName": "Signia npm packages",
@@ -184,7 +184,7 @@
       "reviewers": ["team:Rust"],
       "dependencyDashboardApproval": false,
       "schedule": ["before 11am"],
-      "assignees": "TimDiekmann"
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchManagers": ["cargo"],
