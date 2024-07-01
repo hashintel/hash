@@ -12,7 +12,6 @@ import {
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 export type WebMachineActorIdentifier = `system-${OwnedById}`;
 
@@ -55,9 +54,7 @@ export const getMachineActorId = async (
               {
                 path: [
                   "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.machineIdentifier.propertyTypeId,
-                  ),
+                  systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
                 ],
               },
               { parameter: identifier },

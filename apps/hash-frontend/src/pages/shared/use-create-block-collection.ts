@@ -7,7 +7,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { BlockCollectionProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { generateKeyBetween } from "fractional-indexing";
 import { useCallback } from "react";
 
@@ -39,9 +38,8 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
             data: {
               entityTypeId: systemEntityTypes.block.entityTypeId,
               properties: {
-                [extractBaseUrl(
-                  systemPropertyTypes.componentId.propertyTypeId,
-                )]: paragraphBlockComponentId,
+                [systemPropertyTypes.componentId.propertyTypeBaseUrl]:
+                  paragraphBlockComponentId,
               },
             },
           }).then(({ data }) => {
@@ -55,9 +53,8 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
             data: {
               entityTypeId: systemEntityTypes.text.entityTypeId,
               properties: {
-                [extractBaseUrl(
-                  blockProtocolPropertyTypes.textualContent.propertyTypeId,
-                )]: [],
+                [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]:
+                  [],
               },
             },
           }).then(({ data }) => {
@@ -79,9 +76,8 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
               rightEntityId: blockEntity.metadata.recordId.entityId,
             },
             properties: {
-              [extractBaseUrl(
-                systemPropertyTypes.fractionalIndex.propertyTypeId,
-              )]: generateKeyBetween(null, null),
+              [systemPropertyTypes.fractionalIndex.propertyTypeBaseUrl]:
+                generateKeyBetween(null, null),
             },
           },
         }),

@@ -27,7 +27,6 @@ import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   ImpureGraphFunction,
@@ -489,7 +488,7 @@ export const getCommentNotification: ImpureGraphFunction<
                 {
                   path: [
                     "properties",
-                    extractBaseUrl(systemPropertyTypes.archived.propertyTypeId),
+                    systemPropertyTypes.archived.propertyTypeBaseUrl,
                   ],
                 },
                 // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
@@ -502,7 +501,7 @@ export const getCommentNotification: ImpureGraphFunction<
                 {
                   path: [
                     "properties",
-                    extractBaseUrl(systemPropertyTypes.archived.propertyTypeId),
+                    systemPropertyTypes.archived.propertyTypeBaseUrl,
                   ],
                 },
                 { parameter: false },

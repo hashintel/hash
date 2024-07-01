@@ -14,7 +14,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   ImpureGraphFunction,
@@ -171,9 +170,8 @@ export const createComment: ImpureGraphFunction<
   const textEntity = await createEntity(ctx, authentication, {
     ownedById,
     properties: {
-      [extractBaseUrl(
-        blockProtocolPropertyTypes.textualContent.propertyTypeId,
-      )]: textualContent,
+      [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]:
+        textualContent,
     },
     entityTypeId: systemEntityTypes.text.entityTypeId,
     relationships,
