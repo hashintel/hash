@@ -101,7 +101,7 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
     updateItems(
       produce(draftItems, (newItems) => {
         if (newItems[index]) {
-          newItems[index]![propertyIds.value] = value; // eslint-disable-line no-param-reassign
+          newItems[index][propertyIds.value] = value; // eslint-disable-line no-param-reassign
         }
       }),
       false,

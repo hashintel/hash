@@ -137,8 +137,8 @@ export const userBeforeEntityUpdateHookCallback: UpdateEntityHookCallback =
     const currentEmails = user.emails;
 
     if (
-      [...currentEmails].sort().join().toLowerCase() !==
-      [...updatedEmails].sort().join().toLowerCase()
+      currentEmails.toSorted().join().toLowerCase() !==
+      updatedEmails.toSorted().join().toLowerCase()
     ) {
       await updateUserKratosIdentityTraits(
         context,

@@ -322,7 +322,7 @@ export const getOutgoingLinkAndTargetEntities = <
 
       // eslint-disable-next-line no-param-reassign
       revisionMap[linkEntityId] ??= [];
-      revisionMap[linkEntityId]!.push(entity);
+      revisionMap[linkEntityId].push(entity);
 
       return revisionMap;
     },

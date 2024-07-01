@@ -96,14 +96,10 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     position: { canvasPosition, indexPosition },
   } = params;
 
-  if (!canvasPosition && !indexPosition) {
-    throw new Error(`One of indexPosition or canvasPosition must be defined`);
-  }
-
   const linkEntity: LinkEntity = await createLinkEntity(ctx, authentication, {
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
-    properties: (canvasPosition || indexPosition) ?? {},
+    properties: canvasPosition || indexPosition,
     linkData: {
       leftEntityId: blockCollectionEntityId,
       rightEntityId: block.entity.metadata.recordId.entityId,
@@ -138,10 +134,6 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
     position: { indexPosition, canvasPosition },
     linkEntityId,
   } = params;
-
-  if (!canvasPosition && !indexPosition) {
-    throw new Error(`One of fractionalIndex or canvasPosition must be defined`);
-  }
 
   const linkEntity = await getLatestEntityById(ctx, authentication, {
     entityId: linkEntityId,

@@ -40,10 +40,7 @@ import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type {
-  OntologyTypeVertexId,
-  QueryTemporalAxesUnresolved,
-} from "@local/hash-subgraph";
+import type { QueryTemporalAxesUnresolved } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   getEntityTypes as getEntityTypesFromSubgraph,
@@ -986,7 +983,7 @@ describe("complex resolve depths", () => {
     const personTypes = subgraph.edges[aliceEntity.metadata.recordId.entityId]![
       aliceEntity.metadata.temporalVersioning.decisionTime.start.limit
     ]!.filter((edge) => edge.kind === "IS_OF_TYPE").map(
-      (edge) => edge.rightEndpoint as OntologyTypeVertexId,
+      (edge) => edge.rightEndpoint,
     );
     expect(personTypes.length).toEqual(1);
     const personType = personTypes[0]!;
@@ -1006,7 +1003,7 @@ describe("complex resolve depths", () => {
     const linkTypes = subgraph.edges[link.metadata.recordId.entityId]![
       link.metadata.temporalVersioning.decisionTime.start.limit
     ]!.filter((edge) => edge.kind === "IS_OF_TYPE").map(
-      (edge) => edge.rightEndpoint as OntologyTypeVertexId,
+      (edge) => edge.rightEndpoint,
     );
     expect(linkTypes.length).toEqual(1);
     const linkType = linkTypes[0]!;

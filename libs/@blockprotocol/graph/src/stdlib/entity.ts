@@ -54,7 +54,7 @@ export const parseLabelFromEntity = (
     for (const { title, propertyTypeBaseUrl } of propertyTypes) {
       if (title !== undefined && title.toLowerCase() === option) {
         if (typeof entityToLabel.properties[propertyTypeBaseUrl] === "string") {
-          return entityToLabel.properties[propertyTypeBaseUrl] as string;
+          return entityToLabel.properties[propertyTypeBaseUrl];
         }
       }
     }
@@ -65,7 +65,7 @@ export const parseLabelFromEntity = (
     for (const { title, propertyTypeBaseUrl } of propertyTypes) {
       if (title !== undefined && title.toLowerCase().includes(option)) {
         if (typeof entityToLabel.properties[propertyTypeBaseUrl] === "string") {
-          return entityToLabel.properties[propertyTypeBaseUrl] as string;
+          return entityToLabel.properties[propertyTypeBaseUrl];
         }
       }
     }
@@ -76,7 +76,7 @@ export const parseLabelFromEntity = (
     for (const propertyTypeBaseUrl of Object.keys(entityToLabel.properties)) {
       if (propertyTypeBaseUrl.toLowerCase().includes(option)) {
         if (typeof entityToLabel.properties[propertyTypeBaseUrl] === "string") {
-          return entityToLabel.properties[propertyTypeBaseUrl] as string;
+          return entityToLabel.properties[propertyTypeBaseUrl];
         }
       }
     }
