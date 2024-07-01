@@ -23,7 +23,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
    *
    * @todo handle links pointing to other links via creating many entities at once, unblocked by H-1178
    */
-  const entitiesWithDependenciesSortedLast = [...proposedEntities].sort(
+  const entitiesWithDependenciesSortedLast = proposedEntities.toSorted(
     (a, b) => {
       if (
         (a.sourceEntityId && b.sourceEntityId) ||
