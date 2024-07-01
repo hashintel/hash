@@ -108,17 +108,30 @@ async fn properties_add() {
             entity_id,
             decision_time: None,
             entity_type_ids: HashSet::new(),
-            properties: vec![PropertyPatchOperation::Add {
-                path: once(PropertyPathElement::from(age_property_type_id())).collect(),
-                property: PropertyWithMetadata::Value {
-                    value: json!(30),
-                    metadata: ValueMetadata {
-                        confidence: None,
-                        data_type_id: None,
-                        provenance: PropertyProvenance::default(),
+            properties: vec![
+                PropertyPatchOperation::Add {
+                    path: once(PropertyPathElement::from(age_property_type_id())).collect(),
+                    property: PropertyWithMetadata::Value {
+                        value: json!(30),
+                        metadata: ValueMetadata {
+                            confidence: None,
+                            data_type_id: None,
+                            provenance: PropertyProvenance::default(),
+                        },
                     },
                 },
-            }],
+                PropertyPatchOperation::Add {
+                    path: once(PropertyPathElement::from(name_property_type_id())).collect(),
+                    property: PropertyWithMetadata::Value {
+                        value: json!("Alice Allison"),
+                        metadata: ValueMetadata {
+                            confidence: None,
+                            data_type_id: None,
+                            provenance: PropertyProvenance::default(),
+                        },
+                    },
+                },
+            ],
             draft: None,
             archived: None,
             confidence: None,
@@ -154,7 +167,7 @@ async fn properties_add() {
 
     let properties = entity.properties.properties();
     assert_eq!(properties.len(), 2);
-    assert_eq!(properties[&name_property_type_id()], json!("Alice"));
+    assert_eq!(properties[&name_property_type_id()], json!("Alice Allison"));
     assert_eq!(properties[&age_property_type_id()], json!(30));
 }
 
