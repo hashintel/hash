@@ -283,9 +283,20 @@ export const inferEntityFactsFromText = async (params: {
       ],
     });
   } else if (llmResponse.status !== "ok") {
-    return {
-      facts: params.retryContext?.previousValidFacts ?? [],
-    };
+    /**
+     * If a schema validation error couldn't be recovered from, we retry the
+     * request without retry messages.
+     */
+    if (llmResponse.status === "exceeded-maximum-retries") {
+      return retry({
+        allValidInferredFacts: params.retryContext?.previousValidFacts ?? [],
+        retryMessages: [],
+      });
+    }
+
+    throw new Error(
+      `Failed to get response from LLM: ${stringify(llmResponse)}`,
+    );
   }
 
   const validFacts: Fact[] = [];

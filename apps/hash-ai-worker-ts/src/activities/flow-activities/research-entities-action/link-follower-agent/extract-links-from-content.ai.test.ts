@@ -38,7 +38,8 @@ const ftse350Metric: MetricDefinition = {
     const { testingParams } = params;
 
     const response = await extractLinksFromContent({
-      content: ftse350WebPage,
+      contentUrl: ftse350WebPage.url,
+      content: ftse350WebPage.htmlContent,
       prompt: ftse350MetricPrompt,
       testingParams,
     });
@@ -115,7 +116,8 @@ const marksAndSpencersAnnualInvestorsReport: MetricDefinition = {
     const { testingParams } = params;
 
     const response = await extractLinksFromContent({
-      content: marksAndSpencersInvestorsPage,
+      contentUrl: marksAndSpencersInvestorsPage.url,
+      content: marksAndSpencersInvestorsPage.htmlContent,
       prompt: marksAndSpencerInvestorsPrompt,
       testingParams,
     });
@@ -186,7 +188,8 @@ const graphicsCardSpecificationMetric: MetricDefinition = {
     const { testingParams } = params;
 
     const response = await extractLinksFromContent({
-      content: gpuSpecsPage,
+      contentUrl: gpuSpecsPage.url,
+      content: gpuSpecsPage.htmlContent,
       prompt: graphicsCardSpecificationPrompt,
       testingParams,
     });

@@ -1,5 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
-import type { Entity as EntityBp } from "@blockprotocol/graph/temporal";
+import type { Entity as EntityBp } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";

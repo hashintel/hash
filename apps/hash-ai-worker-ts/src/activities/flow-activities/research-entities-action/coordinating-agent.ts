@@ -35,7 +35,6 @@ import type {
 } from "./coordinator-tools";
 import { generateToolDefinitions } from "./coordinator-tools";
 import { getAnswersFromHuman } from "./get-answers-from-human";
-import type { AccessedRemoteFile } from "./infer-facts-from-web-page-worker-agent/types";
 import {
   simplifyEntityTypeForLlmConsumption,
   simplifyProposedEntityForLlmConsumption,
@@ -157,8 +156,6 @@ export type CoordinatingAgentState = {
   }[];
   entitySummaries: LocalEntitySummary[];
   inferredFacts: Fact[];
-  filesUsedToInferFacts: AccessedRemoteFile[];
-  filesUsedToProposeEntities: AccessedRemoteFile[];
   proposedEntities: ProposedEntity[];
   subTasksCompleted: string[];
   suggestionsForNextStepsMade: string[];

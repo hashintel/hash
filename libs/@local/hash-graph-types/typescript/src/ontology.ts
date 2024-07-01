@@ -3,7 +3,7 @@ import type {
   EntityTypeWithMetadata as EntityTypeWithMetadataBp,
   OntologyElementMetadata as OntologyElementMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import { validateBaseUrl } from "@blockprotocol/type-system";
 import type {
   BaseUrl as BaseUrlBp,

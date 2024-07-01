@@ -36,8 +36,6 @@ test.skip(
       },
       state: {
         entitySummaries: [],
-        filesUsedToInferFacts: [],
-        filesUsedToProposeEntities: [],
         hasConductedCheckStep: false,
         inferredFacts: [],
         plan: "",

@@ -29,7 +29,8 @@
       "import": "./dist/es-slim/main-slim.js",
       "default": "./dist/cjs-slim/main-slim.cjs"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./wasm": "./dist/wasm/type-system.wasm"
   },
   "main": "./dist/umd/main.js",
   "module": "./dist/es/main.js",
@@ -41,6 +42,9 @@
       ],
       "slim": [
         "./dist/cjs-slim/main-slim.d.ts"
+      ],
+      "wasm": [
+        "./dist/wasm/type-system.wasm.d.ts"
       ]
     }
   },

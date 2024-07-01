@@ -42,7 +42,6 @@ describe("Org", () => {
       graphContext,
       { actorId: systemAccountId },
       "orgTest",
-      logger,
     );
 
     shortname = createdOrg.shortname;

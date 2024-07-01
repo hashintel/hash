@@ -2,7 +2,7 @@ import type {
   BlockGraphProperties,
   GraphEmbedderMessageCallbacks,
   Subgraph as BpSubgraph,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -420,7 +420,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       queryEntities,
       /**
        * @todo remove this when embed block no longer relies on server-side oEmbed calls
-       * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
+       * @see https://linear.app/hash/issue/H-2996
        */
       getEmbedBlock: fetchEmbedCode,
       createEntity: async (

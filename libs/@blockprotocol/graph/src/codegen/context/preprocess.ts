@@ -5,10 +5,10 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import type { ProcessedCodegenParameters } from "../parameters.js";
-import type { LogLevel } from "../shared.js";
-import type { InitializeContext } from "./initialize.js";
-import type { TypeDependencyMap } from "./shared.js";
+import type { ProcessedCodegenParameters } from "../parameters";
+import type { JsonSchema, LogLevel } from "../shared";
+import type { InitializeContext } from "./initialize";
+import type { TypeDependencyMap } from "./shared";
 
 export class PreprocessContext {
   readonly parameters: ProcessedCodegenParameters;
@@ -17,7 +17,11 @@ export class PreprocessContext {
   readonly dataTypes: Record<VersionedUrl, DataType>;
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
-  readonly allTypes: Record<VersionedUrl, DataType | PropertyType | EntityType>;
+  readonly metadataSchemas: Record<VersionedUrl, JsonSchema>;
+  readonly allTypes: Record<
+    VersionedUrl,
+    DataType | PropertyType | EntityType | JsonSchema
+  >;
 
   readonly typeDependencyMap: TypeDependencyMap;
 
@@ -30,12 +34,14 @@ export class PreprocessContext {
     this.dataTypes = initialContext.dataTypes;
     this.propertyTypes = initialContext.propertyTypes;
     this.entityTypes = initialContext.entityTypes;
+    this.metadataSchemas = initialContext.metadataSchemas;
     this.typeDependencyMap = initialContext.typeDependencyMap;
 
     this.allTypes = {
       ...this.dataTypes,
       ...this.propertyTypes,
       ...this.entityTypes,
+      ...this.metadataSchemas,
     };
   }
 

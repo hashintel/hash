@@ -74,7 +74,9 @@ export const getDataType: ResolverFn<
       graphQLContext.authentication,
       {
         dataTypeId,
-        /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
+        /** @todo - make these configurable once non-primitive data types are a thing
+         * @see https://linear.app/hash/issue/H-2994
+         */
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
           constrainsValuesOn,

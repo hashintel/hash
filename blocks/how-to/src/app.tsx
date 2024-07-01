@@ -88,16 +88,10 @@ export const App: BlockComponent<BlockEntity> = ({
 
   const stepLinkedEntities: LinkEntityAndRightEntity[] = useMemo(
     () =>
-      linkedEntities
-        .filter(
-          ({ linkEntity }) =>
-            linkEntity.metadata.entityTypeId === hasHowToBlockStep,
-        )
-        .sort(
-          (a, b) =>
-            (a.linkEntity.linkData.leftToRightOrder ?? 0) -
-            (b.linkEntity.linkData.leftToRightOrder ?? 0),
-        ),
+      linkedEntities.filter(
+        ({ linkEntity }) =>
+          linkEntity.metadata.entityTypeId === hasHowToBlockStep,
+      ),
     [linkedEntities],
   );
 
@@ -160,15 +154,12 @@ export const App: BlockComponent<BlockEntity> = ({
             linkData: {
               leftEntityId: entityId,
               rightEntityId: createdEntityId,
-              leftToRightOrder:
-                (stepLinkedEntities[stepLinkedEntities.length - 1]?.linkEntity
-                  .linkData?.leftToRightOrder ?? 0) + 1,
             },
           },
         });
       }
     },
-    [graphModule, stepLinkedEntities, entityId, readonly],
+    [graphModule, entityId, readonly],
   );
 
   const createIntroduction = async () => {

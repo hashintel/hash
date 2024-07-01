@@ -7,6 +7,7 @@ import type {
   WorkflowStateOutgoingLinkAndTarget,
   WorkflowStateOutgoingLinksByLinkEntityTypeId,
   WorkflowStateProperties,
+  WorkflowStatePropertiesWithMetadata,
 } from "./shared";
 
 export type {
@@ -14,4 +15,5 @@ export type {
   WorkflowStateOutgoingLinkAndTarget,
   WorkflowStateOutgoingLinksByLinkEntityTypeId,
   WorkflowStateProperties,
+  WorkflowStatePropertiesWithMetadata,
 };

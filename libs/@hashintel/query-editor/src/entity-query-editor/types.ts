@@ -1,9 +1,9 @@
 import type {
-  BaseUrl,
   Entity,
   MultiFilter,
   MultiFilterOperatorType,
 } from "@blockprotocol/graph";
+import type { BaseUrl } from "@blockprotocol/type-system/slim";
 
 export type FilterType = "Type" | "Property";
 

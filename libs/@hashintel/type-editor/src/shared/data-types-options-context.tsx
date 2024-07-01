@@ -1,5 +1,4 @@
-import type { DataType } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { DataType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   faList,
   faListCheck,

@@ -189,6 +189,23 @@ export const generateToolDefinitions = <
                   the webpage to satisfy the research task.
               `),
                 },
+                descriptionOfExpectedContent: {
+                  type: "string",
+                  description: dedent(`
+                    A description of the content you expect to find at the resource.
+                  `),
+                },
+                exampleOfExpectedContent: {
+                  type: "string",
+                  description: dedent(`
+                    An example of the content you expect to find at the resource.
+                  `),
+                },
+                reason: {
+                  type: "string",
+                  description:
+                    "An explanation of why inferring facts from the web page is relevant to the research task.",
+                },
                 entityTypeIds: {
                   type: "array",
                   items: {
@@ -208,7 +225,14 @@ export const generateToolDefinitions = <
                   },
                 },
               },
-              required: ["url", "prompt", "entityTypeIds"],
+              required: [
+                "url",
+                "prompt",
+                "entityTypeIds",
+                "reason",
+                "descriptionOfExpectedContent",
+                "exampleOfExpectedContent",
+              ],
             },
           },
         },
@@ -307,6 +331,9 @@ export type CoordinatorToolCallArguments = Subtype<
         prompt: string;
         entityTypeIds: string[];
         linkEntityTypeIds?: string[];
+        reason: string;
+        descriptionOfExpectedContent: string;
+        exampleOfExpectedContent: string;
       }[];
     };
     startFactGatheringSubTasks: {

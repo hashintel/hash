@@ -95,20 +95,6 @@ export const handleWebSearchToolCall = async (params: {
       const { outputs: webPageSummaryOutputs } =
         webPageSummaryResponse.contents[0]!;
 
-      const titleOutput = webPageSummaryOutputs.find(
-        ({ outputName }) =>
-          outputName ===
-          ("title" satisfies OutputNameForAction<"getWebPageSummary">),
-      );
-
-      if (!titleOutput) {
-        throw new Error(
-          `No title output was found when calling "getSummariesOfWebPages" for the web page at url ${url}.`,
-        );
-      }
-
-      const title = titleOutput.payload.value as string;
-
       const summaryOutput = webPageSummaryOutputs.find(
         ({ outputName }) =>
           outputName ===
@@ -122,19 +108,6 @@ export const handleWebSearchToolCall = async (params: {
       }
 
       const summary = summaryOutput.payload.value as string;
-
-      /**
-       * @todo: is this where we want to be logging whether the web page was visited?
-       */
-      logProgress([
-        {
-          recordedAt: new Date().toISOString(),
-          stepId: Context.current().info.activityId,
-          type: "VisitedWebPage",
-          webPage: { url, title },
-          explanation,
-        },
-      ]);
 
       return {
         url,

@@ -5,10 +5,10 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import type { ProcessedCodegenParameters } from "../parameters.js";
-import type { CompiledTsType, LogLevel } from "../shared.js";
-import type { PreprocessContext } from "./preprocess.js";
-import type { TypeDependencyMap } from "./shared.js";
+import type { ProcessedCodegenParameters } from "../parameters";
+import type { CompiledTsType, JsonSchema, LogLevel } from "../shared";
+import type { PreprocessContext } from "./preprocess";
+import type { TypeDependencyMap } from "./shared";
 
 export class CompileContext {
   readonly parameters: ProcessedCodegenParameters;
@@ -17,7 +17,11 @@ export class CompileContext {
   readonly dataTypes: Record<VersionedUrl, DataType>;
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
-  readonly allTypes: Record<VersionedUrl, DataType | PropertyType | EntityType>;
+  readonly metadataSchemas: Record<VersionedUrl, JsonSchema>;
+  readonly allTypes: Record<
+    VersionedUrl,
+    DataType | PropertyType | EntityType | JsonSchema
+  >;
 
   readonly typeDependencyMap: TypeDependencyMap;
 
@@ -34,6 +38,7 @@ export class CompileContext {
     this.dataTypes = preprocessContext.dataTypes;
     this.propertyTypes = preprocessContext.propertyTypes;
     this.entityTypes = preprocessContext.entityTypes;
+    this.metadataSchemas = preprocessContext.metadataSchemas;
     this.allTypes = preprocessContext.allTypes;
     this.typeDependencyMap = preprocessContext.typeDependencyMap;
     this.linkTypeMap = preprocessContext.linkTypeMap;

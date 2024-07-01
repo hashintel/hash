@@ -1,6 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
@@ -30,8 +29,7 @@ import type { DuplicateReport } from "./deduplicate-entities";
 import { deduplicateEntities } from "./deduplicate-entities";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { handleWebSearchToolCall } from "./handle-web-search-tool-call";
-import { inferFactsFromWebPageWorkerAgent } from "./infer-facts-from-web-page-worker-agent";
-import type { AccessedRemoteFile } from "./infer-facts-from-web-page-worker-agent/types";
+import { linkFollowerAgent } from "./link-follower-agent";
 import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-for-llm-consumption";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
@@ -179,7 +177,6 @@ export type SubTaskAgentState = {
   previousCalls: {
     completedToolCalls: CompletedToolCall<SubTaskAgentToolName>[];
   }[];
-  filesUsedToInferFacts: AccessedRemoteFile[];
 };
 
 const generateInitialUserMessage = (params: {
@@ -412,14 +409,12 @@ export const runSubTaskAgent = async (params: {
   | {
       status: "ok";
       explanation: string;
-      filesUsedToInferFacts: AccessedRemoteFile[];
       discoveredEntities: LocalEntitySummary[];
       discoveredFacts: Fact[];
     }
   | {
       status: "terminated";
       reason: string;
-      filesUsedToInferFacts: AccessedRemoteFile[];
       discoveredEntities: LocalEntitySummary[];
       discoveredFacts: Fact[];
     }
@@ -438,7 +433,6 @@ export const runSubTaskAgent = async (params: {
       inferredFacts: [],
       entitySummaries: [],
       previousCalls: [],
-      filesUsedToInferFacts: [],
     };
   }
 
@@ -574,21 +568,34 @@ Summary: ${summary}`,
                 };
               }
 
-              const statusesWithUrl = await Promise.all(
+              const responsesWithUrl = await Promise.all(
                 webPages.map(
-                  async ({ url, prompt, entityTypeIds, linkEntityTypeIds }) => {
-                    const status = await inferFactsFromWebPageWorkerAgent({
-                      prompt,
+                  async ({
+                    url,
+                    prompt,
+                    entityTypeIds,
+                    linkEntityTypeIds,
+                    descriptionOfExpectedContent,
+                    exampleOfExpectedContent,
+                    reason,
+                  }) => {
+                    const response = await linkFollowerAgent({
+                      initialResource: {
+                        url,
+                        descriptionOfExpectedContent,
+                        exampleOfExpectedContent,
+                        reason,
+                      },
+                      task: prompt,
                       entityTypes: input.entityTypes.filter(({ $id }) =>
                         entityTypeIds.includes($id),
                       ),
                       linkEntityTypes: input.linkEntityTypes?.filter(
                         ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
                       ),
-                      url,
                     });
 
-                    return { status, url };
+                    return { response, url };
                   },
                 ),
               );
@@ -597,30 +604,29 @@ Summary: ${summary}`,
 
               const inferredFacts: Fact[] = [];
               const entitySummaries: LocalEntitySummary[] = [];
-              const filesUsedToInferFacts: AccessedRemoteFile[] = [];
 
-              for (const { status, url } of statusesWithUrl) {
-                if (status.code !== StatusCode.Ok) {
-                  outputMessage += `An error occurred when inferring facts from the web page with url ${url}: ${status.message}\n`;
-
-                  continue;
-                }
-
-                const content = status.contents[0]!;
-
-                inferredFacts.push(...content.inferredFacts);
-                entitySummaries.push(...content.entitySummaries);
-                filesUsedToInferFacts.push(...content.filesUsedToInferFacts);
+              for (const { response, url } of responsesWithUrl) {
+                inferredFacts.push(...response.facts);
+                entitySummaries.push(...response.entitySummaries);
 
                 outputMessage += `Inferred ${
-                  content.inferredFacts.length
+                  response.facts.length
                 } facts on the web page with url ${url} for the following entities: ${stringify(
-                  content.entitySummaries.map(({ name, summary }) => ({
+                  response.entitySummaries.map(({ name, summary }) => ({
                     name,
                     summary,
                   })),
-                )}. ${content.suggestionForNextSteps}\n`;
+                )}. ${response.suggestionForNextSteps}\n`;
               }
+
+              outputMessage += dedent(`
+              If further research is needed to fill more properties of the entities,
+                consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
+
+              Do not sequentially conduct additional web searches for each of the entities,
+                instead start multiple sub-tasks via the "startFactGatheringSubTasks" tool to
+                conduct additional research per entity in parallel.
+            `);
 
               /**
                * @todo: deduplicate the entity summaries from existing entities provided as input.
@@ -707,8 +713,6 @@ Summary: ${summary}`,
                     ),
                 );
 
-                state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
-
                 return {
                   ...toolCall,
                   output: outputMessage,
@@ -755,7 +759,6 @@ Summary: ${summary}`,
 
   return {
     ...result,
-    filesUsedToInferFacts: state.filesUsedToInferFacts,
     discoveredEntities: state.entitySummaries,
     discoveredFacts: state.inferredFacts,
   };

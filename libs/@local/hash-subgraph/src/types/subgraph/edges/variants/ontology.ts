@@ -22,7 +22,7 @@ import {
   type OntologyOutwardEdge as OntologyOutwardEdgeBp,
   type PropertiesConstrainedByEdge as PropertiesConstrainedByEdgeBp,
   type ValuesConstrainedByEdge as ValuesConstrainedByEdgeBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 
 import type { OntologyTypeVertexId } from "../../vertices";

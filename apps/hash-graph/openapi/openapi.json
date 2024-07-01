@@ -5461,7 +5461,6 @@
       },
       "GraphResolveDepths": {
         "type": "object",
-        "description": "TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>",
         "required": [
           "inheritsFrom",
           "constrainsValuesOn",
@@ -6805,17 +6804,10 @@
             "type": "object",
             "required": [
               "path",
-              "value",
+              "property",
               "op"
             ],
             "properties": {
-              "metadata": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/PropertyMetadata"
-                  }
-                ]
-              },
               "op": {
                 "type": "string",
                 "enum": [
@@ -6825,8 +6817,8 @@
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
               },
-              "value": {
-                "$ref": "#/components/schemas/Property"
+              "property": {
+                "$ref": "#/components/schemas/PropertyWithMetadata"
               }
             }
           },
@@ -6852,17 +6844,10 @@
             "type": "object",
             "required": [
               "path",
-              "value",
+              "property",
               "op"
             ],
             "properties": {
-              "metadata": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/PropertyMetadata"
-                  }
-                ]
-              },
               "op": {
                 "type": "string",
                 "enum": [
@@ -6872,8 +6857,8 @@
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
               },
-              "value": {
-                "$ref": "#/components/schemas/Property"
+              "property": {
+                "$ref": "#/components/schemas/PropertyWithMetadata"
               }
             }
           }

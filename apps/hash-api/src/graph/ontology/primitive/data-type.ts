@@ -42,7 +42,7 @@ import { getWebShortname, isExternalTypeId } from "./util";
  *   User defined data types are not specified yet, which means this `create`
  *   operation should not be exposed to users yet.
  *   Depends on the RFC captured by:
- *   https://app.asana.com/0/1200211978612931/1202464168422955/f
+ *   https://linear.app/hash/issue/BP-104
  *
  * @param params.ownedById - the id of the account who owns the data type
  * @param [params.webShortname] – the shortname of the web that owns the data type, if the web entity does not yet exist.
@@ -195,7 +195,7 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
  *   As with data type `create`, this `update` operation is not currently relevant to users
  *   because user defined data types are not fully specified.
  *   Depends on the RFC captured by:
- *   https://app.asana.com/0/1200211978612931/1202464168422955/f
+ *   https://linear.app/hash/issue/BP-104
  *
  * @param params.dataTypeId - the id of the data type that's being updated
  * @param params.schema - the updated `DataType`

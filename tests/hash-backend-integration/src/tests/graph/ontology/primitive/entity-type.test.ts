@@ -72,7 +72,6 @@ beforeAll(async () => {
     graphContext,
     authentication,
     "entitytypetestorg",
-    logger,
   );
   await joinOrg(graphContext, authentication, {
     userEntityId: testUser2.entity.metadata.recordId.entityId,

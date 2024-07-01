@@ -1,4 +1,4 @@
-import type { EntityType, PropertyType } from "@blockprotocol/graph";
+import type { EntityType, PropertyType } from "@blockprotocol/type-system/slim";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Stack } from "@mui/material";

@@ -3,7 +3,7 @@ import type {
   EntityRecordId as EntityRecordIdBp,
   EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
   LinkData as LinkDataBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
@@ -161,6 +161,8 @@ export const isObjectMetadata = (
 ): metadata is PropertyMetadataObject =>
   !isValueMetadata(metadata) && !Array.isArray(metadata.value);
 
+export type Confidence = number;
+
 /**
  * A compound type that contains both the value and the metadata of a property
  * value.
@@ -231,3 +233,27 @@ export type EntityEditionProvenance = {
   origin?: ProvidedEntityEditionProvenanceOrigin;
   sources?: Array<SourceProvenance>;
 };
+
+type AddPropertyPatchOperation = {
+  op: "add";
+  path: PropertyPath;
+  value: PropertyValue;
+  metadata?: PropertyMetadata;
+};
+
+type RemovePropertyPatchOperation = {
+  op: "remove";
+  path: PropertyPath;
+};
+
+type ReplacePropertyPatchOperation = {
+  op: "replace";
+  path: PropertyPath;
+  value: PropertyValue;
+  metadata?: PropertyMetadata;
+};
+
+export type PropertyPatchOperation =
+  | AddPropertyPatchOperation
+  | RemovePropertyPatchOperation
+  | ReplacePropertyPatchOperation;

@@ -1,6 +1,8 @@
-import { extractVersion } from "@blockprotocol/graph";
 import type { EntityType } from "@blockprotocol/type-system/slim";
-import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+import {
+  extractBaseUrl,
+  extractVersion,
+} from "@blockprotocol/type-system/slim";
 import { TypeCard } from "@hashintel/design-system";
 import { useFormContext, useWatch } from "react-hook-form";
 
