@@ -12,7 +12,7 @@
   "scripts": {
     "build": "yarn exe scripts/build.ts",
     "dev": "yarn exe scripts/dev.ts",
-    "exe": "node --unhandled-rejections=strict --experimental-loader ts-node/esm/transpile-only --es-module-specifier-resolution=node",
+    "exe": "tsx",
     "fix:eslint": "eslint --fix .",
     "postinstall": "yarn exe scripts/codegen.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
@@ -59,7 +59,7 @@
     "remark-parse": "10.0.1",
     "sharp": "0.32.6",
     "slugify": "1.6.5",
-    "typescript": "5.1.6",
+    "typescript": "5.5.2",
     "unified": "10.1.2",
     "unist-util-visit": "4.1.2"
   },
@@ -82,7 +82,7 @@
     "chalk": "5.3.0",
     "eslint": "8.57.0",
     "execa": "7.2.0",
-    "ts-node": "10.9.1"
+    "tsx": "3.13.0"
   },
   "engines": {
     "node": ">= v20"
