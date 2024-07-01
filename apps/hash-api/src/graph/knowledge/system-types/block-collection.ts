@@ -140,7 +140,13 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
   });
 
   await updateLinkEntity(ctx, authentication, {
-    properties: canvasPosition || indexPosition,
+    propertyPatches: [
+      {
+        op: "replace",
+        path: [],
+        value: indexPosition || canvasPosition,
+      },
+    ],
     linkEntity: new LinkEntity(linkEntity),
   });
 };

@@ -156,6 +156,14 @@ export const googleOAuthCallback: RequestHandler<
       expiresAt: "", // the secret data includes an refresh token that lasts indefinitely and will be used as needed
       graphApi: req.context.graphApi,
       managingBotAccountId: googleBotAccountId,
+      provenance: {
+        actorType: "human",
+        origin: {
+          // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+          type: "web-app",
+          userAgent: req.headers["user-agent"],
+        },
+      },
       restOfPath: `account/${googleUser.data.id}`,
       secretData: tokens,
       service: "google",

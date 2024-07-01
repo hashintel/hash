@@ -14,7 +14,6 @@ import type {
   GetEntitySubgraphRequest,
   GraphResolveDepths,
   ModifyRelationshipOperation,
-  ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
@@ -86,8 +85,8 @@ export type PropertyValue = PropertyObject[BaseUrl];
  * @param params.entityUuid (optional) - the uuid of the entity, automatically generated if left undefined
  */
 export const createEntity: ImpureGraphFunction<
-  Omit<CreateEntityParameters, "linkData"> & {
-    outgoingLinks?: (Omit<CreateEntityParameters, "linkData"> & {
+  Omit<CreateEntityParameters, "linkData" | "provenance"> & {
+    outgoingLinks?: (Omit<CreateEntityParameters, "linkData" | "provenance"> & {
       linkData: Omit<LinkData, "leftEntityId">;
     })[];
   },
@@ -99,10 +98,9 @@ export const createEntity: ImpureGraphFunction<
     outgoingLinks,
     entityUuid: overrideEntityUuid,
     draft = false,
-    provenance,
   } = params;
 
-  const { graphApi } = context;
+  const { graphApi, provenance } = context;
   const { actorId } = authentication;
 
   let properties = params.properties;
@@ -416,7 +414,6 @@ export const createEntityWithLinks: ImpureGraphFunction<
     linkedEntities?: LinkedEntityDefinition[];
     relationships: EntityRelationAndSubject[];
     draft?: boolean;
-    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,
   false,
@@ -429,7 +426,6 @@ export const createEntityWithLinks: ImpureGraphFunction<
     linkedEntities,
     relationships,
     draft,
-    provenance,
   } = params;
 
   const entitiesInTree = linkedTreeFlatten<
@@ -483,7 +479,6 @@ export const createEntityWithLinks: ImpureGraphFunction<
             ownedById,
             relationships,
             draft,
-            provenance,
           });
 
       return {
@@ -608,18 +603,17 @@ export const updateEntity: ImpureGraphFunction<
   {
     entity: Entity;
     entityTypeId?: VersionedUrl;
-    properties?: PropertyPatchOperation[];
+    propertyPatches?: PropertyPatchOperation[];
     draft?: boolean;
-    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<Entity>,
   false,
   true
 > = async (context, authentication, params) => {
-  const { entity, properties, entityTypeId, provenance } = params;
+  const { entity, entityTypeId, propertyPatches } = params;
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
-    const updatedProperties = patchToPropertyObject(properties ?? []);
+    const updatedProperties = patchToPropertyObject(propertyPatches ?? []);
 
     if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
       await beforeUpdateHook.callback({
@@ -640,8 +634,8 @@ export const updateEntity: ImpureGraphFunction<
     {
       entityTypeId,
       draft: params.draft,
-      properties: params.properties,
-      provenance,
+      propertyPatches,
+      provenance: context.provenance,
     },
   );
 
@@ -657,60 +651,6 @@ export const updateEntity: ImpureGraphFunction<
   }
 
   return updatedEntity;
-};
-
-/**
- * Update multiple top-level properties on an entity.
- *
- * @param entity - the entity being updated
- * @param params.updatedProperties - an array of the properties being updated
- * @param params.actorId - the id of the account that is updating the entity
- */
-export const updateEntityProperties: ImpureGraphFunction<
-  {
-    entity: Entity;
-    properties: PropertyPatchOperation[];
-    provenance?: ProvidedEntityEditionProvenance;
-  },
-  Promise<Entity>,
-  false,
-  true
-> = async (ctx, authentication, params) => {
-  const { entity, properties, provenance } = params;
-
-  return await updateEntity(ctx, authentication, {
-    entity,
-    properties,
-    provenance,
-  });
-};
-
-/**
- * Update a top-level property on an entity.
- *
- * @param params.entity - the entity being updated
- * @param params.propertyTypeBaseUrl - the property type base URL of the property being updated
- * @param params.value - the updated value of the property
- * @param params.actorId - the id of the account that is updating the entity
- */
-export const updateEntityProperty: ImpureGraphFunction<
-  {
-    entity: Entity;
-    propertyTypeBaseUrl: BaseUrl;
-    value: PropertyValue | undefined;
-    provenance?: ProvidedEntityEditionProvenance;
-  },
-  Promise<Entity>,
-  false,
-  true
-> = async (ctx, authentication, params) => {
-  const { entity, propertyTypeBaseUrl, value, provenance } = params;
-
-  return await updateEntityProperties(ctx, authentication, {
-    entity,
-    updatedProperties: [{ propertyTypeBaseUrl, value }],
-    provenance,
-  });
 };
 
 /**

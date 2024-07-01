@@ -28,7 +28,6 @@ import type {
   HasIndexedContentProperties,
   PageProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -41,7 +40,7 @@ import {
   getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  updateEntityProperty,
+  updateEntity,
 } from "../primitive/entity";
 import {
   createLinkEntity,
@@ -421,12 +420,15 @@ export const setPageParentPage: ImpureGraphFunction<
   }
 
   if (page.fractionalIndex !== newIndex) {
-    const updatedPageEntity = await updateEntityProperty(ctx, authentication, {
+    const updatedPageEntity = await updateEntity(ctx, authentication, {
       entity: page.entity,
-      propertyTypeBaseUrl: extractBaseUrl(
-        systemPropertyTypes.fractionalIndex.propertyTypeId,
-      ),
-      value: newIndex,
+      propertyPatches: [
+        {
+          op: "replace",
+          path: [systemPropertyTypes.fractionalIndex.propertyTypeBaseUrl],
+          value: newIndex,
+        },
+      ],
     });
 
     return getPageFromEntity({ entity: updatedPageEntity });

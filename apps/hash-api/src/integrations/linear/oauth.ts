@@ -257,6 +257,14 @@ export const oAuthLinearCallback: RequestHandler<
       expiresAt: expiredAt.toISOString(),
       graphApi: req.context.graphApi,
       managingBotAccountId: linearBotAccountId,
+      provenance: {
+        actorType: "human",
+        origin: {
+          // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+          type: "web-app",
+          userAgent: req.headers["user-agent"],
+        },
+      },
       restOfPath: `workspace/${linearOrgId}`,
       secretData: { value: access_token },
       service: "linear",

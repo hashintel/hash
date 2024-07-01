@@ -1,6 +1,5 @@
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { updateEntityProperties } from "../../../../graph/knowledge/primitive/entity";
 import {
   getPageById,
   getPageFromEntity,
@@ -13,6 +12,8 @@ import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedPageGQL } from "../graphql-mapping";
 import { mapPageToGQL } from "../graphql-mapping";
+import { updateEntity } from "../../../../graph/knowledge/primitive/entity";
+import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const updatePageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,
@@ -25,22 +26,25 @@ export const updatePageResolver: ResolverFn<
 
   const page = await getPageById(context, authentication, { entityId });
 
-  const updatedPageEntity = await updateEntityProperties(
-    context,
-    authentication,
-    {
-      entity: page.entity,
-      updatedProperties: Object.entries(updatedProperties).map(
-        ([propertyName, value]) => ({
-          propertyTypeBaseUrl:
-            systemPropertyTypes[
-              propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
-            ].propertyTypeBaseUrl,
+  const updatedPageEntity = await updateEntity(context, authentication, {
+    entity: page.entity,
+    propertyPatches: Object.entries(updatedProperties).map(
+      ([propertyName, value]) => {
+        const propertyTypeBaseUrl =
+          systemPropertyTypes[
+            propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
+          ].propertyTypeBaseUrl;
+        return {
+          op:
+            page.entity.properties[propertyTypeBaseUrl] !== undefined
+              ? "replace"
+              : "add",
+          path: [propertyTypeBaseUrl],
           value: value ?? undefined,
-        }),
-      ),
-    },
-  );
+        };
+      },
+    ),
+  });
 
   return mapPageToGQL(getPageFromEntity({ entity: updatedPageEntity }));
 };

@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { PresignedPutUpload } from "@local/hash-backend-utils/file-storage";
 import {
   formatFileUrl,
@@ -6,6 +7,7 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -186,8 +188,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
       });
 
-    const properties: FileProperties = {
-      ...initialProperties,
+    const additionalProperties: FileProperties = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
         formatFileUrl(key),
       ...fileStorageProperties,
@@ -196,7 +197,13 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     const entity = (await updateEntity(ctx, authentication, {
       entity: fileEntity,
       entityTypeId,
-      properties,
+      propertyPatches: typedEntries(additionalProperties).map(
+        ([baseUrl, value]) => ({
+          op: "add",
+          path: [baseUrl as BaseUrl],
+          value,
+        }),
+      ),
     })) as Entity<FileProperties>;
 
     return {
@@ -245,7 +252,18 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
       ? ((await updateEntity(ctx, authentication, {
           entity: existingEntity,
           entityTypeId,
-          properties,
+          propertyPatches: typedEntries(properties)
+            .filter(
+              ([baseUrl, value]) =>
+                existingEntity.properties[baseUrl as BaseUrl] !== value,
+            )
+            .map(([baseUrl, value]) => ({
+              op: existingEntity.properties[baseUrl as BaseUrl]
+                ? "replace"
+                : "add",
+              path: [baseUrl as BaseUrl],
+              value,
+            })),
         })) as Entity<FileProperties>)
       : ((await createEntity(ctx, authentication, {
           ownedById,

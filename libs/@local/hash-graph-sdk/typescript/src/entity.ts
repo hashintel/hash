@@ -6,6 +6,7 @@ import type {
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
   PropertyProvenance,
+  ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
 import type {
   CreatedById,
@@ -45,9 +46,14 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { AuthenticationContext } from "./authentication-context";
 
+export type EnforcedEntityEditionProvenance = {
+  actorType: ProvidedEntityEditionProvenance["actorType"];
+  origin: ProvidedEntityEditionProvenance["origin"];
+};
+
 export type CreateEntityParameters = Omit<
   GraphApiCreateEntityRequest,
-  "entityTypeIds" | "decisionTime" | "draft" | "properties"
+  "entityTypeIds" | "decisionTime" | "draft" | "properties" | "provenance"
 > & {
   ownedById: OwnedById;
   properties: PropertyObject;
@@ -55,15 +61,17 @@ export type CreateEntityParameters = Omit<
   entityTypeId: VersionedUrl;
   entityUuid?: EntityUuid;
   propertyMetadata?: PropertyMetadataObject;
+  provenance: EnforcedEntityEditionProvenance;
   draft?: boolean;
 };
 
 export type PatchEntityParameters = Omit<
   GraphApiPatchEntityParams,
-  "entityId" | "entityTypeIds" | "decisionTime" | "properties"
+  "entityId" | "entityTypeIds" | "decisionTime" | "properties" | "provenance"
 > & {
   entityTypeId?: VersionedUrl;
-  properties?: PropertyPatchOperation[];
+  propertyPatches?: PropertyPatchOperation[];
+  provenance: EnforcedEntityEditionProvenance;
 };
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
@@ -411,13 +419,13 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    { entityTypeId, properties, ...params }: PatchEntityParameters,
+    { entityTypeId, propertyPatches, ...params }: PatchEntityParameters,
   ): Promise<Entity<Properties>> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
         entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-        properties: properties?.map((operation) =>
+        properties: propertyPatches?.map((operation) =>
           operation.op === "remove"
             ? operation
             : {
@@ -562,13 +570,13 @@ export class LinkEntity<
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    { entityTypeId, properties, ...params }: PatchEntityParameters,
+    { entityTypeId, propertyPatches, ...params }: PatchEntityParameters,
   ): Promise<LinkEntity<Properties>> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
         entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-        properties: properties?.map((operation) =>
+        properties: propertyPatches?.map((operation) =>
           operation.op === "remove"
             ? operation
             : {
