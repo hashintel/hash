@@ -1,9 +1,6 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import {
-  ENTITY_ID_DELIMITER,
-  type EntityId,
-} from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
 import type { LinkEntityAndRightEntity, Subgraph } from "../../../main";
