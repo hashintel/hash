@@ -3,7 +3,6 @@
     trait_alias,
     type_alias_impl_trait,
     impl_trait_in_assoc_type,
-    lint_reasons,
     stmt_expr_attributes,
     min_exhaustive_patterns
 )]

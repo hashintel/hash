@@ -1,6 +1,5 @@
-#![feature(lint_reasons)]
 #![feature(extend_one)]
-#![allow(unsafe_code)]
+#![expect(unsafe_code)]
 #![cfg_attr(
     target_arch = "wasm32",
     expect(unreachable_pub, reason = "Used in the generated TypeScript types")

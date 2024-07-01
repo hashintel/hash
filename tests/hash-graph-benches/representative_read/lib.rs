@@ -1,6 +1,6 @@
-#![feature(custom_test_frameworks, lint_reasons)]
+#![feature(custom_test_frameworks)]
 #![test_runner(criterion::runner)]
-#![allow(
+#![expect(
     clippy::print_stderr,
     clippy::use_debug,
     reason = "This is a benchmark"

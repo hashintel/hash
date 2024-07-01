@@ -474,7 +474,7 @@ fn struct_variant() {
     );
 }
 
-#[allow(unused)]
+#[expect(unused)]
 enum InternallyTaggedMessage {
     Request {
         id: String,
@@ -493,7 +493,7 @@ fn internally_tagged() {
     unimplemented!()
 }
 
-#[allow(unused)]
+#[expect(unused)]
 enum AdjacentlyTaggedMessage {
     Request {
         id: String,
@@ -512,7 +512,7 @@ fn adjacently_tagged() {
     unimplemented!()
 }
 
-#[allow(unused)]
+#[expect(unused)]
 enum UntaggedMessage {
     Request {
         id: String,

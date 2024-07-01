@@ -586,7 +586,7 @@ where
                 });
             }
 
-            let link_data = params.link_data.map(|link_data| {
+            let link_data = params.link_data.inspect(|link_data| {
                 entity_has_left_entity_rows.push(EntityHasLeftEntityRow {
                     web_id: entity_id.owned_by_id,
                     entity_uuid: entity_id.entity_uuid,
@@ -603,7 +603,6 @@ where
                     confidence: link_data.right_entity_confidence,
                     provenance: link_data.right_entity_provenance.clone(),
                 });
-                link_data
             });
 
             entities.push(Entity {

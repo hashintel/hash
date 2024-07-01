@@ -1,5 +1,4 @@
-#![allow(clippy::ignored_unit_patterns)] // Reason: `proptest` does not match against `Ok(())` but `Ok(_)`
-#![allow(
+#![expect(
     clippy::cast_lossless,
     clippy::cast_precision_loss,
     clippy::cast_possible_truncation
@@ -281,8 +280,6 @@ macro_rules! test_overflow {
 test_overflow![u8, i8, u16, i16, u32, i32, i64];
 
 mod u64 {
-
-    #[allow(clippy::wildcard_imports)]
     use super::*;
 
     #[test]

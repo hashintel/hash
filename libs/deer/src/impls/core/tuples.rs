@@ -65,7 +65,7 @@ macro_rules! impl_tuple {
                 Self::Value::reflection()
             }
 
-            #[allow(non_snake_case)]
+            #[expect(non_snake_case)]
             fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
             where
                 A: ArrayAccess<'de>,

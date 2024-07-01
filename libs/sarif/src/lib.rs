@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![no_std]
-#![feature(lint_reasons, coverage_attribute)]
+#![feature(coverage_attribute)]
 #![cfg_attr(
     doc,
     feature(doc_auto_cfg),

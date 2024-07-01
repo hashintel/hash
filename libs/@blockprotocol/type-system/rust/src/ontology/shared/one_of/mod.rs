@@ -5,7 +5,7 @@ use crate::ValidationError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OneOf<T> {
-    pub(crate) possibilities: Vec<T>,
+    pub possibilities: Vec<T>,
 }
 
 impl<T> OneOf<T> {

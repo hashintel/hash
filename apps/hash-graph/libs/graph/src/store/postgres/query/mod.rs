@@ -1,4 +1,4 @@
-#![allow(dead_code, reason = "Work in progress")]
+#![expect(dead_code, reason = "Work in progress")]
 
 //! Postgres implementation to compile queries.
 

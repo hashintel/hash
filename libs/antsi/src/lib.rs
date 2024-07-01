@@ -20,8 +20,6 @@
     not(miri),
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
 )]
-// future PR will add remaining documentation
-#![allow(missing_docs)]
 
 #[cfg(feature = "rgba")]
 pub use color::RgbaColor;
