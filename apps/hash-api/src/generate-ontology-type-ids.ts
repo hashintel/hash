@@ -8,6 +8,11 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
+  DataType,
+  EntityType,
+  PropertyType,
+} from "@local/hash-graph-client";
+import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -76,7 +81,7 @@ const serializeTypeIds = (
         }),
         {},
       ),
-  );
+  ).replaceAll('/"', '/" as BaseUrl');
 
 const getLatestTypesInOrganizationQuery = (params: { organization: Org }) => ({
   filter: {
@@ -114,6 +119,11 @@ const getLatestBlockprotocolTypesQuery = {
   temporalAxes: currentTimeInstantTemporalAxes,
 };
 
+const generateRecordTypeString = (
+  kind: (DataType | EntityType | PropertyType)["kind"] | "linkEntityType",
+) =>
+  `Record<string, { ${kind}Id: VersionedUrl; ${kind}BaseUrl: BaseUrl; ${kind === "dataType" ? "title: string; description: string;" : ""} }>`;
+
 const serializeTypes: ImpureGraphFunction<
   {
     entityTypes: EntityTypeWithMetadata[];
@@ -149,18 +159,18 @@ const serializeTypes: ImpureGraphFunction<
   return [
     `export const ${prefix}EntityTypes = ${serializeTypeIds(
       entityTypes,
-    )} as const;`,
+    )} as const satisfies ${generateRecordTypeString("entityType")};`,
     `export const ${prefix}LinkEntityTypes = ${serializeTypeIds(
       linkEntityTypes,
       true,
-    )} as const;`,
+    )} as const satisfies ${generateRecordTypeString("linkEntityType")};`,
     `export const ${prefix}PropertyTypes = ${serializeTypeIds(
       propertyTypes,
-    )} as const;`,
+    )} as const satisfies ${generateRecordTypeString("propertyType")};`,
     dataTypes
       ? `export const ${prefix}DataTypes = ${serializeTypeIds(
           dataTypes,
-        )} as const;`
+        )} as const satisfies ${generateRecordTypeString("dataType")};`
       : [],
   ]
     .flat()
@@ -182,7 +192,11 @@ const generateOntologyIds = async () => {
     port: graphApiPort,
   });
 
-  const graphContext: ImpureGraphContext = { graphApi, temporalClient: null };
+  const graphContext: ImpureGraphContext = {
+    graphApi,
+    provenance: { actorType: "human", origin: { type: "migration" } },
+    temporalClient: null,
+  };
 
   const [hashOrg, googleOrg, linearOrg] = await Promise.all([
     getOrgByShortname(
@@ -289,9 +303,12 @@ const generateOntologyIds = async () => {
     `../../../libs/@local/hash-isomorphic-utils/src/${outputFileName}`,
   );
 
-  await writeFile(
-    outputPath,
-    await Promise.all([
+  const importStatement = `import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";\n\n`;
+
+  const fileText =
+    importStatement +
+    (await Promise.all([
       serializeTypes(graphContext, authentication, {
         entityTypes: hashEntityTypes,
         propertyTypes: hashPropertyTypes,
@@ -315,8 +332,9 @@ const generateOntologyIds = async () => {
         dataTypes: blockProtocolDataTypes,
         prefix: "blockProtocol",
       }),
-    ]).then((serializations) => serializations.join("\n\n")),
-  );
+    ]).then((serializations) => serializations.join("\n\n")));
+
+  await writeFile(outputPath, fileText);
 };
 
 void generateOntologyIds();

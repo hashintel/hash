@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
