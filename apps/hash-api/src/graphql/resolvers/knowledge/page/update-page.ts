@@ -32,11 +32,10 @@ export const updatePageResolver: ResolverFn<
       entity: page.entity,
       updatedProperties: Object.entries(updatedProperties).map(
         ([propertyName, value]) => ({
-          propertyTypeBaseUrl: extractBaseUrl(
+          propertyTypeBaseUrl:
             systemPropertyTypes[
               propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
-            ].propertyTypeId,
-          ),
+            ].propertyTypeBaseUrl,
           value: value ?? undefined,
         }),
       ),
