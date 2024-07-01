@@ -785,10 +785,6 @@ export const researchEntitiesAction: FlowActionActivity<{
       ({ inferredFacts }) => inferredFacts ?? [],
     );
 
-    const newFilesUsedToInferFacts = completedToolCalls.flatMap(
-      ({ filesUsedToInferFacts }) => filesUsedToInferFacts ?? [],
-    );
-
     /**
      * Update the state with the new facts and entity summaries inferred from the tool calls,
      * which includes the deduplication of entities and the conversion of facts into proposed entities.
@@ -798,7 +794,6 @@ export const researchEntitiesAction: FlowActionActivity<{
       state,
       newFacts,
       newEntitySummaries,
-      newFilesUsedToInferFacts,
     });
 
     const isCompleted = toolCalls.some(

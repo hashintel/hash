@@ -1,12 +1,10 @@
 import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../shared/infer-facts-from-text/types";
-import type { AccessedRemoteFile } from "./infer-facts-from-web-page-worker-agent/types";
 
 export type CompletedCoordinatorToolCall<ToolId extends string> = {
   inferredFacts: Fact[] | null;
   entitySummaries: LocalEntitySummary[] | null;
-  filesUsedToInferFacts: AccessedRemoteFile[] | null;
   subTasksCompleted?: string[] | null;
   suggestionsForNextStepsMade?: string[] | null;
   webPageUrlsVisited: string[] | null;
