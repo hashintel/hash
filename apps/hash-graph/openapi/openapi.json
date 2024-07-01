@@ -5461,7 +5461,6 @@
       },
       "GraphResolveDepths": {
         "type": "object",
-        "description": "TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>",
         "required": [
           "inheritsFrom",
           "constrainsValuesOn",

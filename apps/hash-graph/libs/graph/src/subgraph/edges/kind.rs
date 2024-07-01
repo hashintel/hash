@@ -164,7 +164,7 @@ impl EdgeResolveDepths {
 }
 
 // TODO: Replace with `EdgeResolveDepths`
-//   see https://app.asana.com/0/1201095311341924/1203399511264512/f
+//   see https://linear.app/hash/issue/H-3018
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(deny_unknown_fields)]
@@ -183,7 +183,8 @@ impl OutgoingEdgeResolveDepth {
     }
 }
 
-/// TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
+// TODO: Add documentation for depths parameters
+//   see https://linear.app/hash/issue/H-3018 (sub-task noted in desc)
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

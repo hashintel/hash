@@ -80,8 +80,8 @@ export const useUpdateAuthenticatedUser = () => {
         const latestUserEntity = getRoots(latestUserEntitySubgraph)[0]!;
 
         /**
-         * @todo: use a partial update mutation instead
-         * @see https://app.asana.com/0/1202805690238892/1203285029221330/f
+         * @todo use a partial update mutation instead
+         * @see https://linear.app/hash/issue/H-2997
          */
         const { properties: currentProperties } = latestUserEntity;
 

@@ -12,8 +12,8 @@
 )]
 
 // TODO: note to implementors of `Deserialize` to allow for `visit_none` and to defer to
-//  `visit_none` on every `deserialize_*` call if appropriate. missing value (`visit_none`) will
-//  only be generated through `*Access` implementations.
+//       `visit_none` on every `deserialize_*` call if appropriate. missing value (`visit_none`)
+//       will only be generated through `*Access` implementations.
 
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{string::String, vec::Vec};
@@ -221,8 +221,8 @@ pub trait EnumVisitor<'de>: Sized {
     }
 
     // TODO: make clear in docs that the deserializer *must* be used (even if just
-    //  `deserialize_none` is called), otherwise the `Deserializer` might get into an
-    //  undefined state
+    //       `deserialize_none` is called), otherwise the `Deserializer` might get into an
+    //       undefined state
     fn visit_value<D>(
         self,
         discriminant: Self::Discriminant,
