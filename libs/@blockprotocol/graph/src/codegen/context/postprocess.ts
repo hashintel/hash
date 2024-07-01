@@ -172,7 +172,7 @@ export class PostprocessContext {
 
   addDependentIdentifierInFile(identifier: string, path: string): void {
     this.filesToDependentIdentifiers[path] ??= new Set();
-    this.filesToDependentIdentifiers[path]!.add(identifier);
+    this.filesToDependentIdentifiers[path].add(identifier);
   }
 
   defineIdentifierInFile(
@@ -189,12 +189,12 @@ export class PostprocessContext {
     locallyImportable: boolean,
   ) {
     this.filesToDefinedIdentifiers[definingPath] ??= new Set();
-    this.filesToDefinedIdentifiers[definingPath]!.add(identifier);
+    this.filesToDefinedIdentifiers[definingPath].add(identifier);
 
     this.filesToDependentIdentifiers[definingPath] ??= new Set();
-    this.filesToDependentIdentifiers[definingPath]!.add(identifier);
+    this.filesToDependentIdentifiers[definingPath].add(identifier);
     for (const dependentIdentifier of dependentOnIdentifiers) {
-      this.filesToDependentIdentifiers[definingPath]!.add(dependentIdentifier);
+      this.filesToDependentIdentifiers[definingPath].add(dependentIdentifier);
     }
 
     const source = {

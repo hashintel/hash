@@ -20,14 +20,14 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
       for (const typeId of sourceTypeIds) {
         // eslint-disable-next-line no-param-reassign -- this is a reduce function..
         mapObject[typeId] ??= new Set();
-        mapObject[typeId]!.add(file);
+        mapObject[typeId].add(file);
 
         for (const dependencyUrl of context.typeDependencyMap.getDependenciesForType(
           typeId,
         )) {
           // eslint-disable-next-line no-param-reassign -- this is a reduce function..
           mapObject[dependencyUrl] ??= new Set();
-          mapObject[dependencyUrl]!.add(file);
+          mapObject[dependencyUrl].add(file);
         }
       }
 
@@ -53,7 +53,7 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
       for (const file of files) {
         // These files will need to import from the shared file
         context.filesToDependentIdentifiers[file] ??= new Set();
-        context.filesToDependentIdentifiers[file]!.add(type.title);
+        context.filesToDependentIdentifiers[file].add(type.title);
       }
       definingFile = sharedTypeFileName;
     } else {

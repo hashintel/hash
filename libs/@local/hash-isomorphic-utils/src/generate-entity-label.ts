@@ -124,7 +124,7 @@ export const generateEntityLabel = (
       simplifiedProperties[option] &&
       typeof simplifiedProperties[option] === "string"
     ) {
-      return simplifiedProperties[option] as string;
+      return simplifiedProperties[option];
     }
   }
 

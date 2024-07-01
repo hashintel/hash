@@ -102,7 +102,7 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
           baseUrlToTypes[baseUrl] ??= [];
           // @ts-expect-error ––  This `any` is safe as we're literally passing the same type back in, TS is just confused by the disjoint
           // union of `DataType[] | PropertyType[] | EntityType[]`
-          baseUrlToTypes[baseUrl]!.push(type);
+          baseUrlToTypes[baseUrl].push(type);
         }
 
         if (typedKeys(baseUrlToTypes).length > 1) {

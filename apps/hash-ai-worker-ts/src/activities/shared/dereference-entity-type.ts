@@ -305,7 +305,7 @@ export const dereferenceEntityType = <
 
       const existingProperty = simplifyPropertyKeys
         ? simplifiedPropertyTypeMappings[baseUrl]
-          ? mergedProperties[simplifiedPropertyTypeMappings[baseUrl]!]
+          ? mergedProperties[simplifiedPropertyTypeMappings[baseUrl]]
           : undefined
         : mergedProperties[baseUrl];
 

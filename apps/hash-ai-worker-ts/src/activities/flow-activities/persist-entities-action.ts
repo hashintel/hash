@@ -134,34 +134,32 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
       continue;
     }
 
-    if (Array.isArray(output?.value)) {
+    if (!output) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
         proposedEntity: unresolvedEntity,
-        message: `Expected a single persisted entity, but received ${
-          !output ? "no outputs" : `an array of length ${output.value.length}`
-        }`,
+        message: `No outputs returned when attempting to persist entity`,
+      };
+      continue;
+    }
+
+    if (Array.isArray(output.value)) {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        proposedEntity: unresolvedEntity,
+        message: `Expected a single persisted entity, but received an array of length ${output.value.length}`,
       };
       continue;
     }
 
     if (persistedEntityOutputs.code !== StatusCode.Ok) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        ...(output?.value ?? {}),
-        existingEntity: output?.value.existingEntity
+        ...output.value,
+        existingEntity: output.value.existingEntity
           ? new Entity(output.value.existingEntity)
           : undefined,
         proposedEntity: entityWithResolvedLinks,
         message: `${persistedEntityOutputs.code}: ${
           persistedEntityOutputs.message ?? `no further details available`
         }`,
-      };
-      continue;
-    }
-
-    if (!output) {
-      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        proposedEntity: unresolvedEntity,
-        message: `No outputs returned when attempting to persist entity`,
       };
       continue;
     }

@@ -118,7 +118,7 @@ const generateOutgoingLinkAndTargetDefinitionsForEntity = (
       targetIdentifiers: [],
     };
     const targetIdentifiers =
-      mappedLinkAndTargetIdentifiers[linkTypeId]!.targetIdentifiers;
+      mappedLinkAndTargetIdentifiers[linkTypeId].targetIdentifiers;
 
     if ("oneOf" in targetEntityTypeRefs.items) {
       for (const targetEntityTypeRef of targetEntityTypeRefs.items.oneOf) {

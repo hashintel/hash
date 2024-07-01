@@ -155,7 +155,7 @@ export class ProsemirrorManager {
         console.error("Block entity missing from store");
       }
 
-      if (entityInStore?.componentId !== targetComponentId) {
+      if (entityInStore.componentId !== targetComponentId) {
         // eslint-disable-next-line no-console
         console.error("Cannot render this block entity with this component");
       }

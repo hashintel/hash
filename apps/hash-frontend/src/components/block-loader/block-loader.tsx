@@ -528,7 +528,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               !!(
                 blockEntityId &&
                 userPermissions?.[blockEntityId] &&
-                !userPermissions[blockEntityId]!.edit
+                !userPermissions[blockEntityId].edit
               ),
             blockEntitySubgraph:
               blockSubgraph as unknown as BpSubgraph<EntityRootType>,

@@ -69,9 +69,7 @@ const mapTalkSlidesToImages = (talkSlides: TalkSlide[]): Image[] => {
     return undefined;
   };
 
-  return talkSlides
-    .map(map)
-    .filter((value) => typeof value !== "undefined") as Image[];
+  return talkSlides.map(map).filter((value) => typeof value !== "undefined");
 };
 
 // Recursively returns all the images in an MDX AST

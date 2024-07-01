@@ -25,8 +25,8 @@ export class TypeDependencyMap {
     };
 
     this.dependencyMap[typeId] ??= { typeId, dependencies: [] };
-    this.dependencyMap[typeId]!.dependencies.push(
-      this.dependencyMap[dependency]!,
+    this.dependencyMap[typeId].dependencies.push(
+      this.dependencyMap[dependency],
     );
   }
 

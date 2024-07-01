@@ -194,7 +194,7 @@ export const createEntityStore = (
             new Date(
               draftData[
                 draftId
-              ]!.metadata.temporalVersioning.decisionTime.start.limit,
+              ].metadata.temporalVersioning.decisionTime.start.limit,
             ).getTime() >
             new Date(
               draftEntity.metadata.temporalVersioning.decisionTime.start.limit,
@@ -207,7 +207,7 @@ export const createEntityStore = (
     );
 
     draft[draftId] = produce<DraftEntity>(
-      draft[draftId]!,
+      draft[draftId],
       (draftEntity: Draft<DraftEntity>) => {
         if (isDraftBlockEntity(draftEntity)) {
           const restoredDraftId = restoreDraftId(
