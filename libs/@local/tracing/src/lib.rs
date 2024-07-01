@@ -1,4 +1,3 @@
-#![feature(lint_reasons)]
 #![feature(type_alias_impl_trait)]
 #![feature(can_vector)]
 #![feature(write_all_vectored)]

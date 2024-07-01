@@ -1,12 +1,3 @@
-#![allow(
-    clippy::print_stdout,
-    clippy::print_stderr,
-    unreachable_pub,
-    clippy::use_debug,
-    clippy::alloc_instead_of_core,
-    clippy::std_instead_of_alloc,
-    clippy::std_instead_of_core
-)]
 // This is the same example also used in the README.md. When updating this, don't forget updating
 // the README.md as well. This is mainly used to test the code and generate the output shown.
 
@@ -26,7 +17,7 @@ impl fmt::Display for ParseExperimentError {
 impl Context for ParseExperimentError {}
 
 // Reason: false-positive, try_fold is fail-fast, our implementation is fail-slow.
-#[allow(clippy::manual_try_fold)]
+#[expect(clippy::manual_try_fold)]
 fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, ParseExperimentError> {
     let values = description
         .split(' ')
@@ -66,8 +57,10 @@ impl fmt::Display for ExperimentError {
 
 impl Context for ExperimentError {}
 
-// Reason: false-positive, try_fold is fail-fast, our implementation is fail-slow.
-#[allow(clippy::manual_try_fold)]
+#[expect(
+    clippy::manual_try_fold,
+    reason = "false-positive, try_fold is fail-fast, our implementation is fail-slow"
+)]
 fn start_experiments(
     experiment_ids: &[usize],
     experiment_descriptions: &[&str],

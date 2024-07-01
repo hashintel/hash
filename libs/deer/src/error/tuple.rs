@@ -62,7 +62,7 @@ macro_rules! all_the_tuples {
 macro_rules! properties {
     ($($elem:ident),*) => {
         #[automatically_derived]
-        #[allow(non_snake_case)]
+        #[expect(non_snake_case)]
         impl<$($elem),*> ErrorProperties for ($($elem,)*)
         where
             $($elem: ErrorProperties),*

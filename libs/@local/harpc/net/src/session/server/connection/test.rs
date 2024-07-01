@@ -502,7 +502,7 @@ async fn transaction_limit_reached_connection() {
 }
 
 #[tokio::test]
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 async fn transaction_limit_reached_instance() {
     let Setup {
         output: _output,

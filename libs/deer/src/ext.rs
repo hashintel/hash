@@ -42,7 +42,7 @@ impl<T1, C: Context> TupleExt for (Result<T1, Report<C>>,) {
 
 macro_rules! impl_tuple_ext {
     ([$($elem:ident),*], $other:ident) => {
-        #[allow(non_snake_case)]
+        #[expect(non_snake_case)]
         impl<C: Context $(, $elem)*, $other> TupleExt for ($(Result<$elem, Report<C>>, )* Result<$other, Report<C>>) {
             type Context = C;
             type Ok = ($($elem ,)* $other);

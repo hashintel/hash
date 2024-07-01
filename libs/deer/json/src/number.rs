@@ -53,9 +53,9 @@ pub(crate) fn try_convert_number(number: &JsonNumber) -> Result<Number, Error> {
 }
 
 #[cfg(feature = "arbitrary-precision")]
-#[allow(clippy::unnecessary_wraps)]
+#[expect(clippy::unnecessary_wraps)]
 pub(crate) fn try_convert_number(number: &JsonNumber) -> Result<Number, Error> {
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     // SAFETY: `justjson` ensures that the contained source is a valid JSON number, these are
     // accepted by the parse algorithm of Rust
     Ok(unsafe { Number::from_string_unchecked(number.source()) })

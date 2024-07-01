@@ -97,7 +97,7 @@ pub(crate) mod test_utils {
 
 #[cfg(test)]
 pub(crate) mod test {
-    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
+    #![expect(clippy::needless_raw_strings)]
     use core::sync::atomic::AtomicU32;
 
     use expect_test::expect;

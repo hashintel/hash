@@ -1,4 +1,3 @@
-#![feature(lint_reasons)]
 #![feature(extend_one)]
 
 pub mod error;

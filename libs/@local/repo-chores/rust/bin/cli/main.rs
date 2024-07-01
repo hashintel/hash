@@ -1,5 +1,3 @@
-#![feature(lint_reasons)]
-
 use core::error::Error;
 
 use clap::Parser;

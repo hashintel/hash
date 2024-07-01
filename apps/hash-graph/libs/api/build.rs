@@ -1,4 +1,4 @@
-#![allow(clippy::print_stderr)]
+#![expect(clippy::print_stderr)]
 
 use std::path::PathBuf;
 

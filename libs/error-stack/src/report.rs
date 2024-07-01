@@ -235,6 +235,7 @@ use crate::{
 /// # }
 /// ```
 #[must_use]
+#[allow(clippy::field_scoped_visibility_modifiers)]
 pub struct Report<C> {
     // The vector is boxed as this implies a memory footprint equal to a single pointer size
     // instead of three pointer sizes. Even for small `Result::Ok` variants, the `Result` would

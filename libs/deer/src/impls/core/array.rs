@@ -28,8 +28,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
 
         let mut result: Result<(), ArrayAccessError> = Ok(());
 
-        #[allow(unsafe_code)]
-        #[allow(clippy::uninit_assumed_init)]
+        #[expect(unsafe_code)]
         // SAFETY: `uninit_assumed_init` is fine here, as `[MaybeUninit<T>; N]` as no inhabitants,
         // the code shown here is also present in 1) the rust docs and 2) as an OK example in the
         // clippy docs. The code is the same as in `MaybeUninit::uninit_array()`, which is still
@@ -100,7 +99,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         if result.is_err() {
             // we will error out, but as to not leak memory we drop all previously written items
             for item in &mut this[0..index] {
-                #[allow(unsafe_code)]
+                #[expect(unsafe_code)]
                 // SAFETY: we only increment the pointer once we've written a value, the array is
                 // continuous, even if we error out, therefore
                 unsafe {
@@ -116,13 +115,13 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                 // * `cast` instead of `*const _ as *const [T; N]`
                 // * `ptr::addr_of!(array)` instead of `&array as *const _`
 
-                #[allow(unsafe_code)]
+                #[expect(unsafe_code)]
                 // SAFETY: we can guarantee that the array is fully initialized, because `result`
                 // will have an error if:
                 // * at least a single item had an error
                 // * there are not enough items
                 let ret = unsafe { ptr::addr_of!(this).cast::<[T; N]>().read() };
-                #[allow(clippy::forget_non_drop)]
+                #[expect(clippy::forget_non_drop)]
                 // Reason: This is fine, we do **not** want to call the destructor, as we are
                 // simply casting from [MaybeUninit<T>; N] to [T; N], the memory
                 // layout is the same and we do not want to drop/deallocate it.

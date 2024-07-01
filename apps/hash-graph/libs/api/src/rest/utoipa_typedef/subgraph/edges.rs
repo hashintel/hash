@@ -135,21 +135,21 @@ impl ToSchema<'_> for KnowledgeGraphOutwardEdge {
 #[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
 pub(crate) struct KnowledgeGraphRootedEdges(
-    pub(crate) HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, Vec<KnowledgeGraphOutwardEdge>>>,
+    HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, Vec<KnowledgeGraphOutwardEdge>>>,
 );
 
 #[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
 pub(crate) struct OntologyRootedEdges(
-    pub(crate) HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
+    HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
 );
 
 #[derive(Serialize)]
 pub(crate) struct Edges {
     #[serde(flatten)]
-    pub(crate) ontology: OntologyRootedEdges,
+    ontology: OntologyRootedEdges,
     #[serde(flatten)]
-    pub(crate) knowledge_graph: KnowledgeGraphRootedEdges,
+    knowledge_graph: KnowledgeGraphRootedEdges,
 }
 
 fn collect_merge<T: Hash + Eq, U: Ord, V>(
