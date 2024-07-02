@@ -45,6 +45,13 @@ const createDummyFlow = async (params: { actorId: AccountId }) => {
       ownedById: actorId as OwnedById,
       entityTypeId: systemEntityTypes.flowRun.entityTypeId,
       properties: dummyFlowRunProperties,
+      provenance: {
+        actorType: "machine",
+        origin: {
+          // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+          type: "flow",
+        },
+      },
       draft: false,
       relationships: createDefaultAuthorizationRelationships({ actorId }),
     },

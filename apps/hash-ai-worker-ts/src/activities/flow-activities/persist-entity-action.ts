@@ -199,7 +199,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           { actorId: webBotActorId },
           {
             draft: existingEntityIsDraft ? true : createEditionAsDraft,
-            properties: patchOperations,
+            propertyPatches: patchOperations,
+            provenance: entityValues.provenance,
           },
         );
       } else {

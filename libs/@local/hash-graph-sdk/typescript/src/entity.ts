@@ -46,10 +46,11 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { AuthenticationContext } from "./authentication-context";
 
-export type EnforcedEntityEditionProvenance = {
-  actorType: ProvidedEntityEditionProvenance["actorType"];
-  origin: ProvidedEntityEditionProvenance["origin"];
-};
+export type EnforcedEntityEditionProvenance =
+  ProvidedEntityEditionProvenance & {
+    actorType: ProvidedEntityEditionProvenance["actorType"];
+    origin: ProvidedEntityEditionProvenance["origin"];
+  };
 
 export type CreateEntityParameters = Omit<
   GraphApiCreateEntityRequest,

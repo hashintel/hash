@@ -788,7 +788,7 @@ export const researchEntitiesAction: FlowActionActivity<{
   const filesUsedToProposeSubmittedEntities = submittedProposedEntities
     .flatMap((submittedProposedEntity) => {
       const sourcesUsedToProposeEntity = [
-        ...(submittedProposedEntity.provenance?.sources ?? []),
+        ...(submittedProposedEntity.provenance.sources ?? []),
         ...flattenPropertyMetadata(
           submittedProposedEntity.propertyMetadata ?? { value: {} },
         ).flatMap(({ metadata }) => metadata.provenance?.sources ?? []),

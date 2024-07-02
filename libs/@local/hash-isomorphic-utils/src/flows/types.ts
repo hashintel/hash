@@ -1,7 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  EnforcedEntityEditionProvenance,
+  SerializedEntity,
+} from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
@@ -37,7 +39,7 @@ type LocalOrExistingEntityId =
  *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
  */
 export type ProposedEntity = {
-  provenance?: ProvidedEntityEditionProvenance;
+  provenance: EnforcedEntityEditionProvenance;
   propertyMetadata?: PropertyMetadataObject;
   localEntityId: string;
   entityTypeId: VersionedUrl;
@@ -386,7 +388,7 @@ export type ViewedFile = {
 };
 
 export type ProposedEntityLog = ProgressLogBase & {
-  proposedEntity: ProposedEntity;
+  proposedEntity: Omit<ProposedEntity, "provenance">;
   type: "ProposedEntity";
 };
 

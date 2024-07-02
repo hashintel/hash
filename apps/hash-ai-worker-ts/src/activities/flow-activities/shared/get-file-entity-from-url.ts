@@ -25,7 +25,10 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -122,7 +125,7 @@ const writeFileToS3URL = async ({
 export const getFileEntityFromUrl = async (params: {
   url: string;
   propertyMetadata?: PropertyMetadataObject;
-  provenance?: ProvidedEntityEditionProvenance;
+  provenance?: EnforcedEntityEditionProvenance;
   entityTypeId?: VersionedUrl;
   description?: string;
   displayName?: string;
@@ -223,8 +226,9 @@ export const getFileEntityFromUrl = async (params: {
     );
   }
 
-  // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
-  const provenance: ProvidedEntityEditionProvenance = provenanceFromParams ?? {
+  const provenance: EnforcedEntityEditionProvenance = provenanceFromParams ?? {
+    actorType: "machine",
+    // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
     origin: {
       type: "flow",
       id: flowEntityId,
@@ -269,8 +273,7 @@ export const getFileEntityFromUrl = async (params: {
       key,
     });
 
-  const properties: FileProperties = {
-    ...initialProperties,
+  const updatedProperties: FileProperties = {
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
       formatFileUrl(key),
     ...fileStorageProperties,
@@ -280,7 +283,7 @@ export const getFileEntityFromUrl = async (params: {
     graphApiClient,
     { actorId: webBotActorId },
     {
-      properties: [
+      propertyPatches: [
         {
           op: "replace",
           path: [],

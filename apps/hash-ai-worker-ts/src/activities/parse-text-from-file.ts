@@ -1,9 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
 import officeParser from "officeparser";
 
 import { fetchFileFromUrl } from "./shared/fetch-file-from-url";
@@ -46,24 +48,17 @@ export const parseTextFromFile = async (
   if (textParsingFunction) {
     const textualContent = await textParsingFunction(fileBuffer);
 
-    /** @todo: refetch these to prevent potential data loss */
-    const previousProperties = fileEntity.properties as DOCXDocumentProperties;
-
-    const updatedProperties = {
-      ...previousProperties,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-        textualContent,
-    } as DOCXDocumentProperties;
-
     await fileEntity.patch(
       graphApiClient,
       { actorId: webMachineActorId },
       {
-        properties: [
+        propertyPatches: [
           {
             op: "replace",
-            path: [],
-            value: updatedProperties,
+            path: [
+              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
+            ],
+            value: textualContent,
           },
         ],
       },

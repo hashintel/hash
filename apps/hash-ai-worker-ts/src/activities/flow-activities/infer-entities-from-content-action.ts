@@ -1,4 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  OriginProvenance,
+  SourceProvenance,
+} from "@local/hash-graph-client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
@@ -41,7 +45,8 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
     : [];
 
-  const { userAuthentication, webId } = await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } =
+    await getFlowContext();
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: userAuthentication,
@@ -107,6 +112,8 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     };
   }
 
+  const processBeginTime = new Date().toISOString();
+
   const status = await inferEntitiesFromWebPageActivity({
     webPage: content,
     relevantEntitiesPrompt,
@@ -128,6 +135,18 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
 
   webPageInferenceState = status.contents[0]!;
 
+  const source: SourceProvenance =
+    typeof content === "object"
+      ? {
+          type: "webpage",
+          loadedAt: processBeginTime,
+          location: {
+            uri: content.url,
+            name: content.title,
+          },
+        }
+      : { type: "document", loadedAt: processBeginTime };
+
   const proposedEntities = Object.entries(
     webPageInferenceState.proposedEntityCreationsByType,
   ).flatMap(([entityTypeId, proposedEntitiesByType]) =>
@@ -137,11 +156,23 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
           proposedEntitySummary.entityId === proposal.entityId,
       )?.summary;
 
+      const provenance: ProposedEntity["provenance"] = {
+        actorType: "ai",
+        // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+        origin: {
+          type: "flow",
+          id: flowEntityId,
+          stepIds: [stepId],
+        } satisfies OriginProvenance,
+        sources: [source],
+      };
+
       return {
         localEntityId: `${actionIdPrefix}-${proposal.entityId}`,
         entityTypeId: entityTypeId as VersionedUrl,
         summary,
         properties: proposal.properties ?? {},
+        provenance,
         sourceEntityId:
           "sourceEntityId" in proposal
             ? typeof proposal.sourceEntityId === "number"

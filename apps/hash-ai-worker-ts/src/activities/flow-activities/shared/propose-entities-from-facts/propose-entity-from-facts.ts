@@ -1,8 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
+import type { OriginProvenance } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -445,7 +443,7 @@ export const proposeEntityFromFacts = async (params: {
 
     const proposedOutgoingLinkEntities: ProposedEntity[] = [];
 
-    const editionProvenance: ProvidedEntityEditionProvenance = {
+    const editionProvenance: EnforcedEntityEditionProvenance = {
       actorType: "ai",
       // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
       origin: {

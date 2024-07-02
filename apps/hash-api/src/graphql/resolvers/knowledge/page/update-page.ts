@@ -14,6 +14,7 @@ import type { UnresolvedPageGQL } from "../graphql-mapping";
 import { mapPageToGQL } from "../graphql-mapping";
 import { updateEntity } from "../../../../graph/knowledge/primitive/entity";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { PropertyPatchOperation } from "@local/hash-graph-client";
 
 export const updatePageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,
@@ -34,11 +35,9 @@ export const updatePageResolver: ResolverFn<
           systemPropertyTypes[
             propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
           ].propertyTypeBaseUrl;
+
         return {
-          op:
-            page.entity.properties[propertyTypeBaseUrl] !== undefined
-              ? "replace"
-              : "add",
+          op: "add",
           path: [propertyTypeBaseUrl],
           value: value ?? undefined,
         };
