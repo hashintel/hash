@@ -1,9 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type {
-  EnforcedEntityEditionProvenance,
-  SerializedEntity,
-} from "@local/hash-graph-sdk/entity";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { Property } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {

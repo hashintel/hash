@@ -239,6 +239,7 @@ export const EditableQuickNote: FunctionComponent<{
         entityUpdate: {
           entityId: blockCollectionEntityId,
           entityTypeId: systemEntityTypes.quickNote.entityTypeId,
+          propertyPatches: [],
         },
       },
     });

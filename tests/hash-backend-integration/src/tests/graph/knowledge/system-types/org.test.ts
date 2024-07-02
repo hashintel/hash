@@ -10,11 +10,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
-import {
-  createTestImpureGraphContext,
-  createTestOrg,
-  generateRandomShortname,
-} from "../../../util";
+import { createTestImpureGraphContext, createTestOrg } from "../../../util";
 
 const logger = new Logger({
   mode: "dev",

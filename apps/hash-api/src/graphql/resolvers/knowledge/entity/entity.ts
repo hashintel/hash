@@ -344,14 +344,14 @@ export const updateEntityResolver: ResolverFn<
   if (isEntityLinkEntity(entity)) {
     updatedEntity = await updateLinkEntity(context, authentication, {
       linkEntity: entity,
-      propertyPatches: propertyPatches ?? undefined,
+      propertyPatches,
       draft: draft ?? undefined,
     });
   } else {
     updatedEntity = await updateEntity(context, authentication, {
       entity,
       entityTypeId: entityTypeId ?? undefined,
-      propertyPatches: propertyPatches ?? undefined,
+      propertyPatches,
       draft: draft ?? undefined,
     });
   }

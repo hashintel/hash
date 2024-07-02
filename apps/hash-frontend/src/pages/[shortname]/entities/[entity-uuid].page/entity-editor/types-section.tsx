@@ -98,6 +98,7 @@ export const TypesSection = () => {
               newVersion,
             ),
             entityId: recordId.entityId,
+            propertyPatches: [],
           },
         },
       });

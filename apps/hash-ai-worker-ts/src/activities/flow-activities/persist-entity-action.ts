@@ -66,7 +66,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
   const ownedById = webId;
 
-  const isAiGenerated = provenance?.actorType === "ai";
+  const isAiGenerated = provenance.actorType === "ai";
 
   const webBotActorId = isAiGenerated
     ? await getAiAssistantAccountIdActivity({

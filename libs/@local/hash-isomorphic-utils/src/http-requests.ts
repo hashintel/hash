@@ -1,5 +1,5 @@
 import type { ProvidedEntityEditionProvenanceOriginTypeEnum } from "@local/hash-graph-client";
-import { Request } from "express";
+import type { Request } from "express";
 
 export const hashClientTypes = [
   // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client

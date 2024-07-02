@@ -1,14 +1,8 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
-import type {
-  GraphApi,
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import {
-  EnforcedEntityEditionProvenance,
-  Entity,
-} from "@local/hash-graph-sdk/entity";
+import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";

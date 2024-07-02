@@ -168,7 +168,7 @@ export const entityTypedef = gql`
     """
     The patch operations to apply to the entity's properties
     """
-    propertyPatches: [PropertyPatchOperation!]
+    propertyPatches: [PropertyPatchOperation!]!
     """
     The new type of the updated entity
     """

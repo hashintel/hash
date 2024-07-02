@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -30,7 +31,6 @@ import {
 } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { pollInterval } from "./poll-interval";
-import { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export type NotificationEntitiesContextValues = {
   notificationEntities?: Entity<NotificationProperties>[];

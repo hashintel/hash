@@ -1,21 +1,21 @@
+import { useMutation } from "@apollo/client";
+import { patchesFromPropertyObjects } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import { Button } from "../../../../shared/ui";
-import { EntityEditor } from "./entity-editor";
-import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
-import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
-import { useDraftLinkState } from "./shared/use-draft-link-state";
-import { useMutation } from "@apollo/client";
 import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
-import { patchesFromPropertyObjects } from "@local/hash-graph-sdk/entity";
+import { Button } from "../../../../shared/ui";
+import { EntityEditor } from "./entity-editor";
+import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
+import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
+import { useDraftLinkState } from "./shared/use-draft-link-state";
 
 interface EditEntitySlideOverProps {
   open: boolean;
