@@ -58,12 +58,14 @@ export const upgradeEntityTypeDependencies = ({
         items:
           "oneOf" in linkSchema.items
             ? {
-                oneOf: linkSchema.items.oneOf.map((reference) =>
-                  replaceEntityTypeReference({
-                    reference,
-                    upgradedEntityTypeIds,
-                  }),
-                ) as [EntityTypeReference, ...EntityTypeReference[]],
+                oneOf: linkSchema.items.oneOf.map(
+                  (reference) =>
+                    replaceEntityTypeReference({
+                      reference,
+                      upgradedEntityTypeIds,
+                    }),
+                  // @ts-expect-error –– @see https://github.com/microsoft/TypeScript/issues/29841
+                ) satisfies [EntityTypeReference, ...EntityTypeReference[]],
               }
             : linkSchema.items,
       };
@@ -78,6 +80,7 @@ export const upgradeEntityTypeDependencies = ({
         }
       }
 
+      // @ts-expect-error –– @see https://github.com/microsoft/TypeScript/issues/29841
       accumulator[linkTypeId] = schemaWithUpdatedDestinations;
       return accumulator;
     }, {}),
