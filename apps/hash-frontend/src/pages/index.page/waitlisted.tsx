@@ -29,8 +29,8 @@ import {
   submitEarlyAccessFormMutation,
 } from "../../graphql/queries/user.queries";
 import { Button } from "../../shared/ui/button";
-import { GuideCard } from "./shared/guide-card";
 import { FollowUsButton } from "./shared/follow-us-button";
+import { GuideCard } from "./shared/guide-card";
 import { HomepageCard } from "./shared/homepage-card";
 import { HomepageGrid } from "./shared/homepage-grid";
 import { HomepageBigText, HomepageSmallCaps } from "./shared/typography";
