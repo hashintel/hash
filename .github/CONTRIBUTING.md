@@ -17,8 +17,6 @@ If you'd like to make a significant change or re-architecture to this repository
 
 We also have a developer website at [hash.dev], containing developer tutorials, guides and other resources.
 
-_In the future, we also intend to launch a design website at [hash.design], containing our Storybook, brand and style guildelines. This remains incomplete and currently provides only limited value._
-
 ## About this repo
 
 This repository is HASH's public monorepo. It contains [many different](README.md) projects, the vast majority of which are open-source, in line with [our commitment as a company]. While each project has its own [license](LICENSE.md), our contribution policies are consistent across this whole repository.
