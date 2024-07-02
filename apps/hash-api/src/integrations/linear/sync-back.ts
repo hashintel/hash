@@ -15,7 +15,6 @@ import {
   entityIdFromComponents,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphContext } from "../../graph/context-types";
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
@@ -116,9 +115,7 @@ export const processEntityChange = async (
   );
 
   const linearId =
-    linearEntityToUpdate.properties[
-      extractBaseUrl(linearPropertyTypes.id.propertyTypeId)
-    ];
+    linearEntityToUpdate.properties[linearPropertyTypes.id.propertyTypeBaseUrl];
 
   if (!linearId) {
     return;

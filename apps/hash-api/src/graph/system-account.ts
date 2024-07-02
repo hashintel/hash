@@ -1,7 +1,6 @@
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
@@ -33,7 +32,7 @@ export const ensureHashSystemAccountExists = async (params: {
        * steps where only the first version is available.
        */
       entityTypeId: versionedUrlFromComponents(
-        systemEntityTypes.organization.entityTypeBaseUrl as BaseUrl,
+        systemEntityTypes.organization.entityTypeBaseUrl,
         1,
       ),
     });

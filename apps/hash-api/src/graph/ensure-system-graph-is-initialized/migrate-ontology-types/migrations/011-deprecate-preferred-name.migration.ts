@@ -195,11 +195,9 @@ const migrate: MigrationFunction = async ({
     entityTypeBaseUrls: baseUrls,
     migrationState,
     migrateProperties: {
-      [systemEntityTypes.user.entityTypeBaseUrl as BaseUrl]: (
-        previousUserProperties,
-      ) => {
+      [systemEntityTypes.user.entityTypeBaseUrl]: (previousUserProperties) => {
         const {
-          [systemPropertyTypes.preferredName.propertyTypeBaseUrl as BaseUrl]:
+          [systemPropertyTypes.preferredName.propertyTypeBaseUrl]:
             previousPreferredName,
           ...remainingProperties
         } = previousUserProperties;

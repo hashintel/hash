@@ -24,7 +24,6 @@ import {
   extractOwnedByIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   ImpureGraphFunction,
@@ -103,9 +102,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
                   "incomingLinks",
                   "leftEntity",
                   "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.linearOrgId.propertyTypeId,
-                  ),
+                  systemPropertyTypes.linearOrgId.propertyTypeBaseUrl,
                 ],
               },
               { parameter: linearOrgId },

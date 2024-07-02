@@ -9,7 +9,6 @@ import type {
 } from "@linear/sdk/dist/_generated_documents";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Property } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   blockProtocolPropertyTypes,
   linearEntityTypes,
@@ -41,7 +40,7 @@ export type SupportedLinearTypeNames = keyof SupportedLinearTypes;
 
 const getLinearIdFromEntity = (entity: Entity): string => {
   const linearId =
-    entity.properties[linearPropertyTypes.id.propertyTypeBaseUrl as BaseUrl];
+    entity.properties[linearPropertyTypes.id.propertyTypeBaseUrl];
 
   if (!linearId) {
     throw new Error(

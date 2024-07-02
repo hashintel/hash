@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/dist/cjs";
-import type { EntityType } from "@blockprotocol/type-system/slim";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
