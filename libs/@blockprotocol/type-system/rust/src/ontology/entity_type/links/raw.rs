@@ -60,7 +60,7 @@ impl From<super::Links> for Links {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaybeOneOfEntityTypeReference {
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
-    pub(crate) inner: Option<raw::OneOfSchema<raw::EntityTypeReference>>,
+    inner: Option<raw::OneOfSchema<raw::EntityTypeReference>>,
 }
 
 impl MaybeOneOfEntityTypeReference {
