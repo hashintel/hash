@@ -14,7 +14,6 @@ import type {
   EditionCreatedById,
 } from "@local/hash-graph-types/account";
 import type {
-  AddPropertyPatchOperation,
   EntityId,
   EntityMetadata,
   EntityRecordId,
@@ -31,7 +30,6 @@ import type {
   PropertyPath,
   PropertyValueWithMetadata,
   PropertyWithMetadata,
-  ReplacePropertyPatchOperation,
 } from "@local/hash-graph-types/entity";
 import {
   isArrayMetadata,
@@ -172,6 +170,18 @@ export const getDefinedPropertyFromPatchesRetriever = <
 
     return foundPatch.value as Properties[Key];
   };
+};
+
+export const isValueRemovedByPatches = <Properties extends PropertyObject>({
+  baseUrl,
+  propertyPatches,
+}: {
+  baseUrl: keyof Properties;
+  propertyPatches: PropertyPatchOperation[];
+}): boolean => {
+  return propertyPatches.some(
+    (patch) => patch.op === "remove" && patch.path[0] === baseUrl,
+  );
 };
 
 const mergePropertiesAndMetadata = (

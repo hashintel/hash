@@ -586,6 +586,7 @@ export const updateEntity: ImpureGraphFunction<
         previousEntity: entity,
         propertyPatches: propertyPatches ?? [],
         authentication,
+        updatedEntity,
       });
     }
   }
