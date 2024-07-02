@@ -1,4 +1,3 @@
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import type {
   FileStorageProvider,
@@ -115,9 +114,7 @@ const getFileEntity = async (
             {
               path: [
                 "properties",
-                extractBaseUrl(
-                  systemPropertyTypes.fileStorageKey.propertyTypeId,
-                ),
+                systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl,
               ],
             },
             { parameter: key },

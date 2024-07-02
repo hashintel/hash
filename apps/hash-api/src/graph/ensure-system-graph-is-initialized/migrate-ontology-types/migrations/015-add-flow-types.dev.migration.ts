@@ -1,5 +1,4 @@
 import type { EntityType } from "@blockprotocol/type-system";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -104,8 +103,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Flow Definition",
         description: "The definition of a HASH flow.",
-        labelProperty: blockProtocolPropertyTypes.name
-          .propertyTypeBaseUrl as BaseUrl,
+        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
           {
             propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
@@ -227,8 +225,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Flow Run",
         description: "An execution run of a flow.",
-        labelProperty: blockProtocolPropertyTypes.name
-          .propertyTypeBaseUrl as BaseUrl,
+        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
           {
             propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
@@ -341,9 +338,7 @@ const migrate: MigrationFunction = async ({
    */
 
   await upgradeEntitiesToNewTypeVersion(context, authentication, {
-    entityTypeBaseUrls: [
-      systemEntityTypes.usageRecord.entityTypeBaseUrl as BaseUrl,
-    ],
+    entityTypeBaseUrls: [systemEntityTypes.usageRecord.entityTypeBaseUrl],
     migrationState,
   });
 

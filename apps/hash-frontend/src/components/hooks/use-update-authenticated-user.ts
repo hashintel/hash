@@ -6,7 +6,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { GraphQLError } from "graphql";
 import { useCallback, useState } from "react";
 
@@ -93,37 +92,32 @@ export const useUpdateAuthenticatedUser = () => {
                 ...currentProperties,
                 ...(params.shortname
                   ? {
-                      [extractBaseUrl(
-                        systemPropertyTypes.shortname.propertyTypeId,
-                      )]: params.shortname,
+                      [systemPropertyTypes.shortname.propertyTypeBaseUrl]:
+                        params.shortname,
                     }
                   : {}),
                 ...(params.displayName
                   ? {
-                      [extractBaseUrl(
-                        blockProtocolPropertyTypes.displayName.propertyTypeId,
-                      )]: params.displayName,
+                      [blockProtocolPropertyTypes.displayName
+                        .propertyTypeBaseUrl]: params.displayName,
                     }
                   : {}),
                 ...(typeof params.location !== "undefined"
                   ? {
-                      [extractBaseUrl(
-                        systemPropertyTypes.location.propertyTypeId,
-                      )]: params.location,
+                      [systemPropertyTypes.location.propertyTypeBaseUrl]:
+                        params.location,
                     }
                   : {}),
                 ...(typeof params.websiteUrl !== "undefined"
                   ? {
-                      [extractBaseUrl(
-                        systemPropertyTypes.websiteUrl.propertyTypeId,
-                      )]: params.websiteUrl,
+                      [systemPropertyTypes.websiteUrl.propertyTypeBaseUrl]:
+                        params.websiteUrl,
                     }
                   : {}),
                 ...(typeof params.preferredPronouns !== "undefined"
                   ? {
-                      [extractBaseUrl(
-                        systemPropertyTypes.preferredPronouns.propertyTypeId,
-                      )]: params.preferredPronouns,
+                      [systemPropertyTypes.preferredPronouns
+                        .propertyTypeBaseUrl]: params.preferredPronouns,
                     }
                   : {}),
               },

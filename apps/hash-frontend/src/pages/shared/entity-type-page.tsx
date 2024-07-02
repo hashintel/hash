@@ -1,5 +1,5 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { extractVersion } from "@blockprotocol/type-system";
+import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   EntityTypeIcon,
@@ -46,7 +46,6 @@ import { useCurrentTab } from "./entity-type-page/shared/tabs";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
 import { TopContextBar } from "./top-context-bar";
-import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 
 type EntityTypeProps = {
   accountId?: AccountId | null;

@@ -14,7 +14,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   ImpureGraphFunction,
@@ -171,9 +170,8 @@ export const createComment: ImpureGraphFunction<
   const textEntity = await createEntity(ctx, authentication, {
     ownedById,
     properties: {
-      [extractBaseUrl(
-        blockProtocolPropertyTypes.textualContent.propertyTypeId,
-      )]: textualContent,
+      [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]:
+        textualContent,
     },
     entityTypeId: systemEntityTypes.text.entityTypeId,
     relationships,
@@ -247,9 +245,8 @@ export const updateCommentText: ImpureGraphFunction<
 
   await updateEntityProperty(ctx, authentication, {
     entity: text.entity,
-    propertyTypeBaseUrl: extractBaseUrl(
-      blockProtocolPropertyTypes.textualContent.propertyTypeId,
-    ),
+    propertyTypeBaseUrl:
+      blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
     value: textualContent,
   });
 };
@@ -277,9 +274,8 @@ export const deleteComment: ImpureGraphFunction<
       entity: comment.entity,
       updatedProperties: [
         {
-          propertyTypeBaseUrl: extractBaseUrl(
-            systemPropertyTypes.deletedAt.propertyTypeId,
-          ),
+          propertyTypeBaseUrl:
+            systemPropertyTypes.deletedAt.propertyTypeBaseUrl,
           value: new Date().toISOString(),
         },
       ],
@@ -404,9 +400,7 @@ export const resolveComment: ImpureGraphFunction<
     entity: comment.entity,
     updatedProperties: [
       {
-        propertyTypeBaseUrl: extractBaseUrl(
-          systemPropertyTypes.resolvedAt.propertyTypeId,
-        ),
+        propertyTypeBaseUrl: systemPropertyTypes.resolvedAt.propertyTypeBaseUrl,
         value: new Date().toISOString(),
       },
     ],

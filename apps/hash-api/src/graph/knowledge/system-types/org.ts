@@ -3,7 +3,6 @@ import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors"
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
 import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -53,7 +52,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   if (entityTypeBaseUrl !== systemEntityTypes.organization.entityTypeBaseUrl) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemEntityTypes.organization.entityTypeBaseUrl as BaseUrl,
+      systemEntityTypes.organization.entityTypeBaseUrl,
       entityTypeBaseUrl,
     );
   }
@@ -139,7 +138,7 @@ export const createOrg: ImpureGraphFunction<
       typeof entityTypeVersion === "undefined"
         ? systemEntityTypes.organization.entityTypeId
         : versionedUrlFromComponents(
-            systemEntityTypes.organization.entityTypeBaseUrl as BaseUrl,
+            systemEntityTypes.organization.entityTypeBaseUrl,
             entityTypeVersion,
           ),
     entityUuid: orgAccountGroupId as string as EntityUuid,

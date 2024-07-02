@@ -16,6 +16,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
+  atLeastOne,
   DATA_TYPE_META_SCHEMA,
   ENTITY_TYPE_META_SCHEMA,
   extractVersion,
@@ -57,7 +58,6 @@ import {
   generateLinkMapWithConsistentSelfReferences,
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 import type {
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
@@ -832,8 +832,7 @@ export const getCurrentHashSystemEntityTypeId = ({
   entityTypeKey: keyof typeof systemEntityTypes;
   migrationState: MigrationState;
 }) => {
-  const entityTypeBaseUrl = systemEntityTypes[entityTypeKey]
-    .entityTypeBaseUrl as BaseUrl;
+  const entityTypeBaseUrl = systemEntityTypes[entityTypeKey].entityTypeBaseUrl;
 
   const entityTypeVersion =
     migrationState.entityTypeVersions[entityTypeBaseUrl];
@@ -854,8 +853,8 @@ export const getCurrentHashLinkEntityTypeId = ({
   linkEntityTypeKey: keyof typeof systemLinkEntityTypes;
   migrationState: MigrationState;
 }) => {
-  const linkEntityTypeBaseUrl = systemLinkEntityTypes[linkEntityTypeKey]
-    .linkEntityTypeBaseUrl as BaseUrl;
+  const linkEntityTypeBaseUrl =
+    systemLinkEntityTypes[linkEntityTypeKey].linkEntityTypeBaseUrl;
 
   const linkEntityTypeVersion =
     migrationState.entityTypeVersions[linkEntityTypeBaseUrl];
@@ -879,8 +878,8 @@ export const getCurrentHashPropertyTypeId = ({
   propertyTypeKey: keyof typeof systemPropertyTypes;
   migrationState: MigrationState;
 }) => {
-  const propertyTypeBaseUrl = systemPropertyTypes[propertyTypeKey]
-    .propertyTypeBaseUrl as BaseUrl;
+  const propertyTypeBaseUrl =
+    systemPropertyTypes[propertyTypeKey].propertyTypeBaseUrl;
 
   const propertyTypeVersion =
     migrationState.propertyTypeVersions[propertyTypeBaseUrl];
@@ -901,8 +900,7 @@ export const getCurrentHashDataTypeId = ({
   dataTypeKey: keyof typeof systemDataTypes;
   migrationState: MigrationState;
 }) => {
-  const dataTypeBaseUrl = systemDataTypes[dataTypeKey]
-    .dataTypeBaseUrl as BaseUrl;
+  const dataTypeBaseUrl = systemDataTypes[dataTypeKey].dataTypeBaseUrl;
 
   const dataTypeVersion = migrationState.dataTypeVersions[dataTypeBaseUrl];
 

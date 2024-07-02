@@ -1,13 +1,11 @@
 import { Select, TextField } from "@hashintel/design-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useState } from "react";
@@ -102,8 +100,7 @@ export const UserProfileInfoForm: FunctionComponent<{
         data: {
           entityTypeId: systemEntityTypes[kind].entityTypeId,
           properties: {
-            [extractBaseUrl(systemPropertyTypes.profileUrl.propertyTypeId)]:
-              profileUrl,
+            [systemPropertyTypes.profileUrl.propertyTypeBaseUrl]: profileUrl,
           },
         },
       });
@@ -140,8 +137,7 @@ export const UserProfileInfoForm: FunctionComponent<{
           entityTypeId: existingServiceAccountEntity.metadata.entityTypeId,
           properties: {
             ...existingServiceAccountEntity.properties,
-            [systemPropertyTypes.profileUrl.propertyTypeBaseUrl as BaseUrl]:
-              profileUrl,
+            [systemPropertyTypes.profileUrl.propertyTypeBaseUrl]: profileUrl,
           },
         },
       });

@@ -31,7 +31,6 @@ import {
   getRightEntityForLinkEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   ImpureGraphFunction,
@@ -90,9 +89,7 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.linearOrgId.propertyTypeId,
-                  ),
+                  systemPropertyTypes.linearOrgId.propertyTypeBaseUrl,
                 ],
               },
               { parameter: linearOrgId },
@@ -136,9 +133,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.linearOrgId.propertyTypeId,
-                  ),
+                  systemPropertyTypes.linearOrgId.propertyTypeBaseUrl,
                 ],
               },
               { parameter: linearOrgId },

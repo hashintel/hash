@@ -1,13 +1,8 @@
-import { replaceEntityTypeReference } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util/upgrade-entity-type-dependencies";
-import type {
-  EntityTypeReference,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import type { EntityType } from "@blockprotocol/type-system/slim";
+import { atLeastOne } from "@blockprotocol/type-system";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
-import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 import {
   componentsFromVersionedUrl,
   versionedUrlFromComponents,
