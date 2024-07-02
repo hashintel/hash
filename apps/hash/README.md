@@ -1,4 +1,3 @@
-[discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [github_star]: https://github.com/hashintel/hash#
 
 <!-- markdownlint-disable link-fragments -->
@@ -10,7 +9,7 @@
   <img src="https://cdn-us1.hash.ai/assets/hash-github-readme-header%402x.png">
 </p>
 
-[![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
+[![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
 
 # HASH
 
@@ -492,4 +491,4 @@ If the service should report metrics to a StatsD server, the following variables
 
 The HASH application's development is overseen by _[HASH](https://hash.ai/about)_ (the company).
 
-As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).
+As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md) that outlines the process. If you have questions, please open a [discussion](https://github.com/orgs/hashintel/discussions).

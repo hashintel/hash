@@ -202,7 +202,12 @@ const nextConfig = {
        */
       {
         source: "/discord",
-        destination: "https://hash.ai/discord",
+        destination: "https://github.com/orgs/hashintel/discussions",
+        permanent: true,
+      },
+      {
+        source: "/discuss",
+        destination: "https://github.com/orgs/hashintel/discussions",
         permanent: true,
       },
       {

@@ -1,6 +1,5 @@
 [careers site]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
 [community guidelines]: https://hash.ai/legal/trust-safety/community?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
-[discord]: https://hash.dev/discord?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
 [discussion]: https://github.com/hashintel/hash/discussions
 [hash.design]: https://hash.design/?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
 [hash.dev]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
@@ -16,11 +15,9 @@ Thanks for taking the time to contribute! 🎉 We've established a set of [commu
 
 If you'd like to make a significant change or re-architecture to this repository or any project within, please first open a [discussion] or create an [issue] to get feedback before spending too much time.
 
-We also have:
+We also have a developer website at [hash.dev], containing developer tutorials, guides and other resources.
 
-- A community [Discord] server where you can ask questions about contributing, and obtain helpful advice
-- A developer website at [hash.dev], containing developer tutorials, guides and other resources
-- A design website at [hash.design] containing our Storybook, brand and style guildelines
+_In the future, we also intend to launch a design website at [hash.design], containing our Storybook, brand and style guildelines. This remains incomplete and currently provides only limited value._
 
 ## About this repo
 
@@ -32,7 +29,7 @@ To ascertain the license and contributing policy for any given project, check ou
 
 These apply across all projects:
 
-- Before undertaking any significant work, please share your proposal with us: we don't want you to invest your time on changes we are already working on ourselves, or have different plans for. You can suggest changes as a [discussion] if it's a feature proposal, or an [issue] if it's a bug you intend to fix. If you're unsure, you can always chat to us on [Discord] first. If it's a typo or docs change, don't worry about this step.
+- Before undertaking any significant work, please share your proposal with us: we don't want you to invest your time on changes we are already working on ourselves, or have different plans for. You can suggest changes as a [discussion] if it's a feature proposal, or an [issue] if it's a bug you intend to fix. If you're only fixing a typo or making a minor change to documentation, don't worry about this step (just go ahead and open a Pull Request on this repository).
 - When submitting a pull request, please fill out any sections of the provided template you feel able to. If you are unsure or don't feel a section is relevant, please say so.
   - Always include a link to the issue or discussion proposing the change.
   - Write tests to accompany your PR, or ask for help/guidance if this is a blocker.
@@ -45,7 +42,7 @@ These apply across all projects:
 
 ## How can I find interesting PRs to work on?
 
-Existing issues can provide a good source of inspiration for potential contributions. The issue tags `E-help-wanted` and `E-good-first-issue` flag some of the lower-hanging fruit that are available for people (including first-time contributors) to work on, without necessarily requiring prior discussion. You should also feel free to join our [Discord] and reach out directly to us for more inspiration. If you're willing to contribute, we'd love to have you!
+Existing issues can provide a good source of inspiration for potential contributions. The issue tags `E-help-wanted` and `E-good-first-issue` flag some of the lower-hanging fruit that are available for people (including first-time contributors) to work on, without necessarily requiring prior discussion. If you're willing to contribute, we'd love to have you!
 
 ## Why might contributions be rejected?
 
