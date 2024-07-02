@@ -57,6 +57,7 @@ import {
   generateLinkMapWithConsistentSelfReferences,
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
+import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 import type {
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
@@ -701,7 +702,9 @@ export const generateSystemEntityTypeSchema = (
       {},
     ) ?? undefined;
 
-  const allOf = params.allOf?.map((url) => ({ $ref: url }));
+  const allOf = params.allOf
+    ? atLeastOne(params.allOf.map((url) => ({ $ref: url })))
+    : undefined;
 
   return {
     $schema: ENTITY_TYPE_META_SCHEMA,

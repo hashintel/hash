@@ -13,6 +13,7 @@ pub struct AllOf<T> {
         default = "Vec::new",
         skip_serializing_if = "Vec::is_empty"
     )]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "[T, ...T[]]"))]
     pub elements: Vec<T>,
 }
 

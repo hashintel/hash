@@ -4,6 +4,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 export const replaceEntityTypeReference = ({
@@ -44,30 +45,34 @@ export const upgradeEntityTypeDependencies = ({
 }): EntityType => {
   return {
     ...schema,
-    allOf: schema.allOf?.map((reference) =>
-      replaceEntityTypeReference({
-        reference,
-        upgradedEntityTypeIds,
-      }),
-    ),
+    allOf: schema.allOf
+      ? atLeastOne(
+          schema.allOf.map((reference) =>
+            replaceEntityTypeReference({
+              reference,
+              upgradedEntityTypeIds,
+            }),
+          ),
+        )
+      : undefined,
     links: typedEntries(schema.links ?? {}).reduce<
       NonNullable<EntityType["links"]>
     >((accumulator, [uncheckedLinkTypeId, linkSchema]) => {
+      const oneOf =
+        "oneOf" in linkSchema.items
+          ? atLeastOne(
+              linkSchema.items.oneOf.map((reference) =>
+                replaceEntityTypeReference({
+                  reference,
+                  upgradedEntityTypeIds,
+                }),
+              ),
+            )
+          : undefined;
+
       const schemaWithUpdatedDestinations = {
         ...linkSchema,
-        items:
-          "oneOf" in linkSchema.items
-            ? {
-                oneOf: linkSchema.items.oneOf.map(
-                  (reference) =>
-                    replaceEntityTypeReference({
-                      reference,
-                      upgradedEntityTypeIds,
-                    }),
-                  // @ts-expect-error –– @see https://github.com/microsoft/TypeScript/issues/29841
-                ) satisfies [EntityTypeReference, ...EntityTypeReference[]],
-              }
-            : linkSchema.items,
+        items: oneOf ? { oneOf } : ({} as Record<string, never>),
       };
 
       let linkTypeId = uncheckedLinkTypeId;
@@ -80,7 +85,6 @@ export const upgradeEntityTypeDependencies = ({
         }
       }
 
-      // @ts-expect-error –– @see https://github.com/microsoft/TypeScript/issues/29841
       accumulator[linkTypeId] = schemaWithUpdatedDestinations;
       return accumulator;
     }, {}),

@@ -1,4 +1,7 @@
-import { extractBaseUrl } from "@blockprotocol/type-system";
+import {
+  EntityTypeReference,
+  extractBaseUrl,
+} from "@blockprotocol/type-system";
 import type {
   EntityType,
   VersionedUrl,
@@ -11,7 +14,7 @@ export const getParentIds = (
   entityType: Pick<EntityType, "allOf">,
   allEntityTypes: Record<VersionedUrl, EntityTypeWithMetadata>,
 ): VersionedUrl[] => {
-  let parentRefObjects = entityType.allOf ?? [];
+  let parentRefObjects: EntityTypeReference[] = entityType.allOf ?? [];
   const parentIds = parentRefObjects.map(({ $ref }) => $ref);
   while (parentRefObjects.length) {
     parentRefObjects = parentRefObjects.flatMap(({ $ref }) => {

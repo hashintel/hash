@@ -141,7 +141,6 @@ const entityTypes: EntityType[] = [
     $id: "https://blockprotocol.org/@alice/types/entity-type/organization/v/1",
     type: "object",
     title: "Organization",
-    allOf: [],
     properties: {
       "https://blockprotocol.org/@alice/types/property-type/name/": {
         $ref: "https://blockprotocol.org/@alice/types/property-type/name/v/1",

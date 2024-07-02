@@ -15,6 +15,16 @@ export const isUnknownObject = (
   x !== null && typeof x === "object";
 
 /**
+ * Ensures that the array has at least one element. If not it returns `undefined`.
+ *
+ * @todo: Remove when Typescript can infer this
+ * @see https://github.com/microsoft/TypeScript/issues/29841
+ */
+export const atLeastOne = <T>(array: T[]): [T, ...T[]] | undefined =>
+  // @ts-expect-error –– @see https://github.com/microsoft/TypeScript/issues/29841
+  array.length > 0 ? (array satisfies [T, ...T[]]) : undefined;
+
+/**
  * This allows you to collect calls to a function to run at the end of a tick
  */
 export const collect = <P extends Array<unknown>>(

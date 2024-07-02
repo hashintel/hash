@@ -5,6 +5,7 @@ import type {
   ValueOrArray,
 } from "@blockprotocol/type-system/slim";
 import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 
 import type { EntityTypeEditorFormData } from "./shared/form-types";
 
@@ -14,13 +15,13 @@ export const getEntityTypeFromFormData = (
   icon: string | null;
   labelProperty: string | null;
   schema: Required<
-    Pick<
-      EntityType,
-      "allOf" | "description" | "links" | "properties" | "required"
-    >
-  >;
+    Pick<EntityType, "description" | "links" | "properties" | "required">
+  > &
+    Pick<EntityType, "allOf">;
 } => {
-  const allOf = data.allOf.map((versionedUrl) => ({ $ref: versionedUrl }));
+  const allOf = atLeastOne<EntityTypeReference>(
+    data.allOf.map((versionedUrl) => ({ $ref: versionedUrl })),
+  );
 
   const properties = data.properties;
 
@@ -66,18 +67,12 @@ export const getEntityTypeFromFormData = (
       throw new Error("Invalid property constraint");
     }
 
+    const oneOf = atLeastOne(link.entityTypes.map((id) => ({ $ref: id })));
     links[link.$id] = {
       type: "array",
       minItems: link.minValue,
       ...(link.infinity ? {} : { maxItems: link.maxValue }),
-      items: link.entityTypes.length
-        ? {
-            oneOf: link.entityTypes.map((id) => ({ $ref: id })) as [
-              EntityTypeReference,
-              ...EntityTypeReference[],
-            ], // assert that there is at least one item in the array
-          }
-        : {},
+      items: oneOf ? { oneOf } : {},
     };
   }
 

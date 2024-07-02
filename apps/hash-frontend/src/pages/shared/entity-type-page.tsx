@@ -46,6 +46,7 @@ import { useCurrentTab } from "./entity-type-page/shared/tabs";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
 import { TopContextBar } from "./top-context-bar";
+import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 
 type EntityTypeProps = {
   accountId?: AccountId | null;
@@ -101,7 +102,7 @@ export const EntityTypePage = ({
 
   const parentRefs = formMethods.watch("allOf");
   const { isLink, isFile, isImage } = useIsSpecialEntityType({
-    allOf: parentRefs.map((id) => ({ $ref: id })),
+    allOf: atLeastOne(parentRefs.map((id) => ({ $ref: id }))),
     $id: entityType?.schema.$id,
   });
 
@@ -238,7 +239,7 @@ export const EntityTypePage = ({
     const res = await updateEntityType(
       {
         ...schema,
-        allOf: [{ $ref: linkEntityTypeUrl }, ...schema.allOf],
+        allOf: [{ $ref: linkEntityTypeUrl }, ...(schema.allOf ?? [])],
       },
       { icon, labelProperty: labelProperty as BaseUrl },
     );
