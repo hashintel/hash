@@ -4,11 +4,11 @@ pub(in crate::ontology) mod raw;
 use crate::ValidationError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OneOf<T> {
+pub struct OneOfSchema<T> {
     pub possibilities: Vec<T>,
 }
 
-impl<T> OneOf<T> {
+impl<T> OneOfSchema<T> {
     /// Creates a new `OneOf` without validating.
     pub fn new_unchecked<U: Into<Vec<T>>>(possibilities: U) -> Self {
         Self {
@@ -28,12 +28,12 @@ impl<T> OneOf<T> {
     }
 
     #[must_use]
-    pub fn one_of(&self) -> &[T] {
+    pub fn possibilities(&self) -> &[T] {
         &self.possibilities
     }
 
     fn validate(&self) -> Result<(), ValidationError> {
-        if self.one_of().is_empty() {
+        if self.possibilities.is_empty() {
             return Err(ValidationError::EmptyOneOf);
         }
         Ok(())
@@ -49,8 +49,8 @@ mod tests {
         ValidationError,
     };
 
-    type OneOf = super::OneOf<PropertyValues>;
-    type OneOfRepr = raw::OneOf<raw::PropertyValues>;
+    type OneOf = super::OneOfSchema<PropertyValues>;
+    type OneOfRepr = raw::OneOfSchema<raw::PropertyValues>;
 
     #[test]
     fn empty() {
@@ -58,7 +58,7 @@ mod tests {
             &json!({
                 "oneOf": []
             }),
-            ParseOneOfError::ValidationError(ValidationError::EmptyOneOf),
+            &ParseOneOfError::ValidationError(ValidationError::EmptyOneOf),
         );
     }
 }

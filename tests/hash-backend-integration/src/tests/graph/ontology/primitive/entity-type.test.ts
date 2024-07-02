@@ -209,14 +209,12 @@ beforeAll(async () => {
         items: {
           oneOf: [{ $ref: workerEntityType.schema.$id }],
         },
-        ordered: false,
       },
       [previousAddressLinkEntityType.schema.$id]: {
         type: "array",
         items: {
           oneOf: [{ $ref: addressEntityType.schema.$id }],
         },
-        ordered: true,
       },
     },
   };

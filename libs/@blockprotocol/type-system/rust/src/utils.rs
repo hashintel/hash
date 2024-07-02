@@ -60,31 +60,26 @@ pub(crate) mod tests {
     /// serialized back.
     ///
     /// Optionally checks the deserialized object against an expected value.
-    pub(crate) fn check_serialization_from_str<T, R>(
-        input: &str,
-        expected_native_repr: Option<R>,
-    ) -> T
+    pub(crate) fn check_serialization_from_str<T, R>(input: &str) -> T
     where
-        T: Debug + Clone + TryFrom<R>,
+        T: Debug + TryFrom<R>,
         T::Error: Debug,
-        R: Debug + PartialEq + Clone + From<T> + Serialize + DeserializeOwned,
+        R: Debug + Clone + From<T> + Serialize + DeserializeOwned + PartialEq,
     {
-        let deserialized_repr: R = serde_json::from_str(input).expect("failed to deserialize");
-        let value: T = deserialized_repr
+        let value = serde_json::from_str::<serde_json::Value>(input).expect("failed to serialize");
+        let deserialized_repr: R = serde_json::from_value(value).expect("failed to deserialize");
+        let deserialized: T = deserialized_repr
             .clone()
             .try_into()
             .expect("failed to convert");
-        let re_serialized_repr: R = value.clone().into();
+        let re_serialized_repr: R = deserialized.into();
 
         assert_eq!(deserialized_repr, re_serialized_repr);
-        if let Some(repr) = expected_native_repr {
-            assert_eq!(re_serialized_repr, repr);
-        }
 
         let _re_serialized_value =
             serde_json::to_value(re_serialized_repr).expect("failed to serialize");
 
-        value
+        deserialized_repr.try_into().expect("failed to convert")
     }
 
     /// Ensures a type can be deserialized from a given string to its equivalent [`repr`], but then
@@ -92,16 +87,16 @@ pub(crate) mod tests {
     /// representation.
     ///
     /// [`repr`]: crate::raw
-    pub(crate) fn ensure_failed_validation<R, T>(input: &serde_json::Value, expected_err: T::Error)
+    pub(crate) fn ensure_failed_validation<R, T>(input: &serde_json::Value, expected_err: &T::Error)
     where
-        R: for<'de> Deserialize<'de> + Serialize + Debug + PartialEq,
-        T: TryFrom<R> + Debug + PartialEq,
+        R: for<'de> Deserialize<'de>,
+        T: TryFrom<R> + Debug,
         <T as TryFrom<R>>::Error: Debug + PartialEq,
     {
         let repr: R = serde_json::from_value(input.clone()).expect("failed to deserialize");
-        let result = T::try_from(repr);
+        let error = T::try_from(repr).expect_err("expected validation to fail");
 
-        assert_eq!(result, Err(expected_err));
+        assert_eq!(error, *expected_err);
     }
 
     /// Ensures a type can be deserialized from a given [`serde_json::Value`] to its equivalent
