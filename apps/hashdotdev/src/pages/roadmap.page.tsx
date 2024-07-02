@@ -1,7 +1,7 @@
 import { Box, Container, Typography, typographyClasses } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 
-import { ArrowRightToBracketRegularIcon } from "../components/icons/arrow-right-to-bracket-icon";
+import { ArrowRightToBracketRegularIcon } from "../components/icons/arrow-right-to-bracket-regular-icon";
 import { Button } from "../components/button";
 import { HiddenAnchorFragmentTag } from "../components/hidden-anchor-fragment-tag";
 import { BallotCheckRegularIcon } from "../components/icons/ballot-check-regular-icon";
