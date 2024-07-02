@@ -258,7 +258,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
             px: 1,
           }}
         >
-          Manage API keys
+          Launch HASH
         </Button>
       </Box>
 
