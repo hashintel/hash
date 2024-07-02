@@ -240,6 +240,7 @@ pub enum ActorType {
     Human,
     #[serde(rename = "ai")]
     AI,
+    Machine,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

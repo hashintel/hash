@@ -2980,7 +2980,8 @@
         "type": "string",
         "enum": [
           "human",
-          "ai"
+          "ai",
+          "machine"
         ]
       },
       "ArchiveDataTypeParams": {
