@@ -56,7 +56,7 @@ export const usePropertyTypes = (params?: {
         filteredPropertyTypeVersionsByBaseUrl[baseUrl] = [propertyType];
       } else {
         filteredPropertyTypeVersionsByBaseUrl[baseUrl] ??= [];
-        filteredPropertyTypeVersionsByBaseUrl[baseUrl]!.push(propertyType);
+        filteredPropertyTypeVersionsByBaseUrl[baseUrl].push(propertyType);
       }
     }
 

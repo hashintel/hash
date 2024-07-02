@@ -1,10 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
+import { SourceType } from "@local/hash-graph-client";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -28,14 +30,19 @@ import type { DuplicateReport } from "./research-entities-action/deduplicate-ent
 import { deduplicateEntities } from "./research-entities-action/deduplicate-entities";
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
 import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call";
-import { inferFactsFromWebPageWorkerAgent } from "./research-entities-action/infer-facts-from-web-page-worker-agent";
-import type { AccessedRemoteFile } from "./research-entities-action/infer-facts-from-web-page-worker-agent/types";
+import { linkFollowerAgent } from "./research-entities-action/link-follower-agent";
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent";
 import type { CompletedToolCall } from "./research-entities-action/types";
 import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "./shared/infer-facts-from-text/types";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
 import type { FlowActionActivity } from "./types";
+
+export type AccessedRemoteFile = {
+  entityTypeId: VersionedUrl;
+  url: string;
+  loadedAt: string;
+};
 
 const adjustDuplicates = (params: {
   duplicates: DuplicateReport[];
@@ -84,14 +91,12 @@ const updateStateFromInferredFacts = async (params: {
   state: CoordinatingAgentState;
   inferredFacts: Fact[];
   inferredFactsAboutEntities: LocalEntitySummary[];
-  filesUsedToInferFacts: AccessedRemoteFile[];
 }) => {
   const {
     input,
     state,
     inferredFactsAboutEntities,
     inferredFacts,
-    filesUsedToInferFacts,
     skipDeduplication,
   } = params;
 
@@ -181,8 +186,6 @@ const updateStateFromInferredFacts = async (params: {
       return duplicate ? duplicate.canonicalId : entityId;
     });
   }
-
-  state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
 };
 
 export const researchEntitiesAction: FlowActionActivity<{
@@ -218,10 +221,8 @@ export const researchEntitiesAction: FlowActionActivity<{
       submittedEntityIds: [],
       previousCalls: [],
       inferredFactsAboutEntities: [],
-      filesUsedToInferFacts: [],
       inferredFacts: [],
       hasConductedCheckStep: false,
-      filesUsedToProposeEntities: [],
       questionsAndAnswers,
     };
 
@@ -417,21 +418,34 @@ export const researchEntitiesAction: FlowActionActivity<{
               };
             }
 
-            const statusesWithUrl = await Promise.all(
+            const responsesWithUrl = await Promise.all(
               webPages.map(
-                async ({ url, prompt, entityTypeIds, linkEntityTypeIds }) => {
-                  const status = await inferFactsFromWebPageWorkerAgent({
-                    prompt,
+                async ({
+                  url,
+                  prompt,
+                  entityTypeIds,
+                  linkEntityTypeIds,
+                  descriptionOfExpectedContent,
+                  exampleOfExpectedContent,
+                  reason,
+                }) => {
+                  const response = await linkFollowerAgent({
+                    initialResource: {
+                      url,
+                      descriptionOfExpectedContent,
+                      exampleOfExpectedContent,
+                      reason,
+                    },
+                    task: prompt,
                     entityTypes: input.entityTypes.filter(({ $id }) =>
                       entityTypeIds.includes($id),
                     ),
                     linkEntityTypes: input.linkEntityTypes?.filter(
                       ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
                     ),
-                    url,
                   });
 
-                  return { status, url };
+                  return { response, url };
                 },
               ),
             );
@@ -440,31 +454,19 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             const inferredFacts: Fact[] = [];
             const inferredFactsAboutEntities: LocalEntitySummary[] = [];
-            const filesUsedToInferFacts: AccessedRemoteFile[] = [];
 
-            for (const { status, url } of statusesWithUrl) {
-              if (status.code !== StatusCode.Ok) {
-                outputMessage += `An error occurred when inferring facts from the web page with url ${url}: ${status.message}\n`;
-
-                continue;
-              }
-
-              const content = status.contents[0]!;
-
-              inferredFacts.push(...content.inferredFacts);
-              inferredFactsAboutEntities.push(
-                ...content.inferredFactsAboutEntities,
-              );
-              filesUsedToInferFacts.push(...content.filesUsedToInferFacts);
+            for (const { response, url } of responsesWithUrl) {
+              inferredFacts.push(...response.facts);
+              inferredFactsAboutEntities.push(...response.entitySummaries);
 
               outputMessage += `Inferred ${
-                content.inferredFacts.length
+                response.facts.length
               } facts on the web page with url ${url} for the following entities: ${stringify(
-                content.inferredFactsAboutEntities.map(({ name, summary }) => ({
+                response.entitySummaries.map(({ name, summary }) => ({
                   name,
                   summary,
                 })),
-              )}. ${content.suggestionForNextSteps}\n`;
+              )}. ${response.suggestionForNextSteps}\n`;
             }
 
             outputMessage += dedent(`
@@ -482,7 +484,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                 state,
                 inferredFacts,
                 inferredFactsAboutEntities,
-                filesUsedToInferFacts,
                 /**
                  * Skip deduplication if facts were only inferred from a single web page,
                  * and there are no existing entities or inferred facts about entities.
@@ -627,14 +628,12 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             const inferredFacts: Fact[] = [];
             const inferredFactsAboutEntities: LocalEntitySummary[] = [];
-            const filesUsedToInferFacts: AccessedRemoteFile[] = [];
 
             let output: string = "";
 
             for (const { response, subTask } of responsesWithSubTask) {
               inferredFactsAboutEntities.push(...response.discoveredEntities);
               inferredFacts.push(...response.discoveredFacts);
-              filesUsedToInferFacts.push(...response.filesUsedToInferFacts);
 
               if (response.status === "ok") {
                 output += `The sub-task with goal "${subTask.goal}" resulted in ${response.discoveredFacts.length} new facts. ${response.explanation}\n`;
@@ -657,7 +656,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                 state,
                 inferredFacts,
                 inferredFactsAboutEntities,
-                filesUsedToInferFacts,
                 /**
                  * Skip deduplication if facts were only gathered in a single sub-task,
                  * and there are no existing entities or inferred facts about entities.
@@ -796,12 +794,15 @@ export const researchEntitiesAction: FlowActionActivity<{
         ).flatMap(({ metadata }) => metadata.provenance?.sources ?? []),
       ];
 
-      return sourcesUsedToProposeEntity.flatMap(({ location }) => {
-        const { uri } = location ?? {};
+      return sourcesUsedToProposeEntity.flatMap((source) => {
+        if (source.location?.uri && source.type === SourceType.Document) {
+          return {
+            url: source.location.uri,
+            entityTypeId: systemEntityTypes.pdfDocument.entityTypeId,
+          };
+        }
 
-        return (
-          state.filesUsedToProposeEntities.find(({ url }) => url === uri) ?? []
-        );
+        return [];
       });
     })
     .filter(

@@ -113,10 +113,10 @@ impl ValidateOntologyType<DataType> for DomainValidator {
             });
         };
 
-        // TODO - check that the user has write access to the shortname, this will require us
-        //  making the graph aware of shortnames. We can store them alongside accountIds. We should
-        //  not have to make the graph aware of User entities being a thing however.
-        //  https://app.asana.com/0/1202805690238892/1202931031833224/f
+        // TODO: check that the user has write access to the shortname, this will require us
+        //       making the graph aware of shortnames. We can store them alongside accountIds. We
+        //       should not have to make the graph aware of User entities being a thing however.
+        //   see https://linear.app/hash/issue/H-3010
         Ok(())
     }
 }
@@ -144,10 +144,10 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
             });
         };
 
-        // TODO - check that the user has write access to the shortname, this will require us
-        //  making the graph aware of shortnames. We can store them alongside accountIds. We should
-        //  not have to make the graph aware of User entities being a thing however.
-        //  https://app.asana.com/0/1202805690238892/1202931031833224/f
+        // TODO: check that the user has write access to the shortname, this will require us
+        //       making the graph aware of shortnames. We can store them alongside accountIds. We
+        //       should  not have to make the graph aware of User entities being a thing however.
+        //   see https://linear.app/hash/issue/H-3010
         Ok(())
     }
 }
@@ -174,10 +174,10 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
             });
         };
 
-        // TODO - check that the user has write access to the shortname, this will require us
-        //  making the graph aware of shortnames. We can store them alongside accountIds. We should
-        //  not have to make the graph aware of User entities being a thing however.
-        //  https://app.asana.com/0/1202805690238892/1202931031833224/f
+        // TODO: check that the user has write access to the shortname, this will require us
+        //       making the graph aware of shortnames. We can store them alongside accountIds. We
+        //       should not have to make the graph aware of User entities being a thing however.
+        //   see https://linear.app/hash/issue/H-3010
         Ok(())
     }
 }

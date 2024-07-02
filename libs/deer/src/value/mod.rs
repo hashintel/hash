@@ -172,7 +172,7 @@ macro_rules! deserialize_identifier {
         where
             V: IdentifierVisitor<'de>,
         {
-            #[allow(clippy::as_underscore)]
+            #[expect(clippy::as_underscore)]
             visitor
                 .$visit(self.value as _)
                 .change_context(DeserializerError)

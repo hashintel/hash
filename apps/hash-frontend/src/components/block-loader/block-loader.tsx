@@ -420,7 +420,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       queryEntities,
       /**
        * @todo remove this when embed block no longer relies on server-side oEmbed calls
-       * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
+       * @see https://linear.app/hash/issue/H-2996
        */
       getEmbedBlock: fetchEmbedCode,
       createEntity: async (
@@ -528,7 +528,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               !!(
                 blockEntityId &&
                 userPermissions?.[blockEntityId] &&
-                !userPermissions[blockEntityId]!.edit
+                !userPermissions[blockEntityId].edit
               ),
             blockEntitySubgraph:
               blockSubgraph as unknown as BpSubgraph<EntityRootType>,

@@ -130,7 +130,7 @@ export const getAggregateUsageRecordsByServiceFeature = ({
       totalCostInUsd: 0,
       last24hoursTotalCostInUsd: 0,
     };
-    const aggregateUsage = aggregateUsageByServiceFeature[serviceFeatureKey]!;
+    const aggregateUsage = aggregateUsageByServiceFeature[serviceFeatureKey];
 
     aggregateUsage.totalInputUnitCount +=
       inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;
@@ -196,7 +196,7 @@ export const getAggregateUsageRecordsByTask = ({
       totalInputUnitCount: 0,
       totalOutputUnitCount: 0,
     };
-    const aggregateUsage = aggregateUsageByTask[taskName]!;
+    const aggregateUsage = aggregateUsageByTask[taskName];
 
     aggregateUsage.totalInputUnitCount +=
       inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;

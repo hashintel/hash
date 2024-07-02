@@ -573,7 +573,6 @@ where
         }
 
         // TODO: should we check that the `link_entity_type_ref` is a link entity type?
-        //   see https://app.asana.com/0/0/1203277018227719/f
         for (link_reference, destinations) in entity_type.link_mappings() {
             self.as_client()
                 .query_one(

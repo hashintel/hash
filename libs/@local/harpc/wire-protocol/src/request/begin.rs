@@ -72,7 +72,6 @@ impl Decode for RequestBegin {
 
 #[cfg(test)]
 mod test {
-    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
     use expect_test::expect;
     use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 
@@ -111,11 +110,11 @@ mod test {
     fn encode() {
         assert_encode(
             &EXAMPLE_REQUEST,
-            expect![[r#"
+            expect![[r"
                 0x01 0x02 0x03 0x04 0x05 0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
                 0x00 0x00 0x00 0x00 '\r' b'H' b'e' b'l' b'l' b'o' b',' b' ' b'w' b'o' b'r' b'l'
                 b'd' b'!'
-            "#]],
+            "]],
         );
     }
 

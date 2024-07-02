@@ -1,5 +1,3 @@
-#![feature(lint_reasons)]
-
 use core::ops::Bound;
 
 use temporal_versioning::*;

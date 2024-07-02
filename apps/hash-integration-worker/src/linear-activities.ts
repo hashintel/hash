@@ -198,7 +198,7 @@ const createOrUpdateHashEntity = async (params: {
     if (
       updatedAt &&
       existingEntity.properties[updatedAtBaseUrl] &&
-      existingEntity.properties[updatedAtBaseUrl]! >= updatedAt
+      existingEntity.properties[updatedAtBaseUrl] >= updatedAt
     ) {
       continue;
     }

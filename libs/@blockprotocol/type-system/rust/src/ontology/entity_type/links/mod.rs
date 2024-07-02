@@ -10,9 +10,7 @@ use crate::{url::VersionedUrl, ArraySchema, EntityTypeReference, OneOfSchema};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "raw::Links", into = "raw::Links")]
-pub struct Links(
-    pub(crate) HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>,
-);
+pub struct Links(HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>);
 
 impl Links {
     /// Creates a new `Links` object.

@@ -71,13 +71,11 @@ export const DiscardDraftEntityButton: FunctionComponent<
   const discardDraftEntity = useCallback(
     async (params: { draftEntity: Entity }) => {
       await archiveRelatedNotifications(params);
-
       await archiveEntity({
         variables: {
           entityId: params.draftEntity.metadata.recordId.entityId,
         },
       });
-
       await refetchDraftEntities();
     },
     [archiveEntity, archiveRelatedNotifications, refetchDraftEntities],

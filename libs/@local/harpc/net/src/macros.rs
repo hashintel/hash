@@ -3,7 +3,7 @@ macro_rules! non_zero {
         compile_error!("0 is not a valid non-zero value");
     };
     ($value:literal) => {
-        #[allow(unsafe_code)]
+        #[expect(unsafe_code)]
         // SAFETY: The macro ensures that the value cannot be 0. 0 will lead to a compile error.
         unsafe {
             core::num::NonZero::new_unchecked($value)

@@ -7,8 +7,8 @@ use crate::{url::BaseUrl, ValidateUrl, ValidationError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectSchema<T, const MIN: usize = 0> {
-    pub(crate) properties: HashMap<BaseUrl, T>,
-    pub(crate) required: HashSet<BaseUrl>,
+    pub properties: HashMap<BaseUrl, T>,
+    pub required: HashSet<BaseUrl>,
 }
 
 impl<T: ValidateUrl, const MIN: usize> ObjectSchema<T, MIN> {

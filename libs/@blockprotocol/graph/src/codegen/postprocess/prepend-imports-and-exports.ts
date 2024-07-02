@@ -58,7 +58,7 @@ export const prependImportsAndExports = (context: PostprocessContext): void => {
         const importPath = `./${path.parse(source.definingPath).name}`;
 
         localImportIdentifiersByPath[importPath] ??= [];
-        localImportIdentifiersByPath[importPath]!.push(identifier);
+        localImportIdentifiersByPath[importPath].push(identifier);
       }
     }
 

@@ -1,4 +1,4 @@
-#![allow(unreachable_pub)] // This file is used as module in other tests
+#![allow(unreachable_pub, reason = "his file is used as module in other tests")]
 
 use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
 use uuid::Uuid;

@@ -42,7 +42,7 @@ export const loadBlockComponent = (
       url: sourceUrl,
     };
 
-    return remoteModuleCache[sourceUrl]!;
+    return remoteModuleCache[sourceUrl];
   });
 };
 

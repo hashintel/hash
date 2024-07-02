@@ -42,10 +42,6 @@ const validateAccountShortname = async (
     throw new ApolloError(`Shortname "${shortname}" taken`, "NAME_TAKEN");
   }
 
-  /**
-   * @todo: enable admins to have a shortname under 4 characters
-   * @see https://app.asana.com/0/1201095311341924/1203285346775714/f
-   */
   if (shortname.length < shortnameMinimumLength) {
     throw new UserInputError("Shortname must be at least 4 characters long.");
   }
@@ -141,8 +137,8 @@ export const userBeforeEntityUpdateHookCallback: UpdateEntityHookCallback =
     const currentEmails = user.emails;
 
     if (
-      [...currentEmails].sort().join().toLowerCase() !==
-      [...updatedEmails].sort().join().toLowerCase()
+      currentEmails.toSorted().join().toLowerCase() !==
+      updatedEmails.toSorted().join().toLowerCase()
     ) {
       await updateUserKratosIdentityTraits(
         context,

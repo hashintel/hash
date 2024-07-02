@@ -1,9 +1,4 @@
-#![feature(
-    exhaustive_patterns,
-    impl_trait_in_assoc_type,
-    lint_reasons,
-    never_type
-)]
+#![feature(exhaustive_patterns, impl_trait_in_assoc_type, never_type)]
 #![feature(type_alias_impl_trait)]
 
 extern crate alloc;

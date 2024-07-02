@@ -633,7 +633,7 @@ export type EntityTypeDefinition = {
 export const generateSystemEntityTypeSchema = (
   params: EntityTypeDefinition,
 ): EntityType => {
-  /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
+  /** @todo - clean this up to be more readable */
   const properties =
     params.properties?.reduce(
       (prev, { propertyType, array }) => ({

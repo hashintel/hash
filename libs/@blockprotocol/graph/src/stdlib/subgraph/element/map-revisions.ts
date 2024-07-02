@@ -30,7 +30,7 @@ export const mapElementsIntoRevisions = <
 
     // eslint-disable-next-line no-param-reassign
     revisionMap[baseId] ??= [];
-    revisionMap[baseId]!.push(element);
+    revisionMap[baseId].push(element);
 
     return revisionMap;
   }, {} as BaseIdToRevisions<GraphElementType>);

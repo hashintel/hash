@@ -1,5 +1,3 @@
-#![feature(lint_reasons)]
-
 mod axis;
 mod bounds;
 mod interval;

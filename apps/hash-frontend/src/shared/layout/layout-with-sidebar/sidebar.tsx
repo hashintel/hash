@@ -121,20 +121,20 @@ export const PageSidebar: FunctionComponent = () => {
       ...workersSection,
       {
         title: "Inbox",
-        path: "/inbox",
+        path: "/actions",
         icon: <InboxIcon sx={{ fontSize: 16 }} />,
         tooltipTitle: "",
         count: (numberOfUnreadNotifications ?? 0) + numberOfPendingActions,
         children: [
           {
-            title: "Notifications",
-            path: "/inbox",
-            count: numberOfUnreadNotifications,
-          },
-          {
             title: "Actions",
             path: "/actions",
             count: numberOfPendingActions,
+          },
+          {
+            title: "Notifications",
+            path: "/inbox",
+            count: numberOfUnreadNotifications,
           },
         ],
       },

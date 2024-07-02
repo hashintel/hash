@@ -43,9 +43,8 @@ export const addOutwardEdgeToSubgraphByMutation = (
 ) => {
   /* eslint-disable no-param-reassign -- We want to mutate the input here */
   subgraph.edges[sourceBaseId] ??= {};
-  subgraph.edges[sourceBaseId]![at] ??= [];
-  const outwardEdgesAtVersion: OutwardEdge[] =
-    subgraph.edges[sourceBaseId]![at]!;
+  subgraph.edges[sourceBaseId][at] ??= [];
+  const outwardEdgesAtVersion: OutwardEdge[] = subgraph.edges[sourceBaseId][at];
 
   if (
     !outwardEdgesAtVersion.find((otherOutwardEdge: OutwardEdge) =>

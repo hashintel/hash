@@ -70,7 +70,7 @@ impl Number {
     /// number, otherwise the [`Number`] returned from this function will lead to undefined
     /// behaviour.
     #[cfg(feature = "arbitrary-precision")]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub unsafe fn from_string_unchecked(value: impl Into<String>) -> Self {
         Self(value.into())
     }

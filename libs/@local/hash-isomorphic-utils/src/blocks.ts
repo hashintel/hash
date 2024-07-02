@@ -212,7 +212,6 @@ export const fetchBlock = async (
 
 /**
  * @todo-0.3 replace this temporary domain with blockprotocol.org
- * https://app.asana.com/0/1203358502199087/1203788113163116/f
  */
 export const blockProtocolHubOrigin =
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings either

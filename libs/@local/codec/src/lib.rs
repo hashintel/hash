@@ -1,5 +1,3 @@
-#![feature(lint_reasons)]
-
 #[cfg(feature = "bytes")]
 pub mod bytes;
 #[cfg(feature = "harpc")]

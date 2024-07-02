@@ -44,6 +44,8 @@ const InfoItem: FunctionComponent<{
           sx={{
             color: ({ palette }) => (href ? palette.blue[70] : undefined),
             fontWeight: href ? 700 : undefined,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {title}

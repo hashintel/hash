@@ -1,5 +1,4 @@
-#![feature(lint_reasons)]
-#![allow(clippy::too_many_lines)]
+#![expect(clippy::too_many_lines)]
 
 mod api;
 mod schema;

@@ -471,7 +471,7 @@ export const convertSubgraphToSheetRequests = ({
     }
     /** Done initialising the sheet if we hadn't already */
 
-    const thisRowIndex = entitySheetRequests[typeId]!.rows.length;
+    const thisRowIndex = entitySheetRequests[typeId].rows.length;
 
     const lastColumnLetter = columnIndexToColumnLetters(
       Object.keys(columns).length - 1,
@@ -482,7 +482,7 @@ export const convertSubgraphToSheetRequests = ({
      * If there are multiple editions this will just link to the first.
      */
     entityPositionMap[entity.metadata.recordId.entityId] = {
-      sheetId: entitySheetRequests[typeId]!.sheetId,
+      sheetId: entitySheetRequests[typeId].sheetId,
       rowIndex: thisRowIndex,
       lastColumnLetter,
     };
@@ -568,7 +568,7 @@ export const convertSubgraphToSheetRequests = ({
                * index
                */
               outgoingLinkMapForLeftEntity.sheetId =
-                entitySheetRequests[typeId]!.sheetId;
+                entitySheetRequests[typeId].sheetId;
               outgoingLinkMapForLeftEntity.startRowIndex = thisRowIndex;
               outgoingLinkMapForLeftEntity.lastColumnLetter = lastColumnLetter;
             }
@@ -631,7 +631,7 @@ export const convertSubgraphToSheetRequests = ({
       }
     }
 
-    entitySheetRequests[typeId]!.rows.push({ values: entityCells });
+    entitySheetRequests[typeId].rows.push({ values: entityCells });
   }
 
   const requests: sheets_v4.Schema$Request[] = [];

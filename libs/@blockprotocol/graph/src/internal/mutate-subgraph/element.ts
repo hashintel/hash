@@ -38,7 +38,7 @@ export const addDataTypeVerticesToSubgraphByMutation = (
     };
 
     subgraph.vertices[baseUrl] ??= {};
-    subgraph.vertices[baseUrl]![version] = dataTypeVertex;
+    subgraph.vertices[baseUrl][version] = dataTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version.toString() });
   }
@@ -71,7 +71,7 @@ export const addPropertyTypeVerticesToSubgraphByMutation = (
     };
 
     subgraph.vertices[baseUrl] ??= {};
-    subgraph.vertices[baseUrl]![version] = propertyTypeVertex;
+    subgraph.vertices[baseUrl][version] = propertyTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version.toString() });
   }
@@ -104,7 +104,7 @@ export const addEntityTypeVerticesToSubgraphByMutation = (
     };
 
     subgraph.vertices[baseUrl] ??= {};
-    subgraph.vertices[baseUrl]![version] = entityTypeVertex;
+    subgraph.vertices[baseUrl][version] = entityTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version.toString() });
   }
@@ -150,7 +150,7 @@ export const addEntityVerticesToSubgraphByMutation = (
         [entityInterval.start.limit]: entityVertex,
       };
     } else {
-      subgraph.vertices[entityId]![entityInterval.start.limit] = entityVertex;
+      subgraph.vertices[entityId][entityInterval.start.limit] = entityVertex;
     }
 
     vertexIds.push({

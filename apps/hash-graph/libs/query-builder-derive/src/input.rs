@@ -1,11 +1,11 @@
 // will be removed soon, unused because we're only parsing right now
-#![allow(dead_code)]
+#![expect(dead_code)]
 
 use proc_macro::{Ident, TokenTree};
 
 #[derive(Debug)]
 pub struct QueryBuilderInput {
-    pub(crate) variants: Vec<QueryBuilderVariant>,
+    pub variants: Vec<QueryBuilderVariant>,
 }
 
 #[derive(Debug)]
@@ -26,6 +26,6 @@ pub enum QueryBuilderField {
 
 #[derive(Debug)]
 pub struct QueryBuilderVariant {
-    pub(crate) name: Ident,
-    pub(crate) field: QueryBuilderField,
+    pub name: Ident,
+    pub field: QueryBuilderField,
 }

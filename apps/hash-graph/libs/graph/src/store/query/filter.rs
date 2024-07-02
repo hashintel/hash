@@ -416,11 +416,11 @@ impl Parameter<'_> {
             }
             (Parameter::Text(_base_url), ParameterType::BaseUrl) => {
                 // TODO: validate base url
-                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
+                //   see https://linear.app/hash/issue/H-3016
             }
             (Parameter::Text(_versioned_url), ParameterType::VersionedUrl) => {
                 // TODO: validate versioned url
-                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
+                //   see https://linear.app/hash/issue/H-3016
             }
             (Parameter::Text(text), ParameterType::Uuid) => {
                 *self = Parameter::Uuid(Uuid::from_str(&*text).change_context_lazy(|| {

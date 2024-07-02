@@ -1,4 +1,3 @@
-#![feature(lint_reasons)]
 #![forbid(unsafe_code)]
 #![expect(
     unreachable_pub,
