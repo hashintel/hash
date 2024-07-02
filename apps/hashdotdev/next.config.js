@@ -20,6 +20,11 @@ const nextConfig = {
        * Docs pages
        */
       {
+        source: "/docs/simulation/:path",
+        destination: "/docs/simulations/:path",
+        permanent: true,
+      },
+      {
         source: "/docs/simulations/concepts/:path",
         destination: "/docs/simulations/create/design-considerations/:path",
         permanent: true,
