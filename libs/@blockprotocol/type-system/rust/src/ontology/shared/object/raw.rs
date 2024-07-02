@@ -9,6 +9,7 @@ use crate::{raw, url::BaseUrl, ParsePropertyTypeObjectError, PropertyTypeReferen
 
 /// Will serialize as a constant value `"object"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 enum ObjectTypeTag {
     Object,
@@ -17,8 +18,7 @@ enum ObjectTypeTag {
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Object<T> {
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "'object'"))]
+pub struct ObjectSchema<T> {
     r#type: ObjectTypeTag,
     #[cfg_attr(target_arch = "wasm32", tsify(type = "Record<BaseUrl, T>"))]
     pub properties: HashMap<String, T>,
@@ -27,13 +27,13 @@ pub struct Object<T> {
     pub required: HashSet<String>,
 }
 
-impl<const MIN: usize> TryFrom<Object<raw::ValueOrArray<raw::PropertyTypeReference>>>
-    for super::Object<ValueOrArray<PropertyTypeReference>, MIN>
+impl<const MIN: usize> TryFrom<ObjectSchema<raw::ValueOrArray<raw::PropertyTypeReference>>>
+    for super::ObjectSchema<ValueOrArray<PropertyTypeReference>, MIN>
 {
     type Error = ParsePropertyTypeObjectError;
 
     fn try_from(
-        object_repr: Object<raw::ValueOrArray<raw::PropertyTypeReference>>,
+        object_repr: ObjectSchema<raw::ValueOrArray<raw::PropertyTypeReference>>,
     ) -> Result<Self, Self::Error> {
         let properties = object_repr
             .properties
@@ -59,11 +59,11 @@ impl<const MIN: usize> TryFrom<Object<raw::ValueOrArray<raw::PropertyTypeReferen
     }
 }
 
-impl<T, R, const MIN: usize> From<super::Object<T, MIN>> for Object<R>
+impl<T, R, const MIN: usize> From<super::ObjectSchema<T, MIN>> for ObjectSchema<R>
 where
     R: From<T>,
 {
-    fn from(object: super::Object<T, MIN>) -> Self {
+    fn from(object: super::ObjectSchema<T, MIN>) -> Self {
         let properties = object
             .properties
             .into_iter()
@@ -98,7 +98,7 @@ mod tests {
     mod unconstrained {
         use super::*;
 
-        type Object = super::Object<PropertyTypeReference>;
+        type Object = super::ObjectSchema<PropertyTypeReference>;
 
         #[test]
         fn empty() {
@@ -174,7 +174,7 @@ mod tests {
     mod constrained {
         use super::*;
 
-        type Object = super::Object<PropertyTypeReference>;
+        type Object = super::ObjectSchema<PropertyTypeReference>;
 
         #[test]
         fn one() {
@@ -250,7 +250,7 @@ mod tests {
                     "https://example.com/property_type_a/"
                 ]
             }),
-            Some(Object {
+            Some(ObjectSchema {
                 r#type: ObjectTypeTag::Object,
                 properties: HashMap::from([
                     (
@@ -269,7 +269,7 @@ mod tests {
 
     #[test]
     fn additional_properties() {
-        ensure_repr_failed_deserialization::<Object<PropertyTypeReference>>(json!({
+        ensure_repr_failed_deserialization::<ObjectSchema<PropertyTypeReference>>(json!({
             "type": "object",
             "properties": {
                 "https://example.com/property_type_a/": { "$ref": "https://example.com/property_type_a/v/1" },
