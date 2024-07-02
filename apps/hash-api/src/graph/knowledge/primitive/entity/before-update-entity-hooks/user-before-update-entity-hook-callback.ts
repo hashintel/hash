@@ -1,5 +1,5 @@
 import {
-  getDefinedPropertyFromPatchesRetriever,
+  getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
 } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
@@ -71,13 +71,14 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
     }
 
     const getNewValueForPath =
-      getDefinedPropertyFromPatchesRetriever<UserProperties>(propertyPatches);
+      getDefinedPropertyFromPatchesGetter<UserProperties>(propertyPatches);
 
     const currentEmails = user.emails;
 
     const updatedEmails = getNewValueForPath(
       "https://hash.ai/@hash/types/property-type/email/",
     );
+
     if (
       updatedEmails &&
       updatedEmails.sort().join(",") !== currentEmails.sort().join(",")
@@ -90,6 +91,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
     const updatedShortname = getNewValueForPath(
       "https://hash.ai/@hash/types/property-type/shortname/",
     );
+
     const updatedDisplayName = getNewValueForPath(
       "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
     );

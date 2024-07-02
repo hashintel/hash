@@ -1,4 +1,4 @@
-import { getDefinedPropertyFromPatchesRetriever } from "@local/hash-graph-sdk/entity";
+import { getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
@@ -13,7 +13,7 @@ import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
 export const userAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
   async ({ context, propertyPatches, updatedEntity }) => {
     const getNewValueForPath =
-      getDefinedPropertyFromPatchesRetriever<UserProperties>(propertyPatches);
+      getDefinedPropertyFromPatchesGetter<UserProperties>(propertyPatches);
 
     const updatedEmails = getNewValueForPath(
       "https://hash.ai/@hash/types/property-type/email/",

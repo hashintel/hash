@@ -1,4 +1,4 @@
-import { getDefinedPropertyFromPatchesRetriever } from "@local/hash-graph-sdk/entity";
+import { getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entity";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -28,7 +28,8 @@ import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
 export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
   async ({ previousEntity, propertyPatches, authentication, context }) => {
     const getNewValueForPath =
-      getDefinedPropertyFromPatchesRetriever<TextProperties>(propertyPatches);
+      getDefinedPropertyFromPatchesGetter<TextProperties>(propertyPatches);
+
     const newTextValue = getNewValueForPath(
       "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/",
     );

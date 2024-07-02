@@ -183,11 +183,15 @@ export const patchesFromPropertyObjects = ({
 };
 
 /**
- * Return a helper function for the given Properties object, which can be called with a BaseUrl valid for that object,
- * and will return the new value for that BaseUrl defined in the provided list of PropertyPatchOperations, if any.
+ * Return a helper function for the given Properties object and patches, which can be called with a BaseUrl valid for that object,
+ * and will return the new value for that BaseUrl defined in the provided list of patches, or undefined if no new value has been set.
  *
  * The 'new value' is defined as the value for the first 'add' or 'replace' operation at that BaseUrl.
- * Nested paths are not supported.
+ * NOT supported:
+ *  - the net effect of multiple operations on the same path
+ *  - nested paths / array paths
+ *
+ * If you want to see if a value has been _removed_, see {@link isValueRemovedByPatches}
  *
  * An alternative implementation could avoid the need for an inner function, by requiring that the Key was specified as a generic:
  * export const getDefinedPropertyFromPatches = <
@@ -200,7 +204,7 @@ export const patchesFromPropertyObjects = ({
  * This alternative is more tedious if you need to check for multiple properties, as (1) each key must be specified as both a generic and as an argument,
  * and (2) the propertyPatches provided each time. Unimplemented TS proposal partial type argument inference would solve (1) but not (2).
  */
-export const getDefinedPropertyFromPatchesRetriever = <
+export const getDefinedPropertyFromPatchesGetter = <
   Properties extends PropertyObject,
 >(
   propertyPatches: PropertyPatchOperation[],

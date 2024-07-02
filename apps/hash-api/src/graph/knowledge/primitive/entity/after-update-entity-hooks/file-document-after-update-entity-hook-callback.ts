@@ -5,7 +5,7 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { getDefinedPropertyFromPatchesRetriever } from "@local/hash-graph-sdk/entity";
+import { getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -41,7 +41,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
       previousEntity as Entity<FileEntityToParseProperties>;
 
     const getNewValueForPath =
-      getDefinedPropertyFromPatchesRetriever<FileEntityToParseProperties>(
+      getDefinedPropertyFromPatchesGetter<FileEntityToParseProperties>(
         propertyPatches,
       );
 
@@ -87,7 +87,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
         expiresInSeconds: 60 * 60, // 1 hour
       });
 
-      const workflowId = `${previousEntity.metadata.recordId.editionId}-parse-text-from-file-workflow-id`;
+      const workflowId = `${updatedEntity.metadata.recordId.editionId}-parse-text-from-file-workflow-id`;
 
       const fileEntityOwnedById = extractOwnedByIdFromEntityId(
         updatedEntity.metadata.recordId.entityId,
