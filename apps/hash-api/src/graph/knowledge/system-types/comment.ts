@@ -245,9 +245,8 @@ export const updateCommentText: ImpureGraphFunction<
 
   await updateEntityProperty(ctx, authentication, {
     entity: text.entity,
-    propertyTypeBaseUrl: extractBaseUrl(
-      blockProtocolPropertyTypes.textualContent.propertyTypeId,
-    ),
+    propertyTypeBaseUrl:
+      blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
     value: textualContent,
   });
 };
@@ -275,9 +274,8 @@ export const deleteComment: ImpureGraphFunction<
       entity: comment.entity,
       updatedProperties: [
         {
-          propertyTypeBaseUrl: extractBaseUrl(
-            systemPropertyTypes.deletedAt.propertyTypeId,
-          ),
+          propertyTypeBaseUrl:
+            systemPropertyTypes.deletedAt.propertyTypeBaseUrl,
           value: new Date().toISOString(),
         },
       ],
@@ -402,9 +400,7 @@ export const resolveComment: ImpureGraphFunction<
     entity: comment.entity,
     updatedProperties: [
       {
-        propertyTypeBaseUrl: extractBaseUrl(
-          systemPropertyTypes.resolvedAt.propertyTypeId,
-        ),
+        propertyTypeBaseUrl: systemPropertyTypes.resolvedAt.propertyTypeBaseUrl,
         value: new Date().toISOString(),
       },
     ],

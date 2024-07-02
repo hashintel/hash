@@ -13,7 +13,6 @@ import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   OrganizationProperties,
@@ -280,7 +279,7 @@ export const gptQueryEntities: RequestHandler<
             type: isUser ? "User" : "Organization",
             name: (
               owningEntity.properties as UserProperties | OrganizationProperties
-            )[systemPropertyTypes.shortname.propertyTypeBaseUrl]!,
+            )["https://hash.ai/@hash/types/property-type/shortname/"]!,
             uuid: webOwnedById,
           };
 

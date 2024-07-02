@@ -59,9 +59,7 @@ export const archiveNotification: ImpureGraphFunction<
     entity: params.notification.entity,
     updatedProperties: [
       {
-        propertyTypeBaseUrl: extractBaseUrl(
-          systemPropertyTypes.archived.propertyTypeId,
-        ),
+        propertyTypeBaseUrl: systemPropertyTypes.archived.propertyTypeBaseUrl,
         value: true,
       },
     ],
