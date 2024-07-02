@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { typedEntries } from "@local/advanced-types/typed-entries";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
@@ -133,6 +133,54 @@ export const propertyObjectToPatches = (
       value,
     };
   });
+
+/**
+ * Creates an array of PropertyPatchOperations that, if applied, will transform the oldProperties into the newProperties.
+ *
+ * @deprecated this is a function for migration purposes only.
+ *    For new code, track which properties are actually changed where they are changed, and create the patch operations directly.
+ *    IF you use this, bear in mind that newProperties MUST represent ALL the properties that the entity will have after the patch.
+ *    Any properties not specified in newProperties will be removed.
+ */
+export const patchesFromPropertyObjects = ({
+  oldProperties,
+  newProperties,
+}: {
+  oldProperties: PropertyObject;
+  newProperties: PropertyObject;
+}): PropertyPatchOperation[] => {
+  const patches: PropertyPatchOperation[] = [];
+
+  for (const [key, value] of typedEntries(newProperties)) {
+    if (
+      typeof oldProperties[key] !== "undefined" &&
+      oldProperties[key] !== value
+    ) {
+      patches.push({
+        op: "replace",
+        path: [key],
+        value,
+      });
+    } else {
+      patches.push({
+        op: "add",
+        path: [key],
+        value,
+      });
+    }
+  }
+
+  for (const key of typedKeys(oldProperties)) {
+    if (typeof newProperties[key] === "undefined") {
+      patches.push({
+        op: "remove",
+        path: [key],
+      });
+    }
+  }
+
+  return patches;
+};
 
 /**
  * Return a helper function for the given Properties object, which can be called with a BaseUrl valid for that object,

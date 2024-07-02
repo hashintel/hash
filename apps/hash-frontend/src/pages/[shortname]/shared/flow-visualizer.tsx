@@ -294,7 +294,7 @@ export const FlowVisualizer = () => {
   const { logs, persistedEntities, proposedEntities } = useMemo<{
     logs: LocalProgressLog[];
     persistedEntities: PersistedEntity[];
-    proposedEntities: ProposedEntity[];
+    proposedEntities: Omit<ProposedEntity, "provenance">[];
   }>(() => {
     if (!selectedFlowRun) {
       return { logs: [], persistedEntities: [], proposedEntities: [] };
@@ -310,7 +310,7 @@ export const FlowVisualizer = () => {
     ];
 
     const persisted: PersistedEntity[] = [];
-    const proposed: ProposedEntity[] = [];
+    const proposed: Omit<ProposedEntity, "provenance">[] = [];
 
     for (const step of selectedFlowRun.steps) {
       const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];

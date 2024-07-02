@@ -172,7 +172,6 @@ export const AcceptDraftEntityButton: FunctionComponent<
         variables: {
           entityUpdate: {
             entityId: params.draftEntity.metadata.recordId.entityId,
-            updatedProperties: params.draftEntity.properties,
             draft: false,
           },
         },

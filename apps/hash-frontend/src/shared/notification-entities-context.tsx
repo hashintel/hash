@@ -15,19 +15,22 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
-import { useBlockProtocolUpdateEntity } from "../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
   UpdateEntitiesMutation,
   UpdateEntitiesMutationVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
 } from "../graphql/api-types.gen";
 import {
   getEntitySubgraphQuery,
   updateEntitiesMutation,
+  updateEntityMutation,
 } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { pollInterval } from "./poll-interval";
+import { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export type NotificationEntitiesContextValues = {
   notificationEntities?: Entity<NotificationProperties>[];
@@ -126,7 +129,10 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     await refetchNotificationEntities();
   }, [refetchNotificationEntities]);
 
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const markNotificationAsRead = useCallback(
     async (params: { notificationEntity: Entity }) => {
@@ -135,14 +141,19 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
       const now = new Date();
 
       await updateEntity({
-        data: {
-          entityId: notificationEntity.metadata.recordId.entityId,
-          entityTypeId: notificationEntity.metadata.entityTypeId,
-          properties: {
-            ...notificationEntity.properties,
-            "https://hash.ai/@hash/types/property-type/read-at/":
-              now.toISOString(),
-          } as NotificationProperties,
+        variables: {
+          entityUpdate: {
+            entityId: notificationEntity.metadata.recordId.entityId,
+            propertyPatches: [
+              {
+                op: "add",
+                path: [
+                  "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof NotificationProperties as BaseUrl,
+                ],
+                value: now.toISOString(),
+              },
+            ],
+          },
         },
       });
 
@@ -166,11 +177,15 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
             (notificationEntity) => ({
               entityId: notificationEntity.metadata.recordId.entityId,
               entityTypeId: notificationEntity.metadata.entityTypeId,
-              updatedProperties: {
-                ...notificationEntity.properties,
-                "https://hash.ai/@hash/types/property-type/read-at/":
-                  now.toISOString(),
-              } as NotificationProperties,
+              propertyPatches: [
+                {
+                  op: "add",
+                  path: [
+                    "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof NotificationProperties as BaseUrl,
+                  ],
+                  value: now.toISOString(),
+                },
+              ],
             }),
           ),
         },
@@ -186,13 +201,20 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
       const { notificationEntity, shouldRefetch = true } = params;
 
       await updateEntity({
-        data: {
-          entityId: notificationEntity.metadata.recordId.entityId,
-          entityTypeId: notificationEntity.metadata.entityTypeId,
-          properties: {
-            ...notificationEntity.properties,
-            "https://hash.ai/@hash/types/property-type/archived/": true,
-          } as NotificationProperties,
+        variables: {
+          entityUpdate: {
+            entityId: notificationEntity.metadata.recordId.entityId,
+            entityTypeId: notificationEntity.metadata.entityTypeId,
+            propertyPatches: [
+              {
+                op: "add",
+                path: [
+                  "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof NotificationProperties as BaseUrl,
+                ],
+                value: true,
+              },
+            ],
+          },
         },
       });
 
@@ -211,10 +233,15 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
             (notificationEntity) => ({
               entityId: notificationEntity.metadata.recordId.entityId,
               entityTypeId: notificationEntity.metadata.entityTypeId,
-              updatedProperties: {
-                ...notificationEntity.properties,
-                "https://hash.ai/@hash/types/property-type/archived/": true,
-              } as NotificationProperties,
+              propertyPatches: [
+                {
+                  op: "add",
+                  path: [
+                    "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof NotificationProperties as BaseUrl,
+                  ],
+                  value: true,
+                },
+              ],
             }),
           ),
         },

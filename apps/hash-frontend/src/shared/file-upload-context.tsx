@@ -2,6 +2,7 @@ import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { PropsWithChildren } from "react";
@@ -387,11 +388,15 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             variables: {
               entityUpdate: {
                 entityId: fileEntity.metadata.recordId.entityId,
-                updatedProperties: {
-                  ...fileEntity.properties,
-                  "https://hash.ai/@hash/types/property-type/upload-completed-at/":
-                    uploadCompletedAt.toISOString(),
-                } as FileProperties,
+                propertyPatches: [
+                  {
+                    op: "add",
+                    path: [
+                      "https://hash.ai/@hash/types/property-type/upload-completed-at/" satisfies keyof FileProperties as BaseUrl,
+                    ],
+                    value: uploadCompletedAt.toISOString(),
+                  },
+                ],
               },
             },
           });

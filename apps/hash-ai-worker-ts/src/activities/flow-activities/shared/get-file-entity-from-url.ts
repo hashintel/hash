@@ -21,9 +21,8 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { OriginProvenance } from "@local/hash-graph-client";
 import {
-  EnforcedEntityEditionProvenance,
+  type EnforcedEntityEditionProvenance,
   Entity,
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
@@ -230,7 +229,7 @@ export const getFileEntityFromUrl = async (params: {
       type: "flow" as "migration",
       id: flowEntityId,
       stepIds: [stepId],
-    } satisfies OriginProvenance,
+    },
   };
 
   const incompleteFileEntity = await Entity.create(

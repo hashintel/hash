@@ -6,6 +6,7 @@ import {
   InMemoryCache,
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
+import { hashClientHeaderKey } from "@local/hash-isomorphic-utils/http-requests";
 import * as Sentry from "@sentry/browser";
 
 import { apiGraphQLEndpoint } from "./environment";
@@ -38,8 +39,8 @@ const errorLink = onError(({ graphQLErrors, operation }) => {
   }
 });
 
-// @todo update references
 export const createApolloClient = (params?: {
+  clientId?: "web-app";
   name?: string;
   isBrowser: boolean;
   additionalHeaders?: { [key: string]: string };
@@ -75,11 +76,17 @@ export const createApolloClient = (params?: {
     );
   };
 
+  let headers = params?.additionalHeaders;
+  if (params?.clientId) {
+    headers ??= {};
+    headers[hashClientHeaderKey] = params.clientId;
+  }
+
   const httpLink = new HttpLink({
     uri: apiGraphQLEndpoint,
     credentials: "include",
     fetch: wrappedFetch as WindowOrWorkerGlobalScope["fetch"],
-    headers: params?.additionalHeaders,
+    headers,
   });
 
   const link = ApolloLink.from([errorLink, httpLink]);

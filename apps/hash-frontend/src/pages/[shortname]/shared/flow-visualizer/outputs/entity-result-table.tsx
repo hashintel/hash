@@ -130,7 +130,7 @@ type EntityResultTableProps = {
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
-  proposedEntities: ProposedEntity[];
+  proposedEntities: Omit<ProposedEntity, "provenance">[];
 };
 
 export const EntityResultTable = ({
