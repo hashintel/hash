@@ -1,7 +1,7 @@
 import { Box, Container, Typography, typographyClasses } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 
-import { ArrowRightToBracketIcon } from "../components/icons/arrow-right-to-bracket";
+import { ArrowRightToBracketRegularIcon } from "../components/icons/arrow-right-to-bracket-icon";
 import { Button } from "../components/button";
 import { HiddenAnchorFragmentTag } from "../components/hidden-anchor-fragment-tag";
 import { BallotCheckRegularIcon } from "../components/icons/ballot-check-regular-icon";
@@ -240,7 +240,7 @@ const GetInvolved: FunctionComponent = () => (
       size="medium"
       color="blue"
       href="https://app.hash.ai"
-      startIcon={<ArrowRightToBracketIcon />}
+      startIcon={<ArrowRightToBracketRegularIcon />}
       sx={{ width: { xs: "100%", sm: "auto" } }}
     >
       <Typography>
