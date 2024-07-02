@@ -25,7 +25,6 @@ import { useBlogPosts } from "../pages/shared/blog-posts-context";
 import { parseNameFromFileName } from "../util/client-mdx-util";
 import { Button } from "./button";
 import { CommentCodeSolidIcon } from "./icons/comment-code-solid-icon";
-import { DiscordIcon } from "./icons/discord-icon";
 import { EnvelopeDotSolidIcon } from "./icons/envelope-dot-solid-icon";
 import { EnvelopeRegularIcon } from "./icons/envelope-regular-icon";
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
@@ -495,20 +494,6 @@ const Community: FunctionComponent = () => {
               spacing={2}
               justifyContent="center"
             >
-              <Button
-                variant="primarySquare"
-                size="large"
-                color="purple"
-                href="https://hash.ai/discord"
-                startIcon={<DiscordIcon />}
-                sx={{
-                  [`.${buttonClasses.startIcon}>*:nth-of-type(1)`]: {
-                    fontSize: 28,
-                  },
-                }}
-              >
-                Join our Discord
-              </Button>
               <Button
                 variant="primarySquare"
                 size="large"

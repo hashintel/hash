@@ -7,7 +7,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import siteMap from "../../../sitemap.json";
 import { Button } from "../../components/button";
-import { DiscordIcon } from "../../components/icons/discord-icon";
 import { PageLayout } from "../../components/page-layout";
 import type { NextPageWithLayout } from "../../util/next-types";
 import type { DocsPageData } from "../shared/mdx-utils";
@@ -248,8 +247,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
         </Tabs>
         <Button
           variant="tertiary"
-          href="https://hash.ai/discord"
-          startIcon={<DiscordIcon />}
+          href="https://app.hash.ai/"
           sx={{
             display: {
               xs: "none",
@@ -260,7 +258,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
             px: 1,
           }}
         >
-          Chat to us on Discord
+          Manage API keys
         </Button>
       </Box>
 

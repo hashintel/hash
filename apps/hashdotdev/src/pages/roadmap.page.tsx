@@ -5,7 +5,6 @@ import { Button } from "../components/button";
 import { HiddenAnchorFragmentTag } from "../components/hidden-anchor-fragment-tag";
 import { BallotCheckRegularIcon } from "../components/icons/ballot-check-regular-icon";
 import { DiagramProjectRegularIcon } from "../components/icons/diagram-project-regular-icon";
-import { DiscordIcon } from "../components/icons/discord-icon";
 import { GithubIcon } from "../components/icons/github-icon";
 import { TeddyBearRegularIcon } from "../components/icons/teddy-bear-regular-icon";
 import { WindLightIcon } from "../components/icons/wind-light-icon";
@@ -233,35 +232,20 @@ const GetInvolved: FunctionComponent = () => (
       <Link href="https://hash.ai/contact" openInNew>
         <strong>contacting us</strong>
       </Link>{" "}
-      or{" "}
-      <Link href="https://hash.ai/discord" openInNew>
-        <strong>joining the Discord community</strong>
-      </Link>
       .
     </Typography>
-    <Box marginTop={5} display="flex" gap={2} flexWrap="wrap">
-      <Button
+       <Button
         variant="primarySquare"
         size="medium"
-        color="purple"
-        href="https://hash.ai/discord"
-        startIcon={<DiscordIcon />}
+        color="blue"
+        href="https://app.hash.ai"
+        startIcon={<FaIcon name="arrow-right-to-bracket" type="solid" />}
         sx={{ width: { xs: "100%", sm: "auto" } }}
-      >
-        <Typography>Join our Discord</Typography>
-      </Button>
-      {/* <Button */}
-      {/*  variant="primarySquare" */}
-      {/*  size="medium" */}
-      {/*  color="blue" */}
-      {/*  href="https://app.hash.ai" */}
-      {/*  startIcon={<FaIcon name="arrow-right-to-bracket" type="solid" />} */}
-      {/*  sx={{ width: { xs: "100%", sm: "auto" } }} */}
-      {/* > */}
-      {/*  <Typography> */}
-      {/*    Use at <strong>app.hash.ai</strong> */}
-      {/*  </Typography> */}
-      {/* </Button> */}
+       >
+        <Typography>
+          Use at <strong>app.hash.ai</strong>
+        </Typography>
+       </Button>
       <Button
         variant="primarySquare"
         size="medium"

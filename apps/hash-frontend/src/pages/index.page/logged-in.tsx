@@ -3,7 +3,7 @@ import { Box } from "@mui/material";
 
 import { EnvelopeRegularIcon } from "../../shared/icons/envelope-regular-icon";
 import { Button } from "../../shared/ui/button";
-import { DiscordCard } from "./shared/discord-card";
+import { GuideCard } from "./shared/guide-card";
 import { HomepageCard } from "./shared/homepage-card";
 import { HomepageGrid } from "./shared/homepage-grid";
 import { HomepageBigText, HomepageMediumText } from "./shared/typography";
@@ -97,7 +97,7 @@ export const LoggedIn = () => {
         </Button>
       </HomepageCard>
       <UsesCard />
-      <DiscordCard />
+      <GuideCard />
     </HomepageGrid>
   );
 };

@@ -170,7 +170,7 @@ If you need to reset the local database, to clear out test data or because it ha
 
    1. Run the Graph API in test mode by running `yarn dev:graph:test-server`
    1. Run `yarn graph:reset-database` to reset the database
-   1. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or login will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
+   1. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or signin will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
 
 #### External services test mode
 
@@ -483,7 +483,7 @@ If the service should report metrics to a StatsD server, the following variables
 - `HASH_SEARCH_LOADER_PORT`: (default: `3838`)
 - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the search loader service (default: `search`)
 - `API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
-- `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
+- `SESSION_SECRET`: The secret used to sign sessions (default: `secret`)
 - `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
 - `BLOCK_PROTOCOL_API_KEY`: the api key for fetching blocks from the [Þ Hub](https://blockprotocol.org/hub). Generate a key at https://blockprotocol.org/settings/api-keys.
 

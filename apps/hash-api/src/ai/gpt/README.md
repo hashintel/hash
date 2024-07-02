@@ -160,10 +160,10 @@ In practice this means that **the OAuth2 flow cannot be completed when the entry
 
 1. Open DevTools and ensure you are recording network requests
 1. Trigger the OAuth2 flow from the GPT – when viewing an action you can click 'Test' against any endpoint to do so
-1. You should end up on the frontend login screen – **don't bother to log in**. From here:
+1. You should end up on the frontend signin screen – **don't bother to sign in**. From here:
    1. Clear your `localhost` cookies (they will interfere with subsequent steps otherwise)
    1. From the network request log, copy the path that GPT directed you to, i.e. `[your-tunnel-domain]/[path]`. It will start with `/oauth2/auth` and contain query params.
-1. Now visit `http://localhost:5001/[path]` in your browser. You should be successfully sent through the OAuth2 flow (login, grant consent) and back to the GPT.
+1. Now visit `http://localhost:5001/[path]` in your browser. You should be successfully sent through the OAuth2 flow (signin, grant consent) and back to the GPT.
 
 Once you have completed the OAuth2 flow, the GPT will have an access token which it can use to make authenticated requests to the HASH API.
 

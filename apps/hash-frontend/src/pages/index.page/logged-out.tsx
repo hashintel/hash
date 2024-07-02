@@ -2,7 +2,7 @@ import { ArrowRightIconRegular } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 
 import { Button } from "../../shared/ui/button";
-import { DiscordCard } from "./shared/discord-card";
+import { GuideCard } from "./shared/guide-card";
 import { FollowUsButton } from "./shared/follow-us-button";
 import { HomepageCard } from "./shared/homepage-card";
 import { HomepageGrid } from "./shared/homepage-grid";
@@ -61,7 +61,7 @@ export const LoggedOut = () => {
         <FollowUsButton />
       </HomepageCard>
       <UsesCard />
-      <DiscordCard />
+      <GuideCard />
     </HomepageGrid>
   );
 };
