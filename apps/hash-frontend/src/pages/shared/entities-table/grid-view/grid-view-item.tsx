@@ -47,18 +47,12 @@ const mimeTypeStartsWithToIcon: Record<string, ReactNode> = {
 };
 
 const entityTypeIdToIcon: Record<BaseUrl, ReactNode> = {
-  [systemEntityTypes.pptxPresentation.entityTypeBaseUrl as BaseUrl]: (
+  [systemEntityTypes.pptxPresentation.entityTypeBaseUrl]: (
     <FilePowerpointLightIcon />
   ),
-  [systemEntityTypes.pdfDocument.entityTypeBaseUrl as BaseUrl]: (
-    <FilePdfLightIcon />
-  ),
-  [systemEntityTypes.docxDocument.entityTypeBaseUrl as BaseUrl]: (
-    <FileWordLightIcon />
-  ),
-  [systemEntityTypes.image.entityTypeBaseUrl as BaseUrl]: (
-    <FileImageLightIcon />
-  ),
+  [systemEntityTypes.pdfDocument.entityTypeBaseUrl]: <FilePdfLightIcon />,
+  [systemEntityTypes.docxDocument.entityTypeBaseUrl]: <FileWordLightIcon />,
+  [systemEntityTypes.image.entityTypeBaseUrl]: <FileImageLightIcon />,
 };
 
 const defaultFileIcon = <FileLightIcon />;

@@ -23,7 +23,6 @@ import {
   extractAccountId,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   KratosUserIdentity,
@@ -133,7 +132,7 @@ export const getUserByShortname: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
+                  systemPropertyTypes.shortname.propertyTypeBaseUrl,
                 ],
               },
               { parameter: params.shortname },
@@ -186,9 +185,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.kratosIdentityId.propertyTypeId,
-                  ),
+                  systemPropertyTypes.kratosIdentityId.propertyTypeBaseUrl,
                 ],
               },
               { parameter: params.kratosIdentityId },

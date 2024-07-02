@@ -1,7 +1,6 @@
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
-  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import type {
@@ -34,14 +33,16 @@ const createNotification = async ({
     user.metadata.recordId.entityId,
   );
 
+  const properties: PageProperties = {
+    "https://hash.ai/@hash/types/property-type/title/": targetEntityTitle,
+    "https://hash.ai/@hash/types/property-type/fractional-index/": "a0",
+  };
+
   const targetEntity = await createEntity(requestContext, {
     draft,
     entityTypeId: systemEntityTypes.page.entityTypeId,
     ownedById,
-    properties: {
-      [systemPropertyTypes.title.propertyTypeBaseUrl]: targetEntityTitle,
-      [systemPropertyTypes.fractionalIndex.propertyTypeBaseUrl]: "a0",
-    } as PageProperties,
+    properties,
   });
 
   const notificationEntity = await createEntity(requestContext, {

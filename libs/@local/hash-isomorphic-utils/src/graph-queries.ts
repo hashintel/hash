@@ -20,10 +20,7 @@ import type {
   SubgraphRootType,
 } from "@local/hash-subgraph";
 import { splitEntityId } from "@local/hash-subgraph";
-import {
-  componentsFromVersionedUrl,
-  extractBaseUrl,
-} from "@local/hash-subgraph/type-system-patch";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen";
 import { systemPropertyTypes } from "./ontology-type-ids";
@@ -240,10 +237,7 @@ export const generateEntityIdFilter = ({
   return { all: conditions };
 };
 
-const archivedBaseUrl = extractBaseUrl(
-  systemPropertyTypes.archived.propertyTypeId,
-);
-
+const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 /**
  * A filter for entities which record 'archived' state as a property rather than via an 'archived' boolean
  * @todo H-611 implement entity archival properly via temporal versioning, and migrate these other approaches

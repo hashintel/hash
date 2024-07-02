@@ -6,7 +6,6 @@ import type {
   LinkData,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { Draft } from "immer";
 import { produce } from "immer";
 
@@ -16,9 +15,8 @@ import { blockProtocolPropertyTypes } from "./ontology-type-ids";
 
 export type EntityStoreType = BlockEntity | Entity;
 
-export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
-  blockProtocolPropertyTypes.textualContent.propertyTypeId,
-);
+export const textualContentPropertyTypeBaseUrl =
+  blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl;
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {

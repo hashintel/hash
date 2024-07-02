@@ -11,7 +11,6 @@ import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -115,12 +114,11 @@ const createOrUpdateHashEntity = async (params: {
 }): Promise<void> => {
   const { partialEntity, graphApiClient } = params;
 
-  const linearIdBaseUrl = linearPropertyTypes.id.propertyTypeBaseUrl as BaseUrl;
+  const linearIdBaseUrl = linearPropertyTypes.id.propertyTypeBaseUrl;
 
   const linearId = partialEntity.properties[linearIdBaseUrl];
 
-  const updatedAtBaseUrl = linearPropertyTypes.updatedAt
-    .propertyTypeBaseUrl as BaseUrl;
+  const updatedAtBaseUrl = linearPropertyTypes.updatedAt.propertyTypeBaseUrl;
 
   const updatedAt = partialEntity.properties[updatedAtBaseUrl];
 

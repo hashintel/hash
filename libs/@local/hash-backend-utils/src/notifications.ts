@@ -3,7 +3,6 @@ import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -104,8 +103,7 @@ export const createGraphChangeNotification = async (
       entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
       ownedById: notifiedUserAccountId as OwnedById,
       properties: {
-        [systemPropertyTypes.graphChangeType.propertyTypeBaseUrl as BaseUrl]:
-          operation,
+        [systemPropertyTypes.graphChangeType.propertyTypeBaseUrl]: operation,
       },
       relationships: notificationEntityRelationships,
     },
@@ -130,7 +128,7 @@ export const createGraphChangeNotification = async (
         rightEntityId: changedEntityId,
       },
       properties: {
-        [systemPropertyTypes.entityEditionId.propertyTypeBaseUrl as BaseUrl]:
+        [systemPropertyTypes.entityEditionId.propertyTypeBaseUrl]:
           changedEntityEditionId,
       },
       relationships: linkEntityRelationships,

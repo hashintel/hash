@@ -26,7 +26,6 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type { GetEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
 
@@ -96,7 +95,7 @@ export const isBlockCollectionContentsEmpty = (params: {
       systemEntityTypes.text.entityTypeId
   ) {
     const textualContent = contents[0]!.rightEntity.blockChildEntity.properties[
-      extractBaseUrl(blockProtocolPropertyTypes.textualContent.propertyTypeId)
+      blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl
     ] as TextToken[];
 
     return textualContent.length === 0;

@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
@@ -65,7 +64,7 @@ const parseTextFromTextBlock = ({
   rightEntity,
 }: BlockCollectionContentItem) => {
   const textTokens = rightEntity.blockChildEntity.properties[
-    blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl as BaseUrl
+    blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl
   ] as TextToken[] | undefined;
 
   return (
