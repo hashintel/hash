@@ -269,9 +269,9 @@ export const updateOrgName: ImpureGraphFunction<
       {
         op: "replace",
         path: [systemPropertyTypes.organizationName.propertyTypeBaseUrl],
+        value: updatedOrgName,
       },
     ],
-    value: updatedOrgName,
   });
 
   return getOrgFromEntity({ entity: updatedEntity });

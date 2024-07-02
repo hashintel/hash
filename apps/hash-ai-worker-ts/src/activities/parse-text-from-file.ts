@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
@@ -9,6 +10,7 @@ import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse
 import officeParser from "officeparser";
 
 import { fetchFileFromUrl } from "./shared/fetch-file-from-url";
+import { getFlowContext } from "./shared/get-flow-context";
 
 type TextParsingFunction = (fileBuffer: Buffer) => Promise<string>;
 
@@ -48,19 +50,32 @@ export const parseTextFromFile = async (
   if (textParsingFunction) {
     const textualContent = await textParsingFunction(fileBuffer);
 
+    const { flowEntityId, stepId } = await getFlowContext();
+
+    const provenance: EnforcedEntityEditionProvenance = {
+      actorType: "machine",
+      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+      origin: {
+        type: "flow",
+        id: flowEntityId,
+        stepIds: [stepId],
+      } satisfies OriginProvenance,
+    };
+
     await fileEntity.patch(
       graphApiClient,
       { actorId: webMachineActorId },
       {
         propertyPatches: [
           {
-            op: "replace",
+            op: "add",
             path: [
               blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
             ],
             value: textualContent,
           },
         ],
+        provenance,
       },
     );
   }

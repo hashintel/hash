@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import { Entity, propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 
 import type {
@@ -20,7 +20,7 @@ export const updateEntity = (params: {
       entityUpdate: {
         entityId: params.entityId,
         entityTypeId: params.entityTypeId,
-        updatedProperties: params.updatedProperties,
+        propertyPatches: propertyObjectToPatches(params.updatedProperties),
       },
     },
   ).then(({ data }) => {

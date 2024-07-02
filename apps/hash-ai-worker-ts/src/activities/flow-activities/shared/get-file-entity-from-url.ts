@@ -21,13 +21,11 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type {
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
+import type { OriginProvenance } from "@local/hash-graph-client";
 import {
   EnforcedEntityEditionProvenance,
   Entity,
+  propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
 import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -228,9 +226,8 @@ export const getFileEntityFromUrl = async (params: {
 
   const provenance: EnforcedEntityEditionProvenance = provenanceFromParams ?? {
     actorType: "machine",
-    // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
     origin: {
-      type: "flow",
+      type: "flow" as "migration",
       id: flowEntityId,
       stepIds: [stepId],
     } satisfies OriginProvenance,
@@ -283,13 +280,7 @@ export const getFileEntityFromUrl = async (params: {
     graphApiClient,
     { actorId: webBotActorId },
     {
-      propertyPatches: [
-        {
-          op: "replace",
-          path: [],
-          value: properties,
-        },
-      ],
+      propertyPatches: propertyObjectToPatches(updatedProperties),
       provenance,
     },
   )) as Entity<FileProperties>;

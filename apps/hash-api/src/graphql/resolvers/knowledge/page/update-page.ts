@@ -1,5 +1,6 @@
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { updateEntity } from "../../../../graph/knowledge/primitive/entity";
 import {
   getPageById,
   getPageFromEntity,
@@ -12,9 +13,6 @@ import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedPageGQL } from "../graphql-mapping";
 import { mapPageToGQL } from "../graphql-mapping";
-import { updateEntity } from "../../../../graph/knowledge/primitive/entity";
-import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { PropertyPatchOperation } from "@local/hash-graph-client";
 
 export const updatePageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,
@@ -39,7 +37,7 @@ export const updatePageResolver: ResolverFn<
         return {
           op: "add",
           path: [propertyTypeBaseUrl],
-          value: value ?? undefined,
+          value,
         };
       },
     ),

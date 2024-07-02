@@ -91,7 +91,18 @@ export const linearWebhook: RequestHandler<
     { identifier: "linear" },
   );
 
-  const graphContext: ImpureGraphContext = { graphApi, temporalClient };
+  const graphContext: ImpureGraphContext = {
+    graphApi,
+    provenance: {
+      actorType: "machine",
+      origin: {
+        id: "linear-webhook",
+        // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
+        type: "flow",
+      },
+    },
+    temporalClient,
+  };
 
   const linearIntegrations = await getAllLinearIntegrationsWithLinearOrgId(
     graphContext,

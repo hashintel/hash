@@ -16,7 +16,7 @@ import type { PDFDocumentProperties } from "@local/hash-isomorphic-utils/system-
 import type { PPTXPresentationProperties } from "@local/hash-isomorphic-utils/system-types/pptxpresentation";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
-import type { UpdateEntityHookCallback } from "../update-entity-hooks";
+import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
 
 export const entityTypesToParseTextFrom: VersionedUrl[] = [
   systemEntityTypes.docxDocument.entityTypeId,
@@ -29,11 +29,15 @@ type FileEntityToParseProperties =
   | PDFDocumentProperties
   | PPTXPresentationProperties;
 
-export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCallback =
-  async ({ previousEntity, updatedProperties, context, authentication }) => {
+export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
+  async ({ previousEntity, propertyPatches, context, authentication }) => {
     const { temporalClient } = context;
 
     const fileEntity = previousEntity as Entity<FileEntityToParseProperties>;
+
+    /**
+     * @TODO fix this file
+     */
 
     const {
       textualContent,

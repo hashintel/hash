@@ -14,6 +14,7 @@ import type {
   EditionCreatedById,
 } from "@local/hash-graph-types/account";
 import type {
+  AddPropertyPatchOperation,
   EntityId,
   EntityMetadata,
   EntityRecordId,
@@ -30,6 +31,7 @@ import type {
   PropertyPath,
   PropertyValueWithMetadata,
   PropertyWithMetadata,
+  ReplacePropertyPatchOperation,
 } from "@local/hash-graph-types/entity";
 import {
   isArrayMetadata,
@@ -121,6 +123,55 @@ const isGraphApiEntity = <Properties extends PropertyObject>(
     "entityTypeIds" in
     (entity as GraphApiEntity | EntityData<Properties>).metadata
   );
+};
+
+export const propertyObjectToPatches = (
+  object: PropertyObject,
+): PropertyPatchOperation[] =>
+  typedEntries(object).map(([propertyTypeBaseUrl, value]) => {
+    return {
+      op: "add",
+      path: [propertyTypeBaseUrl],
+      value,
+    };
+  });
+
+/**
+ * Return a helper function for the given Properties object, which can be called with a BaseUrl valid for that object,
+ * and will return the new value for that BaseUrl defined in the provided list of PropertyPatchOperations, if any.
+ *
+ * The 'new value' is defined as the value for the first 'add' or 'replace' operation at that BaseUrl.
+ * Nested paths are not supported.
+ *
+ * An alternative implementation could avoid the need for an inner function, by requiring that the Key was specified as a generic:
+ * export const getDefinedPropertyFromPatches = <
+ *   Properties extends PropertyObject,
+ *   Key extends keyof Properties,
+ * > => { ... }
+ *
+ * const newValue = getDefinedPropertyFromPatches<Properties, "https://example.com/">({ propertyPatches, baseUrl: "https://example.com/" });
+ *
+ * This alternative is more tedious if you need to check for multiple properties, as (1) each key must be specified as both a generic and as an argument,
+ * and (2) the propertyPatches provided each time. Unimplemented TS proposal partial type argument inference would solve (1) but not (2).
+ */
+export const getDefinedPropertyFromPatchesRetriever = <
+  Properties extends PropertyObject,
+>(
+  propertyPatches: PropertyPatchOperation[],
+) => {
+  return <Key extends keyof Properties>(
+    baseUrl: Key,
+  ): Properties[Key] | undefined => {
+    const foundPatch = propertyPatches.find(
+      (patch) => patch.path[0] === baseUrl,
+    );
+
+    if (!foundPatch || foundPatch.op === "remove") {
+      return;
+    }
+
+    return foundPatch.value as Properties[Key];
+  };
 };
 
 const mergePropertiesAndMetadata = (
