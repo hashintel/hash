@@ -12,7 +12,7 @@ import type {
   DataTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { OntologyTypeVertexId, Subgraph } from "../../../main";
+import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
 
 /**
  * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph
@@ -34,7 +34,9 @@ export const getDataTypeById = (
   subgraph: Subgraph,
   dataTypeId: VersionedUrl,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByIdBp(subgraph as unknown as SubgraphBp, dataTypeId);
+  getDataTypeByIdBp(subgraph as unknown as SubgraphBp, dataTypeId) as
+    | DataTypeWithMetadata
+    | undefined;
 
 export const mustGetDataTypeById = (
   subgraph: Subgraph,
@@ -59,7 +61,9 @@ export const getDataTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId);
+  getDataTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
+    | DataTypeWithMetadata
+    | undefined;
 
 /**
  * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`

@@ -720,14 +720,14 @@ describe("non-zero, simple resolve depths", () => {
     const friendshipEntity = getRoots(subgraph)[0]!;
     expect(friendshipEntity).toStrictEqual(linkEntities[0]);
     expect(
-      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId])
+      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!)
         .length,
     ).toEqual(1);
     expect(
       Object.keys(
         subgraph.edges[friendshipEntity.metadata.recordId.entityId]![
           friendshipEntity.metadata.temporalVersioning.decisionTime.start.limit
-        ],
+        ]!,
       ).length,
     ).toEqual(2);
 
@@ -773,14 +773,14 @@ describe("non-zero, simple resolve depths", () => {
     const friendshipEntity = getRoots(subgraph)[0]!;
     expect(friendshipEntity).toStrictEqual(linkEntities[0]);
     expect(
-      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId])
+      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!)
         .length,
     ).toEqual(1);
     expect(
       Object.keys(
         subgraph.edges[friendshipEntity.metadata.recordId.entityId]![
           friendshipEntity.metadata.temporalVersioning.decisionTime.start.limit
-        ],
+        ]!,
       ).length,
     ).toEqual(2);
 

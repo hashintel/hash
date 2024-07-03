@@ -30,7 +30,7 @@
     },
     "dev": {
       "persistent": true,
-      "dependsOn": ["^build"]
+      "dependsOn": ["codegen"]
     },
     "lint": {
       "dependsOn": ["codegen"]

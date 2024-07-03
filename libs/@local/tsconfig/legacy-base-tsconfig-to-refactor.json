@@ -20,7 +20,9 @@
       "@local/advanced-types/*": ["../advanced-types/src/*"],
       "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*"],
       "@local/hash-graph-client/*": ["../hash-graph-client/typescript/*"],
-      "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*"]
+      "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*"],
+      "@local/hash-subgraph": ["../hash-subgraph/src/main.ts"],
+      "@local/hash-subgraph/*": ["../hash-subgraph/src/*.ts"]
     }
   },
   "ts-node": {

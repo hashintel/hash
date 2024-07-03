@@ -1,6 +1,5 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src", "/**/*.gen.json"],
   "compilerOptions": {
     "declaration": true,
     "outDir": "dist",

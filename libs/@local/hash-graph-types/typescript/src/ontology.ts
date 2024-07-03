@@ -21,15 +21,15 @@ import type {
   SourceProvenance,
 } from "@local/hash-graph-client";
 
-import type { EditionArchivedById, EditionCreatedById } from "./account";
+import type { EditionArchivedById, EditionCreatedById } from "./account.js";
 import type {
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
   TimeInterval,
   Timestamp,
   Unbounded,
-} from "./temporal-versioning";
-import type { OwnedById } from "./web";
+} from "./temporal-versioning.js";
+import type { OwnedById } from "./web.js";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
 

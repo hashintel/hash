@@ -18,7 +18,9 @@ import { useGetInheritedValues } from "../shared/use-inherited-values";
  * @throws if there are any duplicate property or link types (of any version) among inheritedTypes and childsOwnTypeIds,
  *    UNLESS they belong to the exact same entity type version
  */
-const throwIfDuplicates = <T extends InheritedValues["links"]>({
+const throwIfDuplicates = <
+  T extends InheritedValues["links"] | InheritedValues["properties"],
+>({
   inheritedTypes,
   childsOwnTypeIds,
   label,

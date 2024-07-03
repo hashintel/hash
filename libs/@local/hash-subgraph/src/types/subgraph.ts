@@ -11,17 +11,17 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { Edges } from "./subgraph/edges";
-import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths";
-import type { SubgraphTemporalAxes } from "./subgraph/temporal-axes";
+import type { Edges } from "./subgraph/edges.js";
+import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
+import type { SubgraphTemporalAxes } from "./subgraph/temporal-axes.js";
 import type {
   EntityVertexId,
   OntologyTypeVertexId,
   SerializedVertices,
   Vertices,
-} from "./subgraph/vertices";
+} from "./subgraph/vertices.js";
 
-export * from "./subgraph/edges";
+export * from "./subgraph/edges.js";
 export * from "./subgraph/graph-resolve-depths.js";
 export * from "./subgraph/temporal-axes.js";
 export * from "./subgraph/vertices.js";

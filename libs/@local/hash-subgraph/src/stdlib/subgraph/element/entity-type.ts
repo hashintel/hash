@@ -11,7 +11,7 @@ import type {
   EntityTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { OntologyTypeVertexId, Subgraph } from "../../../main";
+import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph
@@ -35,7 +35,9 @@ export const getEntityTypeById = (
   subgraph: Subgraph,
   entityTypeId: VersionedUrl,
 ): EntityTypeWithMetadata | undefined =>
-  getEntityTypeByIdBp(subgraph as unknown as SubgraphBp, entityTypeId);
+  getEntityTypeByIdBp(subgraph as unknown as SubgraphBp, entityTypeId) as
+    | EntityTypeWithMetadata
+    | undefined;
 
 /**
  * Gets an array of `EntityTypeWithMetadata` containing the requested entity type and all its ancestors
@@ -113,7 +115,9 @@ export const getEntityTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): EntityTypeWithMetadata | undefined =>
-  getEntityTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId);
+  getEntityTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
+    | EntityTypeWithMetadata
+    | undefined;
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`

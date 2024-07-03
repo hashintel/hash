@@ -1,6 +1,6 @@
 import type { Brand } from "@local/advanced-types/brand";
 
-import type { Uuid } from "./branded";
+import type { Uuid } from "./branded.js";
 
 /** An ID to uniquely identify an account (e.g. a User) */
 export type AccountId = Brand<Uuid, "AccountId">;

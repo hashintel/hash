@@ -6,9 +6,10 @@
   "license": "AGPL-3.0",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "rimraf dist && tsc --build tsconfig.build.json",
-    "codegen": "redocly bundle -o openapi.bundle.json ../../../../apps/hash-graph/openapi/openapi.json && JAVA_OPTS='-Dlog.level=warn' openapi-generator-cli generate && rm openapi.bundle.json"
+    "codegen": "redocly bundle -o openapi.bundle.json ../../../../apps/hash-graph/openapi/openapi.json && JAVA_OPTS='-Dlog.level=warn' openapi-generator-cli generate && rm openapi.bundle.json && fix-esm-import-path *.ts"
   },
   "dependencies": {
     "@openapitools/openapi-generator-cli": "2.5.2",

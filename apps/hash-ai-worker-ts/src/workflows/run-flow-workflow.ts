@@ -353,6 +353,7 @@ export const runFlowWorkflow = async (
         // eslint-disable-next-line no-useless-return
         return;
       }
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     } else if (currentStep.kind === "parallel-group") {
       const parallelGroupStepDefinition = getStepDefinitionFromFlowDefinition({
         step: currentStep,

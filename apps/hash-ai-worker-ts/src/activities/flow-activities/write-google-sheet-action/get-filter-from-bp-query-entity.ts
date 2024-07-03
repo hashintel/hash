@@ -34,6 +34,7 @@ export const getFilterFromBlockProtocolQueryEntity = async ({
       "https://blockprotocol.org/@hash/types/property-type/query/"
     ];
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- additional check in case another entity is used that has this optional
   if (!multiFilter) {
     throw new Error(
       `No ${blockProtocolPropertyTypes.query.propertyTypeBaseUrl} property found on query entity with id ${queryEntityId}`,

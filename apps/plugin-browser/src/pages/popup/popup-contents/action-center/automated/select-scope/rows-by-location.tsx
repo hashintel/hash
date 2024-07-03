@@ -174,6 +174,7 @@ const RowByLocation = (
       }
 
       for (const newTypeId of newEntityTypeIds) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (rulesByType[newTypeId]) {
           continue;
         }

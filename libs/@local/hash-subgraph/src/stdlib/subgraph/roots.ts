@@ -14,7 +14,7 @@ import type {
   Subgraph,
   SubgraphRootType,
   Vertex,
-} from "../../main";
+} from "../../main.js";
 import { mustBeDefined } from "../../shared/invariant.js";
 
 /**

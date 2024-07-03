@@ -4,7 +4,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
-import type { EntityRevisionId, Subgraph, Vertices } from "../../../main";
+import type { EntityRevisionId, Subgraph, Vertices } from "../../../main.js";
 import { isEntityVertex } from "../../../main.js";
 import { mustBeDefined } from "../../../shared/invariant.js";
 import {

@@ -13,10 +13,10 @@ import {
 } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 
-import type { OntologyTypeVertexId } from "../../vertices";
-import type { GenericOutwardEdge } from "../generic-outward-edge";
-import type { KnowledgeGraphEdgeKind, SharedEdgeKind } from "../kind";
-import type { EntityIdWithInterval, OutwardEdge } from "../outward-edge";
+import type { OntologyTypeVertexId } from "../../vertices.js";
+import type { GenericOutwardEdge } from "../generic-outward-edge.js";
+import type { KnowledgeGraphEdgeKind, SharedEdgeKind } from "../kind.js";
+import type { EntityIdWithInterval, OutwardEdge } from "../outward-edge.js";
 
 export type OutgoingLinkEdge = Subtype<
   OutgoingLinkEdgeBp,

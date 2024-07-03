@@ -1,11 +1,12 @@
 {
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
     "allowJs": false,
     "allowSyntheticDefaultImports": true,
-    "target": "es6",
+    "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "esnext"],
     "noEmit": false,
-    "jsx": "react-jsx"
+    "target": "es6"
   },
   "include": [
     "src",

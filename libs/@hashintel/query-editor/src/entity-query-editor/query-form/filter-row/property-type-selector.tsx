@@ -25,7 +25,9 @@ export const PropertyTypeSelector = ({
     [propertyTypes],
   );
 
-  const filterErrors = formState.errors.filters?.[index];
+  const filterErrors = formState.errors.filters?.[index] as
+    | FieldErrorsImpl<PropertyFilter>
+    | undefined;
 
   const hasError = !!filterErrors?.propertyTypeBaseUrl;
 

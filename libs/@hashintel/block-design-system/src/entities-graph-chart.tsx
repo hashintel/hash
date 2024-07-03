@@ -17,7 +17,7 @@ const generateEntityLabel = (
   subgraph: Subgraph<EntityRootType>,
   entity: Entity,
 ) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
   return hashGenerateEntityLabel(subgraph as any, entity as any);
 };
 
@@ -82,7 +82,8 @@ export const EntitiesGraphChart = <T extends Entity>({
           if (params.dataType === "node" || params.dataType === "edge") {
             /** @todo: improve typing */
 
-            const entityId = params.data.id as EntityId;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+            const entityId = (params.data as any).id as EntityId;
 
             const entity = entities?.find(
               ({ metadata }) => entityId === metadata.recordId.entityId,
@@ -112,10 +113,11 @@ export const EntitiesGraphChart = <T extends Entity>({
         trigger: "item",
         formatter: (params) => {
           /** @todo: improve typing */
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const id = params.data.id as string;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+          const id = (params as any).data.id as string;
 
-          if (params.dataType === "edge") {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+          if ((params as any).dataType === "edge") {
             const linkEntity = linkEntities?.find(
               ({ metadata }) => metadata.recordId.entityId === id,
             );
@@ -139,11 +141,14 @@ export const EntitiesGraphChart = <T extends Entity>({
               )?.schema.title;
 
               return [
-                `<strong>${generateEntityLabel(subgraph, leftEntity)}</strong>`,
+                `<strong>${generateEntityLabel(
+                  subgraph,
+                  leftEntity!,
+                )}</strong>`,
                 linkEntityTypeTitle?.toLowerCase(),
                 `<strong>${generateEntityLabel(
                   subgraph,
-                  rightEntity,
+                  rightEntity!,
                 )}</strong>`,
               ].join(" ");
             }
@@ -172,7 +177,7 @@ export const EntitiesGraphChart = <T extends Entity>({
           layoutAnimation: chartInitialized,
         },
         data: nonLinkEntities?.map((entity) => ({
-          name: generateEntityLabel(subgraph, entity),
+          name: generateEntityLabel(subgraph!, entity),
           id: entity.metadata.recordId.entityId,
           label: {
             show: true,
@@ -196,7 +201,7 @@ export const EntitiesGraphChart = <T extends Entity>({
           label: {
             show: true,
             formatter: () =>
-              getEntityTypeById(subgraph, linkEntity.metadata.entityTypeId)
+              getEntityTypeById(subgraph!, linkEntity.metadata.entityTypeId)
                 ?.schema.title ?? "Unknown",
           },
           symbol: ["none", "arrow"],
