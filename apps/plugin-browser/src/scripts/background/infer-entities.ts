@@ -75,7 +75,7 @@ const getWebSocket = async () => {
 
   const externalRequestPoll = setInterval(() => {
     void getCookieString().then((cookie) =>
-      ws.send(
+      ws?.send(
         JSON.stringify({
           cookie,
           type: "check-for-external-input-requests",
@@ -127,7 +127,7 @@ const getWebSocket = async () => {
 
         const cookie = await getCookieString();
 
-        ws.send(
+        ws?.send(
           JSON.stringify({
             cookie,
             workflowId,

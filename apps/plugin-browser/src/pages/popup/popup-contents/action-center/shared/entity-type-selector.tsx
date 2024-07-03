@@ -54,7 +54,7 @@ export const EntityTypeSelector = ({
   const selectedEntityTypes = useMemo(
     () =>
       allEntityTypes.filter((type) =>
-        targetEntityTypeIds.some(
+        targetEntityTypeIds?.some(
           (targetTypeId) => targetTypeId === type.schema.$id,
         ),
       ),
@@ -75,6 +75,7 @@ export const EntityTypeSelector = ({
         !selectedEntityTypes.some(
           (selectedType) => selectedType.schema.$id === type.schema.$id,
         ) &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive
         (!latestEntityTypesByBaseUrl[baseUrl] ||
           latestEntityTypesByBaseUrl[baseUrl].metadata.recordId.version <
             type.metadata.recordId.version)

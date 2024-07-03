@@ -123,15 +123,18 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         await Promise.all([
           setInLocalStorage(
             "automaticInferenceConfig",
-            automaticInferenceConfiguration,
+            automaticInferenceConfiguration as LocalStorage["automaticInferenceConfig"],
             true,
           ),
           setInLocalStorage(
             "manualInferenceConfig",
-            manualInferenceConfiguration,
+            manualInferenceConfiguration as LocalStorage["manualInferenceConfig"],
             true,
           ),
-          setInLocalStorage("popupTab", browserPluginTab, true),
+          setInLocalStorage(
+            "popupTab",
+            browserPluginTab as LocalStorage["popupTab"],
+          ),
         ]);
 
         if (draftNote) {

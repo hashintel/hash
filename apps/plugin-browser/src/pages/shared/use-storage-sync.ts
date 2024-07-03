@@ -58,7 +58,7 @@ export const useStorageSync = <Key extends keyof LocalStorage>(
         key in changes &&
         changes[key].newValue !== stateValue
       ) {
-        setStateValue(changes[key].newValue);
+        setStateValue(changes[key].newValue as LocalStorage[Key]);
       }
     };
 
