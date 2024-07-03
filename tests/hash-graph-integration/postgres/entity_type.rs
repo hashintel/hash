@@ -94,7 +94,7 @@ async fn query() {
         .get_entity_types(
             api.account_id,
             GetEntityTypesParams {
-                filter: Filter::for_versioned_url(&organization_et.id),
+                filter: Filter::for_versioned_url(organization_et.id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -114,7 +114,7 @@ async fn query() {
         .pop()
         .expect("no entity type found");
 
-    assert_eq!(entity_type.schema.id, organization_et.id);
+    assert_eq!(entity_type.schema, organization_et);
 }
 
 #[tokio::test]
@@ -186,7 +186,7 @@ async fn update() {
         .get_entity_types(
             api.account_id,
             GetEntityTypesParams {
-                filter: Filter::for_versioned_url(&page_et_v1.id),
+                filter: Filter::for_versioned_url(page_et_v1.id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -210,7 +210,7 @@ async fn update() {
         .get_entity_types(
             api.account_id,
             GetEntityTypesParams {
-                filter: Filter::for_versioned_url(&page_et_v2.id),
+                filter: Filter::for_versioned_url(page_et_v2.id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -230,6 +230,6 @@ async fn update() {
         .pop()
         .expect("no entity type found");
 
-    assert_eq!(page_et_v1.id, returned_page_et_v1.schema.id);
-    assert_eq!(page_et_v2.id, returned_page_et_v2.schema.id);
+    assert_eq!(page_et_v1, returned_page_et_v1.schema);
+    assert_eq!(page_et_v2, returned_page_et_v2.schema);
 }

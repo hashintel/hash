@@ -1,5 +1,5 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   EntityTypeIcon,
@@ -101,7 +101,7 @@ export const EntityTypePage = ({
 
   const parentRefs = formMethods.watch("allOf");
   const { isLink, isFile, isImage } = useIsSpecialEntityType({
-    allOf: atLeastOne(parentRefs.map((id) => ({ $ref: id }))),
+    allOf: parentRefs.map((id) => ({ $ref: id })),
     $id: entityType?.schema.$id,
   });
 
@@ -238,7 +238,7 @@ export const EntityTypePage = ({
     const res = await updateEntityType(
       {
         ...schema,
-        allOf: [{ $ref: linkEntityTypeUrl }, ...(schema.allOf ?? [])],
+        allOf: [{ $ref: linkEntityTypeUrl }, ...schema.allOf],
       },
       { icon, labelProperty: labelProperty as BaseUrl },
     );

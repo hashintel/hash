@@ -38,7 +38,7 @@ export const getReferencedIdsFromEntityType = (
     /** @todo - if we had the `typedEntries` helper here we wouldn't need this cast */
     constrainsLinksOnEntityTypes.add(linkTypeId as VersionedUrl);
 
-    if ("oneOf" in linkDefinition.items) {
+    if ("items" in linkDefinition && "oneOf" in linkDefinition.items) {
       for (const ele of linkDefinition.items.oneOf.map(
         (oneOfEntry) => oneOfEntry.$ref,
       )) {

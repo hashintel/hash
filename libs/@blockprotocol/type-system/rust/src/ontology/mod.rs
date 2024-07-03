@@ -14,7 +14,7 @@ mod shared;
 
 pub use data_type::{DataType, DataTypeReference, JsonSchemaValueType, ParseDataTypeError};
 pub use entity_type::{
-    links::{Links, ParseLinksError},
+    links::{Links, MaybeOrderedArray, ParseLinksError},
     ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
     MergeEntityTypeError, ParseEntityTypeError,
 };
@@ -28,10 +28,10 @@ pub use shared::{
             ParseEntityTypeReferenceArrayError, ParseOneOfArrayError,
             ParsePropertyTypeReferenceArrayError,
         },
-        ArraySchema, ValueOrArray,
+        Array, ValueOrArray,
     },
-    object::{error::ParsePropertyTypeObjectError, ObjectSchema},
-    one_of::{error::ParseOneOfError, OneOfSchema},
+    object::{error::ParsePropertyTypeObjectError, Object},
+    one_of::{error::ParseOneOfError, OneOf},
     validate::{ValidateUrl, ValidationError},
 };
 
@@ -49,9 +49,9 @@ pub(crate) mod raw {
         property_type::raw::{PropertyType, PropertyTypeReference, PropertyValues},
         shared::{
             all_of::raw::AllOf,
-            array::raw::{ArraySchema, ValueOrArray},
-            object::raw::ObjectSchema,
-            one_of::raw::OneOfSchema,
+            array::raw::{Array, ValueOrArray},
+            object::raw::Object,
+            one_of::raw::OneOf,
         },
     };
 }

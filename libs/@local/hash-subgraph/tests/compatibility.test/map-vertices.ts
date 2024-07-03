@@ -1,6 +1,6 @@
 import type {
   EntityType,
-  OneOfSchema,
+  OneOf,
   PropertyType,
   PropertyValues,
   VersionedUrl,
@@ -99,7 +99,7 @@ const mapPropertyType = (propertyType: PropertyTypeGraphApi): PropertyType => {
     ...propertyType,
     $id,
     // We checked the length above
-    oneOf: propertyType.oneOf as OneOfSchema<PropertyValues>["oneOf"],
+    oneOf: propertyType.oneOf as OneOf<PropertyValues>["oneOf"],
   };
 };
 

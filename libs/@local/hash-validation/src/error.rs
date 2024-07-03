@@ -26,8 +26,8 @@ pub fn install_error_stack_hooks() {
             Expected::EntityType(entity_type) => {
                 entity_type.schemas.keys().cloned().collect::<Vec<_>>()
             }
-            Expected::PropertyType(property_type) => vec![property_type.id.clone()],
-            Expected::DataType(data_type) => vec![data_type.id.clone()],
+            Expected::PropertyType(property_type) => vec![property_type.id().clone()],
+            Expected::DataType(data_type) => vec![data_type.id().clone()],
         };
         let stringified_ids = ids
             .iter()

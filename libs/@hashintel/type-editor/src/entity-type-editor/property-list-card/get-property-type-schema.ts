@@ -1,8 +1,8 @@
 import type {
-  ArraySchema,
+  Array,
   BaseUrl,
-  ObjectSchema,
-  OneOfSchema,
+  Object as BpObject,
+  OneOf,
   PropertyType,
   PropertyTypeReference,
   PropertyValues,
@@ -25,7 +25,7 @@ const getPrimitiveSchema = ($ref: VersionedUrl): PropertyTypeReference => ({
 
 const getObjectSchema = (
   properties: Property[],
-): ObjectSchema<ValueOrArray<PropertyTypeReference>> => {
+): BpObject<ValueOrArray<PropertyTypeReference>> => {
   const propertyList: Record<BaseUrl, ValueOrArray<PropertyTypeReference>> = {};
   const requiredArray: BaseUrl[] = [];
 
@@ -58,13 +58,13 @@ const getObjectSchema = (
 const getArraySchema = (
   flattenedExpectedValues: Record<string, CustomExpectedValue>,
   { minItems, maxItems, infinity, itemIds }: ArrayExpectedValue,
-): ArraySchema<OneOfSchema<PropertyValues>> => ({
+): Array<OneOf<PropertyValues>> => ({
   type: "array",
   items: {
     oneOf: itemIds.map((itemId) =>
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       getExpectedValueSchemaById(itemId, flattenedExpectedValues),
-    ) as OneOfSchema<PropertyValues>["oneOf"],
+    ) as OneOf<PropertyValues>["oneOf"],
   },
   minItems,
   ...(!infinity ? { maxItems } : {}),
@@ -119,7 +119,7 @@ export const getPropertyTypeSchema = (
     }
 
     return getPrimitiveSchema(value);
-  }) as OneOfSchema<PropertyValues>["oneOf"];
+  }) as OneOf<PropertyValues>["oneOf"];
 
   return {
     oneOf,

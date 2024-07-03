@@ -157,7 +157,7 @@ impl OntologyType for EntityType {
     type Metadata = EntityTypeMetadata;
 
     fn id(&self) -> &VersionedUrl {
-        &self.id
+        self.id()
     }
 
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {
@@ -165,7 +165,8 @@ impl OntologyType for EntityType {
             .into_iter()
             .map(OntologyTypeReference::PropertyTypeReference)
             .chain(
-                self.inherits_from
+                self.inherits_from()
+                    .all_of()
                     .iter()
                     .map(OntologyTypeReference::EntityTypeReference),
             )

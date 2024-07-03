@@ -96,7 +96,7 @@ impl DomainValidator {
 
 impl ValidateOntologyType<DataType> for DomainValidator {
     fn validate(&self, ontology_type: &DataType) -> error_stack::Result<(), DomainValidationError> {
-        let base_url = &ontology_type.id.base_url;
+        let base_url = &ontology_type.id().base_url;
 
         if !self.validate_url(base_url.as_str()) {
             return Err(DomainValidationError)
@@ -126,7 +126,7 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
         &self,
         ontology_type: &PropertyType,
     ) -> error_stack::Result<(), DomainValidationError> {
-        let base_url = &ontology_type.id.base_url;
+        let base_url = &ontology_type.id().base_url;
 
         if !self.validate_url(base_url.as_str()) {
             return Err(DomainValidationError).attach_printable(
@@ -157,7 +157,7 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
         &self,
         ontology_type: &EntityType,
     ) -> error_stack::Result<(), DomainValidationError> {
-        let base_url = &ontology_type.id.base_url;
+        let base_url = &ontology_type.id().base_url;
 
         if !self.validate_url(base_url.as_str()) {
             return Err(DomainValidationError)

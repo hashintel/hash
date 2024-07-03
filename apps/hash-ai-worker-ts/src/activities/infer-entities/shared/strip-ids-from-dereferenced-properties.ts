@@ -1,4 +1,4 @@
-import type { ArraySchema } from "@blockprotocol/type-system";
+import type { Array } from "@blockprotocol/type-system";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
 import type { DereferencedPropertyType } from "../../shared/dereference-entity-type";
@@ -12,7 +12,7 @@ import type { DereferencedPropertyType } from "../../shared/dereference-entity-t
 export const stripIdsFromDereferencedProperties = (params: {
   properties: Record<
     string,
-    DereferencedPropertyType | ArraySchema<DereferencedPropertyType>
+    DereferencedPropertyType | Array<DereferencedPropertyType>
   >;
 }): {
   [key: string]: JSONSchemaDefinition;

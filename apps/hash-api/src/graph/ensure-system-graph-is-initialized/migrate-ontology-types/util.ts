@@ -4,11 +4,11 @@ import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type {
-  ArraySchema,
+  Array,
   DataTypeReference,
   EntityType,
-  ObjectSchema,
-  OneOfSchema,
+  Object as ObjectSchema,
+  OneOf,
   PropertyType,
   PropertyTypeReference,
   PropertyValues,
@@ -16,7 +16,6 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
-  atLeastOne,
   DATA_TYPE_META_SCHEMA,
   ENTITY_TYPE_META_SCHEMA,
   extractVersion,
@@ -376,13 +375,12 @@ export const generateSystemPropertyTypeSchema = (
 
       // Optionally wrap inner in an array
       if (array) {
-        const arrayOfPropertyValues: ArraySchema<OneOfSchema<PropertyValues>> =
-          {
-            type: "array",
-            items: {
-              oneOf: [inner],
-            },
-          };
+        const arrayOfPropertyValues: Array<OneOf<PropertyValues>> = {
+          type: "array",
+          items: {
+            oneOf: [inner],
+          },
+        };
         return arrayOfPropertyValues;
       } else {
         return inner;
@@ -625,6 +623,7 @@ export type EntityTypeDefinition = {
     ];
     minItems?: number;
     maxItems?: number;
+    ordered?: boolean;
   }[];
 };
 
@@ -674,13 +673,20 @@ export const generateSystemEntityTypeSchema = (
     params.outgoingLinks?.reduce<EntityType["links"]>(
       (
         prev,
-        { linkEntityType, destinationEntityTypes, minItems, maxItems },
+        {
+          linkEntityType,
+          destinationEntityTypes,
+          ordered = false,
+          minItems,
+          maxItems,
+        },
       ): EntityType["links"] => ({
         ...prev,
         [typeof linkEntityType === "object"
           ? linkEntityType.schema.$id
           : linkEntityType]: {
           type: "array",
+          ordered,
           items: destinationEntityTypes
             ? {
                 oneOf: destinationEntityTypes.map(
@@ -702,9 +708,7 @@ export const generateSystemEntityTypeSchema = (
       {},
     ) ?? undefined;
 
-  const allOf = params.allOf
-    ? atLeastOne(params.allOf.map((url) => ({ $ref: url })))
-    : undefined;
+  const allOf = params.allOf?.map((url) => ({ $ref: url }));
 
   return {
     $schema: ENTITY_TYPE_META_SCHEMA,

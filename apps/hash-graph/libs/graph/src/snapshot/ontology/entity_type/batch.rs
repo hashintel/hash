@@ -251,7 +251,7 @@ where
             .into_iter()
             .map(|insertion| {
                 (
-                    EntityTypeId::from_url(&insertion.schema.id).into_uuid(),
+                    EntityTypeId::from_url(insertion.schema.id()).into_uuid(),
                     Json(insertion.closed_schema),
                 )
             })

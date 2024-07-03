@@ -1,5 +1,5 @@
 import type {
-  OneOfSchema,
+  OneOf,
   PropertyType,
   PropertyValues,
   VersionedUrl,
@@ -20,7 +20,7 @@ export const propertyTypeToFormDataExpectedValues = (
     {};
 
   const processProperties = (
-    { oneOf }: OneOfSchema<PropertyValues>,
+    { oneOf }: OneOf<PropertyValues>,
     parentId?: string,
   ) => {
     for (const expectedValue of oneOf) {

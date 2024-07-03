@@ -4,16 +4,16 @@ use tsify::Tsify;
 
 use crate::{raw, EntityTypeReference, ParseAllOfError};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AllOf<T> {
+    #[cfg_attr(target_arch = "wasm32", tsify(optional, type = "T[]"))]
     #[serde(
         rename = "allOf",
         default = "Vec::new",
         skip_serializing_if = "Vec::is_empty"
     )]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "[T, ...T[]]"))]
     pub elements: Vec<T>,
 }
 

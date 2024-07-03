@@ -18,7 +18,8 @@
             "$ref": "https://blockprotocol.org/@alice/types/entity-type/song/v/1"
           }
         ]
-      }
+      },
+      "ordered": true
     }
   }
 }

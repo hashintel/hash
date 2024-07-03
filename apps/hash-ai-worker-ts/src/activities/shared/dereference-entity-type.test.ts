@@ -335,6 +335,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                   ],
                 },
                 minItems: 0,
+                ordered: false,
               },
             },
           },
@@ -820,6 +821,7 @@ const expectedResult = {
           ],
         },
         minItems: 0,
+        ordered: false,
       },
     },
     properties: {
