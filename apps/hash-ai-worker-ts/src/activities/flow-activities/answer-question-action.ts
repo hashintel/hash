@@ -19,24 +19,24 @@ import dedent from "dedent";
 import { CodeInterpreter, Sandbox } from "e2b";
 import OpenAI from "openai/index";
 
-import { logger } from "../shared/activity-logger";
-import type { PermittedOpenAiModel } from "../shared/openai-client";
-import { stringify } from "../shared/stringify";
-import type { FlowActionActivity } from "./types";
+import { logger } from "../shared/activity-logger.js";
+import type { PermittedOpenAiModel } from "../shared/openai-client.js";
+import { stringify } from "../shared/stringify.js";
+import type { FlowActionActivity } from "./types.js";
 import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
 import ChatCompletionToolMessageParam = OpenAI.ChatCompletionToolMessageParam;
 
-import { getFlowContext } from "../shared/get-flow-context";
-import { getLlmResponse } from "../shared/get-llm-response";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { getLlmResponse } from "../shared/get-llm-response.js";
 import {
   getToolCallsFromLlmAssistantMessage,
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
-} from "../shared/get-llm-response/llm-message";
+} from "../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types";
-import { graphApiClient } from "../shared/graph-api-client";
-import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities";
-import { openAiSeed } from "../shared/open-ai-seed";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities.js";
+import { openAiSeed } from "../shared/open-ai-seed.js";
 
 const answerTools: LlmToolDefinition[] = [
   {

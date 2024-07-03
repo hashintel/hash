@@ -1,10 +1,16 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["./src/", "./scripts/"],
+  "include": ["src"],
   "compilerOptions": {
     "outDir": "./dist",
     "sourceMap": true,
     "inlineSources": true,
-    "sourceRoot": "/"
+    "sourceRoot": "./"
+  },
+  "paths": {
+    "@local/hash-backend-utils/*": ["../../@local/hash-backend-utils/src/*"],
+    "@local/hash-isomorphic-utils/*": [
+      "../../@local/hash-isomorphic-utils/src/*"
+    ]
   }
 }

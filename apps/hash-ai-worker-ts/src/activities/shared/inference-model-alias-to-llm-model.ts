@@ -1,6 +1,6 @@
 import type { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 
-import type { LlmParams } from "./get-llm-response/types";
+import type { LlmParams } from "./get-llm-response/types.js";
 
 /**
  * A map of the API consumer-facing model names to the specific model names used to call the LLM APIs.

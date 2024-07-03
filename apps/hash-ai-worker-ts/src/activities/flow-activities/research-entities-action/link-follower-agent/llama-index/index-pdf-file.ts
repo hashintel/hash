@@ -13,13 +13,13 @@ import {
 } from "llamaindex";
 import md5 from "md5";
 
-import { logger } from "../../../../shared/activity-logger";
+import { logger } from "../../../../shared/activity-logger.js";
 import type { SimpleStorageContext } from "./simple-storage-context";
 import {
   generateSimpleStorageContextFilePaths,
   persistSimpleStorageContext,
   retrieveSimpleStorageContext,
-} from "./simple-storage-context";
+} from "./simple-storage-context.js";
 
 export const indexPdfFile = async (params: {
   fileUrl: string;

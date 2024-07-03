@@ -2,9 +2,9 @@ import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
-import { logger } from "../activity-logger";
-import { stringify } from "../stringify";
-import type { LlmToolDefinition } from "./types";
+import { logger } from "../activity-logger.js";
+import { stringify } from "../stringify.js";
+import type { LlmToolDefinition } from "./types.js";
 
 export const sanitizeInputBeforeValidation = (params: {
   input: object;

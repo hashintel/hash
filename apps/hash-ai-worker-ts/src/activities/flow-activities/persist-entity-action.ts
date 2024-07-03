@@ -13,18 +13,18 @@ import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/s
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
-import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
-import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details";
-import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification";
+import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
+import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
+import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification.js";
 // import {
 //   findExistingEntity,
 //   findExistingLinkEntity,
 // } from "../shared/find-existing-entity";
-import { getFlowContext } from "../shared/get-flow-context";
-import { graphApiClient } from "../shared/graph-api-client";
-import { logProgress } from "../shared/log-progress";
-import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url";
-import { getEntityUpdate } from "./shared/graph-requests";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import { logProgress } from "../shared/log-progress.js";
+import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url.js";
+import { getEntityUpdate } from "./shared/graph-requests.js";
 import type { FlowActionActivity } from "./types";
 
 const fileEntityTypeIds: VersionedUrl[] = [

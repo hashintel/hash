@@ -8,8 +8,8 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
-import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types";
-import { dereferenceEntityType } from "./shared/dereference-entity-type";
+import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types.js";
+import { dereferenceEntityType } from "./shared/dereference-entity-type.js";
 
 /**
  * @todo: allow for specifying additional entity types which may be linked to

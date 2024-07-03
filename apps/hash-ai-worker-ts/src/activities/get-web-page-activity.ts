@@ -6,8 +6,8 @@ import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import sanitizeHtml from "sanitize-html";
 
-import { logger } from "./shared/activity-logger";
-import { requestExternalInput } from "./shared/request-external-input";
+import { logger } from "./shared/activity-logger.js";
+import { requestExternalInput } from "./shared/request-external-input.js";
 
 puppeteer.use(StealthPlugin());
 

@@ -6,12 +6,12 @@ import {
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
-import { getWebPageActivity } from "../get-web-page-activity";
-import { getFlowContext } from "../shared/get-flow-context";
+import { getWebPageActivity } from "../get-web-page-activity.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
 import { getLlmResponse } from "../shared/get-llm-response";
-import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message";
-import { graphApiClient } from "../shared/graph-api-client";
-import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model";
+import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
 import type { FlowActionActivity } from "./types";
 
 const generateSummarizeWebPageSystemPrompt = (params: {

@@ -27,8 +27,8 @@ import type { SheetOutputFormat } from "./shared/config";
 import {
   createCellFromValue,
   createHyperlinkCell,
-} from "./shared/create-sheet-data";
-import { cellHeaderFormat } from "./shared/format";
+} from "./shared/create-sheet-data.js";
+import { cellHeaderFormat } from "./shared/format.js";
 
 type ColumnsForEntity = {
   columns: Record<

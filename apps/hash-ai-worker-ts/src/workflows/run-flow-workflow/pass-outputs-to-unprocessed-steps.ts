@@ -12,8 +12,8 @@ import type {
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 
-import { getAllStepsInFlow } from "./get-all-steps-in-flow";
-import { getStepDefinitionFromFlowDefinition } from "./get-step-definition-from-flow";
+import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
+import { getStepDefinitionFromFlowDefinition } from "./get-step-definition-from-flow.js";
 
 /**
  * This method is used to pass the outputs of a step to any unprocessed steps

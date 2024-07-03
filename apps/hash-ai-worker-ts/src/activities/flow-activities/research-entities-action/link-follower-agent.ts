@@ -3,22 +3,22 @@ import { SourceType } from "@local/hash-graph-client";
 import dedent from "dedent";
 import { MetadataMode } from "llamaindex";
 
-import { getWebPageActivity } from "../../get-web-page-activity";
+import { getWebPageActivity } from "../../get-web-page-activity.js";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
-import { logger } from "../../shared/activity-logger";
+import { logger } from "../../shared/activity-logger.js";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
-import { getFlowContext } from "../../shared/get-flow-context";
-import { logProgress } from "../../shared/log-progress";
-import { stringify } from "../../shared/stringify";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { logProgress } from "../../shared/log-progress.js";
+import { stringify } from "../../shared/stringify.js";
 import { inferFactsFromText } from "../shared/infer-facts-from-text";
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../shared/infer-facts-from-text/types";
-import { deduplicateEntities } from "./deduplicate-entities";
+import { deduplicateEntities } from "./deduplicate-entities.js";
 import type { Link } from "./link-follower-agent/extract-links-from-content";
-import { extractLinksFromContent } from "./link-follower-agent/extract-links-from-content";
-import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent";
-import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls";
-import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file";
+import { extractLinksFromContent } from "./link-follower-agent/extract-links-from-content.js";
+import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
+import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
+import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.js";
 
 type ResourceToExplore = {
   url: string;

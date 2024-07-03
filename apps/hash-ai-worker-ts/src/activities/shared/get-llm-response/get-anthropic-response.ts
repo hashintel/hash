@@ -5,30 +5,33 @@ import type { Tool } from "@anthropic-ai/sdk/resources";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
 
-import { logger } from "../activity-logger";
-import { stringify } from "../stringify";
+import { logger } from "../activity-logger.js";
+import { stringify } from "../stringify.js";
 import type {
   AnthropicApiProvider,
   AnthropicMessagesCreateParams,
   AnthropicMessagesCreateResponse,
-} from "./anthropic-client";
+} from "./anthropic-client.js";
 import {
   anthropicMessageModelToMaxOutput,
   createAnthropicMessagesWithTools,
   isAnthropicContentToolUseBlock,
-} from "./anthropic-client";
+} from "./anthropic-client.js";
 import {
   defaultRateLimitRetryDelay,
   maximumExponentialBackoffRetries,
   maximumRateLimitRetries,
   maxRetryCount,
   serverErrorRetryStartingDelay,
-} from "./constants";
-import type { LlmMessageToolUseContent, LlmUserMessage } from "./llm-message";
+} from "./constants.js";
+import type {
+  LlmMessageToolUseContent,
+  LlmUserMessage,
+} from "./llm-message.js";
 import {
   mapAnthropicMessageToLlmMessage,
   mapLlmMessageToAnthropicMessage,
-} from "./llm-message";
+} from "./llm-message.js";
 import type {
   AnthropicLlmParams,
   AnthropicResponse,
@@ -37,11 +40,11 @@ import type {
   LlmToolDefinition,
   LlmUsage,
   ParsedLlmToolCall,
-} from "./types";
+} from "./types.js";
 import {
   getInputValidationErrors,
   sanitizeInputBeforeValidation,
-} from "./validation";
+} from "./validation.js";
 
 const mapLlmToolDefinitionToAnthropicToolDefinition = (
   tool: LlmToolDefinition,

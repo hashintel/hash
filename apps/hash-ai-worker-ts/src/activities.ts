@@ -16,21 +16,21 @@ import type {
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type { CreateEmbeddingResponse } from "openai/resources";
 
-import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity";
-import { getDereferencedEntityTypesActivity } from "./activities/get-dereferenced-entity-types-activity";
-import { getWebPageActivity } from "./activities/get-web-page-activity";
-import { getWebSearchResultsActivity } from "./activities/get-web-search-results-activity";
-import { inferEntitiesFromWebPageActivity } from "./activities/infer-entities-from-web-page-activity";
-import { parseTextFromFile } from "./activities/parse-text-from-file";
+import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity.js";
+import { getDereferencedEntityTypesActivity } from "./activities/get-dereferenced-entity-types-activity.js";
+import { getWebPageActivity } from "./activities/get-web-page-activity.js";
+import { getWebSearchResultsActivity } from "./activities/get-web-search-results-activity.js";
+import { inferEntitiesFromWebPageActivity } from "./activities/infer-entities-from-web-page-activity.js";
+import { parseTextFromFile } from "./activities/parse-text-from-file.js";
 import {
   createDataTypeEmbeddings,
   createEmbeddings,
   createEntityEmbeddings,
   createEntityTypeEmbeddings,
   createPropertyTypeEmbeddings,
-} from "./activities/shared/embeddings";
+} from "./activities/shared/embeddings.js";
 
-export { createGraphActivities } from "./activities/graph";
+export { createGraphActivities } from "./activities/graph.js";
 
 export const createAiActivities = ({
   graphApiClient,

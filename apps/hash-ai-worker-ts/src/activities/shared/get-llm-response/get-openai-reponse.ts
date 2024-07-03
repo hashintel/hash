@@ -12,21 +12,21 @@ import type {
 } from "openai/resources";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
-import { logger } from "../activity-logger";
-import { modelToContextWindow, openai } from "../openai-client";
-import { stringify } from "../stringify";
+import { logger } from "../activity-logger.js";
+import { modelToContextWindow, openai } from "../openai-client.js";
+import { stringify } from "../stringify.js";
 import {
   defaultRateLimitRetryDelay,
   maximumExponentialBackoffRetries,
   maximumRateLimitRetries,
   maxRetryCount,
   serverErrorRetryStartingDelay,
-} from "./constants";
+} from "./constants.js";
 import type { LlmMessageToolUseContent, LlmUserMessage } from "./llm-message";
 import {
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
-} from "./llm-message";
+} from "./llm-message.js";
 import type {
   LlmResponse,
   LlmStopReason,
@@ -38,7 +38,7 @@ import type {
 import {
   getInputValidationErrors,
   sanitizeInputBeforeValidation,
-} from "./validation";
+} from "./validation.js";
 
 const mapLlmToolDefinitionToOpenAiToolDefinition = (
   tool: LlmToolDefinition,

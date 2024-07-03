@@ -10,8 +10,8 @@ import type { Context } from "@temporalio/activity";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { vi } from "vitest";
 
-import { graphApiClient } from "../../activities/shared/graph-api-client";
-import { getAliceUserAccountId } from "./get-alice-user-account-id";
+import { graphApiClient } from "../../activities/shared/graph-api-client.js";
+import { getAliceUserAccountId } from "./get-alice-user-account-id.js";
 
 type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends Array<infer U>

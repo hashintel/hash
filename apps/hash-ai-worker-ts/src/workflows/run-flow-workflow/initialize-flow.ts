@@ -14,7 +14,7 @@ import type {
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-import { getAllStepsInFlow } from "./get-all-steps-in-flow";
+import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
 
 export const initializeActionStep = (params: {
   flowTrigger: FlowTrigger;

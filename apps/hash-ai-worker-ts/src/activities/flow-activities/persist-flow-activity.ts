@@ -7,7 +7,7 @@ import type { LocalFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { graphApiClient } from "../shared/graph-api-client";
+import { graphApiClient } from "../shared/graph-api-client.js";
 
 type PersistFlowActivityParams = {
   flow: LocalFlowRun;

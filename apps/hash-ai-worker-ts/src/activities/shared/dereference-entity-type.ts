@@ -27,7 +27,7 @@ import {
   extractBaseUrl,
 } from "@local/hash-subgraph/type-system-patch";
 
-import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id";
+import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 
 type MinimalDataType = Omit<CustomDataType, "$id" | "$schema" | "kind">;
 

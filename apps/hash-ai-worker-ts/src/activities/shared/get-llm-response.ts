@@ -9,15 +9,15 @@ import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
-import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
-import { logger } from "./activity-logger";
-import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-service-usage-not-exceeded";
-import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response";
-import { getOpenAiResponse } from "./get-llm-response/get-openai-reponse";
-import { logLlmRequest } from "./get-llm-response/log-llm-request";
-import type { LlmParams, LlmResponse } from "./get-llm-response/types";
-import { isLlmParamsAnthropicLlmParams } from "./get-llm-response/types";
-import { stringify } from "./stringify";
+import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
+import { logger } from "./activity-logger.js";
+import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-service-usage-not-exceeded.js";
+import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response.js";
+import { getOpenAiResponse } from "./get-llm-response/get-openai-reponse.js";
+import { logLlmRequest } from "./get-llm-response/log-llm-request.js";
+import type { LlmParams, LlmResponse } from "./get-llm-response/types.js";
+import { isLlmParamsAnthropicLlmParams } from "./get-llm-response/types.js";
+import { stringify } from "./stringify.js";
 
 export type UsageTrackingParams = {
   /**

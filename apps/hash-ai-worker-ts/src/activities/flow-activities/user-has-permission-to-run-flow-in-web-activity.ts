@@ -1,5 +1,5 @@
-import { getFlowContext } from "../shared/get-flow-context";
-import { graphApiClient } from "../shared/graph-api-client";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
 
 /**
  * Check whether a user has permission to run a flow in a web, which

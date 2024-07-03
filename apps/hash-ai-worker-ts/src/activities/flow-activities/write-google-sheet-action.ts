@@ -23,15 +23,15 @@ import { Context } from "@temporalio/activity";
 import type { sheets_v4 } from "googleapis";
 import { google } from "googleapis";
 
-import { getEntityByFilter } from "../shared/get-entity-by-filter";
-import { getFlowContext } from "../shared/get-flow-context";
-import { graphApiClient } from "../shared/graph-api-client";
-import { getEntityUpdate } from "./shared/graph-requests";
+import { getEntityByFilter } from "../shared/get-entity-by-filter.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import { getEntityUpdate } from "./shared/graph-requests.js";
 import type { FlowActionActivity } from "./types";
-import { convertCsvToSheetRequests } from "./write-google-sheet-action/convert-csv-to-sheet-requests";
-import { convertSubgraphToSheetRequests } from "./write-google-sheet-action/convert-subgraph-to-sheet-requests";
-import { getFilterFromBlockProtocolQueryEntity } from "./write-google-sheet-action/get-filter-from-bp-query-entity";
-import { getSubgraphFromFilter } from "./write-google-sheet-action/get-subgraph-from-filter";
+import { convertCsvToSheetRequests } from "./write-google-sheet-action/convert-csv-to-sheet-requests.js";
+import { convertSubgraphToSheetRequests } from "./write-google-sheet-action/convert-subgraph-to-sheet-requests.js";
+import { getFilterFromBlockProtocolQueryEntity } from "./write-google-sheet-action/get-filter-from-bp-query-entity.js";
+import { getSubgraphFromFilter } from "./write-google-sheet-action/get-subgraph-from-filter.js";
 
 const createSpreadsheet = async ({
   filename,

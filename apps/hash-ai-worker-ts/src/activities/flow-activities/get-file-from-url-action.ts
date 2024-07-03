@@ -5,8 +5,8 @@ import {
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
-import { logProgress } from "../shared/log-progress";
-import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url";
+import { logProgress } from "../shared/log-progress.js";
+import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url.js";
 import type { FlowActionActivity } from "./types";
 
 export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {

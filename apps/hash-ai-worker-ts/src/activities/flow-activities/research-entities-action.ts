@@ -11,27 +11,27 @@ import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/s
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
-import { logger } from "../shared/activity-logger";
-import { getFlowContext } from "../shared/get-flow-context";
+import { logger } from "../shared/activity-logger.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
-import { logProgress } from "../shared/log-progress";
-import { stringify } from "../shared/stringify";
-import { checkSubTasksAgent } from "./research-entities-action/check-sub-tasks-agent";
+import { logProgress } from "../shared/log-progress.js";
+import { stringify } from "../shared/stringify.js";
+import { checkSubTasksAgent } from "./research-entities-action/check-sub-tasks-agent.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
 } from "./research-entities-action/coordinating-agent";
-import { coordinatingAgent } from "./research-entities-action/coordinating-agent";
+import { coordinatingAgent } from "./research-entities-action/coordinating-agent.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools";
 import type { DuplicateReport } from "./research-entities-action/deduplicate-entities";
-import { deduplicateEntities } from "./research-entities-action/deduplicate-entities";
-import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
-import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call";
+import { deduplicateEntities } from "./research-entities-action/deduplicate-entities.js";
+import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human.js";
+import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call.js";
 import { linkFollowerAgent } from "./research-entities-action/link-follower-agent";
-import { runSubTaskAgent } from "./research-entities-action/sub-task-agent";
+import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
 import type { CompletedToolCall } from "./research-entities-action/types";
 import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "./shared/infer-facts-from-text/types";

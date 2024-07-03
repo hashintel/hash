@@ -3,7 +3,7 @@ import { mapGraphApiVerticesToVertices } from "@local/hash-isomorphic-utils/subg
 import type { Subgraph } from "@local/hash-subgraph";
 import { describe, expect, it } from "vitest";
 
-import { dereferenceEntityType } from "./dereference-entity-type";
+import { dereferenceEntityType } from "./dereference-entity-type.js";
 
 const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
   edges: {

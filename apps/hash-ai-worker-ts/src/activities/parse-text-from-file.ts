@@ -6,7 +6,7 @@ import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse
 import type { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
 import officeParser from "officeparser";
 
-import { fetchFileFromUrl } from "./shared/fetch-file-from-url";
+import { fetchFileFromUrl } from "./shared/fetch-file-from-url.js";
 
 type TextParsingFunction = (fileBuffer: Buffer) => Promise<string>;
 

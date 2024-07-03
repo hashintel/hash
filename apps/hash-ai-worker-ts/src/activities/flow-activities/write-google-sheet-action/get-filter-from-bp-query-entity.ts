@@ -7,7 +7,7 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 
-import { getLatestEntityById } from "../shared/graph-requests";
+import { getLatestEntityById } from "../shared/graph-requests.js";
 
 export const getFilterFromBlockProtocolQueryEntity = async ({
   authentication,
@@ -34,7 +34,6 @@ export const getFilterFromBlockProtocolQueryEntity = async ({
       "https://blockprotocol.org/@hash/types/property-type/query/"
     ];
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- additional check in case another entity is used that has this optional
   if (!multiFilter) {
     throw new Error(
       `No ${blockProtocolPropertyTypes.query.propertyTypeBaseUrl} property found on query entity with id ${queryEntityId}`,

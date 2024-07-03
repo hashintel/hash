@@ -9,21 +9,21 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import dedent from "dedent";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
-import { extractErrorMessage } from "../../../infer-entities/shared/extract-validation-failure-details";
+import { extractErrorMessage } from "../../../infer-entities/shared/extract-validation-failure-details.js";
 import type { PropertyValueWithSimplifiedProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties";
-import { mapSimplifiedPropertiesToProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties";
-import { stripIdsFromDereferencedProperties } from "../../../infer-entities/shared/strip-ids-from-dereferenced-properties";
+import { mapSimplifiedPropertiesToProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties.js";
+import { stripIdsFromDereferencedProperties } from "../../../infer-entities/shared/strip-ids-from-dereferenced-properties.js";
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type";
-import { getFlowContext } from "../../../shared/get-flow-context";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response";
 import type {
   LlmMessage,
   LlmUserMessage,
 } from "../../../shared/get-llm-response/llm-message";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message";
+import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types";
-import { graphApiClient } from "../../../shared/graph-api-client";
-import { stringify } from "../../../shared/stringify";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { stringify } from "../../../shared/stringify.js";
 import type { ExistingEntitySummary } from "../../research-entities-action/summarize-existing-entities";
 import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../infer-facts-from-text/types";

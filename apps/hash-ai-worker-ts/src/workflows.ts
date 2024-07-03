@@ -20,8 +20,11 @@ import {
 } from "@temporalio/workflow";
 import type { CreateEmbeddingResponse } from "openai/resources";
 
-import type { createAiActivities, createGraphActivities } from "./activities";
-import { runFlowWorkflow } from "./workflows/run-flow-workflow";
+import type {
+  createAiActivities,
+  createGraphActivities,
+} from "./activities.js";
+import { runFlowWorkflow } from "./workflows/run-flow-workflow.js";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
   cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,

@@ -1,7 +1,7 @@
 import type { Array } from "@blockprotocol/type-system";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
-import type { DereferencedPropertyType } from "../../shared/dereference-entity-type";
+import type { DereferencedPropertyType } from "../../shared/dereference-entity-type.js";
 
 /**
  * Strip the `$id` field from the dereferenced property type definitions,

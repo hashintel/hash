@@ -8,7 +8,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 
-import { persistEntityAction } from "./persist-entity-action";
+import { persistEntityAction } from "./persist-entity-action.js";
 import type { FlowActionActivity } from "./types";
 
 export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {

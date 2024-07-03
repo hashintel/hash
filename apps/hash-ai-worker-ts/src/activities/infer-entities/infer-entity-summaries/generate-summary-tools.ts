@@ -6,14 +6,14 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
-import { stringify } from "../../shared/stringify";
+import { stringify } from "../../shared/stringify.js";
 import type {
   DereferencedEntityTypesByTypeId,
   ProposedEntitySummary,
 } from "../inference-types";
-import { generateToolLinkFields } from "../shared/generate-propose-entities-tools";
+import { generateToolLinkFields } from "../shared/generate-propose-entities-tools.js";
 
 type FunctionName = "could_not_infer_entities" | "register_entity_summaries";
 

@@ -9,8 +9,8 @@ import type {
   LlmParams,
   LlmResponse,
 } from "../src/activities/shared/get-llm-response/types";
-import { graphApiClient } from "../src/activities/shared/graph-api-client";
-import { getAliceUserAccountId } from "../src/shared/testing-utilities/get-alice-user-account-id";
+import { graphApiClient } from "../src/activities/shared/graph-api-client.js";
+import { getAliceUserAccountId } from "../src/shared/testing-utilities/get-alice-user-account-id.js";
 import type { CompareLlmResponseConfig } from "./compare-llm-response/types";
 
 const __filename = fileURLToPath(import.meta.url);

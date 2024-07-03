@@ -1,13 +1,13 @@
 import dedent from "dedent";
 
-import { getFlowContext } from "../../../shared/get-flow-context";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message";
+import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
   LlmToolDefinition,
 } from "../../../shared/get-llm-response/types";
-import { graphApiClient } from "../../../shared/graph-api-client";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
 
 export type Link = {
   url: string;

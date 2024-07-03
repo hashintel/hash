@@ -22,9 +22,9 @@ import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
-import { createAiActivities, createGraphActivities } from "./activities";
-import { createFlowActivities } from "./activities/flow-activities";
-import { logToConsole } from "./shared/logger";
+import { createAiActivities, createGraphActivities } from "./activities.js";
+import { createFlowActivities } from "./activities/flow-activities.js";
+import { logToConsole } from "./shared/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

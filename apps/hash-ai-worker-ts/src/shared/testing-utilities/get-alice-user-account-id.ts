@@ -12,7 +12,7 @@ import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { graphApiClient } from "../../activities/shared/graph-api-client";
+import { graphApiClient } from "../../activities/shared/graph-api-client.js";
 
 export const getAliceUserAccountId = async () => {
   const [aliceUserEntity] = await graphApiClient

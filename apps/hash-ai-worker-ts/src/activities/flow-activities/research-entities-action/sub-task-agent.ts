@@ -3,36 +3,36 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import dedent from "dedent";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
-import { getFlowContext } from "../../shared/get-flow-context";
+import { getFlowContext } from "../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../shared/get-llm-response";
 import type {
   LlmMessage,
   LlmMessageTextContent,
   LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message";
-import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
+import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
   LlmToolDefinition,
   ParsedLlmToolCall,
 } from "../../shared/get-llm-response/types";
-import { graphApiClient } from "../../shared/graph-api-client";
-import { stringify } from "../../shared/stringify";
+import { graphApiClient } from "../../shared/graph-api-client.js";
+import { stringify } from "../../shared/stringify.js";
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../shared/infer-facts-from-text/types";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./coordinator-tools";
-import { generateToolDefinitions as generateCoordinatorToolDefinitions } from "./coordinator-tools";
+import { generateToolDefinitions as generateCoordinatorToolDefinitions } from "./coordinator-tools.js";
 import type { DuplicateReport } from "./deduplicate-entities";
-import { deduplicateEntities } from "./deduplicate-entities";
-import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
-import { handleWebSearchToolCall } from "./handle-web-search-tool-call";
+import { deduplicateEntities } from "./deduplicate-entities.js";
+import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message.js";
+import { handleWebSearchToolCall } from "./handle-web-search-tool-call.js";
 import { linkFollowerAgent } from "./link-follower-agent";
-import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption";
+import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption.js";
 import type { CompletedToolCall } from "./types";
-import { mapPreviousCallsToLlmMessages } from "./util";
+import { mapPreviousCallsToLlmMessages } from "./util.js";
 
 const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 

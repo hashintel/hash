@@ -6,14 +6,14 @@ import type {
   ChatCompletionCreateParams as OpenAiChatCompletionCreateParams,
 } from "openai/resources";
 
-import type { PermittedOpenAiModel } from "../openai-client";
+import type { PermittedOpenAiModel } from "../openai-client.js";
 import type {
   AnthropicMessageModel,
   AnthropicMessagesCreateParams,
   AnthropicMessagesCreateResponse,
-} from "./anthropic-client";
-import { isAnthropicMessageModel } from "./anthropic-client";
-import type { LlmAssistantMessage, LlmMessage } from "./llm-message";
+} from "./anthropic-client.js";
+import { isAnthropicMessageModel } from "./anthropic-client.js";
+import type { LlmAssistantMessage, LlmMessage } from "./llm-message.js";
 
 export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;

@@ -9,18 +9,18 @@ import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { StatusCode } from "@local/status";
 
-import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
-import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity";
+import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
+import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity.js";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "../infer-entities/inference-types";
-import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity";
-import { getFlowContext } from "../shared/get-flow-context";
-import { graphApiClient } from "../shared/graph-api-client";
-import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model";
-import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities";
-import { isPermittedOpenAiModel } from "../shared/openai-client";
+import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
+import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities.js";
+import { isPermittedOpenAiModel } from "../shared/openai-client.js";
 import type { FlowActionActivity } from "./types";
 
 export const inferEntitiesFromContentAction: FlowActionActivity = async ({

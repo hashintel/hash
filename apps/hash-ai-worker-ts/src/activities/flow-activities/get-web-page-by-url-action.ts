@@ -4,7 +4,7 @@ import {
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
-import { getWebPageActivity } from "../get-web-page-activity";
+import { getWebPageActivity } from "../get-web-page-activity.js";
 import type { FlowActionActivity } from "./types";
 
 export const getWebPageByUrlAction: FlowActionActivity = async ({ inputs }) => {
