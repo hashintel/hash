@@ -27,15 +27,15 @@
     "execa": "5.1.1",
     "lodash": "4.17.21",
     "typescript": "5.5.2",
-    "yargs": "^17.7.1"
+    "yargs": "17.7.1"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash": "4.17.4",
     "@types/node": "20.12.3",
-    "@types/yargs": "^17.0.22",
+    "@types/yargs": "17.0.22",
     "eslint": "8.57.0",
-    "quicktype": "^16.0.43"
+    "quicktype": "16.0.43"
   }
 }
