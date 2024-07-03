@@ -1,7 +1,6 @@
 [careers site]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
 [community guidelines]: https://hash.ai/legal/trust-safety/community?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
 [discussion]: https://github.com/hashintel/hash/discussions
-[hash.design]: https://hash.design/?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
 [hash.dev]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
 [issue]: https://github.com/hashintel/hash/issues
 [our commitment as a company]: https://hash.dev/blog/open-source?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
