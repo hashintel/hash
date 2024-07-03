@@ -6,16 +6,17 @@
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": "./dist/*.js"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "./src/*.ts"
+        "./dist/src/*.d.ts"
       ]
     }
   },
   "scripts": {
+    "build": "rimraf dist && tsc",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
@@ -60,6 +61,8 @@
     "@types/wait-on": "5.3.1",
     "@vitest/coverage-istanbul": "1.6.0",
     "eslint": "8.57.0",
+    "eslint-plugin-file-extension-in-import-ts": "2.1.0",
+    "rimraf": "5.0.7",
     "typescript": "5.5.2",
     "vitest": "1.6.0"
   }

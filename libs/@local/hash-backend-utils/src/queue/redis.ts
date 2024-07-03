@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { AsyncRedisClient } from "../redis";
-import { sleep } from "../utils";
+import { sleep } from "../utils.js";
 import type { QueueExclusiveConsumer, QueueProducer } from "./adapter";
 
 // The interval on which a consumer which owns the queue will re-affirm their ownership.

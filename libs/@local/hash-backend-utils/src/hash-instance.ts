@@ -1,8 +1,5 @@
-import {
-  EntityTypeMismatchError,
-  NotFoundError,
-} from "@local/hash-backend-utils/error";
-import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { EntityTypeMismatchError, NotFoundError } from "./error.js";
+import { getMachineActorId } from "./machine-actors.js";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {

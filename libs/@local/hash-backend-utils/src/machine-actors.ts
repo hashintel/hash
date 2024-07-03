@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { NotFoundError } from "@local/hash-backend-utils/error";
+import { NotFoundError } from "./error.js";
 import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";

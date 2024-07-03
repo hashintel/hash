@@ -4,7 +4,7 @@ import { Client, errors } from "@opensearch-project/opensearch";
 import { DataSource } from "apollo-datasource";
 
 import type { Logger } from "../logger";
-import { sleep } from "../utils";
+import { sleep } from "../utils.js";
 import type {
   SearchAdapter,
   SearchField,

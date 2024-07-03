@@ -1,4 +1,4 @@
-import type { SentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
+import type { SentrySinks } from "../../sinks/sentry.js";
 import type {
   Next,
   WorkflowInboundCallsInterceptor,

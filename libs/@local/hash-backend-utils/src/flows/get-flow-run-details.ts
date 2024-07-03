@@ -17,7 +17,7 @@ import { StatusCode } from "@local/status";
 import type { Client as TemporalClient } from "@temporalio/client";
 import proto from "@temporalio/proto";
 
-import { parseHistoryItemPayload } from "../src/temporal/parse-history-item-payload";
+import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 
 const eventTimeIsoStringFromEvent = (
   event?: proto.temporal.api.history.v1.IHistoryEvent,

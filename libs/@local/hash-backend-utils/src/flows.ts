@@ -1,4 +1,4 @@
-import type { TemporalClient } from "@local/hash-backend-utils/temporal";
+import type { TemporalClient } from "./temporal.js";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
@@ -28,7 +28,7 @@ import {
 import {
   getFlowRunFromWorkflowId,
   getSparseFlowRunFromWorkflowId,
-} from "../flows/get-flow-run-details";
+} from "./flows/get-flow-run-details.js";
 
 export const getFlowRunEntityById = async (params: {
   flowRunId: EntityUuid;

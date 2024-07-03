@@ -1,4 +1,4 @@
-import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getWebMachineActorId } from "./machine-actors.js";
 import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";

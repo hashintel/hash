@@ -11,7 +11,7 @@ import type {
   PresignedStorageRequest,
   StorageType,
   UploadableStorageProvider,
-} from "@local/hash-backend-utils/file-storage";
+} from "../file-storage.js";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 export interface AwsS3StorageProviderConstructorArgs {

@@ -1,4 +1,4 @@
-import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
+import { getHashInstanceAdminAccountGroupId } from "./hash-instance.js";
 import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
