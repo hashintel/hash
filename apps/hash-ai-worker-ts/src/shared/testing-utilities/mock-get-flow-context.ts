@@ -48,7 +48,6 @@ const createDummyFlow = async (params: { actorId: AccountId }) => {
       provenance: {
         actorType: "machine",
         origin: {
-          // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
           type: "flow",
         },
       },

@@ -73,7 +73,6 @@ export const createApolloServer = ({
       provenance: {
         actorType: "human",
         origin: {
-          // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
           type: getHashClientTypeFromRequest(ctx.req) ?? "api",
           userAgent: ctx.req.headers["user-agent"],
         },

@@ -54,7 +54,6 @@ export const parseTextFromFile = async (
 
     const provenance: EnforcedEntityEditionProvenance = {
       actorType: "machine",
-      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
       origin: {
         type: "flow",
         id: flowEntityId,

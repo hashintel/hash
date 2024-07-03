@@ -97,7 +97,6 @@ export const linearWebhook: RequestHandler<
       actorType: "machine",
       origin: {
         id: "linear-webhook",
-        // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
         type: "flow",
       },
     },

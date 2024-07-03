@@ -238,7 +238,6 @@ const main = async () => {
   const machineProvenance: EnforcedEntityEditionProvenance = {
     actorType: "machine",
     origin: {
-      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
       type: "api",
     },
   };
@@ -493,8 +492,7 @@ const main = async () => {
     const provenance: EnforcedEntityEditionProvenance = {
       actorType: "human",
       origin: {
-        // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
-        type: getHashClientTypeFromRequest(ctx.req) ?? "api",
+        type: getHashClientTypeFromRequest(req) ?? "api",
         userAgent: req.headers["user-agent"],
       },
     };

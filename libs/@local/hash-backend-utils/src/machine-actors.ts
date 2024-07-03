@@ -137,7 +137,6 @@ export const createMachineActorEntity = async (
   const provenance: EnforcedEntityEditionProvenance = {
     actorType: "machine",
     origin: {
-      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
       type: "api",
     },
   };

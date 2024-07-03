@@ -76,7 +76,6 @@ export const processEntityChange = async (
          * @todo use correct EntityId for Flow when Linear integration migrated to Flows
          */
         id: "linear-integration",
-        // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
         type: "flow",
       },
     },

@@ -145,7 +145,6 @@ export const getLlmResponse = async <T extends LlmParams>(
 
       const provenance: EnforcedEntityEditionProvenance = {
         actorType: "ai",
-        // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
         origin: {
           type: "flow",
           id: flowEntityId,

@@ -158,7 +158,6 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
 
       const provenance: ProposedEntity["provenance"] = {
         actorType: "ai",
-        // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
         origin: {
           type: "flow",
           id: flowEntityId,

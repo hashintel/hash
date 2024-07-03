@@ -50,7 +50,6 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<
     provenance: {
       actorType: "machine",
       origin: {
-        // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
         type: "api",
       },
     },

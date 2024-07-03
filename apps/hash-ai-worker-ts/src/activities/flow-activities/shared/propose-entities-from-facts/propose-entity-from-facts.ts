@@ -445,7 +445,6 @@ export const proposeEntityFromFacts = async (params: {
 
     const editionProvenance: EnforcedEntityEditionProvenance = {
       actorType: "ai",
-      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
       origin: {
         type: "flow",
         id: flowEntityId,
