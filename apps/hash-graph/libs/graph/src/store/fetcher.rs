@@ -236,7 +236,11 @@ where
         actor_id: AccountId,
         ontology_type_reference: OntologyTypeReference<'_>,
     ) -> Result<bool, StoreError> {
-        let url = ontology_type_reference.url();
+        let url = match ontology_type_reference {
+            OntologyTypeReference::DataTypeReference(reference) => reference.url(),
+            OntologyTypeReference::PropertyTypeReference(reference) => reference.url(),
+            OntologyTypeReference::EntityTypeReference(reference) => reference.url(),
+        };
 
         if let Ok(connection_info) = self.connection_info() {
             if connection_info
@@ -1166,9 +1170,7 @@ where
             .collect::<HashSet<_>>();
 
         for entity_type_id in type_ids {
-            let entity_type_reference = EntityTypeReference {
-                url: entity_type_id.clone(),
-            };
+            let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
             self.insert_external_types_by_reference(
                 actor_id,
                 OntologyTypeReference::EntityTypeReference(&entity_type_reference),
@@ -1237,9 +1239,9 @@ where
         for entity_type_id in &params.entity_type_ids {
             self.insert_external_types_by_reference(
                 actor_id,
-                OntologyTypeReference::EntityTypeReference(&EntityTypeReference {
-                    url: entity_type_id.clone(),
-                }),
+                OntologyTypeReference::EntityTypeReference(&EntityTypeReference::new(
+                    entity_type_id.clone(),
+                )),
                 ConflictBehavior::Skip,
                 FetchBehavior::ExcludeProvidedReferences,
                 &HashSet::new(),

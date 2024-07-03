@@ -1,7 +1,7 @@
 import type {
-  ArraySchema,
-  ObjectSchema,
-  OneOfSchema,
+  Array,
+  Object as BpObject,
+  OneOf,
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
@@ -13,12 +13,12 @@ export function isNonNullable<T>(value: T): value is NonNullable<T> {
 
 export const isPropertyValueArray = (
   propertyValue: PropertyValues,
-): propertyValue is ArraySchema<OneOfSchema<PropertyValues>> => {
+): propertyValue is Array<OneOf<PropertyValues>> => {
   return "type" in propertyValue && propertyValue.type === "array";
 };
 
 export const isPropertyValuePropertyObject = (
   propertyValue: PropertyValues,
-): propertyValue is ObjectSchema<ValueOrArray<PropertyTypeReference>> => {
+): propertyValue is BpObject<ValueOrArray<PropertyTypeReference>> => {
   return "type" in propertyValue && propertyValue.type === "object";
 };

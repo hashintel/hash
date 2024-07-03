@@ -3,33 +3,35 @@ use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 
 use crate::{
-    raw, EntityTypeReference, OneOfSchema, ParseEntityTypeReferenceArrayError,
-    ParseOneOfArrayError, ParsePropertyTypeObjectError, ParsePropertyTypeReferenceArrayError,
-    PropertyTypeReference, PropertyValues,
+    raw, EntityTypeReference, OneOf, ParseEntityTypeReferenceArrayError, ParseOneOfArrayError,
+    ParsePropertyTypeObjectError, ParsePropertyTypeReferenceArrayError, PropertyTypeReference,
+    PropertyValues,
 };
 
 /// Will serialize as a constant value `"array"`
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 enum ArrayTypeTag {
     #[default]
     Array,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ArraySchema<T> {
+pub struct Array<T> {
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "'array'"))]
     r#type: ArrayTypeTag,
     pub items: T,
+    #[cfg_attr(target_arch = "wasm32", tsify(optional))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub min_items: Option<usize>,
+    #[cfg_attr(target_arch = "wasm32", tsify(optional))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_items: Option<usize>,
 }
 
-impl<T> ArraySchema<T> {
+impl<T> Array<T> {
     pub const fn new(items: T, min_items: Option<usize>, max_items: Option<usize>) -> Self {
         Self {
             r#type: ArrayTypeTag::Array,
@@ -40,14 +42,10 @@ impl<T> ArraySchema<T> {
     }
 }
 
-impl TryFrom<ArraySchema<raw::OneOfSchema<raw::PropertyValues>>>
-    for super::ArraySchema<OneOfSchema<PropertyValues>>
-{
+impl TryFrom<Array<raw::OneOf<raw::PropertyValues>>> for super::Array<OneOf<PropertyValues>> {
     type Error = ParseOneOfArrayError;
 
-    fn try_from(
-        array_repr: ArraySchema<raw::OneOfSchema<raw::PropertyValues>>,
-    ) -> Result<Self, Self::Error> {
+    fn try_from(array_repr: Array<raw::OneOf<raw::PropertyValues>>) -> Result<Self, Self::Error> {
         Ok(Self {
             items: array_repr
                 .items
@@ -59,12 +57,10 @@ impl TryFrom<ArraySchema<raw::OneOfSchema<raw::PropertyValues>>>
     }
 }
 
-impl TryFrom<ArraySchema<raw::PropertyTypeReference>>
-    for super::ArraySchema<PropertyTypeReference>
-{
+impl TryFrom<Array<raw::PropertyTypeReference>> for super::Array<PropertyTypeReference> {
     type Error = ParsePropertyTypeReferenceArrayError;
 
-    fn try_from(array_repr: ArraySchema<raw::PropertyTypeReference>) -> Result<Self, Self::Error> {
+    fn try_from(array_repr: Array<raw::PropertyTypeReference>) -> Result<Self, Self::Error> {
         Ok(Self {
             items: array_repr
                 .items
@@ -76,13 +72,13 @@ impl TryFrom<ArraySchema<raw::PropertyTypeReference>>
     }
 }
 
-impl TryFrom<ArraySchema<raw::MaybeOneOfEntityTypeReference>>
-    for super::ArraySchema<Option<OneOfSchema<EntityTypeReference>>>
+impl TryFrom<Array<raw::MaybeOneOfEntityTypeReference>>
+    for super::Array<Option<OneOf<EntityTypeReference>>>
 {
     type Error = ParseEntityTypeReferenceArrayError;
 
     fn try_from(
-        array_repr: ArraySchema<raw::MaybeOneOfEntityTypeReference>,
+        array_repr: Array<raw::MaybeOneOfEntityTypeReference>,
     ) -> Result<Self, Self::Error> {
         let items = match array_repr.items.into_inner() {
             None => None,
@@ -101,11 +97,11 @@ impl TryFrom<ArraySchema<raw::MaybeOneOfEntityTypeReference>>
     }
 }
 
-impl<T, R> From<super::ArraySchema<T>> for ArraySchema<R>
+impl<T, R> From<super::Array<T>> for Array<R>
 where
     R: From<T>,
 {
-    fn from(array: super::ArraySchema<T>) -> Self {
+    fn from(array: super::Array<T>) -> Self {
         Self {
             r#type: ArrayTypeTag::Array,
             items: array.items.into(),
@@ -115,12 +111,12 @@ where
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged, deny_unknown_fields)]
 pub enum ValueOrArray<T> {
     Value(T),
-    Array(ArraySchema<T>),
+    Array(Array<T>),
 }
 
 impl TryFrom<ValueOrArray<raw::PropertyTypeReference>>
@@ -148,7 +144,7 @@ impl TryFrom<ValueOrArray<raw::PropertyTypeReference>>
 impl<T, R> From<super::ValueOrArray<T>> for ValueOrArray<R>
 where
     R: From<T>,
-    ArraySchema<R>: From<super::ArraySchema<T>>,
+    Array<R>: From<super::Array<T>>,
 {
     fn from(value_or_array: super::ValueOrArray<T>) -> Self {
         match value_or_array {
@@ -176,7 +172,7 @@ mod tests {
                     "type": "string"
                 },
             }),
-            Some(ArraySchema {
+            Some(Array {
                 r#type: ArrayTypeTag::Array,
                 items: StringTypeStruct::default(),
                 max_items: None,
@@ -196,7 +192,7 @@ mod tests {
                 "minItems": 10,
                 "maxItems": 20,
             }),
-            Some(ArraySchema {
+            Some(Array {
                 r#type: ArrayTypeTag::Array,
                 items: StringTypeStruct::default(),
                 min_items: Some(10),
@@ -207,7 +203,7 @@ mod tests {
 
     #[test]
     fn additional_properties() {
-        ensure_repr_failed_deserialization::<ArraySchema<StringTypeStruct>>(json!({
+        ensure_repr_failed_deserialization::<Array<StringTypeStruct>>(json!({
             "type": "array",
             "items": {
                 "type": "string"
@@ -233,7 +229,7 @@ mod tests {
 
         #[test]
         fn array() {
-            let expected: ArraySchema<StringTypeStruct> = ArraySchema {
+            let expected: Array<StringTypeStruct> = Array {
                 r#type: ArrayTypeTag::Array,
                 items: StringTypeStruct::default(),
                 min_items: None,
@@ -249,21 +245,6 @@ mod tests {
                 }),
                 Some(ValueOrArray::Array(expected)),
             );
-        }
-
-        #[test]
-        fn additional_properties() {
-            let as_json = json!({
-                "type": "array",
-                "items": {
-                    "type": "string"
-                },
-                "minItems": 10,
-                "maxItems": 20,
-                "additional": 30,
-            });
-
-            ensure_repr_failed_deserialization::<ArraySchema<StringTypeStruct>>(as_json);
         }
     }
 }

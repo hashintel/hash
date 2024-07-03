@@ -11,7 +11,7 @@ use graph_types::knowledge::{
 use thiserror::Error;
 use type_system::{
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    ClosedEntityType, DataType, ObjectSchema, PropertyType,
+    ClosedEntityType, DataType, Object, PropertyType,
 };
 
 use crate::{
@@ -67,7 +67,7 @@ where
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
-        ObjectSchema::<_, 0>::new(self.properties.clone(), self.required.clone())
+        Object::<_, 0>::new(self.properties.clone(), self.required.clone())
             .expect("`Object` was already validated")
             .validate_value(&value.value, components, provider)
             .await
@@ -277,17 +277,17 @@ where
             // At least one link type was found
             found_link_target = true;
 
-            let Some(allowed_targets) = maybe_allowed_targets.items() else {
+            let Some(allowed_targets) = maybe_allowed_targets.array().items() else {
                 continue;
             };
 
             // Link destinations are constrained, search for the right entity's type
             let mut found_match = false;
-            for allowed_target in allowed_targets.possibilities() {
+            for allowed_target in allowed_targets.one_of() {
                 if right_entity_type
                     .schemas
                     .keys()
-                    .any(|right_type| right_type.base_url == allowed_target.url.base_url)
+                    .any(|right_type| right_type.base_url == allowed_target.url().base_url)
                 {
                     found_match = true;
                     break;

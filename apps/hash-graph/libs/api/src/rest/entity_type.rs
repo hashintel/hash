@@ -433,7 +433,7 @@ where
             actor_id,
             schema.into_iter().map(|schema| {
                 domain_validator.validate(&schema).map_err(|report| {
-                    tracing::error!(error=?report, id=%schema.id, "Entity Type ID failed to validate");
+                    tracing::error!(error=?report, id=schema.id().to_string(), "Entity Type ID failed to validate");
                     status_to_response(Status::new(
                         hash_status::StatusCode::InvalidArgument,
                         Some("Entity Type ID failed to validate against the given domain regex. Are you sure the service is able to host a type under the domain you supplied?".to_owned()),
@@ -441,7 +441,7 @@ where
                             HashMap::from([
                                 (
                                     "entityTypeId".to_owned(),
-                                    serde_json::to_value(&schema.id)
+                                    serde_json::to_value(schema.id().to_string())
                                         .expect("Could not serialize entity type id"),
                                 ),
                             ]),
@@ -652,9 +652,9 @@ where
             relationships,
             provenance,
         } => {
-            if domain_validator.validate_url(schema.id.base_url.as_str()) {
+            if domain_validator.validate_url(schema.id().base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
-                tracing::error!(id=%schema.id, error);
+                tracing::error!(id=%schema.id(), error);
                 return Err(status_to_response(Status::new(
                     hash_status::StatusCode::InvalidArgument,
                     Some(error),

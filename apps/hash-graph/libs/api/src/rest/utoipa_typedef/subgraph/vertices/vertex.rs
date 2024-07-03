@@ -36,7 +36,7 @@ impl OntologyTypeVertexId {
     }
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(tag = "kind", content = "inner")]
 #[serde(rename_all = "camelCase")]
 #[expect(clippy::enum_variant_names)]
@@ -75,7 +75,7 @@ pub(crate) enum KnowledgeGraphVertex {
     Entity(Entity),
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 #[serde(untagged)]
 #[expect(dead_code, reason = "This is used in the generated OpenAPI spec")]

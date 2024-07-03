@@ -41,10 +41,10 @@ impl From<EntityType> for ClosedEntityType {
                     description: entity_type.description,
                 },
             )]),
-            properties: entity_type.properties,
-            required: entity_type.required,
+            properties: entity_type.property_object.properties,
+            required: entity_type.property_object.required,
             links: entity_type.links,
-            inherits_from: entity_type.inherits_from.into_iter().collect(),
+            inherits_from: entity_type.inherits_from.elements.into_iter().collect(),
         }
     }
 }
@@ -76,14 +76,14 @@ impl Extend<Self> for ClosedEntityType {
         }
 
         self.inherits_from
-            .retain(|x| !self.schemas.contains_key(&x.url));
+            .retain(|x| !self.schemas.contains_key(x.url()));
     }
 }
 
 impl Extend<EntityType> for ClosedEntityType {
     fn extend<T: IntoIterator<Item = EntityType>>(&mut self, iter: T) {
         for other in iter {
-            self.inherits_from.extend(other.inherits_from);
+            self.inherits_from.extend(other.inherits_from.elements);
             self.schemas.insert(
                 other.id,
                 ClosedEntityTypeSchemaData {
@@ -91,13 +91,13 @@ impl Extend<EntityType> for ClosedEntityType {
                     description: other.description,
                 },
             );
-            self.properties.extend(other.properties);
-            self.required.extend(other.required);
+            self.properties.extend(other.property_object.properties);
+            self.required.extend(other.property_object.required);
             self.links.extend_one(other.links);
         }
 
         self.inherits_from
-            .retain(|x| !self.schemas.contains_key(&x.url));
+            .retain(|x| !self.schemas.contains_key(x.url()));
     }
 }
 

@@ -75,7 +75,7 @@ async fn query() {
         .get_property_types(
             api.account_id,
             GetPropertyTypesParams {
-                filter: Filter::for_versioned_url(&favorite_quote_pt.id),
+                filter: Filter::for_versioned_url(favorite_quote_pt.id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -95,7 +95,7 @@ async fn query() {
         .pop()
         .expect("no property type found");
 
-    assert_eq!(property_type.schema.id, favorite_quote_pt.id);
+    assert_eq!(property_type.schema, favorite_quote_pt);
 }
 
 #[tokio::test]
@@ -142,7 +142,7 @@ async fn update() {
         .get_property_types(
             api.account_id,
             GetPropertyTypesParams {
-                filter: Filter::for_versioned_url(&user_id_pt_v1.id),
+                filter: Filter::for_versioned_url(user_id_pt_v1.id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -166,7 +166,7 @@ async fn update() {
         .get_property_types(
             api.account_id,
             GetPropertyTypesParams {
-                filter: Filter::for_versioned_url(&user_id_pt_v2.id),
+                filter: Filter::for_versioned_url(user_id_pt_v2.id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -186,6 +186,6 @@ async fn update() {
         .pop()
         .expect("no property type found");
 
-    assert_eq!(user_id_pt_v1.id, returned_user_id_pt_v1.schema.id);
-    assert_eq!(user_id_pt_v2.id, returned_user_id_pt_v2.schema.id);
+    assert_eq!(user_id_pt_v1, returned_user_id_pt_v1.schema);
+    assert_eq!(user_id_pt_v2, returned_user_id_pt_v2.schema);
 }

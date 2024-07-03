@@ -164,6 +164,10 @@
               "type": "string",
               "enum": ["array"]
             },
+            "ordered": {
+              "type": "boolean",
+              "default": false
+            },
             "items": {
               "description": "Specifies a set of entity types inside a oneOf",
               "type": "object",
@@ -186,7 +190,7 @@
               "minimum": 0
             }
           },
-          "required": ["type", "items"],
+          "required": ["type", "ordered", "items"],
           "additionalProperties": false
         }
       }

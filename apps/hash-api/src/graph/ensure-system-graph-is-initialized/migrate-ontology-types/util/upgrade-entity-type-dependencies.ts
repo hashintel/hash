@@ -3,7 +3,6 @@ import type {
   EntityTypeReference,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { atLeastOne } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -45,34 +44,29 @@ export const upgradeEntityTypeDependencies = ({
 }): EntityType => {
   return {
     ...schema,
-    allOf: schema.allOf
-      ? atLeastOne(
-          schema.allOf.map((reference) =>
-            replaceEntityTypeReference({
-              reference,
-              upgradedEntityTypeIds,
-            }),
-          ),
-        )
-      : undefined,
+    allOf: schema.allOf?.map((reference) =>
+      replaceEntityTypeReference({
+        reference,
+        upgradedEntityTypeIds,
+      }),
+    ),
     links: typedEntries(schema.links ?? {}).reduce<
       NonNullable<EntityType["links"]>
     >((accumulator, [uncheckedLinkTypeId, linkSchema]) => {
-      const oneOf =
-        "oneOf" in linkSchema.items
-          ? atLeastOne(
-              linkSchema.items.oneOf.map((reference) =>
-                replaceEntityTypeReference({
-                  reference,
-                  upgradedEntityTypeIds,
-                }),
-              ),
-            )
-          : undefined;
-
       const schemaWithUpdatedDestinations = {
         ...linkSchema,
-        items: oneOf ? { oneOf } : ({} as Record<string, never>),
+        items: {
+          ...linkSchema.items,
+          oneOf:
+            "oneOf" in linkSchema.items
+              ? linkSchema.items.oneOf.map((reference) =>
+                  replaceEntityTypeReference({
+                    reference,
+                    upgradedEntityTypeIds,
+                  }),
+                )
+              : linkSchema.items,
+        },
       };
 
       let linkTypeId = uncheckedLinkTypeId;

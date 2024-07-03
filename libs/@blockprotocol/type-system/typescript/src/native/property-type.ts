@@ -1,6 +1,6 @@
 import type {
-  ArraySchema,
-  OneOfSchema,
+  Array as TypeSystemArray,
+  OneOf,
   PropertyType,
   PropertyValues,
   VersionedUrl,
@@ -16,7 +16,7 @@ export const PROPERTY_TYPE_META_SCHEMA: PropertyType["$schema"] =
  */
 export const isPropertyValuesArray = (
   propertyValues: PropertyValues,
-): propertyValues is ArraySchema<OneOfSchema<PropertyValues>> =>
+): propertyValues is TypeSystemArray<OneOf<PropertyValues>> =>
   "type" in propertyValues && propertyValues.type === "array";
 
 /**

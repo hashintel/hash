@@ -157,7 +157,7 @@ where
                 .into_iter()
                 .filter_map(|row| {
                     let entity_type = row.decode_record(&artifacts);
-                    let id = EntityTypeId::from_url(&entity_type.schema.id);
+                    let id = EntityTypeId::from_url(entity_type.schema.id());
                     // The records are already sorted by time, so we can just take the first one
                     visited_ontology_ids.insert(id).then_some((id, entity_type))
                 })
@@ -404,7 +404,7 @@ where
 
         loop {
             for parent in current_type.inherits_from.clone() {
-                let parent_id = EntityTypeId::from_url(&parent.url);
+                let parent_id = EntityTypeId::from_url(parent.url());
 
                 ensure!(
                     parent_id != entity_type_id,
@@ -423,7 +423,7 @@ where
                         .get(&parent_id)
                         .ok_or_else(|| Report::new(QueryError))
                         .attach_printable("entity type not available")
-                        .attach_printable_lazy(|| parent.url.clone())?
+                        .attach_printable_lazy(|| parent.url().clone())?
                         .clone(),
                 );
 
@@ -448,7 +448,7 @@ where
             .into_iter()
             .map(|entity_type| {
                 (
-                    EntityTypeId::from_url(&entity_type.id).into_uuid(),
+                    EntityTypeId::from_url(entity_type.id()).into_uuid(),
                     entity_type,
                 )
             })
@@ -458,8 +458,8 @@ where
         // schemas
         let parent_entity_type_ids = entity_types
             .iter()
-            .flat_map(|(_, schema)| &schema.inherits_from)
-            .map(|reference| EntityTypeId::from_url(&reference.url).into_uuid())
+            .flat_map(|(_, schema)| schema.inherits_from().all_of())
+            .map(|reference| EntityTypeId::from_url(reference.url()).into_uuid())
             .collect::<Vec<_>>();
 
         // We read all relevant schemas from the graph
@@ -549,7 +549,7 @@ where
 
             metadatas.push((
                 PartialEntityTypeMetadata {
-                    record_id: OntologyTypeRecordId::from(param.schema.id.clone()),
+                    record_id: OntologyTypeRecordId::from(param.schema.id().clone()),
                     classification: param.classification,
                     label_property: param.label_property,
                     icon: param.icon,
@@ -574,7 +574,7 @@ where
                 closed_schema,
             } = insertion;
 
-            let entity_type_id = EntityTypeId::from_url(&schema.id);
+            let entity_type_id = EntityTypeId::from_url(schema.id());
 
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
                 &metadata.classification
@@ -655,7 +655,7 @@ where
                 .attach_printable_lazy(|| {
                     format!(
                         "could not insert references for entity type: {}",
-                        entity_type.schema.id
+                        entity_type.schema.id()
                     )
                 })
                 .attach_lazy(|| entity_type.schema.clone())?;
@@ -780,7 +780,7 @@ where
             .iter()
             .map(|entity_type| {
                 (
-                    EntityTypeId::from_url(&entity_type.schema.id),
+                    EntityTypeId::from_url(entity_type.schema.id()),
                     GraphElementVertexId::from(entity_type.vertex_id(time_axis)),
                 )
             })
@@ -834,11 +834,11 @@ where
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
         let old_ontology_id = EntityTypeId::from_url(&VersionedUrl {
-            base_url: params.schema.id.base_url.clone(),
+            base_url: params.schema.id().base_url.clone(),
             version: OntologyTypeVersion::new(
                 params
                     .schema
-                    .id
+                    .id()
                     .version
                     .inner()
                     .checked_sub(1)
@@ -862,7 +862,7 @@ where
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let url = &params.schema.id;
+        let url = params.schema.id();
         let record_id = OntologyTypeRecordId::from(url.clone());
 
         let provenance = OntologyProvenance {
@@ -911,7 +911,10 @@ where
             .await
             .change_context(UpdateError)
             .attach_printable_lazy(|| {
-                format!("could not insert references for entity type: {}", schema.id)
+                format!(
+                    "could not insert references for entity type: {}",
+                    schema.id()
+                )
             })
             .attach_lazy(|| schema.clone())?;
 

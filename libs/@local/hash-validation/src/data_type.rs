@@ -438,20 +438,20 @@ impl<P: Sync> Schema<PropertyWithMetadata, P> for DataType {
     ) -> Result<(), Report<DataValidationError>> {
         if let Some(data_type_id) = value.data_type_id() {
             ensure!(
-                *data_type_id == self.id,
+                data_type_id == self.id(),
                 DataValidationError::InvalidDataType {
-                    actual: self.id.clone(),
+                    actual: self.id().clone(),
                     expected: data_type_id.clone(),
                 }
             );
         }
 
-        match (self.json_type, value) {
+        match (self.json_type(), value) {
             (JsonSchemaValueType::Number, PropertyWithMetadata::Value { value, metadata: _ }) => {
                 #[expect(clippy::float_arithmetic)]
                 check_numeric_additional_property(
                     value,
-                    &self.additional_properties,
+                    self.additional_properties(),
                     JsonSchemaValueType::Number,
                     JsonValue::as_f64,
                     |number, multiple| number % multiple < f64::EPSILON,
@@ -460,7 +460,7 @@ impl<P: Sync> Schema<PropertyWithMetadata, P> for DataType {
             (JsonSchemaValueType::Integer, PropertyWithMetadata::Value { value, metadata: _ }) => {
                 check_numeric_additional_property(
                     value,
-                    &self.additional_properties,
+                    self.additional_properties(),
                     JsonSchemaValueType::Integer,
                     JsonValue::as_i64,
                     #[expect(clippy::integer_division_remainder_used)]
@@ -470,7 +470,7 @@ impl<P: Sync> Schema<PropertyWithMetadata, P> for DataType {
             (JsonSchemaValueType::String, PropertyWithMetadata::Value { value, metadata: _ }) => {
                 check_string_additional_property(
                     value,
-                    &self.additional_properties,
+                    self.additional_properties(),
                     JsonSchemaValueType::String,
                     JsonValue::as_str,
                 )?;
@@ -484,7 +484,7 @@ impl<P: Sync> Schema<PropertyWithMetadata, P> for DataType {
             ),
         }
 
-        for (additional_key, additional_property) in &self.additional_properties {
+        for (additional_key, additional_property) in self.additional_properties() {
             match additional_key.as_str() {
                 "const" => {
                     let (actual, _) = value.clone().into_parts();
@@ -511,12 +511,10 @@ impl<P: Sync> Schema<PropertyWithMetadata, P> for DataType {
                     );
                 }
                 "minimum" | "maximum" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf"
-                    if matches!(
-                        self.json_type,
-                        JsonSchemaValueType::Integer | JsonSchemaValueType::Number
-                    ) => {}
+                    if self.json_type() == JsonSchemaValueType::Integer
+                        || self.json_type() == JsonSchemaValueType::Number => {}
                 "format" | "minLength" | "maxLength" | "pattern"
-                    if self.json_type == JsonSchemaValueType::String => {}
+                    if self.json_type() == JsonSchemaValueType::String => {}
                 "label" => {
                     // Label does not have to be validated
                 }
@@ -559,10 +557,10 @@ where
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
         let data_type = provider
-            .provide_type(&self.url)
+            .provide_type(self.url())
             .await
             .change_context_lazy(|| DataValidationError::DataTypeRetrieval {
-                id: self.url.clone(),
+                id: self.url().clone(),
             })?;
         data_type
             .borrow()

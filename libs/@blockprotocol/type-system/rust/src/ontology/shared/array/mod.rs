@@ -6,27 +6,24 @@ use serde::{Deserialize, Serialize};
 use crate::{url::BaseUrl, PropertyTypeReference, ValidateUrl, ValidationError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(
-    into = "raw::ArraySchema<T>",
-    bound(serialize = "T: Serialize + Clone")
-)]
-pub struct ArraySchema<T> {
+#[serde(into = "raw::Array<T>", bound(serialize = "T: Serialize + Clone"))]
+pub struct Array<T> {
     pub items: T,
     pub min_items: Option<usize>,
     pub max_items: Option<usize>,
 }
 
-impl<'de> Deserialize<'de> for ArraySchema<PropertyTypeReference> {
+impl<'de> Deserialize<'de> for Array<PropertyTypeReference> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        let array_repr = raw::ArraySchema::deserialize(deserializer)?;
+        let array_repr = raw::Array::deserialize(deserializer)?;
         array_repr.try_into().map_err(serde::de::Error::custom)
     }
 }
 
-impl<T> ArraySchema<T> {
+impl<T> Array<T> {
     #[must_use]
     pub const fn new(items: T, min_items: Option<usize>, max_items: Option<usize>) -> Self {
         Self {
@@ -57,7 +54,7 @@ impl<T> ArraySchema<T> {
 #[serde(untagged)]
 pub enum ValueOrArray<T> {
     Value(T),
-    Array(ArraySchema<T>),
+    Array(Array<T>),
 }
 
 impl<'de> Deserialize<'de> for ValueOrArray<PropertyTypeReference> {

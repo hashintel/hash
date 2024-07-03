@@ -166,7 +166,7 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
             serde_json::from_str(entity_str).expect("could not parse entity");
         let entity_type: EntityType =
             serde_json::from_str(entity_type_str).expect("could not parse entity type");
-        let entity_type_id = entity_type.id;
+        let entity_type_id = entity_type.id().clone();
 
         let uuids = transaction
             .create_entities(
@@ -197,7 +197,7 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
     for (entity_type_str, left_entity_index, right_entity_index) in SEED_LINKS {
         let entity_type: EntityType =
             serde_json::from_str(entity_type_str).expect("could not parse entity type");
-        let entity_type_id = entity_type.id;
+        let entity_type_id = entity_type.id().clone();
 
         let uuids = transaction
             .create_entities(
@@ -267,7 +267,7 @@ async fn get_samples<A: AuthorizationApi>(
             .map(|entity_type_str| {
                 let entity_type: EntityType =
                     serde_json::from_str(entity_type_str).expect("could not parse entity type");
-                entity_type.id
+                entity_type.id().clone()
             })
             .collect(),
     );
@@ -285,7 +285,7 @@ async fn get_samples<A: AuthorizationApi>(
     for entity_type_id in SEED_ENTITIES.map(|(entity_type_str, ..)| {
         let entity_type: EntityType =
             serde_json::from_str(entity_type_str).expect("could not parse entity type");
-        entity_type.id
+        entity_type.id().clone()
     }) {
         // For now we'll just pick a sample of 50 entities.
         let sample_entity_uuids = store_wrapper
