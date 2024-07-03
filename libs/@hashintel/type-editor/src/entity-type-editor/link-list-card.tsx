@@ -59,7 +59,7 @@ const formDataToEntityType = (data: TypeFormDefaults) => ({
     {
       $ref: linkEntityTypeUrl,
     },
-  ],
+  ] satisfies EntityType["allOf"],
   properties: {},
 });
 

@@ -486,8 +486,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &property_type.url().base_url,
-                        &property_type.url().version,
+                        &property_type.url.base_url,
+                        &property_type.url.version,
                     ],
                 )
                 .await
@@ -509,8 +509,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &data_type.url().base_url,
-                        &data_type.url().version,
+                        &data_type.url.base_url,
+                        &data_type.url.version,
                     ],
                 )
                 .await
@@ -541,15 +541,15 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &property_type.url().base_url,
-                        &property_type.url().version,
+                        &property_type.url.base_url,
+                        &property_type.url.version,
                     ],
                 )
                 .await
                 .change_context(InsertionError)?;
         }
 
-        for inherits_from in entity_type.inherits_from().all_of() {
+        for inherits_from in &entity_type.inherits_from {
             self.as_client()
                 .query_one(
                     "
@@ -564,8 +564,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &inherits_from.url().base_url,
-                        &inherits_from.url().version,
+                        &inherits_from.url.base_url,
+                        &inherits_from.url.version,
                     ],
                 )
                 .await
@@ -588,8 +588,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &link_reference.url().base_url,
-                        &link_reference.url().version,
+                        &link_reference.url.base_url,
+                        &link_reference.url.version,
                     ],
                 )
                 .await
@@ -611,8 +611,8 @@ where
                             ",
                             &[
                                 &ontology_id,
-                                &destination.url().base_url,
-                                &destination.url().version,
+                                &destination.url.base_url,
+                                &destination.url.version,
                             ],
                         )
                         .await
@@ -637,7 +637,7 @@ where
         let referenced_entity_types = referenced_entity_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_entity_types.size_hint().0);
         for reference in referenced_entity_types {
-            ids.push(self.ontology_id_by_url(reference.url()).await?);
+            ids.push(self.ontology_id_by_url(&reference.url).await?);
         }
         Ok(ids)
     }
@@ -654,7 +654,7 @@ where
         let referenced_property_types = referenced_property_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_property_types.size_hint().0);
         for reference in referenced_property_types {
-            ids.push(self.ontology_id_by_url(reference.url()).await?);
+            ids.push(self.ontology_id_by_url(&reference.url).await?);
         }
         Ok(ids)
     }
@@ -671,7 +671,7 @@ where
         let referenced_data_types = referenced_data_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_data_types.size_hint().0);
         for reference in referenced_data_types {
-            ids.push(self.ontology_id_by_url(reference.url()).await?);
+            ids.push(self.ontology_id_by_url(&reference.url).await?);
         }
         Ok(ids)
     }

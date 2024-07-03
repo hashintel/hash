@@ -5,24 +5,22 @@ use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]
 use {tsify::Tsify, wasm_bindgen::prelude::*};
 
-use crate::{
-    raw, url::VersionedUrl, EntityTypeReference, OneOf, ParseEntityTypeReferenceArrayError,
-    ParseLinksError, ParseOneOfError,
-};
+use crate::{ontology::raw::ArraySchema, raw, url::VersionedUrl, ParseLinksError, ParseOneOfError};
 
-#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Links {
     #[cfg_attr(
         target_arch = "wasm32",
         tsify(
             optional,
-            type = "Record<VersionedUrl, MaybeOrderedArray<MaybeOneOfEntityTypeReference>>"
+            type = "Record<VersionedUrl, ArraySchema<OneOfSchema<EntityTypeReference> | \
+                    Record<string, never>>>"
         )
     )]
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub links: HashMap<String, MaybeOrderedArray<MaybeOneOfEntityTypeReference>>,
+    pub links: HashMap<String, ArraySchema<MaybeOneOfEntityTypeReference>>,
 }
 
 impl TryFrom<Links> for super::Links {
@@ -56,74 +54,35 @@ impl From<super::Links> for Links {
     }
 }
 
-#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct MaybeOrderedArray<T> {
-    #[serde(flatten)]
-    array: raw::Array<T>,
-    #[cfg_attr(target_arch = "wasm32", tsify(optional))]
-    #[serde(default)]
-    ordered: bool,
-}
-
-impl TryFrom<MaybeOrderedArray<MaybeOneOfEntityTypeReference>>
-    for super::MaybeOrderedArray<Option<OneOf<EntityTypeReference>>>
-{
-    type Error = ParseEntityTypeReferenceArrayError;
-
-    fn try_from(
-        maybe_ordered_array_repr: MaybeOrderedArray<MaybeOneOfEntityTypeReference>,
-    ) -> Result<Self, Self::Error> {
-        Ok(Self {
-            array: maybe_ordered_array_repr.array.try_into()?,
-            ordered: maybe_ordered_array_repr.ordered,
-        })
-    }
-}
-
-impl From<super::MaybeOrderedArray<Option<OneOf<EntityTypeReference>>>>
-    for MaybeOrderedArray<MaybeOneOfEntityTypeReference>
-{
-    fn from(
-        maybe_ordered_array: super::MaybeOrderedArray<Option<OneOf<EntityTypeReference>>>,
-    ) -> Self {
-        Self {
-            array: maybe_ordered_array.array.into(),
-            ordered: maybe_ordered_array.ordered,
-        }
-    }
-}
-
-// TODO: tsify can't handle a flattened optional on `MaybeOneOfEntityTypeReference`, so we have to
-//  manually define the type, see wasm::MaybeOneOfEntityTypeReferencePatch
-//  https://github.com/madonoharu/tsify/issues/10
-
-// This struct is needed because its used inside generic parameters of other structs like `Array`.
+// This struct is needed because it's used inside generic parameters of other structs like `Array`.
 // Those structs can't apply serde's `default` or `skip_serializing_if` which means the option
 // doesn't de/serialize as required unless wrapped in an intermediary struct.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaybeOneOfEntityTypeReference {
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
-    inner: Option<raw::OneOf<raw::EntityTypeReference>>,
+    inner: Option<raw::OneOfSchema<raw::EntityTypeReference>>,
 }
 
 impl MaybeOneOfEntityTypeReference {
     #[must_use]
-    pub fn into_inner(self) -> Option<raw::OneOf<raw::EntityTypeReference>> {
+    pub fn into_inner(self) -> Option<raw::OneOfSchema<raw::EntityTypeReference>> {
         self.inner
     }
 }
 
-impl From<Option<OneOf<EntityTypeReference>>> for MaybeOneOfEntityTypeReference {
-    fn from(option: Option<OneOf<EntityTypeReference>>) -> Self {
+impl From<Option<super::OneOfSchema<super::EntityTypeReference>>>
+    for MaybeOneOfEntityTypeReference
+{
+    fn from(option: Option<super::OneOfSchema<super::EntityTypeReference>>) -> Self {
         Self {
             inner: option.map(core::convert::Into::into),
         }
     }
 }
 
-impl TryFrom<MaybeOneOfEntityTypeReference> for Option<OneOf<EntityTypeReference>> {
+impl TryFrom<MaybeOneOfEntityTypeReference>
+    for Option<super::OneOfSchema<super::EntityTypeReference>>
+{
     type Error = ParseOneOfError;
 
     fn try_from(value: MaybeOneOfEntityTypeReference) -> Result<Self, Self::Error> {
@@ -139,307 +98,192 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::utils::tests::{
-        check_repr_serialization_from_value, ensure_repr_failed_deserialization, StringTypeStruct,
+    use crate::{
+        ontology::raw::{EntityTypeReference, OneOfSchema},
+        utils::tests::check_repr_serialization_from_value,
     };
 
-    // TODO - write some tests for validation of Link schemas, although most testing happens on
-    //  entity types
+    #[test]
+    fn empty() {
+        check_repr_serialization_from_value::<Links>(
+            json!({}),
+            Some(Links {
+                links: HashMap::new(),
+            }),
+        );
+    }
 
-    mod maybe_ordered_array {
-
-        use super::*;
-        use crate::ontology::raw::Array;
-
-        #[test]
-        fn unordered() {
-            let expected_inner = json!(
-                {
+    #[test]
+    fn unconstrained() {
+        check_repr_serialization_from_value::<Links>(
+            json!({ "links": {
+                "https://example.com/@example-org/types/entity-type/friend-of/v/1": {
                     "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            );
-
-            let as_json = json!({
-                "type": "array",
-                "items": {
-                    "type": "string"
+                    "items": {},
                 },
-                "ordered": false,
-            });
+            } }),
+            Some(Links {
+                links: HashMap::from([(
+                    "https://example.com/@example-org/types/entity-type/friend-of/v/1".to_owned(),
+                    ArraySchema::new(MaybeOneOfEntityTypeReference { inner: None }, None, None),
+                )]),
+            }),
+        );
+    }
 
-            let inner_array: raw::Array<StringTypeStruct> = serde_json::from_value(expected_inner)
-                .expect("failed to deserialize array to repr");
-
-            check_repr_serialization_from_value(
-                as_json,
-                Some(MaybeOrderedArray {
-                    array: inner_array,
-                    ordered: false,
-                }),
-            );
-        }
-
-        #[test]
-        fn ordered() {
-            let expected_inner = json!(
-                {
+    #[test]
+    fn constrained() {
+        check_repr_serialization_from_value::<Links>(
+            json!({ "links": {
+                "https://example.com/@example-org/types/entity-type/friend-of/v/1": {
                     "type": "array",
                     "items": {
-                        "type": "string"
-                    }
-                }
-            );
-
-            let as_json = json!({
-                "type": "array",
-                "items": {
-                    "type": "string"
-                },
-                "ordered": true
-            });
-
-            let inner_array: raw::Array<StringTypeStruct> = serde_json::from_value(expected_inner)
-                .expect("failed to deserialize array to repr");
-
-            check_repr_serialization_from_value(
-                as_json,
-                Some(MaybeOrderedArray {
-                    array: inner_array,
-                    ordered: true,
-                }),
-            );
-        }
-
-        #[test]
-        fn constrained() {
-            let expected_inner = json!(
-                {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
+                        "oneOf": [
+                            { "$ref": "https://example.com/@example-org/types/entity-type/person/v/1" },
+                        ],
                     },
-                    "minItems": 10,
-                    "maxItems": 20,
+                },
+            } }),
+            Some(Links {
+                links: HashMap::from([(
+                    "https://example.com/@example-org/types/entity-type/friend-of/v/1".to_owned(),
+                    ArraySchema::new(MaybeOneOfEntityTypeReference { inner: Some(OneOfSchema {
+                        possibilities: vec![EntityTypeReference {
+                         url:   "https://example.com/@example-org/types/entity-type/person/v/1".to_owned(),
+                        }]},
+                      )}, None, None),
+                )]),
+            }),
+        );
+    }
+
+    #[test]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "Test is long because it's merging multiple link constraints"
+    )]
+    fn merged() {
+        let link_type_a = VersionedUrl::from_str(
+            "https://example.com/@example-org/types/entity-type/friend-of/v/1",
+        )
+        .expect("failed to parse VersionedUrl");
+
+        let link_type_b = VersionedUrl::from_str(
+            "https://example.com/@example-org/types/entity-type/created-at/v/1",
+        )
+        .expect("failed to parse VersionedUrl");
+        let link_type_b_1_dest = VersionedUrl::from_str(
+            "https://example.com/@example-org/types/entity-type/location/v/1",
+        )
+        .expect("failed to parse VersionedUrl");
+        let link_type_b_2_dest =
+            VersionedUrl::from_str("https://example.com/@example-org/types/entity-type/city/v/1")
+                .expect("failed to parse VersionedUrl");
+
+        let link_type_c = VersionedUrl::from_str(
+            "https://example.com/@example-org/types/entity-type/born-in/v/1",
+        )
+        .expect("failed to parse VersionedUrl");
+        let link_type_c_dest = VersionedUrl::from_str(
+            "https://example.com/@example-org/types/entity-type/country/v/1",
+        )
+        .expect("failed to parse VersionedUrl");
+
+        check_repr_serialization_from_value(
+            json!({
+                "links": {
+                    link_type_a.to_string(): {
+                        "type": "array",
+                        "items": {},
+                        "minItems": 2,
+                        "maxItems": 10,
+                    },
+                    link_type_b.to_string(): {
+                        "type": "array",
+                        "items": {
+                            "oneOf": [
+                                { "$ref": link_type_b_1_dest.to_string() },
+                            ]
+                        },
+                        "minItems": 15,
+                        "maxItems": 10,
+                    },
+                    link_type_c.to_string(): {
+                        "type": "array",
+                        "items": {
+                            "oneOf": [
+                                { "$ref": link_type_c_dest.to_string() },
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 2,
+                    },
                 }
-            );
-
-            let as_json = json!({
-                "type": "array",
-                "items": {
-                    "type": "string"
-                },
-                "minItems": 10,
-                "maxItems": 20,
-                "ordered": false,
-            });
-
-            let inner_array: raw::Array<StringTypeStruct> = serde_json::from_value(expected_inner)
-                .expect("failed to deserialize array to repr");
-
-            check_repr_serialization_from_value(
-                as_json,
-                Some(MaybeOrderedArray {
-                    array: inner_array,
-                    ordered: false,
-                }),
-            );
-        }
-
-        #[test]
-        fn unconstrained() {
-            check_repr_serialization_from_value(
-                json!({}),
-                Some(Links {
-                    links: HashMap::new(),
-                }),
-            );
-
-            let link_type = "https://example.com/@example-org/types/entity-type/friend-of/v/1";
-
-            check_repr_serialization_from_value(
-                json!({
-                    "links": {
-                        link_type: {
-                            "type": "array",
-                            "items": {},
-                            "maxItems": 10,
-                            "ordered": false,
+            }),
+            Some(Links::from(
+                [
+                    json!({
+                        "links": {
+                            link_type_a.to_string(): {
+                                "type": "array",
+                                "items": {},
+                                "maxItems": 10,
+                            },
+                            link_type_b.to_string(): {
+                                "type": "array",
+                                "items": {
+                                    "oneOf": [
+                                        { "$ref": link_type_b_1_dest.to_string() },
+                                        { "$ref": link_type_b_2_dest.to_string() },
+                                    ]
+                                },
+                                "minItems": 2,
+                                "maxItems": 10,
+                            },
+                            link_type_c.to_string(): {
+                                "type": "array",
+                                "items": {
+                                    "oneOf": [
+                                        { "$ref": link_type_c_dest.to_string() },
+                                    ]
+                                },
+                            },
                         }
-                    }
-                }),
-                Some(Links {
-                    links: HashMap::from([(
-                        link_type.to_owned(),
-                        MaybeOrderedArray {
-                            array: Array::new(
-                                MaybeOneOfEntityTypeReference { inner: None },
-                                None,
-                                Some(10),
-                            ),
-                            ordered: false,
-                        },
-                    )]),
-                }),
-            );
-        }
-
-        #[test]
-        #[expect(
-            clippy::too_many_lines,
-            reason = "Test is long because it's merging multiple link constraints"
-        )]
-        fn merged() {
-            let link_type_a = VersionedUrl::from_str(
-                "https://example.com/@example-org/types/entity-type/friend-of/v/1",
-            )
-            .expect("failed to parse VersionedUrl");
-
-            let link_type_b = VersionedUrl::from_str(
-                "https://example.com/@example-org/types/entity-type/created-at/v/1",
-            )
-            .expect("failed to parse VersionedUrl");
-            let link_type_b_1_dest = VersionedUrl::from_str(
-                "https://example.com/@example-org/types/entity-type/location/v/1",
-            )
-            .expect("failed to parse VersionedUrl");
-            let link_type_b_2_dest = VersionedUrl::from_str(
-                "https://example.com/@example-org/types/entity-type/city/v/1",
-            )
-            .expect("failed to parse VersionedUrl");
-
-            let link_type_c = VersionedUrl::from_str(
-                "https://example.com/@example-org/types/entity-type/born-in/v/1",
-            )
-            .expect("failed to parse VersionedUrl");
-            let link_type_c_dest = VersionedUrl::from_str(
-                "https://example.com/@example-org/types/entity-type/country/v/1",
-            )
-            .expect("failed to parse VersionedUrl");
-
-            check_repr_serialization_from_value(
-                json!({
-                    "links": {
-                        link_type_a.to_string(): {
-                            "type": "array",
-                            "items": {},
-                            "minItems": 2,
-                            "maxItems": 10,
-                            "ordered": false,
-                        },
-                        link_type_b.to_string(): {
-                            "type": "array",
-                            "items": {
-                                "oneOf": [
-                                    { "$ref": link_type_b_1_dest.to_string() },
-                                ]
+                    }),
+                    json!({
+                        "links": {
+                            link_type_a.to_string(): {
+                                "type": "array",
+                                "items": {},
+                                "minItems": 2,
                             },
-                            "minItems": 15,
-                            "maxItems": 10,
-                            "ordered": false,
-                        },
-                        link_type_c.to_string(): {
-                            "type": "array",
-                            "items": {
-                                "oneOf": [
-                                    { "$ref": link_type_c_dest.to_string() },
-                                ]
+                            link_type_b.to_string(): {
+                                "type": "array",
+                                "items": {
+                                    "oneOf": [
+                                        { "$ref": link_type_b_1_dest.to_string() },
+                                    ]
+                                },
+                                "minItems": 15,
                             },
-                            "minItems": 1,
-                            "maxItems": 2,
-                            "ordered": false,
-                        },
-                    }
-                }),
-                Some(Links::from(
-                    [
-                        json!({
-                            "links": {
-                                link_type_a.to_string(): {
-                                    "type": "array",
-                                    "items": {},
-                                    "maxItems": 10,
-                                    "ordered": false,
-                                },
-                                link_type_b.to_string(): {
-                                    "type": "array",
-                                    "items": {
-                                        "oneOf": [
-                                            { "$ref": link_type_b_1_dest.to_string() },
-                                            { "$ref": link_type_b_2_dest.to_string() },
-                                        ]
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 10,
-                                    "ordered": false,
-                                },
-                                link_type_c.to_string(): {
-                                    "type": "array",
-                                    "items": {
-                                        "oneOf": [
-                                            { "$ref": link_type_c_dest.to_string() },
-                                        ]
-                                    },
-                                },
-                            }
-                        }),
-                        json!({
-                            "links": {
-                                link_type_a.to_string(): {
-                                    "type": "array",
-                                    "items": {},
-                                    "minItems": 2,
-                                    "ordered": false,
-                                },
-                                link_type_b.to_string(): {
-                                    "type": "array",
-                                    "items": {
-                                        "oneOf": [
-                                            { "$ref": link_type_b_1_dest.to_string() },
-                                        ]
-                                    },
-                                    "minItems": 15,
-                                    "ordered": false,
-                                },
-                                link_type_c.to_string(): {
-                                    "type": "array",
-                                    "items": {},
-                                    "minItems": 1,
-                                    "maxItems": 2,
-                                    "ordered": false,
-                                },
-                            }
-                        }),
-                    ]
-                    .into_iter()
-                    .map(|json| {
-                        crate::Links::try_from(
-                            serde_json::from_value::<Links>(json)
-                                .expect("failed to deserialize links"),
-                        )
-                        .expect("failed to convert links")
-                    })
-                    .collect::<crate::Links>(),
-                )),
-            );
-        }
-
-        #[test]
-        fn additional_properties() {
-            let as_json = json!({
-                "type": "array",
-                "items": {
-                    "type": "string"
-                },
-                "ordered": false,
-                "minItems": 10,
-                "maxItems": 20,
-                "additional": 30,
-            });
-
-            ensure_repr_failed_deserialization::<MaybeOrderedArray<StringTypeStruct>>(as_json);
-        }
+                            link_type_c.to_string(): {
+                                "type": "array",
+                                "items": {},
+                                "minItems": 1,
+                                "maxItems": 2,
+                            },
+                        }
+                    }),
+                ]
+                .into_iter()
+                .map(|json| {
+                    crate::Links::try_from(
+                        serde_json::from_value::<Links>(json).expect("failed to deserialize links"),
+                    )
+                    .expect("failed to convert links")
+                })
+                .collect::<crate::Links>(),
+            )),
+        );
     }
 }
