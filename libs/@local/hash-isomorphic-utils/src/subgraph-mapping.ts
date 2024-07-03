@@ -17,10 +17,7 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
-import {
-  systemEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes, systemPropertyTypes } from "./ontology-type-ids.js";
 import type {
   KnowledgeGraphVertex,
   SerializedKnowledgeGraphVertex,

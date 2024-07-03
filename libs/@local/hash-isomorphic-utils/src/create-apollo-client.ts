@@ -8,7 +8,7 @@ import {
 import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
 
-import { apiGraphQLEndpoint } from "./environment";
+import { apiGraphQLEndpoint } from "./environment.js";
 import possibleTypes from "./graphql/fragment-types.gen.json";
 
 const errorLink = onError(({ graphQLErrors, operation }) => {

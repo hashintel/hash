@@ -10,8 +10,8 @@ import type { Draft } from "immer";
 import { produce } from "immer";
 
 import type { BlockEntity } from "./entity";
-import { generateDraftIdForEntity } from "./entity-store-plugin";
-import { blockProtocolPropertyTypes } from "./ontology-type-ids";
+import { generateDraftIdForEntity } from "./entity-store-plugin.js";
+import { blockProtocolPropertyTypes } from "./ontology-type-ids.js";
 
 export type EntityStoreType = BlockEntity | Entity;
 

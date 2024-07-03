@@ -1,16 +1,17 @@
 import type { EntityUuid } from "@local/hash-graph-types/entity";
+
 import type {
   InputNameForAction,
   OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+} from "./action-definitions.js";
 import type {
   AutomaticInferenceTriggerInputName,
   AutomaticInferenceTriggerInputs,
   ManualInferenceTriggerInputName,
   ManualInferenceTriggerInputs,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import { browserInferenceFlowOutput } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+} from "./browser-plugin-flow-types.js";
+import { browserInferenceFlowOutput } from "./browser-plugin-flow-types.js";
+import type { FlowDefinition } from "./types.js";
 
 export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
   name: "Analyze webpage",

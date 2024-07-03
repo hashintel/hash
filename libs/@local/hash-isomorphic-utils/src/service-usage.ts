@@ -1,14 +1,15 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
-import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
-import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
+
+import type { FlowUsageRecordCustomMetadata } from "./flows/types.js";
+import { systemLinkEntityTypes } from "./ontology-type-ids.js";
+import { simplifyProperties } from "./simplify-properties.js";
 import type {
   ServiceFeatureProperties,
   UsageRecordProperties,
-} from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
+} from "./system-types/usagerecord.js";
 
 const generateAggregateUsageKey = ({
   serviceName,

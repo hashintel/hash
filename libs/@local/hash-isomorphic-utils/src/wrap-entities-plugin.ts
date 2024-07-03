@@ -1,4 +1,3 @@
-import { entityStorePluginState } from "@local/hash-isomorphic-utils/entity-store-plugin";
 import mapValues from "lodash/mapValues";
 import { keymap } from "prosemirror-keymap";
 import type { Node } from "prosemirror-model";
@@ -11,8 +10,10 @@ import {
 } from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
 
-import { getBlockChildEntity, isRichTextProperties } from "./entity";
-import { isComponentNode, isEntityNode } from "./prosemirror";
+import { entityStorePluginState } from "./entity-store-plugin.js";
+
+import { getBlockChildEntity, isRichTextProperties } from "./entity.js";
+import { isComponentNode, isEntityNode } from "./prosemirror.js";
 
 type WrapperNodes = [number, Node[]];
 type WrapperNodesList = WrapperNodes[];

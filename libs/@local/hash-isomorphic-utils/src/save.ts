@@ -4,8 +4,8 @@ import type { LinkEntity } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import { updateBlockCollectionContents } from "./graphql/queries/block-collection.queries.js";
+import { getEntityQuery } from "./graphql/queries/entity.queries.js";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
@@ -19,16 +19,19 @@ import { v4 as uuid } from "uuid";
 import {
   getBlockCollectionResolveDepth,
   sortBlockCollectionLinks,
-} from "./block-collection";
+} from "./block-collection.js";
 import type { ComponentIdHashBlockMap } from "./blocks";
 import type { BlockEntity } from "./entity";
 import type { DraftEntity, EntityStore } from "./entity-store";
-import { getDraftEntityByEntityId, isDraftBlockEntity } from "./entity-store";
+import {
+  getDraftEntityByEntityId,
+  isDraftBlockEntity,
+} from "./entity-store.js";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
-} from "./graph-queries";
+} from "./graph-queries.js";
 import type {
   Block as GqlBlock,
   GetEntityQuery,
@@ -38,8 +41,11 @@ import type {
   UpdateBlockCollectionContentsMutationVariables,
   UpdateBlockCollectionContentsResultPlaceholder,
 } from "./graphql/api-types.gen";
-import { systemEntityTypes, systemLinkEntityTypes } from "./ontology-type-ids";
-import { isEntityNode } from "./prosemirror";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "./ontology-type-ids.js";
+import { isEntityNode } from "./prosemirror.js";
 import type {
   BlockProperties,
   HasIndexedContentProperties,

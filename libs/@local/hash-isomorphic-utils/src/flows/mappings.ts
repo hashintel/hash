@@ -2,7 +2,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
-import { simplifyProperties } from "../simplify-properties";
+import { simplifyProperties } from "../simplify-properties.js";
 import type { FlowDefinitionProperties } from "../system-types/flowdefinition";
 import type { FlowRunProperties } from "../system-types/flowrun";
 import type { TriggerDefinitionId } from "./trigger-definitions";

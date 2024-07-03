@@ -9,7 +9,7 @@ import {
   googleEntityTypes,
   linearEntityTypes,
   systemEntityTypes,
-} from "./ontology-type-ids";
+} from "./ontology-type-ids.js";
 
 const generateTypes = async (
   typeMap: Record<string, { entityTypeId: VersionedUrl }>,

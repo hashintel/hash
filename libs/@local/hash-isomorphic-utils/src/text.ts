@@ -1,8 +1,8 @@
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { TextToken } from "./types.js";
 import type { Node, Schema } from "prosemirror-model";
 
 import type { TextEntityType, TextProperties } from "./entity";
-import { textualContentPropertyTypeBaseUrl } from "./entity-store";
+import { textualContentPropertyTypeBaseUrl } from "./entity-store.js";
 import type { ComponentNode } from "./prosemirror";
 
 export const textBlockNodesFromTokens = (

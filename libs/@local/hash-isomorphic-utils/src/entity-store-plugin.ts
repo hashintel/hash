@@ -11,7 +11,7 @@ import type { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 
 import type { BlockEntity } from "./entity";
-import { getEntityChildEntity, isRichTextProperties } from "./entity";
+import { getEntityChildEntity, isRichTextProperties } from "./entity.js";
 import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
 import {
   createEntityStore,
@@ -19,16 +19,16 @@ import {
   isBlockEntity,
   isDraftBlockEntity,
   textualContentPropertyTypeBaseUrl,
-} from "./entity-store";
+} from "./entity-store.js";
 import type { ComponentNode, EntityNode } from "./prosemirror";
 import {
   componentNodeToId,
   findComponentNodes,
   isComponentNode,
   isEntityNode,
-} from "./prosemirror";
-import { textBlockNodeToEntityProperties } from "./text";
-import { collect } from "./util";
+} from "./prosemirror.js";
+import { textBlockNodeToEntityProperties } from "./text.js";
+import { collect } from "./util.js";
 
 type EntityStorePluginStateListener = (store: EntityStore) => void;
 

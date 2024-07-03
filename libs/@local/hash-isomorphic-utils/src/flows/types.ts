@@ -10,10 +10,10 @@ import type {
   PropertyObject,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type { Status } from "@local/status";
 
+import type { FlowRun } from "../graphql/api-types.gen.js";
+import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
 import type { ActionDefinitionId } from "./action-definitions";
 import type { TriggerDefinitionId } from "./trigger-definitions";
 

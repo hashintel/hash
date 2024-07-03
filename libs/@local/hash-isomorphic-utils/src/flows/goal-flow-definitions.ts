@@ -1,20 +1,21 @@
 import type { EntityUuid } from "@local/hash-graph-types/entity";
+
 import type {
   InputNameForAction,
   OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+} from "./action-definitions.js";
 import {
   googleSheetDeliverable,
   googleSheetStep,
   googleSheetTriggerInputs,
-} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions/google-sheets";
+} from "./goal-flow-definitions/google-sheets.js";
 import {
   markdownReportDeliverable,
   markdownReportResearchEntitiesStepInput,
   markdownReportStep,
   markdownReportTriggerInputs,
-} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions/markdown-report";
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+} from "./goal-flow-definitions/markdown-report.js";
+import type { FlowDefinition } from "./types.js";
 
 export type GoalFlowTriggerInput =
   | "Research guidance"
