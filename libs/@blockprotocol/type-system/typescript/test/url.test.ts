@@ -1,13 +1,13 @@
 import { beforeAll, describe, expect, test } from "vitest";
 
-import type { BaseUrl, VersionedUrl } from "../src/main";
+import type { BaseUrl, VersionedUrl } from "../src/main.js";
 import {
   extractBaseUrl,
   extractVersion,
   validateBaseUrl,
   validateVersionedUrl,
-} from "../src/main";
-import { initialize } from "./shared";
+} from "../src/main.js";
+import { initialize } from "./shared.js";
 
 const invalidBaseUrlCases: string[] = [
   "http://example.com",

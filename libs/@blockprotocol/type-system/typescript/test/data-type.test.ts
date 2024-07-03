@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, test } from "vitest";
 
-import type { DataType, ParseDataTypeError } from "../src/main";
-import { validateDataType } from "../src/main";
-import { initialize } from "./shared";
+import type { DataType, ParseDataTypeError } from "../src/main.js";
+import { validateDataType } from "../src/main.js";
+import { initialize } from "./shared.js";
 
 const primitiveDataTypes: DataType[] = [
   {

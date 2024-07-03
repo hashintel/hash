@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, test } from "vitest";
 
-import type { EntityType, ParseEntityTypeError } from "../src/main";
-import { validateEntityType } from "../src/main";
-import { initialize } from "./shared";
+import type { EntityType, ParseEntityTypeError } from "../src/main.js";
+import { validateEntityType } from "../src/main.js";
+import { initialize } from "./shared.js";
 
 const entityTypes: EntityType[] = [
   {

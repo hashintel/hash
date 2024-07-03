@@ -1,4 +1,7 @@
-import type { TemporalBound, TimeInterval } from "../types/temporal-versioning";
+import type {
+  TemporalBound,
+  TimeInterval,
+} from "../types/temporal-versioning.js";
 
 export const compareBounds = (
   left: TemporalBound,

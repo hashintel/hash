@@ -15,10 +15,10 @@ import type { Subgraph } from "../src/main";
 import {
   mapQueryTemporalAxes,
   mapQueryTemporalAxesUnresolved,
-} from "./compatibility.test/map-axes";
-import { mapEdges } from "./compatibility.test/map-edges";
-import { mapRoots } from "./compatibility.test/map-roots";
-import { mapVertices } from "./compatibility.test/map-vertices";
+} from "./compatibility.test/map-axes.js";
+import { mapEdges } from "./compatibility.test/map-edges.js";
+import { mapRoots } from "./compatibility.test/map-roots.js";
+import { mapVertices } from "./compatibility.test/map-vertices.js";
 
 test("Graph API subgraph type is compatible with library type", () => {
   // We don't need an actual subgraph, we are just checking for TSC errors

@@ -150,11 +150,11 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
 
   const [dataTypeCount, propertyObjectCount, arrayCount] = useMemo(() => {
     const arrays = itemIds.filter(
-      (childId) => flattenedExpectedValues[childId]?.data?.typeId === "array",
+      (childId) => flattenedExpectedValues[childId].data?.typeId === "array",
     ).length;
 
     const objects = itemIds.filter(
-      (childId) => flattenedExpectedValues[childId]?.data?.typeId === "object",
+      (childId) => flattenedExpectedValues[childId].data?.typeId === "object",
     ).length;
 
     const count = itemIds.length - arrays - objects;
@@ -202,8 +202,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
   };
 
   const value = useMemo(
-    () =>
-      itemIds.map((itemId) => flattenedExpectedValues[itemId]?.data?.typeId),
+    () => itemIds.map((itemId) => flattenedExpectedValues[itemId].data?.typeId),
     [itemIds, flattenedExpectedValues],
   );
 
@@ -254,7 +253,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
             return (
               <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                 <FontAwesomeIcon
-                  icon={{ icon: getExpectedValueDisplay(opt!).icon }}
+                  icon={{ icon: getExpectedValueDisplay(opt).icon }}
                   sx={(theme) => ({ color: theme.palette.gray[50] })}
                 />
                 <Typography
@@ -263,7 +262,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
                   ml={1.5}
                   color={(theme) => theme.palette.gray[80]}
                 >
-                  {getExpectedValueDisplay(opt!).title}
+                  {getExpectedValueDisplay(opt).title}
                 </Typography>
                 <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
               </Box>

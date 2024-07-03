@@ -2,7 +2,7 @@
  * Types used in embedding applications and blocks that support multi-axis temporal versioning schemes.
  */
 
-import type { Subtype } from "../util";
+import type { Subtype } from "../util.js";
 
 /**
  * An ISO 8601 formatted timestamp string

@@ -34,9 +34,7 @@ export const getDataTypeById = (
   subgraph: Subgraph,
   dataTypeId: VersionedUrl,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByIdBp(subgraph as unknown as SubgraphBp, dataTypeId) as
-    | DataTypeWithMetadata
-    | undefined;
+  getDataTypeByIdBp(subgraph as unknown as SubgraphBp, dataTypeId);
 
 export const mustGetDataTypeById = (
   subgraph: Subgraph,
@@ -61,9 +59,7 @@ export const getDataTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
-    | DataTypeWithMetadata
-    | undefined;
+  getDataTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId);
 
 /**
  * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`

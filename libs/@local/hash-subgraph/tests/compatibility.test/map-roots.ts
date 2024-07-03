@@ -6,7 +6,7 @@ import type {
   Subgraph,
 } from "@local/hash-subgraph";
 
-import { isEntityId } from "../../src/types/shared/branded";
+import { isEntityId } from "../../src/types/shared/branded.js";
 
 export const mapRoots = (
   roots: SubgraphGraphApi["roots"],

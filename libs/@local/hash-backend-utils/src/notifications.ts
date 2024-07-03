@@ -1,4 +1,3 @@
-import { getWebMachineActorId } from "./machine-actors.js";
 import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
@@ -11,6 +10,8 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
+
+import { getWebMachineActorId } from "./machine-actors.js";
 
 export const createNotificationEntityPermissions = ({
   machineActorId,

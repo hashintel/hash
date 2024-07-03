@@ -108,7 +108,7 @@ const generateDurationString = ({
   formatDuration(
     intervalToDuration({
       start: new Date(executedAt),
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+
       end: new Date(closedAt || Date.now()),
     }),
   );

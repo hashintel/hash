@@ -127,9 +127,7 @@ const isDbPersistedSetting = (
 export const getFromLocalStorage = async <Key extends keyof LocalStorage>(
   key: Key,
 ): Promise<LocalStorage[Key] | undefined> => {
-  return browser.storage.local
-    .get(key)
-    .then((result) => result[key] as LocalStorage[Key]);
+  return browser.storage.local.get(key).then((result) => result[key]);
 };
 
 // Avoid spamming the db with updates if the user is editing settings quickly or writing a quick note
@@ -188,7 +186,7 @@ export const setInLocalStorage = async <Key extends keyof LocalStorage>(
   await browser.storage.local.set({ [key]: value });
 
   if (key === "automaticInferenceConfig") {
-    if ((value as LocalStorage["automaticInferenceConfig"]).enabled) {
+    if (value.enabled) {
       setEnabledBadge();
     } else {
       setDisabledBadge();

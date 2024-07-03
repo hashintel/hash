@@ -1,4 +1,3 @@
-import { getHashInstanceAdminAccountGroupId } from "./hash-instance.js";
 import type { GraphApi } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -32,6 +31,8 @@ import type {
 } from "@local/hash-subgraph";
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+
+import { getHashInstanceAdminAccountGroupId } from "./hash-instance.js";
 
 /**
  * Retrieve a web's service usage

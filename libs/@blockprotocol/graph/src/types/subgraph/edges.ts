@@ -1,14 +1,14 @@
 import type { BaseUrl } from "@blockprotocol/type-system/slim";
 
-import type { EntityId } from "../entity";
-import type { OntologyTypeRevisionId } from "../ontology";
-import type { Timestamp } from "../temporal-versioning";
-import type { KnowledgeGraphOutwardEdge } from "./edges/variants/knowledge";
-import type { OntologyOutwardEdge } from "./edges/variants/ontology";
+import type { EntityId } from "../entity.js";
+import type { OntologyTypeRevisionId } from "../ontology.js";
+import type { Timestamp } from "../temporal-versioning.js";
+import type { KnowledgeGraphOutwardEdge } from "./edges/variants/knowledge.js";
+import type { OntologyOutwardEdge } from "./edges/variants/ontology.js";
 
-export * from "./edges/kind";
-export * from "./edges/outward-edge";
-export * from "./edges/variants";
+export * from "./edges/kind.js";
+export * from "./edges/outward-edge.js";
+export * from "./edges/variants.js";
 
 export type OntologyRootedEdges = Record<
   BaseUrl,

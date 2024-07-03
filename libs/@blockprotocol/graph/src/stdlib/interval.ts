@@ -4,8 +4,8 @@ import type {
   TemporalBound,
   TimeInterval,
   Timestamp,
-} from "../types/temporal-versioning";
-import { boundIsAdjacentToBound, compareBounds } from "./bound";
+} from "../types/temporal-versioning.js";
+import { boundIsAdjacentToBound, compareBounds } from "./bound.js";
 
 /**
  * Standard comparison function that returns whether `IntervalA` is before the `IntervalB`. Where "before"

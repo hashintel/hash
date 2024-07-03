@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 
 import wasm from "@blockprotocol/type-system-rs/wasm?url";
 
-import { TypeSystemInitializer } from "../src/main";
+import { TypeSystemInitializer } from "../src/main.js";
 
 export async function initialize() {
   // every bundler handles WASM files differently (don't ask me why) so it's a huge pain

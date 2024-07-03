@@ -18,8 +18,11 @@ import type {
 } from "@local/hash-graph-types/ontology";
 
 import type { OntologyTypeVertexId, Subgraph } from "../../../main";
-import { getJsonSchemaTypeFromValue, mustGetDataTypeById } from "./data-type";
-import { getEntityTypeAndParentsById } from "./entity-type";
+import {
+  getJsonSchemaTypeFromValue,
+  mustGetDataTypeById,
+} from "./data-type.js";
+import { getEntityTypeAndParentsById } from "./entity-type.js";
 
 /**
  * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph
@@ -45,9 +48,7 @@ export const getPropertyTypeById = (
   subgraph: Subgraph,
   propertyTypeId: VersionedUrl,
 ): PropertyTypeWithMetadata | undefined =>
-  getPropertyTypeByIdBp(subgraph as unknown as SubgraphBp, propertyTypeId) as
-    | PropertyTypeWithMetadata
-    | undefined;
+  getPropertyTypeByIdBp(subgraph as unknown as SubgraphBp, propertyTypeId);
 
 /**
  * Gets a `PropertyTypeWithMetadata` by its `OntologyTypeVertexId` from within the vertices of the subgraph. Returns
@@ -61,9 +62,7 @@ export const getPropertyTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): PropertyTypeWithMetadata | undefined =>
-  getPropertyTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
-    | PropertyTypeWithMetadata
-    | undefined;
+  getPropertyTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId);
 
 /**
  * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`

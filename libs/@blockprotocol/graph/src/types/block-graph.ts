@@ -8,8 +8,8 @@ import type {
   QueryEntitiesData,
   QueryEntitiesResult,
   UpdateEntityData,
-} from "./entity";
-import type { UploadFileData, UploadFileReturn } from "./file";
+} from "./entity.js";
+import type { UploadFileData, UploadFileReturn } from "./file.js";
 import type {
   CreateEntityTypeData,
   CreatePropertyTypeData,
@@ -20,12 +20,12 @@ import type {
   QueryPropertyTypesResult,
   UpdateEntityTypeData,
   UpdatePropertyTypeData,
-} from "./ontology";
+} from "./ontology.js";
 import type {
   GetEntityTypeData,
   QueryEntityTypesData,
   QueryEntityTypesResult,
-} from "./ontology/entity-type";
+} from "./ontology/entity-type.js";
 import type {
   DataTypeRootType,
   EntityRootType,
@@ -36,7 +36,7 @@ import type {
   QueryDataTypesData,
   QueryDataTypesResult,
   Subgraph,
-} from "./subgraph";
+} from "./subgraph.js";
 
 export type BlockGraphProperties<RootEntity extends Entity = Entity> = {
   /**

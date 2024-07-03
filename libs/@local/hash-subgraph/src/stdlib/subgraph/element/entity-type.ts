@@ -35,9 +35,7 @@ export const getEntityTypeById = (
   subgraph: Subgraph,
   entityTypeId: VersionedUrl,
 ): EntityTypeWithMetadata | undefined =>
-  getEntityTypeByIdBp(subgraph as unknown as SubgraphBp, entityTypeId) as
-    | EntityTypeWithMetadata
-    | undefined;
+  getEntityTypeByIdBp(subgraph as unknown as SubgraphBp, entityTypeId);
 
 /**
  * Gets an array of `EntityTypeWithMetadata` containing the requested entity type and all its ancestors
@@ -115,9 +113,7 @@ export const getEntityTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): EntityTypeWithMetadata | undefined =>
-  getEntityTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
-    | EntityTypeWithMetadata
-    | undefined;
+  getEntityTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId);
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`

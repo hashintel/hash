@@ -1,6 +1,7 @@
+import { Client as TemporalClient, Connection } from "@temporalio/client";
+
 import { getRequiredEnv } from "./environment.js";
 import type { Logger } from "./logger.js";
-import { Client as TemporalClient, Connection } from "@temporalio/client";
 
 export { Client as TemporalClient } from "@temporalio/client";
 

@@ -42,7 +42,7 @@ import type {
   LinkPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   ArchivedPropertyValue,

@@ -22,9 +22,9 @@ import type {
 } from "./subgraph/vertices";
 
 export * from "./subgraph/edges";
-export * from "./subgraph/graph-resolve-depths";
-export * from "./subgraph/temporal-axes";
-export * from "./subgraph/vertices";
+export * from "./subgraph/graph-resolve-depths.js";
+export * from "./subgraph/temporal-axes.js";
+export * from "./subgraph/vertices.js";
 
 export type DataTypeRootType = Subtype<
   DataTypeRootTypeBp,

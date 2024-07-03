@@ -3,7 +3,7 @@ import type {
   PinnedTemporalAxisUnresolved,
   VariableTemporalAxis,
   VariableTemporalAxisUnresolved,
-} from "../temporal-versioning";
+} from "../temporal-versioning.js";
 
 /**
  * Defines the two possible combinations of pinned/variable temporal axes that are used in queries that return

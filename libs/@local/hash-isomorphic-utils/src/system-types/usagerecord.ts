@@ -55,7 +55,7 @@ import type {
   TriggerDefinitionIDPropertyValueWithMetadata,
   TriggerPropertyValue,
   TriggerPropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   AppliesFromPropertyValue,

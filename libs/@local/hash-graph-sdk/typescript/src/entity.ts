@@ -99,19 +99,13 @@ type EntityInput<Properties extends PropertyObject> =
 const isSerializedEntity = <Properties extends PropertyObject>(
   entity: EntityInput<Properties>,
 ): entity is SerializedEntity => {
-  return (
-    "entityTypeId" in
-    (entity as GraphApiEntity | EntityData<Properties>).metadata
-  );
+  return "entityTypeId" in entity.metadata;
 };
 
 const isGraphApiEntity = <Properties extends PropertyObject>(
   entity: EntityInput<Properties>,
 ): entity is GraphApiEntity => {
-  return (
-    "entityTypeIds" in
-    (entity as GraphApiEntity | EntityData<Properties>).metadata
-  );
+  return "entityTypeIds" in entity.metadata;
 };
 
 const mergePropertiesAndMetadata = (
@@ -156,7 +150,6 @@ const mergePropertiesAndMetadata = (
       const returnedValues: Record<BaseUrl, PropertyWithMetadata> = {};
       let isPropertyObject = true;
       for (const [key, value] of typedEntries(property)) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
         if (value === undefined) {
           continue;
         }
@@ -184,7 +177,7 @@ const mergePropertiesAndMetadata = (
       return {
         value: Object.fromEntries(
           Object.entries(property)
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
+
             .filter(([_key, value]) => value !== undefined)
             .map(([key, value]) => {
               if (!isBaseUrl(key)) {
@@ -262,7 +255,7 @@ const mergePropertyObjectAndMetadata = (
   return {
     value: Object.fromEntries(
       Object.entries(property)
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
+
         .filter(([_key, value]) => value !== undefined)
         .map(([key, value]) => {
           if (!isBaseUrl(key)) {
@@ -511,9 +504,7 @@ export class LinkEntity<
   Properties extends PropertyObject = PropertyObject,
 > extends Entity<Properties> {
   constructor(entity: EntityInput<Properties> | Entity) {
-    const input = (entity instanceof Entity ? entity.toJSON() : entity) as
-      | GraphApiEntity
-      | EntityData<Properties>;
+    const input = entity instanceof Entity ? entity.toJSON() : entity;
 
     if (!input.linkData) {
       throw new Error(
@@ -521,7 +512,7 @@ export class LinkEntity<
       );
     }
 
-    super(input as EntityInput<Properties>);
+    super(input);
   }
 
   public static async createMultiple(

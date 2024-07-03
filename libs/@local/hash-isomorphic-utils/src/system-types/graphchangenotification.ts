@@ -31,7 +31,7 @@ import type {
   ReadAtPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   ArchivedPropertyValue,

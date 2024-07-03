@@ -49,7 +49,7 @@ import { isEntityNode } from "./prosemirror.js";
 import type {
   BlockProperties,
   HasIndexedContentProperties,
-} from "./system-types/shared";
+} from "./system-types/shared.js";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 

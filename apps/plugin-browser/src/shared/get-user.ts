@@ -43,9 +43,7 @@ const getAvatarForEntity = (
       linkEntity[0]?.metadata.entityTypeId ===
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
   );
-  return avatarLinkAndEntities[0]?.rightEntity[0] as
-    | Entity<ImageProperties>
-    | undefined;
+  return avatarLinkAndEntities[0]?.rightEntity[0];
 };
 
 /**
@@ -107,7 +105,6 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
       let settingsEntityId: EntityId;
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive
       if (userBrowserPreferences) {
         settingsEntityId = userBrowserPreferences.metadata.recordId.entityId;
 
@@ -123,19 +120,15 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         await Promise.all([
           setInLocalStorage(
             "automaticInferenceConfig",
-            automaticInferenceConfiguration as LocalStorage["automaticInferenceConfig"],
+            automaticInferenceConfiguration,
             true,
           ),
           setInLocalStorage(
             "manualInferenceConfig",
-            manualInferenceConfiguration as LocalStorage["manualInferenceConfig"],
+            manualInferenceConfiguration,
             true,
           ),
-          setInLocalStorage(
-            "popupTab",
-            browserPluginTab as LocalStorage["popupTab"],
-            true,
-          ),
+          setInLocalStorage("popupTab", browserPluginTab, true),
         ]);
 
         if (draftNote) {

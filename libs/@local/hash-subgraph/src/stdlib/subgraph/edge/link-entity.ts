@@ -10,13 +10,13 @@ import {
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
   stripDraftIdFromEntityId,
-} from "../../../main";
+} from "../../../main.js";
 import { getEntityRevisionsByEntityId } from "../../../stdlib";
 import {
   intervalForTimestamp,
   intervalIntersectionWithInterval,
   intervalIsStrictlyAfterInterval,
-} from "../../interval";
+} from "../../interval.js";
 
 // Copied from `@blockprotocol/graph`
 const getUniqueEntitiesFilter = () => {

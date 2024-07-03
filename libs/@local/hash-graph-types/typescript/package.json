@@ -6,16 +6,17 @@
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": "./dist/*.js"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "./src/*.ts"
+        "./dist/*.d.ts"
       ]
     }
   },
   "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
@@ -30,6 +31,8 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "eslint": "8.57.0",
+    "eslint-plugin-file-extension-in-import-ts": "2.1.0",
+    "rimraf": "5.0.7",
     "typescript": "5.5.2"
   }
 }

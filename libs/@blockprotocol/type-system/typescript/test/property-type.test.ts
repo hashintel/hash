@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, test } from "vitest";
 
-import type { ParsePropertyTypeError, PropertyType } from "../src/main";
-import { validatePropertyType } from "../src/main";
-import { initialize } from "./shared";
+import type { ParsePropertyTypeError, PropertyType } from "../src/main.js";
+import { validatePropertyType } from "../src/main.js";
+import { initialize } from "./shared.js";
 
 const propertyTypes: PropertyType[] = [
   {

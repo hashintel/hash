@@ -108,7 +108,7 @@ export const WebSelector = ({
       inputHeight={inputHeight}
       inputProps={{
         endAdornment: <div />,
-        startAdornment: selectedWeb?.avatarComponent,
+        startAdornment: selectedWeb.avatarComponent,
         sx: {
           ...inputPropsSx({ inputHeight }),
           backgroundColor: ({ palette }) =>

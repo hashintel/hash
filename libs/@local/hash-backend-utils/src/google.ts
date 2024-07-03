@@ -1,4 +1,3 @@
-import { getSecretEntitiesForIntegration } from "./user-secret.js";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
@@ -16,6 +15,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { Auth } from "googleapis";
 import { google } from "googleapis";
 
+import { getSecretEntitiesForIntegration } from "./user-secret.js";
 import type { VaultClient } from "./vault";
 
 const googleOAuthClientId = process.env.GOOGLE_OAUTH_CLIENT_ID;

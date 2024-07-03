@@ -24,41 +24,42 @@
   },
   "type": "module",
   "exports": {
-    ".": "./src/main.ts",
-    "./codegen": "./src/codegen.ts",
-    "./custom-element": "./src/custom-element.ts",
-    "./graph-module-json": "./src/graph-module-json.ts",
-    "./internal": "./src/internal.ts",
-    "./react": "./src/react.ts",
-    "./stdlib": "./src/stdlib.ts"
+    ".": "./dist/main.js",
+    "./codegen": "./dist/codegen.js",
+    "./custom-element": "./dist/custom-element.js",
+    "./graph-module-json": "./dist/graph-module-json.js",
+    "./internal": "./dist/internal.js",
+    "./react": "./dist/react.js",
+    "./stdlib": "./dist/stdlib.js"
   },
-  "types": "./src/main.ts",
+  "types": "./dist/main.d.ts",
   "typesVersions": {
     "*": {
       ".": [
-        "./src/main.ts"
+        "./dist/main.d.ts"
       ],
       "codegen": [
-        "./src/codegen.ts"
+        "./dist/codegen.d.ts"
       ],
       "custom-element": [
-        "./src/custom-element.ts"
+        "./dist/custom-element.d.ts"
       ],
       "graph-module-json": [
-        "./src/graph-module-json.ts"
+        "./dist/graph-module-json.d.ts"
       ],
       "internal": [
-        "./src/internal.ts"
+        "./dist/internal.d.ts"
       ],
       "react": [
-        "./src/react.ts"
+        "./dist/react.d.ts"
       ],
       "stdlib": [
-        "./src/stdlib.ts"
+        "./dist/stdlib.d.ts"
       ]
     }
   },
   "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
@@ -79,7 +80,9 @@
     "@types/lodash.isequal": "4.5.8",
     "@types/node": "20.12.3",
     "@types/react": "18.2.68",
-    "eslint": "8.57.0"
+    "eslint": "8.57.0",
+    "eslint-plugin-file-extension-in-import-ts": "2.1.0",
+    "rimraf": "5.0.7"
   },
   "peerDependencies": {
     "react": "^18.0.0"

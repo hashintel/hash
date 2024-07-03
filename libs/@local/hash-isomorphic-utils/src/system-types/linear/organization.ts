@@ -58,7 +58,7 @@ import type {
   URLKeyPropertyValueWithMetadata,
   UserCountPropertyValue,
   UserCountPropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   AllowedAuthServicePropertyValue,

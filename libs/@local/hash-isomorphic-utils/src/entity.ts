@@ -3,7 +3,11 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Subgraph } from "@local/hash-subgraph";
 import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
 
-import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
+import type {
+  DraftEntity,
+  EntityStore,
+  EntityStoreType,
+} from "./entity-store.js";
 import {
   isDraftBlockEntity,
   textualContentPropertyTypeBaseUrl,
@@ -11,7 +15,7 @@ import {
 import type {
   Block,
   BlockCollection as BlockCollectionGql,
-} from "./graphql/api-types.gen";
+} from "./graphql/api-types.gen.js";
 import type { HasSpatiallyPositionedContentProperties } from "./system-types/canvas.js";
 import type { HasIndexedContentProperties } from "./system-types/shared.js";
 import type { TextToken } from "./types.js";

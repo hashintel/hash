@@ -14,8 +14,8 @@ import type {
   OntologyOutwardEdge,
 } from "./edges/variants";
 
-export * from "./edges/kind";
-export * from "./edges/outward-edge";
+export * from "./edges/kind.js";
+export * from "./edges/outward-edge.js";
 export * from "./edges/variants";
 
 export type OntologyRootedEdges = Subtype<

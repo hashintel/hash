@@ -59,7 +59,7 @@ import type {
   TextDataTypeWithMetadata,
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   ArchivedPropertyValue,

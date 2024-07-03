@@ -5,8 +5,9 @@
   "description": "OpenAPI client for the HASH Graph API.",
   "license": "AGPL-3.0",
   "type": "module",
-  "main": "index.ts",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
     "codegen": "redocly bundle -o openapi.bundle.json ../../../../apps/hash-graph/openapi/openapi.json && JAVA_OPTS='-Dlog.level=warn' openapi-generator-cli generate && rm openapi.bundle.json"
   },
   "dependencies": {
@@ -21,6 +22,9 @@
     "@types/node": "20.12.3",
     "@typescript-eslint/parser": "7.2.0",
     "eslint": "8.57.0",
+    "eslint-plugin-file-extension-in-import-ts": "2.1.0",
+    "fix-esm-import-path": "1.10.0",
+    "rimraf": "5.0.7",
     "typescript": "5.5.2"
   }
 }

@@ -46,14 +46,14 @@ export const InferEntitiesAction = ({
     () =>
       flowRuns.some(({ status, webPage }) => {
         return (
-          webPage.url === activeTab?.url && status === FlowRunStatus.Running
+          webPage.url === activeTab.url && status === FlowRunStatus.Running
         );
       }),
     [activeTab, flowRuns],
   );
 
   const inferEntitiesFromPage = async () => {
-    if (!activeTab?.id) {
+    if (!activeTab.id) {
       throw new Error("No active tab");
     }
 

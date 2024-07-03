@@ -20,7 +20,7 @@ import type {
   ObjectDataTypeWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   AutomaticInferenceConfigurationPropertyValue,
