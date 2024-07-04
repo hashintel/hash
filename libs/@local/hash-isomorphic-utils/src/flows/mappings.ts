@@ -3,10 +3,14 @@ import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
 import { simplifyProperties } from "../simplify-properties.js";
-import type { FlowDefinitionProperties } from "../system-types/flowdefinition";
-import type { FlowRunProperties } from "../system-types/flowrun";
-import type { TriggerDefinitionId } from "./trigger-definitions";
-import type { FlowDefinition, LocalFlowRun, OutputDefinition } from "./types";
+import type { FlowDefinitionProperties } from "../system-types/flowdefinition.js";
+import type { FlowRunProperties } from "../system-types/flowrun.js";
+import type { TriggerDefinitionId } from "./trigger-definitions.js";
+import type {
+  FlowDefinition,
+  LocalFlowRun,
+  OutputDefinition,
+} from "./types.js";
 
 export const mapFlowDefinitionToEntityProperties = (
   flowDefinition: FlowDefinition,

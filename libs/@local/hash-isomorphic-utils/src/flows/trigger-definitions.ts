@@ -1,4 +1,4 @@
-import type { DeepReadOnly, TriggerDefinition } from "./types";
+import type { DeepReadOnly, TriggerDefinition } from "./types.js";
 
 const triggerIds = [
   "userTrigger",

@@ -1,5 +1,5 @@
 import type { OwnedById } from "@local/hash-graph-types/web";
-import cloneDeep from "lodash/cloneDeep";
+import { cloneDeep } from "lodash-es";
 import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import type { Node, Schema } from "prosemirror-model";

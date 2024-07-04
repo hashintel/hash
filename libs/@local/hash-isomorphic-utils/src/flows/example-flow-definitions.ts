@@ -3,8 +3,8 @@ import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   InputNameForAction,
   OutputNameForAction,
-} from "./action-definitions";
-import type { FlowDefinition } from "./types";
+} from "./action-definitions.js";
+import type { FlowDefinition } from "./types.js";
 
 export const researchTaskFlowDefinition: FlowDefinition = {
   name: "Research task",

@@ -5,7 +5,7 @@ import type {
   EntityMetadata,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
-import camelCase from "lodash/camelCase";
+import { camelCase } from "lodash-es";
 
 /** @see https://stackoverflow.com/a/65015868/17217717 */
 type CamelCase<S extends string> = S extends

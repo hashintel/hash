@@ -1,10 +1,10 @@
-import type { InferenceModelName } from "../ai-inference-types";
+import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
   ActionDefinition,
   DeepReadOnly,
   PayloadKindValues,
   StepInput,
-} from "./types";
+} from "./types.js";
 
 const actionDefinitionIds = [
   "answerQuestion",

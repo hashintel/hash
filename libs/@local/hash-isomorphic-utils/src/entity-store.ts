@@ -9,7 +9,7 @@ import type {
 import type { Draft } from "immer";
 import { produce } from "immer";
 
-import type { BlockEntity } from "./entity";
+import type { BlockEntity } from "./entity.js";
 import { generateDraftIdForEntity } from "./entity-store-plugin.js";
 import { blockProtocolPropertyTypes } from "./ontology-type-ids.js";
 

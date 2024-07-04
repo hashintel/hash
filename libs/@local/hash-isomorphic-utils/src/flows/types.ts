@@ -14,8 +14,8 @@ import type { Status } from "@local/status";
 
 import type { FlowRun } from "../graphql/api-types.gen.js";
 import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
-import type { ActionDefinitionId } from "./action-definitions";
-import type { TriggerDefinitionId } from "./trigger-definitions";
+import type { ActionDefinitionId } from "./action-definitions.js";
+import type { TriggerDefinitionId } from "./trigger-definitions.js";
 
 export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;

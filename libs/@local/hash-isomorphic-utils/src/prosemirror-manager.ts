@@ -5,16 +5,20 @@ import type { Node, Schema } from "prosemirror-model";
 import type { EditorState, Transaction } from "prosemirror-state";
 import type { EditorProps, EditorView } from "prosemirror-view";
 
-import type { HashBlock } from "./blocks";
+import type { HashBlock } from "./blocks.js";
 import {
   areComponentsCompatible,
   fetchBlock,
   isBlockWithTextualContentProperty,
   prepareBlockCache,
 } from "./blocks.js";
-import type { BlockEntity } from "./entity";
+import type { BlockEntity } from "./entity.js";
 import { getBlockChildEntity, isRichTextProperties } from "./entity.js";
-import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
+import type {
+  DraftEntity,
+  EntityStore,
+  EntityStoreType,
+} from "./entity-store.js";
 import {
   createEntityStore,
   isBlockEntity,

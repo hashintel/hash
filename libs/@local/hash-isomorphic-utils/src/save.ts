@@ -4,15 +4,13 @@ import type { LinkEntity } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { updateBlockCollectionContents } from "./graphql/queries/block-collection.queries.js";
-import { getEntityQuery } from "./graphql/queries/entity.queries.js";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { generateNKeysBetween } from "fractional-indexing";
-import isEqual from "lodash/isEqual";
+import { isEqual } from "lodash-es";
 import type { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
@@ -20,9 +18,9 @@ import {
   getBlockCollectionResolveDepth,
   sortBlockCollectionLinks,
 } from "./block-collection.js";
-import type { ComponentIdHashBlockMap } from "./blocks";
-import type { BlockEntity } from "./entity";
-import type { DraftEntity, EntityStore } from "./entity-store";
+import type { ComponentIdHashBlockMap } from "./blocks.js";
+import type { BlockEntity } from "./entity.js";
+import type { DraftEntity, EntityStore } from "./entity-store.js";
 import {
   getDraftEntityByEntityId,
   isDraftBlockEntity,
@@ -40,7 +38,9 @@ import type {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
   UpdateBlockCollectionContentsResultPlaceholder,
-} from "./graphql/api-types.gen";
+} from "./graphql/api-types.gen.js";
+import { updateBlockCollectionContents } from "./graphql/queries/block-collection.queries.js";
+import { getEntityQuery } from "./graphql/queries/entity.queries.js";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -215,8 +215,9 @@ const calculateSaveActions = (
       ]);
     } else {
       /**
-       * This entity is in the API's block list but not locally, which means it may have been added by another user recently.
-       * Until we have a collaborative server the best we can do is ignore it in calculating save actions. H-1234
+       * This entity is in the API's block list but not locally, which means it may have been added by another user
+       * recently. Until we have a collaborative server the best we can do is ignore it in calculating save actions.
+       * H-1234
        */
     }
   }

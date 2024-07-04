@@ -2,7 +2,7 @@ import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Status } from "@local/status";
 
-import type { FlowDefinition, FlowTrigger, LocalFlowRun } from "./types";
+import type { FlowDefinition, FlowTrigger, LocalFlowRun } from "./types.js";
 
 export type RunFlowWorkflowParams = {
   flowTrigger: FlowTrigger;

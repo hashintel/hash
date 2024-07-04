@@ -1,4 +1,4 @@
-import type { GraphQLError } from "graphql/index";
+import type { GraphQLError } from "graphql/index.js";
 
 export const queryGraphQlApi = <
   ReturnData,
