@@ -5,19 +5,10 @@
   "license": "(MIT OR Apache-2.0)",
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./pkg/src/main.ts",
-      "node": "./pkg/src/main.ts",
-      "default": "./pkg/src/main.ts"
-    },
-    "./type-defs/*": {
-      "types": "./type-defs/*.ts",
-      "node": "./type-defs/*.ts",
-      "default": "./type-defs/*.ts"
-    }
+    ".": "./dist/pkg/src/main.js",
+    "./type-defs/*": "./dist/type-defs/*.js"
   },
-  "main": "./pkg/src/main.ts",
-  "types": "./pkg/src/main.ts",
+  "types": "./dist/pkg/src/main.d.ts",
   "scripts": {
     "build": "rimraf dist && tsc --build tsconfig.build.json",
     "fix:eslint": "eslint --fix .",

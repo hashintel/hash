@@ -23,6 +23,7 @@
       "@local/hash-graph-sdk/*": ["../hash-graph-sdk/typescript/src/*.ts"],
       "@local/hash-graph-types/*": ["../hash-graph-types/typescript/src/*.ts"],
       "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*.ts"],
+      "@local/status": ["../status/typescript/pkg/src/main.ts"],
       "@local/hash-subgraph": ["../hash-subgraph/src/main.ts"],
       "@local/hash-subgraph/*": ["../hash-subgraph/src/*.ts"]
     }

@@ -5,6 +5,6 @@
     "outDir": "dist",
     "sourceMap": true,
     "inlineSources": true,
-    "sourceRoot": "./"
+    "paths": {}
   }
 }
