@@ -2,7 +2,7 @@ import { DataSource } from "apollo-datasource";
 import type { RedisClientType } from "redis";
 import { createClient } from "redis";
 
-import type { Logger } from "./logger";
+import type { Logger } from "./logger.js";
 
 export type RedisSocketConfig = {
   host: string;

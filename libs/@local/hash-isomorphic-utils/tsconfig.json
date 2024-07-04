@@ -8,7 +8,6 @@
      * @todo ideally we wouldn't specify 'dom' as this library is supposed to be usable across environments,
      *   but we have some functions which reference DOM APIs – these should be moved out
      */
-    "lib": ["dom", "esnext"],
-    "rootDir": "/"
+    "lib": ["dom", "esnext"]
   }
 }

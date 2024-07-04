@@ -16,7 +16,7 @@ import type { Auth } from "googleapis";
 import { google } from "googleapis";
 
 import { getSecretEntitiesForIntegration } from "./user-secret.js";
-import type { VaultClient } from "./vault";
+import type { VaultClient } from "./vault.js";
 
 const googleOAuthClientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
 const googleOAuthClientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
