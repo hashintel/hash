@@ -2,6 +2,7 @@
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
     "allowJs": false,
+    "checkJs": false,
     "allowSyntheticDefaultImports": true,
     "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "esnext"],
