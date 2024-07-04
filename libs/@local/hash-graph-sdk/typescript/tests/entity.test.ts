@@ -3,7 +3,7 @@ import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { expect, test } from "vitest";
 
-import { Entity } from "../src/entity";
+import { Entity } from "../src/entity.js";
 
 const base_url_a = "https://example.com/property-type/a/" as BaseUrl;
 const base_url_aa = "https://example.com/property-type/aa/" as BaseUrl;
