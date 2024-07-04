@@ -21,6 +21,7 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
+import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import {
   autocompleteClasses,
   Box,
@@ -30,12 +31,10 @@ import {
   Radio,
   RadioGroup,
   Stack,
-  type SxProps,
-  type Theme,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FormEvent, PropsWithChildren } from "react";
+import type { FormEvent, FunctionComponent, PropsWithChildren } from "react";
 import { useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
@@ -44,6 +43,10 @@ import type {
   StartFlowMutationVariables,
 } from "../../graphql/api-types.gen";
 import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { FilesLightIcon } from "../../shared/icons/files-light-icon";
+import { FilesRegularIcon } from "../../shared/icons/files-regular-icon";
+import { GlobeLightIcon } from "../../shared/icons/globe-light-icon";
+import { GlobeRegularIcon } from "../../shared/icons/globe-regular-icon";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { Button } from "../../shared/ui/button";
@@ -53,37 +56,60 @@ import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { WebSelector } from "../shared/web-selector";
 import type { DeliverableSettingsState } from "./new.page/deliverable-settings";
 import { DeliverableSettings } from "./new.page/deliverable-settings";
+import {
+  InternetSettings,
+  InternetSettingsState,
+} from "./new.page/internet-settings";
 
-const Question = ({ number, text }: { number: number; text: string }) => (
-  <Typography sx={{ fontSize: 17, fontWeight: 600, mb: 1.5 }}>
-    <Typography
-      component="span"
-      sx={{
-        color: ({ palette }) => palette.gray[50],
-        fontSize: 17,
-        fontWeight: 600,
-        mr: 2,
-      }}
-    >
-      {number}.
-    </Typography>
-    {text}
-  </Typography>
+const Question = ({
+  children,
+  description,
+  number,
+  text,
+}: PropsWithChildren<{
+  description: string;
+  number: number;
+  text: string;
+}>) => (
+  <Box mb={4}>
+    <Box sx={{ mb: 1.8 }}>
+      <Typography sx={{ fontSize: 17, fontWeight: 600 }}>
+        <Typography
+          component="span"
+          sx={{
+            color: ({ palette }) => palette.gray[50],
+            fontSize: 17,
+            fontWeight: 600,
+            mr: 2,
+          }}
+        >
+          {number}.
+        </Typography>
+        {text}
+      </Typography>
+      <Typography component="p" variant="smallTextParagraphs" mt={0.8}>
+        {description}
+      </Typography>
+    </Box>
+    {children}
+  </Box>
 );
 
 const Setting = ({
   children,
   header,
   inputId,
-}: PropsWithChildren<{ header: string; inputId: string }>) => (
+}: PropsWithChildren<{ header?: string; inputId?: string }>) => (
   <Box mb={2.5}>
-    <Typography
-      component="label"
-      htmlFor={inputId}
-      sx={{ display: "block", fontSize: 14, fontWeight: 500, mb: 1 }}
-    >
-      {header}
-    </Typography>
+    {header && (
+      <Typography
+        component="label"
+        htmlFor={inputId}
+        sx={{ display: "block", fontSize: 14, fontWeight: 500, mb: 1 }}
+      >
+        {header}
+      </Typography>
+    )}
     {children}
   </Box>
 );
@@ -98,18 +124,37 @@ const SettingCard = ({ children }: PropsWithChildren) => (
       py: 1.8,
     })}
   >
-    {children}
+    <Stack
+      direction="row"
+      gap={{ xs: 2, lg: 5 }}
+      sx={{ flexWrap: { xs: "wrap", lg: "nowrap" } }}
+    >
+      {children}
+    </Stack>
   </Box>
 );
 
-const SettingCardSectionHeader = ({ text }: { text: string }) => (
-  <Typography
-    component="h4"
-    sx={{ color: ({ palette }) => palette.gray[50], mb: 2 }}
-    variant="smallCaps"
-  >
-    {text}
-  </Typography>
+const SettingCardSectionHeader = ({
+  Icon,
+  text,
+}: {
+  Icon?: FunctionComponent<SvgIconProps>;
+  text: string;
+}) => (
+  <Stack direction="row" alignItems="center" mb={2}>
+    {Icon && (
+      <Icon
+        sx={{ color: ({ palette }) => palette.gray[50], fontSize: 12, mr: 0.9 }}
+      />
+    )}
+    <Typography
+      component="h4"
+      sx={{ color: ({ palette }) => palette.gray[50] }}
+      variant="smallCaps"
+    >
+      {text}
+    </Typography>
+  </Stack>
 );
 
 const createRadioItemSx = (active: boolean): SxProps<Theme> => ({
@@ -130,6 +175,16 @@ const NewGoalPageContent = () => {
     authenticatedUser.accountId as OwnedById,
   );
   const [createAsDraft, setCreateAsDraft] = useState(true);
+  const [internetSettings, setInternetSettings] =
+    useState<InternetSettingsState>({
+      internet: {
+        enabled: true,
+      },
+      browserPlugin: {
+        domains: ["linkedin.com"],
+        enabled: true,
+      },
+    });
   const [deliverablesSettings, setDeliverablesSettings] =
     useState<DeliverableSettingsState>({
       document: null,
@@ -149,15 +204,19 @@ const NewGoalPageContent = () => {
     if (called || !goal.trim() || !entityTypes.length) {
       return false;
     }
-    if (deliverablesSettings.document) {
-      return !!deliverablesSettings.document.brief;
+
+    if (deliverablesSettings.document && !deliverablesSettings.document.brief) {
+      return false;
     }
-    if (deliverablesSettings.spreadsheet) {
-      return (
-        !!deliverablesSettings.spreadsheet.googleSheet &&
-        !!deliverablesSettings.spreadsheet.googleAccountId
-      );
+
+    if (
+      deliverablesSettings.spreadsheet &&
+      (!deliverablesSettings.spreadsheet.googleSheet ||
+        !deliverablesSettings.spreadsheet.googleAccountId)
+    ) {
+      return false;
     }
+
     return true;
   }, [
     called,
@@ -332,66 +391,102 @@ const NewGoalPageContent = () => {
             border: `1px solid ${palette.gray[30]}`,
             maxWidth: 800,
             p: 4,
+            mb: 6,
           })}
         >
-          <Question number={1} text="What do you want to research?" />
-          <TextField
-            inputProps={{}}
-            onChange={(event) => setGoal(event.target.value)}
-            placeholder="Enter your goal"
-            sx={{
-              [`.${outlinedInputClasses.root}`]: {
-                boxShadow: "none",
-              },
-              [`.${outlinedInputClasses.root} input`]: {
-                fontSize: 15,
-                px: 2.8,
-                py: 1.8,
-              },
-              mb: 4,
-              width: inputWidth,
-            }}
-            value={goal}
-          />
           <Question
+            description="Information uploaded and created while performing this task will be added to this web"
+            number={1}
+            text="Choose a web"
+          >
+            <WebSelector
+              avatarSize={18}
+              inputHeight={30}
+              inputId="web-selector"
+              setSelectedWebOwnedById={(ownedById) => setWebId(ownedById)}
+              selectedWebOwnedById={webId}
+            />
+          </Question>
+          <Question
+            description="Your web will be populated with entities matching your research goal."
             number={2}
-            text="What types of entities are you looking for?"
-          />
-          <EntityTypeSelector
-            autoFocus={false}
-            disableCreate
-            multiple
-            onSelect={(newEntityTypes) => setEntityTypes(newEntityTypes)}
-            sx={{
-              height: 48,
-              width: inputWidth,
-              mb: 5,
-              [`& .${outlinedInputClasses.root} .${autocompleteClasses.input}`]:
-                {
-                  fontSize: 15,
-                  pl: 2,
+            text="What do you want to research?"
+          >
+            <TextField
+              inputProps={{}}
+              onChange={(event) => setGoal(event.target.value)}
+              placeholder="Enter your goal"
+              sx={{
+                [`.${outlinedInputClasses.root}`]: {
+                  boxShadow: "none",
                 },
-            }}
-            value={entityTypes}
-          />
-          <Question number={3} text="What do you want to output?" />
-          <SettingCard>
-            <Stack
-              direction="row"
-              gap={{ xs: 2, lg: 5 }}
-              sx={{ flexWrap: { xs: "wrap", lg: "nowrap" } }}
-            >
+                [`.${outlinedInputClasses.root} input`]: {
+                  fontSize: 15,
+                  px: 2.8,
+                  py: 1.8,
+                },
+                width: inputWidth,
+              }}
+              value={goal}
+            />
+          </Question>
+          <Question
+            description="The research task will look for entities that match these types."
+            number={3}
+            text="What types of entities are you looking for?"
+          >
+            <Box mb={1}>
+              <EntityTypeSelector
+                autoFocus={false}
+                disableCreate
+                inputHeight={52}
+                multiple
+                onSelect={(newEntityTypes) => setEntityTypes(newEntityTypes)}
+                sx={{
+                  height: 52,
+                  width: inputWidth,
+                  [`& .${outlinedInputClasses.root} .${autocompleteClasses.input}`]:
+                    {
+                      fontSize: 15,
+                      pl: 2,
+                    },
+                }}
+                value={entityTypes}
+              />
+            </Box>
+          </Question>
+          <Question
+            description="Entities will be created from the information sources you provide access to."
+            number={4}
+            text="What sources do you want to use?"
+          >
+            <SettingCard>
+              <Box>
+                <SettingCardSectionHeader
+                  Icon={GlobeRegularIcon}
+                  text="Internet"
+                />
+                <InternetSettings
+                  settings={internetSettings}
+                  setSettings={setInternetSettings}
+                />
+              </Box>
+              <Box>
+                <SettingCardSectionHeader
+                  Icon={FilesRegularIcon}
+                  text="Files"
+                />
+              </Box>
+            </SettingCard>
+          </Question>
+          <Question
+            description="Select how outputs of this research goal should be created."
+            number={5}
+            text="What do you want to output?"
+          >
+            <SettingCard>
               <Box>
                 <SettingCardSectionHeader text="Entities" />
-                <Setting header="Create in..." inputId="web-selector">
-                  <WebSelector
-                    avatarSize={18}
-                    inputHeight={30}
-                    inputId="web-selector"
-                    setSelectedWebOwnedById={(ownedById) => setWebId(ownedById)}
-                    selectedWebOwnedById={webId}
-                  />
-                </Setting>
                 <Setting header="Create as..." inputId="draft-option">
                   <RadioGroup
                     aria-labelledby="draft-option"
@@ -425,12 +520,12 @@ const NewGoalPageContent = () => {
                   />
                 </Box>
               </Box>
-            </Stack>
-          </SettingCard>
+            </SettingCard>
+          </Question>
           <Box
             sx={{
               borderTop: ({ palette }) => `1px solid ${palette.gray[30]}`,
-              pt: 3.5,
+              pt: 4,
               mt: 4,
             }}
           >

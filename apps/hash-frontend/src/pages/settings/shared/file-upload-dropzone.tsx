@@ -8,11 +8,13 @@ import { UploadIcon } from "../../../shared/icons/upload-icon";
 type FileUploadDropzoneProps = {
   image?: boolean;
   onFileProvided: (file: File) => void;
+  showUploadingMessage?: boolean;
 };
 
 export const FileUploadDropzone = ({
   image,
   onFileProvided,
+  showUploadingMessage,
 }: FileUploadDropzoneProps) => {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -58,30 +60,41 @@ export const FileUploadDropzone = ({
         },
       })}
     >
-      <Box component="input" {...getInputProps()} />
-      {image ? (
-        <ImageIconSolid sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
+      {showUploadingMessage ? (
+        <Typography
+          variant="smallTextLabels"
+          sx={{ color: "blue.70", display: "block", fontWeight: 600 }}
+        >
+          Click to upload
+        </Typography>
       ) : (
-        <UploadIcon sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
+        <>
+          <Box component="input" {...getInputProps()} />
+          {image ? (
+            <ImageIconSolid sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
+          ) : (
+            <UploadIcon sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
+          )}
+          <Typography
+            variant="smallTextLabels"
+            sx={{ color: "blue.70", display: "block", fontWeight: 600 }}
+          >
+            Click to upload
+          </Typography>
+          <Typography
+            variant="smallTextLabels"
+            sx={{ color: "gray.90", display: "block", fontWeight: 600 }}
+          >
+            or drag and drop a file
+          </Typography>
+          <Typography
+            variant="microText"
+            sx={{ color: "gray.50", display: "block", mt: 1, fontWeight: 500 }}
+          >
+            {image ? "Any image file accepted" : "All file types accepted"}
+          </Typography>
+        </>
       )}
-      <Typography
-        variant="smallTextLabels"
-        sx={{ color: "blue.70", display: "block", fontWeight: 600 }}
-      >
-        Click to upload
-      </Typography>
-      <Typography
-        variant="smallTextLabels"
-        sx={{ color: "gray.90", display: "block", fontWeight: 600 }}
-      >
-        or drag and drop a file
-      </Typography>
-      <Typography
-        variant="microText"
-        sx={{ color: "gray.50", display: "block", mt: 1, fontWeight: 500 }}
-      >
-        {image ? "Any image file accepted" : "All file types accepted"}
-      </Typography>
     </Box>
   );
 };
