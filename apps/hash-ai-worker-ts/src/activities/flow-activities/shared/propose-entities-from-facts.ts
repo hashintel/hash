@@ -12,6 +12,7 @@ import { proposeEntityFromFacts } from "./propose-entities-from-facts/propose-en
 
 export const proposeEntitiesFromFacts = async (params: {
   entitySummaries: LocalEntitySummary[];
+  potentialLinkTargetEntitySummaries: LocalEntitySummary[];
   existingEntitySummaries?: ExistingEntitySummary[];
   facts: Fact[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
@@ -21,6 +22,7 @@ export const proposeEntitiesFromFacts = async (params: {
     existingEntitySummaries,
     dereferencedEntityTypes,
     facts,
+    potentialLinkTargetEntitySummaries,
   } = params;
 
   const proposedEntities = await Promise.all(
@@ -83,7 +85,7 @@ export const proposeEntitiesFromFacts = async (params: {
         );
 
       const possibleOutgoingLinkTargetEntitySummaries = [
-        ...entitySummaries,
+        ...potentialLinkTargetEntitySummaries,
         ...(existingEntitySummaries ?? []),
       ].filter((potentialTargetEntitySummary) => {
         const someFactIncludesTargetEntityAsObject =

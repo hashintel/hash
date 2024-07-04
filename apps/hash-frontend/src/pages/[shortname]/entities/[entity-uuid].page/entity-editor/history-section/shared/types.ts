@@ -33,7 +33,20 @@ type PropertyUpdateEvent = HistoryEventBase & {
 
 type TypeUpdateEvent = HistoryEventBase & {
   type: "type-update";
-  entityType: EntityType;
+  entityType: {
+    oldVersion?: number;
+    title: string;
+    version: number;
+  };
+  op: "added" | "removed" | "upgraded";
+  provenance: {
+    edition: EntityEditionProvenance;
+  };
+};
+
+type DraftStatusChangeEvent = HistoryEventBase & {
+  type: "draft-status-change";
+  newDraftStatus: boolean;
   provenance: {
     edition: EntityEditionProvenance;
   };
@@ -42,4 +55,5 @@ type TypeUpdateEvent = HistoryEventBase & {
 export type HistoryEvent =
   | CreationEvent
   | PropertyUpdateEvent
-  | TypeUpdateEvent;
+  | TypeUpdateEvent
+  | DraftStatusChangeEvent;

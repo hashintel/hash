@@ -28,7 +28,7 @@ export type WebPage = {
   innerText: string;
 };
 
-type LocalOrExistingEntityId =
+export type LocalOrExistingEntityId =
   | { kind: "proposed-entity"; localId: string }
   | { kind: "existing-entity"; entityId: EntityId };
 

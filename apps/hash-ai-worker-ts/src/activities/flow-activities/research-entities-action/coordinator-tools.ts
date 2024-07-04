@@ -8,8 +8,6 @@ export const coordinatorToolNames = [
   "requestHumanInput",
   "webSearch",
   "inferFactsFromWebPages",
-  "proposeEntitiesFromFacts",
-  "submitProposedEntities",
   "startFactGatheringSubTasks",
   "complete",
   "terminate",
@@ -17,11 +15,6 @@ export const coordinatorToolNames = [
 ] as const;
 
 export type CoordinatorToolName = (typeof coordinatorToolNames)[number];
-
-export const isCoordinatorToolName = (
-  value: string,
-): value is CoordinatorToolName =>
-  coordinatorToolNames.includes(value as CoordinatorToolName);
 
 const explanationDefinition = {
   type: "string",
@@ -64,7 +57,7 @@ export const generateToolDefinitions = <
               description:
                 "A question to help clarify or complete the research task",
             },
-            description: "A list of questions to ask the user",
+            description: "An array of questions to ask the user",
           },
         },
         required: ["explanation", "questions"],
@@ -73,8 +66,8 @@ export const generateToolDefinitions = <
     startFactGatheringSubTasks: {
       name: "startFactGatheringSubTasks",
       description: dedent(`
-      Start fact gathering sub-tasks to gather facts required to complete the research task.
-      Make use of this tool if the research task can be broken down into smaller sub-tasks.
+      Start fact gathering sub-tasks to gather facts about entities required to complete the research task.
+      Make use of this tool if the research task needs to be be broken down into smaller, non-overlapping sub-tasks.
       For example: "Find the technical specifications of the product with name X, including specification x, y and z".
       
       Subtasks must be independent and not overlap in any way with the information they gather.
@@ -101,7 +94,7 @@ export const generateToolDefinitions = <
                   The entity IDs of the entities which the sub-task is relevant to, for which existing
                     facts have already been inferred.
                   
-                  ${params.state?.inferredFactsAboutEntities.length ? `The possible values are: ${params.state.inferredFactsAboutEntities.map(({ localId }) => localId).join(", ")}` : ""}
+                  ${params.state?.entitySummaries.length ? `The possible values are: ${params.state.entitySummaries.map(({ localId }) => localId).join(", ")}` : ""}
                 `),
                 },
                 entityTypeIds: {
@@ -170,7 +163,7 @@ export const generateToolDefinitions = <
       name: "inferFactsFromWebPages",
       description: dedent(`
       Infer facts from the content of web pages.
-      This tool should be used to gather facts about entities of specific types, before the entities can be proposed.
+      This tool should be used to gather facts about entities of specific types.
     `),
       inputSchema: {
         type: "object",
@@ -246,10 +239,11 @@ export const generateToolDefinitions = <
         required: ["webPages", "explanation"],
       },
     },
-    submitProposedEntities: {
-      name: "submitProposedEntities",
-      description:
-        "Submit one or more proposed entities as the `result` of the research task.",
+    complete: {
+      name: "complete",
+      description: dedent(`
+            Complete the research task by specifying the entityIds of the entities to submit as the result of your research.
+          `),
       inputSchema: {
         type: "object",
         properties: {
@@ -260,27 +254,13 @@ export const generateToolDefinitions = <
               type: "string",
             },
             description: dedent(`
-            An array of entity IDs of the proposed entities to submit.
-            Each entity must have been proposed by a prior "proposeEntitiesFromFacts" tool call.
-            You must have made an effort to find all the facts required to infer as many properties and outgoing links
-              for each entity as possible.
+            An array of entityIds to submit.
+            You must have made an effort to find as many properties and outgoing links for each entity as possible,
+            as long as they relate to the research task in question.
           `),
           },
         },
         required: ["entityIds", "explanation"],
-      },
-    },
-    complete: {
-      name: "complete",
-      description: dedent(`
-            Complete the research task.
-          `),
-      inputSchema: {
-        type: "object",
-        properties: {
-          explanation: explanationDefinition,
-        },
-        required: ["explanation"],
       },
     },
     terminate: {
@@ -317,35 +297,6 @@ export const generateToolDefinitions = <
           },
         },
         required: ["plan", "explanation"],
-      },
-    },
-    proposeEntitiesFromFacts: {
-      name: "proposeEntitiesFromFacts",
-      description: dedent(`
-      Propose entities from the inferred facts about the entities.
-
-      All required facts must be obtained before proposing entities.
-
-      Before calling this tool, you must have made a significant effort to
-        find all the facts required to infer as many properties and outgoing links
-        as possible for each entity.
-
-      If you propose an entity more than once, the latest proposal will be used.
-    `),
-      inputSchema: {
-        type: "object",
-        properties: {
-          explanation: explanationDefinition,
-          entityIds: {
-            type: "array",
-            items: {
-              type: "string",
-              description:
-                "The fact IDs of the inferred facts to propose entities from.",
-            },
-          },
-        },
-        required: ["entityIds", "explanation"],
       },
     },
   };
@@ -389,24 +340,17 @@ export type CoordinatorToolCallArguments = Subtype<
       subTasks: {
         goal: string;
         explanation: string;
-        relevantEntityIds: string[];
+        relevantEntityIds?: string[];
         entityTypeIds: string[];
         linkEntityTypeIds?: string[];
       }[];
-    };
-    proposeEntitiesFromFacts: {
-      explanation: string;
-      entityIds: string[];
-    };
-    submitProposedEntities: {
-      explanation: string;
-      entityIds: string[];
     };
     updatePlan: {
       explanation: string;
       plan: string;
     };
     complete: {
+      entityIds: string[];
       explanation: string;
     };
     terminate: {

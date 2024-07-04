@@ -20,7 +20,7 @@ export const updateEntitySubgraphStateByEntity = (
      *   For places where we mutate elements, we should probably store them separately from the subgraph to
      *   allow for optimistic updates without being incorrect.
      */
-    const metadata = entity.metadata;
+    const metadata = JSON.parse(JSON.stringify(entity.metadata));
     const newEntityRevisionId = new Date().toISOString() as EntityRevisionId;
     metadata.temporalVersioning.decisionTime.start.limit = newEntityRevisionId;
     metadata.temporalVersioning.transactionTime.start.limit =

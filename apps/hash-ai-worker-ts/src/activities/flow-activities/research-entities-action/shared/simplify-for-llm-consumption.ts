@@ -1,4 +1,10 @@
 import type {
+  LocalOrExistingEntityId,
+  ProposedEntity,
+} from "@local/hash-isomorphic-utils/flows/types";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
+
+import type {
   DereferencedEntityType,
   DereferencedPropertyType,
   MinimalPropertyTypeValue,
@@ -25,7 +31,7 @@ const simplifyPropertyTypeForLlmConsumption = (params: {
   const { title, description } = propertyType;
 
   return `
--------------------- START OF "${title}" PROPERTY TYPE DEFINITION --------------------
+<${title}Property>
 Property Type ID: "${propertyType.$id}"
 Title: ${title}
 Description: ${description}
@@ -34,7 +40,7 @@ Possible Values: ${propertyType.oneOf
       simplifyMinimalPropertyTypeValueForLlmConsumption({ propertyTypeValue }),
     )
     .join("\n")}
------------------------ END OF "${title}" PROPERTY TYPE DEFINITION --------------------
+</${title}Property>
   `;
 };
 
@@ -50,7 +56,7 @@ export const simplifyEntityTypeForLlmConsumption = (params: {
   );
 
   return `
--------------------- START OF "${title}" ENTITY TYPE DEFINITION --------------------
+<${title}EntityType>
 Entity Type ID: "${entityType.$id}"
 Title: ${title}
 Description: ${description}
@@ -60,6 +66,51 @@ ${propertyTypes
     simplifyPropertyTypeForLlmConsumption({ propertyType }),
   )
   .join("\n")}
--------------------- END OF "${title}" ENTITY TYPE DEFINITION --------------------
+</${title}EntityType>
+  `;
+};
+
+// This assumes a hash.ai/blockprotocol.org type URL format ending in [slugified-title]/v/[number]
+const slugToTitleCase = (slug?: string) =>
+  slug
+    ? slug
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")
+    : undefined;
+
+const getIdForLinkEndpoint = (endpoint: LocalOrExistingEntityId) =>
+  endpoint.kind === "existing-entity" ? endpoint.entityId : endpoint.localId;
+
+export const simplifyProposedEntityForLlmConsumption = (params: {
+  proposedEntity: ProposedEntity;
+}) => {
+  const { proposedEntity } = params;
+
+  const {
+    entityTypeId,
+    localEntityId,
+    sourceEntityId,
+    targetEntityId,
+    properties,
+  } = proposedEntity;
+
+  return `
+<Entity>
+EntityId: ${localEntityId}
+EntityType: ${slugToTitleCase(entityTypeId)}
+Properties:
+${Object.entries(properties)
+  .map(
+    ([baseUrl, value]) =>
+      `${slugToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}`,
+  )
+  .join("\n")}
+    ${
+      sourceEntityId && targetEntityId
+        ? `\n<LinkData>SourceEntityId: ${getIdForLinkEndpoint(sourceEntityId)}\nTargetEntityId: ${getIdForLinkEndpoint(targetEntityId)}</LinkData>`
+        : ""
+    }
+</Entity>
   `;
 };

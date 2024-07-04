@@ -5,7 +5,7 @@ import { expect, test } from "vitest";
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import { simplifyEntityTypeForLlmConsumption } from "./simplify-ontology-types-for-llm-consumption.js";
+import { simplifyEntityTypeForLlmConsumption } from "./simplify-for-llm-consumption.js";
 
 test("Test researchEntitiesAction: find subsidiary companies of Google", async () => {
   const { userAuthentication } = await getFlowContext();
