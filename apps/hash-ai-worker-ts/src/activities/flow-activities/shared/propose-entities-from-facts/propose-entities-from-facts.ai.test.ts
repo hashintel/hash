@@ -450,8 +450,10 @@ test.skip(
 
     const { proposedEntities } = await proposeEntitiesFromFacts({
       entitySummaries: ftse350EntitySummaries,
+      existingEntitySummaries: [],
       facts,
       dereferencedEntityTypes,
+      potentialLinkTargetEntitySummaries: [],
     });
 
     // eslint-disable-next-line no-console

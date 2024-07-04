@@ -10,7 +10,7 @@ import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
 } from "./coordinating-agent";
-import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption";
+import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-for-llm-consumption";
 
 type SubmitVerdictToolCallInput = {
   [subTaskId: string]: {

@@ -4,15 +4,15 @@ import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-ent
 import type { Fact } from "../shared/infer-facts-from-text/types";
 
 export const generatePreviouslyInferredFactsSystemPromptMessage = (params: {
-  inferredFactsAboutEntities: LocalEntitySummary[];
+  entitySummaries: LocalEntitySummary[];
   inferredFacts: Fact[];
 }) => {
-  const { inferredFactsAboutEntities, inferredFacts } = params;
+  const { entitySummaries, inferredFacts } = params;
 
-  return inferredFactsAboutEntities.length > 0
+  return entitySummaries.length > 0
     ? dedent(`
     You have previously obtained facts about the following entities:
-    ${inferredFactsAboutEntities
+    ${entitySummaries
       .map((entitySummary) => {
         const factsWithEntityAsSubject = inferredFacts.filter(
           (fact) => fact.subjectEntityLocalId === entitySummary.localId,
