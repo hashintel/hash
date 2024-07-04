@@ -24,7 +24,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/lodash-es": "4.17.4",
+    "@types/lodash-es": "4.17.12",
     "@types/node": "20.12.3",
     "@types/yargs": "17.0.22",
     "eslint": "8.57.0",

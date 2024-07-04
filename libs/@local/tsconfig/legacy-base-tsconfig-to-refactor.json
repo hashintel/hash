@@ -17,6 +17,9 @@
     "baseUrl": ".",
     "paths": {
       "@blockprotocol/graph/*": ["../../@blockprotocol/graph/src/*.ts"],
+      "@blockprotocol/type-system/*": [
+        "../../@blockprotocol/type-system/src/*.ts"
+      ],
       "@local/advanced-types/*": ["../advanced-types/src/*.ts"],
       "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*.ts"],
       "@local/hash-graph-client/*": ["../hash-graph-client/typescript/*.ts"],
