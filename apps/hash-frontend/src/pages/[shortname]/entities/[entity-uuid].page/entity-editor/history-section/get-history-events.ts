@@ -1,4 +1,7 @@
+import { extractBaseUrl, type VersionedUrl } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { EntityTypeIdDiff } from "@local/hash-graph-client";
 import type { EntityId, PropertyPath } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
@@ -9,11 +12,8 @@ import {
   getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
 
-import { extractBaseUrl, type VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityTypeIdDiff } from "@local/hash-graph-client";
-import { extractVersion } from "@blockprotocol/type-system/slim";
-import type { HistoryEvent } from "./shared/types";
 import type { EntityDiff } from "../../../../../../graphql/api-types.gen";
+import type { HistoryEvent } from "./shared/types";
 
 export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
   const firstEditionIdentifier = [...subgraph.roots].sort((a, b) =>
@@ -71,7 +71,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
       const upgradedFromEntityTypeIds: VersionedUrl[] = [];
 
       const diffsWithAdditionsFirst = [...diffData.diff.entityTypeIds].sort(
-        (a, b) => {
+        (a) => {
           return a.op === "added" ? -1 : 1;
         },
       );
