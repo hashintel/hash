@@ -6,7 +6,7 @@
   "exports": {
     ".": "./dist/main.js",
     "./stdlib": "./dist/stdlib.js",
-    "./type-system-patch": "./dist/shared/type-system-patch.js",
+    "./type-system-patch": "./dist/type-system-patch.js",
     "./temp": "./dist/temp.js"
   },
   "types": "./dist/main.d.ts",
@@ -19,7 +19,7 @@
         "./dist/stdlib.d.ts"
       ],
       "type-system-patch": [
-        "./dist/shared/type-system-patch.d.ts"
+        "./dist/type-system-patch.d.ts"
       ]
     }
   },

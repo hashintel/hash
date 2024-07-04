@@ -6,12 +6,12 @@
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": "./dist/*.js"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "./src/*.ts"
+        "./dist/*.d.ts"
       ]
     }
   },

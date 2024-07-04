@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+
 import { generateVersionedUrlMatchingFilter } from "./graph-queries.js";
 import {
   systemEntityTypes,

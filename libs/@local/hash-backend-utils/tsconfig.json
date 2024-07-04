@@ -2,7 +2,7 @@
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "include": ["src"],
   "compilerOptions": {
-    "declaration": true,
-    "outDir": "./dist"
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
   }
 }
