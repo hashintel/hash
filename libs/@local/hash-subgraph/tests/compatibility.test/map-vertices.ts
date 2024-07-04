@@ -54,12 +54,13 @@ import type {
   CreatedAtTransactionTime,
   Timestamp,
 } from "@local/hash-graph-types/temporal-versioning";
+
 import type {
   KnowledgeGraphVertex,
   OntologyVertex,
   Vertices,
-} from "@local/hash-subgraph";
-import { isEntityId } from "@local/hash-subgraph";
+} from "../../src/main.js";
+import { isEntityId } from "../../src/main.js";
 
 const mapDataType = (dataType: DataTypeGraphApi): CustomDataType => {
   const idResult = validateVersionedUrl(dataType.$id);

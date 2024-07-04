@@ -6,8 +6,7 @@
   "exports": {
     ".": "./dist/main.js",
     "./stdlib": "./dist/stdlib.js",
-    "./type-system-patch": "./dist/type-system-patch.js",
-    "./temp": "./dist/temp.js"
+    "./type-system-patch": "./dist/type-system-patch.js"
   },
   "types": "./dist/main.d.ts",
   "typesVersions": {

@@ -10,16 +10,17 @@ import type {
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+
 import type {
   Edges,
   OntologyTypeRevisionId,
   OutwardEdge,
-} from "@local/hash-subgraph";
+} from "../../src/main.js";
 import {
   isEntityId,
   isKnowledgeGraphOutwardEdge,
   isOntologyOutwardEdge,
-} from "@local/hash-subgraph";
+} from "../../src/main.js";
 
 export const mapOutwardEdge = (
   outwardEdge: OntologyOutwardEdgeGraphApi | KnowledgeGraphOutwardEdgeGraphApi,
