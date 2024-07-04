@@ -23,8 +23,6 @@ const OntologyChip: ForwardRefRenderFunction<
       /(@[\w-]+)(\/[^/]+\/[^/]*)?(?:\/([\w-]+))?(\/.*)?/,
     );
 
-    console.log({ match });
-
     return match
       ? {
           shortname: match[1],
