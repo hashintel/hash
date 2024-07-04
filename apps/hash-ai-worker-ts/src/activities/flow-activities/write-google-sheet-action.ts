@@ -74,8 +74,7 @@ type ActivityHeartbeatDetails = {
 export const writeGoogleSheetAction: FlowActionActivity<{
   vaultClient: VaultClient;
 }> = async ({ inputs, vaultClient }) => {
-  const { flowEntityId, stepId, userAuthentication, webId } =
-    await getFlowContext();
+  const { flowEntityId, userAuthentication, webId } = await getFlowContext();
 
   const { audience, dataToWrite, googleAccountId, googleSheet } =
     getSimplifiedActionInputs({
@@ -334,7 +333,6 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     origin: {
       type: "flow",
       id: flowEntityId,
-      stepIds: [stepId],
     } satisfies OriginProvenance,
   };
 

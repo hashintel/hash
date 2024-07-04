@@ -45,8 +45,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
     : [];
 
-  const { flowEntityId, userAuthentication, stepId, webId } =
-    await getFlowContext();
+  const { flowEntityId, userAuthentication, webId } = await getFlowContext();
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: userAuthentication,
@@ -161,7 +160,6 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
         origin: {
           type: "flow",
           id: flowEntityId,
-          stepIds: [stepId],
         } satisfies OriginProvenance,
         sources: [source],
       };

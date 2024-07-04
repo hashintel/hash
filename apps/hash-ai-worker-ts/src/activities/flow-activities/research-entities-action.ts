@@ -815,7 +815,6 @@ export const researchEntitiesAction: FlowActionActivity<{
     origin: {
       type: "flow",
       id: flowEntityId,
-      stepIds: [stepId],
     } satisfies OriginProvenance,
   };
 

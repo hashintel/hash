@@ -228,7 +228,6 @@ export const getFileEntityFromUrl = async (params: {
     origin: {
       type: "flow" as "migration",
       id: flowEntityId,
-      stepIds: [stepId],
     },
   };
 
