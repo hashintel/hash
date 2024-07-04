@@ -2,8 +2,8 @@ import type {
   LlmAssistantMessage,
   LlmMessage,
   LlmUserMessage,
-} from "../../shared/get-llm-response/llm-message";
-import type { CompletedToolCall } from "./types";
+} from "../../shared/get-llm-response/llm-message.js";
+import type { CompletedToolCall } from "./types.js";
 
 export const mapPreviousCallsToLlmMessages = (params: {
   previousCalls: {

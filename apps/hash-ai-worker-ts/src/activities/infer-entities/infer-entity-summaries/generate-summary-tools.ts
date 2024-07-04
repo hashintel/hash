@@ -7,12 +7,12 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
-import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
 import { stringify } from "../../shared/stringify.js";
 import type {
   DereferencedEntityTypesByTypeId,
   ProposedEntitySummary,
-} from "../inference-types";
+} from "../inference-types.js";
 import { generateToolLinkFields } from "../shared/generate-propose-entities-tools.js";
 
 type FunctionName = "could_not_infer_entities" | "register_entity_summaries";

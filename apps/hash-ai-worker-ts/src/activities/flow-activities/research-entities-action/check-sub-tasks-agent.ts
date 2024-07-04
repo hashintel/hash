@@ -2,14 +2,14 @@ import dedent from "dedent";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
 import { getFlowContext } from "../../shared/get-flow-context.js";
-import { getLlmResponse } from "../../shared/get-llm-response";
+import { getLlmResponse } from "../../shared/get-llm-response.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message.js";
-import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
-} from "./coordinating-agent";
+} from "./coordinating-agent.js";
 import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption.js";
 
 type SubmitVerdictToolCallInput = {

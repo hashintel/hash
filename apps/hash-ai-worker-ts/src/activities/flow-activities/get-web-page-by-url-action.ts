@@ -5,7 +5,7 @@ import {
 import { StatusCode } from "@local/status";
 
 import { getWebPageActivity } from "../get-web-page-activity.js";
-import type { FlowActionActivity } from "./types";
+import type { FlowActionActivity } from "./types.js";
 
 export const getWebPageByUrlAction: FlowActionActivity = async ({ inputs }) => {
   const { url } = getSimplifiedActionInputs({

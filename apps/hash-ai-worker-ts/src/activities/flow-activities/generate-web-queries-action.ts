@@ -4,12 +4,12 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
-import { getLlmResponse } from "../shared/get-llm-response";
+import { getLlmResponse } from "../shared/get-llm-response.js";
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
-import type { LlmToolDefinition } from "../shared/get-llm-response/types";
+import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
-import type { FlowActionActivity } from "./types";
+import type { FlowActionActivity } from "./types.js";
 
 const webQueriesSystemPrompt = dedent(`
     You are a Web Search Assistant.

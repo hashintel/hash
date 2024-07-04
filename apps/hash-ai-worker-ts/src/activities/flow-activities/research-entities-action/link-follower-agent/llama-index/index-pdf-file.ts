@@ -14,7 +14,7 @@ import {
 import md5 from "md5";
 
 import { logger } from "../../../../shared/activity-logger.js";
-import type { SimpleStorageContext } from "./simple-storage-context";
+import type { SimpleStorageContext } from "./simple-storage-context.js";
 import {
   generateSimpleStorageContextFilePaths,
   persistSimpleStorageContext,

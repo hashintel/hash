@@ -1,6 +1,5 @@
 import slugifyLib from "slugify";
 
-const slugifyFn = slugifyLib as unknown as typeof slugifyLib.default;
-
 export const slugify = (text: string) =>
-  slugifyFn(text, { lower: true, strict: true });
+  // @ts-ignore -- https://github.com/simov/slugify/issues/173
+  slugifyLib(text, { lower: true, strict: true });

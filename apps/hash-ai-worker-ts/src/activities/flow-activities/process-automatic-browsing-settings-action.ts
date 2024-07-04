@@ -11,7 +11,7 @@ import { StatusCode } from "@local/status";
 import { getEntityByFilter } from "../shared/get-entity-by-filter.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
-import type { FlowActionActivity } from "./types";
+import type { FlowActionActivity } from "./types.js";
 
 export const processAutomaticBrowsingSettingsAction: FlowActionActivity =
   async ({ inputs }) => {

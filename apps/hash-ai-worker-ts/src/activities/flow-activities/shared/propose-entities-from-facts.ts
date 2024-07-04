@@ -1,13 +1,13 @@
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
-import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
+import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
 import { logger } from "../../shared/activity-logger.js";
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
 import { stringify } from "../../shared/stringify.js";
-import type { ExistingEntitySummary } from "../research-entities-action/summarize-existing-entities";
-import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "./infer-facts-from-text/types";
+import type { ExistingEntitySummary } from "../research-entities-action/summarize-existing-entities.js";
+import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { Fact } from "./infer-facts-from-text/types.js";
 import { proposeEntityFromFacts } from "./propose-entities-from-facts/propose-entity-from-facts.js";
 
 export const proposeEntitiesFromFacts = async (params: {

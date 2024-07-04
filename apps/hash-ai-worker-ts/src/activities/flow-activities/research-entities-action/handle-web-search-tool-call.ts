@@ -10,7 +10,7 @@ import { Context } from "@temporalio/activity";
 import { logProgress } from "../../shared/log-progress.js";
 import { getWebPageSummaryAction } from "../get-web-page-summary-action.js";
 import { webSearchAction } from "../web-search-action.js";
-import type { CoordinatorToolCallArguments } from "./coordinator-tools";
+import type { CoordinatorToolCallArguments } from "./coordinator-tools.js";
 
 export const handleWebSearchToolCall = async (params: {
   input: CoordinatorToolCallArguments["webSearch"];

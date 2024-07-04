@@ -13,30 +13,30 @@ import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
-import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
+import type { ParsedLlmToolCall } from "../shared/get-llm-response/types.js";
 import { logProgress } from "../shared/log-progress.js";
 import { stringify } from "../shared/stringify.js";
 import { checkSubTasksAgent } from "./research-entities-action/check-sub-tasks-agent.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
-} from "./research-entities-action/coordinating-agent";
+} from "./research-entities-action/coordinating-agent.js";
 import { coordinatingAgent } from "./research-entities-action/coordinating-agent.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
-} from "./research-entities-action/coordinator-tools";
-import type { DuplicateReport } from "./research-entities-action/deduplicate-entities";
+} from "./research-entities-action/coordinator-tools.js";
+import type { DuplicateReport } from "./research-entities-action/deduplicate-entities.js";
 import { deduplicateEntities } from "./research-entities-action/deduplicate-entities.js";
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human.js";
 import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call.js";
-import { linkFollowerAgent } from "./research-entities-action/link-follower-agent";
+import { linkFollowerAgent } from "./research-entities-action/link-follower-agent.js";
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
-import type { CompletedToolCall } from "./research-entities-action/types";
-import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "./shared/infer-facts-from-text/types";
-import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
-import type { FlowActionActivity } from "./types";
+import type { CompletedToolCall } from "./research-entities-action/types.js";
+import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { Fact } from "./shared/infer-facts-from-text/types.js";
+import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts.js";
+import type { FlowActionActivity } from "./types.js";
 
 export type AccessedRemoteFile = {
   entityTypeId: VersionedUrl;

@@ -9,7 +9,7 @@ import type {
 import { StatusCode } from "@local/status";
 
 import { persistEntityAction } from "./persist-entity-action.js";
-import type { FlowActionActivity } from "./types";
+import type { FlowActionActivity } from "./types.js";
 
 export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
   const { draft, proposedEntities } = getSimplifiedActionInputs({

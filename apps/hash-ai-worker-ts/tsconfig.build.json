@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "include": ["src"],
   "compilerOptions": {
-    "outDir": "./dist",
+    "outDir": "dist",
     "sourceMap": true,
     "inlineSources": true,
     "sourceRoot": "./"

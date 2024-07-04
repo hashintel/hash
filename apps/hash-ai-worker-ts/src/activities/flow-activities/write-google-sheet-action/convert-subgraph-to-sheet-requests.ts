@@ -23,7 +23,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import type { sheets_v4 } from "googleapis";
 
-import type { SheetOutputFormat } from "./shared/config";
+import type { SheetOutputFormat } from "./shared/config.js";
 import {
   createCellFromValue,
   createHyperlinkCell,

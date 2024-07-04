@@ -2,7 +2,7 @@ import type {
   DereferencedEntityType,
   DereferencedPropertyType,
   MinimalPropertyTypeValue,
-} from "../../../shared/dereference-entity-type";
+} from "../../../shared/dereference-entity-type.js";
 
 const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
   propertyTypeValue: MinimalPropertyTypeValue;

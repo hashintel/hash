@@ -25,7 +25,7 @@ import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
 import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url.js";
 import { getEntityUpdate } from "./shared/graph-requests.js";
-import type { FlowActionActivity } from "./types";
+import type { FlowActionActivity } from "./types.js";
 
 const fileEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.file.entityTypeId,

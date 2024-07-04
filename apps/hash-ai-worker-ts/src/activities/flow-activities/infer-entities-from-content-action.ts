@@ -14,14 +14,14 @@ import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-t
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-} from "../infer-entities/inference-types";
+} from "../infer-entities/inference-types.js";
 import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
 import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities.js";
 import { isPermittedOpenAiModel } from "../shared/openai-client.js";
-import type { FlowActionActivity } from "./types";
+import type { FlowActionActivity } from "./types.js";
 
 export const inferEntitiesFromContentAction: FlowActionActivity = async ({
   inputs,

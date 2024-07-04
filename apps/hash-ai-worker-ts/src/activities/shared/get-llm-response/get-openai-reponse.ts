@@ -22,7 +22,10 @@ import {
   maxRetryCount,
   serverErrorRetryStartingDelay,
 } from "./constants.js";
-import type { LlmMessageToolUseContent, LlmUserMessage } from "./llm-message";
+import type {
+  LlmMessageToolUseContent,
+  LlmUserMessage,
+} from "./llm-message.js";
 import {
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
@@ -34,7 +37,7 @@ import type {
   LlmUsage,
   OpenAiLlmParams,
   ParsedLlmToolCall,
-} from "./types";
+} from "./types.js";
 import {
   getInputValidationErrors,
   sanitizeInputBeforeValidation,

@@ -33,7 +33,7 @@ import {
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
 } from "../shared/get-llm-response/llm-message.js";
-import type { LlmToolDefinition } from "../shared/get-llm-response/types";
+import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities.js";
 import { openAiSeed } from "../shared/open-ai-seed.js";

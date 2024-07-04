@@ -16,7 +16,7 @@
     }
   },
   "scripts": {
-    "build": "rimraf dist && tsc --build tsconfig.build.json",
+    "build": "rimraf dist && tsc --build tsconfig.build.json && yarn exe ./scripts/bundle-workflow-code.ts",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
     "generate-system-types": "tsx ./src/generate-system-types.ts; yarn fix:eslint; yarn prettier --write ./src/system-types/{*.ts,**/*.ts}",

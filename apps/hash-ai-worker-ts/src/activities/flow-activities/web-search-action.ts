@@ -2,7 +2,7 @@ import { internalApiClient } from "@local/hash-backend-utils/internal-api-client
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
-import type { FlowActionActivity } from "./types";
+import type { FlowActionActivity } from "./types.js";
 
 export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
   const { query, numberOfSearchResults } = getSimplifiedActionInputs({

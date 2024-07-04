@@ -10,23 +10,23 @@ import dedent from "dedent";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
 import { extractErrorMessage } from "../../../infer-entities/shared/extract-validation-failure-details.js";
-import type { PropertyValueWithSimplifiedProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties";
+import type { PropertyValueWithSimplifiedProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties.js";
 import { mapSimplifiedPropertiesToProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties.js";
 import { stripIdsFromDereferencedProperties } from "../../../infer-entities/shared/strip-ids-from-dereferenced-properties.js";
-import type { DereferencedEntityType } from "../../../shared/dereference-entity-type";
+import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
-import { getLlmResponse } from "../../../shared/get-llm-response";
+import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type {
   LlmMessage,
   LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message";
+} from "../../../shared/get-llm-response/llm-message.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
-import type { LlmToolDefinition } from "../../../shared/get-llm-response/types";
+import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
-import type { ExistingEntitySummary } from "../../research-entities-action/summarize-existing-entities";
-import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "../infer-facts-from-text/types";
+import type { ExistingEntitySummary } from "../../research-entities-action/summarize-existing-entities.js";
+import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { Fact } from "../infer-facts-from-text/types.js";
 
 const mapPropertiesSchemaToInputPropertiesSchema = (params: {
   properties: DereferencedEntityType["properties"];
