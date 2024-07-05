@@ -19,7 +19,9 @@ enum ArrayTypeTag {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+// TODO: Add `deny_unknown_fields` once `ordered` is removed from the production database
+//   see https://linear.app/hash/issue/H-3058/add-deny-unknown-field-to-arrayschema
+#[serde(rename_all = "camelCase")]
 pub struct ArraySchema<T> {
     r#type: ArrayTypeTag,
     pub items: T,
