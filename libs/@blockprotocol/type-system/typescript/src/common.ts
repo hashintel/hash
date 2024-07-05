@@ -23,7 +23,7 @@ export class TypeSystemInitializer {
   public static initialize = async (options?: InitInput) => {
     if (initialized === undefined) {
       const loadModule = options ?? (wasmInit ? wasmInit() : undefined);
-      initialized = init.default(loadModule).then(() => undefined);
+      initialized = init(loadModule).then(() => undefined);
     }
 
     await initialized;
