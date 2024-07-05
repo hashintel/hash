@@ -23,8 +23,7 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
   The user will provide you with:
     - Task: a research task you have been instructed to fulfill,
         based on the contents of a resource (e.g. a webpage)
-    - Previously Visited Links: links to resources which have been
-        previously visited to extract facts
+    - Previously Visited Links: links to resources which have been previously visited to extract facts
     - Entities: a list of entities for which facts have been gathered, including:
         - name: the name of the entity
         - summary: a summary of the entity
@@ -73,25 +72,29 @@ const generateUserMessage = (
       {
         type: "text",
         text: dedent(`
-Task: ${task}
-Previously Visited Links: ${JSON.stringify(previouslyVisitedLinks)}
-Entities: ${JSON.stringify(
-          entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
-            const factsAboutEntity = factsGathered.filter(
-              (fact) => fact.subjectEntityLocalId === localId,
-            );
+<Task>${task}</Task>
+<PreviouslyVisitedLinks>${previouslyVisitedLinks.map(({ url }) => url).join("\n")}</PreviouslyVisitedLinks>
+<Entities> ${
+          (JSON.stringify(
+            entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
+              const factsAboutEntity = factsGathered.filter(
+                (fact) => fact.subjectEntityLocalId === localId,
+              );
 
-            return {
-              name,
-              summary,
-              entityType: entityTypeId,
-              facts: JSON.stringify(
-                factsAboutEntity.map(simplifyFactForLlmConsumption),
-              ),
-            };
-          }),
-        )}
-Possible Next Links: ${JSON.stringify(possibleNextLinks)}
+              return {
+                name,
+                summary,
+                entityType: entityTypeId,
+                facts: JSON.stringify(
+                  factsAboutEntity.map(simplifyFactForLlmConsumption),
+                ),
+              };
+            }),
+          ),
+          undefined,
+          2)
+        }</Entities>
+Possible Next Links: ${(JSON.stringify(possibleNextLinks.filter((link) => !previouslyVisitedLinks.some(({ url }) => url === link.url))), undefined, 2)}
     `),
       },
     ],
@@ -264,7 +267,7 @@ export const getLinkFollowerNextToolCalls = async (
       graphApiClient,
       webId,
       incurredInEntities: [{ entityId: flowEntityId }],
-      customMetadata: { taskName: "extract-links-from-content", stepId },
+      customMetadata: { taskName: "link-follower", stepId },
     },
   );
 

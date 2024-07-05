@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -351,8 +352,8 @@ export const proposeEntityFromFacts = async (params: {
             },
           ],
         },
+        ...(retryContext?.retryMessages ?? []),
       ],
-      ...(retryContext?.retryMessages ?? []),
     },
     {
       customMetadata: {
@@ -431,7 +432,7 @@ export const proposeEntityFromFacts = async (params: {
           /** @todo: set this depending on whether entities are created as drafts? */
           requiredProperties: false,
         },
-        properties,
+        properties: mergePropertiesAndMetadata(properties),
       });
     } catch (error) {
       const invalidReason = `${extractErrorMessage(error)}.`;
@@ -498,7 +499,7 @@ export const proposeEntityFromFacts = async (params: {
                 /** @todo: set this depending on whether entities are created as drafts? */
                 requiredProperties: false,
               },
-              properties: outgoingLinkProperties,
+              properties: mergePropertiesAndMetadata(outgoingLinkProperties),
             });
           } catch (error) {
             const invalidReason = `${extractErrorMessage(error)}.`;

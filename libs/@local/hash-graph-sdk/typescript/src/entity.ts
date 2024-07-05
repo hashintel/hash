@@ -240,7 +240,7 @@ export const isValueRemovedByPatches = <Properties extends PropertyObject>({
   );
 };
 
-const mergePropertiesAndMetadata = (
+export const mergePropertiesAndMetadata = (
   property: Property,
   metadata?: PropertyMetadata,
 ): PropertyWithMetadata => {
