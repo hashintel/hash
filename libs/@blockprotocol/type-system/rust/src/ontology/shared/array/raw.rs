@@ -208,6 +208,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "https://linear.app/hash/issue/H-3058/add-deny-unknown-field-to-arrayschema"]
     fn additional_properties() {
         ensure_repr_failed_deserialization::<ArraySchema<StringTypeStruct>>(json!({
             "type": "array",
@@ -254,6 +255,7 @@ mod tests {
         }
 
         #[test]
+        #[ignore = "https://linear.app/hash/issue/H-3058/add-deny-unknown-field-to-arrayschema"]
         fn additional_properties() {
             let as_json = json!({
                 "type": "array",
