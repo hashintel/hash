@@ -50,13 +50,14 @@ export const parseTextFromFile = async (
   if (textParsingFunction) {
     const textualContent = await textParsingFunction(fileBuffer);
 
-    const { flowEntityId } = await getFlowContext();
+    const { flowEntityId, stepId } = await getFlowContext();
 
     const provenance: EnforcedEntityEditionProvenance = {
       actorType: "machine",
       origin: {
         type: "flow",
         id: flowEntityId,
+        stepIds: [stepId],
       } satisfies OriginProvenance,
     };
 

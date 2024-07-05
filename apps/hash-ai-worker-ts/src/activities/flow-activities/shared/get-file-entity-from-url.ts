@@ -226,8 +226,9 @@ export const getFileEntityFromUrl = async (params: {
   const provenance: EnforcedEntityEditionProvenance = provenanceFromParams ?? {
     actorType: "machine",
     origin: {
-      type: "flow" as "migration",
+      type: "flow",
       id: flowEntityId,
+      stepIds: [stepId],
     },
   };
 

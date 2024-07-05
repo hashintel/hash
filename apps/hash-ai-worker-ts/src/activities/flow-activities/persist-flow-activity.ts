@@ -25,7 +25,7 @@ export const persistFlowActivity = async (
 
   const { flowRunId } = flow;
 
-  const { flowEntityId } = await getFlowContext();
+  const { flowEntityId, stepId } = await getFlowContext();
 
   const flowRunProperties = mapFlowRunToEntityProperties(flow);
 
@@ -40,6 +40,7 @@ export const persistFlowActivity = async (
     origin: {
       type: "flow",
       id: flowEntityId,
+      stepIds: [stepId],
     } satisfies OriginProvenance,
   };
 

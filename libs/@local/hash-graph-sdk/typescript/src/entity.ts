@@ -4,10 +4,10 @@ import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
   GraphApi,
+  OriginProvenance,
   PatchEntityParams as GraphApiPatchEntityParams,
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
-  ProvidedEntityEditionProvenanceOrigin,
   ProvidedEntityEditionProvenanceOriginTypeEnum,
 } from "@local/hash-graph-client";
 import type {
@@ -53,9 +53,7 @@ export type EnforcedEntityEditionProvenance = Omit<
   "actorType" | "origin"
 > & {
   actorType: ProvidedEntityEditionProvenance["actorType"];
-  origin: Omit<ProvidedEntityEditionProvenanceOrigin, "type"> & {
-    type: "api" | "browser-extension" | "flow" | "migration" | "web-app";
-  };
+  origin: OriginProvenance;
 };
 
 export type CreateEntityParameters = Omit<

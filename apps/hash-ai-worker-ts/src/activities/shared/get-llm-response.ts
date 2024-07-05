@@ -148,6 +148,7 @@ export const getLlmResponse = async <T extends LlmParams>(
         origin: {
           type: "flow",
           id: flowEntityId,
+          stepIds: [stepId],
         } satisfies OriginProvenance,
       };
 
