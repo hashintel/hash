@@ -98,7 +98,7 @@ pub struct SourceProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+#[serde(deny_unknown_fields, tag = "type", rename_all = "kebab-case")]
 pub enum OriginType {
     WebApp,
     MobileApp,
@@ -112,9 +112,9 @@ pub enum OriginType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct OriginProvenance {
-    #[serde(rename = "type")]
+    #[serde(flatten)]
     pub ty: OriginType,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
