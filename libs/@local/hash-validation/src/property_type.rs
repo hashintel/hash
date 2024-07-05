@@ -6,8 +6,8 @@ use graph_types::knowledge::PropertyWithMetadata;
 use thiserror::Error;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
-    Array, DataType, JsonSchemaValueType, Object, OneOf, PropertyType, PropertyTypeReference,
-    PropertyValues, ValueOrArray,
+    ArraySchema, DataType, JsonSchemaValueType, ObjectSchema, OneOfSchema, PropertyType,
+    PropertyTypeReference, PropertyValues, ValueOrArray,
 };
 
 use crate::{
@@ -81,7 +81,7 @@ where
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
-        OneOf::new(self.one_of().to_vec())
+        OneOfSchema::new(self.one_of.clone())
             .expect("was validated before")
             .validate_value(value, components, provider)
             .await
@@ -118,12 +118,11 @@ where
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
-        let property_type =
-            OntologyTypeProvider::<PropertyType>::provide_type(provider, self.url())
-                .await
-                .change_context_lazy(|| PropertyValidationError::PropertyTypeRetrieval {
-                    id: self.url().clone(),
-                })?;
+        let property_type = OntologyTypeProvider::<PropertyType>::provide_type(provider, &self.url)
+            .await
+            .change_context_lazy(|| PropertyValidationError::PropertyTypeRetrieval {
+                id: self.url.clone(),
+            })?;
         property_type
             .borrow()
             .validate_value(value, components, provider)
@@ -149,7 +148,7 @@ where
     }
 }
 
-impl<V, P, S> Schema<[V], P> for Array<S>
+impl<V, P, S> Schema<[V], P> for ArraySchema<S>
 where
     V: Sync,
     P: Sync,
@@ -205,7 +204,7 @@ where
     }
 }
 
-impl<V, P, S> Schema<V, P> for OneOf<S>
+impl<V, P, S> Schema<V, P> for OneOfSchema<S>
 where
     V: Sync,
     P: Sync,
@@ -221,7 +220,7 @@ where
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<S::Error>> = Ok(());
 
-        for schema in self.one_of() {
+        for schema in self.possibilities() {
             if let Err(error) = schema.validate_value(value, components, provider).await {
                 extend_report!(status, error);
             } else {
@@ -265,7 +264,7 @@ where
 }
 
 impl<P, const MIN: usize> Schema<HashMap<BaseUrl, PropertyWithMetadata>, P>
-    for Object<ValueOrArray<PropertyTypeReference>, MIN>
+    for ObjectSchema<ValueOrArray<PropertyTypeReference>, MIN>
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -334,10 +333,10 @@ where
                 (value, Self::DataTypeReference(reference)) => {
                     if let Some(data_type_id) = value.data_type_id() {
                         ensure!(
-                            reference.url() == data_type_id,
+                            reference.url == *data_type_id,
                             PropertyValidationError::InvalidDataType {
                                 actual: data_type_id.clone(),
-                                expected: reference.url().clone(),
+                                expected: reference.url.clone(),
                             }
                         );
                     }
@@ -345,7 +344,7 @@ where
                         .validate_value(value, components, provider)
                         .await
                         .change_context(PropertyValidationError::DataTypeValidation {
-                            id: reference.url().clone(),
+                            id: reference.url.clone(),
                         })
                 }
                 (

@@ -28,8 +28,7 @@
             "$ref": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
           }
         ]
-      },
-      "ordered": false
+      }
     }
   }
 }

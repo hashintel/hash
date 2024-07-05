@@ -152,7 +152,7 @@ where
                 .into_iter()
                 .filter_map(|row| {
                     let property_type = row.decode_record(&artifacts);
-                    let id = PropertyTypeId::from_url(property_type.schema.id());
+                    let id = PropertyTypeId::from_url(&property_type.schema.id);
                     // The records are already sorted by time, so we can just take the first one
                     visited_ontology_ids
                         .insert(id)
@@ -394,8 +394,8 @@ where
                 },
             };
 
-            let record_id = OntologyTypeRecordId::from(parameters.schema.id().clone());
-            let property_type_id = PropertyTypeId::from_url(parameters.schema.id());
+            let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
+            let property_type_id = PropertyTypeId::from_url(&parameters.schema.id);
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
                 &parameters.classification
             {
@@ -467,7 +467,7 @@ where
                 .attach_printable_lazy(|| {
                     format!(
                         "could not insert references for property type: {}",
-                        property_type.schema.id()
+                        &property_type.schema.id
                     )
                 })
                 .attach_lazy(|| property_type.schema.clone())?;
@@ -595,7 +595,7 @@ where
             .iter()
             .map(|property_type| {
                 (
-                    PropertyTypeId::from_url(property_type.schema.id()),
+                    PropertyTypeId::from_url(&property_type.schema.id),
                     GraphElementVertexId::from(property_type.vertex_id(time_axis)),
                 )
             })
@@ -649,11 +649,11 @@ where
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
         let old_ontology_id = PropertyTypeId::from_url(&VersionedUrl {
-            base_url: params.schema.id().base_url.clone(),
+            base_url: params.schema.id.base_url.clone(),
             version: OntologyTypeVersion::new(
                 params
                     .schema
-                    .id()
+                    .id
                     .version
                     .inner()
                     .checked_sub(1)
@@ -697,7 +697,7 @@ where
             .attach_printable_lazy(|| {
                 format!(
                     "could not insert references for property type: {}",
-                    params.schema.id()
+                    params.schema.id
                 )
             })
             .attach_lazy(|| params.schema.clone())?;
@@ -749,7 +749,7 @@ where
             Err(error)
         } else {
             let metadata = PropertyTypeMetadata {
-                record_id: OntologyTypeRecordId::from(params.schema.id().clone()),
+                record_id: OntologyTypeRecordId::from(params.schema.id.clone()),
                 classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
                 provenance,

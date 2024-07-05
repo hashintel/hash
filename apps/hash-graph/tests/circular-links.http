@@ -139,8 +139,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
               "$ref": "http://localhost:3000/@snapshot/types/entity-type/object/v/1"
             }
           ]
-        },
-        "ordered": false
+        }
       }
     }
   },

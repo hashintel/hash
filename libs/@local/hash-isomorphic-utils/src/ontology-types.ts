@@ -1,8 +1,5 @@
-import type {
-  EntityType,
-  EntityTypeReference,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+import { atLeastOne } from "@blockprotocol/type-system";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
@@ -96,33 +93,29 @@ export const generateLinkMapWithConsistentSelfReferences = (
 ) =>
   typedEntries(links ?? {}).reduce<NonNullable<EntityType["links"]>>(
     (accumulator, [linkTypeId, linkSchema]) => {
+      const oneOf =
+        "oneOf" in linkSchema.items
+          ? atLeastOne(
+              linkSchema.items.oneOf.map((item) => {
+                const isSelfReference = item.$ref === currentEntityTypeId;
+                if (isSelfReference) {
+                  const { baseUrl, version: currentVersion } =
+                    componentsFromVersionedUrl(currentEntityTypeId);
+                  return {
+                    $ref: versionedUrlFromComponents(
+                      baseUrl,
+                      currentVersion + 1,
+                    ),
+                  };
+                }
+                return item;
+              }),
+            )
+          : undefined;
+
       const schemaWithConsistentSelfReferences = {
         ...linkSchema,
-        items:
-          /**
-           * @todo remove array check when it's no longer possible for  the value of
-           * `oneOf` to be `{}`
-           *
-           * @see https://linear.app/hash/issue/BP-74/omit-emtpy-oneof-and-allof-in-types
-           */
-          "oneOf" in linkSchema.items && Array.isArray(linkSchema.items.oneOf)
-            ? {
-                oneOf: linkSchema.items.oneOf.map((item) => {
-                  const isSelfReference = item.$ref === currentEntityTypeId;
-                  if (isSelfReference) {
-                    const { baseUrl, version: currentVersion } =
-                      componentsFromVersionedUrl(currentEntityTypeId);
-                    return {
-                      $ref: versionedUrlFromComponents(
-                        baseUrl,
-                        currentVersion + 1,
-                      ),
-                    };
-                  }
-                  return item;
-                }) as [EntityTypeReference, ...EntityTypeReference[]],
-              }
-            : {},
+        items: oneOf ? { oneOf } : ({} as Record<string, never>),
       };
 
       accumulator[linkTypeId] = schemaWithConsistentSelfReferences;

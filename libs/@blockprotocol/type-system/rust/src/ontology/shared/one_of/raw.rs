@@ -4,19 +4,19 @@ use tsify::Tsify;
 
 use crate::{raw, EntityTypeReference, ParseOneOfError, PropertyValues};
 
-#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct OneOf<T> {
+pub struct OneOfSchema<T> {
     #[cfg_attr(target_arch = "wasm32", tsify(type = "[T, ...T[]]"))]
     #[serde(rename = "oneOf")]
     pub possibilities: Vec<T>,
 }
 
-impl TryFrom<OneOf<raw::PropertyValues>> for super::OneOf<PropertyValues> {
+impl TryFrom<OneOfSchema<raw::PropertyValues>> for super::OneOfSchema<PropertyValues> {
     type Error = ParseOneOfError;
 
-    fn try_from(one_of_repr: OneOf<raw::PropertyValues>) -> Result<Self, Self::Error> {
+    fn try_from(one_of_repr: OneOfSchema<raw::PropertyValues>) -> Result<Self, Self::Error> {
         let inner = one_of_repr
             .possibilities
             .into_iter()
@@ -27,10 +27,10 @@ impl TryFrom<OneOf<raw::PropertyValues>> for super::OneOf<PropertyValues> {
     }
 }
 
-impl TryFrom<OneOf<raw::EntityTypeReference>> for super::OneOf<EntityTypeReference> {
+impl TryFrom<OneOfSchema<raw::EntityTypeReference>> for super::OneOfSchema<EntityTypeReference> {
     type Error = ParseOneOfError;
 
-    fn try_from(one_of_repr: OneOf<raw::EntityTypeReference>) -> Result<Self, Self::Error> {
+    fn try_from(one_of_repr: OneOfSchema<raw::EntityTypeReference>) -> Result<Self, Self::Error> {
         let inner = one_of_repr
             .possibilities
             .into_iter()
@@ -44,11 +44,11 @@ impl TryFrom<OneOf<raw::EntityTypeReference>> for super::OneOf<EntityTypeReferen
     }
 }
 
-impl<T, R> From<super::OneOf<T>> for OneOf<R>
+impl<T, R> From<super::OneOfSchema<T>> for OneOfSchema<R>
 where
     R: From<T>,
 {
-    fn from(one_of: super::OneOf<T>) -> Self {
+    fn from(one_of: super::OneOfSchema<T>) -> Self {
         let possibilities = one_of
             .possibilities
             .into_iter()
@@ -76,7 +76,7 @@ mod tests {
                 json!({
                     "oneOf": ["A"]
                 }),
-                Some(OneOf {
+                Some(OneOfSchema {
                     possibilities: ["A".to_owned()].to_vec(),
                 }),
             );
@@ -88,7 +88,7 @@ mod tests {
                 json!({
                     "oneOf": ["A", "B"]
                 }),
-                Some(OneOf {
+                Some(OneOfSchema {
                     possibilities: ["A".to_owned(), "B".to_owned()].to_vec(),
                 }),
             );
@@ -96,7 +96,7 @@ mod tests {
 
         #[test]
         fn additional_properties() {
-            ensure_repr_failed_deserialization::<OneOf<()>>(json!({
+            ensure_repr_failed_deserialization::<OneOfSchema<()>>(json!({
                 "oneOf": ["A", "B"],
                 "additional": 10,
             }));

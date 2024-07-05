@@ -1,4 +1,5 @@
 import type { EntityType } from "@blockprotocol/type-system";
+import { atLeastOne } from "@blockprotocol/type-system";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
@@ -92,7 +93,7 @@ const migrate: MigrationFunction = async ({
 
   const newUserEntityTypeSchema = {
     ...userEntityTypeSchema,
-    allOf: [{ $ref: actorEntityType.schema.$id }],
+    allOf: atLeastOne([{ $ref: actorEntityType.schema.$id }]),
   };
 
   const { updatedEntityTypeId: updatedUserEntityTypeId } =

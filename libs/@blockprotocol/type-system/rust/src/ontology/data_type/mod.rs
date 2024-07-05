@@ -61,67 +61,18 @@ impl From<&JsonValue> for JsonSchemaValueType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "raw::DataType", into = "raw::DataType")]
 pub struct DataType {
-    id: VersionedUrl,
-    title: String,
-    description: Option<String>,
-    json_type: JsonSchemaValueType,
+    pub id: VersionedUrl,
+    pub title: String,
+    pub description: Option<String>,
+    pub json_type: JsonSchemaValueType,
     /// Properties which are not currently strongly typed.
     ///
     /// The data type meta-schema currently allows arbitrary, untyped properties. This is a
     /// catch-all field to store all non-typed data.
-    additional_properties: HashMap<String, JsonValue>,
-}
-
-impl DataType {
-    #[must_use]
-    pub const fn new(
-        id: VersionedUrl,
-        title: String,
-        description: Option<String>,
-        json_type: JsonSchemaValueType,
-        additional_properties: HashMap<String, JsonValue>,
-    ) -> Self {
-        Self {
-            id,
-            title,
-            description,
-            json_type,
-            additional_properties,
-        }
-    }
-
-    #[must_use]
-    pub const fn id(&self) -> &VersionedUrl {
-        &self.id
-    }
-
-    #[must_use]
-    pub fn title(&self) -> &str {
-        &self.title
-    }
-
-    #[must_use]
-    pub fn description(&self) -> Option<&str> {
-        self.description.as_deref()
-    }
-
-    #[must_use]
-    pub const fn json_type(&self) -> JsonSchemaValueType {
-        self.json_type
-    }
-
-    #[must_use]
-    pub const fn additional_properties(&self) -> &HashMap<String, JsonValue> {
-        &self.additional_properties
-    }
-
-    #[must_use]
-    pub fn additional_properties_mut(&mut self) -> &mut HashMap<String, JsonValue> {
-        &mut self.additional_properties
-    }
+    pub additional_properties: HashMap<String, JsonValue>,
 }
 
 #[cfg(feature = "postgres")]
@@ -151,23 +102,11 @@ impl ToSql for DataType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(try_from = "raw::DataTypeReference", into = "raw::DataTypeReference")]
 #[repr(transparent)]
 pub struct DataTypeReference {
-    url: VersionedUrl,
-}
-
-impl DataTypeReference {
-    /// Creates a new `DataTypeReference` from the given [`VersionedUrl`].
-    #[must_use]
-    pub const fn new(url: VersionedUrl) -> Self {
-        Self { url }
-    }
-
-    #[must_use]
-    pub const fn url(&self) -> &VersionedUrl {
-        &self.url
-    }
+    pub url: VersionedUrl,
 }
 
 impl From<&VersionedUrl> for &DataTypeReference {
@@ -179,12 +118,12 @@ impl From<&VersionedUrl> for &DataTypeReference {
 
 impl ValidateUrl for DataTypeReference {
     fn validate_url(&self, base_url: &BaseUrl) -> Result<(), ValidationError> {
-        if base_url == &self.url().base_url {
+        if base_url == &self.url.base_url {
             Ok(())
         } else {
             Err(ValidationError::BaseUrlMismatch {
                 base_url: base_url.clone(),
-                versioned_url: self.url().clone(),
+                versioned_url: self.url.clone(),
             })
         }
     }
@@ -206,7 +145,6 @@ mod tests {
     fn text() {
         check_serialization_from_str::<DataType, raw::DataType>(
             graph_test_data::data_type::TEXT_V1,
-            None,
         );
     }
 
@@ -214,7 +152,6 @@ mod tests {
     fn number() {
         check_serialization_from_str::<DataType, raw::DataType>(
             graph_test_data::data_type::NUMBER_V1,
-            None,
         );
     }
 
@@ -222,7 +159,6 @@ mod tests {
     fn boolean() {
         check_serialization_from_str::<DataType, raw::DataType>(
             graph_test_data::data_type::BOOLEAN_V1,
-            None,
         );
     }
 
@@ -230,7 +166,6 @@ mod tests {
     fn null() {
         check_serialization_from_str::<DataType, raw::DataType>(
             graph_test_data::data_type::NULL_V1,
-            None,
         );
     }
 
@@ -238,7 +173,6 @@ mod tests {
     fn object() {
         check_serialization_from_str::<DataType, raw::DataType>(
             graph_test_data::data_type::OBJECT_V1,
-            None,
         );
     }
 
@@ -246,7 +180,6 @@ mod tests {
     fn empty_list() {
         check_serialization_from_str::<DataType, raw::DataType>(
             graph_test_data::data_type::EMPTY_LIST_V1,
-            None,
         );
     }
 
@@ -265,7 +198,7 @@ mod tests {
                   "type": "string"
                 }
             ),
-            ParseDataTypeError::InvalidMetaSchema(invalid_schema_url.to_owned()),
+            &ParseDataTypeError::InvalidMetaSchema(invalid_schema_url.to_owned()),
         );
     }
 
@@ -282,7 +215,7 @@ mod tests {
                   "type": "string"
                 }
             ),
-            ParseDataTypeError::InvalidVersionedUrl(ParseVersionedUrlError::AdditionalEndContent(
+            &ParseDataTypeError::InvalidVersionedUrl(ParseVersionedUrlError::AdditionalEndContent(
                 ".5".to_owned(),
             )),
         );
@@ -295,7 +228,7 @@ mod tests {
         )
         .expect("failed to create VersionedUrl");
 
-        let data_type_ref = DataTypeReference::new(url.clone());
+        let data_type_ref = DataTypeReference { url: url.clone() };
 
         data_type_ref
             .validate_url(&url.base_url)
@@ -311,7 +244,7 @@ mod tests {
             VersionedUrl::from_str("https://blockprotocol.org/@alice/types/property-type/name/v/1")
                 .expect("failed to parse VersionedUrl");
 
-        let data_type_ref = DataTypeReference::new(url_a);
+        let data_type_ref = DataTypeReference { url: url_a };
 
         data_type_ref
             .validate_url(&url_b.base_url)

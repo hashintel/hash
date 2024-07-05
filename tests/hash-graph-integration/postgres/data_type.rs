@@ -76,7 +76,7 @@ async fn query() {
         .get_data_types(
             api.account_id,
             GetDataTypesParams {
-                filter: Filter::for_versioned_url(empty_list_dt.id()),
+                filter: Filter::for_versioned_url(&empty_list_dt.id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -99,7 +99,7 @@ async fn query() {
         1,
         "expected one data type, got {data_types:?}"
     );
-    assert_eq!(data_types[0].schema, empty_list_dt);
+    assert_eq!(data_types[0].schema.id, empty_list_dt.id);
 }
 
 #[tokio::test]
@@ -146,7 +146,7 @@ async fn update() {
         .get_data_types(
             api.account_id,
             GetDataTypesParams {
-                filter: Filter::for_versioned_url(object_dt_v1.id()),
+                filter: Filter::for_versioned_url(&object_dt_v1.id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -170,7 +170,7 @@ async fn update() {
         .get_data_types(
             api.account_id,
             GetDataTypesParams {
-                filter: Filter::for_versioned_url(object_dt_v2.id()),
+                filter: Filter::for_versioned_url(&object_dt_v2.id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -190,8 +190,8 @@ async fn update() {
         .pop()
         .expect("no data type found");
 
-    assert_eq!(object_dt_v1, returned_object_dt_v1.schema);
-    assert_eq!(object_dt_v2, returned_object_dt_v2.schema);
+    assert_eq!(object_dt_v1.id, returned_object_dt_v1.schema.id);
+    assert_eq!(object_dt_v2.id, returned_object_dt_v2.schema.id);
 }
 
 #[tokio::test]
