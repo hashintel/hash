@@ -1,3 +1,4 @@
+use alloc::string::String;
 #[cfg(nightly)]
 use core::error::Request;
 use core::{error::Error, fmt};
@@ -60,7 +61,33 @@ pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     #[cfg(nightly)]
     #[allow(unused_variables)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {}
+
+    /// Returns the source of the error, if any.
+    ///
+    /// This method only exists to avoid the requirement of specialization and to get the sources
+    /// for `Error`.
+    #[doc(hidden)]
+    fn __source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
 }
+
+#[allow(clippy::field_scoped_visibility_modifiers)]
+pub(crate) struct SourceContext(pub(crate) String);
+
+impl fmt::Debug for SourceContext {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, fmt)
+    }
+}
+
+impl fmt::Display for SourceContext {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl Context for SourceContext {}
 
 impl<C> From<C> for Report<C>
 where
@@ -77,5 +104,11 @@ impl<C: Error + Send + Sync + 'static> Context for C {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
         Error::provide(self, request);
+    }
+
+    #[doc(hidden)]
+    #[inline]
+    fn __source(&self) -> Option<&(dyn Error + 'static)> {
+        self.source()
     }
 }
