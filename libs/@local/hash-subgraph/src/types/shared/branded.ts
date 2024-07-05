@@ -38,11 +38,11 @@ export const entityIdFromComponents = (
 ): EntityId => {
   const base = `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}`;
 
-  if (draftId) {
+  if (!draftId) {
     return base as EntityId;
   }
 
-  return `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}` as EntityId;
+  return `${base}${ENTITY_ID_DELIMITER}${draftId}` as EntityId;
 };
 
 export const splitEntityId = (

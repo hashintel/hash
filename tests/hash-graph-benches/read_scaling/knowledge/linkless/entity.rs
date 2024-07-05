@@ -96,7 +96,7 @@ async fn seed_db<A: AuthorizationApi>(
         serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
     let entity_type: EntityType =
         serde_json::from_str(entity_type::BOOK_V1).expect("could not parse entity type");
-    let entity_type_id = entity_type.id().clone();
+    let entity_type_id = entity_type.id;
 
     let entity_list = transaction
         .create_entities(

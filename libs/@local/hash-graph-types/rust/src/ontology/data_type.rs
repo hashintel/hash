@@ -120,7 +120,7 @@ impl OntologyType for DataType {
     type Metadata = DataTypeMetadata;
 
     fn id(&self) -> &VersionedUrl {
-        self.id()
+        &self.id
     }
 
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {

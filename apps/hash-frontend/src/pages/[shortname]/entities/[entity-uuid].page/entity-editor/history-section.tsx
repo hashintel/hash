@@ -28,9 +28,7 @@ import { HistoryTable } from "./history-section/history-table";
 import type { HistoryEvent } from "./history-section/shared/types";
 
 export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
-  const [ownedById, entityUuid, draftUuid] = splitEntityId(entityId);
-
-  const isDraft = !!draftUuid;
+  const [ownedById, entityUuid, _draftUuid] = splitEntityId(entityId);
 
   const { data: editionsData, loading: editionsLoading } = useQuery<
     GetEntitySubgraphQuery,
@@ -54,15 +52,30 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
           ...fullOntologyResolveDepths,
         },
         temporalAxes: fullDecisionTimeAxis,
-        includeDrafts: isDraft,
+        includeDrafts: true,
       },
       includePermissions: false,
     },
   });
 
   const diffPairs = useMemo<DiffEntityInput[]>(() => {
-    const editions = editionsData?.getEntitySubgraph.subgraph.roots;
-    if (!editions) {
+    if (!editionsData) {
+      return [];
+    }
+
+    /**
+     * @todo H-3031: the history may contain draft editions which are not relevant to constructing the history
+     *   of the entity, either because
+     *   (1) they were competing past drafts that were not taken forward into the live series, or
+     *   (2) because they are a draft created from a live edition that we are looking at (and are therefore 'future')
+     *   Once back references from live editions to drafts they were created from are available (H-3030),
+     *   we can follow these references to construct the history.
+     */
+    const editions = [...editionsData.getEntitySubgraph.subgraph.roots].sort(
+      (a, b) => (a.revisionId > b.revisionId ? 1 : -1),
+    );
+
+    if (!editions.length) {
       return [];
     }
 

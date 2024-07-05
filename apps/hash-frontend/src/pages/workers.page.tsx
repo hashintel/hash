@@ -279,8 +279,8 @@ const LoadingComponent = ({ columnCount }: { columnCount: number }) => (
 
 const WorkersPageContent = () => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-    field: "name",
-    direction: "asc",
+    field: "closedAt",
+    direction: "desc",
   });
 
   const {

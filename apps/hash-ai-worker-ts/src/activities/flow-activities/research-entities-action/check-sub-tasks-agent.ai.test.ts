@@ -35,14 +35,19 @@ test.skip(
           .map(({ schema }) => schema),
       },
       state: {
+        entitySummaries: [],
+        hasConductedCheckStep: false,
+        inferredFacts: [],
         plan: "",
         previousCalls: [],
-        inferredFactsAboutEntities: [],
-        inferredFacts: [],
         proposedEntities: [],
+        questionsAndAnswers: "",
         submittedEntityIds: [],
-        hasConductedCheckStep: false,
-        questionsAndAnswers: null,
+        subTasksCompleted: [],
+        suggestionsForNextStepsMade: [],
+        webPagesNotVisited: [],
+        webPageUrlsVisited: [],
+        webQueriesMade: [],
       },
       subTasks: [
         {
