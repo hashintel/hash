@@ -7,8 +7,6 @@
     "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "esnext"],
     "noEmit": false,
-    // @todo H-3056: enable this and fix failures
-    "strictNullChecks": false,
     "target": "es6"
   },
   "include": [

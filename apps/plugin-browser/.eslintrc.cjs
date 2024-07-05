@@ -2,9 +2,6 @@
 module.exports = {
   ...require("@local/eslint-config/generate-workspace-config.cjs")(__dirname),
   rules: {
-    // @todo H-3056: enable these when strictNullChecks enabled in tsconfig.json
-    "@typescript-eslint/prefer-nullish-coalescing": "off",
-    "@typescript-eslint/no-unnecessary-condition": "off",
     "no-restricted-imports": [
       "error",
       {
