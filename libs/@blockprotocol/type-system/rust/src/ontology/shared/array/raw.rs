@@ -19,9 +19,7 @@ enum ArrayTypeTag {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
-// TODO: Add `deny_unknown_fields` once `ordered` is removed from the production database
-//   see https://linear.app/hash/issue/H-3058/add-deny-unknown-field-to-arrayschema
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArraySchema<T> {
     r#type: ArrayTypeTag,
     pub items: T,
@@ -208,7 +206,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "https://linear.app/hash/issue/H-3058/add-deny-unknown-field-to-arrayschema"]
     fn additional_properties() {
         ensure_repr_failed_deserialization::<ArraySchema<StringTypeStruct>>(json!({
             "type": "array",
@@ -255,7 +252,6 @@ mod tests {
         }
 
         #[test]
-        #[ignore = "https://linear.app/hash/issue/H-3058/add-deny-unknown-field-to-arrayschema"]
         fn additional_properties() {
             let as_json = json!({
                 "type": "array",
