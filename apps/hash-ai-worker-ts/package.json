@@ -31,7 +31,7 @@
     "exe": "tsx",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
-    "lint:tsc": "tsc --noEmit",
+    "lint:tsc": "tsc -p --noEmit",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-ai ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-ai ./dist",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 node ./dist/main.js",
     "test:unit": "vitest --run  --exclude \"**/*.ai.test.ts\""

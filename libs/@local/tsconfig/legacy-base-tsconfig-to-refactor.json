@@ -17,6 +17,9 @@
     "baseUrl": ".",
     "paths": {
       "@blockprotocol/graph/*": ["../../@blockprotocol/graph/src/*.ts"],
+      "@blockprotocol/type-system": [
+        "../../@blockprotocol/type-system/src/main.ts"
+      ],
       "@blockprotocol/type-system/*": [
         "../../@blockprotocol/type-system/src/*.ts"
       ],
