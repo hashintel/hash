@@ -15,13 +15,14 @@ const META_SCHEMA_ID: &str = "https://blockprotocol.org/types/modules/graph/0.3/
 
 /// Will serialize as a constant value `"dataType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 enum DataTypeTag {
     DataType,
 }
 
-#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct DataType {
     #[cfg_attr(
@@ -30,13 +31,11 @@ pub struct DataType {
     )]
     #[serde(rename = "$schema")]
     schema: String,
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "'dataType'"))]
     kind: DataTypeTag,
     #[cfg_attr(target_arch = "wasm32", tsify(type = "VersionedUrl"))]
     #[serde(rename = "$id")]
     id: String,
     title: String,
-    #[cfg_attr(target_arch = "wasm32", tsify(optional))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     #[serde(rename = "type")]
@@ -61,13 +60,13 @@ impl TryFrom<DataType> for super::DataType {
             return Err(ParseDataTypeError::InvalidMetaSchema(data_type_repr.schema));
         }
 
-        Ok(Self::new(
+        Ok(Self {
             id,
-            data_type_repr.title,
-            data_type_repr.description,
-            data_type_repr.json_type,
-            data_type_repr.additional_properties,
-        ))
+            title: data_type_repr.title,
+            description: data_type_repr.description,
+            json_type: data_type_repr.json_type,
+            additional_properties: data_type_repr.additional_properties,
+        })
     }
 }
 
@@ -98,8 +97,9 @@ impl TryFrom<DataTypeReference> for super::DataTypeReference {
     type Error = ParseVersionedUrlError;
 
     fn try_from(data_type_ref_repr: DataTypeReference) -> Result<Self, Self::Error> {
-        let url = VersionedUrl::from_str(&data_type_ref_repr.url)?;
-        Ok(Self::new(url))
+        Ok(Self {
+            url: VersionedUrl::from_str(&data_type_ref_repr.url)?,
+        })
     }
 }
 
