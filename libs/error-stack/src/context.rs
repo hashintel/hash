@@ -1,4 +1,4 @@
-use alloc::string::String;
+use alloc::string::{String, ToString};
 #[cfg(nightly)]
 use core::error::Request;
 use core::{error::Error, fmt};
@@ -72,8 +72,14 @@ pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     }
 }
 
-#[allow(clippy::field_scoped_visibility_modifiers)]
-pub(crate) struct SourceContext(pub(crate) String);
+/// Captures an error message as the context of a [`Report`].
+pub(crate) struct SourceContext(String);
+
+impl SourceContext {
+    pub(crate) fn from_error(value: &dyn Error) -> Self {
+        Self(value.to_string())
+    }
+}
 
 impl fmt::Debug for SourceContext {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

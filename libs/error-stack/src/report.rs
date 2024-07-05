@@ -1,5 +1,5 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::{boxed::Box, string::ToString, vec, vec::Vec};
+use alloc::{boxed::Box, vec, vec::Vec};
 use core::{error::Error, fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
@@ -264,22 +264,26 @@ impl<C> Report<C> {
         C: Context,
     {
         if let Some(mut current_source) = context.__source() {
-            let mut sources = vec![SourceContext(current_source.to_string())];
-            let mut report = Report::new(SourceContext(current_source.to_string()));
+            // The sources needs to be applied in reversed order, so we buffer them in a vector
+            let mut sources = vec![SourceContext::from_error(current_source)];
             while let Some(source) = current_source.source() {
-                sources.push(SourceContext(source.to_string()));
-                report = report.change_context(SourceContext(source.to_string()));
+                sources.push(SourceContext::from_error(source));
                 current_source = source;
             }
+
+            // We create a new report with the oldest source as the base
             let mut report = Report::from_frame(Frame::from_context(
                 sources.pop().expect("At least one context is guaranteed"),
                 Box::new([]),
             ));
+            // We then extend the report with the rest of the sources
             while let Some(source) = sources.pop() {
                 report = report.change_context(source);
             }
+            // Finally, we add the new context passed to this function
             report.change_context(context)
         } else {
+            // We don't have any sources, directly create the `Report` from the context
             Self::from_frame(Frame::from_context(context, Box::new([])))
         }
     }
