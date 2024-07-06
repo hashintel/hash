@@ -459,6 +459,7 @@
 //! `backtrace`    | Enables automatic capturing of [`Backtrace`]s (requires Rust 1.65+) | enabled
 //! `spantrace`    | Enables automatic capturing of [`SpanTrace`]s                       | disabled
 //! `hooks`        | Enables hooks on `no-std` platforms using spin locks                | disabled
+//! `serde`        | Enables serialization support for [`Report`]                        | disabled
 //! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]   | disabled
 //! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]    | disabled
 //!
