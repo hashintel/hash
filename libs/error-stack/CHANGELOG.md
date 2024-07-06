@@ -8,9 +8,9 @@ All notable changes to `error-stack` will be documented in this file.
 
 ## 0.5.0 - Unreleased
 
-### Features
+### Breaking Changes
 
-- Don't compile backtrace support if feature is disabled ([#4685](https://github.com/hashintel/hash/pull/4685))
+- `Backtrace`s are not included in the `std` feature anymore. Instead, the `backtrace` feature is used which is enabled by default ([#4685](https://github.com/hashintel/hash/pull/4685))
 
 ## [0.4.1](https://github.com/hashintel/hash/tree/error-stack%400.4.1/libs/error-stack) - 2023-09-04
 
