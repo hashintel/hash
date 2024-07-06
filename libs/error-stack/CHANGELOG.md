@@ -6,6 +6,10 @@ All notable changes to `error-stack` will be documented in this file.
 
 - Support for [`defmt`](https://defmt.ferrous-systems.com)
 
+## 0.5.0 - Unreleased
+
+- Capture `source()` errors when converting `Error` to `Report` ([#4678](https://github.com/hashintel/hash/pull/4678))
+
 ## [0.4.1](https://github.com/hashintel/hash/tree/error-stack%400.4.1/libs/error-stack) - 2023-09-04
 
 ### Fixes
