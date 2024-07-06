@@ -12,6 +12,7 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
+    context::SourceContext,
     iter::{Frames, FramesMut},
     Context, Frame,
 };
@@ -257,11 +258,34 @@ impl<C> Report<C> {
     /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
     #[inline]
     #[track_caller]
+    #[allow(clippy::missing_panics_doc)] // Reason: No panic possible
     pub fn new(context: C) -> Self
     where
         C: Context,
     {
-        Self::from_frame(Frame::from_context(context, Box::new([])))
+        if let Some(mut current_source) = context.__source() {
+            // The sources needs to be applied in reversed order, so we buffer them in a vector
+            let mut sources = vec![SourceContext::from_error(current_source)];
+            while let Some(source) = current_source.source() {
+                sources.push(SourceContext::from_error(source));
+                current_source = source;
+            }
+
+            // We create a new report with the oldest source as the base
+            let mut report = Report::from_frame(Frame::from_context(
+                sources.pop().expect("At least one context is guaranteed"),
+                Box::new([]),
+            ));
+            // We then extend the report with the rest of the sources
+            while let Some(source) = sources.pop() {
+                report = report.change_context(source);
+            }
+            // Finally, we add the new context passed to this function
+            report.change_context(context)
+        } else {
+            // We don't have any sources, directly create the `Report` from the context
+            Self::from_frame(Frame::from_context(context, Box::new([])))
+        }
     }
 
     #[track_caller]

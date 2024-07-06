@@ -8,6 +8,10 @@ All notable changes to `error-stack` will be documented in this file.
 
 ## 0.5.0 - Unreleased
 
+### Features
+
+- Capture `source()` errors when converting `Error` to `Report` ([#4678](https://github.com/hashintel/hash/pull/4678))
+
 ### Breaking Changes
 
 - `Backtrace`s are not included in the `std` feature anymore. Instead, the `backtrace` feature is used which is enabled by default ([#4685](https://github.com/hashintel/hash/pull/4685))
