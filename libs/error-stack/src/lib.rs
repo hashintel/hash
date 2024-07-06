@@ -456,7 +456,7 @@
 //!  Feature       | Description                                                         | default
 //! ---------------|---------------------------------------------------------------------|----------
 //! `std`          | Enables support for [`Error`]                                       | enabled
-//! `backtrace`    | Enables automatic capturing of [`Backtraces`]s (requires Rust 1.65) | enabled
+//! `backtrace`    | Enables automatic capturing of [`Backtrace`]s (requires Rust 1.65+) | enabled
 //! `spantrace`    | Enables automatic capturing of [`SpanTrace`]s                       | disabled
 //! `hooks`        | Enables hooks on `no-std` platforms using spin locks                | disabled
 //! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]   | disabled
