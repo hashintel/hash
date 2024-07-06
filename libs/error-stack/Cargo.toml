@@ -41,8 +41,9 @@ thiserror = "1.0.59"
 rustc_version = "0.4"
 
 [features]
-default = ["std"]
+default = ["backtrace"]
 
+backtrace = ["std"]
 spantrace = ["dep:tracing-error", "std"]
 std = ["anyhow?/std"]
 eyre = ["dep:eyre", "std"]

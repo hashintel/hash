@@ -1,4 +1,4 @@
-#![cfg(all(rust_1_65, feature = "std"))]
+#![cfg(feature = "backtrace")]
 #![cfg_attr(
     nightly,
     feature(backtrace_frames, error_generic_member_access),

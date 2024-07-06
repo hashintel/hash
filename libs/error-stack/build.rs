@@ -15,9 +15,4 @@ fn main() {
         rustc_version.minor,
         rustc_version.patch,
     );
-
-    println!("cargo:rustc-check-cfg=cfg(rust_1_65)");
-    if trimmed_rustc_version >= Version::new(1, 65, 0) {
-        println!("cargo:rustc-cfg=rust_1_65");
-    }
 }
