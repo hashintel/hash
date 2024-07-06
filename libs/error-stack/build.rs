@@ -1,8 +1,9 @@
-#![allow(clippy::unwrap_used)]
+use std::process::exit;
+
 use rustc_version::{version_meta, Channel, Version};
 
 fn main() {
-    let version_meta = version_meta().unwrap();
+    let version_meta = version_meta().expect("Could not get Rust version");
 
     println!("cargo:rustc-check-cfg=cfg(nightly)");
     if version_meta.channel == Channel::Nightly {
@@ -10,9 +11,14 @@ fn main() {
     }
 
     let rustc_version = version_meta.semver;
-    let _trimmed_rustc_version = Version::new(
+    let trimmed_rustc_version = Version::new(
         rustc_version.major,
         rustc_version.minor,
         rustc_version.patch,
     );
+
+    if cfg!(feature = "backtrace") && trimmed_rustc_version < Version::new(1, 65, 0) {
+        println!("cargo:warning=The `backtrace` feature requires Rust 1.65.0 or later.");
+        exit(1);
+    }
 }
