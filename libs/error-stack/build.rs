@@ -10,7 +10,7 @@ fn main() {
     }
 
     let rustc_version = version_meta.semver;
-    let trimmed_rustc_version = Version::new(
+    let _trimmed_rustc_version = Version::new(
         rustc_version.major,
         rustc_version.minor,
         rustc_version.patch,
