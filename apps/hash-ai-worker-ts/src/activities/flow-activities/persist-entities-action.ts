@@ -58,6 +58,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
       entityTypeId,
       properties,
       provenance,
+      propertyMetadata,
       sourceEntityId,
       targetEntityId,
     } = unresolvedEntity;
@@ -65,6 +66,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     const entityWithResolvedLinks: ProposedEntityWithResolvedLinks = {
       entityTypeId,
       properties,
+      propertyMetadata,
       provenance,
     };
 

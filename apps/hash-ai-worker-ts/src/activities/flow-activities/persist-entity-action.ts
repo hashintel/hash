@@ -198,9 +198,9 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           graphApiClient,
           { actorId: webBotActorId },
           {
+            ...entityValues,
             draft: existingEntityIsDraft ? true : createEditionAsDraft,
             propertyPatches: patchOperations,
-            provenance: entityValues.provenance,
           },
         );
       } else {

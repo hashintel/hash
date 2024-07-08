@@ -40,7 +40,7 @@ export type LocalOrExistingEntityId =
  */
 export type ProposedEntity = {
   provenance: EnforcedEntityEditionProvenance;
-  propertyMetadata?: PropertyMetadataObject;
+  propertyMetadata: PropertyMetadataObject;
   localEntityId: string;
   entityTypeId: VersionedUrl;
   summary?: string;
