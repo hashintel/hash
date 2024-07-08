@@ -1,7 +1,6 @@
 import type { EntityType } from "@blockprotocol/type-system";
 import { atLeastOne } from "@blockprotocol/type-system";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import { systemAccountId } from "../../../system-account";
