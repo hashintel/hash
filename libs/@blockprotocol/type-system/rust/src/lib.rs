@@ -12,10 +12,13 @@ pub mod url;
 pub mod schema;
 mod utils;
 
-use core::{borrow::Borrow, error::Error, fmt::Debug, ops::Deref, ptr};
+#[cfg(feature = "postgres")]
+use core::error::Error;
+use core::{borrow::Borrow, fmt::Debug, ops::Deref, ptr};
 
 #[cfg(feature = "postgres")]
 use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
+#[cfg(feature = "postgres")]
 use serde::{Deserialize, Serialize};
 
 pub use self::schema::{
