@@ -381,7 +381,7 @@ export const mergePropertiesAndMetadata = (
   }
 };
 
-const mergePropertyObjectAndMetadata = (
+export const mergePropertyObjectAndMetadata = (
   property: PropertyObject,
   metadata?: PropertyMetadataObject,
 ): PropertyObjectWithMetadata => {

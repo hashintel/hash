@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
+import { mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -145,7 +145,9 @@ const generatePropertyMetadata = (params: {
 
   return {
     propertyMetadata:
-      Object.keys(propertyMetadata).length > 0 ? propertyMetadata : undefined,
+      Object.keys(propertyMetadata).length > 0
+        ? propertyMetadata
+        : { value: {} },
   };
 };
 
@@ -432,7 +434,7 @@ export const proposeEntityFromFacts = async (params: {
           /** @todo: set this depending on whether entities are created as drafts? */
           requiredProperties: false,
         },
-        properties: mergePropertiesAndMetadata(properties),
+        properties: mergePropertyObjectAndMetadata(properties),
       });
     } catch (error) {
       const invalidReason = `${extractErrorMessage(error)}.`;
@@ -499,7 +501,9 @@ export const proposeEntityFromFacts = async (params: {
                 /** @todo: set this depending on whether entities are created as drafts? */
                 requiredProperties: false,
               },
-              properties: mergePropertiesAndMetadata(outgoingLinkProperties),
+              properties: mergePropertyObjectAndMetadata(
+                outgoingLinkProperties,
+              ),
             });
           } catch (error) {
             const invalidReason = `${extractErrorMessage(error)}.`;

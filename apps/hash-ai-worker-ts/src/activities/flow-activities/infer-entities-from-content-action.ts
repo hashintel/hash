@@ -1,9 +1,13 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   OriginProvenance,
   SourceProvenance,
 } from "@local/hash-graph-client";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  PropertyMetadataObject,
+} from "@local/hash-graph-types/entity";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   getSimplifiedActionInputs,
@@ -163,7 +167,6 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
           stepIds: [stepId],
           id: flowEntityId,
         } satisfies OriginProvenance,
-        sources: [source],
       };
 
       return {
@@ -171,6 +174,18 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
         entityTypeId: entityTypeId as VersionedUrl,
         summary,
         properties: proposal.properties ?? {},
+        propertyMetadata: typedKeys(
+          proposal.properties ?? {},
+        ).reduce<PropertyMetadataObject>(
+          (acc, propertyKey) => {
+            acc.value[propertyKey] = {
+              metadata: { provenance: { sources: [source] } },
+            };
+
+            return acc;
+          },
+          { value: {} },
+        ),
         provenance,
         sourceEntityId:
           "sourceEntityId" in proposal

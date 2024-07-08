@@ -388,7 +388,7 @@ export type ViewedFile = {
 };
 
 export type ProposedEntityLog = ProgressLogBase & {
-  proposedEntity: Omit<ProposedEntity, "provenance">;
+  proposedEntity: Omit<ProposedEntity, "provenance" | "propertyMetadata">;
   type: "ProposedEntity";
 };
 
