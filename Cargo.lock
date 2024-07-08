@@ -1189,6 +1189,7 @@ dependencies = [
  "derive-where",
  "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "harpc-wire-protocol",
+ "regex",
  "serde",
  "serde_json",
  "time",
@@ -5088,9 +5089,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.10.4"
+version = "1.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c117dbdfde9c8308975b6a18d71f3f385c89461f7b3fb054288ecf2a2058ba4c"
+checksum = "b91213439dad192326a0d7c6ee3955910425f441d7038e0d6933b0aec5c4517f"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -6891,9 +6892,14 @@ dependencies = [
 name = "type-system"
 version = "0.0.0"
 dependencies = [
+ "codec",
  "console_error_panic_hook",
+ "email_address",
+ "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "graph-test-data",
+ "iso8601-duration",
  "postgres-types",
+ "regex",
  "serde",
  "serde_json",
  "thiserror",
@@ -6901,6 +6907,7 @@ dependencies = [
  "tsify",
  "url",
  "utoipa",
+ "uuid",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -7085,9 +7092,9 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.8.0"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a183cf7feeba97b4dd1c0d46788634f6221d87fa961b305bed08c851829efcc0"
+checksum = "5de17fd2f7da591098415cff336e12965a28061ddace43b59cb3c430179c9439"
 dependencies = [
  "getrandom",
  "serde",

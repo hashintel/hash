@@ -1,20 +1,11 @@
-use core::{
-    borrow::Borrow,
-    net::{Ipv4Addr, Ipv6Addr},
-    str::FromStr,
-};
-use std::sync::OnceLock;
+use core::borrow::Borrow;
 
-use email_address::EmailAddress;
-use error_stack::{bail, ensure, Report, ResultExt};
-use graph_types::knowledge::{Property, PropertyWithMetadata};
-use iso8601_duration::Duration;
+use error_stack::{ensure, Report, ResultExt};
+use graph_types::knowledge::{Property, ValueWithMetadata};
 use regex::Regex;
-use serde_json::Value as JsonValue;
+use serde_json::{Number as JsonNumber, Value as JsonValue};
 use thiserror::Error;
 use type_system::{schema::JsonSchemaValueType, url::VersionedUrl, DataType, DataTypeReference};
-use url::Url;
-use uuid::Uuid;
 
 use crate::{
     error::{Actual, Expected},
@@ -38,40 +29,40 @@ pub enum DataTypeConstraint {
          expected `{expected}`"
     )]
     Minimum {
-        actual: Property,
-        expected: JsonValue,
+        actual: JsonNumber,
+        expected: JsonNumber,
     },
     #[error(
         "the provided value is not less than or equal to the maximum value, got `{actual}`, \
          expected `{expected}`"
     )]
     Maximum {
-        actual: Property,
-        expected: JsonValue,
+        actual: JsonNumber,
+        expected: JsonNumber,
     },
     #[error(
         "the provided value is not greater than the minimum value, got `{actual}`, expected \
          `{expected}`"
     )]
     ExclusiveMinimum {
-        actual: Property,
-        expected: JsonValue,
+        actual: JsonNumber,
+        expected: JsonNumber,
     },
     #[error(
         "the provided value is not less than the maximum value, got `{actual}`, expected \
          `{expected}`"
     )]
     ExclusiveMaximum {
-        actual: Property,
-        expected: JsonValue,
+        actual: JsonNumber,
+        expected: JsonNumber,
     },
     #[error(
         "the provided value is not a multiple of the expected value, got `{actual}`, expected \
          `{expected}`"
     )]
     MultipleOf {
-        actual: Property,
-        expected: JsonValue,
+        actual: JsonNumber,
+        expected: JsonNumber,
     },
     #[error(
         "the provided value is shorter than the minimum length, got `{actual}`, expected a string \
@@ -117,326 +108,20 @@ pub enum DataValidationError {
         actual: VersionedUrl,
         expected: VersionedUrl,
     },
-    #[error("a constraint was not fulfilled")]
+    #[error("the value provided does not match the constraints of the data type")]
     ConstraintUnfulfilled,
-    #[error("the schema contains an unknown data type: `{schema}`")]
-    UnknownType { schema: String },
 }
 
-fn as_usize(number: &JsonValue) -> Result<usize, Report<DataValidationError>> {
-    usize::try_from(number.as_u64().ok_or_else(|| {
-        Report::new(DataValidationError::InvalidType {
-            actual: JsonSchemaValueType::from(number),
-            expected: JsonSchemaValueType::Integer,
-        })
-    })?)
-    .change_context(DataValidationError::ConstraintUnfulfilled)
-}
-
-fn check_numeric_additional_property<'a, T>(
-    value: &JsonValue,
-    additional_properties: impl IntoIterator<Item = (impl AsRef<str>, &'a JsonValue)>,
-    expected_type: JsonSchemaValueType,
-    from_json_value: impl Fn(&JsonValue) -> Option<T>,
-    multiple_of: impl Fn(&T, &T) -> bool,
-) -> Result<(), Report<DataValidationError>>
-where
-    T: PartialOrd,
-{
-    let number = from_json_value(value).ok_or_else(|| {
-        Report::new(DataValidationError::InvalidType {
-            actual: JsonSchemaValueType::from(value),
-            expected: expected_type,
-        })
-    })?;
-    for (additional_key, additional_property) in additional_properties {
-        match (
-            additional_key.as_ref(),
-            from_json_value(additional_property),
-        ) {
-            ("minimum", Some(minimum)) => {
-                ensure!(
-                    number >= minimum,
-                    Report::new(DataTypeConstraint::Minimum {
-                        actual: Property::Value(value.clone()),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("maximum", Some(maximum)) => {
-                ensure!(
-                    number <= maximum,
-                    Report::new(DataTypeConstraint::Maximum {
-                        actual: Property::Value(value.clone()),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("exclusiveMinimum", Some(minimum)) => {
-                ensure!(
-                    number > minimum,
-                    Report::new(DataTypeConstraint::ExclusiveMinimum {
-                        actual: Property::Value(value.clone()),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("exclusiveMaximum", Some(maximum)) => {
-                ensure!(
-                    number < maximum,
-                    Report::new(DataTypeConstraint::ExclusiveMaximum {
-                        actual: Property::Value(value.clone()),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("multipleOf", Some(multiple)) => {
-                ensure!(
-                    multiple_of(&number, &multiple),
-                    Report::new(DataTypeConstraint::MultipleOf {
-                        actual: Property::Value(value.clone()),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            (
-                "minimum" | "maximum" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf",
-                None,
-            ) => {
-                bail!(Report::new(DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: expected_type,
-                }));
-            }
-            _ => {}
-        }
-    }
-    Ok(())
-}
-
-#[expect(clippy::too_many_lines)]
-fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationError>> {
-    // Only the simplest date format are supported in all three, RFC-3339, ISO-8601 and HTML
-    const DATE_REGEX_STRING: &str = r"(?P<Y>\d{4})-(?P<M>\d{2})-(?P<D>\d{2})";
-    static DATE_REGEX: OnceLock<Regex> = OnceLock::new();
-
-    // Only the simplest time format are supported in all three, RFC-3339, ISO-8601 and HTML
-    const TIME_REGEX_STRING: &str =
-        r"(?P<h>\d{2}):(?P<m>\d{2}):(?P<s>\d{2}(?:\.\d+)?)(?:(?P<Z>[+-]\d{2}):(?P<z>\d{2})|Z)";
-    static TIME_REGEX: OnceLock<Regex> = OnceLock::new();
-
-    static DATE_TIME_REGEX: OnceLock<Regex> = OnceLock::new();
-
-    match format {
-        "uri" => {
-            Url::parse(value)
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "uri",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "uuid" => {
-            Uuid::parse_str(value)
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "uuid",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "regex" => {
-            Regex::new(value)
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "regex",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "email" => {
-            EmailAddress::from_str(value)
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "email",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "ipv4" => {
-            value
-                .parse::<Ipv4Addr>()
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "ipv4",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "ipv6" => {
-            value
-                .parse::<Ipv6Addr>()
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "ipv6",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "hostname" => {
-            url::Host::parse(value)
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "hostname",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "date-time" => {
-            DATE_TIME_REGEX
-                .get_or_init(|| {
-                    Regex::new(&format!("^{DATE_REGEX_STRING}T{TIME_REGEX_STRING}$"))
-                        .expect("failed to compile date-time regex")
-                })
-                .is_match(value)
-                .then_some(())
-                .ok_or_else(|| {
-                    Report::new(DataTypeConstraint::Format {
-                        actual: value.to_owned(),
-                        format: "date-time",
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                })?;
-        }
-        "date" => {
-            DATE_REGEX
-                .get_or_init(|| {
-                    Regex::new(&format!("^{DATE_REGEX_STRING}$"))
-                        .expect("failed to compile date regex")
-                })
-                .is_match(value)
-                .then_some(())
-                .ok_or_else(|| {
-                    Report::new(DataTypeConstraint::Format {
-                        actual: value.to_owned(),
-                        format: "date",
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                })?;
-        }
-        "time" => {
-            TIME_REGEX
-                .get_or_init(|| {
-                    Regex::new(&format!("^{TIME_REGEX_STRING}$"))
-                        .expect("failed to compile time regex")
-                })
-                .is_match(value)
-                .then_some(())
-                .ok_or_else(|| {
-                    Report::new(DataTypeConstraint::Format {
-                        actual: value.to_owned(),
-                        format: "time",
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                })?;
-        }
-        "duration" => {
-            value
-                .parse::<Duration>()
-                .map_err(|error| {
-                    Report::new(DataTypeConstraint::Format {
-                        actual: value.to_owned(),
-                        format: "duration",
-                    })
-                    .attach_printable(format!("{error:?}"))
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        _ => bail!(
-            Report::new(DataTypeConstraint::UnknownFormat {
-                key: format.to_owned(),
-            })
-            .change_context(DataValidationError::ConstraintUnfulfilled)
-        ),
-    }
-    Ok(())
-}
-
-fn check_string_additional_property<'a>(
-    value: &JsonValue,
-    additional_properties: impl IntoIterator<Item = (impl AsRef<str>, &'a JsonValue)>,
-    expected_type: JsonSchemaValueType,
-    from_json_value: impl Fn(&JsonValue) -> Option<&str>,
-) -> Result<(), Report<DataValidationError>> {
-    let string = from_json_value(value).ok_or_else(|| {
-        Report::new(DataValidationError::InvalidType {
-            actual: JsonSchemaValueType::from(value),
-            expected: expected_type,
-        })
-    })?;
-    for (additional_key, additional_property) in additional_properties {
-        match (additional_key.as_ref(), additional_property) {
-            ("format", JsonValue::String(additional_property)) => {
-                check_format(string, additional_property)?;
-            }
-            ("minLength", minimum) => {
-                let minimum = as_usize(minimum)?;
-                ensure!(
-                    string.len() >= minimum,
-                    Report::new(DataTypeConstraint::MinLength {
-                        actual: string.to_owned(),
-                        expected: minimum,
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("maxLength", maximum) => {
-                let maximum = as_usize(maximum)?;
-                ensure!(
-                    string.len() <= maximum,
-                    Report::new(DataTypeConstraint::MaxLength {
-                        actual: string.to_owned(),
-                        expected: maximum,
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("pattern", JsonValue::String(pattern)) => {
-                let regex = Regex::new(pattern)
-                    .change_context_lazy(|| DataTypeConstraint::InvalidPattern {
-                        pattern: pattern.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)?;
-                ensure!(
-                    regex.is_match(string),
-                    Report::new(DataTypeConstraint::Pattern {
-                        actual: string.to_owned(),
-                        pattern: regex,
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("format" | "pattern", _) => {
-                bail!(Report::new(DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::String,
-                }));
-            }
-            _ => {}
-        }
-    }
-    Ok(())
-}
-
-impl<P: Sync> Schema<PropertyWithMetadata, P> for DataType {
+impl<P: Sync> Schema<ValueWithMetadata, P> for DataType {
     type Error = DataValidationError;
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a PropertyWithMetadata,
+        value: &'a ValueWithMetadata,
         _: ValidateEntityComponents,
         _: &'a P,
     ) -> Result<(), Report<DataValidationError>> {
-        if let Some(data_type_id) = value.data_type_id() {
+        if let Some(data_type_id) = &value.metadata.data_type_id {
             ensure!(
                 *data_type_id == self.id,
                 DataValidationError::InvalidDataType {
@@ -446,94 +131,14 @@ impl<P: Sync> Schema<PropertyWithMetadata, P> for DataType {
             );
         }
 
-        match (self.json_type, value) {
-            (JsonSchemaValueType::Number, PropertyWithMetadata::Value { value, metadata: _ }) => {
-                #[expect(clippy::float_arithmetic)]
-                check_numeric_additional_property(
-                    value,
-                    &self.additional_properties,
-                    JsonSchemaValueType::Number,
-                    JsonValue::as_f64,
-                    |number, multiple| number % multiple < f64::EPSILON,
-                )?;
-            }
-            (JsonSchemaValueType::Integer, PropertyWithMetadata::Value { value, metadata: _ }) => {
-                check_numeric_additional_property(
-                    value,
-                    &self.additional_properties,
-                    JsonSchemaValueType::Integer,
-                    JsonValue::as_i64,
-                    #[expect(clippy::integer_division_remainder_used)]
-                    |number, multiple| number % multiple == 0,
-                )?;
-            }
-            (JsonSchemaValueType::String, PropertyWithMetadata::Value { value, metadata: _ }) => {
-                check_string_additional_property(
-                    value,
-                    &self.additional_properties,
-                    JsonSchemaValueType::String,
-                    JsonValue::as_str,
-                )?;
-            }
-            (expected, _) => ensure!(
-                value.json_type() == expected,
-                DataValidationError::InvalidType {
-                    actual: value.json_type(),
-                    expected,
-                }
-            ),
-        }
-
-        for (additional_key, additional_property) in &self.additional_properties {
-            match additional_key.as_str() {
-                "const" => {
-                    let (actual, _) = value.clone().into_parts();
-                    ensure!(
-                        actual == *additional_property,
-                        Report::new(DataTypeConstraint::Const {
-                            actual,
-                            expected: additional_property.clone(),
-                        })
-                        .change_context(DataValidationError::ConstraintUnfulfilled)
-                    );
-                }
-                "enum" => {
-                    let (actual, _) = value.clone().into_parts();
-                    ensure!(
-                        additional_property
-                            .as_array()
-                            .is_some_and(|array| array.iter().any(|expected| actual == *expected)),
-                        Report::new(DataTypeConstraint::Enum {
-                            actual,
-                            expected: additional_property.clone(),
-                        })
-                        .change_context(DataValidationError::ConstraintUnfulfilled)
-                    );
-                }
-                "minimum" | "maximum" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf"
-                    if matches!(
-                        self.json_type,
-                        JsonSchemaValueType::Integer | JsonSchemaValueType::Number
-                    ) => {}
-                "format" | "minLength" | "maxLength" | "pattern"
-                    if self.json_type == JsonSchemaValueType::String => {}
-                "label" => {
-                    // Label does not have to be validated
-                }
-                _ => bail!(
-                    Report::new(DataTypeConstraint::UnknownConstraint {
-                        key: additional_key.to_owned(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                ),
-            }
-        }
+        self.validate_constraints(&value.value)
+            .change_context(DataValidationError::ConstraintUnfulfilled)?;
 
         Ok(())
     }
 }
 
-impl Validate<DataType, ()> for PropertyWithMetadata {
+impl Validate<DataType, ()> for ValueWithMetadata {
     type Error = DataValidationError;
 
     async fn validate(
@@ -546,7 +151,7 @@ impl Validate<DataType, ()> for PropertyWithMetadata {
     }
 }
 
-impl<P> Schema<PropertyWithMetadata, P> for DataTypeReference
+impl<P> Schema<ValueWithMetadata, P> for DataTypeReference
 where
     P: OntologyTypeProvider<DataType> + Sync,
 {
@@ -554,7 +159,7 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a PropertyWithMetadata,
+        value: &'a ValueWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
@@ -569,11 +174,11 @@ where
             .validate_value(value, components, provider)
             .await
             .attach_lazy(|| Expected::DataType(data_type.borrow().clone()))
-            .attach_lazy(|| Actual::Property(value.clone()))
+            .attach_lazy(|| Actual::Json(value.value.clone()))
     }
 }
 
-impl<P> Validate<DataTypeReference, P> for PropertyWithMetadata
+impl<P> Validate<DataTypeReference, P> for ValueWithMetadata
 where
     P: OntologyTypeProvider<DataType> + Sync,
 {

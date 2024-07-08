@@ -7246,18 +7246,7 @@
             }
           },
           {
-            "type": "object",
-            "title": "PropertyWithMetadataValue",
-            "required": [
-              "value",
-              "metadata"
-            ],
-            "properties": {
-              "metadata": {
-                "$ref": "#/components/schemas/ValueMetadata"
-              },
-              "value": {}
-            }
+            "$ref": "#/components/schemas/ValueWithMetadata"
           }
         ]
       },
@@ -8035,6 +8024,20 @@
           "provenance": {
             "$ref": "#/components/schemas/PropertyProvenance"
           }
+        },
+        "additionalProperties": false
+      },
+      "ValueWithMetadata": {
+        "type": "object",
+        "required": [
+          "value",
+          "metadata"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ValueMetadata"
+          },
+          "value": {}
         },
         "additionalProperties": false
       },

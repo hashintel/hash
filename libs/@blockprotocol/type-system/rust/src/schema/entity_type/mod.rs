@@ -29,7 +29,7 @@ pub struct EntityType {
     pub all_of: HashSet<EntityTypeReference>,
     pub links: HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>,
     #[deprecated]
-    pub examples: Vec<HashMap<String, serde_json::Value>>,
+    pub examples: Vec<HashMap<BaseUrl, serde_json::Value>>,
 }
 
 impl Serialize for EntityType {

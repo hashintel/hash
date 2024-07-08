@@ -1,11 +1,18 @@
 use alloc::borrow::Cow;
-use std::collections::HashMap;
 
+use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 #[cfg(target_arch = "wasm32")]
 use tsify::Tsify;
 
-use crate::{schema::JsonSchemaValueType, url::VersionedUrl};
+use crate::{
+    schema::{
+        data_type::{constraint::StringFormat, DataTypeLabel},
+        JsonSchemaValueType,
+    },
+    url::VersionedUrl,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
@@ -22,7 +29,11 @@ pub enum DataTypeSchemaTag {
     V3,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct DataType<'a> {
@@ -34,15 +45,58 @@ pub struct DataType<'a> {
     pub title: Cow<'a, str>,
     #[serde(default, skip_serializing_if = "Option::is_none", borrow = "'a")]
     pub description: Option<Cow<'a, str>>,
+
+    #[serde(
+        default,
+        skip_serializing_if = "DataTypeLabel::is_empty",
+        borrow = "'a"
+    )]
+    pub label: Cow<'a, DataTypeLabel>,
+
+    // constraints for any types
     #[serde(rename = "type")]
     pub json_type: JsonSchemaValueType,
-    /// Properties which are not currently strongly typed.
-    ///
-    /// The data type meta-schema currently allows arbitrary, untyped properties. This is a
-    /// catch-all field to store all non-typed data.
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Record<string, any>"))]
-    #[serde(flatten)]
-    pub additional_properties: HashMap<String, serde_json::Value>,
+    #[serde(
+        rename = "const",
+        default,
+        skip_serializing_if = "Option::is_none",
+        borrow = "'a"
+    )]
+    pub const_value: Option<Cow<'a, JsonValue>>,
+    #[serde(
+        rename = "enum",
+        default,
+        skip_serializing_if = "<[_]>::is_empty",
+        borrow = "'a"
+    )]
+    pub enum_values: Cow<'a, [JsonValue]>,
+
+    // constraints for number types
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub multiple_of: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maximum: Option<f64>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub exclusive_maximum: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub minimum: Option<f64>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub exclusive_minimum: bool,
+
+    // constraints for string types
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_length: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_length: Option<usize>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "codec::serde::regex::option"
+    )]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "string"))]
+    pub pattern: Option<Regex>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format: Option<StringFormat>,
 }
 
 impl<'a> From<&'a super::DataType> for DataType<'a> {
@@ -53,8 +107,19 @@ impl<'a> From<&'a super::DataType> for DataType<'a> {
             id: Cow::Borrowed(&data_type.id),
             title: Cow::Borrowed(&data_type.title),
             description: data_type.description.as_deref().map(Cow::Borrowed),
+            label: Cow::Borrowed(&data_type.label),
             json_type: data_type.json_type,
-            additional_properties: data_type.additional_properties.clone(),
+            const_value: data_type.const_value.as_ref().map(Cow::Borrowed),
+            enum_values: Cow::Borrowed(&data_type.enum_values),
+            multiple_of: data_type.multiple_of,
+            maximum: data_type.maximum,
+            exclusive_maximum: data_type.exclusive_maximum,
+            minimum: data_type.minimum,
+            exclusive_minimum: data_type.exclusive_minimum,
+            min_length: data_type.min_length,
+            max_length: data_type.max_length,
+            pattern: data_type.pattern.clone(),
+            format: data_type.format,
         }
     }
 }
@@ -65,8 +130,19 @@ impl From<DataType<'_>> for super::DataType {
             id: data_type_repr.id.into_owned(),
             title: data_type_repr.title.into_owned(),
             description: data_type_repr.description.map(Cow::into_owned),
+            label: data_type_repr.label.into_owned(),
             json_type: data_type_repr.json_type,
-            additional_properties: data_type_repr.additional_properties,
+            const_value: data_type_repr.const_value.map(Cow::into_owned),
+            enum_values: data_type_repr.enum_values.into_owned(),
+            multiple_of: data_type_repr.multiple_of,
+            maximum: data_type_repr.maximum,
+            exclusive_maximum: data_type_repr.exclusive_maximum,
+            minimum: data_type_repr.minimum,
+            exclusive_minimum: data_type_repr.exclusive_minimum,
+            min_length: data_type_repr.min_length,
+            max_length: data_type_repr.max_length,
+            pattern: data_type_repr.pattern.clone(),
+            format: data_type_repr.format,
         }
     }
 }

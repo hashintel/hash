@@ -59,6 +59,14 @@ pub enum PropertyValidationError {
         expected: JsonSchemaValueType,
     },
     #[error(
+        "a value of type `{expected}` was expected, but the property provided was of type \
+         `{actual}`"
+    )]
+    ExpectedValue {
+        actual: JsonSchemaValueType,
+        expected: VersionedUrl,
+    },
+    #[error(
         "The provided data type is not allowed on the property, expected `{expected}`, got \
          `{actual}`"
     )]
@@ -329,8 +337,8 @@ where
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + '_ {
         Box::pin(async move {
             match (value, self) {
-                (value, Self::DataTypeReference(reference)) => {
-                    if let Some(data_type_id) = value.data_type_id() {
+                (PropertyWithMetadata::Value(property), Self::DataTypeReference(reference)) => {
+                    if let Some(data_type_id) = &property.metadata.data_type_id {
                         ensure!(
                             reference.url == *data_type_id,
                             PropertyValidationError::InvalidDataType {
@@ -340,7 +348,7 @@ where
                         );
                     }
                     reference
-                        .validate_value(value, components, provider)
+                        .validate_value(property, components, provider)
                         .await
                         .change_context(PropertyValidationError::DataTypeValidation {
                             id: reference.url.clone(),
@@ -376,6 +384,18 @@ where
                     Err(Report::new(PropertyValidationError::InvalidType {
                         actual: value.json_type(),
                         expected: JsonSchemaValueType::Object,
+                    }))
+                }
+                (PropertyWithMetadata::Array { .. }, Self::DataTypeReference(reference)) => {
+                    Err(Report::new(PropertyValidationError::ExpectedValue {
+                        actual: JsonSchemaValueType::Array,
+                        expected: reference.url.clone(),
+                    }))
+                }
+                (PropertyWithMetadata::Object { .. }, Self::DataTypeReference(reference)) => {
+                    Err(Report::new(PropertyValidationError::ExpectedValue {
+                        actual: JsonSchemaValueType::Object,
+                        expected: reference.url.clone(),
                     }))
                 }
             }

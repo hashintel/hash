@@ -1,3 +1,5 @@
+mod constraint;
+
 pub use self::{
     reference::DataTypeReference,
     validation::{DataTypeValidator, ValidateDataTypeError},
@@ -8,12 +10,16 @@ mod reference;
 mod validation;
 
 use core::fmt;
-use std::collections::HashMap;
 
+use error_stack::Report;
+use regex::Regex;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value as JsonValue;
 
-use crate::url::VersionedUrl;
+use crate::{
+    schema::data_type::constraint::{extend_report, ConstraintError, StringFormat},
+    url::VersionedUrl,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -42,6 +48,23 @@ impl fmt::Display for JsonSchemaValueType {
     }
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct DataTypeLabel {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub left: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub right: Option<String>,
+}
+
+impl DataTypeLabel {
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.left.is_none() && self.right.is_none()
+    }
+}
+
 impl From<&JsonValue> for JsonSchemaValueType {
     fn from(value: &JsonValue) -> Self {
         match value {
@@ -61,12 +84,91 @@ pub struct DataType {
     pub id: VersionedUrl,
     pub title: String,
     pub description: Option<String>,
+    pub label: DataTypeLabel,
+
+    // constraints for any types
     pub json_type: JsonSchemaValueType,
-    /// Properties which are not currently strongly typed.
+    pub const_value: Option<JsonValue>,
+    pub enum_values: Vec<JsonValue>,
+
+    // constraints for number types
+    pub multiple_of: Option<f64>,
+    pub maximum: Option<f64>,
+    pub exclusive_maximum: bool,
+    pub minimum: Option<f64>,
+    pub exclusive_minimum: bool,
+
+    // constraints for string types
+    pub min_length: Option<usize>,
+    pub max_length: Option<usize>,
+    pub pattern: Option<Regex>,
+    pub format: Option<StringFormat>,
+}
+
+impl DataType {
+    /// Validates the given JSON value against the constraints of this data type.
     ///
-    /// The data type meta-schema currently allows arbitrary, untyped properties. This is a
-    /// catch-all field to store all non-typed data.
-    pub additional_properties: HashMap<String, JsonValue>,
+    /// Returns a [`Report`] of any constraint errors found.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the JSON value is not a valid instance of the data type.
+    pub fn validate_constraints(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+        let mut result = Ok::<(), Report<ConstraintError>>(());
+
+        if let Some(const_value) = &self.const_value {
+            if value != const_value {
+                extend_report!(
+                    result,
+                    ConstraintError::Const {
+                        actual: value.clone(),
+                        expected: const_value.clone()
+                    }
+                );
+            }
+        }
+        if !self.enum_values.is_empty() && !self.enum_values.contains(value) {
+            extend_report!(
+                result,
+                ConstraintError::Enum {
+                    actual: value.clone(),
+                    expected: self.enum_values.clone()
+                }
+            );
+        }
+
+        match value {
+            JsonValue::Null => {
+                constraint::check_null_constraints(self, &mut result);
+            }
+            JsonValue::Bool(boolean) => {
+                constraint::check_boolean_constraints(*boolean, self, &mut result);
+            }
+            JsonValue::Number(number) => {
+                if let Some(number) = number.as_f64() {
+                    constraint::check_numeric_constraints(number, self, &mut result);
+                } else {
+                    extend_report!(
+                        result,
+                        ConstraintError::InsufficientPrecision {
+                            actual: number.clone()
+                        }
+                    );
+                }
+            }
+            JsonValue::String(string) => {
+                constraint::check_string_constraints(string, self, &mut result);
+            }
+            JsonValue::Array(array) => {
+                constraint::check_array_constraints(array, self, &mut result);
+            }
+            JsonValue::Object(object) => {
+                constraint::check_object_constraints(object, self, &mut result);
+            }
+        }
+
+        result
+    }
 }
 
 impl Serialize for DataType {
