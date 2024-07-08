@@ -462,7 +462,7 @@ export const FlowVisualizer = () => {
           {selectedFlowRun ? (
             <FlowRunSidebar
               flowDefinition={selectedFlowDefinition}
-              flowRunId={selectedFlowRun.flowRunId as EntityUuid}
+              flowRunId={selectedFlowRun.flowRunId}
               groups={flowMaybeGrouped.groups}
               name={selectedFlowRun.name}
             />
