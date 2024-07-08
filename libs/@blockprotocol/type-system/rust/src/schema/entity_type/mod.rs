@@ -133,8 +133,12 @@ fn extend_links(
 mod tests {
     use core::str::FromStr;
 
+    use serde_json::json;
+
     use super::*;
-    use crate::utils::tests::{ensure_serialization_from_str, JsonEqualityCheck};
+    use crate::utils::tests::{
+        ensure_failed_validation, ensure_validation_from_str, JsonEqualityCheck,
+    };
 
     fn test_property_type_references(
         entity_type: &EntityType,
@@ -195,12 +199,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn book() {
-        let entity_type = ensure_serialization_from_str::<EntityType>(
+    #[tokio::test]
+    async fn book() {
+        let entity_type = ensure_validation_from_str::<EntityType, _>(
             graph_test_data::entity_type::BOOK_V1,
+            EntityTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
 
         test_property_type_references(
             &entity_type,
@@ -220,12 +226,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn address() {
-        let entity_type = ensure_serialization_from_str::<EntityType>(
+    #[tokio::test]
+    async fn address() {
+        let entity_type = ensure_validation_from_str::<EntityType, _>(
             graph_test_data::entity_type::UK_ADDRESS_V1,
+            EntityTypeValidator,
             JsonEqualityCheck::No,
-        );
+        )
+        .await;
 
         test_property_type_references(
             &entity_type,
@@ -239,12 +247,14 @@ mod tests {
         test_link_mappings(&entity_type, []);
     }
 
-    #[test]
-    fn organization() {
-        let entity_type = ensure_serialization_from_str::<EntityType>(
+    #[tokio::test]
+    async fn organization() {
+        let entity_type = ensure_validation_from_str::<EntityType, _>(
             graph_test_data::entity_type::ORGANIZATION_V1,
+            EntityTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
 
         test_property_type_references(
             &entity_type,
@@ -254,12 +264,14 @@ mod tests {
         test_link_mappings(&entity_type, []);
     }
 
-    #[test]
-    fn building() {
-        let entity_type = ensure_serialization_from_str::<EntityType>(
+    #[tokio::test]
+    async fn building() {
+        let entity_type = ensure_validation_from_str::<EntityType, _>(
             graph_test_data::entity_type::BUILDING_V1,
+            EntityTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
 
         test_property_type_references(
             &entity_type,
@@ -281,12 +293,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn person() {
-        let entity_type = ensure_serialization_from_str::<EntityType>(
+    #[tokio::test]
+    async fn person() {
+        let entity_type = ensure_validation_from_str::<EntityType, _>(
             graph_test_data::entity_type::PERSON_V1,
+            EntityTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
 
         test_property_type_references(
             &entity_type,
@@ -312,12 +326,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn playlist() {
-        let entity_type = ensure_serialization_from_str::<EntityType>(
+    #[tokio::test]
+    async fn playlist() {
+        let entity_type = ensure_validation_from_str::<EntityType, _>(
             graph_test_data::entity_type::PLAYLIST_V1,
+            EntityTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
 
         test_property_type_references(
             &entity_type,
@@ -333,12 +349,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn song() {
-        let entity_type = ensure_serialization_from_str::<EntityType>(
+    #[tokio::test]
+    async fn song() {
+        let entity_type = ensure_validation_from_str::<EntityType, _>(
             graph_test_data::entity_type::SONG_V1,
+            EntityTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
 
         test_property_type_references(
             &entity_type,
@@ -348,12 +366,14 @@ mod tests {
         test_link_mappings(&entity_type, []);
     }
 
-    #[test]
-    fn page() {
-        let entity_type = ensure_serialization_from_str::<EntityType>(
+    #[tokio::test]
+    async fn page() {
+        let entity_type = ensure_validation_from_str::<EntityType, _>(
             graph_test_data::entity_type::PAGE_V2,
+            EntityTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
 
         test_property_type_references(
             &entity_type,
@@ -373,5 +393,26 @@ mod tests {
                 ),
             ],
         );
+    }
+
+    #[tokio::test]
+    async fn invalid_url() {
+        assert!(matches!(
+            ensure_failed_validation::<EntityType, _>(
+                json!({
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+                    "kind": "entityType",
+                    "$id": "https://blockprotocol.org/@alice/types/entity-type/invalid/v/1",
+                    "type": "object",
+                    "title": "Invalid",
+                    "properties": {
+                        "https://example.com/property_type_a/": { "$ref": "https://example.com/property_type_b/v/1" }
+                    }
+                }),
+                EntityTypeValidator,
+                JsonEqualityCheck::Yes,
+            ).await,
+            EntityTypeValidationError::InvalidPropertyReference {..}
+        ));
     }
 }

@@ -142,19 +142,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn invalid_url() {
-        ensure_failed_deserialization::<ObjectSchema<PropertyTypeReference>>(
-            json!({
-                "type": "object",
-                "properties": {
-                    "https://example.com/property_type_a/": { "$ref": "https://example.com/property_type_b/v/1" }
-                }
-            }),
-            &"",
-        );
-    }
-
     #[tokio::test]
     async fn invalid_required() {
         let url_c = BaseUrl::new("https://example.com/property_type_c/".to_owned())
