@@ -21,6 +21,6 @@
     "eslint": "8.57.0",
     "eslint-plugin-file-extension-in-import-ts": "2.1.0",
     "rimraf": "5.0.7",
-    "typescript": "5.5.2"
+    "typescript": "5.5.3"
   }
 }

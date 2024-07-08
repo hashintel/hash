@@ -28,12 +28,12 @@ fn setup_tracing() {
 #[cfg(not(feature = "spantrace"))]
 const fn setup_tracing() {}
 
-#[cfg(not(all(rust_1_65, feature = "std")))]
+#[cfg(not(feature = "backtrace"))]
 fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "0");
 }
 
-#[cfg(all(rust_1_65, feature = "std"))]
+#[cfg(feature = "backtrace")]
 fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 }
@@ -58,7 +58,7 @@ fn snap_suffix() -> String {
         suffix.push("spantrace");
     }
 
-    #[cfg(all(rust_1_65, feature = "std"))]
+    #[cfg(feature = "backtrace")]
     if supports_backtrace() {
         suffix.push("backtrace");
     }
@@ -229,11 +229,7 @@ fn sources_nested_alternate() {
 }
 
 mod full {
-    #![cfg(all(
-        rust_1_65,
-        any(feature = "std", feature = "hooks"),
-        feature = "spantrace"
-    ))]
+    #![cfg(all(feature = "backtrace", feature = "spantrace"))]
     //! Why so many cfg guards?
     //! What was found during initial development of the feature was,
     //! that a complete test of all tests with snapshots on every possible feature combination

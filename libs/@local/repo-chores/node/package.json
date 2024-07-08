@@ -19,7 +19,7 @@
     "prettier": "3.3.2",
     "regex-parser": "2.2.11",
     "tsx": "3.13.0",
-    "typescript": "5.5.2"
+    "typescript": "5.5.3"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

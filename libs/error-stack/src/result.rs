@@ -120,7 +120,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).attach(attachment)),
+            Err(error) => Err(Report::new(error).attach(attachment)),
         }
     }
 
@@ -132,7 +132,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).attach(attachment())),
+            Err(error) => Err(Report::new(error).attach(attachment())),
         }
     }
 
@@ -143,7 +143,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).attach_printable(attachment)),
+            Err(error) => Err(Report::new(error).attach_printable(attachment)),
         }
     }
 
@@ -155,7 +155,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).attach_printable(attachment())),
+            Err(error) => Err(Report::new(error).attach_printable(attachment())),
         }
     }
 
@@ -166,7 +166,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).change_context(context)),
+            Err(error) => Err(Report::new(error).change_context(context)),
         }
     }
 
@@ -178,7 +178,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).change_context(context())),
+            Err(error) => Err(Report::new(error).change_context(context())),
         }
     }
 }
