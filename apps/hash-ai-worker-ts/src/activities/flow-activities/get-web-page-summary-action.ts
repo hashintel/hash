@@ -41,6 +41,13 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
   }
 
   const webPage = await getWebPageActivity({ url, sanitizeForLlm: true });
+  if ("error" in webPage) {
+    return {
+      code: StatusCode.Unavailable,
+      message: webPage.error,
+      contents: [],
+    };
+  }
 
   const systemPrompt = generateSummarizeWebPageSystemPrompt({
     numberOfSentences: numberOfSentences!,

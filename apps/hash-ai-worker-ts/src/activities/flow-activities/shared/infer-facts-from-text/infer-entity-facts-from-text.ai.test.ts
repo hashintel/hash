@@ -25,10 +25,16 @@ test.skip(
     const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
       .schema;
 
-    const { htmlContent } = await getWebPageActivity({
+    const webPage = await getWebPageActivity({
       url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
       sanitizeForLlm: true,
     });
+
+    if ("error" in webPage) {
+      throw new Error(webPage.error);
+    }
+
+    const { htmlContent } = webPage;
 
     const { facts } = await inferEntityFactsFromText({
       text: htmlContent,
@@ -73,10 +79,16 @@ test.skip(
     const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
       .schema;
 
-    const { htmlContent } = await getWebPageActivity({
+    const webPage = await getWebPageActivity({
       url: "https://www.nvidia.com/de-de/geforce/graphics-cards/40-series/rtx-4090/",
       sanitizeForLlm: true,
     });
+
+    if ("error" in webPage) {
+      throw new Error(webPage.error);
+    }
+
+    const { htmlContent } = webPage;
 
     const { facts } = await inferEntityFactsFromText({
       text: htmlContent,

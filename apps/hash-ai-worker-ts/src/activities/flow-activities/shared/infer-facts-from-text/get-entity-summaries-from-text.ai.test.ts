@@ -25,10 +25,16 @@ test.skip(
     const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
       .schema;
 
-    const { htmlContent } = await getWebPageActivity({
+    const webPage = await getWebPageActivity({
       url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
       sanitizeForLlm: true,
     });
+
+    if ("error" in webPage) {
+      throw new Error(webPage.error);
+    }
+
+    const { htmlContent } = webPage;
 
     const { entitySummaries } = await getEntitySummariesFromText({
       text: htmlContent,
@@ -66,10 +72,16 @@ test.skip(
     const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
       .schema;
 
-    const { htmlContent } = await getWebPageActivity({
+    const webPage = await getWebPageActivity({
       url: "https://openai.com/index/video-generation-models-as-world-simulators/",
       sanitizeForLlm: true,
     });
+
+    if ("error" in webPage) {
+      throw new Error(webPage.error);
+    }
+
+    const { htmlContent } = webPage;
 
     const { entitySummaries } = await getEntitySummariesFromText({
       text: htmlContent,
@@ -101,10 +113,16 @@ test.skip(
     const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
       .schema;
 
-    const { htmlContent } = await getWebPageActivity({
+    const webPage = await getWebPageActivity({
       url: "https://churchlab.hms.harvard.edu/index.php/lab-members#current",
       sanitizeForLlm: true,
     });
+
+    if ("error" in webPage) {
+      throw new Error(webPage.error);
+    }
+
+    const { htmlContent } = webPage;
 
     const { entitySummaries } = await getEntitySummariesFromText({
       text: htmlContent,

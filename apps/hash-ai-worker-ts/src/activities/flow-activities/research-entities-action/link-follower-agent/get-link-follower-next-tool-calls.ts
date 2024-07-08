@@ -94,7 +94,14 @@ const generateUserMessage = (
           undefined,
           2)
         }</Entities>
-Possible Next Links: ${(JSON.stringify(possibleNextLinks.filter((link) => !previouslyVisitedLinks.some(({ url }) => url === link.url))), undefined, 2)}
+Possible Next Links: ${JSON.stringify(
+          possibleNextLinks.filter(
+            (link) =>
+              !previouslyVisitedLinks.some(({ url }) => url === link.url),
+          ),
+          undefined,
+          2,
+        )}
     `),
       },
     ],

@@ -213,10 +213,18 @@ const domainsToRequestFromBrowser = ["crunchbase.com", "linkedin.com"];
 export const getWebPageActivity = async (params: {
   url: string;
   sanitizeForLlm?: boolean;
-}): Promise<WebPage> => {
+}): Promise<WebPage | { error: string }> => {
   const { sanitizeForLlm, url } = params;
 
-  const urlObject = new URL(url);
+  let urlObject: URL;
+  try {
+    urlObject = new URL(url);
+  } catch {
+    const errorMsg = `Invalid URL provided to getWebPageActivity: ${url}`;
+    logger.error(errorMsg);
+
+    return { error: errorMsg };
+  }
 
   const shouldAskBrowser =
     (domainsToRequestFromBrowser.includes(urlObject.host) ||
