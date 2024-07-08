@@ -15,7 +15,7 @@ use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, T
 use time::OffsetDateTime;
 use type_system::{
     url::{BaseUrl, OntologyTypeVersion},
-    ClosedEntityType, DataType, EntityType, PropertyType,
+    ClosedEntityType, DataType, EntityType, PropertyType, Valid,
 };
 
 use crate::store::postgres::{ontology::OntologyId, query::Table};
@@ -54,7 +54,7 @@ pub struct DataTypeEmbeddingRow<'e> {
 #[postgres(name = "data_types")]
 pub struct DataTypeRow {
     pub ontology_id: DataTypeId,
-    pub schema: DataType,
+    pub schema: Valid<DataType>,
 }
 
 #[derive(Debug, ToSql)]
@@ -188,7 +188,7 @@ pub struct EntityTypeInheritsFromRow {
 #[postgres(name = "entity_types")]
 pub struct EntityTypeRow {
     pub ontology_id: EntityTypeId,
-    pub schema: EntityType,
+    pub schema: Valid<EntityType>,
     pub closed_schema: ClosedEntityType,
     pub label_property: Option<String>,
     pub icon: Option<String>,
@@ -228,7 +228,7 @@ pub struct OntologyTemporalMetadataRow {
 #[postgres(name = "property_types")]
 pub struct PropertyTypeRow {
     pub ontology_id: PropertyTypeId,
-    pub schema: PropertyType,
+    pub schema: Valid<PropertyType>,
 }
 
 #[derive(Debug, ToSql)]

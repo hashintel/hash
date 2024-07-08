@@ -1,6 +1,7 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { atLeastOne } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 

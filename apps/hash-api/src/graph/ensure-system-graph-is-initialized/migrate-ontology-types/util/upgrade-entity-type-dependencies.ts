@@ -5,6 +5,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { atLeastOne } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 export const replaceEntityTypeReference = ({

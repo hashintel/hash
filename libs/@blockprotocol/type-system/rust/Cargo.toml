@@ -24,6 +24,7 @@ url = "2.5.0"
 utoipa = { version = "4.2.0", features = ["url"], optional = true }
 
 [dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
 graph-test-data = { workspace = true }
 
 [features]

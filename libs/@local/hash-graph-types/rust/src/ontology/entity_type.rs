@@ -165,7 +165,7 @@ impl OntologyType for EntityType {
             .into_iter()
             .map(OntologyTypeReference::PropertyTypeReference)
             .chain(
-                self.inherits_from
+                self.all_of
                     .iter()
                     .map(OntologyTypeReference::EntityTypeReference),
             )

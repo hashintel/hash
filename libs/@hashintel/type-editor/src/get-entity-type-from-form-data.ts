@@ -6,6 +6,7 @@ import type {
   ValueOrArray,
 } from "@blockprotocol/type-system/slim";
 import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 
 import type { EntityTypeEditorFormData } from "./shared/form-types";
 

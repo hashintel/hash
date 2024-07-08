@@ -58,6 +58,7 @@ import {
   generateLinkMapWithConsistentSelfReferences,
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
+import { atLeastOne } from "@local/hash-isomorphic-utils/util";
 import type {
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
@@ -276,7 +277,7 @@ export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
   const cached_file_name = CACHED_ENTITY_TYPE_SCHEMAS[entityTypeId];
   if (cached_file_name) {
     // We need an absolute path to `../../../seed-data`
-    await context.graphApi.loadExternalEntityType(authentication.actorId, {
+    const request = {
       schema: JSON.parse(
         fs.readFileSync(
           path.join(
@@ -305,7 +306,12 @@ export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
           },
         },
       ],
-    });
+    };
+    // throw Error(JSON.stringify(request, null, 2));
+    await context.graphApi.loadExternalEntityType(
+      authentication.actorId,
+      request,
+    );
 
     return await getEntityTypeById(context, authentication, { entityTypeId });
   }

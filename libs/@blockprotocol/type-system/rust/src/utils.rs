@@ -39,7 +39,15 @@ mod wasm {
 pub(crate) mod tests {
     use core::fmt::Debug;
 
-    use serde::{de::DeserializeOwned, Deserialize, Serialize};
+    use serde::{Deserialize, Serialize};
+
+    use crate::{Valid, Validator};
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    pub(crate) enum JsonEqualityCheck {
+        No,
+        Yes,
+    }
 
     /// Will serialize as a constant value `"string"`
     #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,26 +68,31 @@ pub(crate) mod tests {
     /// serialized back.
     ///
     /// Optionally checks the deserialized object against an expected value.
-    pub(crate) fn check_serialization_from_str<T, R>(input: &str) -> T
+    pub(crate) fn ensure_serialization_from_str<T>(input: &str, equality: JsonEqualityCheck) -> T
     where
-        T: Debug + TryFrom<R>,
-        T::Error: Debug,
-        R: Debug + Clone + From<T> + Serialize + DeserializeOwned + PartialEq,
+        for<'de> T: Serialize + Deserialize<'de>,
     {
-        let value = serde_json::from_str::<serde_json::Value>(input).expect("failed to serialize");
-        let deserialized_repr: R = serde_json::from_value(value).expect("failed to deserialize");
-        let deserialized: T = deserialized_repr
-            .clone()
-            .try_into()
-            .expect("failed to convert");
-        let re_serialized_repr: R = deserialized.into();
+        ensure_serialization(
+            serde_json::from_str(input).expect("failed to serialize"),
+            equality,
+        )
+    }
 
-        assert_eq!(deserialized_repr, re_serialized_repr);
+    pub(crate) fn ensure_serialization<T>(
+        value: serde_json::Value,
+        equality: JsonEqualityCheck,
+    ) -> T
+    where
+        for<'de> T: Serialize + Deserialize<'de>,
+    {
+        let deserialized: T = serde_json::from_value(value.clone()).expect("failed to deserialize");
+        let re_serialized = serde_json::to_value(deserialized).expect("failed to serialize");
 
-        let _re_serialized_value =
-            serde_json::to_value(re_serialized_repr).expect("failed to serialize");
+        if equality == JsonEqualityCheck::Yes {
+            assert_eq!(value, re_serialized);
+        }
 
-        deserialized_repr.try_into().expect("failed to convert")
+        serde_json::from_value(value).expect("failed to deserialize")
     }
 
     /// Ensures a type can be deserialized from a given string to its equivalent [`repr`], but then
@@ -87,16 +100,63 @@ pub(crate) mod tests {
     /// representation.
     ///
     /// [`repr`]: crate::raw
-    pub(crate) fn ensure_failed_validation<R, T>(input: &serde_json::Value, expected_err: &T::Error)
-    where
-        R: for<'de> Deserialize<'de>,
-        T: TryFrom<R> + Debug,
-        <T as TryFrom<R>>::Error: Debug + PartialEq,
+    pub(crate) fn ensure_failed_deserialization<T>(
+        value: serde_json::Value,
+        expected_err: &impl ToString,
+    ) where
+        for<'de> T: Deserialize<'de> + Debug,
     {
-        let repr: R = serde_json::from_value(input.clone()).expect("failed to deserialize");
-        let error = T::try_from(repr).expect_err("expected validation to fail");
+        let error = serde_json::from_value::<T>(value).expect_err("failed to deserialize");
+        assert!(error.is_data(), "expected a data error");
 
-        assert_eq!(error, *expected_err);
+        assert_eq!(error.to_string(), expected_err.to_string());
+    }
+
+    /// Ensures a type can be deserialized from a given string to its equivalent [`repr`], but then
+    /// checks that it fails with a given error when trying to convert it to its native
+    /// representation.
+    ///
+    /// [`repr`]: crate::raw
+    pub(crate) async fn ensure_failed_validation<T, V>(
+        input: serde_json::Value,
+        validator: V,
+        equality: JsonEqualityCheck,
+    ) -> V::Error
+    where
+        for<'de> T: Serialize + Deserialize<'de> + Send + Sync,
+        V: Validator<T, Validated: Debug, Error: Sized> + Send + Sync,
+    {
+        let value = ensure_serialization::<T>(input.clone(), equality);
+        validator
+            .validate(value)
+            .await
+            .expect_err("failed to validate")
+    }
+
+    pub(crate) async fn ensure_validation_from_str<T, V>(
+        input: &str,
+        validator: V,
+        equality: JsonEqualityCheck,
+    ) -> Valid<V::Validated>
+    where
+        for<'de> T: Serialize + Deserialize<'de> + Send + Sync,
+        V: Validator<T, Validated: Debug + Sized, Error: Debug> + Send + Sync,
+    {
+        let value = ensure_serialization_from_str::<T>(input, equality);
+        validator.validate(value).await.expect("failed to validate")
+    }
+
+    pub(crate) async fn ensure_validation<T, V>(
+        input: serde_json::Value,
+        validator: V,
+        equality: JsonEqualityCheck,
+    ) -> Valid<V::Validated>
+    where
+        for<'de> T: Serialize + Deserialize<'de> + Send + Sync,
+        V: Validator<T, Validated: Debug + Sized, Error: Debug> + Send + Sync,
+    {
+        let value = ensure_serialization::<T>(input.clone(), equality);
+        validator.validate(value).await.expect("failed to validate")
     }
 
     /// Ensures a type can be deserialized from a given [`serde_json::Value`] to its equivalent
@@ -126,17 +186,5 @@ pub(crate) mod tests {
         assert_eq!(input, reserialized);
 
         deserialized
-    }
-
-    /// Ensures a given [`serde_json::Value`] fails when trying to be deserialized into a given
-    /// [`repr`] for a type.
-    ///
-    /// [`repr`]: crate::raw
-    pub(crate) fn ensure_repr_failed_deserialization<T>(json: serde_json::Value)
-    where
-        for<'de> T: Debug + Deserialize<'de>,
-    {
-        serde_json::from_value::<T>(json)
-            .expect_err("JSON was expected to be invalid but it was accepted");
     }
 }

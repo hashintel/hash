@@ -42,16 +42,6 @@ const entityTypes: EntityType[] = [
       },
     },
     required: ["https://blockprotocol.org/@alice/types/property-type/name/"],
-    examples: [
-      {
-        "https://blockprotocol.org/@alice/types/property-type/name/":
-          "MyBlock2",
-      },
-      {
-        "https://blockprotocol.org/@alice/types/property-type/name/":
-          "YourBlock",
-      },
-    ],
   },
   {
     $schema:
@@ -87,7 +77,6 @@ const entityTypes: EntityType[] = [
         },
       },
     },
-    examples: [],
   },
   {
     $schema:
@@ -285,11 +274,8 @@ const invalidEntityTypes: [string, EntityType, ParseEntityTypeError][] = [
       },
     },
     {
-      reason: "InvalidVersionedUrl",
-      inner: {
-        reason: "AdditionalEndContent",
-        inner: ".2",
-      },
+      reason: "InvalidJson",
+      inner: "additional end content: .2 at line 1 column 183",
     },
   ],
   [
@@ -309,14 +295,8 @@ const invalidEntityTypes: [string, EntityType, ParseEntityTypeError][] = [
       },
     },
     {
-      reason: "InvalidVersionedUrl",
-      inner: {
-        reason: "InvalidBaseUrl",
-        inner: {
-          reason: "UrlParseError",
-          inner: "invalid domain character",
-        },
-      },
+      reason: "InvalidJson",
+      inner: "invalid base url: invalid domain character at line 1 column 131",
     },
   ],
   [
@@ -404,13 +384,8 @@ const invalidEntityTypes: [string, EntityType, ParseEntityTypeError][] = [
       },
     },
     {
-      reason: "InvalidPropertyTypeObject",
-      inner: {
-        reason: "InvalidPropertyKey",
-        inner: {
-          reason: "MissingTrailingSlash",
-        },
-      },
+      reason: "InvalidJson",
+      inner: "additional end content: .3 at line 1 column 576",
     },
   ],
   [
@@ -468,14 +443,8 @@ const invalidEntityTypes: [string, EntityType, ParseEntityTypeError][] = [
       properties: {},
     },
     {
-      reason: "InvalidAllOf",
-      inner: {
-        reason: "EntityTypeReferenceError",
-        inner: {
-          reason: "AdditionalEndContent",
-          inner: ".2",
-        },
-      },
+      reason: "InvalidJson",
+      inner: "additional end content: .2 at line 1 column 298",
     },
   ],
 ];
@@ -508,8 +477,9 @@ const brokenTypes: [any, ParseEntityTypeError][] = [
       properties: {},
     },
     {
-      reason: "InvalidMetaSchema",
-      inner: "https://blockprotocol.org/types/modules/graph/0.3/schema/foo",
+      reason: "InvalidJson",
+      inner:
+        "unknown variant `https://blockprotocol.org/types/modules/graph/0.3/schema/foo`, expected `https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type` at line 1 column 73",
     },
   ],
 ];
