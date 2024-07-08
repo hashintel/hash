@@ -12,7 +12,7 @@
       "*": [
         "./pkg/type-system.d.ts"
       ],
-      "./wasm": [
+      "wasm": [
         "./pkg/type-system_bg.wasm.d.ts"
       ]
     }

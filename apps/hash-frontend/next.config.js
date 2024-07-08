@@ -192,8 +192,11 @@ export default withSentryConfig(
         });
 
         // eslint-disable-next-line no-param-reassign
-        webpackConfig.resolve.alias["@blockprotocol/type-system$"] =
-          "@blockprotocol/type-system/slim";
+        webpackConfig.resolve.extensionAlias = {
+          ".js": [".ts", ".tsx", ".jsx", ".js"],
+          ".mjs": [".mts", ".mjs"],
+          ".cjs": [".cts", ".cjs"],
+        };
 
         webpackConfig.plugins.push(
           new DefinePlugin({

@@ -16,12 +16,16 @@
     "target": "esnext",
     "baseUrl": ".",
     "paths": {
+      "@blockprotocol/graph": ["../../@blockprotocol/graph/src/main.ts"],
       "@blockprotocol/graph/*": ["../../@blockprotocol/graph/src/*.ts"],
       "@blockprotocol/type-system": [
-        "../../@blockprotocol/type-system/src/main.ts"
+        "../../@blockprotocol/type-system/typescript/src/main.ts"
+      ],
+      "@blockprotocol/type-system/slim": [
+        "../../@blockprotocol/type-system/typescript/src/main-slim.ts"
       ],
       "@blockprotocol/type-system/*": [
-        "../../@blockprotocol/type-system/src/*.ts"
+        "../../@blockprotocol/type-system/typescript/src/*.ts"
       ],
       "@local/advanced-types/*": ["../advanced-types/src/*.ts"],
       "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*.ts"],
