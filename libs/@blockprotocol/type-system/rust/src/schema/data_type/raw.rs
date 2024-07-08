@@ -35,7 +35,7 @@ fn is_false(value: &bool) -> bool {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DataType<'a> {
     #[serde(rename = "$schema")]
     pub schema: DataTypeSchemaTag,
