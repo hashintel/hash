@@ -1,7 +1,7 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{error::Error, fmt, marker::PhantomData, mem, panic::Location};
-#[cfg(all(rust_1_65, feature = "std"))]
+#[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
 use std::process::ExitCode;
@@ -298,13 +298,13 @@ impl<C> Report<C> {
         #[cfg(not(nightly))]
         let location = Some(Location::caller());
 
-        #[cfg(all(nightly, feature = "std"))]
+        #[cfg(all(nightly, feature = "backtrace"))]
         let backtrace = core::error::request_ref::<Backtrace>(&frame.as_error())
             .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
             .is_none()
             .then(Backtrace::capture);
 
-        #[cfg(all(rust_1_65, not(nightly), feature = "std"))]
+        #[cfg(all(not(nightly), feature = "backtrace"))]
         let backtrace = Some(Backtrace::capture());
 
         #[cfg(all(nightly, feature = "spantrace"))]
@@ -326,7 +326,7 @@ impl<C> Report<C> {
             report = report.attach(*location);
         }
 
-        #[cfg(all(rust_1_65, feature = "std"))]
+        #[cfg(feature = "backtrace")]
         if let Some(backtrace) =
             backtrace.filter(|bt| matches!(bt.status(), BacktraceStatus::Captured))
         {

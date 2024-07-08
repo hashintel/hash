@@ -41,13 +41,17 @@ thiserror = "1.0.59"
 rustc_version = "0.4"
 
 [features]
-default = ["std"]
+default = ["std", "backtrace"]
 
-spantrace = ["dep:tracing-error", "std"]
-std = ["anyhow?/std"]
-eyre = ["dep:eyre", "std"]
-serde = ["dep:serde"]
-hooks = ['dep:spin']
+std = ["anyhow?/std"]  # Enables support for `Error`
+backtrace = ["std"]  # Enables automatic capturing of `Backtrace`s (requires Rust 1.65+)
+
+spantrace = ["dep:tracing-error", "std"]  # Enables automatic capturing of `SpanTrace`s
+serde = ["dep:serde"]  # Enables serialization support
+hooks = ['dep:spin']  # Enables hooks on `no-std` platforms using spin locks
+
+anyhow = ["dep:anyhow"]  # Provides `into_report` to convert `anyhow::Error` to `Report`
+eyre = ["dep:eyre", "std"]  # Provides `into_report` to convert `eyre::Report` to `Report`
 
 [lints]
 workspace = true
