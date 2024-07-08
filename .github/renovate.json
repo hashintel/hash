@@ -8,6 +8,12 @@
     "**/dist/**"
   ],
   "extends": ["config:base"],
+  "hostRules": [
+    {
+      "matchHost": "api.github.com",
+      "maxRetryAfter": 30
+    }
+  ],
 
   "automerge": true,
   "branchPrefix": "deps/",
