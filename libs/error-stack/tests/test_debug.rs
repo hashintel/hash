@@ -229,7 +229,7 @@ fn sources_nested_alternate() {
 }
 
 mod full {
-    #![cfg(all(any(feature = "std", feature = "hooks"), feature = "spantrace"))]
+    #![cfg(all(feature = "backtrace", feature = "spantrace"))]
     //! Why so many cfg guards?
     //! What was found during initial development of the feature was,
     //! that a complete test of all tests with snapshots on every possible feature combination
