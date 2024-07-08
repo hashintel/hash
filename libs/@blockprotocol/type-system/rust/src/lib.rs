@@ -53,20 +53,6 @@ pub trait Validator<V>: Sync {
     }
 }
 
-// impl<T, V, R, E> Validator<V> for T
-// where
-//     T: Fn(&V) -> R,
-//     R: Future<Output = Result<(), E>>,
-// {
-//     type Error = E;
-//     type Validated = V;
-//
-//     async fn validate_ref(&self, value: &V) -> Result<Valid<&V>, Self::Error> {
-//         self(value).await?;
-//         Ok(Valid { value })
-//     }
-// }
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct Valid<T> {
