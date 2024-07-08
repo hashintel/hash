@@ -34,6 +34,7 @@
     "@local/hash-graph-types": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@sentry/browser": "7.116.0",
+    "@sindresorhus/slugify": "1.1.2",
     "apollo-server-express": "3.9.0",
     "fractional-indexing": "2.1.0",
     "id128": "1.6.6",
@@ -48,7 +49,6 @@
     "prosemirror-state": "1.4.2",
     "prosemirror-transform": "1.7.0",
     "prosemirror-view": "1.29.1",
-    "slugify": "1.6.5",
     "tsx": "3.13.0",
     "uuid": "9.0.1"
   },

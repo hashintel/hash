@@ -1,7 +1,3 @@
-import slugifyLib from "slugify";
+import slugifyLib from "@sindresorhus/slugify";
 
-/** @see https://github.com/simov/slugify/issues/173 */
-const slugifyFn = slugifyLib as unknown as typeof slugifyLib.default;
-
-export const slugify = (text: string) =>
-  slugifyFn(text, { lower: true, strict: true });
+export const slugify = slugifyLib;
