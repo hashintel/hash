@@ -2,7 +2,6 @@ import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
 import { Skeleton } from "@hashintel/design-system";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
