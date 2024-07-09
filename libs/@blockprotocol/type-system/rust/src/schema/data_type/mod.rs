@@ -1,12 +1,10 @@
 mod constraint;
 
 pub use self::{
-    closed::{ClosedDataType, ClosedDataTypeSchemaData},
     reference::DataTypeReference,
     validation::{DataTypeValidator, ValidateDataTypeError},
 };
 
-mod closed;
 mod raw;
 mod reference;
 mod validation;
