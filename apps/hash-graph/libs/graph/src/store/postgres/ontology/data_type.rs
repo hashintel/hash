@@ -25,7 +25,7 @@ use tracing::instrument;
 use type_system::{
     schema::DataTypeValidator,
     url::{OntologyTypeVersion, VersionedUrl},
-    DataType, Validator,
+    Validator,
 };
 
 use crate::{
@@ -333,14 +333,12 @@ where
                 )
                 .await?
             {
+                let schema = data_type_validator
+                    .validate_ref(&parameters.schema)
+                    .await
+                    .change_context(InsertionError)?;
                 transaction
-                    .insert_with_id(
-                        ontology_id,
-                        data_type_validator
-                            .validate_ref(&parameters.schema)
-                            .await
-                            .change_context(InsertionError)?,
-                    )
+                    .insert_data_type_with_id(ontology_id, schema, schema)
                     .await?;
                 let metadata = DataTypeMetadata {
                     record_id,
@@ -573,15 +571,18 @@ where
             },
         };
 
+        let schema = data_type_validator
+            .validate_ref(&params.schema)
+            .await
+            .change_context(UpdateError)?;
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update::<DataType>(
-                data_type_validator
-                    .validate_ref(&params.schema)
-                    .await
-                    .change_context(UpdateError)?,
-                &provenance.edition,
-            )
+            .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
+        transaction
+            .insert_data_type_with_id(ontology_id, schema, schema)
+            .await
+            .change_context(UpdateError)?;
+
         let data_type_id = DataTypeId::from(ontology_id);
 
         let relationships = params

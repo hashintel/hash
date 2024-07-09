@@ -73,7 +73,8 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                 ontology_id,
                 // TODO: Validate ontology types in snapshots
                 //   see https://linear.app/hash/issue/H-3038
-                schema: Valid::new_unchecked(data_type.schema),
+                schema: Valid::new_unchecked(data_type.schema.clone()),
+                closed_schema: Valid::new_unchecked(data_type.schema),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

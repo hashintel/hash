@@ -55,6 +55,7 @@ pub struct DataTypeEmbeddingRow<'e> {
 pub struct DataTypeRow {
     pub ontology_id: DataTypeId,
     pub schema: Valid<DataType>,
+    pub closed_schema: Valid<DataType>,
 }
 
 #[derive(Debug, ToSql)]
