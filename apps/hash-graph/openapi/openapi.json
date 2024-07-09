@@ -7538,6 +7538,13 @@
             },
             "description": "The people or organizations that authored the material."
           },
+          "entityId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityId"
+              }
+            ]
+          },
           "firstPublished": {
             "allOf": [
               {
