@@ -56,19 +56,20 @@ export type EnforcedEntityEditionProvenance = Omit<
   origin: OriginProvenance;
 };
 
-export type CreateEntityParameters = Omit<
-  GraphApiCreateEntityRequest,
-  "entityTypeIds" | "decisionTime" | "draft" | "properties" | "provenance"
-> & {
-  ownedById: OwnedById;
-  properties: PropertyObject;
-  linkData?: LinkData;
-  entityTypeId: VersionedUrl;
-  entityUuid?: EntityUuid;
-  propertyMetadata?: PropertyMetadataObject;
-  provenance: EnforcedEntityEditionProvenance;
-  draft?: boolean;
-};
+export type CreateEntityParameters<T extends PropertyObject = PropertyObject> =
+  Omit<
+    GraphApiCreateEntityRequest,
+    "entityTypeIds" | "decisionTime" | "draft" | "properties" | "provenance"
+  > & {
+    ownedById: OwnedById;
+    properties: T;
+    linkData?: LinkData;
+    entityTypeId: VersionedUrl;
+    entityUuid?: EntityUuid;
+    propertyMetadata?: PropertyMetadataObject;
+    provenance: EnforcedEntityEditionProvenance;
+    draft?: boolean;
+  };
 
 export type PatchEntityParameters = Omit<
   GraphApiPatchEntityParams,
@@ -447,6 +448,17 @@ export const flattenPropertyMetadata = (
   return flattened;
 };
 
+type Create<A extends readonly unknown[]> = {
+  [I in keyof A]: A[I] extends infer T extends PropertyObject
+    ? CreateEntityParameters<T>
+    : never;
+};
+type CreateLink<A extends readonly unknown[]> = {
+  [I in keyof A]: A[I] extends infer T extends PropertyObject
+    ? CreateEntityParameters<T> & { linkData: LinkData }
+    : never;
+};
+
 export class Entity<Properties extends PropertyObject = PropertyObject> {
   #entity: EntityData<Properties>;
 
@@ -499,25 +511,20 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
     }
   }
 
-  public static async create(
+  public static async create<Ts extends PropertyObject[] = PropertyObject[]>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: CreateEntityParameters,
-  ): Promise<Entity> {
-    return (
-      await Entity.createMultiple(graphAPI, authentication, [params])
-    )[0]!;
-  }
-
-  public static async createMultiple(
-    graphAPI: GraphApi,
-    authentication: AuthenticationContext,
-    params: CreateEntityParameters[],
-  ): Promise<Entity[]> {
+    ...params: Create<Ts>
+  ): Promise<{
+    [I in keyof Ts]: Ts[I] extends infer T extends PropertyObject
+      ? Entity<T>
+      : never;
+  }> {
+    // @ts-expect-error –– The number of entities returned from `createEntities` is not correctly inferred
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(
+        [...params].map(
           ({
             entityTypeId,
             draft,
@@ -547,7 +554,7 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
       )
       .then(({ data: entities }) =>
         entities.map((entity) => new Entity(entity)),
-      );
+      ) satisfies Promise<Entity[]>;
   }
 
   public async patch(
@@ -679,15 +686,20 @@ export class LinkEntity<
     super(input as EntityInput<Properties>);
   }
 
-  public static async createMultiple(
+  public static async create<Ts extends PropertyObject[] = PropertyObject[]>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: (CreateEntityParameters & { linkData: LinkData })[],
-  ): Promise<LinkEntity[]> {
+    ...params: CreateLink<Ts>
+  ): Promise<{
+    [I in keyof Ts]: Ts[I] extends infer T extends PropertyObject
+      ? LinkEntity<T>
+      : never;
+  }> {
+    // @ts-expect-error –– The number of entities returned from `createEntities` is not correctly inferred
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(
+        [...params].map(
           ({
             entityTypeId,
             draft,
@@ -717,17 +729,7 @@ export class LinkEntity<
       )
       .then(({ data: entities }) =>
         entities.map((entity) => new LinkEntity(entity)),
-      );
-  }
-
-  public static async create(
-    graphAPI: GraphApi,
-    authentication: AuthenticationContext,
-    params: CreateEntityParameters & { linkData: LinkData },
-  ): Promise<LinkEntity> {
-    return (
-      await LinkEntity.createMultiple(graphAPI, authentication, [params])
-    )[0]!;
+      ) satisfies Promise<LinkEntity[]>;
   }
 
   public async patch(

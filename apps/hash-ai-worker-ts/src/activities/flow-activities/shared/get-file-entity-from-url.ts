@@ -232,7 +232,7 @@ export const getFileEntityFromUrl = async (params: {
     },
   };
 
-  const incompleteFileEntity = await Entity.create(
+  const [incompleteFileEntity] = await Entity.create<[FileProperties]>(
     graphApiClient,
     { actorId: webBotActorId },
     {
@@ -275,14 +275,14 @@ export const getFileEntityFromUrl = async (params: {
     ...fileStorageProperties,
   };
 
-  const updatedEntity = (await incompleteFileEntity.patch(
+  const updatedEntity = await incompleteFileEntity.patch(
     graphApiClient,
     { actorId: webBotActorId },
     {
       propertyPatches: propertyObjectToPatches(updatedProperties),
       provenance,
     },
-  )) as Entity<FileProperties>;
+  );
 
   try {
     await writeFileToS3URL({

@@ -8,8 +8,15 @@ import type {
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import { Entity, propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
+import type {
+  CreateEntityParameters,
+  EnforcedEntityEditionProvenance,
+} from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  LinkEntity,
+  propertyObjectToPatches,
+} from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -48,49 +55,11 @@ const createHashEntity = async (params: {
 }): Promise<void> => {
   const { graphApiClient, ownedById } = params;
 
-  const entity = await Entity.create(graphApiClient, params.authentication, {
-    ownedById,
-    draft: false,
-    relationships: [
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: params.authentication.actorId,
-        },
-      },
-      {
-        relation: "setting",
-        subject: { kind: "setting", subjectId: "administratorFromWeb" },
-      },
-      {
-        relation: "setting",
-        subject: { kind: "setting", subjectId: "updateFromWeb" },
-      },
-      {
-        relation: "setting",
-        subject: { kind: "setting", subjectId: "viewFromWeb" },
-      },
-    ],
-    properties:
-      (params.partialEntity.properties as Entity["properties"] | undefined) ??
-      {},
-    provenance,
-    entityTypeId: params.partialEntity.entityTypeId,
-  });
-
-  await Entity.createMultiple(
+  const [entity] = await Entity.create<[PropertyObject]>(
     graphApiClient,
-    { actorId: params.authentication.actorId },
-    params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => ({
+    params.authentication,
+    {
       ownedById,
-      linkData: {
-        leftEntityId: entity.metadata.recordId.entityId,
-        rightEntityId: destinationEntityId,
-      },
-      entityTypeId: linkEntityTypeId,
-      properties: {},
-      provenance,
       draft: false,
       relationships: [
         {
@@ -113,7 +82,52 @@ const createHashEntity = async (params: {
           subject: { kind: "setting", subjectId: "viewFromWeb" },
         },
       ],
-    })),
+      properties:
+        (params.partialEntity.properties as Entity["properties"] | undefined) ??
+        {},
+      provenance,
+      entityTypeId: params.partialEntity.entityTypeId,
+    },
+  );
+
+  await LinkEntity.create(
+    graphApiClient,
+    { actorId: params.authentication.actorId },
+    ...params.outgoingLinks.map(
+      ({ linkEntityTypeId, destinationEntityId }) =>
+        ({
+          ownedById,
+          linkData: {
+            leftEntityId: entity.metadata.recordId.entityId,
+            rightEntityId: destinationEntityId,
+          },
+          entityTypeId: linkEntityTypeId,
+          properties: {},
+          provenance,
+          draft: false,
+          relationships: [
+            {
+              relation: "administrator",
+              subject: {
+                kind: "account",
+                subjectId: params.authentication.actorId,
+              },
+            },
+            {
+              relation: "setting",
+              subject: { kind: "setting", subjectId: "administratorFromWeb" },
+            },
+            {
+              relation: "setting",
+              subject: { kind: "setting", subjectId: "updateFromWeb" },
+            },
+            {
+              relation: "setting",
+              subject: { kind: "setting", subjectId: "viewFromWeb" },
+            },
+          ],
+        }) satisfies CreateEntityParameters,
+    ),
   );
 };
 

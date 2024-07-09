@@ -38,7 +38,7 @@ const createDummyFlow = async (params: { actorId: AccountId }) => {
     },
   };
 
-  const dummyFlowEntity = await Entity.create(
+  const [dummyFlowEntity] = await Entity.create<[FlowRunProperties]>(
     graphApiClient,
     { actorId },
     {

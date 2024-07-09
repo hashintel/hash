@@ -5,6 +5,7 @@ import type {
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   LinkData,
+  PropertyObject,
   PropertyPatchOperation,
 } from "@local/hash-graph-types/entity";
 
@@ -64,17 +65,21 @@ export const createLinkEntity: ImpureGraphFunction<
     );
   }
 
-  const linkEntity = await LinkEntity.create(context.graphApi, authentication, {
-    ownedById,
-    linkData,
-    entityTypeId: linkEntityType.schema.$id,
-    properties,
-    draft,
-    relationships,
-    confidence,
-    propertyMetadata,
-    provenance: context.provenance,
-  });
+  const [linkEntity] = await LinkEntity.create<[PropertyObject]>(
+    context.graphApi,
+    authentication,
+    {
+      ownedById,
+      linkData,
+      entityTypeId: linkEntityType.schema.$id,
+      properties,
+      draft,
+      relationships,
+      confidence,
+      propertyMetadata,
+      provenance: context.provenance,
+    },
+  );
 
   for (const afterCreateHook of afterCreateEntityHooks) {
     if (afterCreateHook.entityTypeId === linkEntity.metadata.entityTypeId) {

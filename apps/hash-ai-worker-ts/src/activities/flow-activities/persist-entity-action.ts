@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import type { PropertyObject } from "@local/hash-graph-client";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -204,7 +205,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           },
         );
       } else {
-        entity = await Entity.create(
+        [entity] = await Entity.create<[PropertyObject]>(
           graphApiClient,
           { actorId: webBotActorId },
           {

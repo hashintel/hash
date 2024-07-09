@@ -118,7 +118,7 @@ export const createEntity: ImpureGraphFunction<
     }
   }
 
-  const entity = await Entity.create(
+  const [entity] = await Entity.create<[PropertyObject]>(
     graphApi,
     { actorId },
     {

@@ -13,6 +13,7 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 export const createNotificationEntityPermissions = ({
@@ -105,7 +106,9 @@ export const createGraphChangeNotification = async (
   /**
    * We create the notification entity with the user's web bot, as we know it has the necessary permissions in the user's web
    */
-  const notificationEntity = await Entity.create(
+  const [notificationEntity] = await Entity.create<
+    [GraphChangeNotificationProperties]
+  >(
     graphApi,
     { actorId: webMachineActorId },
     {
@@ -113,7 +116,8 @@ export const createGraphChangeNotification = async (
       entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
       ownedById: notifiedUserAccountId as OwnedById,
       properties: {
-        [systemPropertyTypes.graphChangeType.propertyTypeBaseUrl]: operation,
+        "https://hash.ai/@hash/types/property-type/graph-change-type/":
+          operation,
       },
       provenance,
       relationships: notificationEntityRelationships,

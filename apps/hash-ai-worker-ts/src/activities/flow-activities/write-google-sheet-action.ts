@@ -393,7 +393,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       properties: fileProperties,
     };
 
-    entityToReturn = await Entity.create(
+    [entityToReturn] = await Entity.create<[GoogleSheetsFileProperties]>(
       graphApiClient,
       { actorId: webBotActorId },
       {
