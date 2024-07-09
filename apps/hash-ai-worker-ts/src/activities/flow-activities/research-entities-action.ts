@@ -14,7 +14,11 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger";
-import { getFlowContext, getProvidedFiles } from "../shared/get-flow-context";
+import {
+  areUrlsTheSameAfterNormalization,
+  getFlowContext,
+  getProvidedFiles,
+} from "../shared/get-flow-context";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
 import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
@@ -871,13 +875,13 @@ export const researchEntitiesAction: FlowActionActivity<{
           /**
            * Exclude files we already have an entity for
            */
-          !providedFileEntities.some(
-            (fileEntity) =>
-              decodeURIComponent(
-                fileEntity.properties[
-                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-                ],
-              ) === decodeURIComponent(source.location!.uri!),
+          !providedFileEntities.some((fileEntity) =>
+            areUrlsTheSameAfterNormalization(
+              fileEntity.properties[
+                "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+              ],
+              source.location!.uri!,
+            ),
           )
         ) {
           return {

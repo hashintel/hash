@@ -103,7 +103,7 @@ const exploreResource = async (params: {
   let content = "";
   let resourceTitle: string | undefined =
     hashEntityForFile?.properties[
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings
     ] ||
     hashEntityForFile?.properties[
