@@ -746,7 +746,7 @@ impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
 where
     A: Send + Sync,
 {
-    /// Inserts the specified [`OntologyDatabaseType`].
+    /// Inserts the specified ontology metadata.
     ///
     /// This first extracts the [`BaseUrl`] from the [`VersionedUrl`] and attempts to insert it into
     /// the database. It will create a new [`OntologyId`] for this [`VersionedUrl`] and then finally
