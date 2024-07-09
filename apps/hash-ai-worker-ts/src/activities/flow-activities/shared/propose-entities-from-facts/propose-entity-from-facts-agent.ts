@@ -271,7 +271,7 @@ const generateSystemPrompt = (params: { proposingOutgoingLinks: boolean }) =>
   The provided facts are your only source of information, so make sure to extract as much information as possible,
     and do not rely on other information about the entities in question you may know.
 
-  You must make exactly one tool call.
+  You must make exactly one tool call. Provide all the properties of the single entity in that single tool call.
 `);
 
 const retryMax = 3;
@@ -400,7 +400,19 @@ export const proposeEntityFromFactsAgent = async (params: {
     message: llmResponse.message,
   });
 
-  /** @todo: handle unexpected number of tool calls */
+  if (toolCalls.length !== 1) {
+    return retry({
+      retryMessage: {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "Please try again – you must make exactly one tool call. Include all the properties of the proposed entity in a single call.",
+          },
+        ],
+      },
+    });
+  }
 
   const proposeEntityToolCall = toolCalls.find(
     (toolCall) => toolCall.name === "proposeEntity",
