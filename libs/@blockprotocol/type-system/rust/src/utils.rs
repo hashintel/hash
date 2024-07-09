@@ -49,21 +49,6 @@ pub(crate) mod tests {
         Yes,
     }
 
-    /// Will serialize as a constant value `"string"`
-    #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-    #[serde(rename_all = "camelCase")]
-    pub(crate) enum StringTypeTag {
-        #[default]
-        String,
-    }
-
-    // Helpful for testing minimum cases of some of the serialization primitives
-    #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-    #[serde(rename_all = "camelCase", deny_unknown_fields)]
-    pub(crate) struct StringTypeStruct {
-        r#type: StringTypeTag,
-    }
-
     /// Ensures a type can be deserialized from a given string, as well as being able to be
     /// serialized back.
     ///
