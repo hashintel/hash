@@ -49,6 +49,14 @@ export const NumberOrTextInput = ({
     "minLength" in expectedType ? expectedType.minLength : undefined;
   const maxLength =
     "maxLength" in expectedType ? expectedType.maxLength : undefined;
+
+  const step =
+    "multipleOf" in expectedType && expectedType.multipleOf !== undefined
+      ? expectedType.multipleOf
+      : expectedType.type === "integer"
+        ? 1
+        : 0.01;
+
   const exclusiveMinimum =
     "exclusiveMinimum" in expectedType &&
     typeof expectedType.exclusiveMinimum === "boolean"
@@ -56,7 +64,7 @@ export const NumberOrTextInput = ({
       : false;
   const minimum =
     "minimum" in expectedType && typeof expectedType.minimum === "number"
-      ? expectedType.minimum + (exclusiveMinimum ? 1 : 0)
+      ? expectedType.minimum + (exclusiveMinimum ? step : 0)
       : undefined;
 
   const exclusiveMaximum =
@@ -66,11 +74,8 @@ export const NumberOrTextInput = ({
       : false;
   const maximum =
     "maximum" in expectedType && typeof expectedType.maximum === "number"
-      ? expectedType.maximum - (exclusiveMaximum ? 1 : 0)
+      ? expectedType.maximum - (exclusiveMaximum ? step : 0)
       : undefined;
-
-  const step =
-    "multipleOf" in expectedType ? expectedType.multipleOf : undefined;
 
   const jsonStringFormat =
     "format" in expectedType ? expectedType.format : undefined;
