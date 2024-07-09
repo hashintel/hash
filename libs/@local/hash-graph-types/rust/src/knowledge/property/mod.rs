@@ -12,8 +12,8 @@ use error_stack::Report;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use type_system::{
+    schema::JsonSchemaValueType,
     url::{BaseUrl, VersionedUrl},
-    JsonSchemaValueType,
 };
 
 pub use self::{

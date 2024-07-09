@@ -12,7 +12,7 @@ use iso8601_duration::Duration;
 use regex::Regex;
 use serde_json::Value as JsonValue;
 use thiserror::Error;
-use type_system::{url::VersionedUrl, DataType, DataTypeReference, JsonSchemaValueType};
+use type_system::{schema::JsonSchemaValueType, url::VersionedUrl, DataType, DataTypeReference};
 use url::Url;
 use uuid::Uuid;
 

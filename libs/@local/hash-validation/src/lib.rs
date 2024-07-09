@@ -241,7 +241,7 @@ mod tests {
             Ok(
                 OntologyTypeProvider::<ClosedEntityType>::provide_type(self, child)
                     .await?
-                    .inherits_from
+                    .all_of
                     .iter()
                     .any(|id| id.url.base_url == *parent),
             )

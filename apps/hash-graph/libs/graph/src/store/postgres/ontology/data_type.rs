@@ -23,8 +23,9 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
+    schema::DataTypeValidator,
     url::{OntologyTypeVersion, VersionedUrl},
-    DataType,
+    DataType, Validator,
 };
 
 use crate::{
@@ -278,6 +279,8 @@ where
         let mut inserted_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
 
+        let data_type_validator = DataTypeValidator;
+
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
@@ -331,7 +334,13 @@ where
                 .await?
             {
                 transaction
-                    .insert_with_id(ontology_id, &parameters.schema)
+                    .insert_with_id(
+                        ontology_id,
+                        data_type_validator
+                            .validate_ref(&parameters.schema)
+                            .await
+                            .change_context(InsertionError)?,
+                    )
                     .await?;
                 let metadata = DataTypeMetadata {
                     record_id,
@@ -525,6 +534,8 @@ where
     where
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
+        let data_type_validator = DataTypeValidator;
+
         let old_ontology_id = DataTypeId::from_url(&VersionedUrl {
             base_url: params.schema.id.base_url.clone(),
             version: OntologyTypeVersion::new(
@@ -563,7 +574,13 @@ where
         };
 
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update::<DataType>(&params.schema, &provenance.edition)
+            .update::<DataType>(
+                data_type_validator
+                    .validate_ref(&params.schema)
+                    .await
+                    .change_context(UpdateError)?,
+                &provenance.edition,
+            )
             .await?;
         let data_type_id = DataTypeId::from(ontology_id);
 
