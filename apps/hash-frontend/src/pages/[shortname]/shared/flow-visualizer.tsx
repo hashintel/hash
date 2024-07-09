@@ -23,7 +23,9 @@ import type {
   StartFlowMutation,
   StartFlowMutationVariables,
 } from "../../../graphql/api-types.gen";
+import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+import { defaultBrowserPluginDomains } from "../../goals/new.page/internet-settings";
 import { useFlowDefinitionsContext } from "../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../shared/flow-runs-context";
 import { ActivityLog } from "./flow-visualizer/activity-log";
@@ -49,7 +51,6 @@ import {
 } from "./flow-visualizer/sort-graph";
 import { Swimlane } from "./flow-visualizer/swimlane";
 import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
-import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -404,6 +405,16 @@ export const FlowVisualizer = () => {
           runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
             const { data } = await startFlow({
               variables: {
+                dataSources: {
+                  files: { fileEntityIds: [] },
+                  internetAccess: {
+                    browserPlugin: {
+                      domains: defaultBrowserPluginDomains,
+                      enabled: true,
+                    },
+                    enabled: true,
+                  },
+                },
                 flowDefinition: selectedFlowDefinition,
                 flowTrigger: {
                   outputs,

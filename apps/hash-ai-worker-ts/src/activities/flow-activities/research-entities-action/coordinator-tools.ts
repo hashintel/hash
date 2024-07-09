@@ -173,6 +173,8 @@ export const generateToolDefinitions = <
       description: dedent(`
       Infer facts from the content of resources.
       This tool should be used to gather facts about entities of specific types.
+      The URLs for resources selected must have been provided in the user messages to you,
+      or as the result of a previous action (e.g. a web search, or in suggestions for next steps). Don't guess URLs!
     `),
       inputSchema: {
         type: "object",

@@ -220,12 +220,18 @@ const NewGoalPageContent = () => {
       return false;
     }
 
+    if (!internetSettings.enabled && !fileSettings.fileEntities.length) {
+      return false;
+    }
+
     return true;
   }, [
     called,
     deliverablesSettings.document,
     deliverablesSettings.spreadsheet,
     entityTypes.length,
+    fileSettings,
+    internetSettings,
     goal,
   ]);
 

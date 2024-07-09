@@ -1,6 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
-import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import { SourceType } from "@local/hash-graph-client";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
@@ -283,39 +281,21 @@ export const researchEntitiesAction: FlowActionActivity<{
 
   const providedFileEntities = await getProvidedFiles();
 
-  const resourcesNotVisited: CoordinatingAgentState["resourcesNotVisited"] = (
-    await Promise.all(
-      providedFileEntities.map(async (entity) => {
-        const {
-          fileStorageKey,
-          fileUrl: unsignedUrl,
-          description,
-          displayName,
-          fileName,
-        } = simplifyProperties(entity.properties);
+  const providedFiles: CoordinatingAgentState["resourcesNotVisited"] =
+    providedFileEntities.map((entity) => {
+      const {
+        fileUrl: unsignedUrl,
+        description,
+        displayName,
+        fileName,
+      } = simplifyProperties(entity.properties);
 
-        if (!fileStorageKey) {
-          return null;
-        }
-
-        const s3Config = getAwsS3Config();
-
-        const downloadProvider = new AwsS3StorageProvider(s3Config);
-
-        const signedUrl = await downloadProvider.presignDownload({
-          entity,
-          expiresInSeconds: 60 * 60,
-          key: fileStorageKey,
-        });
-
-        return {
-          url: signedUrl,
-          title: displayName ?? fileName ?? unsignedUrl.split("/").pop()!,
-          summary: description ?? "",
-        };
-      }),
-    )
-  ).filter((file) => !!file);
+      return {
+        url: unsignedUrl,
+        title: displayName ?? fileName ?? unsignedUrl.split("/").pop()!,
+        summary: description ?? "",
+      };
+    });
 
   if (testingParams?.resumeFromState) {
     state = testingParams.resumeFromState;
@@ -327,6 +307,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     const { plan: initialPlan, questionsAndAnswers } =
       await coordinatingAgent.createInitialPlan({
         input,
+        providedFiles,
         questionsAndAnswers: null,
       });
 
@@ -341,7 +322,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       submittedEntityIds: [],
       subTasksCompleted: [],
       suggestionsForNextStepsMade: [],
-      resourcesNotVisited,
+      resourcesNotVisited: providedFiles,
       resourceUrlsVisited: [],
       webQueriesMade: [],
     };
@@ -892,9 +873,11 @@ export const researchEntitiesAction: FlowActionActivity<{
            */
           !providedFileEntities.some(
             (fileEntity) =>
-              fileEntity.properties[
-                "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-              ] === source.location?.uri,
+              decodeURIComponent(
+                fileEntity.properties[
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+                ],
+              ) === decodeURIComponent(source.location!.uri!),
           )
         ) {
           return {

@@ -3,7 +3,10 @@ import {
   type InputNameForAction,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  StepInput,
+  WebSearchResult,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
@@ -52,7 +55,8 @@ export const handleWebSearchToolCall = async (params: {
 
   const webPageUrlsOutput = webSearchOutputs.find(
     ({ outputName }) =>
-      outputName === ("webPageUrls" satisfies OutputNameForAction<"webSearch">),
+      outputName ===
+      ("webSearchResult" satisfies OutputNameForAction<"webSearch">),
   );
 
   if (!webPageUrlsOutput) {
@@ -61,11 +65,7 @@ export const handleWebSearchToolCall = async (params: {
     );
   }
 
-  /** @todo fix this type */
-  const searchResults = webPageUrlsOutput.payload.value as {
-    url: string;
-    title: string;
-  }[];
+  const searchResults = webPageUrlsOutput.payload.value as WebSearchResult[];
 
   const webPageUrlsWithSummaries = await Promise.all(
     searchResults.map(async (webPage) => {

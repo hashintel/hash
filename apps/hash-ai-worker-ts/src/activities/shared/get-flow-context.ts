@@ -202,3 +202,22 @@ export const getProvidedFiles = async (): Promise<Entity<FileProperties>[]> => {
   await cache.set(filesCacheKey, entities);
   return entities;
 };
+
+export const getProvidedFileByUrl = async (
+  url: string,
+): Promise<Entity<FileProperties> | undefined> => {
+  const files = await getProvidedFiles();
+  return files.find((file) => {
+    /**
+     * The URL may have been provided by an LLM, in which case it may be missing escape characters which may be present in the original.
+     */
+    return (
+      decodeURIComponent(url) ===
+      decodeURIComponent(
+        file.properties[
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+        ],
+      )
+    );
+  });
+};

@@ -29,7 +29,7 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
           {
             outputName: "webPageUrls",
             payload: {
-              kind: "Text",
+              kind: "WebSearchResult",
               value: webPages,
             },
           },

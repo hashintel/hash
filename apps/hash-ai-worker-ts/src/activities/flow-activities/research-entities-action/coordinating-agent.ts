@@ -189,12 +189,14 @@ const generateProgressReport = (params: {
     (proposedEntity) => "sourceEntityId" in proposedEntity,
   );
 
-  let progressReport = dedent`You have previously proposed the following plan:
+  let progressReport = state.plan
+    ? dedent`You have previously proposed the following plan:
       ${state.plan}
 
       If you want to deviate from this plan or improve it, update it using the "updatePlan" tool.
       You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.\n\n
-      `;
+      `
+    : "";
 
   if (proposedEntities.length > 0 || proposedLinks.length > 0) {
     progressReport +=
@@ -378,12 +380,26 @@ const maximumRetries = 3;
 const createInitialPlan = async (params: {
   input: CoordinatingAgentInput;
   questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
+  providedFiles: CoordinatingAgentState["resourcesNotVisited"];
   retryContext?: { retryMessages: LlmMessage[]; retryCount: number };
 }): Promise<Pick<CoordinatingAgentState, "plan" | "questionsAndAnswers">> => {
-  const { input, questionsAndAnswers, retryContext } = params;
+  const { input, questionsAndAnswers, providedFiles, retryContext } = params;
+
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const systemPrompt = dedent(`
     ${generateSystemPromptPrefix({ input })}
+    
+    ${
+      providedFiles.length
+        ? dedent(`
+      The user has provided you with the following resources which can be used to infer facts from:
+      ${providedFiles.map((file) => `<Resource>Url: ${file.url}\nTitle: ${file.title}</Resource>`).join("\n\n")}`)
+        : ""
+    }
+    
+    ${dataSources.internetAccess.enabled ? "You can also conduct web searches and visit public web pages." : "Public internet access is disabled – you must rely on the provided resources."}
 
     ${
       input.humanInputCanBeRequested
@@ -397,10 +413,15 @@ const createInitialPlan = async (params: {
             - The research brief or terms within it are ambiguous
             - You can think of any other questions that will help you deliver a better response to the user
           If in doubt, ask!
-          
-    ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}` : ""}
 
           2. Provide a plan of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
+          
+          ${
+            questionsAndAnswers
+              ? `<PreviouslyAnsweredQuestions>You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}          
+      </PreviouslyAnsweredQuestions>`
+              : ""
+          }
 
           Please now either ask the user your questions, or produce the initial plan if there are no ${
             questionsAndAnswers ? "more " : ""
@@ -414,9 +435,6 @@ const createInitialPlan = async (params: {
     `)
     }
   `);
-
-  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions<["complete"]>({
@@ -501,6 +519,7 @@ const createInitialPlan = async (params: {
     return createInitialPlan({
       input,
       questionsAndAnswers,
+      providedFiles,
       retryContext: {
         retryMessages: [message, retryParams.retryMessage],
         retryCount: retryCount + 1,
@@ -522,6 +541,7 @@ const createInitialPlan = async (params: {
 
     return createInitialPlan({
       input,
+      providedFiles,
       questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
     });
   }

@@ -96,6 +96,8 @@ export type FormattedText = {
 
 export type GoogleSheet = { spreadsheetId: string } | { newSheetName: string };
 
+export type WebSearchResult = Pick<WebPage, "title" | "url">;
+
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Boolean: boolean;
@@ -112,6 +114,7 @@ export type PayloadKindValues = {
   Text: string;
   VersionedUrl: VersionedUrl;
   WebPage: WebPage;
+  WebSearchResult: WebSearchResult;
 };
 
 export type PayloadKind = keyof PayloadKindValues;
@@ -394,7 +397,7 @@ export type StartedSubTaskLog = ProgressLogBase & {
 
 export type ViewedFile = {
   explanation: string;
-  fileUrl: string;
+  file: Pick<WebPage, "url" | "title">;
   recordedAt: string;
   stepId: string;
   type: "ViewedFile";
