@@ -8,7 +8,10 @@ pub(crate) fn check_numeric_constraints(
     data_type: &DataType,
     result: &mut Result<(), Report<ConstraintError>>,
 ) {
-    if data_type.json_type != JsonSchemaValueType::Number {
+    if !matches!(
+        data_type.json_type,
+        JsonSchemaValueType::Number | JsonSchemaValueType::Integer
+    ) {
         extend_report!(
             *result,
             ConstraintError::InvalidType {
@@ -43,7 +46,10 @@ pub(crate) fn check_numeric_constraints(
         }
     }
 
-    if let Some(expected) = data_type.multiple_of {
+    if let Some(expected) = data_type
+        .multiple_of
+        .or_else(|| (data_type.json_type == JsonSchemaValueType::Integer).then_some(1.0))
+    {
         #[expect(
             clippy::float_arithmetic,
             clippy::modulo_arithmetic,

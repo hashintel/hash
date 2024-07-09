@@ -253,9 +253,9 @@ mod tests {
             .await
             .expect("validation failed");
 
-        _ = validate_data(json!(1.0), &integer_type, ValidateEntityComponents::full())
+        validate_data(json!(1.0), &integer_type, ValidateEntityComponents::full())
             .await
-            .expect_err("validation succeeded");
+            .expect("validation failed");
 
         _ = validate_data(
             json!(core::f64::consts::PI),

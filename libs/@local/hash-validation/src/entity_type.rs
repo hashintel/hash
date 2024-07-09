@@ -75,7 +75,7 @@ where
         .validate_value(&value.value, components, provider)
         .await
         .change_context(EntityValidationError::InvalidProperties)
-        .attach_lazy(|| Expected::EntityType(self.clone()))
+        .attach_lazy(|| Expected::EntityType(Box::new(self.clone())))
         .attach_lazy(|| Actual::Properties(value.clone()))
     }
 }

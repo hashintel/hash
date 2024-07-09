@@ -29,7 +29,11 @@ pub enum DataTypeSchemaTag {
     V3,
 }
 
-fn is_false(value: &bool) -> bool {
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "Only used in serde skip_serializing_if"
+)]
+const fn is_false(value: &bool) -> bool {
     !*value
 }
 
