@@ -17,6 +17,7 @@ import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -247,11 +248,11 @@ describe("Entity CRU", () => {
       { actorId: testUser2.accountId },
       {
         entity: createdEntity,
-        properties: {
+        propertyPatches: propertyObjectToPatches({
           [namePropertyType.metadata.recordId.baseUrl]: "Updated Bob",
           [favoriteBookPropertyType.metadata.recordId.baseUrl]:
             "Even more text than before",
-        },
+        }),
       },
     ).catch((err) => Promise.reject(err));
 

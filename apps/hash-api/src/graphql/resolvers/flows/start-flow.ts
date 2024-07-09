@@ -1,3 +1,4 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
@@ -9,7 +10,7 @@ import type { MutationStartFlowArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
 
 export const startFlow: ResolverFn<
-  Promise<string>,
+  Promise<EntityUuid>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationStartFlowArgs
@@ -43,5 +44,5 @@ export const startFlow: ResolverFn<
     },
   });
 
-  return workflowId;
+  return workflowId as EntityUuid;
 };

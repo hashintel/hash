@@ -1,8 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
+import type { OriginProvenance } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import { mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -146,7 +145,9 @@ const generatePropertyMetadata = (params: {
 
   return {
     propertyMetadata:
-      Object.keys(propertyMetadata).length > 0 ? propertyMetadata : undefined,
+      Object.keys(propertyMetadata).length > 0
+        ? propertyMetadata
+        : { value: {} },
   };
 };
 
@@ -353,8 +354,8 @@ export const proposeEntityFromFacts = async (params: {
             },
           ],
         },
+        ...(retryContext?.retryMessages ?? []),
       ],
-      ...(retryContext?.retryMessages ?? []),
     },
     {
       customMetadata: {
@@ -433,7 +434,7 @@ export const proposeEntityFromFacts = async (params: {
           /** @todo: set this depending on whether entities are created as drafts? */
           requiredProperties: false,
         },
-        properties,
+        properties: mergePropertyObjectAndMetadata(properties),
       });
     } catch (error) {
       const invalidReason = `${extractErrorMessage(error)}.`;
@@ -445,9 +446,8 @@ export const proposeEntityFromFacts = async (params: {
 
     const proposedOutgoingLinkEntities: ProposedEntity[] = [];
 
-    const editionProvenance: ProvidedEntityEditionProvenance = {
+    const editionProvenance: EnforcedEntityEditionProvenance = {
       actorType: "ai",
-      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
       origin: {
         type: "flow",
         id: flowEntityId,
@@ -501,7 +501,9 @@ export const proposeEntityFromFacts = async (params: {
                 /** @todo: set this depending on whether entities are created as drafts? */
                 requiredProperties: false,
               },
-              properties: outgoingLinkProperties,
+              properties: mergePropertyObjectAndMetadata(
+                outgoingLinkProperties,
+              ),
             });
           } catch (error) {
             const invalidReason = `${extractErrorMessage(error)}.`;

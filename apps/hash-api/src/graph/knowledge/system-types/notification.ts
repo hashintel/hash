@@ -35,7 +35,7 @@ import type {
 import {
   createEntity,
   getEntitySubgraph,
-  updateEntityProperties,
+  updateEntity,
 } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 import type { Block } from "./block";
@@ -55,11 +55,12 @@ export const archiveNotification: ImpureGraphFunction<
   false,
   true
 > = async (context, authentication, params) => {
-  await updateEntityProperties(context, authentication, {
+  await updateEntity(context, authentication, {
     entity: params.notification.entity,
-    updatedProperties: [
+    propertyPatches: [
       {
-        propertyTypeBaseUrl: systemPropertyTypes.archived.propertyTypeBaseUrl,
+        op: "add",
+        path: [systemPropertyTypes.archived.propertyTypeBaseUrl],
         value: true,
       },
     ],

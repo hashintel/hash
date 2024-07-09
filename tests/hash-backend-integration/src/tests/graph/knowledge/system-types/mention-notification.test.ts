@@ -2,7 +2,7 @@ import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   getEntityOutgoingLinks,
-  updateEntityProperties,
+  updateEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import { getBlockData } from "@apps/hash-api/src/graph/knowledge/system-types/block";
@@ -36,7 +36,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -259,16 +258,17 @@ describe.skip("Page Mention Notification", () => {
     ];
 
     occurredInText.textualContent = updatedTextualContent;
-    occurredInText.entity = (await updateEntityProperties(
+    occurredInText.entity = (await updateEntity(
       graphContext,
       { actorId: triggerUser.accountId },
       {
         entity: occurredInText.entity,
-        updatedProperties: [
+        propertyPatches: [
           {
-            propertyTypeBaseUrl: extractBaseUrl(
-              blockProtocolPropertyTypes.textualContent.propertyTypeId,
-            ),
+            op: "replace",
+            path: [
+              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
+            ],
             value: updatedTextualContent,
           },
         ],
@@ -318,16 +318,17 @@ describe.skip("Page Mention Notification", () => {
     const updatedTextualContent: TextToken[] = [];
 
     occurredInText.textualContent = updatedTextualContent;
-    occurredInText.entity = (await updateEntityProperties(
+    occurredInText.entity = (await updateEntity(
       graphContext,
       { actorId: triggerUser.accountId },
       {
         entity: occurredInText.entity,
-        updatedProperties: [
+        propertyPatches: [
           {
-            propertyTypeBaseUrl: extractBaseUrl(
-              blockProtocolPropertyTypes.textualContent.propertyTypeId,
-            ),
+            op: "replace",
+            path: [
+              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
+            ],
             value: updatedTextualContent,
           },
         ],
@@ -431,16 +432,17 @@ describe.skip("Page Mention Notification", () => {
 
     const updatedCommentTextualContent: TextToken[] = [];
 
-    commentText.entity = (await updateEntityProperties(
+    commentText.entity = (await updateEntity(
       graphContext,
       { actorId: triggerUser.accountId },
       {
         entity: commentText.entity,
-        updatedProperties: [
+        propertyPatches: [
           {
-            propertyTypeBaseUrl: extractBaseUrl(
-              blockProtocolPropertyTypes.textualContent.propertyTypeId,
-            ),
+            op: "replace",
+            path: [
+              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
+            ],
             value: updatedCommentTextualContent,
           },
         ],

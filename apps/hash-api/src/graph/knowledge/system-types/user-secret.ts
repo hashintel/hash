@@ -5,6 +5,7 @@ import type {
 } from "@local/hash-backend-utils/vault";
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -26,6 +27,7 @@ type CreateUserSecretParams<T extends object> = {
   archiveExistingSecrets: boolean;
   expiresAt: string; // ISO String
   graphApi: GraphApi;
+  provenance: EnforcedEntityEditionProvenance;
   /**
    * The bot that will manage the secret, e.g. update, archive, upgrade it.
    * This is the only account that will have edit permissions for the secret.
@@ -68,6 +70,7 @@ export const createUserSecret = async <
     expiresAt,
     graphApi,
     managingBotAccountId,
+    provenance,
     userAccountId,
     restOfPath,
     secretData,
@@ -149,15 +152,19 @@ export const createUserSecret = async <
     );
   }
 
-  const userSecretEntity = await createEntity({ graphApi }, authentication, {
-    entityTypeId: systemEntityTypes.userSecret.entityTypeId,
-    ownedById: userAccountId as OwnedById,
-    properties: secretMetadata,
-    relationships: botEditorUserViewerOnly,
-  });
+  const userSecretEntity = await createEntity(
+    { graphApi, provenance },
+    authentication,
+    {
+      entityTypeId: systemEntityTypes.userSecret.entityTypeId,
+      ownedById: userAccountId as OwnedById,
+      properties: secretMetadata,
+      relationships: botEditorUserViewerOnly,
+    },
+  );
 
   /** Link the user secret to the Google Account */
-  await createLinkEntity({ graphApi }, authentication, {
+  await createLinkEntity({ graphApi, provenance }, authentication, {
     ownedById: userAccountId as OwnedById,
     properties: {},
     linkData: {

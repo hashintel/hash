@@ -1,3 +1,4 @@
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -223,7 +224,7 @@ export async function getFlowRuns({
       return flowRunIdToOwnedByAndName;
     });
 
-  const relevantFlowRunIds = Object.keys(relevantFlows);
+  const relevantFlowRunIds = typedKeys(relevantFlows);
 
   if (!relevantFlowRunIds.length) {
     return [];
@@ -246,7 +247,8 @@ export async function getFlowRuns({
     const workflows: FlowRun[] = [];
 
     for await (const workflow of workflowIterable) {
-      const flowDetails = relevantFlows[workflow.workflowId as EntityUuid];
+      const flowRunId = workflow.workflowId as EntityUuid;
+      const flowDetails = relevantFlows[flowRunId];
 
       if (!flowDetails) {
         throw new Error(
@@ -254,10 +256,9 @@ export async function getFlowRuns({
         );
       }
 
-      const workflowId = workflow.workflowId;
       const runInfo = await getFlowRunFromWorkflowId({
         name: flowDetails.name,
-        workflowId,
+        workflowId: flowRunId,
         temporalClient,
         webId: flowDetails.ownedById,
       });
@@ -269,9 +270,9 @@ export async function getFlowRuns({
     const workflows: SparseFlowRun[] = [];
 
     for await (const workflow of workflowIterable) {
-      const workflowId = workflow.workflowId;
+      const flowRunId = workflow.workflowId as EntityUuid;
 
-      const flowDetails = relevantFlows[workflow.workflowId as EntityUuid];
+      const flowDetails = relevantFlows[flowRunId];
 
       if (!flowDetails) {
         throw new Error(
@@ -280,7 +281,7 @@ export async function getFlowRuns({
       }
       const runInfo = await getSparseFlowRunFromWorkflowId({
         name: flowDetails.name,
-        workflowId,
+        workflowId: flowRunId,
         temporalClient,
         webId: flowDetails.ownedById,
       });

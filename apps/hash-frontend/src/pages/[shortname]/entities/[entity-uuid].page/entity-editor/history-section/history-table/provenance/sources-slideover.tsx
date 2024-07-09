@@ -9,6 +9,8 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableContainer,
+  tableContainerClasses,
   TableHead,
   TableRow,
   Typography,
@@ -69,6 +71,7 @@ export const SourcesSlideover = ({
             height: "100vh",
             overflowY: "auto",
             background: ({ palette }) => palette.common.white,
+            maxWidth: { xs: "90%", md: 800, lg: 1000 },
           }}
         >
           <Box
@@ -100,87 +103,100 @@ export const SourcesSlideover = ({
             >
               Sources
             </Typography>
-            <Table
-              sx={[
-                ({ palette }) => ({
-                  background: palette.common.white,
-                  borderRadius: 1,
-                  boxShadow: ({ boxShadows }) => boxShadows.xs,
-                  "th, td": {
-                    padding: "12px 16px",
-                    "&:first-of-type": {
-                      paddingLeft: "24px",
-                    },
-                    "&:last-of-type": {
-                      paddingRight: "24px",
-                    },
-                  },
-                  th: {
-                    borderBottom: `1px solid ${palette.gray[20]}`,
-                  },
-                }),
-              ]}
+            <TableContainer
+              onClick={(evt) => evt.stopPropagation()}
+              sx={{
+                [`&.${tableContainerClasses.root}`]: { overflowY: "auto" },
+              }}
             >
-              <TableHead>
-                <TableRow>
-                  <Cell>Type</Cell>
-                  <Cell>Title</Cell>
-                  <Cell>Location</Cell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {sources.map(({ type, location }, index) => (
-                  <TableRow key={location?.uri ?? index}>
-                    <TableCell>
-                      <Chip type sx={{ py: 0.2 }}>
-                        <FontAwesomeIcon
-                          icon={faFile}
-                          sx={(theme) => ({
-                            fontSize: 12,
-                            color: theme.palette.blue[70],
-                            mr: 0.6,
-                          })}
-                        />
-                        <Box
-                          component="span"
-                          sx={{ textTransform: "capitalize", fontWeight: 500 }}
-                        >
-                          {type}
-                        </Box>
-                      </Chip>
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        fontSize: 14,
-                        fontWeight: 500,
-                        color: ({ palette }) => palette.gray[80],
-                      }}
-                    >
-                      {location?.name ?? "Unknown"}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        fontSize: 14,
-                        fontWeight: 500,
-                        color: ({ palette }) => palette.gray[80],
-                      }}
-                    >
-                      {location?.uri ? (
-                        <Link
-                          href={location.uri}
-                          target="_blank"
-                          sx={{ textDecoration: "none" }}
-                        >
-                          {location.uri}
-                        </Link>
-                      ) : (
-                        "Unknown"
-                      )}
-                    </TableCell>
+              <Table
+                sx={[
+                  ({ palette }) => ({
+                    background: palette.common.white,
+                    borderRadius: 1,
+                    boxShadow: ({ boxShadows }) => boxShadows.xs,
+                    "th, td": {
+                      padding: "12px 16px",
+                      "&:first-of-type": {
+                        paddingLeft: "24px",
+                      },
+                      "&:last-of-type": {
+                        paddingRight: "24px",
+                      },
+                    },
+                    th: {
+                      borderBottom: `1px solid ${palette.gray[20]}`,
+                    },
+                  }),
+                ]}
+              >
+                <TableHead>
+                  <TableRow>
+                    <Cell>Type</Cell>
+                    <Cell>Title</Cell>
+                    <Cell>Location</Cell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {sources.map(({ type, location }, index) => (
+                    <TableRow key={location?.uri ?? index}>
+                      <TableCell>
+                        <Chip type sx={{ py: 0.2 }}>
+                          <FontAwesomeIcon
+                            icon={faFile}
+                            sx={(theme) => ({
+                              fontSize: 12,
+                              color: theme.palette.blue[70],
+                              mr: 0.6,
+                            })}
+                          />
+                          <Box
+                            component="span"
+                            sx={{
+                              textTransform: "capitalize",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {type}
+                          </Box>
+                        </Chip>
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontSize: 14,
+                          fontWeight: 500,
+                          color: ({ palette }) => palette.gray[80],
+                        }}
+                      >
+                        {location?.name ?? "Unknown"}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontSize: 14,
+                          fontWeight: 500,
+                          color: ({ palette }) => palette.gray[80],
+                        }}
+                      >
+                        {location?.uri ? (
+                          <Link
+                            href={location.uri}
+                            target="_blank"
+                            sx={{
+                              textDecoration: "none",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {location.uri}
+                          </Link>
+                        ) : (
+                          "Unknown"
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
         </Stack>
       </Slide>

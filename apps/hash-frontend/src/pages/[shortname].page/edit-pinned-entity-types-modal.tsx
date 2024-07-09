@@ -141,11 +141,15 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
         entityUpdate: {
           entityId: profile.entity.metadata.recordId.entityId,
           entityTypeId: profile.entity.metadata.entityTypeId,
-          updatedProperties: {
-            ...profile.entity.properties,
-            [systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeBaseUrl]:
-              updatedPinnedEntityTypeBaseUrls,
-          },
+          propertyPatches: [
+            {
+              op: "add",
+              path: [
+                systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeBaseUrl,
+              ],
+              value: updatedPinnedEntityTypeBaseUrls,
+            },
+          ],
         },
       },
     });

@@ -38,7 +38,10 @@ const isContentAtUrlPdfFile = async (params: { url: string }) => {
   const { url } = params;
 
   try {
-    const urlHeadFetch = await fetch(url, { method: "HEAD" });
+    const urlHeadFetch = await fetch(url, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(5000),
+    });
 
     /**
      * Only check the content type of the URL if the HEAD request was successful.
@@ -188,6 +191,14 @@ const exploreResource = async (params: {
       url: resource.url,
       sanitizeForLlm: true,
     });
+
+    if ("error" in webPage) {
+      return {
+        status: "not-explored",
+        reason: webPage.error,
+        resource,
+      };
+    }
 
     resourceTitle = webPage.title;
 

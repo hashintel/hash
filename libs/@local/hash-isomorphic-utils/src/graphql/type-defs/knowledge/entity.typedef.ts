@@ -10,6 +10,7 @@ export const entityTypedef = gql`
   scalar GetEntitySubgraphRequest
   scalar LinkData
   scalar QueryOperationInput
+  scalar PropertyPatchOperation
   scalar UserPermissions
   scalar UserPermissionsOnEntities
 
@@ -165,9 +166,9 @@ export const entityTypedef = gql`
     """
     entityId: EntityId!
     """
-    The updated properties of the entity.
+    The patch operations to apply to the entity's properties
     """
-    updatedProperties: PropertyObject!
+    propertyPatches: [PropertyPatchOperation!]!
     """
     The new type of the updated entity
     """

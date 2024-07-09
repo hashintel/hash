@@ -1,3 +1,4 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   AutomaticInferenceWebsocketRequestMessage,
   CancelInferEntitiesWebsocketRequestMessage,
@@ -217,7 +218,7 @@ export const inferEntities = async (
 
   const { createAs, entityTypeIds, model, ownedById, sourceWebPage } = message;
 
-  const requestUuid = uuid();
+  const requestUuid = uuid() as EntityUuid;
 
   const basePayload = {
     webId: ownedById,

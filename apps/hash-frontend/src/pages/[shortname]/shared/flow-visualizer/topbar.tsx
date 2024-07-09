@@ -4,6 +4,7 @@ import {
   PlayIconSolid,
   Select,
 } from "@hashintel/design-system";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   generateFlowDefinitionPath,
   generateWorkerRunPath,
@@ -175,7 +176,7 @@ export const Topbar = ({
                 void push(
                   generateWorkerRunPath({
                     shortname,
-                    flowRunId: value,
+                    flowRunId: value as EntityUuid,
                   }),
                 );
               }}

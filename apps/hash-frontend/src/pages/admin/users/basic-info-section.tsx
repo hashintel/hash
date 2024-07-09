@@ -1,4 +1,6 @@
+import { useMutation } from "@apollo/client";
 import { Autocomplete, Chip } from "@hashintel/design-system";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -6,7 +8,11 @@ import { Box, Stack, Typography } from "@mui/material";
 import { type FunctionComponent, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { useBlockProtocolUpdateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../../../lib/user-and-org";
 import { Button } from "../../../shared/ui";
 
@@ -31,23 +37,29 @@ export const BasicInfoSection: FunctionComponent<{
   const [loading, setLoading] = useState(false);
   const [submissionError, setSubmissionError] = useState("");
 
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const innerSubmit = handleSubmit(async (data) => {
     try {
       setLoading(true);
 
-      const updatedProperties: UserProperties = {
-        ...user.entity.properties,
-        "https://hash.ai/@hash/types/property-type/enabled-feature-flags/":
-          data.enabledFeatureFlags,
-      };
-
       await updateEntity({
-        data: {
-          entityId: user.entity.metadata.recordId.entityId,
-          entityTypeId: user.entity.metadata.entityTypeId,
-          properties: updatedProperties,
+        variables: {
+          entityUpdate: {
+            entityId: user.entity.metadata.recordId.entityId,
+            propertyPatches: [
+              {
+                op: "add",
+                path: [
+                  "https://hash.ai/@hash/types/property-type/enabled-feature-flags/" satisfies keyof UserProperties as BaseUrl,
+                ],
+                value: data.enabledFeatureFlags,
+              },
+            ],
+          },
         },
       });
 

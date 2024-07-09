@@ -4,6 +4,7 @@ import type { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 
 import type { CacheAdapter } from "../cache";
 import type { EmailTransporter } from "../email/transporters";
@@ -25,8 +26,8 @@ export interface GraphQLContext {
   logger: Logger;
   authentication: AuthenticationContext;
   user?: User;
+  provenance: EnforcedEntityEditionProvenance;
   temporal: TemporalClient;
-  userAgent?: string;
   vault?: VaultClient;
 }
 

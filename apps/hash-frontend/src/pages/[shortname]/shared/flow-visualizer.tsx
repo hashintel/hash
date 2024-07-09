@@ -2,7 +2,6 @@ import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
 import { Skeleton } from "@hashintel/design-system";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
@@ -294,7 +293,7 @@ export const FlowVisualizer = () => {
   const { logs, persistedEntities, proposedEntities } = useMemo<{
     logs: LocalProgressLog[];
     persistedEntities: PersistedEntity[];
-    proposedEntities: ProposedEntity[];
+    proposedEntities: Omit<ProposedEntity, "provenance" | "propertyMetadata">[];
   }>(() => {
     if (!selectedFlowRun) {
       return { logs: [], persistedEntities: [], proposedEntities: [] };
@@ -310,7 +309,8 @@ export const FlowVisualizer = () => {
     ];
 
     const persisted: PersistedEntity[] = [];
-    const proposed: ProposedEntity[] = [];
+    const proposed: Omit<ProposedEntity, "provenance" | "propertyMetadata">[] =
+      [];
 
     for (const step of selectedFlowRun.steps) {
       const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
@@ -461,7 +461,7 @@ export const FlowVisualizer = () => {
           {selectedFlowRun ? (
             <FlowRunSidebar
               flowDefinition={selectedFlowDefinition}
-              flowRunId={selectedFlowRun.flowRunId as EntityUuid}
+              flowRunId={selectedFlowRun.flowRunId}
               groups={flowMaybeGrouped.groups}
               name={selectedFlowRun.name}
             />

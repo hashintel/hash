@@ -30,7 +30,7 @@ import type {
 import {
   createEntity,
   getLatestEntityById,
-  updateEntityProperty,
+  updateEntity,
 } from "../primitive/entity";
 import {
   shortnameIsInvalid,
@@ -202,7 +202,7 @@ export const getOrgByShortname: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
+                  systemPropertyTypes.shortname.propertyTypeBaseUrl,
                 ],
               },
               { parameter: params.shortname },
@@ -230,45 +230,6 @@ export const getOrgByShortname: ImpureGraphFunction<
   }
 
   return orgEntity ? getOrgFromEntity({ entity: orgEntity }) : null;
-};
-
-/**
- * Update the shortname of an Org.
- *
- * @param params.org - the org
- * @param params.updatedShortname - the new shortname to assign to the Org
- * @param params.actorId - the id of the account that is updating the shortname
- */
-export const updateOrgShortname: ImpureGraphFunction<
-  { org: Org; updatedShortname: string },
-  Promise<Org>,
-  false,
-  true
-> = async (ctx, authentication, params) => {
-  const { org, updatedShortname } = params;
-
-  if (shortnameIsInvalid({ shortname: updatedShortname })) {
-    throw new Error(`The shortname "${updatedShortname}" is invalid`);
-  }
-
-  if (
-    shortnameIsRestricted({ shortname: updatedShortname }) ||
-    (await shortnameIsTaken(ctx, authentication, {
-      shortname: updatedShortname,
-    }))
-  ) {
-    throw new Error(
-      `An account with shortname "${updatedShortname}" already exists.`,
-    );
-  }
-
-  return updateEntityProperty(ctx, authentication, {
-    entity: org.entity,
-    propertyTypeBaseUrl: extractBaseUrl(
-      systemPropertyTypes.shortname.propertyTypeId,
-    ),
-    value: updatedShortname,
-  }).then((updatedEntity) => getOrgFromEntity({ entity: updatedEntity }));
 };
 
 /**
@@ -302,12 +263,15 @@ export const updateOrgName: ImpureGraphFunction<
     throw new Error(`Organization name "${updatedOrgName}" is invalid.`);
   }
 
-  const updatedEntity = await updateEntityProperty(ctx, authentication, {
+  const updatedEntity = await updateEntity(ctx, authentication, {
     entity: org.entity,
-    propertyTypeBaseUrl: extractBaseUrl(
-      systemPropertyTypes.organizationName.propertyTypeId,
-    ),
-    value: updatedOrgName,
+    propertyPatches: [
+      {
+        op: "replace",
+        path: [systemPropertyTypes.organizationName.propertyTypeBaseUrl],
+        value: updatedOrgName,
+      },
+    ],
   });
 
   return getOrgFromEntity({ entity: updatedEntity });

@@ -238,7 +238,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           ...(leftOrRightDraftEntitiesToAccept ?? []),
         ].map((draftEntity) => ({
           entityId: draftEntity.metadata.recordId.entityId,
-          updatedProperties: draftEntity.properties,
+          propertyPatches: [],
           draft: false,
         })),
       },

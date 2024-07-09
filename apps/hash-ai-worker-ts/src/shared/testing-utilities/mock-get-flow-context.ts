@@ -45,6 +45,12 @@ const createDummyFlow = async (params: { actorId: AccountId }) => {
       ownedById: actorId as OwnedById,
       entityTypeId: systemEntityTypes.flowRun.entityTypeId,
       properties: dummyFlowRunProperties,
+      provenance: {
+        actorType: "machine",
+        origin: {
+          type: "flow",
+        },
+      },
       draft: false,
       relationships: createDefaultAuthorizationRelationships({ actorId }),
     },

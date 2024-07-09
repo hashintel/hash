@@ -1,10 +1,16 @@
+import { useMutation } from "@apollo/client";
+import { patchesFromPropertyObjects } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import { Button } from "../../../../shared/ui";
 import { EntityEditor } from "./entity-editor";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
@@ -55,7 +61,11 @@ export const EditEntitySlideOver = ({
     setDraftLinksToArchive,
   ] = useDraftLinkState();
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const entityLabel = useMemo(
     () => generateEntityLabel(localEntitySubgraph),
@@ -75,6 +85,11 @@ export const EditEntitySlideOver = ({
 
   const handleSaveChanges = useCallback(async () => {
     const draftEntity = getRoots(localEntitySubgraph)[0];
+    const oldEntity = getRoots(entitySubgraph)[0];
+
+    if (!oldEntity) {
+      throw new Error(`No entity provided in entitySubgraph`);
+    }
 
     if (!draftEntity) {
       return;
@@ -91,10 +106,15 @@ export const EditEntitySlideOver = ({
 
       /** @todo add validation here */
       const updateEntityResponse = await updateEntity({
-        data: {
-          entityId: draftEntity.metadata.recordId.entityId,
-          properties: draftEntity.properties,
-          entityTypeId: draftEntity.metadata.entityTypeId,
+        variables: {
+          entityUpdate: {
+            entityId: draftEntity.metadata.recordId.entityId,
+            propertyPatches: patchesFromPropertyObjects({
+              oldProperties: oldEntity.properties,
+              newProperties: draftEntity.properties,
+            }),
+            entityTypeId: draftEntity.metadata.entityTypeId,
+          },
         },
       });
 
@@ -111,6 +131,7 @@ export const EditEntitySlideOver = ({
     applyDraftLinkEntityChanges,
     draftLinksToArchive,
     draftLinksToCreate,
+    entitySubgraph,
     localEntitySubgraph,
     onSubmit,
     resetEntityEditor,

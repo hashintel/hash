@@ -54,12 +54,20 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
    * if performance of this function becomes an issue.
    */
   for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
-    const { entityTypeId, properties, sourceEntityId, targetEntityId } =
-      unresolvedEntity;
+    const {
+      entityTypeId,
+      properties,
+      provenance,
+      propertyMetadata,
+      sourceEntityId,
+      targetEntityId,
+    } = unresolvedEntity;
 
     const entityWithResolvedLinks: ProposedEntityWithResolvedLinks = {
       entityTypeId,
       properties,
+      propertyMetadata,
+      provenance,
     };
 
     if (sourceEntityId ?? targetEntityId) {
