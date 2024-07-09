@@ -229,6 +229,8 @@ where
             .simple_query(
                 "
                     DELETE FROM data_type_embeddings;
+                    DELETE FROM data_type_inherits_from;
+                    DELETE FROM data_type_constrains_values_on;
                 ",
             )
             .await
