@@ -3,6 +3,9 @@
 echo "Changing dir to root"
 cd ../..
 
+echo "Installing prerequisites"
+yum install -y jq
+
 echo "Installing turbo"
 yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"cd
 
