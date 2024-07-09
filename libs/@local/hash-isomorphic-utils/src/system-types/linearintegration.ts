@@ -3,7 +3,6 @@
  */
 
 import type { ArrayMetadata, ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   Actor,
@@ -395,7 +394,10 @@ export type {
   WebsiteURLPropertyValueWithMetadata,
 };
 
-export type LinearIntegration = Entity<LinearIntegrationProperties>;
+export type LinearIntegration = {
+  properties: LinearIntegrationProperties;
+  propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
+};
 
 export type LinearIntegrationOutgoingLinkAndTarget =
   | LinearIntegrationSyncLinearDataWithLink
@@ -444,7 +446,10 @@ export type LinearTeamIdPropertyValue = TextDataType;
 
 export type LinearTeamIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type SyncLinearDataWith = LinkEntity<SyncLinearDataWithProperties>;
+export type SyncLinearDataWith = {
+  properties: SyncLinearDataWithProperties;
+  propertiesWithMetadata: SyncLinearDataWithPropertiesWithMetadata;
+};
 
 export type SyncLinearDataWithOutgoingLinkAndTarget = never;
 
@@ -471,7 +476,10 @@ export type SyncLinearDataWithPropertiesWithMetadata = {
   };
 };
 
-export type UsesUserSecret = LinkEntity<UsesUserSecretProperties>;
+export type UsesUserSecret = {
+  properties: UsesUserSecretProperties;
+  propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
+};
 
 export type UsesUserSecretOutgoingLinkAndTarget = never;
 

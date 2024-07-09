@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   EmailPropertyValue,
@@ -37,7 +36,10 @@ export type IntendedUsePropertyValue = TextDataType;
 
 export type IntendedUsePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type ProspectiveUser = Entity<ProspectiveUserProperties>;
+export type ProspectiveUser = {
+  properties: ProspectiveUserProperties;
+  propertiesWithMetadata: ProspectiveUserPropertiesWithMetadata;
+};
 
 export type ProspectiveUserOutgoingLinkAndTarget = never;
 

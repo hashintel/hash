@@ -61,7 +61,10 @@ export type {
   TextDataTypeWithMetadata,
 };
 
-export type GraphChangeNotification = Entity<GraphChangeNotificationProperties>;
+export type GraphChangeNotification = {
+  properties: GraphChangeNotificationProperties;
+  propertiesWithMetadata: GraphChangeNotificationPropertiesWithMetadata;
+};
 
 export type GraphChangeNotificationOccurredInEntityLink = {
   linkEntity: OccurredInEntity;

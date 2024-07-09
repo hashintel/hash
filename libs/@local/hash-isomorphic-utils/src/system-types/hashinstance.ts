@@ -3,13 +3,15 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type { BooleanDataType, BooleanDataTypeWithMetadata } from "./shared";
 
 export type { BooleanDataType, BooleanDataTypeWithMetadata };
 
-export type HASHInstance = Entity<HASHInstanceProperties>;
+export type HASHInstance = {
+  properties: HASHInstanceProperties;
+  propertiesWithMetadata: HASHInstancePropertiesWithMetadata;
+};
 
 export type HASHInstanceOutgoingLinkAndTarget = never;
 

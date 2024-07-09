@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   Actor,
@@ -517,7 +516,10 @@ export type {
   WebsiteURLPropertyValueWithMetadata,
 };
 
-export type CommentNotification = Entity<CommentNotificationProperties>;
+export type CommentNotification = {
+  properties: CommentNotificationProperties;
+  propertiesWithMetadata: CommentNotificationPropertiesWithMetadata;
+};
 
 export type CommentNotificationOccurredInBlockLink = {
   linkEntity: OccurredInBlock;
@@ -573,7 +575,10 @@ export type CommentNotificationTriggeredByUserLink = {
   rightEntity: User;
 };
 
-export type RepliedToComment = LinkEntity<RepliedToCommentProperties>;
+export type RepliedToComment = {
+  properties: RepliedToCommentProperties;
+  propertiesWithMetadata: RepliedToCommentPropertiesWithMetadata;
+};
 
 export type RepliedToCommentOutgoingLinkAndTarget = never;
 
@@ -593,7 +598,10 @@ export type RepliedToCommentPropertiesWithMetadata = {
   value: {};
 };
 
-export type TriggeredByComment = LinkEntity<TriggeredByCommentProperties>;
+export type TriggeredByComment = {
+  properties: TriggeredByCommentProperties;
+  propertiesWithMetadata: TriggeredByCommentPropertiesWithMetadata;
+};
 
 export type TriggeredByCommentOutgoingLinkAndTarget = never;
 

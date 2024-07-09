@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -117,7 +116,10 @@ export type {
   TitlePropertyValueWithMetadata,
 };
 
-export type Document = Entity<DocumentProperties>;
+export type Document = {
+  properties: DocumentProperties;
+  propertiesWithMetadata: DocumentPropertiesWithMetadata;
+};
 
 export type DocumentHasIndexedContentLink = {
   linkEntity: HasIndexedContent;

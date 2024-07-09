@@ -7,7 +7,6 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Confidence } from "@local/hash-graph-types/entity";
 
 /**
@@ -68,7 +67,10 @@ export type AvatarURLPropertyValue = TextDataType;
 
 export type AvatarURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type BelongsToOrganization = LinkEntity<BelongsToOrganizationProperties>;
+export type BelongsToOrganization = {
+  properties: BelongsToOrganizationProperties;
+  propertiesWithMetadata: BelongsToOrganizationPropertiesWithMetadata;
+};
 
 export type BelongsToOrganizationOutgoingLinkAndTarget = never;
 
@@ -234,7 +236,10 @@ export type GuestPropertyValue = BooleanDataType;
 
 export type GuestPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
-export type HasAssignee = LinkEntity<HasAssigneeProperties>;
+export type HasAssignee = {
+  properties: HasAssigneeProperties;
+  propertiesWithMetadata: HasAssigneePropertiesWithMetadata;
+};
 
 export type HasAssigneeOutgoingLinkAndTarget = never;
 
@@ -254,7 +259,10 @@ export type HasAssigneePropertiesWithMetadata = {
   value: {};
 };
 
-export type HasCreator = LinkEntity<HasCreatorProperties>;
+export type HasCreator = {
+  properties: HasCreatorProperties;
+  propertiesWithMetadata: HasCreatorPropertiesWithMetadata;
+};
 
 export type HasCreatorOutgoingLinkAndTarget = never;
 
@@ -274,7 +282,10 @@ export type HasCreatorPropertiesWithMetadata = {
   value: {};
 };
 
-export type HasSubscriber = LinkEntity<HasSubscriberProperties>;
+export type HasSubscriber = {
+  properties: HasSubscriberProperties;
+  propertiesWithMetadata: HasSubscriberPropertiesWithMetadata;
+};
 
 export type HasSubscriberOutgoingLinkAndTarget = never;
 
@@ -330,7 +341,10 @@ export type IsMePropertyValue = BooleanDataType;
 
 export type IsMePropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
-export type Issue = Entity<IssueProperties>;
+export type Issue = {
+  properties: IssueProperties;
+  propertiesWithMetadata: IssuePropertiesWithMetadata;
+};
 
 export type IssueHasAssigneeLink = {
   linkEntity: HasAssignee;
@@ -459,7 +473,10 @@ export type LastSeenPropertyValue = TextDataType;
 
 export type LastSeenPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type Link = Entity<LinkProperties>;
+export type Link = {
+  properties: LinkProperties;
+  propertiesWithMetadata: LinkPropertiesWithMetadata;
+};
 
 export type LinkOutgoingLinkAndTarget = never;
 
@@ -509,7 +526,10 @@ export type NumberDataTypeMetadata = {
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
 };
 
-export type Organization = Entity<OrganizationProperties>;
+export type Organization = {
+  properties: OrganizationProperties;
+  propertiesWithMetadata: OrganizationPropertiesWithMetadata;
+};
 
 export type OrganizationOutgoingLinkAndTarget = never;
 
@@ -577,7 +597,10 @@ export type OrganizationPropertiesWithMetadata = {
   };
 };
 
-export type Parent = LinkEntity<ParentProperties>;
+export type Parent = {
+  properties: ParentProperties;
+  propertiesWithMetadata: ParentPropertiesWithMetadata;
+};
 
 export type ParentOutgoingLinkAndTarget = never;
 
@@ -670,7 +693,10 @@ export type SCIMEnabledPropertyValue = BooleanDataType;
 
 export type SCIMEnabledPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
-export type SnoozedBy = LinkEntity<SnoozedByProperties>;
+export type SnoozedBy = {
+  properties: SnoozedByProperties;
+  propertiesWithMetadata: SnoozedByPropertiesWithMetadata;
+};
 
 export type SnoozedByOutgoingLinkAndTarget = never;
 
@@ -717,7 +743,10 @@ export type StartedTriageAtPropertyValue = TextDataType;
 
 export type StartedTriageAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type State = LinkEntity<StateProperties>;
+export type State = {
+  properties: StateProperties;
+  propertiesWithMetadata: StatePropertiesWithMetadata;
+};
 
 export type StateOutgoingLinkAndTarget = never;
 
@@ -829,7 +858,10 @@ export type UpdatedAtPropertyValue = TextDataType;
 
 export type UpdatedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type User = Entity<UserProperties>;
+export type User = {
+  properties: UserProperties;
+  propertiesWithMetadata: UserPropertiesWithMetadata;
+};
 
 export type UserBelongsToOrganizationLink = {
   linkEntity: BelongsToOrganization;
@@ -905,7 +937,10 @@ export type UserPropertiesWithMetadata = {
   };
 };
 
-export type WorkflowState = Entity<WorkflowStateProperties>;
+export type WorkflowState = {
+  properties: WorkflowStateProperties;
+  propertiesWithMetadata: WorkflowStatePropertiesWithMetadata;
+};
 
 export type WorkflowStateOutgoingLinkAndTarget = never;
 

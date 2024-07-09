@@ -6,7 +6,6 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Confidence } from "@local/hash-graph-types/entity";
 
 import type {
@@ -100,7 +99,10 @@ export type ActorTypeDataTypeMetadata = {
   dataTypeId: "https://hash.ai/@hash/types/data-type/actor-type/v/1";
 };
 
-export type AssociatedWithAccount = LinkEntity<AssociatedWithAccountProperties>;
+export type AssociatedWithAccount = {
+  properties: AssociatedWithAccountProperties;
+  propertiesWithMetadata: AssociatedWithAccountPropertiesWithMetadata;
+};
 
 export type AssociatedWithAccountOutgoingLinkAndTarget = never;
 
@@ -165,7 +167,10 @@ export type DescriptionPropertyValue = TextDataType;
 
 export type DescriptionPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type File = Entity<FileProperties>;
+export type File = {
+  properties: FileProperties;
+  propertiesWithMetadata: FilePropertiesWithMetadata;
+};
 
 /**
  * A unique signature derived from a file's contents
@@ -299,7 +304,10 @@ export type FileURLPropertyValue = TextDataType;
 
 export type FileURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type GoogleSheetsFile = Entity<GoogleSheetsFileProperties>;
+export type GoogleSheetsFile = {
+  properties: GoogleSheetsFileProperties;
+  propertiesWithMetadata: GoogleSheetsFilePropertiesWithMetadata;
+};
 
 export type GoogleSheetsFileAssociatedWithAccountLink = {
   linkEntity: AssociatedWithAccount;
@@ -379,7 +387,10 @@ export type OriginalURLPropertyValue = TextDataType;
 
 export type OriginalURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type SpreadsheetFile = Entity<SpreadsheetFileProperties>;
+export type SpreadsheetFile = {
+  properties: SpreadsheetFileProperties;
+  propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
+};
 
 export type SpreadsheetFileOutgoingLinkAndTarget = never;
 

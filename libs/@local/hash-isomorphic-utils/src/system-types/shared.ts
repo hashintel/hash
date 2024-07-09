@@ -7,10 +7,13 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { Confidence } from "@local/hash-graph-types/entity";
 
-export type Actor = Entity<ActorProperties>;
+export type Actor = {
+  properties: ActorProperties;
+  propertiesWithMetadata: ActorPropertiesWithMetadata;
+};
 
 export type ActorOutgoingLinkAndTarget = never;
 
@@ -52,7 +55,10 @@ export type ArchivedPropertyValue = BooleanDataType;
 
 export type ArchivedPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
-export type AuthoredBy = LinkEntity<AuthoredByProperties>;
+export type AuthoredBy = {
+  properties: AuthoredByProperties;
+  propertiesWithMetadata: AuthoredByPropertiesWithMetadata;
+};
 
 export type AuthoredByOutgoingLinkAndTarget = never;
 
@@ -80,9 +86,15 @@ export type AutomaticInferenceConfigurationPropertyValue = ObjectDataType;
 export type AutomaticInferenceConfigurationPropertyValueWithMetadata =
   ObjectDataTypeWithMetadata;
 
-export type Block = Entity<BlockProperties>;
+export type Block = {
+  properties: BlockProperties;
+  propertiesWithMetadata: BlockPropertiesWithMetadata;
+};
 
-export type BlockCollection = Entity<BlockCollectionProperties>;
+export type BlockCollection = {
+  properties: BlockCollectionProperties;
+  propertiesWithMetadata: BlockCollectionPropertiesWithMetadata;
+};
 
 export type BlockCollectionOutgoingLinkAndTarget = never;
 
@@ -135,7 +147,10 @@ export type BooleanDataTypeMetadata = {
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
 };
 
-export type BrowserPluginSettings = Entity<BrowserPluginSettingsProperties>;
+export type BrowserPluginSettings = {
+  properties: BrowserPluginSettingsProperties;
+  propertiesWithMetadata: BrowserPluginSettingsPropertiesWithMetadata;
+};
 
 export type BrowserPluginSettingsOutgoingLinkAndTarget = never;
 
@@ -169,7 +184,10 @@ export type BrowserPluginTabPropertyValue = TextDataType;
 export type BrowserPluginTabPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
-export type Comment = Entity<CommentProperties>;
+export type Comment = {
+  properties: CommentProperties;
+  propertiesWithMetadata: CommentPropertiesWithMetadata;
+};
 
 export type CommentAuthoredByLink = {
   linkEntity: AuthoredBy;
@@ -261,7 +279,10 @@ export type DisplayNamePropertyValue = TextDataType;
 
 export type DisplayNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type DocumentFile = Entity<DocumentFileProperties>;
+export type DocumentFile = {
+  properties: DocumentFileProperties;
+  propertiesWithMetadata: DocumentFilePropertiesWithMetadata;
+};
 
 export type DocumentFileOutgoingLinkAndTarget = never;
 
@@ -330,7 +351,10 @@ export type FeatureNamePropertyValue = TextDataType;
 
 export type FeatureNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type File = Entity<FileProperties>;
+export type File = {
+  properties: FileProperties;
+  propertiesWithMetadata: FilePropertiesWithMetadata;
+};
 
 /**
  * A unique signature derived from a file's contents
@@ -465,7 +489,10 @@ export type FlowDefinitionIDPropertyValue = TextDataType;
 export type FlowDefinitionIDPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
-export type FlowRun = Entity<FlowRunProperties>;
+export type FlowRun = {
+  properties: FlowRunProperties;
+  propertiesWithMetadata: FlowRunPropertiesWithMetadata;
+};
 
 export type FlowRunOutgoingLinkAndTarget = never;
 
@@ -500,9 +527,15 @@ export type FractionalIndexPropertyValue = TextDataType;
 
 export type FractionalIndexPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type Has = LinkEntity<HasProperties>;
+export type Has = {
+  properties: HasProperties;
+  propertiesWithMetadata: HasPropertiesWithMetadata;
+};
 
-export type HasAvatar = LinkEntity<HasAvatarProperties>;
+export type HasAvatar = {
+  properties: HasAvatarProperties;
+  propertiesWithMetadata: HasAvatarPropertiesWithMetadata;
+};
 
 export type HasAvatarOutgoingLinkAndTarget = never;
 
@@ -521,7 +554,10 @@ export type HasAvatarPropertiesWithMetadata = {
   value: {};
 };
 
-export type HasBio = LinkEntity<HasBioProperties>;
+export type HasBio = {
+  properties: HasBioProperties;
+  propertiesWithMetadata: HasBioPropertiesWithMetadata;
+};
 
 export type HasBioOutgoingLinkAndTarget = never;
 
@@ -540,7 +576,10 @@ export type HasBioPropertiesWithMetadata = {
   value: {};
 };
 
-export type HasCoverImage = LinkEntity<HasCoverImageProperties>;
+export type HasCoverImage = {
+  properties: HasCoverImageProperties;
+  propertiesWithMetadata: HasCoverImagePropertiesWithMetadata;
+};
 
 export type HasCoverImageOutgoingLinkAndTarget = never;
 
@@ -560,7 +599,10 @@ export type HasCoverImagePropertiesWithMetadata = {
   value: {};
 };
 
-export type HasData = LinkEntity<HasDataProperties>;
+export type HasData = {
+  properties: HasDataProperties;
+  propertiesWithMetadata: HasDataPropertiesWithMetadata;
+};
 
 export type HasDataOutgoingLinkAndTarget = never;
 
@@ -579,7 +621,10 @@ export type HasDataPropertiesWithMetadata = {
   value: {};
 };
 
-export type HasIndexedContent = LinkEntity<HasIndexedContentProperties>;
+export type HasIndexedContent = {
+  properties: HasIndexedContentProperties;
+  propertiesWithMetadata: HasIndexedContentPropertiesWithMetadata;
+};
 
 export type HasIndexedContentOutgoingLinkAndTarget = never;
 
@@ -607,7 +652,10 @@ export type HasOutgoingLinkAndTarget = never;
 
 export type HasOutgoingLinksByLinkEntityTypeId = {};
 
-export type HasParent = LinkEntity<HasParentProperties>;
+export type HasParent = {
+  properties: HasParentProperties;
+  propertiesWithMetadata: HasParentPropertiesWithMetadata;
+};
 
 export type HasParentOutgoingLinkAndTarget = never;
 
@@ -639,7 +687,10 @@ export type HasPropertiesWithMetadata = {
   value: {};
 };
 
-export type HasServiceAccount = LinkEntity<HasServiceAccountProperties>;
+export type HasServiceAccount = {
+  properties: HasServiceAccountProperties;
+  propertiesWithMetadata: HasServiceAccountPropertiesWithMetadata;
+};
 
 export type HasServiceAccountOutgoingLinkAndTarget = never;
 
@@ -659,7 +710,10 @@ export type HasServiceAccountPropertiesWithMetadata = {
   value: {};
 };
 
-export type HasText = LinkEntity<HasTextProperties>;
+export type HasText = {
+  properties: HasTextProperties;
+  propertiesWithMetadata: HasTextPropertiesWithMetadata;
+};
 
 export type HasTextOutgoingLinkAndTarget = never;
 
@@ -685,7 +739,10 @@ export type IconPropertyValue = TextDataType;
 
 export type IconPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type Image = Entity<ImageProperties>;
+export type Image = {
+  properties: ImageProperties;
+  propertiesWithMetadata: ImagePropertiesWithMetadata;
+};
 
 export type ImageOutgoingLinkAndTarget = never;
 
@@ -711,7 +768,10 @@ export type InputUnitCostPropertyValue = NumberDataType;
 
 export type InputUnitCostPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
-export type IsMemberOf = LinkEntity<IsMemberOfProperties>;
+export type IsMemberOf = {
+  properties: IsMemberOfProperties;
+  propertiesWithMetadata: IsMemberOfPropertiesWithMetadata;
+};
 
 export type IsMemberOfOutgoingLinkAndTarget = never;
 
@@ -739,7 +799,10 @@ export type KratosIdentityIdPropertyValue = TextDataType;
 export type KratosIdentityIdPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
-export type Link = Entity<LinkProperties>;
+export type Link = {
+  properties: LinkProperties;
+  propertiesWithMetadata: LinkPropertiesWithMetadata;
+};
 
 export type LinkOutgoingLinkAndTarget = never;
 
@@ -783,7 +846,10 @@ export type NamePropertyValue = TextDataType;
 
 export type NamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type Notification = Entity<NotificationProperties>;
+export type Notification = {
+  properties: NotificationProperties;
+  propertiesWithMetadata: NotificationPropertiesWithMetadata;
+};
 
 export type NotificationOutgoingLinkAndTarget = never;
 
@@ -835,7 +901,10 @@ export type ObjectDataTypeMetadata = {
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
 };
 
-export type OccurredInBlock = LinkEntity<OccurredInBlockProperties>;
+export type OccurredInBlock = {
+  properties: OccurredInBlockProperties;
+  propertiesWithMetadata: OccurredInBlockPropertiesWithMetadata;
+};
 
 export type OccurredInBlockOutgoingLinkAndTarget = never;
 
@@ -855,7 +924,10 @@ export type OccurredInBlockPropertiesWithMetadata = {
   value: {};
 };
 
-export type OccurredInEntity = LinkEntity<OccurredInEntityProperties>;
+export type OccurredInEntity = {
+  properties: OccurredInEntityProperties;
+  propertiesWithMetadata: OccurredInEntityPropertiesWithMetadata;
+};
 
 export type OccurredInEntityOutgoingLinkAndTarget = never;
 
@@ -879,7 +951,10 @@ export type OccurredInEntityPropertiesWithMetadata = {
   };
 };
 
-export type Organization = Entity<OrganizationProperties>;
+export type Organization = {
+  properties: OrganizationProperties;
+  propertiesWithMetadata: OrganizationPropertiesWithMetadata;
+};
 
 export type OrganizationHasAvatarLink = {
   linkEntity: HasAvatar;
@@ -1009,7 +1084,10 @@ export type OutputsPropertyValueWithMetadata = {
   metadata?: ArrayMetadata;
 };
 
-export type Page = Entity<PageProperties>;
+export type Page = {
+  properties: PageProperties;
+  propertiesWithMetadata: PagePropertiesWithMetadata;
+};
 
 export type PageHasParentLink = { linkEntity: HasParent; rightEntity: Page };
 
@@ -1060,7 +1138,10 @@ export type PreferredPronounsPropertyValue = TextDataType;
 export type PreferredPronounsPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
-export type PresentationFile = Entity<PresentationFileProperties>;
+export type PresentationFile = {
+  properties: PresentationFileProperties;
+  propertiesWithMetadata: PresentationFilePropertiesWithMetadata;
+};
 
 export type PresentationFileOutgoingLinkAndTarget = never;
 
@@ -1084,7 +1165,10 @@ export type PresentationFilePropertiesWithMetadata = {
   };
 };
 
-export type ProfileBio = Entity<ProfileBioProperties>;
+export type ProfileBio = {
+  properties: ProfileBioProperties;
+  propertiesWithMetadata: ProfileBioPropertiesWithMetadata;
+};
 
 export type ProfileBioHasIndexedContentLink = {
   linkEntity: HasIndexedContent;
@@ -1132,7 +1216,10 @@ export type ResolvedAtPropertyValue = TextDataType;
 
 export type ResolvedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type ServiceAccount = Entity<ServiceAccountProperties>;
+export type ServiceAccount = {
+  properties: ServiceAccountProperties;
+  propertiesWithMetadata: ServiceAccountPropertiesWithMetadata;
+};
 
 export type ServiceAccountOutgoingLinkAndTarget = never;
 
@@ -1152,7 +1239,10 @@ export type ServiceAccountPropertiesWithMetadata = {
   };
 };
 
-export type ServiceFeature = Entity<ServiceFeatureProperties>;
+export type ServiceFeature = {
+  properties: ServiceFeatureProperties;
+  propertiesWithMetadata: ServiceFeaturePropertiesWithMetadata;
+};
 
 export type ServiceFeatureOutgoingLinkAndTarget = never;
 
@@ -1230,7 +1320,10 @@ export type SummaryPropertyValue = TextDataType;
 
 export type SummaryPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type Text = Entity<TextProperties>;
+export type Text = {
+  properties: TextProperties;
+  propertiesWithMetadata: TextPropertiesWithMetadata;
+};
 
 /**
  * An ordered sequence of characters
@@ -1308,7 +1401,10 @@ export type TriggerPropertyValueWithMetadata = {
   };
 };
 
-export type TriggeredByUser = LinkEntity<TriggeredByUserProperties>;
+export type TriggeredByUser = {
+  properties: TriggeredByUserProperties;
+  propertiesWithMetadata: TriggeredByUserPropertiesWithMetadata;
+};
 
 export type TriggeredByUserOutgoingLinkAndTarget = never;
 
@@ -1336,7 +1432,10 @@ export type UploadCompletedAtPropertyValue = DateTimeDataType;
 export type UploadCompletedAtPropertyValueWithMetadata =
   DateTimeDataTypeWithMetadata;
 
-export type User = Entity<UserProperties>;
+export type User = {
+  properties: UserProperties;
+  propertiesWithMetadata: UserPropertiesWithMetadata;
+};
 
 export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
 
@@ -1442,7 +1541,10 @@ export type UserPropertiesWithMetadata = {
   };
 };
 
-export type UserSecret = Entity<UserSecretProperties>;
+export type UserSecret = {
+  properties: UserSecretProperties;
+  propertiesWithMetadata: UserSecretPropertiesWithMetadata;
+};
 
 export type UserSecretOutgoingLinkAndTarget = never;
 

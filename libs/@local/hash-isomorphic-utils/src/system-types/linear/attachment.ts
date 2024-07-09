@@ -6,7 +6,6 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Confidence } from "@local/hash-graph-types/entity";
 
 import type {
@@ -413,7 +412,10 @@ export type {
   WorkflowStatePropertiesWithMetadata,
 };
 
-export type Attachment = Entity<AttachmentProperties>;
+export type Attachment = {
+  properties: AttachmentProperties;
+  propertiesWithMetadata: AttachmentPropertiesWithMetadata;
+};
 
 export type AttachmentBelongsToIssueLink = {
   linkEntity: BelongsToIssue;
@@ -475,7 +477,10 @@ export type AttachmentURLPropertyValue = TextDataType;
 
 export type AttachmentURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type BelongsToIssue = LinkEntity<BelongsToIssueProperties>;
+export type BelongsToIssue = {
+  properties: BelongsToIssueProperties;
+  propertiesWithMetadata: BelongsToIssuePropertiesWithMetadata;
+};
 
 export type BelongsToIssueOutgoingLinkAndTarget = never;
 

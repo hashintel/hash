@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   Actor,
@@ -29,7 +28,10 @@ export type {
   TextDataTypeWithMetadata,
 };
 
-export type Machine = Entity<MachineProperties>;
+export type Machine = {
+  properties: MachineProperties;
+  propertiesWithMetadata: MachinePropertiesWithMetadata;
+};
 
 /**
  * A unique identifier for a machine

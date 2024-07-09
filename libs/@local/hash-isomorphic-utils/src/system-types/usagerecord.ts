@@ -3,7 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   AppliesFromPropertyValue,
@@ -109,7 +109,10 @@ export type {
   TriggerPropertyValueWithMetadata,
 };
 
-export type Created = LinkEntity<CreatedProperties>;
+export type Created = {
+  properties: CreatedProperties;
+  propertiesWithMetadata: CreatedPropertiesWithMetadata;
+};
 
 export type CreatedOutgoingLinkAndTarget = never;
 
@@ -136,7 +139,10 @@ export type CustomMetadataPropertyValue = ObjectDataType;
 export type CustomMetadataPropertyValueWithMetadata =
   ObjectDataTypeWithMetadata;
 
-export type IncurredIn = LinkEntity<IncurredInProperties>;
+export type IncurredIn = {
+  properties: IncurredInProperties;
+  propertiesWithMetadata: IncurredInPropertiesWithMetadata;
+};
 
 export type IncurredInOutgoingLinkAndTarget = never;
 
@@ -172,7 +178,10 @@ export type OutputUnitCountPropertyValue = NumberDataType;
 export type OutputUnitCountPropertyValueWithMetadata =
   NumberDataTypeWithMetadata;
 
-export type RecordsUsageOf = LinkEntity<RecordsUsageOfProperties>;
+export type RecordsUsageOf = {
+  properties: RecordsUsageOfProperties;
+  propertiesWithMetadata: RecordsUsageOfPropertiesWithMetadata;
+};
 
 export type RecordsUsageOfOutgoingLinkAndTarget = never;
 
@@ -192,7 +201,10 @@ export type RecordsUsageOfPropertiesWithMetadata = {
   value: {};
 };
 
-export type Updated = LinkEntity<UpdatedProperties>;
+export type Updated = {
+  properties: UpdatedProperties;
+  propertiesWithMetadata: UpdatedPropertiesWithMetadata;
+};
 
 export type UpdatedOutgoingLinkAndTarget = never;
 
@@ -211,7 +223,10 @@ export type UpdatedPropertiesWithMetadata = {
   value: {};
 };
 
-export type UsageRecord = Entity<UsageRecordProperties>;
+export type UsageRecord = {
+  properties: UsageRecordProperties;
+  propertiesWithMetadata: UsageRecordPropertiesWithMetadata;
+};
 
 export type UsageRecordCreatedLink = {
   linkEntity: Created;

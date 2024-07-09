@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   ProfileURLPropertyValue,
@@ -29,7 +28,10 @@ export type {
   TextDataTypeWithMetadata,
 };
 
-export type FacebookAccount = Entity<FacebookAccountProperties>;
+export type FacebookAccount = {
+  properties: FacebookAccountProperties;
+  propertiesWithMetadata: FacebookAccountPropertiesWithMetadata;
+};
 
 export type FacebookAccountOutgoingLinkAndTarget = never;
 

@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -111,7 +110,10 @@ export type {
   TitlePropertyValueWithMetadata,
 };
 
-export type Canvas = Entity<CanvasProperties>;
+export type Canvas = {
+  properties: CanvasProperties;
+  propertiesWithMetadata: CanvasPropertiesWithMetadata;
+};
 
 export type CanvasHasSpatiallyPositionedContentLink = {
   linkEntity: HasSpatiallyPositionedContent;
@@ -138,8 +140,10 @@ export type CanvasPropertiesWithMetadata = {
   value: {};
 };
 
-export type HasSpatiallyPositionedContent =
-  LinkEntity<HasSpatiallyPositionedContentProperties>;
+export type HasSpatiallyPositionedContent = {
+  properties: HasSpatiallyPositionedContentProperties;
+  propertiesWithMetadata: HasSpatiallyPositionedContentPropertiesWithMetadata;
+};
 
 export type HasSpatiallyPositionedContentOutgoingLinkAndTarget = never;
 

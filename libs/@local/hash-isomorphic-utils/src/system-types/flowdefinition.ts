@@ -3,7 +3,6 @@
  */
 
 import type { ArrayMetadata, ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   DescriptionPropertyValue,
@@ -31,7 +30,10 @@ export type {
   TriggerDefinitionIDPropertyValueWithMetadata,
 };
 
-export type FlowDefinition = Entity<FlowDefinitionProperties>;
+export type FlowDefinition = {
+  properties: FlowDefinitionProperties;
+  propertiesWithMetadata: FlowDefinitionPropertiesWithMetadata;
+};
 
 export type FlowDefinitionOutgoingLinkAndTarget = never;
 

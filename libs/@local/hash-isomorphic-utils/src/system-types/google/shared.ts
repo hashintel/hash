@@ -6,10 +6,12 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Confidence } from "@local/hash-graph-types/entity";
 
-export type Account = Entity<AccountProperties>;
+export type Account = {
+  properties: AccountProperties;
+  propertiesWithMetadata: AccountPropertiesWithMetadata;
+};
 
 /**
  * A unique identifier for a Google account.
@@ -76,7 +78,10 @@ export type ExpiredAtPropertyValue = TextDataType;
 
 export type ExpiredAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type Link = Entity<LinkProperties>;
+export type Link = {
+  properties: LinkProperties;
+  propertiesWithMetadata: LinkPropertiesWithMetadata;
+};
 
 export type LinkOutgoingLinkAndTarget = never;
 
@@ -104,7 +109,10 @@ export type TextDataTypeMetadata = {
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
 };
 
-export type UserSecret = Entity<UserSecretProperties>;
+export type UserSecret = {
+  properties: UserSecretProperties;
+  propertiesWithMetadata: UserSecretPropertiesWithMetadata;
+};
 
 export type UserSecretOutgoingLinkAndTarget = never;
 
@@ -128,7 +136,10 @@ export type UserSecretPropertiesWithMetadata = {
   };
 };
 
-export type UsesUserSecret = LinkEntity<UsesUserSecretProperties>;
+export type UsesUserSecret = {
+  properties: UsesUserSecretProperties;
+  propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
+};
 
 export type UsesUserSecretOutgoingLinkAndTarget = never;
 
