@@ -9,8 +9,8 @@ import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 
 import { useFileUploads } from "../../../shared/file-upload-context";
-import { FileUploadDropzone } from "../../settings/shared/file-upload-dropzone";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
+import { FileUploadDropzone } from "../../settings/shared/file-upload-dropzone";
 
 export type FileSettingsState = {
   fileEntities: Entity<FileProperties>[];
