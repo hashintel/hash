@@ -25,8 +25,9 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
+    schema::EntityTypeValidator,
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    ClosedEntityType, EntityType,
+    ClosedEntityType, EntityType, Validator,
 };
 use uuid::Uuid;
 
@@ -403,7 +404,7 @@ where
         let mut visited_ids = HashSet::from([entity_type_id]);
 
         loop {
-            for parent in current_type.inherits_from.clone() {
+            for parent in current_type.all_of.clone() {
                 let parent_id = EntityTypeId::from_url(&parent.url);
 
                 ensure!(
@@ -414,7 +415,7 @@ where
                 if visited_ids.contains(&parent_id) {
                     // This may happen in case of multiple inheritance or cycles. Cycles are
                     // already checked above, so we can just skip this parent.
-                    current_type.inherits_from.remove(&parent);
+                    current_type.all_of.remove(&parent);
                     break;
                 }
 
@@ -430,7 +431,7 @@ where
                 visited_ids.insert(parent_id);
             }
 
-            if current_type.inherits_from.is_empty() {
+            if current_type.all_of.is_empty() {
                 break;
             }
         }
@@ -458,7 +459,7 @@ where
         // schemas
         let parent_entity_type_ids = entity_types
             .iter()
-            .flat_map(|(_, schema)| &schema.inherits_from)
+            .flat_map(|(_, schema)| &schema.all_of)
             .map(|reference| EntityTypeId::from_url(&reference.url).into_uuid())
             .collect::<Vec<_>>();
 
@@ -535,6 +536,8 @@ where
         let mut inserted_ontology_ids = Vec::new();
         let mut inserted_entity_types = Vec::new();
         let mut inserted_entity_type_metadata = Vec::new();
+
+        let validator = EntityTypeValidator;
 
         let mut schemas = Vec::new();
         let mut metadatas = Vec::new();
@@ -613,8 +616,14 @@ where
                 transaction
                     .insert_entity_type_with_id(
                         ontology_id,
-                        &schema,
-                        &closed_schema,
+                        validator
+                            .validate_ref(&schema)
+                            .await
+                            .change_context(InsertionError)?,
+                        validator
+                            .validate_ref(&closed_schema)
+                            .await
+                            .change_context(InsertionError)?,
                         metadata.label_property.as_ref(),
                         metadata.icon.as_deref(),
                     )
@@ -888,11 +897,19 @@ where
             .pop()
             .ok_or_else(|| Report::new(UpdateError).attach_printable("entity type not found"))?;
 
+        let validator = EntityTypeValidator;
+
         transaction
             .insert_entity_type_with_id(
                 ontology_id,
-                &schema,
-                &closed_schema,
+                validator
+                    .validate_ref(&schema)
+                    .await
+                    .change_context(UpdateError)?,
+                validator
+                    .validate_ref(&closed_schema)
+                    .await
+                    .change_context(UpdateError)?,
                 params.label_property.as_ref(),
                 params.icon.as_deref(),
             )

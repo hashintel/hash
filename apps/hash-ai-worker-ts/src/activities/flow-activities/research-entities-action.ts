@@ -838,10 +838,10 @@ export const researchEntitiesAction: FlowActionActivity<{
   const filesUsedToProposeSubmittedEntities = submittedEntities
     .flatMap((submittedEntity) => {
       const sourcesUsedToProposeEntity = [
-        ...(submittedEntity.provenance?.sources ?? []),
-        ...flattenPropertyMetadata(
-          submittedEntity.propertyMetadata ?? { value: {} },
-        ).flatMap(({ metadata }) => metadata.provenance?.sources ?? []),
+        ...(submittedEntity.provenance.sources ?? []),
+        ...flattenPropertyMetadata(submittedEntity.propertyMetadata).flatMap(
+          ({ metadata }) => metadata.provenance?.sources ?? [],
+        ),
       ];
 
       return sourcesUsedToProposeEntity.flatMap((source) => {
@@ -862,7 +862,6 @@ export const researchEntitiesAction: FlowActionActivity<{
 
   const fileEditionProvenance: ProposedEntity["provenance"] = {
     actorType: "ai",
-    // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
     origin: {
       type: "flow",
       id: flowEntityId,

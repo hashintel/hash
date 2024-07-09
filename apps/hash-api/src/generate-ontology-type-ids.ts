@@ -193,6 +193,12 @@ const generateOntologyIds = async () => {
   });
 
   const graphContext: ImpureGraphContext = {
+    provenance: {
+      actorType: "machine",
+      origin: {
+        type: "migration",
+      },
+    },
     graphApi,
     temporalClient: null,
   };

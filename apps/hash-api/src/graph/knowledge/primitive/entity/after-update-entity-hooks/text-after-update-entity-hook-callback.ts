@@ -1,9 +1,9 @@
+import { getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entity";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { entityIdFromComponents } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {
   archiveNotification,
@@ -17,7 +17,7 @@ import {
 import { getUserById } from "../../../system-types/user";
 import { checkPermissionsOnEntity } from "../../entity";
 import { getTextUpdateOccurredIn } from "../shared/mention-notification";
-import type { UpdateEntityHookCallback } from "../update-entity-hooks";
+import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
 
 /**
  * This after update `Text` entity hook is responsible for creating
@@ -25,9 +25,22 @@ import type { UpdateEntityHookCallback } from "../update-entity-hooks";
  * - the `Text` entity is in a page
  * - the `Text` entity is in a comment that's on a page
  */
-export const textAfterUpdateEntityHookCallback: UpdateEntityHookCallback =
-  async ({ entity, updatedProperties, authentication, context }) => {
-    const text = getTextFromEntity({ entity });
+export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
+  async ({ previousEntity, propertyPatches, authentication, context }) => {
+    const getNewValueForPath =
+      getDefinedPropertyFromPatchesGetter<TextProperties>(propertyPatches);
+
+    const newTextValue = getNewValueForPath(
+      "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/",
+    );
+
+    if (!newTextValue || typeof newTextValue === "string") {
+      return;
+    }
+
+    const updatedTextualContent = newTextValue as TextToken[];
+
+    const text = getTextFromEntity({ entity: previousEntity });
 
     const { occurredInComment, occurredInEntity, occurredInBlock } =
       await getTextUpdateOccurredIn(context, authentication, {
@@ -39,12 +52,6 @@ export const textAfterUpdateEntityHookCallback: UpdateEntityHookCallback =
     }
 
     const previousTextualContent = text.textualContent;
-
-    const updatedTextualContent = updatedProperties[
-      extractBaseUrl(blockProtocolPropertyTypes.textualContent.propertyTypeId)
-    ] as TextToken[];
-
-    /** @todo: check whether textual content has changed before performing expensive operations */
 
     const [previousMentionedUsers, updatedMentionedUsers] = await Promise.all([
       getMentionedUsersInTextualContent(context, authentication, {

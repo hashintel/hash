@@ -156,6 +156,7 @@ export const googleOAuthCallback: RequestHandler<
       expiresAt: "", // the secret data includes an refresh token that lasts indefinitely and will be used as needed
       graphApi: req.context.graphApi,
       managingBotAccountId: googleBotAccountId,
+      provenance: req.context.provenance,
       restOfPath: `account/${googleUser.data.id}`,
       secretData: tokens,
       service: "google",

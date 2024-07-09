@@ -66,7 +66,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
   const ownedById = webId;
 
-  const isAiGenerated = provenance?.actorType === "ai";
+  const isAiGenerated = provenance.actorType === "ai";
 
   const webBotActorId = isAiGenerated
     ? await getAiAssistantAccountIdActivity({
@@ -198,8 +198,9 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           graphApiClient,
           { actorId: webBotActorId },
           {
+            ...entityValues,
             draft: existingEntityIsDraft ? true : createEditionAsDraft,
-            properties: patchOperations,
+            propertyPatches: patchOperations,
           },
         );
       } else {

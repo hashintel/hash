@@ -1,10 +1,12 @@
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import type {
   CreateEntityParameters,
   Entity,
 } from "@local/hash-graph-sdk/entity";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { LinkData, PropertyObject } from "@local/hash-graph-types/entity";
+import type {
+  LinkData,
+  PropertyPatchOperation,
+} from "@local/hash-graph-types/entity";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import {
@@ -27,7 +29,7 @@ export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
  * @param params.actorId - the id of the account that is creating the link
  */
 export const createLinkEntity: ImpureGraphFunction<
-  CreateEntityParameters & {
+  Omit<CreateEntityParameters, "provenance"> & {
     linkData: LinkData;
   },
   Promise<LinkEntity>
@@ -40,7 +42,6 @@ export const createLinkEntity: ImpureGraphFunction<
     relationships,
     confidence,
     propertyMetadata,
-    provenance,
   } = params;
 
   const linkEntityType = await getEntityTypeById(context, authentication, {
@@ -72,7 +73,7 @@ export const createLinkEntity: ImpureGraphFunction<
     relationships,
     confidence,
     propertyMetadata,
-    provenance,
+    provenance: context.provenance,
   });
 
   for (const afterCreateHook of afterCreateEntityHooks) {
@@ -98,29 +99,20 @@ export const createLinkEntity: ImpureGraphFunction<
 export const updateLinkEntity: ImpureGraphFunction<
   {
     linkEntity: LinkEntity;
-    properties?: PropertyObject;
+    propertyPatches?: PropertyPatchOperation[];
     draft?: boolean;
-    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<LinkEntity>
-> = async ({ graphApi }, { actorId }, params) => {
-  const { linkEntity } = params;
+> = async ({ graphApi, provenance }, { actorId }, params) => {
+  const { linkEntity, propertyPatches } = params;
 
   return await linkEntity.patch(
     graphApi,
     { actorId },
     {
-      properties: params.properties
-        ? [
-            {
-              op: "replace",
-              path: [],
-              value: params.properties,
-            },
-          ]
-        : undefined,
+      propertyPatches,
       draft: params.draft,
-      provenance: params.provenance,
+      provenance,
     },
   );
 };

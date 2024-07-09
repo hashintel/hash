@@ -119,7 +119,7 @@ const createColumns: (
 type WorkerSummary = Subtype<
   Record<FieldId, unknown>,
   {
-    flowRunId: string;
+    flowRunId: EntityUuid;
     executedAt: string | null;
     closedAt: string | null;
     type: "flow" | "goal";
@@ -310,7 +310,7 @@ const WorkersPageContent = () => {
 
   const { isUsageAvailable: usageAvailable, usageByFlowRun } = useFlowRunsUsage(
     {
-      flowRunIds: filteredFlowRuns.map((run) => run.flowRunId as EntityUuid),
+      flowRunIds: filteredFlowRuns.map((run) => run.flowRunId),
     },
   );
 
@@ -368,7 +368,7 @@ const WorkersPageContent = () => {
           webByWebId[webId] = web;
         }
 
-        const cost = usageByFlowRun[flowRunId as EntityUuid]?.total ?? null;
+        const cost = usageByFlowRun[flowRunId]?.total ?? null;
 
         return {
           id: flowRunId,

@@ -1,6 +1,9 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  type EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -259,6 +262,13 @@ export const createUsageRecord = async (
     usageRecordEntityUuid,
   );
 
+  const provenance: EnforcedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "api",
+    },
+  };
+
   const createdEntities = await Entity.createMultiple(
     context.graphApi,
     authentication,
@@ -268,6 +278,7 @@ export const createUsageRecord = async (
         draft: false,
         entityUuid: usageRecordEntityUuid,
         properties,
+        provenance,
         entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
         relationships: entityRelationships,
       },
@@ -275,6 +286,7 @@ export const createUsageRecord = async (
         ownedById: assignUsageToWebId,
         draft: false,
         properties: {},
+        provenance,
         linkData: {
           leftEntityId: usageRecordEntityId,
           rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,

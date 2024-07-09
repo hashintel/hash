@@ -1,5 +1,4 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { validateEntityType } from "@blockprotocol/type-system";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
@@ -34,25 +33,18 @@ const Page: NextPageWithLayout = () => {
         ).toString("utf8"),
       );
 
-      const validationResult = validateEntityType(entityTypeSchema);
-      if (validationResult.type === "Ok") {
-        const { baseUrl, version } = componentsFromVersionedUrl(
-          entityTypeSchema.$id,
-        );
-        return {
-          metadata: {
-            recordId: {
-              baseUrl,
-              version,
-            },
+      const { baseUrl, version } = componentsFromVersionedUrl(
+        entityTypeSchema.$id,
+      );
+      return {
+        metadata: {
+          recordId: {
+            baseUrl,
+            version,
           },
-          schema: entityTypeSchema,
-        } satisfies EntityTypeWithMetadata;
-      } else {
-        throw Error(
-          `Invalid draft entity type: ${JSON.stringify(validationResult)}`,
-        );
-      }
+        },
+        schema: entityTypeSchema,
+      } satisfies EntityTypeWithMetadata;
     } else {
       return null;
     }

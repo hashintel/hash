@@ -1,6 +1,9 @@
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  type EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
@@ -92,6 +95,13 @@ export const createGraphChangeNotification = async (
       machineActorId: webMachineActorId,
     });
 
+  const provenance: EnforcedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "api",
+    },
+  };
+
   /**
    * We create the notification entity with the user's web bot, as we know it has the necessary permissions in the user's web
    */
@@ -105,6 +115,7 @@ export const createGraphChangeNotification = async (
       properties: {
         [systemPropertyTypes.graphChangeType.propertyTypeBaseUrl]: operation,
       },
+      provenance,
       relationships: notificationEntityRelationships,
     },
   );
@@ -131,6 +142,7 @@ export const createGraphChangeNotification = async (
         [systemPropertyTypes.entityEditionId.propertyTypeBaseUrl]:
           changedEntityEditionId,
       },
+      provenance,
       relationships: linkEntityRelationships,
     },
   );

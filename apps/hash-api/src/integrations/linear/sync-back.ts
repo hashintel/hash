@@ -69,6 +69,16 @@ export const processEntityChange = async (
 
   const graphContext: ImpureGraphContext = {
     graphApi,
+    provenance: {
+      actorType: "machine",
+      origin: {
+        /**
+         * @todo use correct EntityId for Flow when Linear integration migrated to Flows
+         */
+        id: "linear-integration",
+        type: "flow",
+      },
+    },
     temporalClient: null,
   };
 

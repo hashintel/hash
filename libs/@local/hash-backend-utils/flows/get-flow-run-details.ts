@@ -1,3 +1,4 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
   ExternalInputRequest,
@@ -473,7 +474,7 @@ export const getSparseFlowRunFromWorkflowId = async ({
 }: {
   name: string;
   webId: OwnedById;
-  workflowId: string;
+  workflowId: EntityUuid;
   temporalClient: TemporalClient;
 }): Promise<SparseFlowRun> => {
   const handle = temporalClient.workflow.getHandle(workflowId);
@@ -497,7 +498,7 @@ export const getSparseFlowRunFromWorkflowId = async ({
 export const getFlowRunFromWorkflowId = async (args: {
   name: string;
   webId: OwnedById;
-  workflowId: string;
+  workflowId: EntityUuid;
   temporalClient: TemporalClient;
 }): Promise<FlowRun> => {
   const baseFields = await getSparseFlowRunFromWorkflowId(args);

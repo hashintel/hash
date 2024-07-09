@@ -1,12 +1,16 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
 import officeParser from "officeparser";
 
 import { fetchFileFromUrl } from "./shared/fetch-file-from-url";
+import { getFlowContext } from "./shared/get-flow-context";
 
 type TextParsingFunction = (fileBuffer: Buffer) => Promise<string>;
 
@@ -46,26 +50,31 @@ export const parseTextFromFile = async (
   if (textParsingFunction) {
     const textualContent = await textParsingFunction(fileBuffer);
 
-    /** @todo: refetch these to prevent potential data loss */
-    const previousProperties = fileEntity.properties as DOCXDocumentProperties;
+    const { flowEntityId, stepId } = await getFlowContext();
 
-    const updatedProperties = {
-      ...previousProperties,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-        textualContent,
-    } as DOCXDocumentProperties;
+    const provenance: EnforcedEntityEditionProvenance = {
+      actorType: "machine",
+      origin: {
+        type: "flow",
+        id: flowEntityId,
+        stepIds: [stepId],
+      } satisfies OriginProvenance,
+    };
 
     await fileEntity.patch(
       graphApiClient,
       { actorId: webMachineActorId },
       {
-        properties: [
+        propertyPatches: [
           {
-            op: "replace",
-            path: [],
-            value: updatedProperties,
+            op: "add",
+            path: [
+              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
+            ],
+            value: textualContent,
           },
         ],
+        provenance,
       },
     );
   }

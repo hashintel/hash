@@ -75,7 +75,7 @@ export const queryEntityTypesResolver: ResolverFn<
     latestOnly = true,
     includeArchived = false,
   },
-  { dataSources, authentication, temporal },
+  { dataSources, authentication, provenance, temporal },
   __,
 ) => {
   const { graphApi } = dataSources;
@@ -85,7 +85,7 @@ export const queryEntityTypesResolver: ResolverFn<
   };
 
   return serializeSubgraph(
-    await getEntityTypeSubgraph({ graphApi }, authentication, {
+    await getEntityTypeSubgraph({ graphApi, provenance }, authentication, {
       filter: latestOnly
         ? filter
           ? { all: [filter, latestOnlyFilter] }
@@ -190,8 +190,12 @@ export const checkUserPermissionsOnEntityTypeResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryCheckUserPermissionsOnEntityTypeArgs
-> = async (_, params, { dataSources, authentication }) =>
-  checkPermissionsOnEntityType(dataSources, authentication, params);
+> = async (_, params, { dataSources, authentication, provenance }) =>
+  checkPermissionsOnEntityType(
+    { ...dataSources, provenance },
+    authentication,
+    params,
+  );
 
 export const archiveEntityTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,

@@ -24,8 +24,7 @@ import {
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  updateEntityProperties,
-  updateEntityProperty,
+  updateEntity,
 } from "../primitive/entity";
 import {
   getLinkEntityLeftEntity,
@@ -243,11 +242,15 @@ export const updateCommentText: ImpureGraphFunction<
     commentEntityId,
   });
 
-  await updateEntityProperty(ctx, authentication, {
+  await updateEntity(ctx, authentication, {
     entity: text.entity,
-    propertyTypeBaseUrl:
-      blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
-    value: textualContent,
+    propertyPatches: [
+      {
+        op: "replace",
+        path: [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl],
+        value: textualContent,
+      },
+    ],
   });
 };
 
@@ -267,20 +270,16 @@ export const deleteComment: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { comment } = params;
 
-  const updatedCommentEntity = await updateEntityProperties(
-    ctx,
-    authentication,
-    {
-      entity: comment.entity,
-      updatedProperties: [
-        {
-          propertyTypeBaseUrl:
-            systemPropertyTypes.deletedAt.propertyTypeBaseUrl,
-          value: new Date().toISOString(),
-        },
-      ],
-    },
-  );
+  const updatedCommentEntity = await updateEntity(ctx, authentication, {
+    entity: comment.entity,
+    propertyPatches: [
+      {
+        op: "add",
+        path: [systemPropertyTypes.deletedAt.propertyTypeBaseUrl],
+        value: new Date().toISOString(),
+      },
+    ],
+  });
 
   return getCommentFromEntity({ entity: updatedCommentEntity });
 };
@@ -396,11 +395,12 @@ export const resolveComment: ImpureGraphFunction<
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { comment } = params;
 
-  const updatedEntity = await updateEntityProperties(ctx, authentication, {
+  const updatedEntity = await updateEntity(ctx, authentication, {
     entity: comment.entity,
-    updatedProperties: [
+    propertyPatches: [
       {
-        propertyTypeBaseUrl: systemPropertyTypes.resolvedAt.propertyTypeBaseUrl,
+        op: "add",
+        path: [systemPropertyTypes.resolvedAt.propertyTypeBaseUrl],
         value: new Date().toISOString(),
       },
     ],

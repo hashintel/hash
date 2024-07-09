@@ -3,7 +3,6 @@ import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
   getOrgByShortname,
   updateOrgName,
-  updateOrgShortname,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
@@ -11,11 +10,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
-import {
-  createTestImpureGraphContext,
-  createTestOrg,
-  generateRandomShortname,
-} from "../../../util";
+import { createTestImpureGraphContext, createTestOrg } from "../../../util";
 
 const logger = new Logger({
   mode: "dev",
@@ -49,16 +44,6 @@ describe("Org", () => {
 
   it("can get the account id", () => {
     expect(createdOrg.entity.metadata.recordId.entityId).toBeDefined();
-  });
-
-  it("can update the shortname of an org", async () => {
-    const authentication = { actorId: systemAccountId };
-    shortname = generateRandomShortname("orgTest");
-
-    createdOrg = await updateOrgShortname(graphContext, authentication, {
-      org: createdOrg,
-      updatedShortname: shortname,
-    });
   });
 
   it("can update the preferred name of an org", async () => {

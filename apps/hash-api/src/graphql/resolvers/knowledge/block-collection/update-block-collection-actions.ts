@@ -12,7 +12,7 @@ import type { PropertyValue } from "../../../../graph/knowledge/primitive/entity
 import {
   createEntityWithLinks,
   getLatestEntityById,
-  updateEntityProperties,
+  updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import type { Block } from "../../../../graph/knowledge/system-types/block";
 import {
@@ -326,10 +326,11 @@ export const handleUpdateEntity = async (
     entityId,
   });
 
-  await updateEntityProperties(context, authentication, {
+  await updateEntity(context, authentication, {
     entity,
-    updatedProperties: typedEntries(action.properties).map(([key, value]) => ({
-      propertyTypeBaseUrl: key,
+    propertyPatches: typedEntries(action.properties).map(([key, value]) => ({
+      op: entity.properties[key] === value ? "replace" : "add",
+      path: [key],
       value: (value ?? undefined) as PropertyValue,
     })),
   });

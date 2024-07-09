@@ -15,12 +15,13 @@ export const getEntityDiffsResolver: ResolverFn<
 > = async (_, { inputs }, graphQLContext) => {
   const {
     dataSources: { graphApi },
+    provenance,
   } = graphQLContext;
 
   const entityDiffs: EntityDiff[] = await Promise.all(
     inputs.map(async (input) => {
       const diff = await calculateEntityDiff(
-        { graphApi },
+        { graphApi, provenance },
         graphQLContext.authentication,
         input,
       );

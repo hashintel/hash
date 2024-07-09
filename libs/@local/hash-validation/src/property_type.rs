@@ -5,9 +5,11 @@ use error_stack::{bail, ensure, Report, ResultExt};
 use graph_types::knowledge::PropertyWithMetadata;
 use thiserror::Error;
 use type_system::{
+    schema::{
+        ArraySchema, JsonSchemaValueType, ObjectSchema, OneOfSchema, PropertyValues, ValueOrArray,
+    },
     url::{BaseUrl, VersionedUrl},
-    ArraySchema, DataType, JsonSchemaValueType, ObjectSchema, OneOfSchema, PropertyType,
-    PropertyTypeReference, PropertyValues, ValueOrArray,
+    DataType, PropertyType, PropertyTypeReference,
 };
 
 use crate::{
@@ -81,12 +83,13 @@ where
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
-        OneOfSchema::new(self.one_of.clone())
-            .expect("was validated before")
-            .validate_value(value, components, provider)
-            .await
-            .attach_lazy(|| Expected::PropertyType(self.clone()))
-            .attach_lazy(|| Actual::Property(value.clone()))
+        OneOfSchema {
+            possibilities: self.one_of.clone(),
+        }
+        .validate_value(value, components, provider)
+        .await
+        .attach_lazy(|| Expected::PropertyType(self.clone()))
+        .attach_lazy(|| Actual::Property(value.clone()))
     }
 }
 
@@ -165,7 +168,7 @@ where
         let mut status: Result<(), Report<PropertyValidationError>> = Ok(());
 
         if components.num_items {
-            if let Some(min) = self.min_items() {
+            if let Some(min) = self.min_items {
                 if value.len() < min {
                     extend_report!(
                         status,
@@ -177,7 +180,7 @@ where
                 }
             }
 
-            if let Some(max) = self.max_items() {
+            if let Some(max) = self.max_items {
                 if value.len() > max {
                     extend_report!(
                         status,
@@ -191,11 +194,7 @@ where
         }
 
         for value in value {
-            if let Err(report) = self
-                .items()
-                .validate_value(value, components, provider)
-                .await
-            {
+            if let Err(report) = self.items.validate_value(value, components, provider).await {
                 extend_report!(status, report);
             }
         }
@@ -220,7 +219,7 @@ where
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<S::Error>> = Ok(());
 
-        for schema in self.possibilities() {
+        for schema in &self.possibilities {
             if let Err(error) = schema.validate_value(value, components, provider).await {
                 extend_report!(status, error);
             } else {
@@ -263,8 +262,8 @@ where
     }
 }
 
-impl<P, const MIN: usize> Schema<HashMap<BaseUrl, PropertyWithMetadata>, P>
-    for ObjectSchema<ValueOrArray<PropertyTypeReference>, MIN>
+impl<P> Schema<HashMap<BaseUrl, PropertyWithMetadata>, P>
+    for ObjectSchema<ValueOrArray<PropertyTypeReference>>
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -279,7 +278,7 @@ where
         let mut status: Result<(), Report<Self::Error>> = Ok(());
 
         for (key, property) in value {
-            if let Some(object_schema) = self.properties().get(key) {
+            if let Some(object_schema) = self.properties.get(key) {
                 if let Err(report) = object_schema
                     .validate_value(property, components, provider)
                     .await
@@ -300,7 +299,7 @@ where
         }
 
         if components.required_properties {
-            for required_property in self.required() {
+            for required_property in &self.required {
                 if !value.contains_key(required_property) {
                     extend_report!(
                         status,

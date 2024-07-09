@@ -43,7 +43,9 @@ export const EventDetail = ({
               <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
                 added as
               </Box>
-              <Chip value>{diff.added}</Chip>
+              <Chip value tooltip={diff.added}>
+                {diff.added}
+              </Chip>
             </>
           );
         }
@@ -84,7 +86,7 @@ export const EventDetail = ({
         <>
           <Chip showInFull type>
             {entityType.title}
-          </Chip>{" "}
+          </Chip>
           <Box ml={1} sx={{ whiteSpace: "nowrap" }}>
             type {event.op}
           </Box>

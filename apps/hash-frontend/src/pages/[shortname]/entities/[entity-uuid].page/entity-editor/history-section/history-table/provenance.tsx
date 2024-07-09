@@ -7,8 +7,10 @@ import {
 } from "@hashintel/design-system";
 import type { ProvidedEntityEditionProvenanceOriginTypeEnum } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import type { Subgraph } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
@@ -55,10 +57,11 @@ const provenanceIconMap: Record<
 
 const typographySx: SxProps<Theme> = {
   fontSize: 14,
+  lineHeight: 1,
 };
 
 const ProvenanceRow = ({ children }: PropsWithChildren) => (
-  <Stack direction="row" alignItems="center" gap={1.5}>
+  <Stack direction="row" alignItems="center" gap={1.5} my={0.5}>
     {children}
   </Stack>
 );
@@ -114,7 +117,7 @@ export const Provenance = ({
 
   const OriginIcon = originType && provenanceIconMap[originType];
 
-  const flowRunId = edition.origin?.id;
+  const flowRunEntityId = edition.origin?.id as EntityId | undefined;
 
   const sources =
     event.type === "property-update"
@@ -152,18 +155,31 @@ export const Provenance = ({
                     {originType.split("-").join(" ")}
                   </Box>
                 </Typography>
-                {flowRunId && (
+                {flowRunEntityId && (
                   <Link
-                    href={generateWorkerRunPath({ flowRunId, shortname })}
+                    href={generateWorkerRunPath({
+                      flowRunId: extractEntityUuidFromEntityId(flowRunEntityId),
+                      shortname,
+                    })}
                     sx={{
-                      pl: 1,
+                      ...typographySx,
+                      display: "flex",
+                      alignItems: "center",
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      pl: 1.5,
                       borderLeft: ({ palette }) =>
-                        `1px solid ${palette.gray[70]}`,
+                        `1px solid ${palette.gray[40]}`,
                     }}
+                    target="_blank"
                   >
                     View run
                     <ArrowUpRightRegularIcon
-                      sx={{ fill: ({ palette }) => palette.blue[70], ml: 1 }}
+                      sx={{
+                        fill: ({ palette }) => palette.blue[70],
+                        ml: 0.5,
+                        ...typographySx,
+                      }}
                     />
                   </Link>
                 )}

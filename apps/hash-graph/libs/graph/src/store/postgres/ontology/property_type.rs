@@ -26,8 +26,9 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
+    schema::PropertyTypeValidator,
     url::{OntologyTypeVersion, VersionedUrl},
-    PropertyType,
+    PropertyType, Validator,
 };
 
 use crate::{
@@ -385,6 +386,8 @@ where
         let mut inserted_property_types = Vec::new();
         let mut inserted_ontology_ids = Vec::new();
 
+        let property_type_validator = PropertyTypeValidator;
+
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
@@ -438,7 +441,13 @@ where
                 .await?
             {
                 transaction
-                    .insert_with_id(ontology_id, &parameters.schema)
+                    .insert_with_id(
+                        ontology_id,
+                        property_type_validator
+                            .validate_ref(&parameters.schema)
+                            .await
+                            .change_context(InsertionError)?,
+                    )
                     .await?;
                 let metadata = PropertyTypeMetadata {
                     record_id,
@@ -648,6 +657,8 @@ where
     where
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
+        let property_type_validator = PropertyTypeValidator;
+
         let old_ontology_id = PropertyTypeId::from_url(&VersionedUrl {
             base_url: params.schema.id.base_url.clone(),
             version: OntologyTypeVersion::new(
@@ -687,7 +698,13 @@ where
         };
 
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update::<PropertyType>(&params.schema, &provenance.edition)
+            .update::<PropertyType>(
+                property_type_validator
+                    .validate_ref(&params.schema)
+                    .await
+                    .change_context(UpdateError)?,
+                &provenance.edition,
+            )
             .await?;
 
         transaction

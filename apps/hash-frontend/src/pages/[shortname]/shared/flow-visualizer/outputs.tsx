@@ -162,7 +162,7 @@ type ResultSlideOver =
 
 type OutputsProps = {
   persistedEntities: PersistedEntity[];
-  proposedEntities: ProposedEntity[];
+  proposedEntities: Omit<ProposedEntity, "provenance" | "propertyMetadata">[];
 };
 
 type SectionVisibility = {
