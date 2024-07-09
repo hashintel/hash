@@ -17,12 +17,12 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@playwright/test": "1.45.0",
+    "@playwright/test": "1.45.1",
     "eslint": "8.57.0",
     "execa": "5.1.1",
     "graphql": "16.8.1",
     "js-yaml": "4.1.0",
-    "typescript": "5.5.2"
+    "typescript": "5.5.3"
   },
   "devDependencies": {
     "@apps/hash-frontend": "0.0.0-private",

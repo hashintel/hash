@@ -11,3 +11,11 @@ The Bastion host can also act as a jump host to SSH tunnel a service to your loc
 ```
 
 This will SSH into the bastion host, but also bind `localhost:5554` to `h-hash-prod-usea1-pg.*.us-east-1.rds.amazonaws.com:5432` on the remote host.
+
+To only map the port and not SSH into the bastion host, run
+
+```shell
+./ssh_bastion.sh -N -L "5554:$(terraform output -raw rds_hostname):5432"
+```
+
+This will automatically use the currently selected terraform workspace.
