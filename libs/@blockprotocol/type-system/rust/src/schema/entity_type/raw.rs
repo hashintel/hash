@@ -2,6 +2,7 @@ use alloc::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 #[cfg(target_arch = "wasm32")]
 use tsify::Tsify;
 
@@ -66,7 +67,7 @@ pub struct EntityType<'a> {
     #[serde(with = "links", default, skip_serializing_if = "HashMap::is_empty")]
     links: Links,
     #[serde(default, skip_serializing_if = "<[_]>::is_empty")]
-    examples: Cow<'a, [HashMap<String, serde_json::Value>]>,
+    examples: Cow<'a, [HashMap<BaseUrl, JsonValue>]>,
 }
 
 mod links {

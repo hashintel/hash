@@ -36,6 +36,7 @@ use graph::{
     subgraph::identifier::DataTypeVertexId,
 };
 use graph_types::{
+    knowledge::ValueWithMetadata,
     ontology::{
         DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
@@ -98,6 +99,8 @@ use crate::rest::{
             GetDataTypeSubgraphResponse,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
+
+            ValueWithMetadata,
         )
     ),
     tags(

@@ -23,6 +23,9 @@
     "lint:clippy": "just clippy && just clippy --target wasm32-unknown-unknown",
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
+  "dependencies": {
+    "@rust/codec": "0.0.0-private"
+  },
   "devDependencies": {
     "@rust/graph-test-data": "0.0.0-private"
   }

@@ -33,6 +33,16 @@ mod wasm {
             }
         }
     }
+
+    #[derive(Tsify)]
+    #[serde(rename = "JsonValue")]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    pub struct VersionedUrlPatch(
+        #[tsify(
+            type = "null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue; }"
+        )]
+        (),
+    );
 }
 
 #[cfg(test)]

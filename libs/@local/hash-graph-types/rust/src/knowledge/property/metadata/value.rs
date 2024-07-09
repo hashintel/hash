@@ -16,3 +16,11 @@ pub struct ValueMetadata {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub data_type_id: Option<VersionedUrl>,
 }
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ValueWithMetadata {
+    pub value: serde_json::Value,
+    pub metadata: ValueMetadata,
+}

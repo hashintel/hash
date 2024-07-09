@@ -8,7 +8,7 @@ pub use self::{
         ArrayMetadata, ObjectMetadata, PatchError, Property, PropertyDiff, PropertyMetadata,
         PropertyMetadataObject, PropertyObject, PropertyPatchOperation, PropertyPath,
         PropertyPathElement, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
-        ValueMetadata,
+        ValueMetadata, ValueWithMetadata,
     },
 };
 

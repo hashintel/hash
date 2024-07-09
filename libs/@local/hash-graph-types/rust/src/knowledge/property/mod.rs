@@ -20,7 +20,7 @@ pub use self::{
     diff::PropertyDiff,
     metadata::{
         ArrayMetadata, ObjectMetadata, PropertyMetadata, PropertyMetadataObject,
-        PropertyProvenance, ValueMetadata,
+        PropertyProvenance, ValueMetadata, ValueWithMetadata,
     },
     object::{PropertyObject, PropertyWithMetadataObject},
     patch::{PatchError, PropertyPatchOperation},
@@ -54,11 +54,7 @@ pub enum PropertyWithMetadata {
         #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
         metadata: ObjectMetadata,
     },
-    #[cfg_attr(feature = "utoipa", schema(title = "PropertyWithMetadataValue"))]
-    Value {
-        value: serde_json::Value,
-        metadata: ValueMetadata,
-    },
+    Value(ValueWithMetadata),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -85,14 +81,14 @@ impl PropertyWithMetadata {
         match self {
             Self::Array { .. } => JsonSchemaValueType::Array,
             Self::Object { .. } => JsonSchemaValueType::Object,
-            Self::Value { value, .. } => JsonSchemaValueType::from(value),
+            Self::Value(property) => JsonSchemaValueType::from(&property.value),
         }
     }
 
     #[must_use]
     pub const fn data_type_id(&self) -> Option<&VersionedUrl> {
-        if let Self::Value { metadata, .. } = self {
-            metadata.data_type_id.as_ref()
+        if let Self::Value(property) = self {
+            property.metadata.data_type_id.as_ref()
         } else {
             None
         }
@@ -333,16 +329,16 @@ impl PropertyWithMetadata {
                 metadata: ObjectMetadata::default(),
             }),
             (Property::Value(value), Some(PropertyMetadata::Value { metadata })) => {
-                Ok(Self::Value { value, metadata })
+                Ok(Self::Value(ValueWithMetadata { value, metadata }))
             }
-            (Property::Value(value), None) => Ok(Self::Value {
+            (Property::Value(value), None) => Ok(Self::Value(ValueWithMetadata {
                 value,
                 metadata: ValueMetadata {
                     provenance: PropertyProvenance::default(),
                     confidence: None,
                     data_type_id: None,
                 },
-            }),
+            })),
             _ => Err(Report::new(PropertyPathError::PropertyMetadataMismatch)),
         }
     }
@@ -376,9 +372,12 @@ impl PropertyWithMetadata {
                     },
                 )
             }
-            Self::Value { value, metadata } => {
-                (Property::Value(value), PropertyMetadata::Value { metadata })
-            }
+            Self::Value(property) => (
+                Property::Value(property.value),
+                PropertyMetadata::Value {
+                    metadata: property.metadata,
+                },
+            ),
         }
     }
 }
