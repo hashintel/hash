@@ -7,6 +7,7 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   entityIdFromComponents,
@@ -203,6 +204,21 @@ export const getProvidedFiles = async (): Promise<Entity<FileProperties>[]> => {
   return entities;
 };
 
+/**
+ * Compare two URLs to determine if they are the same.
+ *
+ * A URL taken from the database and sent to an LLM, and then passed back from the LLM as part of a tool call,
+ * may have differences in whitespace and escape characters, e.g.
+ * - a URL from the database with spaces escaped (%20) may be played back with spaces
+ * - a URL in the database may contain whitespace characters (e.g. NBSP / U+00A0 / 160) which are played back differently (U+0020 / 32)
+ */
+export const areUrlsTheSameAfterNormalization = (
+  first: string,
+  second: string,
+) =>
+  decodeURIComponent(normalizeWhitespace(first)) ===
+  decodeURIComponent(normalizeWhitespace(second));
+
 export const getProvidedFileByUrl = async (
   url: string,
 ): Promise<Entity<FileProperties> | undefined> => {
@@ -211,13 +227,11 @@ export const getProvidedFileByUrl = async (
     /**
      * The URL may have been provided by an LLM, in which case it may be missing escape characters which may be present in the original.
      */
-    return (
-      decodeURIComponent(url) ===
-      decodeURIComponent(
-        file.properties[
-          "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-        ],
-      )
+    return areUrlsTheSameAfterNormalization(
+      url,
+      file.properties[
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+      ],
     );
   });
 };
