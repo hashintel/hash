@@ -215,7 +215,7 @@ where
     ) -> Result<(), QueryError> {
         // TODO: data types currently have no references to other types, so we don't need to do
         //       anything here
-        //   see https://linear.app/hash/issue/BP-104
+        //   see https://linear.app/hash/issue/H-3075/allow-traversing-data-type-edges
 
         Ok(())
     }
