@@ -1,17 +1,21 @@
 import { ImageIconSolid } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
 import { useCallback } from "react";
+import type { Accept } from "react-dropzone";
 import { useDropzone } from "react-dropzone";
 
 import { UploadIcon } from "../../../shared/icons/upload-icon";
 
 type FileUploadDropzoneProps = {
+  /** @see https://react-dropzone.js.org/#section-accepting-specific-file-types */
+  accept?: Accept;
   image?: boolean;
   onFileProvided: (file: File) => void;
   showUploadingMessage?: boolean;
 };
 
 export const FileUploadDropzone = ({
+  accept,
   image,
   onFileProvided,
   showUploadingMessage,
@@ -29,11 +33,13 @@ export const FileUploadDropzone = ({
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
-    accept: image
-      ? {
-          "image/*": [],
-        }
-      : undefined,
+    accept:
+      accept ??
+      (image
+        ? {
+            "image/*": [],
+          }
+        : undefined),
     maxFiles: 1,
     multiple: false,
   });
@@ -60,41 +66,34 @@ export const FileUploadDropzone = ({
         },
       })}
     >
-      {showUploadingMessage ? (
-        <Typography
-          variant="smallTextLabels"
-          sx={{ color: "blue.70", display: "block", fontWeight: 600 }}
-        >
-          Click to upload
-        </Typography>
+      {!showUploadingMessage && <Box component="input" {...getInputProps()} />}
+      {image ? (
+        <ImageIconSolid sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
       ) : (
-        <>
-          <Box component="input" {...getInputProps()} />
-          {image ? (
-            <ImageIconSolid sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
-          ) : (
-            <UploadIcon sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
-          )}
-          <Typography
-            variant="smallTextLabels"
-            sx={{ color: "blue.70", display: "block", fontWeight: 600 }}
-          >
-            Click to upload
-          </Typography>
-          <Typography
-            variant="smallTextLabels"
-            sx={{ color: "gray.90", display: "block", fontWeight: 600 }}
-          >
-            or drag and drop a file
-          </Typography>
-          <Typography
-            variant="microText"
-            sx={{ color: "gray.50", display: "block", mt: 1, fontWeight: 500 }}
-          >
-            {image ? "Any image file accepted" : "All file types accepted"}
-          </Typography>
-        </>
+        <UploadIcon sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
       )}
+      <Typography
+        variant="smallTextLabels"
+        sx={{ color: "blue.70", display: "block", fontWeight: 600 }}
+      >
+        {showUploadingMessage ? "Uploading..." : "Click to upload"}
+      </Typography>
+      <Typography
+        variant="smallTextLabels"
+        sx={{
+          color: showUploadingMessage ? "gray.60" : "gray.90",
+          display: "block",
+          fontWeight: 600,
+        }}
+      >
+        {showUploadingMessage ? <>&nbsp;</> : "or drag and drop a file"}
+      </Typography>
+      <Typography
+        variant="microText"
+        sx={{ color: "gray.50", display: "block", mt: 1, fontWeight: 500 }}
+      >
+        {image ? "Any image file accepted" : "All file types accepted"}
+      </Typography>
     </Box>
   );
 };

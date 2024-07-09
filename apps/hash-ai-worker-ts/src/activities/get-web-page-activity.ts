@@ -7,6 +7,7 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import sanitizeHtml from "sanitize-html";
 
 import { logger } from "./shared/activity-logger";
+import { getFlowContext } from "./shared/get-flow-context";
 import { requestExternalInput } from "./shared/request-external-input";
 
 puppeteer.use(StealthPlugin());
@@ -197,19 +198,6 @@ const getWebPageFromBrowser = async (url: string): Promise<WebPage> => {
   return webPage;
 };
 
-/**
- * Sites where the useful content is gated behind an authentication or paywall,
- * in which case we log a request for the content to be picked up by the user's browser.
- *
- * The user may not have access to these sites, and there may be unlisted sites we hit walls for
- * which the user _does_ have access to. The best solution would be some way of knowing which
- * sites specific user(s) can access.
- *
- * @todo vary these based on knowledge about which sites users can help us with
- * @todo be able to detect other arbitrary sites which hit auth/paywalls (e.g. via looking for 401 status codes)
- */
-const domainsToRequestFromBrowser = ["crunchbase.com", "linkedin.com"];
-
 export const getWebPageActivity = async (params: {
   url: string;
   sanitizeForLlm?: boolean;
@@ -226,9 +214,16 @@ export const getWebPageActivity = async (params: {
     return { error: errorMsg };
   }
 
+  const {
+    dataSources: {
+      internetAccess: { browserPlugin },
+    },
+  } = await getFlowContext();
+
   const shouldAskBrowser =
-    (domainsToRequestFromBrowser.includes(urlObject.host) ||
-      domainsToRequestFromBrowser.some((domain) =>
+    browserPlugin.enabled &&
+    (browserPlugin.domains.includes(urlObject.host) ||
+      browserPlugin.domains.some((domain) =>
         urlObject.host.endsWith(`.${domain}`),
       )) &&
     /**

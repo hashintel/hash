@@ -19,9 +19,7 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
     startingDelay: 1_000,
   });
 
-  const webPagesUrls = webSearchResults
-    .map(({ url }) => url)
-    .slice(0, numberOfSearchResults);
+  const webPages = webSearchResults.slice(0, numberOfSearchResults);
 
   return {
     code: StatusCode.Ok,
@@ -32,7 +30,7 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
             outputName: "webPageUrls",
             payload: {
               kind: "Text",
-              value: webPagesUrls,
+              value: webPages,
             },
           },
         ],

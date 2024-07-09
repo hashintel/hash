@@ -9,6 +9,7 @@ import type {
   PropertyProvenance,
   ProvidedEntityEditionProvenance,
   ProvidedEntityEditionProvenanceOriginTypeEnum,
+  ValidateEntityParams,
 } from "@local/hash-graph-client";
 import type {
   CreatedById,
@@ -548,6 +549,18 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
       .then(({ data: entities }) =>
         entities.map((entity) => new Entity(entity)),
       );
+  }
+
+  public static async validate(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: Omit<ValidateEntityParams, "properties"> & {
+      properties: PropertyObjectWithMetadata;
+    },
+  ): Promise<void> {
+    return await graphAPI
+      .validateEntity(authentication.actorId, params)
+      .then(({ data }) => data);
   }
 
   public async patch(

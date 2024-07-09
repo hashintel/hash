@@ -1,16 +1,21 @@
+import type { FlowInternetAccessSettings } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Checkbox, Stack, Tooltip, Typography } from "@mui/material";
 import type { Dispatch, PropsWithChildren, SetStateAction } from "react";
 
 import { CircleInfoIcon } from "../../../shared/icons/circle-info-icon";
 
-type InternetAccessSettings = {
-  enabled: boolean;
-};
-
-type BrowserPluginSettings = {
-  enabled: boolean;
-  domains: string[];
-};
+/**
+ * Sites where the useful content is gated behind an authentication or paywall,
+ * in which case we log a request for the content to be picked up by the user's browser.
+ *
+ * The user may not have access to these sites, and there may be unlisted sites we hit walls for
+ * which the user _does_ have access to. The best solution would be some way of knowing which
+ * sites specific user(s) can access.
+ *
+ * @todo vary these based on knowledge about which sites users can help us with
+ * @todo be able to detect other arbitrary sites which hit auth/paywalls (e.g. via looking for 401 status codes)
+ */
+export const defaultBrowserPluginDomains = ["linkedin.com"];
 
 const InternetSetting = ({
   checked,
@@ -93,14 +98,17 @@ const InternetAccess = ({
   internetAccessSettings,
   setInternetAccessSettings,
 }: {
-  internetAccessSettings: InternetAccessSettings;
-  setInternetAccessSettings: (settings: InternetAccessSettings) => void;
+  internetAccessSettings: FlowInternetAccessSettings;
+  setInternetAccessSettings: (settings: FlowInternetAccessSettings) => void;
 }) => {
   return (
     <InternetSetting
       checked={internetAccessSettings.enabled}
       onChangeChecked={() =>
-        setInternetAccessSettings({ enabled: !internetAccessSettings.enabled })
+        setInternetAccessSettings({
+          ...internetAccessSettings,
+          enabled: !internetAccessSettings.enabled,
+        })
       }
       label="Use public sites"
       subLabel="on the World Wide Web"
@@ -114,9 +122,11 @@ const BrowserPlugin = ({
   disabled,
   setBrowserPluginSettings,
 }: {
-  browserPluginSettings: BrowserPluginSettings;
+  browserPluginSettings: FlowInternetAccessSettings["browserPlugin"];
   disabled: boolean;
-  setBrowserPluginSettings: (settings: BrowserPluginSettings) => void;
+  setBrowserPluginSettings: (
+    settings: FlowInternetAccessSettings["browserPlugin"],
+  ) => void;
 }) => {
   return (
     <InternetSetting
@@ -135,14 +145,9 @@ const BrowserPlugin = ({
   );
 };
 
-export type InternetSettingsState = {
-  internet: InternetAccessSettings;
-  browserPlugin: BrowserPluginSettings;
-};
-
 type InternetSettingsProps = {
-  settings: InternetSettingsState;
-  setSettings: Dispatch<SetStateAction<InternetSettingsState>>;
+  settings: FlowInternetAccessSettings;
+  setSettings: Dispatch<SetStateAction<FlowInternetAccessSettings>>;
 };
 
 export const InternetSettings = ({
@@ -152,18 +157,13 @@ export const InternetSettings = ({
   return (
     <Box>
       <InternetAccess
-        internetAccessSettings={settings.internet}
-        setInternetAccessSettings={(newInternetAccessSettings) =>
-          setSettings((currentSettings) => ({
-            ...currentSettings,
-            internet: newInternetAccessSettings,
-          }))
-        }
+        internetAccessSettings={settings}
+        setInternetAccessSettings={setSettings}
       />
       <Box sx={{ mt: 1 }}>
         <BrowserPlugin
           browserPluginSettings={settings.browserPlugin}
-          disabled={!settings.internet.enabled}
+          disabled={!settings.enabled}
           setBrowserPluginSettings={(newBrowserPluginSettings) =>
             setSettings((currentSettings) => ({
               ...currentSettings,

@@ -45,8 +45,8 @@ test.skip(
         submittedEntityIds: [],
         subTasksCompleted: [],
         suggestionsForNextStepsMade: [],
-        webPagesNotVisited: [],
-        webPageUrlsVisited: [],
+        resourcesNotVisited: [],
+        resourceUrlsVisited: [],
         webQueriesMade: [],
       },
       subTasks: [

@@ -11,11 +11,11 @@ import { logProgress } from "../../shared/log-progress";
 import { getWebPageSummaryAction } from "../get-web-page-summary-action";
 import { webSearchAction } from "../web-search-action";
 import type { CoordinatorToolCallArguments } from "./coordinator-tools";
-import type { WebPageSummary } from "./types";
+import type { ResourceSummary } from "./types";
 
 export const handleWebSearchToolCall = async (params: {
   input: CoordinatorToolCallArguments["webSearch"];
-}): Promise<WebPageSummary[]> => {
+}): Promise<ResourceSummary[]> => {
   const { query, explanation } = params.input;
 
   const response = await webSearchAction({
@@ -61,10 +61,16 @@ export const handleWebSearchToolCall = async (params: {
     );
   }
 
-  const webPageUrls = webPageUrlsOutput.payload.value as string[];
+  /** @todo fix this type */
+  const searchResults = webPageUrlsOutput.payload.value as {
+    url: string;
+    title: string;
+  }[];
 
   const webPageUrlsWithSummaries = await Promise.all(
-    webPageUrls.map(async (url) => {
+    searchResults.map(async (webPage) => {
+      const { url, title } = webPage;
+
       const webPageSummaryResponse = await getWebPageSummaryAction({
         inputs: [
           {
@@ -88,6 +94,7 @@ export const handleWebSearchToolCall = async (params: {
       if (response.code !== StatusCode.Ok) {
         return {
           url,
+          title,
           summary: `An unexpected error occurred trying to summarize the web page at url ${url}.`,
         };
       }
@@ -110,6 +117,7 @@ export const handleWebSearchToolCall = async (params: {
       const summary = summaryOutput.payload.value as string;
 
       return {
+        title,
         url,
         summary,
       };

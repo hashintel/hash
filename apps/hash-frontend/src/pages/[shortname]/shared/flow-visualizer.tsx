@@ -23,7 +23,6 @@ import type {
   StartFlowMutation,
   StartFlowMutationVariables,
 } from "../../../graphql/api-types.gen";
-import { startFlowMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { useFlowDefinitionsContext } from "../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../shared/flow-runs-context";
@@ -50,6 +49,7 @@ import {
 } from "./flow-visualizer/sort-graph";
 import { Swimlane } from "./flow-visualizer/swimlane";
 import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
+import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,

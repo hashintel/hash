@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
@@ -59,12 +60,14 @@ type SubTaskAgentToolName =
 const generateToolDefinitions = <
   T extends SubTaskAgentCustomToolName[],
 >(params: {
+  dataSources: FlowDataSources;
   omitTools: T;
 }): Record<
   Exclude<SubTaskAgentToolName, T[number]>,
   LlmToolDefinition<Exclude<SubTaskAgentToolName, T[number]>>
 > => {
   const coordinatorToolDefinitions = generateCoordinatorToolDefinitions({
+    dataSources: params.dataSources,
     omitTools: omittedCoordinatorToolNames.concat(),
   });
 
@@ -231,11 +234,12 @@ const createInitialPlan = async (params: {
     Do not make any other tool calls.
   `);
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions({
+      dataSources,
       omitTools: ["complete"],
     }),
   );
@@ -355,16 +359,17 @@ const getNextToolCalls = async (params: {
       : [],
   ].flat();
 
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
+
   const tools = Object.values(
     generateToolDefinitions({
+      dataSources,
       omitTools: [
         ...(state.inferredFacts.length > 0 ? [] : ["complete" as const]),
       ],
     }),
   );
-
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -502,15 +507,15 @@ Summary: ${summary}`,
                 ...toolCall,
                 output,
               };
-            } else if (toolCall.name === "inferFactsFromWebPages") {
-              const { webPages } =
-                toolCall.input as CoordinatorToolCallArguments["inferFactsFromWebPages"];
+            } else if (toolCall.name === "inferFactsFromResources") {
+              const { resources } =
+                toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
 
               const validEntityTypeIds = input.entityTypes.map(
                 ({ $id }) => $id,
               );
 
-              const invalidEntityTypeIds = webPages
+              const invalidEntityTypeIds = resources
                 .flatMap(({ entityTypeIds }) => entityTypeIds)
                 .filter(
                   (entityTypeId) =>
@@ -520,7 +525,7 @@ Summary: ${summary}`,
               const validLinkEntityTypeIds =
                 input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
 
-              const invalidLinkEntityTypeIds = webPages
+              const invalidLinkEntityTypeIds = resources
                 .flatMap(({ linkEntityTypeIds }) => linkEntityTypeIds ?? [])
                 .filter(
                   (entityTypeId) =>
@@ -569,7 +574,7 @@ Summary: ${summary}`,
               }
 
               const responsesWithUrl = await Promise.all(
-                webPages.map(
+                resources.map(
                   async ({
                     url,
                     prompt,

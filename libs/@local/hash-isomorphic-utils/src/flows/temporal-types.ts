@@ -2,9 +2,15 @@ import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Status } from "@local/status";
 
-import type { FlowDefinition, FlowTrigger, LocalFlowRun } from "./types";
+import type {
+  FlowDataSources,
+  FlowDefinition,
+  FlowTrigger,
+  LocalFlowRun,
+} from "./types";
 
 export type RunFlowWorkflowParams = {
+  dataSources: FlowDataSources;
   flowTrigger: FlowTrigger;
   flowDefinition: FlowDefinition;
   userAuthentication: { actorId: AccountId };

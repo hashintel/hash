@@ -17,6 +17,7 @@ import {
 import type { GoogleSheetTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions/google-sheets";
 import type { ReportTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions/markdown-report";
 import type {
+  FlowDataSources,
   FlowDefinition,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -42,10 +43,8 @@ import type {
   StartFlowMutation,
   StartFlowMutationVariables,
 } from "../../graphql/api-types.gen";
-import { startFlowMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { FilesLightIcon } from "../../shared/icons/files-light-icon";
+import { startFlowMutation } from "../../graphql/queries/knowledge/flow.queries";
 import { FilesRegularIcon } from "../../shared/icons/files-regular-icon";
-import { GlobeLightIcon } from "../../shared/icons/globe-light-icon";
 import { GlobeRegularIcon } from "../../shared/icons/globe-regular-icon";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
@@ -56,9 +55,11 @@ import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { WebSelector } from "../shared/web-selector";
 import type { DeliverableSettingsState } from "./new.page/deliverable-settings";
 import { DeliverableSettings } from "./new.page/deliverable-settings";
+import type { FileSettingsState } from "./new.page/file-settings";
+import { FileSettings } from "./new.page/file-settings";
 import {
+  defaultBrowserPluginDomains,
   InternetSettings,
-  InternetSettingsState,
 } from "./new.page/internet-settings";
 
 const Question = ({
@@ -175,16 +176,18 @@ const NewGoalPageContent = () => {
     authenticatedUser.accountId as OwnedById,
   );
   const [createAsDraft, setCreateAsDraft] = useState(true);
-  const [internetSettings, setInternetSettings] =
-    useState<InternetSettingsState>({
-      internet: {
-        enabled: true,
-      },
-      browserPlugin: {
-        domains: ["linkedin.com"],
-        enabled: true,
-      },
-    });
+  const [internetSettings, setInternetSettings] = useState<
+    FlowDataSources["internetAccess"]
+  >({
+    enabled: true,
+    browserPlugin: {
+      domains: defaultBrowserPluginDomains,
+      enabled: true,
+    },
+  });
+  const [fileSettings, setFileSettings] = useState<FileSettingsState>({
+    fileEntities: [],
+  });
   const [deliverablesSettings, setDeliverablesSettings] =
     useState<DeliverableSettingsState>({
       document: null,
@@ -330,6 +333,14 @@ const NewGoalPageContent = () => {
 
     const { data } = await startFlow({
       variables: {
+        dataSources: {
+          files: {
+            fileEntityIds: fileSettings.fileEntities.map(
+              (entity) => entity.metadata.recordId.entityId,
+            ),
+          },
+          internetAccess: internetSettings,
+        },
         flowDefinition,
         flowTrigger: {
           outputs: triggerOutputs,
@@ -471,10 +482,15 @@ const NewGoalPageContent = () => {
                   setSettings={setInternetSettings}
                 />
               </Box>
-              <Box>
+              <Box flexGrow={1}>
                 <SettingCardSectionHeader
                   Icon={FilesRegularIcon}
                   text="Files"
+                />
+                <FileSettings
+                  settings={fileSettings}
+                  setSettings={setFileSettings}
+                  webId={webId}
                 />
               </Box>
             </SettingCard>

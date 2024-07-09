@@ -260,6 +260,11 @@ const exploreResource = async (params: {
     dereferencedEntityTypes: dereferencedEntityTypesById,
   });
 
+  /**
+   * @todo check if file already exists as an entity and link the id here,
+   *    plus include description etc from properties if available
+   */
+
   const factSource: SourceProvenance = {
     type: isResourcePdfFile ? SourceType.Document : SourceType.Webpage,
     location: {

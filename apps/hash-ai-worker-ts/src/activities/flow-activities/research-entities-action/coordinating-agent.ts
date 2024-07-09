@@ -41,7 +41,7 @@ import {
 } from "./shared/simplify-for-llm-consumption";
 import type { ExistingEntitySummary } from "./summarize-existing-entities";
 import { summarizeExistingEntities } from "./summarize-existing-entities";
-import type { CompletedCoordinatorToolCall, WebPageSummary } from "./types";
+import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
 const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
@@ -102,8 +102,8 @@ const generateSystemPromptPrefix = (params: {
       as many properties as possible.
 
     This may well involve:
-      - inferring facts from more than one web page
-      - conducting multiple web searches
+      - inferring facts from more than one data source
+      - conducting multiple searches
       - starting sub-tasks to find additional relevant facts about specific entities
 
     If it would be useful to split up the task into sub-tasks to find detailed information on specific entities, do so. 
@@ -160,8 +160,8 @@ export type CoordinatingAgentState = {
   subTasksCompleted: string[];
   suggestionsForNextStepsMade: string[];
   submittedEntityIds: string[];
-  webPageUrlsVisited: string[];
-  webPagesNotVisited: WebPageSummary[];
+  resourceUrlsVisited: string[];
+  resourcesNotVisited: ResourceSummary[];
   webQueriesMade: string[];
   hasConductedCheckStep: boolean;
   questionsAndAnswers: string | null;
@@ -176,8 +176,8 @@ const generateProgressReport = (params: {
   const {
     subTasksCompleted,
     suggestionsForNextStepsMade,
-    webPagesNotVisited,
-    webPageUrlsVisited,
+    resourcesNotVisited,
+    resourceUrlsVisited,
     webQueriesMade,
   } = state;
 
@@ -218,29 +218,29 @@ const generateProgressReport = (params: {
     If further research is needed to fill more properties of any entities or links,
       consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
 
-    Do not sequentially conduct additional web searches for each of the entities,
+    Do not sequentially conduct additional actions for each of the entities,
       instead start multiple sub-tasks via the "startFactGatheringSubTasks" tool to
       conduct additional research per entity in parallel.`;
   }
   if (
-    webPageUrlsVisited.length > 0 ||
-    webPagesNotVisited.length > 0 ||
+    resourceUrlsVisited.length > 0 ||
+    resourcesNotVisited.length > 0 ||
     webQueriesMade.length > 0
   ) {
-    if (webPageUrlsVisited.length > 0) {
+    if (resourceUrlsVisited.length > 0) {
       progressReport += dedent(`
-        You have already visited the following web pages – there is no need to visit them again:
-        <WebPagesVisited>
-        ${webPageUrlsVisited.join("\n")}
-        </WebPagesVisited>
+        You have already visited the following resources – they may be worth visiting again if you need more information:
+        <ResourcesVisited>
+        ${resourceUrlsVisited.join("\n")}
+        </ResourcesVisited>
       `);
     }
-    if (webPagesNotVisited.length > 0) {
+    if (resourcesNotVisited.length > 0) {
       progressReport += dedent(`
-        You have not visited the following web pages. If none are of interest, you may need to make further web searches:
-        <WebPagesNotVisited>
-        ${webPagesNotVisited.map((webPage) => `Url: ${webPage.url}\nSummary:${webPage.summary}`).join("\n\n")}
-        </WebPagesNotVisited>
+        You have not visited the following resources:
+        <ResourcesNotVisited>
+        ${resourcesNotVisited.map((webPage) => `Url: ${webPage.url}\nSummary:${webPage.summary}`).join("\n\n")}
+        </ResourcesNotVisited>
       `);
     }
     if (webQueriesMade.length > 0) {
@@ -324,8 +324,12 @@ const getNextToolCalls = async (params: {
     ...llmMessagesFromPreviousToolCalls,
   ].flat();
 
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
+
   const tools = Object.values(
     generateToolDefinitions({
+      dataSources,
       omitTools: [
         ...(input.humanInputCanBeRequested
           ? []
@@ -335,9 +339,6 @@ const getNextToolCalls = async (params: {
       state,
     }),
   );
-
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -414,11 +415,12 @@ const createInitialPlan = async (params: {
     }
   `);
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions<["complete"]>({
+      dataSources,
       omitTools: input.humanInputCanBeRequested
         ? ["complete"]
         : (["complete", "requestHumanInput"] as unknown as ["complete"]),

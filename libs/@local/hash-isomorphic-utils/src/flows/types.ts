@@ -342,6 +342,19 @@ export type FlowTrigger = {
   outputs?: StepOutput[];
 };
 
+export type FlowInternetAccessSettings = {
+  enabled: boolean;
+  browserPlugin: {
+    enabled: boolean;
+    domains: string[];
+  };
+};
+
+export type FlowDataSources = {
+  files: { fileEntityIds: EntityId[] };
+  internetAccess: FlowInternetAccessSettings;
+};
+
 export type LocalFlowRun = {
   name: string;
   flowRunId: EntityUuid;
