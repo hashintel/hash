@@ -56,19 +56,20 @@ export type EnforcedEntityEditionProvenance = Omit<
   origin: OriginProvenance;
 };
 
-export type CreateEntityParameters = Omit<
-  GraphApiCreateEntityRequest,
-  "entityTypeIds" | "decisionTime" | "draft" | "properties" | "provenance"
-> & {
-  ownedById: OwnedById;
-  properties: PropertyObject;
-  linkData?: LinkData;
-  entityTypeId: VersionedUrl;
-  entityUuid?: EntityUuid;
-  propertyMetadata?: PropertyMetadataObject;
-  provenance: EnforcedEntityEditionProvenance;
-  draft?: boolean;
-};
+export type CreateEntityParameters<T extends PropertyObject = PropertyObject> =
+  Omit<
+    GraphApiCreateEntityRequest,
+    "entityTypeIds" | "decisionTime" | "draft" | "properties" | "provenance"
+  > & {
+    ownedById: OwnedById;
+    properties: T;
+    linkData?: LinkData;
+    entityTypeId: VersionedUrl;
+    entityUuid?: EntityUuid;
+    propertyMetadata?: PropertyMetadataObject;
+    provenance: EnforcedEntityEditionProvenance;
+    draft?: boolean;
+  };
 
 export type PatchEntityParameters = Omit<
   GraphApiPatchEntityParams,
@@ -447,16 +448,21 @@ export const flattenPropertyMetadata = (
   return flattened;
 };
 
-export class Entity<Properties extends PropertyObject = PropertyObject> {
-  #entity: EntityData<Properties>;
+type EntityProperties = {
+  properties: PropertyObject;
+  propertiesWithMetadata: PropertyObjectWithMetadata;
+};
 
-  constructor(entity: EntityInput<Properties>) {
+export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
+  #entity: EntityData<PropertyMap["properties"]>;
+
+  constructor(entity: EntityInput<PropertyMap["properties"]>) {
     if (isSerializedEntity(entity)) {
-      this.#entity = entity as unknown as EntityData<Properties>;
+      this.#entity = entity as unknown as EntityData<PropertyMap["properties"]>;
     } else if (isGraphApiEntity(entity)) {
       this.#entity = {
         ...entity,
-        properties: entity.properties as Properties,
+        properties: entity.properties as PropertyMap["properties"],
         metadata: {
           ...entity.metadata,
           recordId: entity.metadata.recordId as EntityRecordId,
@@ -499,21 +505,21 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
     }
   }
 
-  public static async create(
+  public static async create<T extends EntityProperties>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: CreateEntityParameters,
-  ): Promise<Entity> {
+    params: CreateEntityParameters<T["properties"]>,
+  ): Promise<Entity<T>> {
     return (
-      await Entity.createMultiple(graphAPI, authentication, [params])
-    )[0]!;
+      await Entity.createMultiple<[T]>(graphAPI, authentication, [params])
+    )[0];
   }
 
-  public static async createMultiple(
+  public static async createMultiple<T extends EntityProperties[]>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: CreateEntityParameters[],
-  ): Promise<Entity[]> {
+    params: [...{ [I in keyof T]: CreateEntityParameters<T[I]["properties"]> }],
+  ): Promise<{ [I in keyof T]: Entity<T[I]> }> {
     return graphAPI
       .createEntities(
         authentication.actorId,
@@ -546,7 +552,10 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
         ),
       )
       .then(({ data: entities }) =>
-        entities.map((entity) => new Entity(entity)),
+        entities.map((entity) => {
+          /** @todo figure out least bad way of asserting this as the correct return type */
+          return new Entity(entity);
+        }),
       );
   }
 
