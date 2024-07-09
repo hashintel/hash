@@ -189,7 +189,7 @@ pub struct EntityTypeInheritsFromRow {
 pub struct EntityTypeRow {
     pub ontology_id: EntityTypeId,
     pub schema: Valid<EntityType>,
-    pub closed_schema: ClosedEntityType,
+    pub closed_schema: Valid<ClosedEntityType>,
     pub label_property: Option<String>,
     pub icon: Option<String>,
 }
