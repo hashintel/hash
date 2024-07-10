@@ -27,6 +27,8 @@
   "semanticCommits": "disabled",
   "schedule": ["before 4am every weekday", "every weekend"],
   "assigneesFromCodeOwners": true,
+  "prConcurrentLimit": 15,
+  "branchConcurrentLimit": 0,
 
   "packageRules": [
     {
