@@ -28,7 +28,11 @@ export type {
   TextDataTypeWithMetadata,
 };
 
+/**
+ * A GitHub account.
+ */
 export type GitHubAccount = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/github-account/v/1";
   properties: GitHubAccountProperties;
   propertiesWithMetadata: GitHubAccountPropertiesWithMetadata;
 };

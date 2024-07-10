@@ -23,7 +23,11 @@ export type ObjectDataTypeMetadata = {
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
 };
 
+/**
+ *
+ */
 export type Query = {
+  entityTypeId: "https://blockprotocol.org/@hash/types/entity-type/query/v/1";
   properties: QueryProperties;
   propertiesWithMetadata: QueryPropertiesWithMetadata;
 };

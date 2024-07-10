@@ -99,7 +99,11 @@ export type ActorTypeDataTypeMetadata = {
   dataTypeId: "https://hash.ai/@hash/types/data-type/actor-type/v/1";
 };
 
+/**
+ * The account that something is associated with.
+ */
 export type AssociatedWithAccount = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1";
   properties: AssociatedWithAccountProperties;
   propertiesWithMetadata: AssociatedWithAccountPropertiesWithMetadata;
 };
@@ -167,7 +171,11 @@ export type DescriptionPropertyValue = TextDataType;
 
 export type DescriptionPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
+/**
+ * A file hosted at a URL
+ */
 export type File = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/2";
   properties: FileProperties;
   propertiesWithMetadata: FilePropertiesWithMetadata;
 };
@@ -304,7 +312,11 @@ export type FileURLPropertyValue = TextDataType;
 
 export type FileURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
+/**
+ * A Google Sheets file.
+ */
 export type GoogleSheetsFile = {
+  entityTypeId: "https://hash.ai/@google/types/entity-type/google-sheets-file/v/1";
   properties: GoogleSheetsFileProperties;
   propertiesWithMetadata: GoogleSheetsFilePropertiesWithMetadata;
 };
@@ -387,7 +399,11 @@ export type OriginalURLPropertyValue = TextDataType;
 
 export type OriginalURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
+/**
+ * A spreadsheet file.
+ */
 export type SpreadsheetFile = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1";
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
 };

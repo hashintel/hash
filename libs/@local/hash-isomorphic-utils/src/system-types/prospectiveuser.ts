@@ -36,7 +36,11 @@ export type IntendedUsePropertyValue = TextDataType;
 
 export type IntendedUsePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
+/**
+ * Information about a prospective user of an application or system
+ */
 export type ProspectiveUser = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/prospective-user/v/1";
   properties: ProspectiveUserProperties;
   propertiesWithMetadata: ProspectiveUserPropertiesWithMetadata;
 };

@@ -394,7 +394,11 @@ export type {
   WebsiteURLPropertyValueWithMetadata,
 };
 
+/**
+ * An instance of an integration with Linear.
+ */
 export type LinearIntegration = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/linear-integration/v/6";
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
 };
@@ -446,7 +450,11 @@ export type LinearTeamIdPropertyValue = TextDataType;
 
 export type LinearTeamIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
+/**
+ * Something that syncs linear data with something.
+ */
 export type SyncLinearDataWith = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1";
   properties: SyncLinearDataWithProperties;
   propertiesWithMetadata: SyncLinearDataWithPropertiesWithMetadata;
 };
@@ -476,7 +484,11 @@ export type SyncLinearDataWithPropertiesWithMetadata = {
   };
 };
 
+/**
+ * The user secret something uses.
+ */
 export type UsesUserSecret = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1";
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
 };

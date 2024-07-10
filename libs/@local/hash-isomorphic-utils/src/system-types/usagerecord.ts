@@ -109,7 +109,11 @@ export type {
   TriggerPropertyValueWithMetadata,
 };
 
+/**
+ * The thing that something created.
+ */
 export type Created = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/created/v/1";
   properties: CreatedProperties;
   propertiesWithMetadata: CreatedPropertiesWithMetadata;
 };
@@ -139,7 +143,11 @@ export type CustomMetadataPropertyValue = ObjectDataType;
 export type CustomMetadataPropertyValueWithMetadata =
   ObjectDataTypeWithMetadata;
 
+/**
+ * Something that was incurred in something else.
+ */
 export type IncurredIn = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/incurred-in/v/1";
   properties: IncurredInProperties;
   propertiesWithMetadata: IncurredInPropertiesWithMetadata;
 };
@@ -178,7 +186,11 @@ export type OutputUnitCountPropertyValue = NumberDataType;
 export type OutputUnitCountPropertyValueWithMetadata =
   NumberDataTypeWithMetadata;
 
+/**
+ * The thing that something records usage of.
+ */
 export type RecordsUsageOf = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1";
   properties: RecordsUsageOfProperties;
   propertiesWithMetadata: RecordsUsageOfPropertiesWithMetadata;
 };
@@ -201,7 +213,11 @@ export type RecordsUsageOfPropertiesWithMetadata = {
   value: {};
 };
 
+/**
+ * The thing that something created.
+ */
 export type Updated = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/updated/v/1";
   properties: UpdatedProperties;
   propertiesWithMetadata: UpdatedPropertiesWithMetadata;
 };
@@ -223,7 +239,11 @@ export type UpdatedPropertiesWithMetadata = {
   value: {};
 };
 
+/**
+ * A record of usage of a service
+ */
 export type UsageRecord = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/usage-record/v/2";
   properties: UsageRecordProperties;
   propertiesWithMetadata: UsageRecordPropertiesWithMetadata;
 };

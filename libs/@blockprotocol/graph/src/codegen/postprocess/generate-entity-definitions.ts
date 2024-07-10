@@ -12,10 +12,15 @@ const generateEntityDefinitionForEntityType = (
 ) => {
   const typeName = title;
   const isLinkType = mustBeDefined(context.linkTypeMap[entityTypeId]);
+  const type = mustBeDefined(context.entityTypes[entityTypeId]);
 
   const entityName = entityDefinitionNameForEntityType(typeName);
 
-  const compiledContents = `\nexport type ${entityName} = {
+  const compiledContents = `\n/**
+  * ${type.description}
+  */
+  export type ${entityName} = {
+  entityTypeId: "${entityTypeId}";
   properties: ${typeName};
   propertiesWithMetadata: ${typeName}WithMetadata;
 }\n`;

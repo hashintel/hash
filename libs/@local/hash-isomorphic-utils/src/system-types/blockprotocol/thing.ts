@@ -4,7 +4,11 @@
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
+/**
+ * A generic thing
+ */
 export type Thing = {
+  entityTypeId: "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1";
   properties: ThingProperties;
   propertiesWithMetadata: ThingPropertiesWithMetadata;
 };

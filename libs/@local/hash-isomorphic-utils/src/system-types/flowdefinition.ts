@@ -30,7 +30,11 @@ export type {
   TriggerDefinitionIDPropertyValueWithMetadata,
 };
 
+/**
+ * The definition of a HASH flow.
+ */
 export type FlowDefinition = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/flow-definition/v/1";
   properties: FlowDefinitionProperties;
   propertiesWithMetadata: FlowDefinitionPropertiesWithMetadata;
 };

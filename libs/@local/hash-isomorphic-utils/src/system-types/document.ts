@@ -116,7 +116,11 @@ export type {
   TitlePropertyValueWithMetadata,
 };
 
+/**
+ * A page in document format, with content arranged in columns.
+ */
 export type Document = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/document/v/1";
   properties: DocumentProperties;
   propertiesWithMetadata: DocumentPropertiesWithMetadata;
 };

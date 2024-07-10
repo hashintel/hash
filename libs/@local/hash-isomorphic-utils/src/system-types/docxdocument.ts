@@ -122,7 +122,11 @@ export type {
   UploadCompletedAtPropertyValueWithMetadata,
 };
 
+/**
+ * A Microsoft Word document.
+ */
 export type DOCXDocument = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/docx-document/v/1";
   properties: DOCXDocumentProperties;
   propertiesWithMetadata: DOCXDocumentPropertiesWithMetadata;
 };

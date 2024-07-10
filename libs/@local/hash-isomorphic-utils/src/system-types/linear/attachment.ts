@@ -412,7 +412,11 @@ export type {
   WorkflowStatePropertiesWithMetadata,
 };
 
+/**
+ * Issue attachment (e.g. support ticket, pull request).
+ */
 export type Attachment = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/attachment/v/1";
   properties: AttachmentProperties;
   propertiesWithMetadata: AttachmentPropertiesWithMetadata;
 };
@@ -477,7 +481,11 @@ export type AttachmentURLPropertyValue = TextDataType;
 
 export type AttachmentURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
+/**
+ * The issue this attachment belongs to.
+ */
 export type BelongsToIssue = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1";
   properties: BelongsToIssueProperties;
   propertiesWithMetadata: BelongsToIssuePropertiesWithMetadata;
 };

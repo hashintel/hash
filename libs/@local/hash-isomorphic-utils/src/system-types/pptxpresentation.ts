@@ -122,7 +122,11 @@ export type {
   UploadCompletedAtPropertyValueWithMetadata,
 };
 
+/**
+ * A Microsoft PowerPoint presentation.
+ */
 export type PPTXPresentation = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/pptx-presentation/v/1";
   properties: PPTXPresentationProperties;
   propertiesWithMetadata: PPTXPresentationPropertiesWithMetadata;
 };

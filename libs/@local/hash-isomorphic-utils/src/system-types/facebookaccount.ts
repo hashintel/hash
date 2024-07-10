@@ -28,7 +28,11 @@ export type {
   TextDataTypeWithMetadata,
 };
 
+/**
+ * A Facebook account.
+ */
 export type FacebookAccount = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/facebook-account/v/1";
   properties: FacebookAccountProperties;
   propertiesWithMetadata: FacebookAccountPropertiesWithMetadata;
 };

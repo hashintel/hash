@@ -67,7 +67,11 @@ export type AvatarURLPropertyValue = TextDataType;
 
 export type AvatarURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
+/**
+ * The organization the user belongs to.
+ */
 export type BelongsToOrganization = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/belongs-to-organization/v/1";
   properties: BelongsToOrganizationProperties;
   propertiesWithMetadata: BelongsToOrganizationPropertiesWithMetadata;
 };
@@ -236,7 +240,11 @@ export type GuestPropertyValue = BooleanDataType;
 
 export type GuestPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
+/**
+ * The user to whom the issue is assigned to.
+ */
 export type HasAssignee = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/has-assignee/v/1";
   properties: HasAssigneeProperties;
   propertiesWithMetadata: HasAssigneePropertiesWithMetadata;
 };
@@ -259,7 +267,11 @@ export type HasAssigneePropertiesWithMetadata = {
   value: {};
 };
 
+/**
+ * The user who created something.
+ */
 export type HasCreator = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/has-creator/v/1";
   properties: HasCreatorProperties;
   propertiesWithMetadata: HasCreatorPropertiesWithMetadata;
 };
@@ -282,7 +294,11 @@ export type HasCreatorPropertiesWithMetadata = {
   value: {};
 };
 
+/**
+ * A user who is subscribed to the issue.
+ */
 export type HasSubscriber = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/has-subscriber/v/1";
   properties: HasSubscriberProperties;
   propertiesWithMetadata: HasSubscriberPropertiesWithMetadata;
 };
@@ -341,7 +357,11 @@ export type IsMePropertyValue = BooleanDataType;
 
 export type IsMePropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
+/**
+ * An issue.
+ */
 export type Issue = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/issue/v/1";
   properties: IssueProperties;
   propertiesWithMetadata: IssuePropertiesWithMetadata;
 };
@@ -473,7 +493,11 @@ export type LastSeenPropertyValue = TextDataType;
 
 export type LastSeenPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
+/**
+ * undefined
+ */
 export type Link = {
+  entityTypeId: "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
 };
@@ -526,7 +550,11 @@ export type NumberDataTypeMetadata = {
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
 };
 
+/**
+ * An organization. Organizations are root-level objects that contain user accounts and teams.
+ */
 export type Organization = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/organization/v/1";
   properties: OrganizationProperties;
   propertiesWithMetadata: OrganizationPropertiesWithMetadata;
 };
@@ -597,7 +625,11 @@ export type OrganizationPropertiesWithMetadata = {
   };
 };
 
+/**
+ * The parent of the issue.
+ */
 export type Parent = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/parent/v/1";
   properties: ParentProperties;
   propertiesWithMetadata: ParentPropertiesWithMetadata;
 };
@@ -693,7 +725,11 @@ export type SCIMEnabledPropertyValue = BooleanDataType;
 
 export type SCIMEnabledPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
+/**
+ * The user who snoozed the issue.
+ */
 export type SnoozedBy = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/snoozed-by/v/1";
   properties: SnoozedByProperties;
   propertiesWithMetadata: SnoozedByPropertiesWithMetadata;
 };
@@ -743,7 +779,11 @@ export type StartedTriageAtPropertyValue = TextDataType;
 
 export type StartedTriageAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
+/**
+ * The workflow state that the issue is associated with.
+ */
 export type State = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/state/v/1";
   properties: StateProperties;
   propertiesWithMetadata: StatePropertiesWithMetadata;
 };
@@ -858,7 +898,11 @@ export type UpdatedAtPropertyValue = TextDataType;
 
 export type UpdatedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
+/**
+ * A user that has access to the the resources of an organization.
+ */
 export type User = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/user/v/1";
   properties: UserProperties;
   propertiesWithMetadata: UserPropertiesWithMetadata;
 };
@@ -937,7 +981,11 @@ export type UserPropertiesWithMetadata = {
   };
 };
 
+/**
+ * A state in a team workflow.
+ */
 export type WorkflowState = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/workflow-state/v/1";
   properties: WorkflowStateProperties;
   propertiesWithMetadata: WorkflowStatePropertiesWithMetadata;
 };

@@ -28,7 +28,11 @@ export type {
   TextDataTypeWithMetadata,
 };
 
+/**
+ * An Instagram account.
+ */
 export type InstagramAccount = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/instagram-account/v/1";
   properties: InstagramAccountProperties;
   propertiesWithMetadata: InstagramAccountPropertiesWithMetadata;
 };
