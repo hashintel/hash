@@ -4,8 +4,8 @@ import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
-  ServiceFeatureProperties,
-  UsageRecordProperties,
+  ServiceFeature,
+  UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
@@ -23,7 +23,7 @@ const getServiceFeatureForUsage = ({
   usageRecord,
 }: {
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
-  usageRecord: Entity<UsageRecordProperties>;
+  usageRecord: Entity<UsageRecord>;
 }) => {
   const linkedEntities = getOutgoingLinkAndTargetEntities(
     serviceUsageRecordSubgraph,
@@ -42,7 +42,7 @@ const getServiceFeatureForUsage = ({
   }
 
   const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
-    .rightEntity[0]! as Entity<ServiceFeatureProperties>;
+    .rightEntity[0]! as Entity<ServiceFeature>;
 
   const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
     serviceFeatureEntity.properties,
@@ -99,7 +99,7 @@ export const getAggregateUsageRecordsByServiceFeature = ({
   serviceUsageRecordSubgraph,
 }: {
   decisionTimeInterval?: BoundedTimeInterval;
-  serviceUsageRecords: Entity<UsageRecordProperties>[];
+  serviceUsageRecords: Entity<UsageRecord>[];
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
 }): AggregatedUsageRecord[] => {
   const aggregateUsageByServiceFeature: Record<string, AggregatedUsageRecord> =
@@ -169,7 +169,7 @@ export const getAggregateUsageRecordsByTask = ({
   serviceUsageRecords,
   serviceUsageRecordSubgraph,
 }: {
-  serviceUsageRecords: Entity<UsageRecordProperties>[];
+  serviceUsageRecords: Entity<UsageRecord>[];
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
 }): AggregatedUsageByTask[] => {
   const aggregateUsageByTask: Record<string, AggregatedUsageByTask> = {};

@@ -22,11 +22,10 @@ import {
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type {
-  HasDataProperties,
-  HasIndexedContentProperties,
-  PageProperties,
+  HasIndexedContent,
+  Page as PageEntity,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
@@ -72,7 +71,7 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   }
 
   const { title, summary, fractionalIndex, icon, archived } =
-    simplifyProperties(entity.properties as PageProperties);
+    simplifyProperties(entity.properties as PageEntity["properties"]);
 
   return {
     title,
@@ -125,7 +124,7 @@ export const createPage: ImpureGraphFunction<
 
   const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
-  const properties: PageProperties = {
+  const properties: PageEntity["properties"] = {
     "https://hash.ai/@hash/types/property-type/title/": title,
     "https://hash.ai/@hash/types/property-type/fractional-index/":
       fractionalIndex,
@@ -208,7 +207,7 @@ export const getPageParentPage: ImpureGraphFunction<
     linkEntity: parentPageLink,
   });
 
-  return getPageFromEntity({ entity: pageEntity as Entity<PageProperties> });
+  return getPageFromEntity({ entity: pageEntity as Entity<PageEntity> });
 };
 
 /**
@@ -444,7 +443,12 @@ export const setPageParentPage: ImpureGraphFunction<
  */
 export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
-  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>,
+  Promise<
+    {
+      linkEntity: LinkEntity<HasIndexedContent | HasSpatiallyPositionedContent>;
+      rightEntity: Block;
+    }[]
+  >,
   false,
   true
 > = async (ctx, authentication, { pageEntityId, type }) => {
@@ -460,8 +464,8 @@ export const getPageBlocks: ImpureGraphFunction<
               .linkEntityTypeId,
     },
   )) as
-    | LinkEntity<HasIndexedContentProperties>[]
-    | LinkEntity<HasSpatiallyPositionedContentProperties>[];
+    | LinkEntity<HasIndexedContent>[]
+    | LinkEntity<HasSpatiallyPositionedContent>[];
 
   return await Promise.all(
     outgoingBlockDataLinks

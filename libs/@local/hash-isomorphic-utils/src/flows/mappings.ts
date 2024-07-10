@@ -3,14 +3,14 @@ import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
 import { simplifyProperties } from "../simplify-properties";
-import type { FlowDefinitionProperties } from "../system-types/flowdefinition";
-import type { FlowRunProperties } from "../system-types/flowrun";
+import type { FlowDefinition as FlowDefinitionEntity } from "../system-types/flowdefinition";
+import type { FlowRun } from "../system-types/flowrun";
 import type { TriggerDefinitionId } from "./trigger-definitions";
 import type { FlowDefinition, LocalFlowRun, OutputDefinition } from "./types";
 
 export const mapFlowDefinitionToEntityProperties = (
   flowDefinition: FlowDefinition,
-): FlowDefinitionProperties => ({
+): FlowDefinitionEntity["properties"] => ({
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
     flowDefinition.name,
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
@@ -28,7 +28,7 @@ export const mapFlowDefinitionToEntityProperties = (
 });
 
 export const mapFlowDefinitionEntityToFlowDefinition = (
-  entity: Entity<FlowDefinitionProperties>,
+  entity: Entity<FlowDefinitionEntity>,
 ): FlowDefinition => {
   const {
     name,
@@ -62,7 +62,7 @@ export const mapFlowDefinitionEntityToFlowDefinition = (
 
 export const mapFlowRunToEntityProperties = (
   flowRun: LocalFlowRun,
-): FlowRunProperties => ({
+): FlowRun["properties"] => ({
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
     flowRun.name,
   "https://hash.ai/@hash/types/property-type/flow-definition-id/":
@@ -75,9 +75,7 @@ export const mapFlowRunToEntityProperties = (
   },
 });
 
-export const mapFlowEntityToFlow = (
-  entity: Entity<FlowRunProperties>,
-): LocalFlowRun => {
+export const mapFlowEntityToFlow = (entity: Entity<FlowRun>): LocalFlowRun => {
   const {
     name,
     flowDefinitionId,

@@ -9,9 +9,10 @@ import { getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entit
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
-import type { PDFDocumentProperties } from "@local/hash-isomorphic-utils/system-types/pdfdocument";
-import type { PPTXPresentationProperties } from "@local/hash-isomorphic-utils/system-types/pptxpresentation";
+import type { DOCXDocument } from "@local/hash-isomorphic-utils/system-types/docxdocument";
+import type { File } from "@local/hash-isomorphic-utils/system-types/file";
+import type { PDFDocument } from "@local/hash-isomorphic-utils/system-types/pdfdocument";
+import type { PPTXPresentation } from "@local/hash-isomorphic-utils/system-types/pptxpresentation";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
@@ -22,10 +23,7 @@ export const entityTypesToParseTextFrom: VersionedUrl[] = [
   systemEntityTypes.pptxPresentation.entityTypeId,
 ];
 
-type FileEntityToParseProperties =
-  | DOCXDocumentProperties
-  | PDFDocumentProperties
-  | PPTXPresentationProperties;
+type FileEntityToParse = DOCXDocument | PDFDocument | PPTXPresentation;
 
 export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
   async ({
@@ -38,10 +36,10 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
     const { temporalClient } = context;
 
     const previousEntityProperties =
-      previousEntity as Entity<FileEntityToParseProperties>;
+      previousEntity as Entity<FileEntityToParse>;
 
     const getNewValueForPath =
-      getDefinedPropertyFromPatchesGetter<FileEntityToParseProperties>(
+      getDefinedPropertyFromPatchesGetter<FileEntityToParse["properties"]>(
         propertyPatches,
       );
 
@@ -56,7 +54,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
 
     const { textualContent, fileStorageProvider, uploadCompletedAt } =
       simplifyProperties(
-        updatedEntity.properties as FileEntityToParseProperties,
+        updatedEntity.properties as FileEntityToParse["properties"],
       );
 
     if (textualContent && newFileStorageKey === oldFileStorageKey) {
@@ -82,7 +80,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
       }
 
       const presignedFileDownloadUrl = await storageProvider.presignDownload({
-        entity: updatedEntity as Entity<FileEntityToParseProperties>,
+        entity: updatedEntity as Entity<File>,
         key: newFileStorageKey,
         expiresInSeconds: 60 * 60, // 1 hour
       });

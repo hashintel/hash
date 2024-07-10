@@ -30,7 +30,10 @@ import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  File,
+  FileProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import mime from "mime-types";
 
 import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity";
@@ -129,7 +132,7 @@ export const getFileEntityFromUrl = async (params: {
 }): Promise<
   | {
       status: "ok";
-      entity: Entity<FileProperties>;
+      entity: Entity<File>;
     }
   | {
       status: "error-uploading-file";
@@ -232,14 +235,16 @@ export const getFileEntityFromUrl = async (params: {
     },
   };
 
-  const incompleteFileEntity = await Entity.create(
+  const incompleteFileEntity = await Entity.create<File>(
     graphApiClient,
     { actorId: webBotActorId },
     {
       draft: false,
       ownedById: webId,
       propertyMetadata,
-      properties: initialProperties,
+      properties: {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": 4,
+      },
       entityTypeId,
       relationships:
         createDefaultAuthorizationRelationships(userAuthentication),
@@ -275,14 +280,14 @@ export const getFileEntityFromUrl = async (params: {
     ...fileStorageProperties,
   };
 
-  const updatedEntity = (await incompleteFileEntity.patch(
+  const updatedEntity = await incompleteFileEntity.patch(
     graphApiClient,
     { actorId: webBotActorId },
     {
       propertyPatches: propertyObjectToPatches(updatedProperties),
       provenance,
     },
-  )) as Entity<FileProperties>;
+  );
 
   try {
     await writeFileToS3URL({

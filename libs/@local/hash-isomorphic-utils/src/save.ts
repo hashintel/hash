@@ -6,6 +6,7 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
@@ -40,10 +41,7 @@ import type {
 } from "./graphql/api-types.gen";
 import { systemEntityTypes, systemLinkEntityTypes } from "./ontology-type-ids";
 import { isEntityNode } from "./prosemirror";
-import type {
-  BlockProperties,
-  HasIndexedContentProperties,
-} from "./system-types/shared";
+import type { Block, HasIndexedContent } from "./system-types/shared";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
@@ -54,7 +52,7 @@ type BeforeBlockDraftIdAndLink = [
   string,
   {
     linkEntityId: EntityId;
-    fractionalIndex: string;
+    fractionalIndex: string | null;
   },
 ];
 
@@ -75,7 +73,9 @@ const calculateSaveActions = (
   ownedById: OwnedById,
   blocksAndLinks: {
     blockEntity: GqlBlock;
-    contentLinkEntity: LinkEntity<HasIndexedContentProperties>;
+    contentLinkEntity: LinkEntity<
+      HasIndexedContent | HasSpatiallyPositionedContent
+    >;
   }[],
   doc: Node,
   getEntityTypeForComponent: (componentId: string) => VersionedUrl,
@@ -196,15 +196,20 @@ const calculateSaveActions = (
       blockEntity.metadata.recordId.entityId,
     );
 
+    const fractionalIndex =
+      "https://hash.ai/@hash/types/property-type/fractional-index/" in
+      contentLinkEntity.properties
+        ? contentLinkEntity.properties[
+            "https://hash.ai/@hash/types/property-type/fractional-index/"
+          ]
+        : null;
+
     if (draftEntity) {
       beforeBlockDraftIds.push([
         draftEntity.draftId,
         {
           linkEntityId: contentLinkEntity.metadata.recordId.entityId,
-          fractionalIndex:
-            contentLinkEntity.properties[
-              "https://hash.ai/@hash/types/property-type/fractional-index/"
-            ],
+          fractionalIndex,
         },
       ]);
     } else {
@@ -421,7 +426,7 @@ const getDraftEntityIds = (
 };
 
 const mapEntityToGqlBlock = (
-  entity: Entity<BlockProperties>,
+  entity: Entity<Block>,
   entitySubgraph: Subgraph<EntityRootType>,
 ): GqlBlock => {
   if (entity.metadata.entityTypeId !== systemEntityTypes.block.entityTypeId) {
@@ -495,8 +500,10 @@ export const save = async ({
 
       const blocksAndLinks = getOutgoingLinkAndTargetEntities<
         {
-          linkEntity: LinkEntity<HasIndexedContentProperties>[];
-          rightEntity: Entity<BlockProperties>[];
+          linkEntity: LinkEntity<
+            HasIndexedContent | HasSpatiallyPositionedContent
+          >[];
+          rightEntity: Entity<Block>[];
         }[]
       >(subgraph, blockCollectionEntity!.metadata.recordId.entityId)
         .filter(

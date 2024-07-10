@@ -11,10 +11,7 @@ import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  File,
-  FileProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import mime from "mime-types";
 
@@ -129,7 +126,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   MutationRequestFileUploadArgs,
   Promise<{
     presignedPut: PresignedPutUpload;
-    entity: Entity<FileProperties>;
+    entity: Entity<File>;
   }>,
   true,
   true
@@ -140,7 +137,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   const { entityTypeId, existingEntity, mimeType, ownedById } =
     await generateCommonParameters(ctx, authentication, params, name);
 
-  const initialProperties: FileProperties = {
+  const initialProperties: File["properties"] = {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
       description ?? undefined,
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
@@ -166,7 +163,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       properties: initialProperties,
       entityTypeId,
       relationships: createDefaultAuthorizationRelationships(authentication),
-    })) as Entity<FileProperties>;
+    })) as Entity<File>;
   }
 
   const editionIdentifier = generateUuid();
@@ -188,7 +185,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
       });
 
-    const additionalProperties: FileProperties = {
+    const additionalProperties: File["properties"] = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
         formatFileUrl(key),
       ...fileStorageProperties,
@@ -204,7 +201,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
           value,
         }),
       ),
-    })) as Entity<FileProperties>;
+    })) as Entity<File>;
 
     return {
       presignedPut,
@@ -217,7 +214,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
 export const createFileFromExternalUrl: ImpureGraphFunction<
   MutationCreateFileFromUrlArgs,
-  Promise<File>,
+  Promise<Entity<File>>,
   false,
   true
 > = async (ctx, authentication, params) => {
@@ -229,7 +226,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
     await generateCommonParameters(ctx, authentication, params, filename);
 
   try {
-    const properties: FileProperties = {
+    const properties: File["properties"] = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
         description ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
@@ -264,14 +261,14 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
               path: [baseUrl as BaseUrl],
               value,
             })),
-        })) as Entity<FileProperties>)
+        })) as Entity<File>)
       : ((await createEntity(ctx, authentication, {
           ownedById,
           properties,
           entityTypeId,
           relationships:
             createDefaultAuthorizationRelationships(authentication),
-        })) as Entity<FileProperties>);
+        })) as Entity<File>);
   } catch (error) {
     throw new Error(
       `There was an error creating the file entity from a link: ${error}`,

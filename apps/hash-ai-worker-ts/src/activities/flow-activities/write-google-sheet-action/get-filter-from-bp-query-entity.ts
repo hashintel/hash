@@ -5,7 +5,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
+import type { Query } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 
 import { getLatestEntityById } from "../shared/graph-requests";
 
@@ -18,13 +18,13 @@ export const getFilterFromBlockProtocolQueryEntity = async ({
   graphApiClient: GraphApi;
   queryEntityId: EntityId;
 }) => {
-  let queryEntity: Entity<QueryProperties> | undefined;
+  let queryEntity: Entity<Query> | undefined;
   try {
     queryEntity = (await getLatestEntityById({
       graphApiClient,
       authentication,
       entityId: queryEntityId,
-    })) as Entity<QueryProperties>;
+    })) as Entity<Query>;
   } catch {
     throw new Error(`No query entity found with id ${queryEntityId}.`);
   }

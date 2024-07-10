@@ -14,8 +14,8 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
   EntityRootType,
   GraphResolveDepths,
@@ -111,7 +111,7 @@ export const useUserOrOrg = (
 
     const rootEntity = subgraph
       ? getRoots(subgraph).reduce<
-          Entity<OrganizationProperties> | Entity<UserProperties> | undefined
+          Entity<Organization> | Entity<User> | undefined
         >((prev, currentEntity) => {
           if (
             !isEntityUserEntity(currentEntity) &&

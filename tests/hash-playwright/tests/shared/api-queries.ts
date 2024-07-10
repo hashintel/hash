@@ -4,7 +4,7 @@ import type { LinkData, PropertyObject } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";
@@ -45,9 +45,7 @@ export const getUser = async (requestContext: APIRequestContext) => {
   }).then(({ data }) => {
     return !data
       ? undefined
-      : (getRoots(
-          deserializeSubgraph(data.me.subgraph),
-        )[0] as Entity<UserProperties>);
+      : (getRoots(deserializeSubgraph(data.me.subgraph))[0] as Entity<User>);
   });
 };
 

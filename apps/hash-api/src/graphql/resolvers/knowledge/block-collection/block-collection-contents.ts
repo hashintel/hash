@@ -1,5 +1,6 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { HasData } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { getBlockCollectionBlocks } from "../../../../graph/knowledge/system-types/block-collection";
 import type { ResolverFn } from "../../../api-types.gen";
@@ -9,7 +10,10 @@ import type { UnresolvedBlockGQL } from "../graphql-mapping";
 import { mapBlockToGQL } from "../graphql-mapping";
 
 export const blockCollectionContents: ResolverFn<
-  { linkEntity: HasData; rightEntity: UnresolvedBlockGQL }[],
+  {
+    linkEntity: LinkEntity<HasSpatiallyPositionedContent | HasIndexedContent>;
+    rightEntity: UnresolvedBlockGQL;
+  }[],
   Entity,
   LoggedInGraphQLContext,
   Record<string, never>

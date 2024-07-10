@@ -28,7 +28,7 @@ import {
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
+import type { UsageRecord } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type {
   EntityRelationAndSubject,
   EntityRootType,
@@ -96,7 +96,9 @@ export const getWebServiceUsage = async (
       );
     });
 
-  const serviceUsageRecords = getRoots(serviceUsageRecordSubgraph);
+  const serviceUsageRecords = getRoots(
+    serviceUsageRecordSubgraph,
+  ) as Entity<UsageRecord>[];
 
   const aggregateUsageRecords = getAggregateUsageRecordsByServiceFeature({
     decisionTimeInterval,
@@ -142,7 +144,7 @@ export const createUsageRecord = async (
     userAccountId: AccountId;
   },
 ) => {
-  const properties: UsageRecordProperties = {
+  const properties: UsageRecord["properties"] = {
     "https://hash.ai/@hash/types/property-type/input-unit-count/":
       inputUnitCount,
     "https://hash.ai/@hash/types/property-type/output-unit-count/":
