@@ -28,6 +28,7 @@ import {
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
+import { EntityTypeWithMetadata } from "@local/hash-graph-client";
 
 type FieldId = "status" | "entityTypeId" | "entityLabel";
 
@@ -131,6 +132,7 @@ type EntityResultTableProps = {
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
   proposedEntities: Omit<ProposedEntity, "provenance" | "propertyMetadata">[];
+  proposedEntitiesTypesById: Record<VersionedUrl, EntityTypeWithMetadata>;
 };
 
 export const EntityResultTable = ({

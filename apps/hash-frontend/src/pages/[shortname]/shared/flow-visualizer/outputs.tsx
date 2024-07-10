@@ -11,12 +11,15 @@ import type {
 import {
   currentTimeInstantTemporalAxes,
   fullOntologyResolveDepths,
+  generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType, EntityTypeRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -26,8 +29,11 @@ import type {
   FlowRun,
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 import { TypeSlideOverStack } from "../../../shared/entity-type-page/type-slide-over-stack";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../shared/get-file-properties";
@@ -38,7 +44,7 @@ import type { DeliverableData } from "./outputs/deliverables/shared/types";
 import { EntityResultTable } from "./outputs/entity-result-table";
 import { PersistedEntityGraph } from "./outputs/persisted-entity-graph";
 import { outputIcons } from "./outputs/shared/icons";
-import { SectionLabel } from "./section-label";
+import { flowSectionBorderRadius } from "./shared/styles";
 
 export const getDeliverables = (
   outputs?: FlowRun["outputs"],
@@ -99,48 +105,35 @@ const VisibilityButton = ({
   <IconButton
     onClick={onClick}
     sx={({ palette }) => ({
-      p: 0,
+      background: active ? palette.common.white : palette.gray[20],
+      borderRadius: 16,
+      px: 1.2,
+      py: 0.8,
       svg: {
-        fontSize: 15,
+        fontSize: 14,
       },
       "&:hover": {
-        background: "none",
-        svg: {
-          background: active ? palette.gray[20] : palette.blue[20],
-          fill: active ? palette.gray[50] : palette.blue[70],
-        },
-        "> div": { background: active ? palette.gray[20] : palette.blue[20] },
-        span: { color: active ? palette.gray[60] : palette.common.black },
+        background: active ? palette.common.white : palette.gray[20],
       },
+      transition: ({ transitions }) => transitions.create("background"),
     })}
   >
-    <Box
-      sx={{
-        background: ({ palette }) =>
-          active ? palette.blue[20] : palette.gray[20],
-        borderRadius: "50%",
-        p: "4.5px",
-        transition: ({ transitions }) => transitions.create("background"),
-        width: 24,
-        height: 24,
-      }}
-    >
-      <Icon
-        sx={({ palette }) => ({
-          color: active ? palette.blue[70] : palette.gray[50],
-          display: "block",
-        })}
-      />
-    </Box>
+    <Icon
+      sx={({ palette }) => ({
+        color: active ? palette.common.black : palette.gray[80],
+        display: "block",
+      })}
+    />
 
     <Typography
       component="span"
       sx={{
         color: ({ palette }) =>
-          active ? palette.common.black : palette.gray[60],
+          active ? palette.common.black : palette.gray[80],
         fontSize: 13,
         fontWeight: 500,
-        ml: 0.5,
+        ml: 0.8,
+        textTransform: "capitalize",
         transition: ({ transitions }) => transitions.create("color"),
       }}
     >
@@ -182,11 +175,13 @@ export const Outputs = ({
     [selectedFlowRun],
   );
 
+  const [selectedSection, setSelectedSection] = useState<"table" | "graph">(
+    "table",
+  );
+
   const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>(
     {
-      table: true,
-      graph: true,
-      deliverables: true,
+      deliverables: false,
     },
   );
 
@@ -216,6 +211,36 @@ export const Outputs = ({
     }),
     [persistedEntities],
   );
+
+  const { data: proposedEntitiesTypesData } = useQuery<
+    QueryEntityTypesQuery,
+    QueryEntityTypesQueryVariables
+  >(queryEntityTypesQuery, {
+    fetchPolicy: "cache-and-network",
+    variables: {
+      filter: {
+        any: proposedEntities.map((proposedEntity) =>
+          generateVersionedUrlMatchingFilter(proposedEntity.entityTypeId),
+        ),
+      },
+      ...fullOntologyResolveDepths,
+    },
+    skip: proposedEntities.length === 0,
+  });
+
+  const proposedEntitiesTypesById = useMemo(() => {
+    if (!proposedEntitiesTypesData) {
+      return {};
+    }
+
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityTypeRootType>(
+      proposedEntitiesTypesData.queryEntityTypes,
+    );
+
+    const entityTypes = getRoots(subgraph);
+
+    return Object.groupBy(entityTypes, (entityType) => entityType.schema.$id);
+  }, [proposedEntitiesTypesData]);
 
   const { data: entitiesSubgraphData } = useQuery<
     GetEntitySubgraphQuery,
@@ -284,22 +309,30 @@ export const Outputs = ({
           readonly
         />
       )}
-      <Stack alignItems="center" direction="row" gap={2} mb={0.5}>
-        <SectionLabel text="Outputs" />
-        {typedEntries(sectionVisibility).map(([section, visible]) => (
-          <VisibilityButton
-            key={section}
-            label={`${section[0]!.toUpperCase()}${section.slice(1)}`}
-            active={visible}
-            Icon={outputIcons[section]}
-            onClick={() =>
-              setSectionVisibility((prev) => ({
-                ...prev,
-                [section]: !visible,
-              }))
-            }
-          />
-        ))}
+      <Stack alignItems="center" direction="row" justifyContent="space-between">
+        <Box />
+        <Stack
+          alignItems="center"
+          direction="row"
+          gap={0.5}
+          py={0.9}
+          px={1}
+          sx={{
+            background: ({ palette }) => palette.gray[20],
+            borderTopRightRadius: flowSectionBorderRadius,
+            borderTopLeftRadius: flowSectionBorderRadius,
+          }}
+        >
+          {(["graph", "table"] as const).map((section) => (
+            <VisibilityButton
+              key={section}
+              label={section}
+              active={selectedSection === section}
+              Icon={outputIcons[section]}
+              onClick={() => setSelectedSection(section)}
+            />
+          ))}
+        </Stack>
       </Stack>
       <Stack
         alignItems="center"
@@ -311,7 +344,7 @@ export const Outputs = ({
           overflowX: "auto",
         }}
       >
-        {sectionVisibility.table && (
+        {selectedSection === "table" ? (
           <EntityResultTable
             onEntityClick={(entity) => setSlideOver({ type: "entity", entity })}
             onEntityTypeClick={(entityTypeId) =>
@@ -320,10 +353,9 @@ export const Outputs = ({
             persistedEntities={persistedEntities}
             persistedEntitiesSubgraph={persistedEntitiesSubgraph}
             proposedEntities={proposedEntities}
+            proposedEntitiesTypesById={proposedEntitiesTypesById}
           />
-        )}
-
-        {sectionVisibility.graph && (
+        ) : (
           <PersistedEntityGraph
             onEntityClick={(entity) => setSlideOver({ type: "entity", entity })}
             persistedEntities={persistedEntities}

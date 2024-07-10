@@ -488,21 +488,28 @@ export const FlowVisualizer = () => {
                 showDag={() => setShowDag(true)}
               />
             ) : null}
-            {!selectedFlowRun && (
-              <Box
-                sx={{
-                  minHeight: 300,
-                  px: 3,
-                }}
-              >
-                <SectionLabel text="definition" />
+            <Box
+              sx={{
+                minHeight: 300,
+                px: 3,
+                width: "100%",
+              }}
+            >
+              <SectionLabel text={selectedFlowRun ? "outputs" : "definition"} />
+              {selectedFlowRun ? (
+                <Outputs
+                  key={`${flowRunStateKey}-outputs`}
+                  persistedEntities={persistedEntities}
+                  proposedEntities={proposedEntities}
+                />
+              ) : (
                 <DAG
                   key={flowDefinitionStateKey}
                   groups={flowMaybeGrouped.groups}
                   selectedFlowDefinition={selectedFlowDefinition}
                 />
-              </Box>
-            )}
+              )}
+            </Box>
           </Stack>
         </Box>
 
@@ -524,24 +531,10 @@ export const FlowVisualizer = () => {
               height: "100%",
               py: 2.5,
               pr: 3,
-              width: "30%",
+              width: "50%",
             }}
           >
             <ActivityLog key={`${flowRunStateKey}-activity-log`} logs={logs} />
-          </Stack>
-          <Stack
-            sx={{
-              height: "100%",
-              py: 2.5,
-              pl: 3,
-              width: "70%",
-            }}
-          >
-            <Outputs
-              key={`${flowRunStateKey}-outputs`}
-              persistedEntities={persistedEntities}
-              proposedEntities={proposedEntities}
-            />
           </Stack>
         </Stack>
       </Box>
