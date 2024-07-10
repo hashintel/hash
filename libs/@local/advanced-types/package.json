@@ -26,7 +26,7 @@
     "@local/tsconfig": "0.0.0-private",
     "eslint": "8.57.0",
     "react": "18.2.0",
-    "rimraf": "5.0.8",
+    "rimraf": "5.0.9",
     "typescript": "5.5.3"
   }
 }
