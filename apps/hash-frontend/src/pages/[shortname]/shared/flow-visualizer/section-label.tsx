@@ -5,8 +5,6 @@ export const SectionLabel = ({ text }: { text: string }) => (
     variant="smallCaps"
     sx={{
       color: ({ palette }) => palette.gray[50],
-      fontWeight: 600,
-      textTransform: "uppercase",
     }}
   >
     {text}

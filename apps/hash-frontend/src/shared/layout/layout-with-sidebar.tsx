@@ -108,6 +108,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                 : palette.common.white,
               minHeight: "100%",
               flex: 1,
+              width: "100%",
             })}
           >
             <Main

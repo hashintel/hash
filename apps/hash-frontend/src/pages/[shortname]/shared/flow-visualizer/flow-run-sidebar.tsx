@@ -1,9 +1,11 @@
 import {
   ArrowRightIconRegular,
+  ArrowUpRightRegularIcon,
   CaretDownSolidIcon,
   CircleCheckRegularIcon,
   CircleEllipsisRegularIcon,
   CloseIcon,
+  IconButton,
 } from "@hashintel/design-system";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
@@ -298,6 +300,7 @@ type FlowRunSidebarProps = {
   flowRunId: EntityUuid;
   groups: FlowMaybeGrouped["groups"];
   name: FlowRun["name"];
+  showDag: () => void;
 };
 
 export const FlowRunSidebar = ({
@@ -305,6 +308,7 @@ export const FlowRunSidebar = ({
   flowRunId,
   groups,
   name,
+  showDag,
 }: FlowRunSidebarProps) => {
   const { isUsageAvailable, usageByFlowRun } = useFlowRunsUsage({
     flowRunIds: [flowRunId],
@@ -354,7 +358,26 @@ export const FlowRunSidebar = ({
         </SidebarSection>
       </Box>
       <Box>
-        <SectionLabel text="Flow" />
+        <Stack alignItems="center" direction="row" mb={0.3}>
+          <SectionLabel text="Plan" />
+          <IconButton
+            onClick={() => showDag()}
+            sx={{ px: 0.3, py: 0.1, ml: 0.5, "& svg": { fontSize: 12 } }}
+          >
+            <Typography
+              variant="smallCaps"
+              sx={{ color: ({ palette }) => palette.blue[70] }}
+            >
+              View
+            </Typography>
+            <ArrowUpRightRegularIcon
+              sx={{
+                fill: ({ palette }) => palette.blue[70],
+                ml: 0.3,
+              }}
+            />
+          </IconButton>
+        </Stack>
         <SidebarSection>
           <Box>
             {groups.map((groupData) => (

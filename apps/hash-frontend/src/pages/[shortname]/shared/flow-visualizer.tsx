@@ -11,12 +11,10 @@ import type {
   PersistedEntity,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Stack, Typography } from "@mui/material";
-import { format } from "date-fns";
+import { Box, Stack } from "@mui/material";
 import NotFound from "next/dist/client/components/not-found-error";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
-import { ReactFlowProvider } from "reactflow";
 
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import type {
@@ -29,15 +27,14 @@ import { defaultBrowserPluginDomains } from "../../goals/new.page/internet-setti
 import { useFlowDefinitionsContext } from "../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../shared/flow-runs-context";
 import { ActivityLog } from "./flow-visualizer/activity-log";
+import { DAG } from "./flow-visualizer/dag";
+import { DagSlide } from "./flow-visualizer/dag-slide";
 import { FlowRunSidebar } from "./flow-visualizer/flow-run-sidebar";
 import { Outputs } from "./flow-visualizer/outputs";
 import { RunFlowModal } from "./flow-visualizer/run-flow-modal";
 import { SectionLabel } from "./flow-visualizer/section-label";
 import { nodeDimensions } from "./flow-visualizer/shared/dimensions";
-import {
-  flowSectionBorderRadius,
-  transitionOptions,
-} from "./flow-visualizer/shared/styles";
+import { transitionOptions } from "./flow-visualizer/shared/styles";
 import type {
   CustomEdgeType,
   CustomNodeType,
@@ -49,7 +46,6 @@ import {
   getFlattenedSteps,
   groupStepsByDependencyLayer,
 } from "./flow-visualizer/sort-graph";
-import { Swimlane } from "./flow-visualizer/swimlane";
 import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
 
 const getGraphFromFlowDefinition = (
@@ -204,6 +200,8 @@ export const FlowRunVisualizerSkeleton = () => (
 );
 
 export const FlowVisualizer = () => {
+  const [showDag, setShowDag] = useState(false);
+
   const apolloClient = useApolloClient();
 
   const { push } = useRouter();
@@ -395,204 +393,158 @@ export const FlowVisualizer = () => {
     !unrunnableDefinitionIds.includes(selectedFlowDefinition.flowDefinitionId);
 
   return (
-    <Box sx={{ height: containerHeight }}>
-      {isRunnableFromHere && (
-        <RunFlowModal
-          key={selectedFlowDefinition.name}
-          flowDefinition={selectedFlowDefinition}
-          open={showRunModal}
-          onClose={() => setShowRunModal(false)}
-          runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
-            const { data } = await startFlow({
-              variables: {
-                dataSources: {
-                  files: { fileEntityIds: [] },
-                  internetAccess: {
-                    browserPlugin: {
-                      domains: defaultBrowserPluginDomains,
-                      enabled: true,
-                    },
-                    enabled: true,
-                  },
-                },
-                flowDefinition: selectedFlowDefinition,
-                flowTrigger: {
-                  outputs,
-                  triggerDefinitionId: "userTrigger",
-                },
-                webId,
-              },
-            });
-
-            const flowRunId = data?.startFlow;
-            if (!flowRunId) {
-              throw new Error("Failed to start flow");
-            }
-
-            await apolloClient.refetchQueries({
-              include: ["getFlowRuns"],
-            });
-
-            setShowRunModal(false);
-
-            const { shortname } = getOwner({ ownedById: webId });
-
-            void push(generateWorkerRunPath({ shortname, flowRunId }));
-          }}
+    <>
+      {selectedFlowRun && (
+        <DagSlide
+          groups={flowMaybeGrouped.groups}
+          open={showDag}
+          onClose={() => setShowDag(false)}
+          selectedFlowDefinition={selectedFlowDefinition}
         />
       )}
-      <Topbar
-        handleRunFlowClicked={handleRunFlowClicked}
-        showRunButton={isRunnableFromHere}
-      />
-      <Box
-        sx={{
-          height: `calc(100% - ${outputsHeight + topbarHeight}px)`,
-          overflow: "auto",
-          width: "100%",
-          background: ({ palette }) =>
-            selectedFlowRun ? palette.gray[10] : "rgb(241, 246, 251)",
-          transition: ({ transitions }) =>
-            transitions.create("background", transitionOptions),
-          pt: 1.5,
-          "&:after": {
-            content: '""',
-            display: "block",
-            height: 24,
-            width: "100%",
-          },
-        }}
-      >
-        <Stack
-          direction="row"
+      <Box sx={{ height: containerHeight }}>
+        {isRunnableFromHere && (
+          <RunFlowModal
+            key={selectedFlowDefinition.name}
+            flowDefinition={selectedFlowDefinition}
+            open={showRunModal}
+            onClose={() => setShowRunModal(false)}
+            runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
+              const { data } = await startFlow({
+                variables: {
+                  dataSources: {
+                    files: { fileEntityIds: [] },
+                    internetAccess: {
+                      browserPlugin: {
+                        domains: defaultBrowserPluginDomains,
+                        enabled: true,
+                      },
+                      enabled: true,
+                    },
+                  },
+                  flowDefinition: selectedFlowDefinition,
+                  flowTrigger: {
+                    outputs,
+                    triggerDefinitionId: "userTrigger",
+                  },
+                  webId,
+                },
+              });
+
+              const flowRunId = data?.startFlow;
+              if (!flowRunId) {
+                throw new Error("Failed to start flow");
+              }
+
+              await apolloClient.refetchQueries({
+                include: ["getFlowRuns"],
+              });
+
+              setShowRunModal(false);
+
+              const { shortname } = getOwner({ ownedById: webId });
+
+              void push(generateWorkerRunPath({ shortname, flowRunId }));
+            }}
+          />
+        )}
+        <Box sx={{ background: ({ palette }) => palette.gray[5] }}>
+          <Topbar
+            handleRunFlowClicked={handleRunFlowClicked}
+            showRunButton={isRunnableFromHere}
+          />
+        </Box>
+        <Box
           sx={{
+            height: `calc(100% - ${outputsHeight + topbarHeight}px)`,
+            overflow: "auto",
             width: "100%",
+            background: ({ palette }) =>
+              selectedFlowRun ? palette.gray[10] : "rgb(241, 246, 251)",
+            transition: ({ transitions }) =>
+              transitions.create("background", transitionOptions),
+            pt: 1.5,
+            "&:after": {
+              content: '""',
+              display: "block",
+              height: 24,
+              width: "100%",
+            },
           }}
         >
-          {selectedFlowRun ? (
-            <FlowRunSidebar
-              flowDefinition={selectedFlowDefinition}
-              flowRunId={selectedFlowRun.flowRunId}
-              groups={flowMaybeGrouped.groups}
-              name={selectedFlowRun.name}
-            />
-          ) : null}
-          <Box sx={{ minHeight: 300, px: 3 }}>
-            <SectionLabel text={selectedFlowRun ? "status" : "definition"} />
-            <Stack
-              sx={({ palette, transitions }) => ({
-                background: palette.common.white,
-                border: `1px solid ${palette.gray[selectedFlowRun ? 20 : 30]}`,
-                borderRadius: flowSectionBorderRadius,
-                "& > :first-of-type": {
-                  borderTopRightRadius: flowSectionBorderRadius,
-                  borderTopLeftRadius: flowSectionBorderRadius,
-                },
-                "& > :last-child": {
-                  borderBottomRightRadius: flowSectionBorderRadius,
-                  borderBottomLeftRadius: flowSectionBorderRadius,
-                },
-                "& > :last-child > :first-of-type": {
-                  borderBottomLeftRadius: flowSectionBorderRadius,
-                },
-                flexWrap: "wrap",
-                transition: transitions.create("border", transitionOptions),
-              })}
-            >
-              <Stack
-                direction="row"
+          <Stack
+            direction="row"
+            sx={{
+              maxWidth: "100%",
+              width: "100%",
+            }}
+          >
+            {selectedFlowRun ? (
+              <FlowRunSidebar
+                flowDefinition={selectedFlowDefinition}
+                flowRunId={selectedFlowRun.flowRunId}
+                groups={flowMaybeGrouped.groups}
+                name={selectedFlowRun.name}
+                showDag={() => setShowDag(true)}
+              />
+            ) : null}
+            {!selectedFlowRun && (
+              <Box
                 sx={{
-                  borderBottom: ({ palette }) =>
-                    `1px solid ${palette.gray[20]}`,
-                  p: 3,
+                  minHeight: 300,
+                  px: 3,
                 }}
               >
-                {selectedFlowRun ? (
-                  <Typography
-                    variant="smallTextParagraphs"
-                    sx={{ color: ({ palette }) => palette.gray[60] }}
-                  >
-                    Started <strong>manually</strong> when triggered on{" "}
-                    {format(
-                      new Date(selectedFlowRun.startedAt),
-                      "yyyy-MM-dd 'at' h:mm a",
-                    )}
-                  </Typography>
-                ) : (
-                  <>
-                    <Typography
-                      component="span"
-                      sx={{ fontSize: 14, fontWeight: 600, mr: 2 }}
-                    >
-                      {selectedFlowDefinition.name}
-                    </Typography>
-                    <Typography
-                      component="span"
-                      sx={{ fontSize: 14, fontWeight: 400 }}
-                    >
-                      {selectedFlowDefinition.description}
-                    </Typography>
-                  </>
-                )}
-              </Stack>
+                <SectionLabel text="definition" />
+                <DAG
+                  key={flowDefinitionStateKey}
+                  groups={flowMaybeGrouped.groups}
+                  selectedFlowDefinition={selectedFlowDefinition}
+                />
+              </Box>
+            )}
+          </Stack>
+        </Box>
 
-              {flowMaybeGrouped.groups.map(({ group, nodes, edges }) => (
-                <ReactFlowProvider
-                  key={`${flowDefinitionStateKey}-${
-                    group?.groupId ?? "ungrouped"
-                  }`}
-                >
-                  <Swimlane
-                    group={group}
-                    nodes={nodes}
-                    edges={edges}
-                    isOnlySwimlane={flowMaybeGrouped.groups.length === 1}
-                  />
-                </ReactFlowProvider>
-              ))}
-            </Stack>
-          </Box>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          sx={({ palette }) => ({
+            background: palette.gray[10],
+            borderTop: `2px solid ${palette.gray[20]}`,
+            height: outputsHeight,
+            maxWidth: "100%",
+            px: 3,
+            width: "100%",
+          })}
+        >
+          <Stack
+            sx={{
+              borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+              height: "100%",
+              py: 2.5,
+              pr: 3,
+              width: "30%",
+            }}
+          >
+            <ActivityLog key={`${flowRunStateKey}-activity-log`} logs={logs} />
+          </Stack>
+          <Stack
+            sx={{
+              height: "100%",
+              py: 2.5,
+              pl: 3,
+              width: "70%",
+            }}
+          >
+            <Outputs
+              key={`${flowRunStateKey}-outputs`}
+              persistedEntities={persistedEntities}
+              proposedEntities={proposedEntities}
+            />
+          </Stack>
         </Stack>
       </Box>
-
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        sx={({ palette }) => ({
-          background: palette.gray[10],
-          borderTop: `2px solid ${palette.gray[20]}`,
-          height: outputsHeight,
-          maxWidth: "100%",
-          px: 3,
-          width: "100%",
-        })}
-      >
-        <Stack
-          sx={{
-            borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-            height: "100%",
-            py: 2.5,
-            pr: 3,
-            width: "30%",
-          }}
-        >
-          <ActivityLog key={`${flowRunStateKey}-activity-log`} logs={logs} />
-        </Stack>
-        <Stack
-          sx={{
-            height: "100%",
-            py: 2.5,
-            pl: 3,
-            width: "70%",
-          }}
-        >
-          <Outputs
-            key={`${flowRunStateKey}-outputs`}
-            persistedEntities={persistedEntities}
-            proposedEntities={proposedEntities}
-          />
-        </Stack>
-      </Stack>
-    </Box>
+    </>
   );
 };
