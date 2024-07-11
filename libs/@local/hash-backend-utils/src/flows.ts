@@ -19,7 +19,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { FlowRunProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -35,7 +35,7 @@ export const getFlowRunEntityById = async (params: {
   flowRunId: EntityUuid;
   graphApiClient: GraphApi;
   userAuthentication: { actorId: AccountId };
-}): Promise<Entity<FlowRunProperties> | null> => {
+}): Promise<Entity<FlowRunEntity> | null> => {
   const { flowRunId, graphApiClient, userAuthentication } = params;
 
   const [existingFlowEntity] = await graphApiClient
@@ -60,7 +60,7 @@ export const getFlowRunEntityById = async (params: {
           mapGraphApiEntityToEntity(
             entity,
             userAuthentication.actorId,
-          ) as Entity<FlowRunProperties>,
+          ) as Entity<FlowRunEntity>,
       ),
     );
 
@@ -215,7 +215,7 @@ export async function getFlowRuns({
         );
 
         flowRunIdToOwnedByAndName[entityUuid] = {
-          name: (entity.properties as FlowRunProperties)[
+          name: (entity.properties as FlowRunEntity["properties"])[
             "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
           ],
           ownedById,

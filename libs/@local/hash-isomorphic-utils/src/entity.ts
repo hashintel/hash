@@ -1,7 +1,10 @@
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
-import type { HasIndexedContentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type {
+  HasIndexedContent,
+  Text,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { Subgraph } from "@local/hash-subgraph";
 import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
@@ -22,8 +25,8 @@ export type BlockEntity = Omit<Block, "blockChildEntity"> & {
 
 export type BlockCollectionContentItem = {
   linkEntity:
-    | LinkEntity<HasIndexedContentProperties>
-    | LinkEntity<HasSpatiallyPositionedContentProperties>;
+    | LinkEntity<HasIndexedContent>
+    | LinkEntity<HasSpatiallyPositionedContent>;
   rightEntity: BlockEntity;
 };
 
@@ -35,13 +38,17 @@ export type TextProperties = {
   [_ in typeof textualContentPropertyTypeBaseUrl]: TextToken[];
 };
 
-export type TextEntityType = Omit<EntityStoreType, "properties"> & {
+export type TextEntityStoreEntity = Omit<EntityStoreType, "properties"> & {
+  properties: TextProperties;
+};
+
+export type TextWithTokens = Omit<Text, "properties"> & {
   properties: TextProperties;
 };
 
 export const isRichTextProperties = (
   properties: Record<string, unknown>,
-): properties is TextEntityType["properties"] =>
+): properties is TextEntityStoreEntity["properties"] =>
   textualContentPropertyTypeBaseUrl in properties &&
   Array.isArray(
     properties[textualContentPropertyTypeBaseUrl as keyof typeof properties],

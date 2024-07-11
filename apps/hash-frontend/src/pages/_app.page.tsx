@@ -13,10 +13,9 @@ import wasm from "@blockprotocol/type-system/wasm";
 import type { EmotionCache } from "@emotion/react";
 import { CacheProvider } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
@@ -258,14 +257,14 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       context: { headers: { cookie } },
     })
     .then(({ data }) =>
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(data.me.subgraph),
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<User>>(
+        data.me.subgraph,
+      ),
     )
     .catch(() => undefined);
 
   const userEntity = initialAuthenticatedUserSubgraph
-    ? (getRoots<EntityRootType>(initialAuthenticatedUserSubgraph)[0] as
-        | Entity<UserProperties>
-        | undefined)
+    ? getRoots(initialAuthenticatedUserSubgraph)[0]
     : undefined;
 
   /** @todo: make additional pages publicly accessible */

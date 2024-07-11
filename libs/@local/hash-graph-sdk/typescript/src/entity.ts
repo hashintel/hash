@@ -19,6 +19,7 @@ import type {
 import type {
   EntityId,
   EntityMetadata,
+  EntityProperties,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
   EntityUuid,
@@ -57,14 +58,16 @@ export type EnforcedEntityEditionProvenance = Omit<
   origin: OriginProvenance;
 };
 
-export type CreateEntityParameters = Omit<
+export type CreateEntityParameters<
+  T extends EntityProperties = EntityProperties,
+> = Omit<
   GraphApiCreateEntityRequest,
   "entityTypeIds" | "decisionTime" | "draft" | "properties" | "provenance"
 > & {
   ownedById: OwnedById;
-  properties: PropertyObject;
+  properties: T["properties"];
   linkData?: LinkData;
-  entityTypeId: VersionedUrl;
+  entityTypeId: T["entityTypeId"];
   entityUuid?: EntityUuid;
   propertyMetadata?: PropertyMetadataObject;
   provenance: EnforcedEntityEditionProvenance;
@@ -92,12 +95,12 @@ export interface SerializedEntity<
   [typeId]: TypeId;
 }
 
-type EntityData<Properties extends PropertyObject = PropertyObject> = {
-  metadata: EntityMetadata & {
+type EntityData<Properties extends EntityProperties = EntityProperties> = {
+  metadata: EntityMetadata<Properties["entityTypeId"]> & {
     confidence?: number;
     properties?: PropertyMetadataObject;
   };
-  properties: Properties;
+  properties: Properties["properties"];
   linkData?: LinkData & {
     leftEntityConfidence?: number;
     rightEntityConfidence?: number;
@@ -110,8 +113,8 @@ type EntityInput<Properties extends PropertyObject> =
   | GraphApiEntity
   | SerializedEntity<Properties>;
 
-const isSerializedEntity = <Properties extends PropertyObject>(
-  entity: EntityInput<Properties>,
+const isSerializedEntity = <Properties extends EntityProperties>(
+  entity: EntityInput<EntityProperties["properties"]>,
 ): entity is SerializedEntity => {
   return (
     "entityTypeId" in
@@ -119,8 +122,8 @@ const isSerializedEntity = <Properties extends PropertyObject>(
   );
 };
 
-const isGraphApiEntity = <Properties extends PropertyObject>(
-  entity: EntityInput<Properties>,
+const isGraphApiEntity = <Properties extends EntityProperties>(
+  entity: EntityInput<EntityProperties["properties"]>,
 ): entity is GraphApiEntity => {
   return (
     "entityTypeIds" in
@@ -140,12 +143,13 @@ export const propertyObjectToPatches = (
   });
 
 /**
- * Creates an array of PropertyPatchOperations that, if applied, will transform the oldProperties into the newProperties.
+ * Creates an array of PropertyPatchOperations that, if applied, will transform the oldProperties into the
+ * newProperties.
  *
  * @deprecated this is a function for migration purposes only.
- *    For new code, track which properties are actually changed where they are changed, and create the patch operations directly.
- *    IF you use this, bear in mind that newProperties MUST represent ALL the properties that the entity will have after the patch.
- *    Any properties not specified in newProperties will be removed.
+ *    For new code, track which properties are actually changed where they are changed, and create the patch operations
+ *   directly. IF you use this, bear in mind that newProperties MUST represent ALL the properties that the entity will
+ *   have after the patch. Any properties not specified in newProperties will be removed.
  */
 export const patchesFromPropertyObjects = ({
   oldProperties,
@@ -188,8 +192,9 @@ export const patchesFromPropertyObjects = ({
 };
 
 /**
- * Return a helper function for the given Properties object and patches, which can be called with a BaseUrl valid for that object,
- * and will return the new value for that BaseUrl defined in the provided list of patches, or undefined if no new value has been set.
+ * Return a helper function for the given Properties object and patches, which can be called with a BaseUrl valid for
+ * that object, and will return the new value for that BaseUrl defined in the provided list of patches, or undefined if
+ * no new value has been set.
  *
  * The 'new value' is defined as the value for the first 'add' or 'replace' operation at that BaseUrl.
  * NOT supported:
@@ -198,16 +203,17 @@ export const patchesFromPropertyObjects = ({
  *
  * If you want to see if a value has been _removed_, see {@link isValueRemovedByPatches}
  *
- * An alternative implementation could avoid the need for an inner function, by requiring that the Key was specified as a generic:
- * export const getDefinedPropertyFromPatches = <
- *   Properties extends PropertyObject,
- *   Key extends keyof Properties,
+ * An alternative implementation could avoid the need for an inner function, by requiring that the Key was specified as
+ * a generic: export const getDefinedPropertyFromPatches = < Properties extends PropertyObject, Key extends keyof
+ * Properties,
  * > => { ... }
  *
- * const newValue = getDefinedPropertyFromPatches<Properties, "https://example.com/">({ propertyPatches, baseUrl: "https://example.com/" });
+ * const newValue = getDefinedPropertyFromPatches<Properties, "https://example.com/">({ propertyPatches, baseUrl:
+ * "https://example.com/" });
  *
- * This alternative is more tedious if you need to check for multiple properties, as (1) each key must be specified as both a generic and as an argument,
- * and (2) the propertyPatches provided each time. Unimplemented TS proposal partial type argument inference would solve (1) but not (2).
+ * This alternative is more tedious if you need to check for multiple properties, as (1) each key must be specified as
+ * both a generic and as an argument, and (2) the propertyPatches provided each time. Unimplemented TS proposal partial
+ * type argument inference would solve (1) but not (2).
  */
 export const getDefinedPropertyFromPatchesGetter = <
   Properties extends PropertyObject,
@@ -448,16 +454,16 @@ export const flattenPropertyMetadata = (
   return flattened;
 };
 
-export class Entity<Properties extends PropertyObject = PropertyObject> {
-  #entity: EntityData<Properties>;
+export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
+  #entity: EntityData<PropertyMap>;
 
-  constructor(entity: EntityInput<Properties>) {
+  constructor(entity: EntityInput<PropertyMap["properties"]>) {
     if (isSerializedEntity(entity)) {
-      this.#entity = entity as unknown as EntityData<Properties>;
+      this.#entity = entity as unknown as EntityData<PropertyMap>;
     } else if (isGraphApiEntity(entity)) {
       this.#entity = {
         ...entity,
-        properties: entity.properties as Properties,
+        properties: entity.properties as PropertyMap["properties"],
         metadata: {
           ...entity.metadata,
           recordId: entity.metadata.recordId as EntityRecordId,
@@ -500,21 +506,21 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
     }
   }
 
-  public static async create(
+  public static async create<T extends EntityProperties>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: CreateEntityParameters,
-  ): Promise<Entity> {
+    params: CreateEntityParameters<T>,
+  ): Promise<Entity<T>> {
     return (
-      await Entity.createMultiple(graphAPI, authentication, [params])
-    )[0]!;
+      await Entity.createMultiple<[T]>(graphAPI, authentication, [params])
+    )[0];
   }
 
-  public static async createMultiple(
+  public static async createMultiple<T extends EntityProperties[]>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: CreateEntityParameters[],
-  ): Promise<Entity[]> {
+    params: { [I in keyof T]: CreateEntityParameters<T[I]> },
+  ): Promise<{ [I in keyof T]: Entity<T[I]> }> {
     return graphAPI
       .createEntities(
         authentication.actorId,
@@ -546,8 +552,11 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
           }),
         ),
       )
-      .then(({ data: entities }) =>
-        entities.map((entity) => new Entity(entity)),
+      .then(
+        ({ data: entities }) =>
+          entities.map((entity, index) => {
+            return new Entity<T[typeof index]>(entity);
+          }) as { [I in keyof T]: Entity<T[I]> },
       );
   }
 
@@ -572,7 +581,17 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
       provenance,
       ...params
     }: PatchEntityParameters,
-  ): Promise<Entity<Properties>> {
+    /**
+     * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of the update.
+     *    I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId is changed, but
+     *    it isn't causing a compiler error:
+     *
+     *    public async patch<NewPropertyMap extends EntityProperties = PropertyMap>(
+     *      // PatchEntityParams sets a specific VersionedUrl based on NewPropertyMap, but this is not enforced by the compiler
+     *      params: PatchEntityParameters<NewPropertyMap>,
+     *    )
+     */
+  ): Promise<this> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
@@ -599,7 +618,7 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
         },
         ...params,
       })
-      .then(({ data }) => new Entity<Properties>(data));
+      .then(({ data }) => new Entity(data) as this);
   }
 
   public async archive(
@@ -630,7 +649,7 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
     return this.#entity.metadata.recordId.entityId;
   }
 
-  public get properties(): Properties {
+  public get properties(): PropertyMap["properties"] {
     return this.#entity.properties;
   }
 
@@ -666,7 +685,7 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
     return this.#entity.linkData;
   }
 
-  public toJSON(): SerializedEntity<Properties> {
+  public toJSON(): SerializedEntity<PropertyMap["properties"]> {
     return { [typeId]: typeId, ...this.#entity };
   }
 
@@ -676,7 +695,7 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
 }
 
 export class LinkEntity<
-  Properties extends PropertyObject = PropertyObject,
+  Properties extends EntityProperties = EntityProperties,
 > extends Entity<Properties> {
   constructor(entity: EntityInput<Properties> | Entity) {
     const input = (entity instanceof Entity ? entity.toJSON() : entity) as
@@ -692,11 +711,13 @@ export class LinkEntity<
     super(input as EntityInput<Properties>);
   }
 
-  public static async createMultiple(
+  public static async createMultiple<T extends EntityProperties[]>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: (CreateEntityParameters & { linkData: LinkData })[],
-  ): Promise<LinkEntity[]> {
+    params: {
+      [I in keyof T]: CreateEntityParameters<T[I]> & { linkData: LinkData };
+    },
+  ): Promise<{ [I in keyof T]: LinkEntity<T[I]> }> {
     return graphAPI
       .createEntities(
         authentication.actorId,
@@ -728,19 +749,22 @@ export class LinkEntity<
           }),
         ),
       )
-      .then(({ data: entities }) =>
-        entities.map((entity) => new LinkEntity(entity)),
+      .then(
+        ({ data: entities }) =>
+          entities.map((entity) => new LinkEntity(entity)) as {
+            [I in keyof T]: LinkEntity<T[I]>;
+          },
       );
   }
 
-  public static async create(
+  public static async create<T extends EntityProperties>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: CreateEntityParameters & { linkData: LinkData },
-  ): Promise<LinkEntity> {
+    params: CreateEntityParameters<T> & { linkData: LinkData },
+  ): Promise<LinkEntity<T>> {
     return (
-      await LinkEntity.createMultiple(graphAPI, authentication, [params])
-    )[0]!;
+      await LinkEntity.createMultiple<[T]>(graphAPI, authentication, [params])
+    )[0];
   }
 
   public async patch(
@@ -752,7 +776,7 @@ export class LinkEntity<
       provenance,
       ...params
     }: PatchEntityParameters,
-  ): Promise<LinkEntity<Properties>> {
+  ): Promise<this> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
@@ -779,7 +803,7 @@ export class LinkEntity<
         },
         ...params,
       })
-      .then(({ data }) => new LinkEntity<Properties>(data));
+      .then(({ data }) => new LinkEntity(data) as this);
   }
 
   public get linkData(): LinkData {

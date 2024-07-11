@@ -6,7 +6,6 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Confidence } from "@local/hash-graph-types/entity";
 
 import type {
@@ -100,7 +99,14 @@ export type ActorTypeDataTypeMetadata = {
   dataTypeId: "https://hash.ai/@hash/types/data-type/actor-type/v/1";
 };
 
-export type AssociatedWithAccount = LinkEntity<AssociatedWithAccountProperties>;
+/**
+ * The account that something is associated with.
+ */
+export type AssociatedWithAccount = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1";
+  properties: AssociatedWithAccountProperties;
+  propertiesWithMetadata: AssociatedWithAccountPropertiesWithMetadata;
+};
 
 export type AssociatedWithAccountOutgoingLinkAndTarget = never;
 
@@ -165,7 +171,14 @@ export type DescriptionPropertyValue = TextDataType;
 
 export type DescriptionPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type File = Entity<FileProperties>;
+/**
+ * A file hosted at a URL
+ */
+export type File = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/2";
+  properties: FileProperties;
+  propertiesWithMetadata: FilePropertiesWithMetadata;
+};
 
 /**
  * A unique signature derived from a file's contents
@@ -299,7 +312,14 @@ export type FileURLPropertyValue = TextDataType;
 
 export type FileURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type GoogleSheetsFile = Entity<GoogleSheetsFileProperties>;
+/**
+ * A Google Sheets file.
+ */
+export type GoogleSheetsFile = {
+  entityTypeId: "https://hash.ai/@google/types/entity-type/google-sheets-file/v/1";
+  properties: GoogleSheetsFileProperties;
+  propertiesWithMetadata: GoogleSheetsFilePropertiesWithMetadata;
+};
 
 export type GoogleSheetsFileAssociatedWithAccountLink = {
   linkEntity: AssociatedWithAccount;
@@ -379,7 +399,14 @@ export type OriginalURLPropertyValue = TextDataType;
 
 export type OriginalURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type SpreadsheetFile = Entity<SpreadsheetFileProperties>;
+/**
+ * A spreadsheet file.
+ */
+export type SpreadsheetFile = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1";
+  properties: SpreadsheetFileProperties;
+  propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
+};
 
 export type SpreadsheetFileOutgoingLinkAndTarget = never;
 

@@ -6,10 +6,16 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Confidence } from "@local/hash-graph-types/entity";
 
-export type Account = Entity<AccountProperties>;
+/**
+ * A Google user account.
+ */
+export type Account = {
+  entityTypeId: "https://hash.ai/@google/types/entity-type/account/v/1";
+  properties: AccountProperties;
+  propertiesWithMetadata: AccountPropertiesWithMetadata;
+};
 
 /**
  * A unique identifier for a Google account.
@@ -76,7 +82,14 @@ export type ExpiredAtPropertyValue = TextDataType;
 
 export type ExpiredAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type Link = Entity<LinkProperties>;
+/**
+ * undefined
+ */
+export type Link = {
+  entityTypeId: "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
+  properties: LinkProperties;
+  propertiesWithMetadata: LinkPropertiesWithMetadata;
+};
 
 export type LinkOutgoingLinkAndTarget = never;
 
@@ -104,7 +117,14 @@ export type TextDataTypeMetadata = {
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
 };
 
-export type UserSecret = Entity<UserSecretProperties>;
+/**
+ * A secret or credential belonging to a user.
+ */
+export type UserSecret = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/user-secret/v/1";
+  properties: UserSecretProperties;
+  propertiesWithMetadata: UserSecretPropertiesWithMetadata;
+};
 
 export type UserSecretOutgoingLinkAndTarget = never;
 
@@ -128,7 +148,14 @@ export type UserSecretPropertiesWithMetadata = {
   };
 };
 
-export type UsesUserSecret = LinkEntity<UsesUserSecretProperties>;
+/**
+ * The user secret something uses.
+ */
+export type UsesUserSecret = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1";
+  properties: UsesUserSecretProperties;
+  propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
+};
 
 export type UsesUserSecretOutgoingLinkAndTarget = never;
 

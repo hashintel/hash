@@ -18,6 +18,7 @@ import {
   getAggregateUsageRecordsByServiceFeature,
   getAggregateUsageRecordsByTask,
 } from "@local/hash-isomorphic-utils/service-usage";
+import type { UsageRecord } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
@@ -102,12 +103,11 @@ export const useFlowRunsUsage = ({
     const usageByFlowRunId: UsageByFlowRunId = {};
 
     for (const flowRunId of flowRunIds) {
-      const serviceUsageRecordSubgraph =
-        mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.getEntitySubgraph.subgraph,
-        );
+      const serviceUsageRecordSubgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
+        EntityRootType<UsageRecord>
+      >(data.getEntitySubgraph.subgraph);
 
-      const usageRecordsForFlowRun = getRoots<EntityRootType>(
+      const usageRecordsForFlowRun = getRoots(
         serviceUsageRecordSubgraph,
       ).filter((usageRecord) => {
         const linkedEntities = getOutgoingLinkAndTargetEntities(

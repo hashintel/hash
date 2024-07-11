@@ -12,8 +12,8 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { UsesUserSecretProperties } from "@local/hash-isomorphic-utils/system-types/google/shared";
-import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
+import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
@@ -30,8 +30,8 @@ export const getSecretEntitiesForIntegration = async ({
   integrationEntityId: EntityId;
 }): Promise<
   {
-    usesUserSecretLink: Entity<UsesUserSecretProperties>;
-    userSecret: Entity<UserSecretProperties>;
+    usesUserSecretLink: Entity<UsesUserSecret>;
+    userSecret: Entity<UserSecret>;
   }[]
 > => {
   return await graphApiClient
@@ -79,8 +79,8 @@ export const getSecretEntitiesForIntegration = async ({
       const linkEntities = getRoots(subgraph);
 
       const linkAndSecretPairs: {
-        usesUserSecretLink: Entity<UsesUserSecretProperties>;
-        userSecret: Entity<UserSecretProperties>;
+        usesUserSecretLink: Entity<UsesUserSecret>;
+        userSecret: Entity<UserSecret>;
       }[] = [];
 
       for (const link of linkEntities) {
@@ -117,8 +117,8 @@ export const getSecretEntitiesForIntegration = async ({
         }
 
         linkAndSecretPairs.push({
-          usesUserSecretLink: link,
-          userSecret: target as Entity<UserSecretProperties>,
+          usesUserSecretLink: link as Entity<UsesUserSecret>,
+          userSecret: target as Entity<UserSecret>,
         });
       }
 

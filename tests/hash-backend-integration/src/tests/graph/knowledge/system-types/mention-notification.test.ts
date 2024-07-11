@@ -34,7 +34,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Text as TextEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -273,7 +273,7 @@ describe.skip("Page Mention Notification", () => {
           },
         ],
       },
-    )) as Entity<TextProperties>;
+    )) as Entity<TextEntity>;
 
     /**
      * Notifications are created after the request is resolved, so we need to wait
@@ -333,7 +333,7 @@ describe.skip("Page Mention Notification", () => {
           },
         ],
       },
-    )) as Entity<TextProperties>;
+    )) as Entity<TextEntity>;
 
     /**
      * Notifications are created after the request is resolved, so we need to wait
@@ -447,7 +447,7 @@ describe.skip("Page Mention Notification", () => {
           },
         ],
       },
-    )) as Entity<TextProperties>;
+    )) as Entity<TextEntity>;
     commentText.textualContent = updatedCommentTextualContent;
 
     /**

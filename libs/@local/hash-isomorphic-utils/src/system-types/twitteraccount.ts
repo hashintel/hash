@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   ProfileURLPropertyValue,
@@ -29,7 +28,14 @@ export type {
   TextDataTypeWithMetadata,
 };
 
-export type TwitterAccount = Entity<TwitterAccountProperties>;
+/**
+ * A Twitter account.
+ */
+export type TwitterAccount = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/twitter-account/v/1";
+  properties: TwitterAccountProperties;
+  propertiesWithMetadata: TwitterAccountPropertiesWithMetadata;
+};
 
 export type TwitterAccountOutgoingLinkAndTarget = never;
 

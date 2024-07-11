@@ -8,7 +8,7 @@ import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/t
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   entityIdFromComponents,
   extractEntityUuidFromEntityId,
@@ -152,7 +152,7 @@ export const getFlowContext = async (): Promise<FlowContext> => {
   return { dataSources, userAuthentication, flowEntityId, webId, stepId };
 };
 
-export const getProvidedFiles = async (): Promise<Entity<FileProperties>[]> => {
+export const getProvidedFiles = async (): Promise<Entity<File>[]> => {
   const {
     dataSources: { files },
     flowEntityId,
@@ -166,7 +166,7 @@ export const getProvidedFiles = async (): Promise<Entity<FileProperties>[]> => {
   const filesCacheKey = `files-${flowEntityId}`;
   const cache = await getCache();
 
-  const cachedFiles = await cache.get<Entity<FileProperties>[]>(filesCacheKey);
+  const cachedFiles = await cache.get<Entity<File>[]>(filesCacheKey);
 
   if (cachedFiles) {
     return cachedFiles;
@@ -197,7 +197,7 @@ export const getProvidedFiles = async (): Promise<Entity<FileProperties>[]> => {
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: response }) =>
-      response.entities.map((entity) => new Entity<FileProperties>(entity)),
+      response.entities.map((entity) => new Entity<File>(entity)),
     );
 
   await cache.set(filesCacheKey, entities);
@@ -221,7 +221,7 @@ export const areUrlsTheSameAfterNormalization = (
 
 export const getProvidedFileByUrl = async (
   url: string,
-): Promise<Entity<FileProperties> | undefined> => {
+): Promise<Entity<File> | undefined> => {
   const files = await getProvidedFiles();
   return files.find((file) => {
     /**

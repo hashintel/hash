@@ -28,7 +28,10 @@ import {
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
+import type {
+  RecordsUsageOf,
+  UsageRecord,
+} from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type {
   EntityRelationAndSubject,
   EntityRootType,
@@ -90,7 +93,7 @@ export const getWebServiceUsage = async (
       includeDrafts: false,
     })
     .then(({ data }) => {
-      return mapGraphApiSubgraphToSubgraph<EntityRootType>(
+      return mapGraphApiSubgraphToSubgraph<EntityRootType<UsageRecord>>(
         data.subgraph,
         userAccountId,
       );
@@ -142,7 +145,7 @@ export const createUsageRecord = async (
     userAccountId: AccountId;
   },
 ) => {
-  const properties: UsageRecordProperties = {
+  const properties: UsageRecord["properties"] = {
     "https://hash.ai/@hash/types/property-type/input-unit-count/":
       inputUnitCount,
     "https://hash.ai/@hash/types/property-type/output-unit-count/":
@@ -269,43 +272,31 @@ export const createUsageRecord = async (
     },
   };
 
-  const createdEntities = await Entity.createMultiple(
-    context.graphApi,
-    authentication,
-    [
-      {
-        ownedById: assignUsageToWebId,
-        draft: false,
-        entityUuid: usageRecordEntityUuid,
-        properties,
-        provenance,
-        entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
-        relationships: entityRelationships,
+  const [usageRecord] = await Entity.createMultiple<
+    [UsageRecord, RecordsUsageOf]
+  >(context.graphApi, authentication, [
+    {
+      ownedById: assignUsageToWebId,
+      draft: false,
+      entityUuid: usageRecordEntityUuid,
+      properties,
+      provenance,
+      entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
+      relationships: entityRelationships,
+    },
+    {
+      ownedById: assignUsageToWebId,
+      draft: false,
+      properties: {},
+      provenance,
+      linkData: {
+        leftEntityId: usageRecordEntityId,
+        rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
       },
-      {
-        ownedById: assignUsageToWebId,
-        draft: false,
-        properties: {},
-        provenance,
-        linkData: {
-          leftEntityId: usageRecordEntityId,
-          rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
-        },
-        entityTypeId: systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
-        relationships: entityRelationships,
-      },
-    ],
-  );
+      entityTypeId: systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+      relationships: entityRelationships,
+    },
+  ]);
 
-  const usageRecordEntity = createdEntities.find(
-    (entity) => entity.metadata.recordId.entityId === usageRecordEntityId,
-  );
-
-  if (!usageRecordEntity) {
-    throw new Error(
-      `Failed to create usage record entity for webId ${assignUsageToWebId}.`,
-    );
-  }
-
-  return usageRecordEntity;
+  return usageRecord;
 };
