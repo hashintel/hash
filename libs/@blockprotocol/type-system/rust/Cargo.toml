@@ -27,7 +27,7 @@ utoipa = { version = "4.2.3", features = ["url"], optional = true }
 regex = "1.10.5"
 error-stack = "0.4.1"
 iso8601-duration = "0.2.0"
-uuid = { workspace = true }
+uuid = { workspace = true, features = ["std"] }
 email_address = { version = "0.2.5", default-features = false }
 
 [dev-dependencies]
