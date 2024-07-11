@@ -18,17 +18,17 @@ crate-type = ["cdylib", "rlib"]
 codec = { workspace = true, features = ["serde"] }
 
 postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"], optional = true }
-serde = { version = "1.0.200", features = ["derive"] }
-serde_json = "1.0.116"
-thiserror = "1.0.59"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = "1.0.61"
 tsify = "0.4.5"
-url = "2.5.0"
-utoipa = { version = "4.2.0", features = ["url"], optional = true }
+url = "2.5.2"
+utoipa = { version = "4.2.3", features = ["url"], optional = true }
 regex = "1.10.5"
 error-stack = "0.4.1"
 iso8601-duration = "0.2.0"
-uuid = "1.9.1"
-email_address = { version = "0.2.4", default-features = false }
+uuid = { workspace = true }
+email_address = { version = "0.2.5", default-features = false }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }
