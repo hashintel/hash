@@ -2,7 +2,7 @@ import { FileIconRegular, IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import type { Dispatch, SetStateAction } from "react";
@@ -13,7 +13,7 @@ import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { FileUploadDropzone } from "../../settings/shared/file-upload-dropzone";
 
 export type FileSettingsState = {
-  fileEntities: Entity<FileProperties>[];
+  fileEntities: Entity<FileEntity>[];
 };
 
 export type FileSettingsProps = {
@@ -32,7 +32,7 @@ const UploadedFile = ({
   fileEntity,
   removeFromFlow,
 }: {
-  fileEntity: Entity<FileProperties>;
+  fileEntity: Entity<FileEntity>;
   removeFromFlow: () => void;
 }) => {
   const { fileName, fileSize } = simplifyProperties(fileEntity.properties);
