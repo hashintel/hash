@@ -1,3 +1,4 @@
+use serde_json::Value as JsonValue;
 use thiserror::Error;
 
 use crate::{
@@ -6,7 +7,15 @@ use crate::{
 };
 
 #[derive(Debug, Error)]
-pub enum ValidateDataTypeError {}
+pub enum ValidateDataTypeError {
+    #[error("Enum values must be unique")]
+    EnumValuesMustBeUnique { enum_values: Vec<JsonValue> },
+    #[error("Enum values are not compatible with `const` value")]
+    EnumValuesNotCompatibleWithConst {
+        const_value: JsonValue,
+        enum_values: Vec<JsonValue>,
+    },
+}
 
 pub struct DataTypeValidator;
 

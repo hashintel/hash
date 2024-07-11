@@ -189,55 +189,67 @@ mod tests {
 
     use super::*;
     use crate::utils::tests::{
-        ensure_failed_deserialization, ensure_serialization_from_str, JsonEqualityCheck,
+        ensure_failed_deserialization, ensure_validation_from_str, JsonEqualityCheck,
     };
 
-    #[test]
-    fn text() {
-        ensure_serialization_from_str::<DataType>(
+    #[tokio::test]
+    async fn text() {
+        ensure_validation_from_str::<DataType, _>(
             graph_test_data::data_type::TEXT_V1,
+            DataTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
     }
 
-    #[test]
-    fn number() {
-        ensure_serialization_from_str::<DataType>(
+    #[tokio::test]
+    async fn number() {
+        ensure_validation_from_str::<DataType, _>(
             graph_test_data::data_type::NUMBER_V1,
+            DataTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
     }
 
-    #[test]
-    fn boolean() {
-        ensure_serialization_from_str::<DataType>(
+    #[tokio::test]
+    async fn boolean() {
+        ensure_validation_from_str::<DataType, _>(
             graph_test_data::data_type::BOOLEAN_V1,
+            DataTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
     }
 
-    #[test]
-    fn null() {
-        ensure_serialization_from_str::<DataType>(
+    #[tokio::test]
+    async fn null() {
+        ensure_validation_from_str::<DataType, _>(
             graph_test_data::data_type::NULL_V1,
+            DataTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
     }
 
-    #[test]
-    fn object() {
-        ensure_serialization_from_str::<DataType>(
+    #[tokio::test]
+    async fn object() {
+        ensure_validation_from_str::<DataType, _>(
             graph_test_data::data_type::OBJECT_V1,
+            DataTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
     }
 
-    #[test]
-    fn empty_list() {
-        ensure_serialization_from_str::<DataType>(
+    #[tokio::test]
+    async fn empty_list() {
+        ensure_validation_from_str::<DataType, _>(
             graph_test_data::data_type::EMPTY_LIST_V1,
+            DataTypeValidator,
             JsonEqualityCheck::Yes,
-        );
+        )
+        .await;
     }
 
     #[test]

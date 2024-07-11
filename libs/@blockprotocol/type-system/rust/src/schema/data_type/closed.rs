@@ -82,112 +82,49 @@ impl ClosedDataType {
     }
 }
 
-// impl From<DataType> for ClosedDataType {
-//     fn from(entity_type: DataType) -> Self {
-//         Self {
-//             schemas: HashMap::from([(
-//                 entity_type.id,
-//                 ClosedDataTypeSchemaData {
-//                     title: entity_type.title,
-//                     description: entity_type.description,
-//                 },
-//             )]),
-//             properties: entity_type.properties,
-//             required: entity_type.required,
-//             links: entity_type.links,
-//             all_of: entity_type.all_of.into_iter().collect(),
-//         }
-//     }
-// }
-//
-// impl FromIterator<DataType> for ClosedDataType {
-//     fn from_iter<T: IntoIterator<Item = DataType>>(iter: T) -> Self {
-//         let mut entity_type = Self::default();
-//         entity_type.extend(iter);
-//         entity_type
-//     }
-// }
-//
-// impl FromIterator<Self> for ClosedDataType {
-//     fn from_iter<T: IntoIterator<Item = Self>>(iter: T) -> Self {
-//         let mut entity_type = Self::default();
-//         entity_type.extend(iter);
-//         entity_type
-//     }
-// }
-//
-// impl Extend<Self> for ClosedDataType {
-//     fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
-//         for other in iter {
-//             self.all_of.extend(other.all_of);
-//             self.schemas.extend(other.schemas);
-//             self.properties.extend(other.properties);
-//             self.required.extend(other.required);
-//             extend_links(&mut self.links, other.links);
-//         }
-//
-//         self.all_of.retain(|x| !self.schemas.contains_key(&x.url));
-//     }
-// }
-//
-// impl Extend<DataType> for ClosedDataType {
-//     fn extend<T: IntoIterator<Item = DataType>>(&mut self, iter: T) {
-//         for other in iter {
-//             self.all_of.extend(other.all_of);
-//             self.schemas.insert(
-//                 other.id,
-//                 ClosedDataTypeSchemaData {
-//                     title: other.title,
-//                     description: other.description,
-//                 },
-//             );
-//             self.properties.extend(other.properties);
-//             self.required.extend(other.required);
-//             extend_links(&mut self.links, other.links);
-//         }
-//
-//         self.all_of.retain(|x| !self.schemas.contains_key(&x.url));
-//     }
-// }
-//
-// #[cfg(test)]
-// mod tests {
-//     use crate::{
-//         schema::ClosedDataType,
-//         url::BaseUrl,
-//         utils::tests::{ensure_serialization_from_str, JsonEqualityCheck},
-//         DataType,
-//     };
-//
-//     #[test]
-//     fn merge_entity_type() {
-//         let building = ensure_serialization_from_str::<DataType>(
-//             graph_test_data::entity_type::BUILDING_V1,
-//             JsonEqualityCheck::Yes,
-//         );
-//         let church: DataType = ensure_serialization_from_str::<DataType>(
-//             graph_test_data::entity_type::CHURCH_V1,
-//             JsonEqualityCheck::Yes,
-//         );
-//
-//         let closed_church: ClosedDataType = [building, church].into_iter().collect();
-//
-//         assert!(
-//             closed_church.properties.contains_key(
-//                 &BaseUrl::new(
-//                     "https://blockprotocol.org/@alice/types/property-type/built-at/".to_owned()
-//                 )
-//                 .expect("invalid url")
-//             )
-//         );
-//         assert!(
-//             closed_church.properties.contains_key(
-//                 &BaseUrl::new(
-//                     "https://blockprotocol.org/@alice/types/property-type/number-bells/".to_owned()
-//                 )
-//                 .expect("invalid url")
-//             )
-//         );
-//         assert!(closed_church.all_of.is_empty());
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use regex::Regex;
+    use serde_json::{json, Value as JsonValue};
+
+    use crate::{
+        schema::{ClosedDataType, DataType, DataTypeValidator},
+        utils::tests::{ensure_validation, ensure_validation_from_str, JsonEqualityCheck},
+    };
+
+    #[tokio::test]
+    async fn empty_list() {
+        let empty_list = ensure_validation_from_str::<DataType, _>(
+            graph_test_data::data_type::EMPTY_LIST_V1,
+            DataTypeValidator,
+            JsonEqualityCheck::Yes,
+        )
+        .await;
+
+        let closed_schema = ClosedDataType::new(empty_list.into_inner());
+        assert_eq!(closed_schema.enum_values, [JsonValue::Array(Vec::new())]);
+    }
+
+    #[tokio::test]
+    async fn zip_code() {
+        let zip_code_pattern = "^[0-9]{5}(?:-[0-9]{4})?$";
+        let zip_code = ensure_validation::<ClosedDataType, _>(
+            json!({
+                "type": ["string"],
+                "pattern": [zip_code_pattern],
+            }),
+            DataTypeValidator,
+            JsonEqualityCheck::Yes,
+        )
+        .await;
+
+        assert_eq!(
+            zip_code
+                .pattern
+                .iter()
+                .map(Regex::to_string)
+                .collect::<Vec<_>>(),
+            [zip_code_pattern]
+        );
+    }
+}
