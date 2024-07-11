@@ -27,7 +27,7 @@ import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url";
 import { getEntityUpdate } from "./shared/graph-requests";
 import type { FlowActionActivity } from "./types";
 
-const fileEntityTypeIds: VersionedUrl[] = [
+export const fileEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.file.entityTypeId,
   systemEntityTypes.image.entityTypeId,
   systemEntityTypes.document.entityTypeId,

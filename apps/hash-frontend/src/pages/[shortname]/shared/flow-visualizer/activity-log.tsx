@@ -98,7 +98,7 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
       return `${prefix} ${entityLabel}`;
     }
     case "ViewedFile": {
-      return `${viewedPdfFilePrefix}${log.fileUrl}`;
+      return `${viewedPdfFilePrefix}${log.file.title}`;
     }
     case "StateChange": {
       return log.message;
@@ -143,8 +143,8 @@ const LogDetail = ({
       return (
         <>
           {viewedPdfFilePrefix}
-          <Link href={log.fileUrl} sx={{ textDecoration: "none" }}>
-            {log.fileUrl}
+          <Link href={log.file.url} sx={{ textDecoration: "none" }}>
+            {log.file.title}
           </Link>
           <ModelTooltip text={log.explanation} />
         </>

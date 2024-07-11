@@ -1,6 +1,9 @@
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import type { SourceProvenance } from "@local/hash-graph-client";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Subgraph } from "@local/hash-subgraph";
+import { splitEntityId } from "@local/hash-subgraph";
 import {
   Backdrop,
   Box,
@@ -16,6 +19,7 @@ import {
   Typography,
 } from "@mui/material";
 
+import { useUserOrOrgShortnameByOwnedById } from "../../../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { Link } from "../../../../../../../../shared/ui/link";
 import { Cell } from "../../../../../../../settings/organizations/shared/cell";
 import type { HistoryEvent } from "../../shared/types";
@@ -25,6 +29,82 @@ import { EventDetail } from "../shared/event-detail";
 const boxPadding = {
   px: 4,
   py: 3,
+};
+
+const SourceRow = ({ source }: { source: SourceProvenance }) => {
+  const { entityId, location, type } = source;
+
+  const [ownedById, entityUuid] = source.entityId
+    ? splitEntityId(entityId as EntityId)
+    : [null, null];
+
+  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
+    { ownedById },
+  );
+
+  const hashMirrorUrl =
+    entityOwningShortname && entityUuid
+      ? `/@${entityOwningShortname}/entities/${entityUuid}`
+      : undefined;
+
+  const sourceUrl = hashMirrorUrl ?? location?.uri;
+
+  return (
+    <TableRow>
+      <TableCell>
+        <Chip type sx={{ py: 0.2 }}>
+          <FontAwesomeIcon
+            icon={faFile}
+            sx={(theme) => ({
+              fontSize: 12,
+              color: theme.palette.blue[70],
+              mr: 0.6,
+            })}
+          />
+          <Box
+            component="span"
+            sx={{
+              textTransform: "capitalize",
+              fontWeight: 500,
+            }}
+          >
+            {type}
+          </Box>
+        </Chip>
+      </TableCell>
+      <TableCell
+        sx={{
+          fontSize: 14,
+          fontWeight: 500,
+          color: ({ palette }) => palette.gray[80],
+        }}
+      >
+        {location?.name ?? "Unknown"}
+      </TableCell>
+      <TableCell
+        sx={{
+          fontSize: 14,
+          fontWeight: 500,
+          color: ({ palette }) => palette.gray[80],
+        }}
+      >
+        {sourceUrl ? (
+          <Link
+            href={sourceUrl}
+            target="_blank"
+            sx={{
+              textDecoration: "none",
+              wordBreak: "break-word",
+            }}
+          >
+            {hashMirrorUrl ? "HASH Backup" : location?.uri}
+          </Link>
+        ) : (
+          "Unknown"
+        )}
+      </TableCell>
+    </TableRow>
+  );
 };
 
 export const SourcesSlideover = ({
@@ -138,62 +218,14 @@ export const SourcesSlideover = ({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {sources.map(({ type, location }, index) => (
-                    <TableRow key={location?.uri ?? index}>
-                      <TableCell>
-                        <Chip type sx={{ py: 0.2 }}>
-                          <FontAwesomeIcon
-                            icon={faFile}
-                            sx={(theme) => ({
-                              fontSize: 12,
-                              color: theme.palette.blue[70],
-                              mr: 0.6,
-                            })}
-                          />
-                          <Box
-                            component="span"
-                            sx={{
-                              textTransform: "capitalize",
-                              fontWeight: 500,
-                            }}
-                          >
-                            {type}
-                          </Box>
-                        </Chip>
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontSize: 14,
-                          fontWeight: 500,
-                          color: ({ palette }) => palette.gray[80],
-                        }}
-                      >
-                        {location?.name ?? "Unknown"}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontSize: 14,
-                          fontWeight: 500,
-                          color: ({ palette }) => palette.gray[80],
-                        }}
-                      >
-                        {location?.uri ? (
-                          <Link
-                            href={location.uri}
-                            target="_blank"
-                            sx={{
-                              textDecoration: "none",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {location.uri}
-                          </Link>
-                        ) : (
-                          "Unknown"
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {sources.map((source, index) => {
+                    return (
+                      <SourceRow
+                        key={source.location?.uri ?? index}
+                        source={source}
+                      />
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>

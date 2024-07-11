@@ -15,7 +15,7 @@ import {
 } from "./layout-with-sidebar/page-sidebar";
 
 const Main = styled("main")(({ theme }) => ({
-  height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+  minHeight: `calc(100vh - ${HEADER_HEIGHT}px)`,
   flexGrow: 1,
   marginLeft: "auto",
   marginRight: "auto",
@@ -107,7 +107,6 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                 ? palette.gray[10]
                 : palette.common.white,
               minHeight: "100%",
-              overflowY: "scroll",
               flex: 1,
             })}
           >

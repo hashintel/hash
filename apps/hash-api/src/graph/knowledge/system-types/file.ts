@@ -10,6 +10,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
@@ -132,7 +133,9 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   true
 > = async (ctx, authentication, params) => {
   const { uploadProvider } = ctx;
-  const { description, displayName, name, size } = params;
+  const { description, displayName, name: unnormalizedFilename, size } = params;
+
+  const name = normalizeWhitespace(unnormalizedFilename);
 
   const { entityTypeId, existingEntity, mimeType, ownedById } =
     await generateCommonParameters(ctx, authentication, params, name);
@@ -220,7 +223,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { description, displayName, url } = params;
 
-  const filename = url.split("/").pop()!;
+  const filename = normalizeWhitespace(url.split("/").pop()!);
 
   const { entityTypeId, existingEntity, mimeType, ownedById } =
     await generateCommonParameters(ctx, authentication, params, filename);

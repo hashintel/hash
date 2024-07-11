@@ -271,6 +271,7 @@ export const PageSidebar: FunctionComponent = () => {
         sx={{
           flex: 1,
           overflowY: "auto",
+          pb: 4,
         }}
       >
         {activeWorkspaceOwnedById ? (

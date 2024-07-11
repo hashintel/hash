@@ -117,7 +117,7 @@
     "@types/nodemailer": "6.4.6",
     "@vitest/coverage-istanbul": "1.6.0",
     "eslint": "8.57.0",
-    "rimraf": "5.0.7",
+    "rimraf": "5.0.9",
     "vitest": "1.6.0"
   }
 }

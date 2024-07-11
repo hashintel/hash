@@ -258,8 +258,12 @@ export const getLinkFollowerNextToolCalls = async (
 
   const userMessage = generateUserMessage(params);
 
-  const { userAuthentication, flowEntityId, webId, stepId } =
+  const { dataSources, userAuthentication, flowEntityId, webId, stepId } =
     await getFlowContext();
+
+  const availableTools = dataSources.internetAccess.enabled
+    ? tools
+    : tools.filter((tool) => tool.name !== "exploreLinks");
 
   const response = await getLlmResponse(
     {
@@ -268,7 +272,7 @@ export const getLinkFollowerNextToolCalls = async (
       messages: [userMessage],
       model: testingParams?.model ?? defaultModel,
       toolChoice: "required",
-      tools,
+      tools: availableTools,
     },
     {
       userAccountId: userAuthentication.actorId,

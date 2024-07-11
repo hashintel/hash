@@ -1,17 +1,21 @@
 import { useMutation } from "@apollo/client";
+import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import { patchesFromPropertyObjects } from "@local/hash-graph-sdk/entity";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
+import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
-import { Button } from "../../../../shared/ui";
+import { Button, Link } from "../../../../shared/ui";
 import { EntityEditor } from "./entity-editor";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
@@ -82,6 +86,20 @@ export const EditEntitySlideOver = ({
     resetEntityEditor();
     onClose();
   }, [onClose, resetEntityEditor]);
+
+  const entity = getRoots(localEntitySubgraph)[0];
+
+  if (!entity) {
+    throw new Error(`No root in entity subgraph`);
+  }
+
+  const ownedById = extractOwnedByIdFromEntityId(
+    entity.metadata.recordId.entityId,
+  );
+
+  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
+    { ownedById },
+  );
 
   const handleSaveChanges = useCallback(async () => {
     const draftEntity = getRoots(localEntitySubgraph)[0];
@@ -158,18 +176,38 @@ export const EditEntitySlideOver = ({
         }),
       }}
     >
-      <Typography variant="h2" color="gray.90" fontWeight="bold">
-        {entityLabel}
-      </Typography>
+      <Stack alignItems="center" direction="row">
+        <Typography variant="h2" color="gray.90" fontWeight="bold">
+          {entityLabel}
+        </Typography>
+        {entityOwningShortname && (
+          <Link
+            href={generateEntityPath({
+              shortname: entityOwningShortname,
+              entityId: entity.metadata.recordId.entityId,
+              includeDraftId: true,
+            })}
+            target="_blank"
+          >
+            <ArrowUpRightRegularIcon
+              sx={{
+                fill: ({ palette }) => palette.blue[70],
+                fontSize: 20,
+                ml: 0.8,
+              }}
+            />
+          </Link>
+        )}
+      </Stack>
 
       <EntityEditor
         readonly={readonly}
         onEntityUpdated={null}
         entitySubgraph={localEntitySubgraph}
-        setEntity={(entity) => {
+        setEntity={(newEntity) => {
           setIsDirty(true);
           updateEntitySubgraphStateByEntity(
-            entity,
+            newEntity,
             (updatedEntitySubgraphOrFunction) => {
               setLocalEntitySubgraph((prev) => {
                 const updatedEntitySubgraph =

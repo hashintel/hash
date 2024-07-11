@@ -192,6 +192,7 @@ export const flowTypedef = gql`
   }
 
   scalar FlowDefinition
+  scalar FlowDataSources
   scalar FlowTrigger
   scalar ExternalInputResponseWithoutUser
 
@@ -200,6 +201,7 @@ export const flowTypedef = gql`
     Start a new flow run, and return its flowRunId to allow for identifying it later.
     """
     startFlow(
+      dataSources: FlowDataSources!
       flowDefinition: FlowDefinition!
       flowTrigger: FlowTrigger!
       webId: OwnedById!

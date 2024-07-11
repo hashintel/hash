@@ -41,7 +41,7 @@
     "@types/node-fetch": "^2.6.2",
     "@vitest/coverage-istanbul": "1.6.0",
     "eslint": "8.57.0",
-    "rimraf": "5.0.7",
+    "rimraf": "5.0.9",
     "typescript": "5.5.3",
     "vitest": "1.6.0"
   }

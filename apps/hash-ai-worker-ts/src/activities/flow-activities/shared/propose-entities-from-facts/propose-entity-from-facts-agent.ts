@@ -1,7 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import { mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -268,12 +271,12 @@ const generateSystemPrompt = (params: { proposingOutgoingLinks: boolean }) =>
   The provided facts are your only source of information, so make sure to extract as much information as possible,
     and do not rely on other information about the entities in question you may know.
 
-  You must make exactly one tool call.
+  You must make exactly one tool call. Provide all the properties of the single entity in that single tool call.
 `);
 
 const retryMax = 3;
 
-export const proposeEntityFromFacts = async (params: {
+export const proposeEntityFromFactsAgent = async (params: {
   entitySummary: LocalEntitySummary;
   facts: Fact[];
   dereferencedEntityType: DereferencedEntityType;
@@ -384,7 +387,7 @@ export const proposeEntityFromFacts = async (params: {
       };
     }
 
-    return proposeEntityFromFacts({
+    return proposeEntityFromFactsAgent({
       ...params,
       retryContext: {
         retryCount: retryCount + 1,
@@ -397,7 +400,19 @@ export const proposeEntityFromFacts = async (params: {
     message: llmResponse.message,
   });
 
-  /** @todo: handle unexpected number of tool calls */
+  if (toolCalls.length !== 1) {
+    return retry({
+      retryMessage: {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "Please try again – you must make exactly one tool call. Include all the properties of the proposed entity in a single call.",
+          },
+        ],
+      },
+    });
+  }
 
   const proposeEntityToolCall = toolCalls.find(
     (toolCall) => toolCall.name === "proposeEntity",
@@ -425,8 +440,18 @@ export const proposeEntityFromFacts = async (params: {
 
     const retryToolCallMessages: string[] = [];
 
+    /**
+     * @todo: consider validating fact IDs specified in the input properties
+     */
+
+    const { propertyMetadata } = generatePropertyMetadata({
+      inputProperties,
+      facts,
+      simplifiedPropertyTypeMappings,
+    });
+
     try {
-      await graphApiClient.validateEntity(userAuthentication.actorId, {
+      await Entity.validate(graphApiClient, userAuthentication, {
         entityTypes: [dereferencedEntityType.$id],
         components: {
           linkData: false,
@@ -434,7 +459,10 @@ export const proposeEntityFromFacts = async (params: {
           /** @todo: set this depending on whether entities are created as drafts? */
           requiredProperties: false,
         },
-        properties: mergePropertyObjectAndMetadata(properties),
+        properties: mergePropertyObjectAndMetadata(
+          properties,
+          propertyMetadata,
+        ),
       });
     } catch (error) {
       const invalidReason = `${extractErrorMessage(error)}.`;
@@ -492,8 +520,16 @@ export const proposeEntityFromFacts = async (params: {
               outgoingLinkSimplifiedPropertyTypeMappings,
           });
 
+          const { propertyMetadata: outgoingLinkPropertyMetadata } =
+            generatePropertyMetadata({
+              inputProperties: outgoingLinkInputProperties,
+              facts,
+              simplifiedPropertyTypeMappings:
+                outgoingLinkSimplifiedPropertyTypeMappings,
+            });
+
           try {
-            await graphApiClient.validateEntity(userAuthentication.actorId, {
+            await Entity.validate(graphApiClient, userAuthentication, {
               entityTypes: [outgoingLink.entityTypeId],
               components: {
                 linkData: false,
@@ -503,6 +539,7 @@ export const proposeEntityFromFacts = async (params: {
               },
               properties: mergePropertyObjectAndMetadata(
                 outgoingLinkProperties,
+                outgoingLinkPropertyMetadata,
               ),
             });
           } catch (error) {
@@ -530,14 +567,6 @@ export const proposeEntityFromFacts = async (params: {
 
             return;
           }
-
-          const { propertyMetadata: outgoingLinkPropertyMetadata } =
-            generatePropertyMetadata({
-              inputProperties: outgoingLinkInputProperties,
-              facts,
-              simplifiedPropertyTypeMappings:
-                outgoingLinkSimplifiedPropertyTypeMappings,
-            });
 
           proposedOutgoingLinkEntities.push({
             localEntityId: generateUuid(),
@@ -584,16 +613,6 @@ export const proposeEntityFromFacts = async (params: {
         },
       });
     }
-
-    /**
-     * @todo: consider validating fact IDs specified in the input properties
-     */
-
-    const { propertyMetadata } = generatePropertyMetadata({
-      inputProperties,
-      facts,
-      simplifiedPropertyTypeMappings,
-    });
 
     const proposedEntity: ProposedEntity = {
       localEntityId: entitySummary.localId,
