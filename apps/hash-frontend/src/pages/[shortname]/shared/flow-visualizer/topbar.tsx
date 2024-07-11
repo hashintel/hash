@@ -56,7 +56,7 @@ const Divider = () => (
 
 export const topbarHeight = 50;
 
-const generateRunLabel = (run: FlowRun) =>
+const generateRunLabel = (run: Pick<FlowRun, "closedAt">) =>
   `Run ${
     run.closedAt
       ? ` – ${format(new Date(run.closedAt), "yyyy-MM-dd h:mm a")}`
@@ -217,13 +217,7 @@ export const Topbar = ({
                     value={run.flowRunId}
                     sx={{ fontFamily: "monospace" }}
                   >
-                    Run
-                    {run.closedAt
-                      ? ` – ${format(
-                          new Date(run.closedAt),
-                          "yyyy-MM-dd h:mm a",
-                        )}`
-                      : " – in progress"}
+                    {generateRunLabel(run)}
                   </MenuItem>
                 ))}
               </Select>
