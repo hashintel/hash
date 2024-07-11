@@ -189,7 +189,8 @@ mod tests {
 
     use super::*;
     use crate::utils::tests::{
-        ensure_failed_deserialization, ensure_validation_from_str, JsonEqualityCheck,
+        ensure_failed_deserialization, ensure_failed_validation, ensure_validation_from_str,
+        JsonEqualityCheck,
     };
 
     #[tokio::test]
@@ -246,6 +247,27 @@ mod tests {
     async fn empty_list() {
         ensure_validation_from_str::<DataType, _>(
             graph_test_data::data_type::EMPTY_LIST_V1,
+            DataTypeValidator,
+            JsonEqualityCheck::Yes,
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn invalid_enum_values() {
+        ensure_failed_validation::<DataType, _>(
+            json!(
+                {
+                  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                  "kind": "dataType",
+                  "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/small/v/1",
+                  "title": "Small number",
+                  "description": "A small number",
+                  "type": "number",
+                  "const": [0],
+                  "enum": [0, 1, 2, 3]
+                }
+            ),
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )

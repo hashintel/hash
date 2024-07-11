@@ -8,8 +8,6 @@ use crate::{
 
 #[derive(Debug, Error)]
 pub enum ValidateDataTypeError {
-    #[error("Enum values must be unique")]
-    EnumValuesMustBeUnique { enum_values: Vec<JsonValue> },
     #[error("Enum values are not compatible with `const` value")]
     EnumValuesNotCompatibleWithConst {
         const_value: JsonValue,
@@ -27,6 +25,17 @@ impl Validator<DataType> for DataTypeValidator {
         &self,
         value: &'v DataType,
     ) -> Result<&'v Valid<Self::Validated>, Self::Error> {
+        if let Some(const_value) = &value.const_value {
+            if !value.enum_values.is_empty()
+                && (value.enum_values.len() > 1 || value.enum_values[0] != *const_value)
+            {
+                return Err(ValidateDataTypeError::EnumValuesNotCompatibleWithConst {
+                    const_value: const_value.clone(),
+                    enum_values: value.enum_values.clone(),
+                });
+            }
+        }
+
         // TODO: Implement validation for data types
         //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
         Ok(Valid::new_ref_unchecked(value))
