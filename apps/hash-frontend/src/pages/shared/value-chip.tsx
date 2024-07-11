@@ -2,19 +2,17 @@ import type { SxProps, Theme } from "@mui/material";
 import { Stack, Tooltip } from "@mui/material";
 import type { PropsWithChildren } from "react";
 
-export const Chip = ({
+export const ValueChip = ({
   children,
   type,
   showInFull,
   sx,
   tooltip,
-  value,
 }: PropsWithChildren<{
   type?: boolean;
   showInFull?: boolean;
   sx?: SxProps<Theme>;
   tooltip?: string;
-  value?: boolean;
 }>) => (
   <Tooltip title={tooltip} placement="left">
     <Stack
@@ -25,15 +23,19 @@ export const Chip = ({
           background: palette.common.white,
           border: `1px solid ${palette.gray[30]}`,
           borderRadius: type ? 4 : 2,
+          display: "inline-flex",
           fontWeight: 500,
           fontSize: 12,
-          px: value ? 1.2 : 1,
-          py: 0.5,
+          lineHeight: 1,
+          maxWidth: "100%",
+          px: 1.2,
+          py: 0.8,
           whiteSpace: "nowrap",
           ...(showInFull
             ? {}
             : {
                 overflow: "hidden",
+                textOverflow: "ellipsis",
               }),
         }),
         ...(Array.isArray(sx) ? sx : [sx]),

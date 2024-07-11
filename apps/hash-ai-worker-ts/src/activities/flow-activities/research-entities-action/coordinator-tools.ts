@@ -251,19 +251,26 @@ export const generateToolDefinitions = <
     complete: {
       name: "complete",
       description: dedent(`
-            Complete the research task by specifying the entityIds of the entities to submit as the result of your research.
+            Complete the research task by specifying the entityIds of the entities to highlight as the result of your research.
           `),
       inputSchema: {
         type: "object",
         properties: {
-          explanation: explanationDefinition,
+          explanation: {
+            type: "string",
+            description: dedent(`
+              An explanation of why these entities were chosen to highlight as the result of the research task,
+              e.g. if the task asked for the 'top X' entities, explain why these are the top X.
+            `),
+          },
           entityIds: {
             type: "array",
             items: {
               type: "string",
             },
             description: dedent(`
-            An array of entityIds to submit.
+            An array of entityIds to highlight. 
+            The user will receive all entities discovered, with the highlighted entityIds identified for special attention.
             You must have made an effort to find as many properties and outgoing links for each entity as possible,
             as long as they relate to the research task in question.
           `),

@@ -3,7 +3,7 @@ import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 
 import type { HistoryEvent } from "../../shared/types";
-import { Chip } from "./chip";
+import { ValueChip } from "../../../../../../../shared/value-chip";
 
 export const EventDetail = ({
   event,
@@ -20,13 +20,13 @@ export const EventDetail = ({
       );
       return (
         <>
-          <Chip>{entityLabel}</Chip>
+          <ValueChip>{entityLabel}</ValueChip>
           <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
             created with type
           </Box>
-          <Chip showInFull type>
+          <ValueChip showInFull type>
             {event.entityType.title}
-          </Chip>
+          </ValueChip>
         </>
       );
     }
@@ -37,43 +37,41 @@ export const EventDetail = ({
         case "added": {
           return (
             <>
-              <Chip showInFull type>
+              <ValueChip showInFull type>
                 {propertyType.title}
-              </Chip>{" "}
+              </ValueChip>{" "}
               <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
                 added as
               </Box>
-              <Chip value tooltip={diff.added}>
-                {diff.added}
-              </Chip>
+              <ValueChip tooltip={diff.added}>{diff.added}</ValueChip>
             </>
           );
         }
         case "removed": {
           return (
             <>
-              <Chip showInFull type>
+              <ValueChip showInFull type>
                 {propertyType.title}
-              </Chip>{" "}
+              </ValueChip>{" "}
               <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
                 removed, was
               </Box>
-              <Chip value>{diff.removed}</Chip>
+              <ValueChip>{diff.removed}</ValueChip>
             </>
           );
         }
         case "changed": {
           return (
             <>
-              <Chip showInFull type>
+              <ValueChip showInFull type>
                 {propertyType.title}
-              </Chip>{" "}
+              </ValueChip>{" "}
               <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
                 updated from
               </Box>
-              <Chip value>{diff.old}</Chip>
+              <ValueChip>{diff.old}</ValueChip>
               <Box mx={1}>to</Box>
-              <Chip value>{diff.new}</Chip>
+              <ValueChip>{diff.new}</ValueChip>
             </>
           );
         }
@@ -84,9 +82,9 @@ export const EventDetail = ({
       const { entityType } = event;
       return (
         <>
-          <Chip showInFull type>
+          <ValueChip showInFull type>
             {entityType.title}
-          </Chip>
+          </ValueChip>
           <Box ml={1} sx={{ whiteSpace: "nowrap" }}>
             type {event.op}
           </Box>

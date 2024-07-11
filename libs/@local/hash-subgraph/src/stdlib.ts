@@ -50,6 +50,7 @@ export {
   getPropertyTypeById,
   getPropertyTypeByVertexId,
   getPropertyTypeForEntity,
+  getPropertyTypesForEntityType,
   getPropertyTypes,
   getPropertyTypesByBaseUrl,
   guessSchemaForPropertyValue,

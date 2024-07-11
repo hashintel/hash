@@ -1,9 +1,9 @@
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Filter } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type {
   PersistedEntity,
   ProposedEntity,
@@ -20,9 +20,9 @@ import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, EntityTypeRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import type { SvgIconProps } from "@mui/material";
-import { Box, Stack, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
+import { Box, SvgIconProps } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
+import type { FunctionComponent, PropsWithChildren } from "react";
 import { useMemo, useState } from "react";
 
 import type {
@@ -91,7 +91,25 @@ export const getDeliverables = (
   return deliverables;
 };
 
-const VisibilityButton = ({
+const SectionTabContainer = ({ children }: PropsWithChildren) => (
+  <Stack
+    alignItems="center"
+    direction="row"
+    gap={0.5}
+    pt={0.9}
+    pb={1.5}
+    px={1}
+    sx={{
+      background: ({ palette }) => palette.gray[20],
+      borderTopRightRadius: flowSectionBorderRadius,
+      borderTopLeftRadius: flowSectionBorderRadius,
+    }}
+  >
+    {children}
+  </Stack>
+);
+
+const SectionTabButton = ({
   active,
   label,
   Icon,
@@ -132,7 +150,7 @@ const VisibilityButton = ({
           active ? palette.common.black : palette.gray[80],
         fontSize: 13,
         fontWeight: 500,
-        ml: 0.8,
+        ml: 1,
         textTransform: "capitalize",
         transition: ({ transitions }) => transitions.create("color"),
       }}
@@ -160,8 +178,7 @@ type OutputsProps = {
 
 type SectionVisibility = {
   deliverables: boolean;
-  graph: boolean;
-  table: boolean;
+  entities: boolean;
 };
 
 export const Outputs = ({
@@ -175,12 +192,13 @@ export const Outputs = ({
     [selectedFlowRun],
   );
 
-  const [selectedSection, setSelectedSection] = useState<"table" | "graph">(
+  const [entityDisplay, setEntityDisplay] = useState<"table" | "graph">(
     "table",
   );
 
   const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>(
     {
+      entities: true,
       deliverables: false,
     },
   );
@@ -220,7 +238,9 @@ export const Outputs = ({
     variables: {
       filter: {
         any: proposedEntities.map((proposedEntity) =>
-          generateVersionedUrlMatchingFilter(proposedEntity.entityTypeId),
+          generateVersionedUrlMatchingFilter(proposedEntity.entityTypeId, {
+            forEntityType: true,
+          }),
         ),
       },
       ...fullOntologyResolveDepths,
@@ -228,18 +248,14 @@ export const Outputs = ({
     skip: proposedEntities.length === 0,
   });
 
-  const proposedEntitiesTypesById = useMemo(() => {
+  const proposedEntitiesTypesSubgraph = useMemo(() => {
     if (!proposedEntitiesTypesData) {
-      return {};
+      return undefined;
     }
 
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityTypeRootType>(
+    return deserializeSubgraph<EntityTypeRootType>(
       proposedEntitiesTypesData.queryEntityTypes,
     );
-
-    const entityTypes = getRoots(subgraph);
-
-    return Object.groupBy(entityTypes, (entityType) => entityType.schema.$id);
   }, [proposedEntitiesTypesData]);
 
   const { data: entitiesSubgraphData } = useQuery<
@@ -309,31 +325,44 @@ export const Outputs = ({
           readonly
         />
       )}
-      <Stack alignItems="center" direction="row" justifyContent="space-between">
-        <Box />
+      <Box position="relative">
         <Stack
           alignItems="center"
           direction="row"
-          gap={0.5}
-          py={0.9}
-          px={1}
-          sx={{
-            background: ({ palette }) => palette.gray[20],
-            borderTopRightRadius: flowSectionBorderRadius,
-            borderTopLeftRadius: flowSectionBorderRadius,
-          }}
+          justifyContent="space-between"
+          sx={{ top: 5, position: "relative" }}
         >
-          {(["graph", "table"] as const).map((section) => (
-            <VisibilityButton
-              key={section}
-              label={section}
-              active={selectedSection === section}
-              Icon={outputIcons[section]}
-              onClick={() => setSelectedSection(section)}
-            />
-          ))}
+          <SectionTabContainer>
+            {(["entities", "deliverables"] as const).map((section) => (
+              <SectionTabButton
+                key={section}
+                label={section}
+                active={sectionVisibility[section]}
+                Icon={outputIcons[section]}
+                onClick={() =>
+                  setSectionVisibility({
+                    ...sectionVisibility,
+                    [section]: !sectionVisibility[section],
+                  })
+                }
+              />
+            ))}
+          </SectionTabContainer>
+          {sectionVisibility.entities && (
+            <SectionTabContainer>
+              {(["graph", "table"] as const).map((section) => (
+                <SectionTabButton
+                  key={section}
+                  label={section}
+                  active={entityDisplay === section}
+                  Icon={outputIcons[section]}
+                  onClick={() => setEntityDisplay(section)}
+                />
+              ))}
+            </SectionTabContainer>
+          )}
         </Stack>
-      </Stack>
+      </Box>
       <Stack
         alignItems="center"
         direction="row"
@@ -344,24 +373,29 @@ export const Outputs = ({
           overflowX: "auto",
         }}
       >
-        {selectedSection === "table" ? (
-          <EntityResultTable
-            onEntityClick={(entity) => setSlideOver({ type: "entity", entity })}
-            onEntityTypeClick={(entityTypeId) =>
-              setSlideOver({ type: "entityType", entityTypeId })
-            }
-            persistedEntities={persistedEntities}
-            persistedEntitiesSubgraph={persistedEntitiesSubgraph}
-            proposedEntities={proposedEntities}
-            proposedEntitiesTypesById={proposedEntitiesTypesById}
-          />
-        ) : (
-          <PersistedEntityGraph
-            onEntityClick={(entity) => setSlideOver({ type: "entity", entity })}
-            persistedEntities={persistedEntities}
-            persistedEntitiesSubgraph={persistedEntitiesSubgraph}
-          />
-        )}
+        {sectionVisibility.entities &&
+          (entityDisplay === "table" ? (
+            <EntityResultTable
+              onEntityClick={(entity) =>
+                setSlideOver({ type: "entity", entity })
+              }
+              onEntityTypeClick={(entityTypeId) =>
+                setSlideOver({ type: "entityType", entityTypeId })
+              }
+              persistedEntities={persistedEntities}
+              persistedEntitiesSubgraph={persistedEntitiesSubgraph}
+              proposedEntities={proposedEntities}
+              proposedEntitiesTypesSubgraph={proposedEntitiesTypesSubgraph}
+            />
+          ) : (
+            <PersistedEntityGraph
+              onEntityClick={(entity) =>
+                setSlideOver({ type: "entity", entity })
+              }
+              persistedEntities={persistedEntities}
+              persistedEntitiesSubgraph={persistedEntitiesSubgraph}
+            />
+          ))}
 
         {sectionVisibility.deliverables && (
           <Deliverables deliverables={deliverables} />

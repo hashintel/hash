@@ -19,23 +19,49 @@ import { TableVirtuoso } from "react-virtuoso";
 
 type Data = Record<string, unknown>;
 
-export type VirtualizedTableRow<D extends Data> = {
-  id: string;
-  data: D;
-};
-
 export const defaultCellSx: SxProps<Theme> = {
   padding: "5px 14px",
   borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
   textAlign: "left",
+  whiteSpace: "nowrap",
 };
 
 const borderRadius = "10px";
 
 export const headerHeight = 43;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const VirtuosoTableComponents: TableComponents<VirtualizedTableRow<any>> = {
+export type VirtualizedTableRow<D extends Data> = {
+  id: string;
+  data: D;
+};
+
+type FieldId = string;
+
+type ColumnMetadata = Record<string, unknown>;
+
+export type VirtualizedTableColumn<
+  F extends FieldId,
+  M extends ColumnMetadata = Record<string, never>,
+> = {
+  id: F;
+  metadata?: M;
+  label: string;
+  sortable: boolean;
+  textSx?: SxProps<Theme>;
+  width: number | string;
+};
+
+export type VirtualizedTableContext<
+  F extends string,
+  M extends ColumnMetadata = Record<string, never>,
+> = { columns: VirtualizedTableColumn<F, M>[] };
+
+const VirtuosoTableComponents: TableComponents<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  VirtualizedTableRow<any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  VirtualizedTableContext<any, any>
+> = {
   Scroller: forwardRef<HTMLDivElement>(
     (props: ComponentPropsWithoutRef<"div">, ref) => (
       <TableContainer
@@ -74,14 +100,6 @@ const VirtuosoTableComponents: TableComponents<VirtualizedTableRow<any>> = {
       <TableBody {...props} ref={ref} />
     ),
   ),
-};
-
-export type VirtualizedTableColumn<FieldId extends string = string> = {
-  id: FieldId;
-  label: string;
-  sortable: boolean;
-  textSx?: SxProps<Theme>;
-  width: number | string;
 };
 
 export type VirtualizedTableSort<Field extends string = string> = {
@@ -125,11 +143,15 @@ const SortButton = <Sort extends VirtualizedTableSort>({
   );
 };
 
-const HeaderContent = <Sort extends VirtualizedTableSort>({
+const HeaderContent = <
+  Sort extends VirtualizedTableSort,
+  F extends string,
+  M extends ColumnMetadata,
+>({
   columns,
   sort,
   setSort,
-}: { columns: VirtualizedTableColumn[] } & TableSortProps<Sort>) => {
+}: { columns: VirtualizedTableColumn<F, M>[] } & TableSortProps<Sort>) => {
   return (
     <TableRow>
       {columns.map((column) => {
@@ -144,8 +166,8 @@ const HeaderContent = <Sort extends VirtualizedTableSort>({
           >
             <Stack
               direction="row"
-              justifyContent="space-between"
               alignItems="center"
+              justifyContent="space-between"
             >
               <Typography
                 sx={[
@@ -172,18 +194,28 @@ const HeaderContent = <Sort extends VirtualizedTableSort>({
   );
 };
 
-export type CreateVirtualizedRowContentFn<D extends Data> = (
+export type CreateVirtualizedRowContentFn<
+  D extends Data,
+  F extends FieldId = string,
+  M extends ColumnMetadata = Record<string, never>,
+> = (
   index: number,
   row: VirtualizedTableRow<D>,
+  context: VirtualizedTableContext<F, M>,
 ) => ReactElement;
 
-type VirtualizedTableProps<D extends Data, S extends VirtualizedTableSort> = {
+type VirtualizedTableProps<
+  D extends Data,
+  S extends VirtualizedTableSort,
+  F extends FieldId,
+  M extends ColumnMetadata,
+> = {
   /**
    * This function will be called many times when scrolling, ensure repeated calls do as little as possible
    * @see https://virtuoso.dev/#performance
    */
-  createRowContent: CreateVirtualizedRowContentFn<D>;
-  columns?: VirtualizedTableColumn[];
+  createRowContent: CreateVirtualizedRowContentFn<D, F, M>;
+  columns?: VirtualizedTableColumn<F, M>[];
   EmptyPlaceholder?: () => ReactElement;
   rows: VirtualizedTableRow<D>[];
 } & TableSortProps<S>;
@@ -193,6 +225,8 @@ const height = "100%";
 export const VirtualizedTable = <
   D extends Data,
   S extends VirtualizedTableSort,
+  F extends FieldId,
+  M extends ColumnMetadata,
 >({
   createRowContent,
   columns,
@@ -200,7 +234,7 @@ export const VirtualizedTable = <
   rows,
   sort,
   setSort,
-}: VirtualizedTableProps<D, S>) => {
+}: VirtualizedTableProps<D, S, F, M>) => {
   const fixedHeaderContent = useCallback(
     () => (columns ? HeaderContent({ columns, sort, setSort }) : null),
     [columns, sort, setSort],
@@ -217,6 +251,7 @@ export const VirtualizedTable = <
   return (
     <Box style={{ borderRadius, height, width: "100%" }}>
       <TableVirtuoso
+        context={{ columns: columns ?? [] }}
         data={rows}
         components={components}
         fixedHeaderContent={fixedHeaderContent}

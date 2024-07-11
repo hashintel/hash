@@ -426,7 +426,11 @@ const getFlowRunDetailedFields = async ({
         throw new Error(`No activity record found for step with id ${stepId}`);
       }
 
-      if (log.type === "ProposedEntity" && attempt < activityRecord.attempt) {
+      if (
+        log.type === "ProposedEntity" &&
+        attempt < activityRecord.attempt &&
+        !workflowStoppedEarly
+      ) {
         /**
          * If we have a proposed entity logged from a retried attempt, don't record it as nothing will happen with it.
          * By contrast, a PersistedEntity has already been committed to the database and is therefore relevant.
@@ -443,7 +447,7 @@ const getFlowRunDetailedFields = async ({
 
   const inputRequests = Object.values(inputRequestsById);
   for (const inputRequest of inputRequests) {
-    if (!inputRequest.resolvedAt) {
+    if (!workflowStoppedEarly && !inputRequest.resolvedAt) {
       const step = stepMap[inputRequest.stepId];
       if (!step) {
         throw new Error(

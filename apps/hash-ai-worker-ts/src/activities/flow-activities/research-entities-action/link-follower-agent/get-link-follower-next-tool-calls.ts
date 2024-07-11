@@ -329,5 +329,5 @@ export const getLinkFollowerNextToolCalls = async (
     };
   }
 
-  throw new Error(`Failed to get LLM response: ${response.status}`);
+  return getLinkFollowerNextToolCalls(params);
 };

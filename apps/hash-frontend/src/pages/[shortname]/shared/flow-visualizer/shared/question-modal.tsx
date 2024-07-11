@@ -8,10 +8,10 @@ import { useState } from "react";
 import type {
   SubmitExternalInputResponseMutation,
   SubmitExternalInputResponseMutationVariables,
-} from "../../../../../../graphql/api-types.gen";
-import { Button } from "../../../../../../shared/ui/button";
-import { Modal } from "../../../../../../shared/ui/modal";
-import { useFlowRunsContext } from "../../../../../shared/flow-runs-context";
+} from "../../../../../graphql/api-types.gen";
+import { Button } from "../../../../../shared/ui/button";
+import { Modal } from "../../../../../shared/ui/modal";
+import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 
 type QuestionModalProps = {
   inputRequest: ExternalInputRequest;

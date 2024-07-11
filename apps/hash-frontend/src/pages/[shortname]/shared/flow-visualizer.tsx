@@ -177,7 +177,7 @@ const getGraphFromFlowDefinition = (
   };
 };
 
-const outputsHeight = 450;
+const logHeight = 350;
 
 const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
@@ -193,7 +193,7 @@ export const FlowRunVisualizerSkeleton = () => (
     <Box flexGrow={1} px={2}>
       <Skeleton width="70%" height="100%" />
     </Box>
-    <Box height={outputsHeight} px={2}>
+    <Box height={logHeight} px={2}>
       <Skeleton width="70%" height="100%" />
     </Box>
   </Stack>
@@ -313,6 +313,8 @@ export const FlowVisualizer = () => {
 
     for (const step of selectedFlowRun.steps) {
       const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
+
+      console.log({ step });
 
       for (const log of step.logs) {
         progressLogs.push(log);
@@ -454,64 +456,52 @@ export const FlowVisualizer = () => {
             showRunButton={isRunnableFromHere}
           />
         </Box>
-        <Box
+        <Stack
+          direction="row"
           sx={{
-            height: `calc(100% - ${outputsHeight + topbarHeight}px)`,
+            height: `calc(100% - ${logHeight + topbarHeight}px)`,
             overflow: "auto",
             width: "100%",
             background: ({ palette }) =>
               selectedFlowRun ? palette.gray[10] : "rgb(241, 246, 251)",
             transition: ({ transitions }) =>
               transitions.create("background", transitionOptions),
-            pt: 1.5,
-            "&:after": {
-              content: '""',
-              display: "block",
-              height: 24,
-              width: "100%",
-            },
+            pt: 2.5,
           }}
         >
+          {selectedFlowRun ? (
+            <FlowRunSidebar
+              flowDefinition={selectedFlowDefinition}
+              flowRunId={selectedFlowRun.flowRunId}
+              groups={flowMaybeGrouped.groups}
+              name={selectedFlowRun.name}
+              showDag={() => setShowDag(true)}
+            />
+          ) : null}
           <Stack
-            direction="row"
             sx={{
-              maxWidth: "100%",
+              height: "100%",
+              pb: 2.5,
+              px: 3,
               width: "100%",
             }}
           >
+            <SectionLabel text={selectedFlowRun ? "outputs" : "definition"} />
             {selectedFlowRun ? (
-              <FlowRunSidebar
-                flowDefinition={selectedFlowDefinition}
-                flowRunId={selectedFlowRun.flowRunId}
-                groups={flowMaybeGrouped.groups}
-                name={selectedFlowRun.name}
-                showDag={() => setShowDag(true)}
+              <Outputs
+                key={`${flowRunStateKey}-outputs`}
+                persistedEntities={persistedEntities}
+                proposedEntities={proposedEntities}
               />
-            ) : null}
-            <Box
-              sx={{
-                minHeight: 300,
-                px: 3,
-                width: "100%",
-              }}
-            >
-              <SectionLabel text={selectedFlowRun ? "outputs" : "definition"} />
-              {selectedFlowRun ? (
-                <Outputs
-                  key={`${flowRunStateKey}-outputs`}
-                  persistedEntities={persistedEntities}
-                  proposedEntities={proposedEntities}
-                />
-              ) : (
-                <DAG
-                  key={flowDefinitionStateKey}
-                  groups={flowMaybeGrouped.groups}
-                  selectedFlowDefinition={selectedFlowDefinition}
-                />
-              )}
-            </Box>
+            ) : (
+              <DAG
+                key={flowDefinitionStateKey}
+                groups={flowMaybeGrouped.groups}
+                selectedFlowDefinition={selectedFlowDefinition}
+              />
+            )}
           </Stack>
-        </Box>
+        </Stack>
 
         <Stack
           direction="row"
@@ -519,7 +509,7 @@ export const FlowVisualizer = () => {
           sx={({ palette }) => ({
             background: palette.gray[10],
             borderTop: `2px solid ${palette.gray[20]}`,
-            height: outputsHeight,
+            height: logHeight,
             maxWidth: "100%",
             px: 3,
             width: "100%",
