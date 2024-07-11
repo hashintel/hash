@@ -256,3 +256,25 @@ pub trait BodyExt: Body {
         BodyStream::new(self)
     }
 }
+
+#[cfg(test)]
+pub(crate) mod test {
+    use core::{
+        pin::Pin,
+        task::{Context, Poll, Waker},
+    };
+
+    use super::{Body, Frame};
+
+    pub(crate) fn poll_frame_unpin<B>(
+        body: &mut B,
+    ) -> Poll<Option<Result<Frame<B::Data, B::Control>, B::Error>>>
+    where
+        B: Body + Unpin,
+    {
+        let mut cx = Context::from_waker(Waker::noop());
+
+        let body = Pin::new(body);
+        body.poll_frame(&mut cx)
+    }
+}
