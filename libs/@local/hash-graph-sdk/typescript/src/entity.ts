@@ -569,9 +569,9 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       ...params
     }: PatchEntityParameters,
     /**
-     * @todo returning a specific 'this' will not be correct if the entityTypeId has been changed as part of the update.
+     * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of the update.
      *    presumably possible to fix this via a generic on the entityTypeId input and an 'extends' on the return,
-     *    but I couldn't figure it out at the first attempt.
+     *    or by requiring a generic passed to .patch that must match the new entityTypeId, and infer the return from the generic.
      */
   ): Promise<this> {
     return graphAPI

@@ -126,7 +126,12 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
   );
 
   const notificationEntities = useMemo<
-    | Entity<Notification | MentionNotification | CommentNotification>[]
+    | Entity<
+        | Notification
+        | MentionNotification
+        | CommentNotification
+        | GraphChangeNotification
+      >[]
     | undefined
   >(
     () =>

@@ -4,7 +4,7 @@ import type { ModalProps } from "@hashintel/design-system";
 import { IconButton, Modal } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -12,7 +12,10 @@ import {
   blockProtocolLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { Query } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
+import type {
+  Query,
+  QueryProperties,
+} from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -130,7 +133,7 @@ export const BlockSelectDataModal: FunctionComponent<
             properties: {
               "https://blockprotocol.org/@hash/types/property-type/query/":
                 query,
-            } as Query["properties"],
+            } satisfies QueryProperties as PropertyObject,
           },
         });
 

@@ -5,6 +5,7 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";
@@ -45,7 +46,9 @@ export const getUser = async (requestContext: APIRequestContext) => {
   }).then(({ data }) => {
     return !data
       ? undefined
-      : (getRoots(deserializeSubgraph(data.me.subgraph))[0] as Entity<User>);
+      : getRoots(
+          deserializeSubgraph<EntityRootType<User>>(data.me.subgraph),
+        )[0];
   });
 };
 

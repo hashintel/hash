@@ -90,15 +90,13 @@ export const getWebServiceUsage = async (
       includeDrafts: false,
     })
     .then(({ data }) => {
-      return mapGraphApiSubgraphToSubgraph<EntityRootType>(
+      return mapGraphApiSubgraphToSubgraph<EntityRootType<UsageRecord>>(
         data.subgraph,
         userAccountId,
       );
     });
 
-  const serviceUsageRecords = getRoots(
-    serviceUsageRecordSubgraph,
-  ) as Entity<UsageRecord>[];
+  const serviceUsageRecords = getRoots(serviceUsageRecordSubgraph);
 
   const aggregateUsageRecords = getAggregateUsageRecordsByServiceFeature({
     decisionTimeInterval,
