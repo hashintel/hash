@@ -242,10 +242,8 @@ export const getFileEntityFromUrl = async (params: {
       draft: false,
       ownedById: webId,
       propertyMetadata,
-      properties: {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": 4,
-      },
-      entityTypeId,
+      properties: initialProperties,
+      entityTypeId: entityTypeId as typeof systemEntityTypes.file.entityTypeId,
       relationships:
         createDefaultAuthorizationRelationships(userAuthentication),
       provenance,

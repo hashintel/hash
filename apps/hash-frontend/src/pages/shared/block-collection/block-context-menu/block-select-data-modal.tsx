@@ -12,7 +12,7 @@ import {
   blockProtocolLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
+import type { Query } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -78,7 +78,7 @@ export const BlockSelectDataModal: FunctionComponent<
           linkEntityRevisions[0]?.metadata.entityTypeId ===
           blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
       )
-      .map(({ rightEntity }) => rightEntity[0] as Entity<QueryProperties>);
+      .map(({ rightEntity }) => rightEntity[0] as Entity<Query>);
 
     return existingQueries[0];
   }, [blockSubgraph, blockDataEntity]);
@@ -111,7 +111,7 @@ export const BlockSelectDataModal: FunctionComponent<
                 {
                   op: "add",
                   path: [
-                    "https://blockprotocol.org/@hash/types/property-type/query/" satisfies keyof QueryProperties as BaseUrl,
+                    "https://blockprotocol.org/@hash/types/property-type/query/" satisfies keyof Query["properties"] as BaseUrl,
                   ],
                   value: query,
                 },
@@ -130,7 +130,7 @@ export const BlockSelectDataModal: FunctionComponent<
             properties: {
               "https://blockprotocol.org/@hash/types/property-type/query/":
                 query,
-            } as QueryProperties,
+            } as Query["properties"],
           },
         });
 

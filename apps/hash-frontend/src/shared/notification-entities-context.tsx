@@ -10,7 +10,12 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import type {
+  CommentNotification,
+  Notification,
+} from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import type { GraphChangeNotification } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
+import type { MentionNotification } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { FunctionComponent, PropsWithChildren } from "react";
@@ -33,7 +38,12 @@ import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { pollInterval } from "./poll-interval";
 
 export type NotificationEntitiesContextValues = {
-  notificationEntities?: Entity<NotificationProperties>[];
+  notificationEntities?: Entity<
+    | Notification
+    | MentionNotification
+    | CommentNotification
+    | GraphChangeNotification
+  >[];
   numberOfUnreadNotifications?: number;
   loading: boolean;
   refetch: () => Promise<void>;
@@ -108,7 +118,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
   const notificationEntitiesSubgraph = useMemo(
     () =>
       notificationEntitiesData
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<Notification>>(
             notificationEntitiesData.getEntitySubgraph.subgraph,
           )
         : undefined,
@@ -116,12 +126,13 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
   );
 
   const notificationEntities = useMemo<
-    Entity<NotificationProperties>[] | undefined
+    | Entity<Notification | MentionNotification | CommentNotification>[]
+    | undefined
   >(
     () =>
       notificationEntitiesSubgraph
         ? getRoots(notificationEntitiesSubgraph)
-        : notificationEntitiesSubgraph,
+        : undefined,
     [notificationEntitiesSubgraph],
   );
 
@@ -148,7 +159,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
               {
                 op: "add",
                 path: [
-                  "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof NotificationProperties as BaseUrl,
+                  "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
                 ],
                 value: now.toISOString(),
               },
@@ -181,7 +192,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
                 {
                   op: "add",
                   path: [
-                    "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof NotificationProperties as BaseUrl,
+                    "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
                   ],
                   value: now.toISOString(),
                 },
@@ -209,7 +220,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
               {
                 op: "add",
                 path: [
-                  "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof NotificationProperties as BaseUrl,
+                  "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof Notification["properties"] as BaseUrl,
                 ],
                 value: true,
               },
@@ -237,7 +248,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
                 {
                   op: "add",
                   path: [
-                    "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof NotificationProperties as BaseUrl,
+                    "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof Notification["properties"] as BaseUrl,
                   ],
                   value: true,
                 },
