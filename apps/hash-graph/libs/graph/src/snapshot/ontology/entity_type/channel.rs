@@ -11,7 +11,7 @@ use futures::{
     Sink, SinkExt, Stream, StreamExt,
 };
 use graph_types::ontology::{EntityTypeId, PropertyTypeId};
-use type_system::{ClosedEntityType, Valid};
+use type_system::{schema::ClosedEntityType, Valid};
 
 use crate::{
     snapshot::{

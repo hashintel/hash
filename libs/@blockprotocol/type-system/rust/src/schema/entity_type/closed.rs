@@ -101,10 +101,9 @@ impl Extend<EntityType> for ClosedEntityType {
 #[cfg(test)]
 mod tests {
     use crate::{
-        schema::ClosedEntityType,
+        schema::{ClosedEntityType, EntityType},
         url::BaseUrl,
         utils::tests::{ensure_serialization_from_str, JsonEqualityCheck},
-        EntityType,
     };
 
     #[test]

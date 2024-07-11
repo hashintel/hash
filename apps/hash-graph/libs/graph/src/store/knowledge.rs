@@ -17,7 +17,10 @@ use graph_types::{
 };
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use type_system::{url::VersionedUrl, ClosedEntityType, EntityType};
+use type_system::{
+    schema::{ClosedEntityType, EntityType},
+    url::VersionedUrl,
+};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     openapi::{self, schema, Ref, RefOr, Schema},

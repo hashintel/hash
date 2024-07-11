@@ -56,6 +56,7 @@ pub struct EntityType<'a> {
     all_of: Cow<'a, HashSet<EntityTypeReference>>,
     properties: Cow<'a, HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>>,
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "[BaseUrl, ...BaseUrl[]]"))]
     required: Cow<'a, HashSet<BaseUrl>>,
     #[cfg_attr(
         target_arch = "wasm32",

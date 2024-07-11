@@ -17,8 +17,8 @@ use graph_types::{
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
+    schema::{DataType, EntityType, PropertyType},
     url::{BaseUrl, VersionedUrl},
-    DataType, EntityType, PropertyType,
 };
 
 use crate::{

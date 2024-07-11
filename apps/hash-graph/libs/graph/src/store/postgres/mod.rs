@@ -35,9 +35,12 @@ use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
+    schema::{
+        ClosedDataType, ClosedEntityType, DataType, DataTypeReference, EntityType,
+        EntityTypeReference, PropertyType, PropertyTypeReference,
+    },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    ClosedEntityType, DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
-    PropertyTypeReference, Valid,
+    Valid,
 };
 
 pub use self::{
@@ -392,7 +395,7 @@ where
         &self,
         ontology_id: OntologyId,
         data_type: &Valid<DataType>,
-        closed_data_type: &Valid<DataType>,
+        closed_data_type: &Valid<ClosedDataType>,
     ) -> Result<Option<OntologyId>, InsertionError> {
         Ok(self
             .as_client()

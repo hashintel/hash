@@ -11,7 +11,7 @@ use futures::{
     Sink, SinkExt, Stream, StreamExt,
 };
 use graph_types::ontology::DataTypeId;
-use type_system::Valid;
+use type_system::{schema::ClosedDataType, Valid};
 
 use crate::{
     snapshot::{
@@ -76,7 +76,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                 schema: Valid::new_unchecked(data_type.schema.clone()),
                 // TODO: Validate ontology types in snapshots
                 //   see https://linear.app/hash/issue/H-3038
-                closed_schema: Valid::new_unchecked(data_type.schema),
+                closed_schema: Valid::new_unchecked(ClosedDataType::new(data_type.schema)),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

@@ -23,7 +23,7 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
-    schema::DataTypeValidator,
+    schema::{ClosedDataType, DataTypeValidator},
     url::{OntologyTypeVersion, VersionedUrl},
     Validator,
 };
@@ -339,8 +339,12 @@ where
                     .validate_ref(&parameters.schema)
                     .await
                     .change_context(InsertionError)?;
+                let closed_schema = data_type_validator
+                    .validate(ClosedDataType::new(schema.clone().into_inner()))
+                    .await
+                    .change_context(InsertionError)?;
                 transaction
-                    .insert_data_type_with_id(ontology_id, schema, schema)
+                    .insert_data_type_with_id(ontology_id, schema, &closed_schema)
                     .await?;
                 let metadata = DataTypeMetadata {
                     record_id,
@@ -577,11 +581,15 @@ where
             .validate_ref(&params.schema)
             .await
             .change_context(UpdateError)?;
+        let closed_schema = data_type_validator
+            .validate(ClosedDataType::new(schema.clone().into_inner()))
+            .await
+            .change_context(UpdateError)?;
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
             .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
         transaction
-            .insert_data_type_with_id(ontology_id, schema, schema)
+            .insert_data_type_with_id(ontology_id, schema, &closed_schema)
             .await
             .change_context(UpdateError)?;
 

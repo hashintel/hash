@@ -3,7 +3,10 @@ use std::collections::HashSet;
 use error_stack::Report;
 use graph_types::knowledge::{PropertyWithMetadata, PropertyWithMetadataObject};
 use serde_json::Value as JsonValue;
-use type_system::{url::VersionedUrl, ClosedEntityType, DataType, PropertyType};
+use type_system::{
+    schema::{ClosedEntityType, DataType, PropertyType},
+    url::VersionedUrl,
+};
 
 pub fn install_error_stack_hooks() {
     Report::install_debug_hook::<Actual>(|actual, context| match actual {
