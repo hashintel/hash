@@ -7,13 +7,18 @@ import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/act
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger";
-import { getFlowContext } from "../shared/get-flow-context";
+import {
+  areUrlsTheSameAfterNormalization,
+  getFlowContext,
+  getProvidedFiles,
+} from "../shared/get-flow-context";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
 import { logProgress } from "../shared/log-progress";
 import { stringify } from "../shared/stringify";
@@ -276,6 +281,26 @@ export const researchEntitiesAction: FlowActionActivity<{
 
   let state: CoordinatingAgentState;
 
+  const { flowEntityId, stepId } = await getFlowContext();
+
+  const providedFileEntities = await getProvidedFiles();
+
+  const providedFiles: CoordinatingAgentState["resourcesNotVisited"] =
+    providedFileEntities.map((entity) => {
+      const {
+        fileUrl: unsignedUrl,
+        description,
+        displayName,
+        fileName,
+      } = simplifyProperties(entity.properties);
+
+      return {
+        url: unsignedUrl,
+        title: displayName ?? fileName ?? unsignedUrl.split("/").pop()!,
+        summary: description ?? "",
+      };
+    });
+
   if (testingParams?.resumeFromState) {
     state = testingParams.resumeFromState;
   } else {
@@ -286,6 +311,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     const { plan: initialPlan, questionsAndAnswers } =
       await coordinatingAgent.createInitialPlan({
         input,
+        providedFiles,
         questionsAndAnswers: null,
       });
 
@@ -300,8 +326,8 @@ export const researchEntitiesAction: FlowActionActivity<{
       submittedEntityIds: [],
       subTasksCompleted: [],
       suggestionsForNextStepsMade: [],
-      webPagesNotVisited: [],
-      webPageUrlsVisited: [],
+      resourcesNotVisited: providedFiles,
+      resourceUrlsVisited: [],
       webQueriesMade: [],
     };
 
@@ -320,8 +346,6 @@ export const researchEntitiesAction: FlowActionActivity<{
     state.proposedEntities.filter(({ localEntityId }) =>
       state.submittedEntityIds.includes(localEntityId),
     );
-
-  const { flowEntityId, stepId } = await getFlowContext();
 
   const processToolCalls = async (params: {
     toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
@@ -399,13 +423,13 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: "Search successful",
               webPagesFromSearchQuery: webPageSummaries,
             };
-          } else if (toolCall.name === "inferFactsFromWebPages") {
-            const { webPages } =
-              toolCall.input as CoordinatorToolCallArguments["inferFactsFromWebPages"];
+          } else if (toolCall.name === "inferFactsFromResources") {
+            const { resources } =
+              toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
 
             const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
 
-            const invalidEntityTypeIds = webPages
+            const invalidEntityTypeIds = resources
               .flatMap(({ entityTypeIds }) => entityTypeIds)
               .filter(
                 (entityTypeId) =>
@@ -415,7 +439,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             const validLinkEntityTypeIds =
               input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
 
-            const invalidLinkEntityTypeIds = webPages
+            const invalidLinkEntityTypeIds = resources
               .flatMap(({ linkEntityTypeIds }) => linkEntityTypeIds ?? [])
               .filter(
                 (entityTypeId) =>
@@ -465,7 +489,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             }
 
             const responsesWithUrl = await Promise.all(
-              webPages.map(
+              resources.map(
                 async ({
                   url,
                   prompt,
@@ -499,13 +523,13 @@ export const researchEntitiesAction: FlowActionActivity<{
             const inferredFacts: Fact[] = [];
             const entitySummaries: LocalEntitySummary[] = [];
             const suggestionsForNextStepsMade: string[] = [];
-            const webPageUrlsVisited: string[] = [];
+            const resourceUrlsVisited: string[] = [];
 
             for (const { response } of responsesWithUrl) {
               inferredFacts.push(...response.facts);
               entitySummaries.push(...response.entitySummaries);
               suggestionsForNextStepsMade.push(response.suggestionForNextSteps);
-              webPageUrlsVisited.push(
+              resourceUrlsVisited.push(
                 ...response.exploredResources.map(({ url }) => url),
               );
             }
@@ -516,7 +540,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               inferredFacts,
               entitySummaries,
               suggestionsForNextStepsMade,
-              webPageUrlsVisited,
+              resourceUrlsVisited,
               output:
                 entitySummaries.length > 0
                   ? "Entities inferred from web page"
@@ -742,23 +766,23 @@ export const researchEntitiesAction: FlowActionActivity<{
       ),
     );
 
-    const webPageUrlsVisited = completedToolCalls.flatMap(
-      ({ webPageUrlsVisited: urlsVisited }) => urlsVisited ?? [],
+    const resourceUrlsVisited = completedToolCalls.flatMap(
+      ({ resourceUrlsVisited: urlsVisited }) => urlsVisited ?? [],
     );
 
-    state.webPageUrlsVisited = [
-      ...new Set([...webPageUrlsVisited, ...state.webPageUrlsVisited]),
+    state.resourceUrlsVisited = [
+      ...new Set([...resourceUrlsVisited, ...state.resourceUrlsVisited]),
     ];
 
     const newWebPages = completedToolCalls
       .flatMap(({ webPagesFromSearchQuery }) => webPagesFromSearchQuery ?? [])
       .filter(
         (webPage) =>
-          !state.webPagesNotVisited.find((page) => page.url === webPage.url) &&
-          !state.webPageUrlsVisited.includes(webPage.url),
+          !state.resourcesNotVisited.find((page) => page.url === webPage.url) &&
+          !state.resourceUrlsVisited.includes(webPage.url),
       );
 
-    state.webPagesNotVisited.push(...newWebPages);
+    state.resourcesNotVisited.push(...newWebPages);
 
     state.webQueriesMade.push(
       ...completedToolCalls.flatMap(
@@ -845,7 +869,21 @@ export const researchEntitiesAction: FlowActionActivity<{
       ];
 
       return sourcesUsedToProposeEntity.flatMap((source) => {
-        if (source.location?.uri && source.type === SourceType.Document) {
+        if (
+          source.location?.uri &&
+          source.type === SourceType.Document &&
+          /**
+           * Exclude files we already have an entity for
+           */
+          !providedFileEntities.some((fileEntity) =>
+            areUrlsTheSameAfterNormalization(
+              fileEntity.properties[
+                "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+              ],
+              source.location!.uri!,
+            ),
+          )
+        ) {
           return {
             url: source.location.uri,
             entityTypeId: systemEntityTypes.pdfDocument.entityTypeId,

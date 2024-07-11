@@ -29,6 +29,7 @@ import {
 import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import mime from "mime-types";
@@ -153,7 +154,9 @@ export const getFileEntityFromUrl = async (params: {
 
   const urlObject = new URL(originalUrl);
   const urlWithoutParams = new URL(urlObject.origin + urlObject.pathname);
-  const filename = urlWithoutParams.pathname.split("/").pop()!;
+  const filename = normalizeWhitespace(
+    urlWithoutParams.pathname.split("/").pop()!,
+  );
 
   let localFilePath;
   try {
