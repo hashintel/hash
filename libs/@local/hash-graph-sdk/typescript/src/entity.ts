@@ -570,8 +570,13 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     }: PatchEntityParameters,
     /**
      * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of the update.
-     *    presumably possible to fix this via a generic on the entityTypeId input and an 'extends' on the return,
-     *    or by requiring a generic passed to .patch that must match the new entityTypeId, and infer the return from the generic.
+     *    I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId is changed, but
+     *    it isn't causing a compiler error:
+     *
+     *    public async patch<NewPropertyMap extends EntityProperties = PropertyMap>(
+     *      // PatchEntityParams sets a specific VersionedUrl based on NewPropertyMap, but this is not enforced by the compiler
+     *      params: PatchEntityParameters<NewPropertyMap>,
+     *    )
      */
   ): Promise<this> {
     return graphAPI
