@@ -21,4 +21,9 @@ fn main() {
         println!("cargo:warning=The `backtrace` feature requires Rust 1.65.0 or later.");
         exit(1);
     }
+
+    println!("cargo:rustc-check-cfg=cfg(rust_1_81)");
+    if trimmed_rustc_version >= Version::new(1, 81, 0) {
+        println!("cargo:rustc-cfg=rust_1_81");
+    }
 }
