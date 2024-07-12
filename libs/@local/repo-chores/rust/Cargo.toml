@@ -8,7 +8,7 @@ version = "0.0.0"
 publish = false
 
 [dependencies]
-error-stack = "0.4.1"
+error-stack = { workspace = true }
 
 bytes = "1.6.0"
 clap = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }

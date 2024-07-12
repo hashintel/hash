@@ -9,7 +9,7 @@ publish = false
 
 [dependencies]
 deer = { path = ".." }
-error-stack = { version = "0.4.1", default-features = false }
+error-stack = { workspace = true, default-features = false }
 serde_json = { version = "1.0.120", default-features = false, features = [
     'alloc',
 ] }
