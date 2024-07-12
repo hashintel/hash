@@ -37,6 +37,8 @@ test.skip(
     const { facts } = await inferFactsFromText({
       text: microsoftWikipediaParagraph,
       dereferencedEntityTypes: {},
+      existingEntitiesOfInterest: [],
+      entityTypesToInferSummariesFor: [],
     });
 
     expect(facts).toBeDefined();
@@ -158,6 +160,10 @@ test.skip(
     const { facts, entitySummaries } = await inferFactsFromText({
       text: htmlContent,
       dereferencedEntityTypes,
+      entityTypesToInferSummariesFor: Object.values(
+        dereferencedEntityTypes,
+      ).map((type) => type.schema.$id),
+      existingEntitiesOfInterest: [],
     });
 
     // eslint-disable-next-line no-console
@@ -246,6 +252,10 @@ test.skip(
     const { facts, entitySummaries } = await inferFactsFromText({
       text,
       dereferencedEntityTypes,
+      entityTypesToInferSummariesFor: Object.values(
+        dereferencedEntityTypes,
+      ).map((type) => type.schema.$id),
+      existingEntitiesOfInterest: [],
       relevantEntitiesPrompt:
         "Find facts about Satya Nadella, and the companies where he has worked.",
       testingParams: {
@@ -446,6 +456,10 @@ test.skip(
     const { facts, entitySummaries } = await inferFactsFromText({
       text,
       dereferencedEntityTypes,
+      entityTypesToInferSummariesFor: Object.values(
+        dereferencedEntityTypes,
+      ).map((type) => type.schema.$id),
+      existingEntitiesOfInterest: [],
       relevantEntitiesPrompt:
         "Find all the Large Language Models provided by OpenAI",
       testingParams: {
