@@ -227,7 +227,7 @@ const TableRow = memo(
 
           return (
             <TableCell key={column.id} sx={cellSx}>
-              {value !== undefined && (
+              {!!value.length && (
                 <ValueChip tooltip={value} sx={{ maxWidth: 700 }}>
                   <Typography
                     sx={{
