@@ -24,9 +24,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { SxProps, Theme } from "@mui/material";
-import { Typography } from "@mui/material";
-import { Box, TableCell } from "@mui/material";
-import type { SystemCssProperties } from "@mui/system";
+import { Box, TableCell, Typography } from "@mui/material";
 import { memo, useMemo, useState } from "react";
 
 import { ValueChip } from "../../../../shared/value-chip";
@@ -130,19 +128,19 @@ type EntityResultRow = {
   status: "Proposed" | "Created" | "Updated";
 };
 
-const typographySx: SxProps<Theme> = {
+const typographySx = {
   color: ({ palette }) => palette.common.black,
   fontSize: 12,
   fontWeight: 500,
-};
+} as const satisfies SxProps<Theme>;
 
 const cellSx = {
   ...defaultCellSx,
   ...typographySx,
   "&:not(:last-child)": {
     borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-  }, // @todo fix this
-} as SystemCssProperties<Theme>;
+  },
+} as const satisfies SxProps<Theme>;
 
 const TableRow = memo(
   ({
@@ -191,8 +189,9 @@ const TableRow = memo(
             >
               <ValueChip
                 sx={{
-                  color: ({ palette }) => palette.blue[70],
                   ...typographySx,
+
+                  color: ({ palette }) => palette.blue[70],
                 }}
               >
                 {row.entityLabel}
@@ -210,12 +209,12 @@ const TableRow = memo(
           if (!appliesToEntity) {
             return (
               <TableCell
-                key={column.id}
                 sx={({ palette }) => ({
                   ...cellSx,
                   background: palette.gray[5],
                   color: palette.gray[50],
                 })}
+                key={column.id}
               >
                 Does not apply
               </TableCell>

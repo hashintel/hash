@@ -19,12 +19,12 @@ import { TableVirtuoso } from "react-virtuoso";
 
 type Data = Record<string, unknown>;
 
-export const defaultCellSx: SxProps<Theme> = {
+export const defaultCellSx = {
   padding: "5px 14px",
   borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
   textAlign: "left",
   whiteSpace: "nowrap",
-};
+} as const satisfies SxProps<Theme>;
 
 const borderRadius = "10px";
 
