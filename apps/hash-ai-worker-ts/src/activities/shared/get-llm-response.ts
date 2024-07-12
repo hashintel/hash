@@ -9,6 +9,7 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
+import { backOff } from "exponential-backoff";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
 import { logger } from "./activity-logger";
@@ -62,11 +63,19 @@ export const getLlmResponse = async <T extends LlmParams>(
     };
   }
 
-  const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
-    authentication: { actorId: userAccountId },
-    grantCreatePermissionForWeb: webId,
-    graphApiClient,
-  });
+  const aiAssistantAccountId = await backOff(
+    () =>
+      getAiAssistantAccountIdActivity({
+        authentication: { actorId: userAccountId },
+        grantCreatePermissionForWeb: webId,
+        graphApiClient,
+      }),
+    {
+      jitter: "full",
+      numOfAttempts: 3,
+      startingDelay: 1_000,
+    },
+  );
 
   if (!aiAssistantAccountId) {
     return {
@@ -113,19 +122,27 @@ export const getLlmResponse = async <T extends LlmParams>(
     let usageRecordEntity: Entity;
 
     try {
-      usageRecordEntity = await createUsageRecord(
-        { graphApi: graphApiClient },
+      usageRecordEntity = await backOff(
+        () =>
+          createUsageRecord(
+            { graphApi: graphApiClient },
+            {
+              additionalViewers: [aiAssistantAccountId],
+              assignUsageToWebId: webId,
+              customMetadata,
+              serviceName: isLlmParamsAnthropicLlmParams(llmParams)
+                ? "Anthropic"
+                : "OpenAI",
+              featureName: llmParams.model,
+              inputUnitCount: usage.inputTokens,
+              outputUnitCount: usage.outputTokens,
+              userAccountId,
+            },
+          ),
         {
-          additionalViewers: [aiAssistantAccountId],
-          assignUsageToWebId: webId,
-          customMetadata,
-          serviceName: isLlmParamsAnthropicLlmParams(llmParams)
-            ? "Anthropic"
-            : "OpenAI",
-          featureName: llmParams.model,
-          inputUnitCount: usage.inputTokens,
-          outputUnitCount: usage.outputTokens,
-          userAccountId,
+          jitter: "full",
+          numOfAttempts: 3,
+          startingDelay: 1_000,
         },
       );
     } catch (error) {

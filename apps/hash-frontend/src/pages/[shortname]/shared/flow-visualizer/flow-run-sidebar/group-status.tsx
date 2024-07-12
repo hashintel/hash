@@ -114,13 +114,12 @@ export const GroupStatus = ({
             {groupData.group?.description ?? "Flow"}
           </Typography>
         </Stack>
-        <Stack direction="row" gap={1}>
+        <Stack alignItems="center" direction="row" gap={1} mt={0.2}>
           <Typography
             sx={{
               fontSize: 12,
               fontWeight: 600,
               lineHeight: 1.3,
-              mt: 0.1,
               color: ({ palette }) =>
                 groupStatus === "In Progress"
                   ? palette.blue[70]

@@ -227,20 +227,22 @@ const TableRow = memo(
 
           return (
             <TableCell key={column.id} sx={cellSx}>
-              <ValueChip tooltip={value} sx={{ maxWidth: 900 }}>
-                <Typography
-                  sx={{
-                    ...typographySx,
-                    maxWidth: "100%",
-                    lineHeight: 1,
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {value}
-                </Typography>
-              </ValueChip>
+              {value !== undefined && (
+                <ValueChip tooltip={value} sx={{ maxWidth: 700 }}>
+                  <Typography
+                    sx={{
+                      ...typographySx,
+                      maxWidth: "100%",
+                      lineHeight: 1,
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {value}
+                  </Typography>
+                </ValueChip>
+              )}
             </TableCell>
           );
         })}
@@ -279,7 +281,7 @@ export const EntityResultTable = ({
     direction: "asc",
   });
 
-  const hasData = persistedEntities.length || proposedEntities.length;
+  const hasData = !!(persistedEntities.length || proposedEntities.length);
 
   const {
     rows,
@@ -424,7 +426,7 @@ export const EntityResultTable = ({
 
   return (
     <OutputContainer
-      noBorder
+      noBorder={hasData}
       sx={{
         flex: 1,
         minWidth: 400,

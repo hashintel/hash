@@ -100,8 +100,7 @@ export const generateToolDefinitions = <
                     type: "string",
                   },
                   description: dedent(`
-                  The entity IDs of the entities which the sub-task is relevant to, for which existing
-                    facts have already been inferred.
+                  The entity IDs of the proposed entities which the sub-task is relevant to.
                   
                   ${params.state?.entitySummaries.length ? `The possible values are: ${params.state.entitySummaries.map(({ localId }) => localId).join(", ")}` : ""}
                 `),
@@ -233,6 +232,15 @@ export const generateToolDefinitions = <
                       "The linkEntityTypeIds of the kind of link entities to infer facts about on the web page",
                   },
                 },
+                relevantEntityIds: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                  },
+                  description: dedent(`
+                  The entityIds of already proposed entities which you are seeking further detail on, if any.
+                `),
+                },
               },
               required: [
                 "url",
@@ -347,6 +355,7 @@ export type CoordinatorToolCallArguments = Subtype<
         prompt: string;
         entityTypeIds: string[];
         linkEntityTypeIds?: string[];
+        relevantEntityIds?: string[];
         reason: string;
         descriptionOfExpectedContent: string;
         exampleOfExpectedContent: string;

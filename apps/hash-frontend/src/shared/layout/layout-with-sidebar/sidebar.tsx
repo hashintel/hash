@@ -175,7 +175,6 @@ export const PageSidebar: FunctionComponent = () => {
       sx={{
         zIndex: 0,
         width: SIDEBAR_WIDTH,
-        height: `calc(100vh - ${HEADER_HEIGHT}px)`,
       }}
       PaperProps={{
         sx: (theme) => ({

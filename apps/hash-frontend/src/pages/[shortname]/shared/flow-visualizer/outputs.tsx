@@ -3,7 +3,6 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type {
   PersistedEntity,
   ProposedEntity,
@@ -12,14 +11,12 @@ import {
   currentTimeInstantTemporalAxes,
   fullOntologyResolveDepths,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, EntityTypeRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, SvgIconProps } from "@mui/material";
 import { Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren } from "react";
@@ -330,7 +327,7 @@ export const Outputs = ({
           alignItems="center"
           direction="row"
           justifyContent="space-between"
-          sx={{ top: 5, position: "relative" }}
+          sx={{ top: 5, position: "relative", zIndex: 0 }}
         >
           <SectionTabContainer>
             {(["entities", "deliverables"] as const).map((section) => (
@@ -371,6 +368,7 @@ export const Outputs = ({
         sx={{
           maxWidth: "100%",
           overflowX: "auto",
+          zIndex: 2,
         }}
       >
         {sectionVisibility.entities &&

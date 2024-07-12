@@ -1,3 +1,4 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { SourceProvenance } from "@local/hash-graph-client";
@@ -33,8 +34,19 @@ type ResourceToExplore = {
 };
 
 type LinkFollowerAgentInput = {
+  /**
+   * Existing entities which we are seeking more information on,
+   * whether in their own right or to be linked to from other entities.
+   */
+  existingEntitiesOfInterest: LocalEntitySummary[];
   initialResource: ResourceToExplore;
   task: string;
+  /**
+   * Which entity types we should seek summaries of new entities for.
+   * This may be only a subset of the provided entityTypes/linkTypes,
+   * because the latter also contains types for existing summaries.
+   */
+  entityTypesToInferSummariesFor: VersionedUrl[];
   entityTypes: DereferencedEntityType[];
   linkEntityTypes?: DereferencedEntityType[];
 };
@@ -287,7 +299,13 @@ const exploreResource = async (params: {
     content = webPage.htmlContent;
   }
 
-  const { task, entityTypes, linkEntityTypes } = input;
+  const {
+    task,
+    existingEntitiesOfInterest,
+    entityTypesToInferSummariesFor,
+    entityTypes,
+    linkEntityTypes,
+  } = input;
 
   const relevantLinksFromContent = await extractLinksFromContent({
     contentUrl: resource.url,
@@ -326,6 +344,8 @@ const exploreResource = async (params: {
     facts: inferredFactsFromContent,
     entitySummaries: inferredEntitySummariesFromContent,
   } = await inferFactsFromText({
+    existingEntitiesOfInterest,
+    entityTypesToInferSummariesFor,
     text: content,
     /** @todo: consider whether this should be a dedicated input */
     relevantEntitiesPrompt: task,
@@ -384,7 +404,7 @@ export const linkFollowerAgent = async (
   status: "ok";
   facts: Fact[];
   exploredResources: ResourceToExplore[];
-  entitySummaries: LocalEntitySummary[];
+  existingEntitiesOfInterest: LocalEntitySummary[];
   suggestionForNextSteps: string;
 }> => {
   const { initialResource, task } = params;
@@ -520,7 +540,7 @@ export const linkFollowerAgent = async (
   return {
     status: "ok",
     facts: allFacts,
-    entitySummaries: allEntitySummaries,
+    existingEntitiesOfInterest: allEntitySummaries,
     suggestionForNextSteps,
     exploredResources,
   };

@@ -13,7 +13,7 @@ const usageCostLimit = {
     month: 150,
   },
   web: {
-    day: 50,
+    day: 100,
     month: 100,
   },
 };

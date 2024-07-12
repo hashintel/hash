@@ -283,20 +283,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
       ],
     });
   } else if (llmResponse.status !== "ok") {
-    /**
-     * If a schema validation error couldn't be recovered from, we retry the
-     * request without retry messages.
-     */
-    if (llmResponse.status === "exceeded-maximum-retries") {
-      return retry({
-        allValidInferredFacts: params.retryContext?.previousValidFacts ?? [],
-        retryMessages: [],
-      });
-    }
-
-    throw new Error(
-      `Failed to get response from LLM: ${stringify(llmResponse)}`,
-    );
+    return { facts: params.retryContext?.previousValidFacts ?? [] };
   }
 
   const validFacts: Fact[] = [];
@@ -409,7 +396,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
             ${invalidFactsProvidedInToolCall
               .map(
                 (invalidFact) =>
-                  `Fact: ${invalidFact.text}\nInvalid Reason: ${invalidFact.invalidReason}`,
+                  `InvalidFact: ${stringify(invalidFact)}\nInvalid Reason: ${invalidFact.invalidReason}`,
               )
               .join("\n\n")}
 

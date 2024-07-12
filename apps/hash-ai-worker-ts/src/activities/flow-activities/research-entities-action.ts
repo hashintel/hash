@@ -495,10 +495,15 @@ export const researchEntitiesAction: FlowActionActivity<{
                   prompt,
                   entityTypeIds,
                   linkEntityTypeIds,
+                  relevantEntityIds,
                   descriptionOfExpectedContent,
                   exampleOfExpectedContent,
                   reason,
                 }) => {
+                  const relevantEntities = state.entitySummaries.filter(
+                    ({ localId }) => relevantEntityIds?.includes(localId),
+                  );
+
                   const response = await linkFollowerAgent({
                     initialResource: {
                       url,
@@ -507,11 +512,22 @@ export const researchEntitiesAction: FlowActionActivity<{
                       reason,
                     },
                     task: prompt,
-                    entityTypes: input.entityTypes.filter(({ $id }) =>
-                      entityTypeIds.includes($id),
+                    existingEntitiesOfInterest: relevantEntities,
+                    entityTypesToInferSummariesFor:
+                      entityTypeIds as VersionedUrl[],
+                    entityTypes: input.entityTypes.filter(
+                      ({ $id }) =>
+                        entityTypeIds.includes($id) ||
+                        relevantEntities.some(
+                          (entity) => entity.entityTypeId === $id,
+                        ),
                     ),
                     linkEntityTypes: input.linkEntityTypes?.filter(
-                      ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
+                      ({ $id }) =>
+                        !!linkEntityTypeIds?.includes($id) ||
+                        relevantEntities.some(
+                          (entity) => entity.entityTypeId === $id,
+                        ),
                     ),
                   });
 
@@ -527,7 +543,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             for (const { response } of responsesWithUrl) {
               inferredFacts.push(...response.facts);
-              entitySummaries.push(...response.entitySummaries);
+              entitySummaries.push(...response.existingEntitiesOfInterest);
               suggestionsForNextStepsMade.push(response.suggestionForNextSteps);
               resourceUrlsVisited.push(
                 ...response.exploredResources.map(({ url }) => url),
@@ -580,16 +596,24 @@ export const researchEntitiesAction: FlowActionActivity<{
                     explanation,
                   } = subTask;
 
-                  const entityTypes = input.entityTypes.filter(({ $id }) =>
-                    entityTypeIds.includes($id),
+                  const relevantEntities = state.entitySummaries.filter(
+                    ({ localId }) => relevantEntityIds?.includes(localId),
+                  );
+
+                  const entityTypes = input.entityTypes.filter(
+                    ({ $id }) =>
+                      entityTypeIds.includes($id) ||
+                      relevantEntities.some(
+                        (entity) => entity.entityTypeId === $id,
+                      ),
                   );
 
                   const linkEntityTypes = input.linkEntityTypes?.filter(
-                    ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
-                  );
-
-                  const relevantEntities = state.entitySummaries.filter(
-                    ({ localId }) => relevantEntityIds?.includes(localId),
+                    ({ $id }) =>
+                      !!linkEntityTypeIds?.includes($id) ||
+                      relevantEntities.some(
+                        (entity) => entity.entityTypeId === $id,
+                      ),
                   );
 
                   const existingFactsAboutRelevantEntities =

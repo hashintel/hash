@@ -18,6 +18,7 @@ import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-pro
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import { backOff } from "exponential-backoff";
 
 export type HashInstance = {
   entity: Entity;
@@ -51,20 +52,28 @@ export const getHashInstance = async (
   { graphApi }: { graphApi: GraphApi },
   { actorId }: { actorId: AccountId },
 ): Promise<HashInstance> => {
-  const entities = await graphApi
-    .getEntities(actorId, {
-      filter: generateVersionedUrlMatchingFilter(
-        systemEntityTypes.hashInstance.entityTypeId,
-        { ignoreParents: true },
-      ),
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId),
-      ),
-    );
+  const entities = await backOff(
+    () =>
+      graphApi
+        .getEntities(actorId, {
+          filter: generateVersionedUrlMatchingFilter(
+            systemEntityTypes.hashInstance.entityTypeId,
+            { ignoreParents: true },
+          ),
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+        })
+        .then(({ data: response }) =>
+          response.entities.map((entity) =>
+            mapGraphApiEntityToEntity(entity, actorId),
+          ),
+        ),
+    {
+      numOfAttempts: 3,
+      startingDelay: 1_000,
+      jitter: "full",
+    },
+  );
 
   if (entities.length > 1) {
     throw new Error("More than one hash instance entity found in the graph.");

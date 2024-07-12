@@ -10,6 +10,7 @@ import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subg
 
 import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types";
 import { dereferenceEntityType } from "./shared/dereference-entity-type";
+import { backOff } from "exponential-backoff";
 
 /**
  * @todo: allow for specifying additional entity types which may be linked to
@@ -29,22 +30,27 @@ export const getDereferencedEntityTypesActivity = async (params: {
   /** Fetch the full schemas for the requested entity types */
   const entityTypes: DereferencedEntityTypesByTypeId = {};
 
-  const { data: response } = await graphApiClient.getEntityTypeSubgraph(
-    actorId,
+  const { data: response } = await backOff(
+    () =>
+      graphApiClient.getEntityTypeSubgraph(actorId, {
+        filter: {
+          any: entityTypeIds.map((entityTypeId) => ({
+            equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+          })),
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          inheritsFrom: { outgoing: 255 },
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+      }),
     {
-      filter: {
-        any: entityTypeIds.map((entityTypeId) => ({
-          equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
-        })),
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        inheritsFrom: { outgoing: 255 },
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
+      numOfAttempts: 3,
+      startingDelay: 1_000,
+      jitter: "full",
     },
   );
 

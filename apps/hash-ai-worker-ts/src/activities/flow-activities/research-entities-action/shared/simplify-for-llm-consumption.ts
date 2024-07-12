@@ -9,6 +9,7 @@ import type {
   DereferencedPropertyType,
   MinimalPropertyTypeValue,
 } from "../../../shared/dereference-entity-type";
+import type { Fact } from "../../shared/infer-facts-from-text/types";
 
 const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
   propertyTypeValue: MinimalPropertyTypeValue;
@@ -113,4 +114,8 @@ ${Object.entries(properties)
     }
 </Entity>
   `;
+};
+
+export const simplifyFactForLlmConsumption = (fact: Fact) => {
+  return `${fact.text} ${fact.prepositionalPhrases.join(", ")}`;
 };

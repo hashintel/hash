@@ -4,19 +4,20 @@ import {
   CircleEllipsisRegularIcon,
   CloseIcon,
 } from "@hashintel/design-system";
+import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+
 import { EllipsisRegularIcon } from "../../../../../../shared/icons/ellipsis-regular-icon";
-import type { StepDefinition } from "@local/hash-isomorphic-utils/src/flows/types";
 import {
   statusToSimpleStatus,
   useStatusForStep,
 } from "../../../../../shared/flow-runs-context";
-import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 
 type StatusFor = "group" | "step";
 
 const iconSx = {
   group: {
-    fontSize: 18,
+    fontSize: 17,
   },
   step: {
     fontSize: 13,

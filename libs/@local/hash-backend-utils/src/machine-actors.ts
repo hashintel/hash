@@ -13,6 +13,7 @@ import {
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
+import { backOff } from "exponential-backoff";
 
 export type WebMachineActorIdentifier = `system-${OwnedById}`;
 
@@ -36,41 +37,49 @@ export const getMachineActorId = async (
   authentication: { actorId: AccountId },
   { identifier }: { identifier: MachineActorIdentifier },
 ): Promise<AccountId> => {
-  const [machineEntity, ...unexpectedEntities] = await context.graphApi
-    .getEntities(authentication.actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
+  const [machineEntity, ...unexpectedEntities] = await backOff(
+    () =>
+      context.graphApi
+        .getEntities(authentication.actorId, {
+          filter: {
+            all: [
               {
-                path: ["type(inheritanceDepth = 0)", "baseUrl"],
-              },
-              {
-                parameter: systemEntityTypes.machine.entityTypeBaseUrl,
-              },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
+                equal: [
+                  {
+                    path: ["type(inheritanceDepth = 0)", "baseUrl"],
+                  },
+                  {
+                    parameter: systemEntityTypes.machine.entityTypeBaseUrl,
+                  },
                 ],
               },
-              { parameter: identifier },
+              {
+                equal: [
+                  {
+                    path: [
+                      "properties",
+                      systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
+                    ],
+                  },
+                  { parameter: identifier },
+                ],
+              },
             ],
           },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, authentication.actorId),
-      ),
-    );
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+        })
+        .then(({ data: response }) =>
+          response.entities.map((entity) =>
+            mapGraphApiEntityToEntity(entity, authentication.actorId),
+          ),
+        ),
+    {
+      numOfAttempts: 3,
+      startingDelay: 1000,
+      jitter: "full",
+    },
+  );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
