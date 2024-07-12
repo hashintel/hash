@@ -166,7 +166,7 @@ const constructUserMessage = (params: {
 
 const retryMax = 3;
 
-export const inferEntityFactsFromText = async (params: {
+export const inferEntityFactsFromTextAgent = async (params: {
   subjectEntities: LocalEntitySummary[];
   potentialObjectEntities: LocalEntitySummary[];
   text: string;
@@ -239,7 +239,7 @@ export const inferEntityFactsFromText = async (params: {
       };
     }
 
-    return inferEntityFactsFromText({
+    return inferEntityFactsFromTextAgent({
       ...params,
       retryContext: {
         previousValidFacts: allValidInferredFacts,
@@ -336,7 +336,7 @@ export const inferEntityFactsFromText = async (params: {
       if (!subjectEntity) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `An invalid "subjectEntityLocalId" has been provided: ${fact.subjectEntityLocalId}`,
+          invalidReason: `An invalid "subjectEntityLocalId" has been provided: ${fact.subjectEntityLocalId}. All facts must relate to a subject entity – don't submit facts that can't be linked to one.`,
           toolCallId: toolCall.id,
         });
 
@@ -354,26 +354,23 @@ export const inferEntityFactsFromText = async (params: {
       if (fact.objectEntityLocalId && !objectEntity) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `An invalid "objectEntityLocalId" has been provided: ${fact.objectEntityLocalId}`,
+          invalidReason: `An invalid "objectEntityLocalId" has been provided: ${fact.objectEntityLocalId} – if not null, the objectEntityId must relate to a provided entity.`,
           toolCallId: toolCall.id,
         });
 
         continue;
       }
 
-      if (!fact.text.startsWith(subjectEntity.name)) {
+      if (!fact.text.includes(subjectEntity.name)) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `The fact does not start with "${subjectEntity.name}" as the subject of the fact. Facts must have the subject entity as the singular subject.`,
+          invalidReason: `The fact specifies subjectEntityId "${fact.subjectEntityLocalId}", but that entity's name "${subjectEntity.name}" does not appear in the fact. Facts must start with the name of the subject.`,
           toolCallId: toolCall.id,
         });
-      } else if (
-        objectEntity &&
-        !fact.text.replace(/\.$/, "").endsWith(objectEntity.name)
-      ) {
+      } else if (objectEntity && !fact.text.includes(objectEntity.name)) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `The fact does not end with "${objectEntity.name}" as the object of the fact. Facts must have the object entity as the singular object, and specify any prepositional phrases via the "prepositionalPhrases" argument.`,
+          invalidReason: `The fact specifies objectEntityId "${fact.objectEntityLocalId}, but that entity's name "${objectEntity.name}" does not appear in the fact. Facts must end with the name of the object of the fact.`,
           toolCallId: toolCall.id,
         });
       } else {

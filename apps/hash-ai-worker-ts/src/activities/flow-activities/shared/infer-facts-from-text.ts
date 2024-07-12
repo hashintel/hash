@@ -4,7 +4,7 @@ import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/infer
 import { logger } from "../../shared/activity-logger";
 import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
 import { getEntitySummariesFromText } from "./infer-facts-from-text/get-entity-summaries-from-text";
-import { inferEntityFactsFromText } from "./infer-facts-from-text/infer-entity-facts-from-text";
+import { inferEntityFactsFromTextAgent } from "./infer-facts-from-text/infer-entity-facts-from-text-agent";
 import type { Fact } from "./infer-facts-from-text/types";
 
 export const inferFactsFromText = async (params: {
@@ -76,7 +76,7 @@ export const inferFactsFromText = async (params: {
         return await Promise.all(
           entitySummariesOfType.map(async (entity) => {
             const { facts: factsForSingleEntity } =
-              await inferEntityFactsFromText({
+              await inferEntityFactsFromTextAgent({
                 subjectEntities: [entity],
                 potentialObjectEntities: entitySummaries,
                 text,
