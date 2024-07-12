@@ -3,10 +3,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  PersistedEntity,
-  ProposedEntity,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
   fullOntologyResolveDepths,
@@ -17,8 +14,8 @@ import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mappi
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, EntityTypeRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { Box, SvgIconProps } from "@mui/material";
-import { Stack, Typography } from "@mui/material";
+import type { SvgIconProps } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { useMemo, useState } from "react";
 
@@ -42,6 +39,7 @@ import { EntityResultTable } from "./outputs/entity-result-table";
 import { PersistedEntityGraph } from "./outputs/persisted-entity-graph";
 import { outputIcons } from "./outputs/shared/icons";
 import { flowSectionBorderRadius } from "./shared/styles";
+import type { ProposedEntityOutput } from "./shared/types";
 
 export const getDeliverables = (
   outputs?: FlowRun["outputs"],
@@ -170,7 +168,7 @@ type ResultSlideOver =
 
 type OutputsProps = {
   persistedEntities: PersistedEntity[];
-  proposedEntities: Omit<ProposedEntity, "provenance" | "propertyMetadata">[];
+  proposedEntities: ProposedEntityOutput[];
 };
 
 type SectionVisibility = {

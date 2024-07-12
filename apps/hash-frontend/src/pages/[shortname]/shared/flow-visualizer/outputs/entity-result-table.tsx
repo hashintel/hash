@@ -7,10 +7,7 @@ import type {
   EntityRecordId,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
-import type {
-  PersistedEntity,
-  ProposedEntity,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type {
@@ -24,7 +21,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { SxProps, Theme } from "@mui/material";
-import { Box, TableCell, Typography } from "@mui/material";
+import { Box, Stack, TableCell, Typography } from "@mui/material";
 import { memo, useMemo, useState } from "react";
 
 import { ValueChip } from "../../../../shared/value-chip";
@@ -38,6 +35,7 @@ import {
   defaultCellSx,
   VirtualizedTable,
 } from "../../../../shared/virtualized-table";
+import type { ProposedEntityOutput } from "../shared/types";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
@@ -125,6 +123,7 @@ type EntityResultRow = {
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntity?: Entity;
   properties: PropertyObject;
+  researchOngoing: boolean;
   status: "Proposed" | "Created" | "Updated";
 };
 
@@ -190,7 +189,6 @@ const TableRow = memo(
               <ValueChip
                 sx={{
                   ...typographySx,
-
                   color: ({ palette }) => palette.blue[70],
                 }}
               >
@@ -221,9 +219,46 @@ const TableRow = memo(
             );
           }
 
-          const value = stringifyPropertyValue(
-            row.properties[extractBaseUrl(column.id as VersionedUrl)],
-          );
+          const entityValue =
+            row.properties[extractBaseUrl(column.id as VersionedUrl)];
+
+          if (entityValue === undefined || entityValue === "") {
+            if (row.researchOngoing) {
+              return (
+                <TableCell
+                  key={column.id}
+                  sx={({ palette }) => ({
+                    ...cellSx,
+                    background: palette.blue[15],
+                    color: palette.blue[70],
+                  })}
+                >
+                  <Stack direction="row" alignItems="center">
+                    <Box
+                      sx={{
+                        background: ({ palette }) => palette.blue[70],
+                        height: 6,
+                        width: 6,
+                        borderRadius: "50%",
+                        mr: 1,
+                      }}
+                    />
+                    Researching...
+                  </Stack>
+                </TableCell>
+              );
+            }
+            return (
+              <TableCell
+                key={column.id}
+                sx={{ ...cellSx, color: ({ palette }) => palette.gray[50] }}
+              >
+                –
+              </TableCell>
+            );
+          }
+
+          const value = stringifyPropertyValue(entityValue);
 
           return (
             <TableCell key={column.id} sx={cellSx}>
@@ -264,7 +299,7 @@ type EntityResultTableProps = {
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
-  proposedEntities: Omit<ProposedEntity, "provenance" | "propertyMetadata">[];
+  proposedEntities: ProposedEntityOutput[];
   proposedEntitiesTypesSubgraph?: Subgraph<EntityTypeRootType>;
 };
 
@@ -366,6 +401,8 @@ export const EntityResultTable = ({
           onEntityTypeClick,
           persistedEntity: "metadata" in entity ? entity : undefined,
           properties: entity.properties,
+          researchOngoing:
+            "researchOngoing" in record && record.researchOngoing,
           status: isProposed
             ? "Proposed"
             : record.operation === "update"

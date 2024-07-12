@@ -9,7 +9,6 @@ import type {
   FlowDefinition as FlowDefinitionType,
   FlowTrigger,
   PersistedEntity,
-  ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Stack } from "@mui/material";
 import NotFound from "next/dist/client/components/not-found-error";
@@ -41,6 +40,7 @@ import type {
   EdgeData,
   FlowMaybeGrouped,
   LocalProgressLog,
+  ProposedEntityOutput,
 } from "./flow-visualizer/shared/types";
 import {
   getFlattenedSteps,
@@ -292,7 +292,7 @@ export const FlowVisualizer = () => {
   const { logs, persistedEntities, proposedEntities } = useMemo<{
     logs: LocalProgressLog[];
     persistedEntities: PersistedEntity[];
-    proposedEntities: Omit<ProposedEntity, "provenance" | "propertyMetadata">[];
+    proposedEntities: ProposedEntityOutput[];
   }>(() => {
     if (!selectedFlowRun) {
       return { logs: [], persistedEntities: [], proposedEntities: [] };
@@ -308,20 +308,22 @@ export const FlowVisualizer = () => {
     ];
 
     const persisted: PersistedEntity[] = [];
-    const proposed: Omit<ProposedEntity, "provenance" | "propertyMetadata">[] =
-      [];
+    const proposed: ProposedEntityOutput[] = [];
 
     for (const step of selectedFlowRun.steps) {
       const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
-
-      console.log({ step });
 
       for (const log of step.logs) {
         progressLogs.push(log);
 
         if (outputs.length === 0) {
           if (log.type === "ProposedEntity") {
-            proposed.push(log.proposedEntity);
+            proposed.push({
+              ...log.proposedEntity,
+              researchOngoing: !["CANCELLED", "FAILED", "TIMED_OUT"].includes(
+                step.status,
+              ),
+            });
           }
           if (log.type === "PersistedEntity" && log.persistedEntity.entity) {
             persisted.push(log.persistedEntity);
@@ -333,9 +335,17 @@ export const FlowVisualizer = () => {
         switch (output.payload.kind) {
           case "ProposedEntity":
             if (Array.isArray(output.payload.value)) {
-              proposed.push(...output.payload.value);
+              proposed.push(
+                ...output.payload.value.map((entity) => ({
+                  ...entity,
+                  researchOngoing: false,
+                })),
+              );
             } else {
-              proposed.push(output.payload.value);
+              proposed.push({
+                ...output.payload.value,
+                researchOngoing: false,
+              });
             }
             break;
           case "PersistedEntity":
@@ -521,7 +531,7 @@ export const FlowVisualizer = () => {
               height: "100%",
               py: 2.5,
               pr: 3,
-              width: "50%",
+              width: "70%",
             }}
           >
             <ActivityLog key={`${flowRunStateKey}-activity-log`} logs={logs} />
