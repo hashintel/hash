@@ -1,7 +1,12 @@
+#[cfg(any(feature = "std", rust_1_81))]
 use alloc::string::{String, ToString};
+#[cfg(rust_1_81)]
+use core::error::Error;
 #[cfg(nightly)]
 use core::error::Request;
-use core::{error::Error, fmt};
+use core::fmt;
+#[cfg(all(feature = "std", not(rust_1_81)))]
+use std::error::Error;
 
 use crate::Report;
 
@@ -67,32 +72,38 @@ pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     /// This method only exists to avoid the requirement of specialization and to get the sources
     /// for `Error`.
     #[doc(hidden)]
+    #[cfg(any(feature = "std", rust_1_81))]
     fn __source(&self) -> Option<&(dyn Error + 'static)> {
         None
     }
 }
 
 /// Captures an error message as the context of a [`Report`].
+#[cfg(any(feature = "std", rust_1_81))]
 pub(crate) struct SourceContext(String);
 
+#[cfg(any(feature = "std", rust_1_81))]
 impl SourceContext {
     pub(crate) fn from_error(value: &dyn Error) -> Self {
         Self(value.to_string())
     }
 }
 
+#[cfg(any(feature = "std", rust_1_81))]
 impl fmt::Debug for SourceContext {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
+#[cfg(any(feature = "std", rust_1_81))]
 impl fmt::Display for SourceContext {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
+#[cfg(any(feature = "std", rust_1_81))]
 impl Context for SourceContext {}
 
 impl<C> From<C> for Report<C>
@@ -106,6 +117,7 @@ where
     }
 }
 
+#[cfg(any(feature = "std", rust_1_81))]
 impl<C: Error + Send + Sync + 'static> Context for C {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
