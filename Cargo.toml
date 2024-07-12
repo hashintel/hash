@@ -19,7 +19,7 @@ members = [
     "tests/hash-graph-test-data/rust",
     "libs/@local/harpc/wire-protocol",
     "libs/@local/harpc/types",
-	"libs/@local/harpc/net",
+    "libs/@local/harpc/net",
     "libs/antsi",
     "libs/deer",
     "libs/deer/desert",
@@ -62,23 +62,23 @@ repo-chores.path = "libs/@local/repo-chores/rust"
 error-stack = { version = "0.4.1", default-features = false }
 
 # Shared third-party dependencies
-aws-config = { version = "1.4.0" }
-aws-sdk-s3 = { version = "1.28.0" }
+aws-config = { version = "1.5.4" }
+aws-sdk-s3 = { version = "1.40.0" }
 bytes = "1.6.0"
-clap = { version = "4.5.4", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
+clap = { version = "4.5.9", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
 derive-where = { version = "1.2.7", default-features = false, features = ["nightly"] }
-email_address = { version = "0.2.4", default-features = false }
+email_address = { version = "0.2.5", default-features = false }
 futures = { version = "0.3.30", default-features = false }
 postgres-types = { version = "0.2.6", default-features = false }
-serde = { version = "1.0.200", default-features = false }
-serde_json = "1.0.116"
+serde = { version = "1.0.204", default-features = false }
+serde_json = "1.0.120"
 time = { version = "0.3.36", default-features = false }
-tokio = { version = "1.37.0", default-features = false }
+tokio = { version = "1.38.0", default-features = false }
 tokio-util = { version = "0.7.11", default-features = false }
 tracing = "0.1.40"
-utoipa = "4.2.0"
-url = { version = "2.5.0", default-features = false }
-uuid = { version = "1.8.0", default-features = false }
+utoipa = "4.2.3"
+url = { version = "2.5.2", default-features = false }
+uuid = { version = "1.10.0", default-features = false }
 
 [profile.production]
 inherits = "release"
