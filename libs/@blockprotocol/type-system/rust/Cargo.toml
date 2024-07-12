@@ -25,7 +25,7 @@ tsify = "0.4.5"
 url = "2.5.2"
 utoipa = { version = "4.2.3", features = ["url"], optional = true }
 regex = "1.10.5"
-error-stack = "0.4.1"
+error-stack = { workspace = true }
 iso8601-duration = "0.2.0"
 uuid = { workspace = true, features = ["std"] }
 email_address = { version = "0.2.5", default-features = false }

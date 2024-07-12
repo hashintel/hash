@@ -59,7 +59,7 @@ harpc-wire-protocol.path = "libs/@local/harpc/wire-protocol"
 repo-chores.path = "libs/@local/repo-chores/rust"
 
 # External dependencies owned by HASH
-error-stack = { version = "0.4.1", default-features = false }
+error-stack = { version = "0.5.0", default-features = false }
 
 # Shared third-party dependencies
 aws-config = { version = "1.5.4" }
