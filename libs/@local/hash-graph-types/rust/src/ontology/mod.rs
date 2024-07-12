@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
+    schema::{DataTypeReference, EntityTypeReference, PropertyTypeReference},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    DataTypeReference, EntityTypeReference, PropertyTypeReference,
 };
 
 pub use self::{

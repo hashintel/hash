@@ -9,7 +9,7 @@ use graph_types::{
     ontology::EntityTypeId,
 };
 use tokio_postgres::GenericClient;
-use type_system::ClosedEntityType;
+use type_system::schema::ClosedEntityType;
 use validation::{Validate, ValidateEntityComponents};
 
 use crate::{

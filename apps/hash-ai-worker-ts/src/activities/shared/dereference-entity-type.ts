@@ -8,7 +8,7 @@ import type {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { extractVersion } from "@blockprotocol/type-system";
+import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   BaseUrl,
@@ -163,16 +163,20 @@ const dereferencePropertyTypeValue = (params: {
           return accumulator;
         }, {}),
         required: simplifyPropertyKeys
-          ? valueReference.required?.map((requiredPropertyBaseUrl) => {
-              const simplifiedPropertyId = Object.entries(
-                simplifiedPropertyTypeMappings,
-              ).find(
-                ([_, propertyBaseUrl]) =>
-                  propertyBaseUrl === requiredPropertyBaseUrl,
-              )?.[0];
+          ? valueReference.required
+            ? atLeastOne(
+                valueReference.required.map((requiredPropertyBaseUrl) => {
+                  const simplifiedPropertyId = Object.entries(
+                    simplifiedPropertyTypeMappings,
+                  ).find(
+                    ([_, propertyBaseUrl]) =>
+                      propertyBaseUrl === requiredPropertyBaseUrl,
+                  )?.[0];
 
-              return simplifiedPropertyId ?? requiredPropertyBaseUrl;
-            })
+                  return simplifiedPropertyId ?? requiredPropertyBaseUrl;
+                }),
+              )
+            : undefined
           : valueReference.required,
         type: "object",
       },

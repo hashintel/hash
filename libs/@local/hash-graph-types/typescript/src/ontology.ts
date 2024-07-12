@@ -137,12 +137,12 @@ export type ObjectConstraint = {
 };
 
 export type StringEnumConstraint = {
-  enum: string[];
+  enum: [string, ...string[]];
   type: "string";
 };
 
 export type NumberEnumConstraint = {
-  enum: number[];
+  enum: [number, ...number[]];
   type: "number" | "integer";
 };
 

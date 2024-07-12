@@ -11,7 +11,7 @@ use futures::{
     Sink, SinkExt, Stream, StreamExt,
 };
 use graph_types::ontology::{EntityTypeId, PropertyTypeId};
-use type_system::{ClosedEntityType, Valid};
+use type_system::{schema::ClosedEntityType, Valid};
 
 use crate::{
     snapshot::{
@@ -164,7 +164,9 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 schema: Valid::new_unchecked(entity_type.schema.clone()),
                 // The unclosed schema is inserted initially. This will be replaced later by the
                 // closed schema.
-                closed_schema: ClosedEntityType::from(entity_type.schema),
+                // TODO: Validate ontology types in snapshots
+                //   see https://linear.app/hash/issue/H-3038
+                closed_schema: Valid::new_unchecked(ClosedEntityType::from(entity_type.schema)),
                 label_property: entity_type
                     .metadata
                     .label_property

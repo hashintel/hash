@@ -15,7 +15,7 @@ use graph_types::{
 };
 use temporal_versioning::TemporalBound;
 use time::OffsetDateTime;
-use type_system::DataType;
+use type_system::schema::DataType;
 
 use crate::{data_type_relationships, DatabaseTestWrapper};
 
