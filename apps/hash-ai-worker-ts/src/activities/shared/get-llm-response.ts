@@ -8,6 +8,7 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { IncurredIn } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import { StatusCode } from "@local/status";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
@@ -155,12 +156,12 @@ export const getLlmResponse = async <T extends LlmParams>(
       const errors = await Promise.all(
         incurredInEntities.map(async ({ entityId }) => {
           try {
-            await Entity.create(
+            await Entity.create<IncurredIn>(
               graphApiClient,
               { actorId: aiAssistantAccountId },
               {
                 draft: false,
-                properties: {},
+                properties: { value: {} },
                 provenance,
                 ownedById: webId,
                 entityTypeId: systemLinkEntityTypes.incurredIn.linkEntityTypeId,

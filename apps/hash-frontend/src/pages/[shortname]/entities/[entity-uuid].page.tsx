@@ -1,6 +1,9 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { patchesFromPropertyObjects } from "@local/hash-graph-sdk/entity";
+import {
+  mergePropertyObjectAndMetadata,
+  patchesFromPropertyObjects,
+} from "@local/hash-graph-sdk/entity";
 import type {
   DraftId,
   EntityId,
@@ -234,7 +237,10 @@ const Page: NextPageWithLayout = () => {
             entityTypeId: draftEntity.metadata.entityTypeId,
             propertyPatches: patchesFromPropertyObjects({
               oldProperties: entityFromDb?.properties ?? {},
-              newProperties: overrideProperties ?? draftEntity.properties,
+              newProperties: mergePropertyObjectAndMetadata(
+                overrideProperties ?? draftEntity.properties,
+                undefined,
+              ),
             }),
           },
         },

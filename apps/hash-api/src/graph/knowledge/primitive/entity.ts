@@ -16,13 +16,18 @@ import type {
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  LinkEntity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
 import type {
   EntityId,
+  EntityProperties,
   LinkData,
   PropertyObject,
   PropertyPatchOperation,
@@ -75,23 +80,26 @@ import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 /** @todo: potentially directly export this from the subgraph package */
 export type PropertyValue = PropertyObject[BaseUrl];
 
+type CreateEntityFunction<Properties extends EntityProperties> =
+  ImpureGraphFunction<
+    Omit<CreateEntityParameters<Properties>, "linkData" | "provenance"> & {
+      outgoingLinks?: (Omit<
+        CreateEntityParameters,
+        "linkData" | "provenance"
+      > & {
+        linkData: Omit<LinkData, "leftEntityId">;
+      })[];
+    },
+    Promise<Entity<Properties>>
+  >;
+
 /**
  * Create an entity.
- *
- * @param params.ownedById - the id of the account who owns the entity
- * @param params.entityType - the type of the entity
- * @param params.properties - the properties object of the entity
- * @param params.actorId - the id of the account that is creating the entity
- * @param params.entityUuid (optional) - the uuid of the entity, automatically generated if left undefined
  */
-export const createEntity: ImpureGraphFunction<
-  Omit<CreateEntityParameters, "linkData" | "provenance"> & {
-    outgoingLinks?: (Omit<CreateEntityParameters, "linkData" | "provenance"> & {
-      linkData: Omit<LinkData, "leftEntityId">;
-    })[];
-  },
-  Promise<Entity>
-> = async (context, authentication, params) => {
+export const createEntity = async <Properties extends EntityProperties>(
+  ...args: Parameters<CreateEntityFunction<Properties>>
+): ReturnType<CreateEntityFunction<Properties>> => {
+  const [context, authentication, params] = args;
   const {
     ownedById,
     entityTypeId,
@@ -118,7 +126,7 @@ export const createEntity: ImpureGraphFunction<
     }
   }
 
-  const entity = await Entity.create(
+  const entity = await Entity.create<Properties>(
     graphApi,
     { actorId },
     {
@@ -129,7 +137,6 @@ export const createEntity: ImpureGraphFunction<
       draft,
       relationships: params.relationships,
       confidence: params.confidence,
-      propertyMetadata: params.propertyMetadata,
       provenance,
     },
   );
@@ -474,7 +481,9 @@ export const createEntityWithLinks: ImpureGraphFunction<
             entityId: existingEntityId,
           })
         : await createEntity(context, authentication, {
-            properties: definition.entityProperties!,
+            properties: mergePropertyObjectAndMetadata(
+              definition.entityProperties!,
+            ),
             entityTypeId: definition.entityTypeId!,
             ownedById,
             relationships,
@@ -515,7 +524,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
         // links are created as an outgoing link from the parent entity to the children.
         await createLinkEntity(context, authentication, {
           ownedById,
-          properties: {},
+          properties: { value: {} },
           linkData: {
             leftEntityId: parentEntity.entity.metadata.recordId.entityId,
             rightEntityId: entity.metadata.recordId.entityId,
@@ -534,24 +543,26 @@ export const createEntityWithLinks: ImpureGraphFunction<
   return rootEntity;
 };
 
+type UpdateEntityFunction<Properties extends EntityProperties> =
+  ImpureGraphFunction<
+    {
+      entity: Entity<Properties>;
+      entityTypeId?: VersionedUrl;
+      propertyPatches?: PropertyPatchOperation[];
+      draft?: boolean;
+    },
+    Promise<Entity<Properties>>,
+    false,
+    true
+  >;
+
 /**
  * Update an entity.
- *
- * @param entity - the entity being updated
- * @param params.properties - the properties object of the entity
- * @param params.actorId - the id of the account that is updating the entity
  */
-export const updateEntity: ImpureGraphFunction<
-  {
-    entity: Entity;
-    entityTypeId?: VersionedUrl;
-    propertyPatches?: PropertyPatchOperation[];
-    draft?: boolean;
-  },
-  Promise<Entity>,
-  false,
-  true
-> = async (context, authentication, params) => {
+export const updateEntity = async <Properties extends EntityProperties>(
+  ...args: Parameters<UpdateEntityFunction<Properties>>
+): ReturnType<UpdateEntityFunction<Properties>> => {
+  const [context, authentication, params] = args;
   const { entity, entityTypeId, propertyPatches } = params;
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {

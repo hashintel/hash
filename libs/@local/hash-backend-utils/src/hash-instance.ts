@@ -17,7 +17,10 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import type {
+  HASHInstance as HASHInstanceEntity,
+  HASHInstanceProperties,
+} from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 export type HashInstance = {
   entity: Entity;
@@ -26,7 +29,7 @@ export type HashInstance = {
 export const getHashInstanceFromEntity = ({
   entity,
 }: {
-  entity: Entity;
+  entity: Entity<HASHInstanceEntity>;
 }): HashInstance => {
   if (
     entity.metadata.entityTypeId !== systemEntityTypes.hashInstance.entityTypeId
@@ -39,7 +42,7 @@ export const getHashInstanceFromEntity = ({
   }
 
   return {
-    ...simplifyProperties(entity.properties as HASHInstanceProperties),
+    ...simplifyProperties(entity.properties),
     entity,
   };
 };
@@ -62,7 +65,7 @@ export const getHashInstance = async (
     })
     .then(({ data: response }) =>
       response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId),
+        mapGraphApiEntityToEntity<HASHInstanceEntity>(entity, actorId),
       ),
     );
 

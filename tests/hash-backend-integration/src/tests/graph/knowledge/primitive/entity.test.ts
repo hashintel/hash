@@ -17,7 +17,6 @@ import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -212,8 +211,22 @@ describe("Entity CRU", () => {
     createdEntity = await createEntity(graphContext, authentication, {
       ownedById: testOrg.accountGroupId as OwnedById,
       properties: {
-        [namePropertyType.metadata.recordId.baseUrl]: "Bob",
-        [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
+        value: {
+          [namePropertyType.metadata.recordId.baseUrl]: {
+            value: "Bob",
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+          [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
+            value: "some text",
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
       },
       entityTypeId: entityType.schema.$id,
       relationships: createDefaultAuthorizationRelationships(authentication),
@@ -248,11 +261,30 @@ describe("Entity CRU", () => {
       { actorId: testUser2.accountId },
       {
         entity: createdEntity,
-        propertyPatches: propertyObjectToPatches({
-          [namePropertyType.metadata.recordId.baseUrl]: "Updated Bob",
-          [favoriteBookPropertyType.metadata.recordId.baseUrl]:
-            "Even more text than before",
-        }),
+        propertyPatches: [
+          {
+            op: "replace",
+            path: [namePropertyType.metadata.recordId.baseUrl],
+            property: {
+              value: "Updated Bob",
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          },
+          {
+            op: "replace",
+            path: [favoriteBookPropertyType.metadata.recordId.baseUrl],
+            property: {
+              value: "Even more text than before",
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          },
+        ],
       },
     ).catch((err) => Promise.reject(err));
 

@@ -65,11 +65,10 @@ export type CreateEntityParameters<
   "entityTypeIds" | "decisionTime" | "draft" | "properties" | "provenance"
 > & {
   ownedById: OwnedById;
-  properties: T["properties"];
+  properties: T["propertiesWithMetadata"];
   linkData?: LinkData;
   entityTypeId: T["entityTypeId"];
   entityUuid?: EntityUuid;
-  propertyMetadata?: PropertyMetadataObject;
   provenance: EnforcedEntityEditionProvenance;
   draft?: boolean;
 };
@@ -132,13 +131,13 @@ const isGraphApiEntity = <Properties extends EntityProperties>(
 };
 
 export const propertyObjectToPatches = (
-  object: PropertyObject,
+  object: PropertyObjectWithMetadata,
 ): PropertyPatchOperation[] =>
-  typedEntries(object).map(([propertyTypeBaseUrl, value]) => {
+  typedEntries(object.value).map(([propertyTypeBaseUrl, property]) => {
     return {
       op: "add",
       path: [propertyTypeBaseUrl],
-      value,
+      property,
     };
   });
 
@@ -156,31 +155,31 @@ export const patchesFromPropertyObjects = ({
   newProperties,
 }: {
   oldProperties: PropertyObject;
-  newProperties: PropertyObject;
+  newProperties: PropertyObjectWithMetadata;
 }): PropertyPatchOperation[] => {
   const patches: PropertyPatchOperation[] = [];
 
-  for (const [key, value] of typedEntries(newProperties)) {
+  for (const [key, property] of typedEntries(newProperties.value)) {
     if (
       typeof oldProperties[key] !== "undefined" &&
-      oldProperties[key] !== value
+      oldProperties[key] !== property.value
     ) {
       patches.push({
         op: "replace",
         path: [key],
-        value,
+        property,
       });
     } else {
       patches.push({
         op: "add",
         path: [key],
-        value,
+        property,
       });
     }
   }
 
   for (const key of typedKeys(oldProperties)) {
-    if (typeof newProperties[key] === "undefined") {
+    if (typeof newProperties.value[key] === "undefined") {
       patches.push({
         op: "remove",
         path: [key],
@@ -231,7 +230,7 @@ export const getDefinedPropertyFromPatchesGetter = <
       return;
     }
 
-    return foundPatch.value as Properties[Key];
+    return foundPatch.property as Properties[Key];
   };
 };
 
@@ -388,10 +387,10 @@ export const mergePropertiesAndMetadata = (
   }
 };
 
-export const mergePropertyObjectAndMetadata = (
-  property: PropertyObject,
+export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
+  property: T["properties"],
   metadata?: PropertyMetadataObject,
-): PropertyObjectWithMetadata => {
+): T["propertiesWithMetadata"] => {
   return {
     value: Object.fromEntries(
       Object.entries(property)
@@ -525,20 +524,10 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       .createEntities(
         authentication.actorId,
         params.map(
-          ({
-            entityTypeId,
-            draft,
-            properties,
-            propertyMetadata,
-            provenance,
-            ...rest
-          }) => ({
+          ({ entityTypeId, draft, properties, provenance, ...rest }) => ({
             entityTypeIds: [entityTypeId],
             draft: draft ?? false,
-            properties: mergePropertyObjectAndMetadata(
-              properties,
-              propertyMetadata,
-            ),
+            properties,
             provenance: {
               ...provenance,
               origin: {
@@ -596,18 +585,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
         entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-        properties: propertyPatches?.map((operation) =>
-          operation.op === "remove"
-            ? operation
-            : {
-                op: operation.op,
-                path: operation.path,
-                property: mergePropertiesAndMetadata(
-                  operation.value,
-                  operation.metadata,
-                ),
-              },
-        ),
+        properties: propertyPatches,
         provenance: {
           ...provenance,
           origin: {
@@ -722,20 +700,10 @@ export class LinkEntity<
       .createEntities(
         authentication.actorId,
         params.map(
-          ({
-            entityTypeId,
-            draft,
-            properties,
-            propertyMetadata,
-            provenance,
-            ...rest
-          }) => ({
+          ({ entityTypeId, draft, properties, provenance, ...rest }) => ({
             entityTypeIds: [entityTypeId],
             draft: draft ?? false,
-            properties: mergePropertyObjectAndMetadata(
-              properties,
-              propertyMetadata,
-            ),
+            properties,
             provenance: {
               ...provenance,
               origin: {
@@ -781,18 +749,7 @@ export class LinkEntity<
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
         entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-        properties: propertyPatches?.map((operation) =>
-          operation.op === "remove"
-            ? operation
-            : {
-                op: operation.op,
-                path: operation.path,
-                property: mergePropertiesAndMetadata(
-                  operation.value,
-                  operation.metadata,
-                ),
-              },
-        ),
+        properties: propertyPatches,
         provenance: {
           ...provenance,
           origin: {

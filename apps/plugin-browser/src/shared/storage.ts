@@ -21,7 +21,7 @@ import type {
 } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
 import type {
-  BrowserPluginSettingsProperties,
+  BrowserPluginSettings,
   Organization,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -161,20 +161,47 @@ const debouncedEntityUpdate = debounce(async () => {
     throw new Error("User has no popup tab set in local storage");
   }
 
-  const updatedProperties: BrowserPluginSettingsProperties = {
-    "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
-      currentAutomaticConfig,
-    "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
-      currentManualConfig,
-    "https://hash.ai/@hash/types/property-type/browser-plugin-tab/":
-      currentPopupTab,
-    "https://hash.ai/@hash/types/property-type/draft-note/": currentDraftNote,
-  };
-
-  await updateEntity({
+  await updateEntity<BrowserPluginSettings>({
     entityId: settingsEntityId,
     entityTypeId: systemEntityTypes.browserPluginSettings.entityTypeId,
-    updatedProperties,
+    updatedProperties: {
+      value: {
+        "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
+          {
+            value: currentAutomaticConfig,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+            },
+          },
+        "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
+          {
+            value: currentManualConfig,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+            },
+          },
+        "https://hash.ai/@hash/types/property-type/browser-plugin-tab/": {
+          value: currentPopupTab,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+        ...(currentDraftNote
+          ? {
+              "https://hash.ai/@hash/types/property-type/draft-note/": {
+                value: currentDraftNote,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              },
+            }
+          : {}),
+      },
+    },
   });
 }, 1_000);
 

@@ -26,7 +26,7 @@ import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   HasIndexedContent,
-  Text as TextEntity,
+  Text,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import { generateKeyBetween } from "fractional-indexing";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -63,13 +63,15 @@ describe("Page", () => {
   const createTestBlock = async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const blockData = await createEntity(graphContext, authentication, {
+    const blockData = await createEntity<Text>(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       entityTypeId: systemEntityTypes.text.entityTypeId,
       properties: {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-          [],
-      } as TextEntity["properties"],
+        value: {
+          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+            { value: [] },
+        },
+      },
       relationships: createDefaultAuthorizationRelationships({
         actorId: testUser.accountId,
       }),

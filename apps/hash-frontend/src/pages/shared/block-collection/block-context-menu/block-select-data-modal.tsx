@@ -15,6 +15,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type {
   Query,
   QueryProperties,
+  QueryPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import {
   getOutgoingLinkAndTargetEntities,
@@ -116,7 +117,13 @@ export const BlockSelectDataModal: FunctionComponent<
                   path: [
                     "https://blockprotocol.org/@hash/types/property-type/query/" satisfies keyof Query["properties"] as BaseUrl,
                   ],
-                  value: query,
+                  property: {
+                    value: query,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                    },
+                  } satisfies QueryPropertyValueWithMetadata,
                 },
               ],
             },

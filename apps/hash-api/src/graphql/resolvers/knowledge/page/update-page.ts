@@ -1,3 +1,4 @@
+import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { updateEntity } from "../../../../graph/knowledge/primitive/entity";
@@ -37,7 +38,7 @@ export const updatePageResolver: ResolverFn<
         return {
           op: "add",
           path: [propertyTypeBaseUrl],
-          value,
+          property: mergePropertiesAndMetadata(value, undefined),
         };
       },
     ),

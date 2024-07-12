@@ -11,13 +11,14 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  Organization,
+  OrganizationNamePropertyValueWithMetadata,
+  OrganizationPropertiesWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import type { AccountGroupEntityId } from "@local/hash-subgraph";
 import { extractAccountGroupId } from "@local/hash-subgraph";
-import {
-  extractBaseUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
+import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import {
   createAccountGroup,
@@ -42,23 +43,30 @@ export type Org = {
   accountGroupId: AccountGroupId;
   orgName: string;
   shortname: string;
-  entity: Entity;
+  entity: Entity<Organization>;
 };
+
+function assertOrganizationEntity(
+  entity: Entity,
+): asserts entity is Entity<Organization> {
+  if (
+    entity.metadata.entityTypeId !== systemEntityTypes.organization.entityTypeId
+  ) {
+    throw new EntityTypeMismatchError(
+      entity.metadata.recordId.entityId,
+      systemEntityTypes.organization.entityTypeId,
+      entity.metadata.entityTypeId,
+    );
+  }
+}
 
 export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   entity,
 }) => {
-  const entityTypeBaseUrl = extractBaseUrl(entity.metadata.entityTypeId);
-  if (entityTypeBaseUrl !== systemEntityTypes.organization.entityTypeBaseUrl) {
-    throw new EntityTypeMismatchError(
-      entity.metadata.recordId.entityId,
-      systemEntityTypes.organization.entityTypeBaseUrl,
-      entityTypeBaseUrl,
-    );
-  }
+  assertOrganizationEntity(entity);
 
   const { organizationName: orgName, shortname } = simplifyProperties(
-    entity.properties as OrganizationProperties,
+    entity.properties,
   );
 
   return {
@@ -121,14 +129,34 @@ export const createOrg: ImpureGraphFunction<
     });
   }
 
-  const properties: OrganizationProperties = {
-    "https://hash.ai/@hash/types/property-type/shortname/": shortname,
-    "https://hash.ai/@hash/types/property-type/organization-name/": name,
-    ...(websiteUrl
-      ? {
-          "https://hash.ai/@hash/types/property-type/website-url/": websiteUrl,
-        }
-      : {}),
+  const properties: OrganizationPropertiesWithMetadata = {
+    value: {
+      "https://hash.ai/@hash/types/property-type/shortname/": {
+        value: shortname,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      "https://hash.ai/@hash/types/property-type/organization-name/": {
+        value: name,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      ...(websiteUrl
+        ? {
+            "https://hash.ai/@hash/types/property-type/website-url/": {
+              value: websiteUrl,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          }
+        : {}),
+    },
   };
 
   const entity = await createEntity(ctx, authentication, {
@@ -269,7 +297,13 @@ export const updateOrgName: ImpureGraphFunction<
       {
         op: "replace",
         path: [systemPropertyTypes.organizationName.propertyTypeBaseUrl],
-        value: updatedOrgName,
+        property: {
+          value: updatedOrgName,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        } satisfies OrganizationNamePropertyValueWithMetadata,
       },
     ],
   });

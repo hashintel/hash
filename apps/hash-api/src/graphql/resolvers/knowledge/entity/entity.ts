@@ -5,6 +5,7 @@ import type {
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import { mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -117,7 +118,7 @@ export const createEntityResolver: ResolverFn<
 
     entity = await createLinkEntity(context, authentication, {
       ownedById: ownedById ?? (user.accountId as OwnedById),
-      properties,
+      properties: mergePropertyObjectAndMetadata(properties, undefined),
       linkData: {
         leftEntityId,
         rightEntityId,

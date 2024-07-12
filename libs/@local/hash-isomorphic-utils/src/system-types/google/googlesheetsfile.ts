@@ -351,7 +351,7 @@ export type GoogleSheetsFilePropertiesWithMetadata = {
     "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
   };
-};
+} & SpreadsheetFilePropertiesWithMetadata;
 
 /**
  * A MIME (Multipurpose Internet Mail Extensions) type.
@@ -424,7 +424,7 @@ export type SpreadsheetFileProperties2 = {};
 export type SpreadsheetFilePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {};
-};
+} & FilePropertiesWithMetadata;
 
 /**
  * The timestamp when the upload of something has completed

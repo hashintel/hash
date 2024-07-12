@@ -3,7 +3,10 @@ import { Autocomplete, Chip } from "@hashintel/design-system";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  EnabledFeatureFlagsPropertyValueWithMetadata,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box, Stack, Typography } from "@mui/material";
 import { type FunctionComponent, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -56,7 +59,15 @@ export const BasicInfoSection: FunctionComponent<{
                 path: [
                   "https://hash.ai/@hash/types/property-type/enabled-feature-flags/" satisfies keyof UserProperties as BaseUrl,
                 ],
-                value: data.enabledFeatureFlags,
+                property: {
+                  value: data.enabledFeatureFlags.map((featureFlag) => ({
+                    value: featureFlag,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  })),
+                } satisfies EnabledFeatureFlagsPropertyValueWithMetadata,
               },
             ],
           },
