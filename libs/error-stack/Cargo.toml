@@ -1,6 +1,6 @@
 [package]
 name = "error-stack"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["HASH"]
 edition = "2021"
 rust-version = "1.63.0"
