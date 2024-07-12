@@ -333,7 +333,7 @@ version = "0.0.0"
 dependencies = [
  "codec",
  "derive-where",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "futures",
  "graph-types",
  "reqwest",
@@ -1187,7 +1187,7 @@ name = "codec"
 version = "0.0.0"
 dependencies = [
  "derive-where",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "harpc-wire-protocol",
  "regex",
  "serde",
@@ -1552,7 +1552,7 @@ dependencies = [
  "approx",
  "deer-desert",
  "erased-serde",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "num-traits",
  "paste",
  "proptest",
@@ -1569,7 +1569,7 @@ version = "0.0.0"
 dependencies = [
  "bitvec",
  "deer",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "num-traits",
  "serde",
  "serde_json",
@@ -1581,7 +1581,7 @@ name = "deer-json"
 version = "0.0.0-reserved"
 dependencies = [
  "deer",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "justjson",
  "lexical",
  "memchr",
@@ -1937,6 +1937,19 @@ dependencies = [
 [[package]]
 name = "error-stack"
 version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27a72baa257b5e0e2de241967bc5ee8f855d6072351042688621081d66b2a76b"
+dependencies = [
+ "anyhow",
+ "rustc_version",
+ "serde",
+ "spin 0.9.8",
+ "tracing-error",
+]
+
+[[package]]
+name = "error-stack"
+version = "0.5.0"
 dependencies = [
  "ansi-to-html",
  "anyhow",
@@ -1961,23 +1974,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "error-stack"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27a72baa257b5e0e2de241967bc5ee8f855d6072351042688621081d66b2a76b"
-dependencies = [
- "anyhow",
- "rustc_version",
- "serde",
- "spin 0.9.8",
- "tracing-error",
-]
-
-[[package]]
 name = "error-stack-macros"
 version = "0.0.0-reserved"
 dependencies = [
- "error-stack 0.4.1",
+ "error-stack 0.5.0",
 ]
 
 [[package]]
@@ -2337,7 +2337,7 @@ dependencies = [
  "criterion",
  "derive-where",
  "dotenv-flow",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "futures",
  "graph-test-data",
  "graph-types",
@@ -2376,7 +2376,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "codec",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "futures",
  "graph",
  "graph-types",
@@ -2437,7 +2437,7 @@ name = "graph-integration"
 version = "0.0.0"
 dependencies = [
  "authorization",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "futures",
  "graph",
  "graph-test-data",
@@ -2467,7 +2467,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "codec",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "graph-test-data",
  "postgres-types",
  "pretty_assertions",
@@ -2530,7 +2530,7 @@ dependencies = [
  "bytes",
  "bytes-utils",
  "codec",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "futures",
  "harpc-types",
  "harpc-wire-protocol",
@@ -2562,7 +2562,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "enumflags2",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "expect-test",
  "harpc-types",
  "proptest",
@@ -2580,7 +2580,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "codec",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "futures",
  "graph",
  "graph-api",
@@ -2609,7 +2609,7 @@ dependencies = [
 name = "hash-status"
 version = "0.0.0"
 dependencies = [
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "serde",
  "serde_json",
 ]
@@ -2619,7 +2619,7 @@ name = "hash-tracing"
 version = "0.0.0"
 dependencies = [
  "clap",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "opentelemetry 0.22.0",
  "opentelemetry-otlp",
  "opentelemetry_sdk 0.22.1",
@@ -5147,7 +5147,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "criterion",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "inferno",
  "serde",
  "serde_json",
@@ -6172,7 +6172,7 @@ dependencies = [
 name = "temporal-client"
 version = "0.0.0"
 dependencies = [
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "graph-types",
  "serde",
  "serde_json",
@@ -6895,7 +6895,7 @@ dependencies = [
  "codec",
  "console_error_panic_hook",
  "email_address",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "graph-test-data",
  "iso8601-duration",
  "postgres-types",
@@ -7107,7 +7107,7 @@ version = "0.0.0"
 dependencies = [
  "chrono",
  "email_address",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.4.1",
  "futures",
  "graph-test-data",
  "graph-types",
