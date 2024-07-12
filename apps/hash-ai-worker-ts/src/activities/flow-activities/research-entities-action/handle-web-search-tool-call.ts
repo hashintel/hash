@@ -3,7 +3,10 @@ import {
   type InputNameForAction,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  StepInput,
+  WebSearchResult,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
@@ -11,10 +14,11 @@ import { logProgress } from "../../shared/log-progress";
 import { getWebPageSummaryAction } from "../get-web-page-summary-action";
 import { webSearchAction } from "../web-search-action";
 import type { CoordinatorToolCallArguments } from "./coordinator-tools";
+import type { ResourceSummary } from "./types";
 
 export const handleWebSearchToolCall = async (params: {
   input: CoordinatorToolCallArguments["webSearch"];
-}): Promise<{ output: string }> => {
+}): Promise<ResourceSummary[]> => {
   const { query, explanation } = params.input;
 
   const response = await webSearchAction({
@@ -51,7 +55,8 @@ export const handleWebSearchToolCall = async (params: {
 
   const webPageUrlsOutput = webSearchOutputs.find(
     ({ outputName }) =>
-      outputName === ("webPageUrls" satisfies OutputNameForAction<"webSearch">),
+      outputName ===
+      ("webSearchResult" satisfies OutputNameForAction<"webSearch">),
   );
 
   if (!webPageUrlsOutput) {
@@ -60,15 +65,17 @@ export const handleWebSearchToolCall = async (params: {
     );
   }
 
-  const webPageUrls = webPageUrlsOutput.payload.value as string[];
+  const searchResults = webPageUrlsOutput.payload.value as WebSearchResult[];
 
   const webPageUrlsWithSummaries = await Promise.all(
-    webPageUrls.map(async (webPageUrl) => {
+    searchResults.map(async (webPage) => {
+      const { url, title } = webPage;
+
       const webPageSummaryResponse = await getWebPageSummaryAction({
         inputs: [
           {
             inputName: "url" satisfies InputNameForAction<"getWebPageSummary">,
-            payload: { kind: "Text", value: webPageUrl },
+            payload: { kind: "Text", value: url },
           },
           ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
             ({ name, default: defaultValue }) =>
@@ -86,8 +93,9 @@ export const handleWebSearchToolCall = async (params: {
        */
       if (response.code !== StatusCode.Ok) {
         return {
-          webPageUrl,
-          summary: `An unexpected error occurred trying to summarize the web page at url ${webPageUrl}.`,
+          url,
+          title,
+          summary: `An unexpected error occurred trying to summarize the web page at url ${url}.`,
         };
       }
 
@@ -102,27 +110,19 @@ export const handleWebSearchToolCall = async (params: {
 
       if (!summaryOutput) {
         throw new Error(
-          `No summary output was found when calling "getSummariesOfWebPages" for the web page at url ${webPageUrl}.`,
+          `No summary output was found when calling "getSummariesOfWebPages" for the web page at url ${url}.`,
         );
       }
 
       const summary = summaryOutput.payload.value as string;
 
       return {
-        webPageUrl,
+        title,
+        url,
         summary,
       };
     }),
   );
 
-  return {
-    output: webPageUrlsWithSummaries
-      .map(
-        ({ webPageUrl, summary }, index) => `
--------------------- SEARCH RESULT ${index + 1} --------------------
-URL: ${webPageUrl}
-Summary: ${summary}`,
-      )
-      .join("\n"),
-  };
+  return webPageUrlsWithSummaries;
 };

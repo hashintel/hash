@@ -3,11 +3,11 @@ source: libs/error-stack/tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 context B
-├╴at libs/error-stack/tests/test_debug.rs:278:14
+├╴at libs/error-stack/tests/test_debug.rs:274:14
 ├╴printable C
 │
 ├─▶ context A
-│   ├╴at libs/error-stack/tests/test_debug.rs:275:14
+│   ├╴at libs/error-stack/tests/test_debug.rs:271:14
 │   ├╴printable B
 │   ╰╴1 additional opaque attachment
 │

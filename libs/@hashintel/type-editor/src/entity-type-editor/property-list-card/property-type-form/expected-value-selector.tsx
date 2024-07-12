@@ -259,14 +259,8 @@ export const ExpectedValueSelector = ({
               }
               const { description, title } = dataType;
 
-              const leftLabel =
-                "label" in dataType && "left" in dataType.label
-                  ? (dataType.label as { left: string }).left
-                  : "";
-              const rightLabel =
-                "label" in dataType && "right" in dataType.label
-                  ? (dataType.label as { right: string }).right
-                  : "";
+              const leftLabel = dataType.label?.left ?? "";
+              const rightLabel = dataType.label?.right ?? "";
 
               return (
                 (description &&

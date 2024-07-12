@@ -3,6 +3,7 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -44,6 +45,13 @@ import {
   getPropertyTypeById,
 } from "../graph/ontology/primitive/property-type";
 import { logger } from "../logger";
+
+const provenance: EnforcedEntityEditionProvenance = {
+  actorType: "machine",
+  origin: {
+    type: "migration",
+  },
+};
 
 const webShortname = "ftse";
 const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
@@ -163,7 +171,7 @@ const seedFlowTestTypes = async () => {
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
   });
 
-  const context = { graphApi };
+  const context = { graphApi, provenance };
 
   const hashBotActorId = await getMachineActorId(
     context,

@@ -8,10 +8,11 @@ import { stringify } from "../../shared/stringify";
 import type { ExistingEntitySummary } from "../research-entities-action/summarize-existing-entities";
 import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "./infer-facts-from-text/types";
-import { proposeEntityFromFacts } from "./propose-entities-from-facts/propose-entity-from-facts";
+import { proposeEntityFromFactsAgent } from "./propose-entities-from-facts/propose-entity-from-facts-agent";
 
 export const proposeEntitiesFromFacts = async (params: {
   entitySummaries: LocalEntitySummary[];
+  potentialLinkTargetEntitySummaries: LocalEntitySummary[];
   existingEntitySummaries?: ExistingEntitySummary[];
   facts: Fact[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
@@ -21,6 +22,7 @@ export const proposeEntitiesFromFacts = async (params: {
     existingEntitySummaries,
     dereferencedEntityTypes,
     facts,
+    potentialLinkTargetEntitySummaries,
   } = params;
 
   const proposedEntities = await Promise.all(
@@ -83,7 +85,7 @@ export const proposeEntitiesFromFacts = async (params: {
         );
 
       const possibleOutgoingLinkTargetEntitySummaries = [
-        ...entitySummaries,
+        ...potentialLinkTargetEntitySummaries,
         ...(existingEntitySummaries ?? []),
       ].filter((potentialTargetEntitySummary) => {
         const someFactIncludesTargetEntityAsObject =
@@ -108,7 +110,7 @@ export const proposeEntitiesFromFacts = async (params: {
        * @todo: consider batching requests made to the LLM so we propose multiple entities
        * in a single LLM requests, to reduce the number of requests made to LLM providers.
        */
-      const proposeEntityFromFactsStatus = await proposeEntityFromFacts({
+      const proposeEntityFromFactsStatus = await proposeEntityFromFactsAgent({
         entitySummary,
         facts: factsWithEntityAsSubject,
         dereferencedEntityType,

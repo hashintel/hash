@@ -1,6 +1,9 @@
+import {
+  getDefinedPropertyFromPatchesGetter,
+  isValueRemovedByPatches,
+} from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
@@ -15,11 +18,8 @@ import {
   shortnameMaximumLength,
   shortnameMinimumLength,
 } from "../../../system-types/account.fields";
-import {
-  getUserFromEntity,
-  updateUserKratosIdentityTraits,
-} from "../../../system-types/user";
-import type { UpdateEntityHookCallback } from "../update-entity-hooks";
+import { getUserFromEntity } from "../../../system-types/user";
+import type { BeforeUpdateEntityHookCallback } from "../update-entity-hooks";
 
 const validateAccountShortname = async (
   context: ImpureGraphContext,
@@ -50,21 +50,55 @@ const validateAccountShortname = async (
   }
 };
 
-export const userBeforeEntityUpdateHookCallback: UpdateEntityHookCallback =
-  async ({ entity, updatedProperties, context }) => {
-    const user = getUserFromEntity({ entity });
+export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback =
+  async ({ previousEntity, propertyPatches, context }) => {
+    const user = getUserFromEntity({ entity: previousEntity });
+
+    const isShortnameRemoved = isValueRemovedByPatches<UserProperties>({
+      baseUrl: "https://hash.ai/@hash/types/property-type/shortname/",
+      propertyPatches,
+    });
+    if (isShortnameRemoved) {
+      throw new UserInputError("Cannot unset shortname");
+    }
+
+    const isEmailRemoved = isValueRemovedByPatches<UserProperties>({
+      baseUrl: "https://hash.ai/@hash/types/property-type/email/",
+      propertyPatches,
+    });
+    if (isEmailRemoved) {
+      throw new UserInputError("Cannot unset email");
+    }
+
+    const getNewValueForPath =
+      getDefinedPropertyFromPatchesGetter<UserProperties>(propertyPatches);
+
+    const currentEmails = user.emails;
+
+    const updatedEmails = getNewValueForPath(
+      "https://hash.ai/@hash/types/property-type/email/",
+    );
+
+    if (
+      updatedEmails &&
+      updatedEmails.sort().join(",") !== currentEmails.sort().join(",")
+    ) {
+      throw new UserInputError("Cannot change email");
+    }
 
     const currentShortname = user.shortname;
 
-    const {
-      email: updatedEmails,
-      shortname: updatedShortname,
-      displayName: updatedDisplayName,
-    } = simplifyProperties(updatedProperties as UserProperties);
+    const updatedShortname = getNewValueForPath(
+      "https://hash.ai/@hash/types/property-type/shortname/",
+    );
 
-    if (currentShortname !== updatedShortname) {
-      if (!updatedShortname) {
-        throw new ApolloError("Cannot unset shortname");
+    const updatedDisplayName = getNewValueForPath(
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+    );
+
+    if (updatedShortname) {
+      if (currentShortname && currentShortname !== updatedShortname) {
+        throw new UserInputError("Cannot change shortname");
       }
 
       await validateAccountShortname(
@@ -74,12 +108,16 @@ export const userBeforeEntityUpdateHookCallback: UpdateEntityHookCallback =
       );
     }
 
-    const currentDisplayName = user.displayName;
-
-    if (currentDisplayName !== updatedDisplayName) {
-      if (!updatedDisplayName) {
-        throw new ApolloError("Cannot unset preferred name");
-      }
+    const isDisplayNameRemoved = isValueRemovedByPatches<UserProperties>({
+      baseUrl:
+        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+      propertyPatches,
+    });
+    if (
+      (updatedDisplayName !== undefined && !updatedDisplayName) ||
+      isDisplayNameRemoved
+    ) {
+      throw new ApolloError("Cannot unset display name");
     }
 
     const isIncompleteUser = !user.isAccountSignupComplete;
@@ -131,24 +169,6 @@ export const userBeforeEntityUpdateHookCallback: UpdateEntityHookCallback =
             },
           },
         ],
-      );
-    }
-
-    const currentEmails = user.emails;
-
-    if (
-      currentEmails.toSorted().join().toLowerCase() !==
-      updatedEmails.toSorted().join().toLowerCase()
-    ) {
-      await updateUserKratosIdentityTraits(
-        context,
-        { actorId: user.accountId },
-        {
-          user,
-          updatedTraits: {
-            emails: updatedEmails,
-          },
-        },
       );
     }
   };

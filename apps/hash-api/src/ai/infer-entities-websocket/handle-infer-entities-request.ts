@@ -100,6 +100,16 @@ export const handleInferEntitiesRequest = async ({
     taskQueue: "ai",
     args: [
       {
+        dataSources: {
+          files: { fileEntityIds: [] },
+          internetAccess: {
+            enabled: true,
+            browserPlugin: {
+              enabled: true,
+              domains: ["linkedin.com"],
+            },
+          },
+        },
         flowDefinition,
         flowTrigger,
         userAuthentication: { actorId: user.accountId },

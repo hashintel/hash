@@ -10,6 +10,7 @@ publish = false
 [dependencies]
 derive-where = { workspace = true, optional = true }
 error-stack = { workspace = true, optional = true, features = ["std"] }
+regex = { version = "1.10.5", optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 tokio-util = { workspace = true, features = ["codec"], optional = true }
@@ -32,7 +33,7 @@ bytes = [
     "dep:tokio-util",
     "dep:error-stack",
 ]
-serde = ["dep:serde", "dep:time"]
+serde = ["dep:serde", "dep:time", "dep:regex"]
 harpc = ["dep:harpc-wire-protocol", "dep:tokio-util", "dep:error-stack"]
 
 [lints]

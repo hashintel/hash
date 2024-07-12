@@ -10,8 +10,8 @@ use graph_types::knowledge::{
 };
 use thiserror::Error;
 use type_system::{
+    schema::{ClosedEntityType, DataType, ObjectSchema, PropertyType},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    ClosedEntityType, DataType, ObjectSchema, PropertyType,
 };
 
 use crate::{
@@ -67,13 +67,15 @@ where
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
-        ObjectSchema::<_, 0>::new(self.properties.clone(), self.required.clone())
-            .expect("`Object` was already validated")
-            .validate_value(&value.value, components, provider)
-            .await
-            .change_context(EntityValidationError::InvalidProperties)
-            .attach_lazy(|| Expected::EntityType(self.clone()))
-            .attach_lazy(|| Actual::Properties(value.clone()))
+        ObjectSchema::<_> {
+            properties: self.properties.clone(),
+            required: self.required.clone(),
+        }
+        .validate_value(&value.value, components, provider)
+        .await
+        .change_context(EntityValidationError::InvalidProperties)
+        .attach_lazy(|| Expected::EntityType(Box::new(self.clone())))
+        .attach_lazy(|| Actual::Properties(value.clone()))
     }
 }
 
@@ -269,21 +271,20 @@ where
         // link type was found.
         let mut found_link_target = false;
         for link_type_id in self.schemas.keys() {
-            let Some(maybe_allowed_targets) = left_entity_type.links.links().get(link_type_id)
-            else {
+            let Some(maybe_allowed_targets) = left_entity_type.links.get(link_type_id) else {
                 continue;
             };
 
             // At least one link type was found
             found_link_target = true;
 
-            let Some(allowed_targets) = maybe_allowed_targets.items() else {
+            let Some(allowed_targets) = &maybe_allowed_targets.items else {
                 continue;
             };
 
             // Link destinations are constrained, search for the right entity's type
             let mut found_match = false;
-            for allowed_target in allowed_targets.possibilities() {
+            for allowed_target in &allowed_targets.possibilities {
                 if right_entity_type
                     .schemas
                     .keys()

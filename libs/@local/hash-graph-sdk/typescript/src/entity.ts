@@ -1,11 +1,15 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { typedEntries } from "@local/advanced-types/typed-entries";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   Entity as GraphApiEntity,
   GraphApi,
+  OriginProvenance,
   PatchEntityParams as GraphApiPatchEntityParams,
   PropertyProvenance,
+  ProvidedEntityEditionProvenance,
+  ProvidedEntityEditionProvenanceOriginTypeEnum,
+  ValidateEntityParams,
 } from "@local/hash-graph-client";
 import type {
   CreatedById,
@@ -15,6 +19,7 @@ import type {
 import type {
   EntityId,
   EntityMetadata,
+  EntityProperties,
   EntityRecordId,
   EntityTemporalVersioningMetadata,
   EntityUuid,
@@ -45,25 +50,37 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { AuthenticationContext } from "./authentication-context";
 
-export type CreateEntityParameters = Omit<
+export type EnforcedEntityEditionProvenance = Omit<
+  ProvidedEntityEditionProvenance,
+  "actorType" | "origin"
+> & {
+  actorType: ProvidedEntityEditionProvenance["actorType"];
+  origin: OriginProvenance;
+};
+
+export type CreateEntityParameters<
+  T extends EntityProperties = EntityProperties,
+> = Omit<
   GraphApiCreateEntityRequest,
-  "entityTypeIds" | "decisionTime" | "draft" | "properties"
+  "entityTypeIds" | "decisionTime" | "draft" | "properties" | "provenance"
 > & {
   ownedById: OwnedById;
-  properties: PropertyObject;
+  properties: T["properties"];
   linkData?: LinkData;
-  entityTypeId: VersionedUrl;
+  entityTypeId: T["entityTypeId"];
   entityUuid?: EntityUuid;
   propertyMetadata?: PropertyMetadataObject;
+  provenance: EnforcedEntityEditionProvenance;
   draft?: boolean;
 };
 
 export type PatchEntityParameters = Omit<
   GraphApiPatchEntityParams,
-  "entityId" | "entityTypeIds" | "decisionTime" | "properties"
+  "entityId" | "entityTypeIds" | "decisionTime" | "properties" | "provenance"
 > & {
   entityTypeId?: VersionedUrl;
-  properties?: PropertyPatchOperation[];
+  propertyPatches?: PropertyPatchOperation[];
+  provenance: EnforcedEntityEditionProvenance;
 };
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
@@ -78,12 +95,12 @@ export interface SerializedEntity<
   [typeId]: TypeId;
 }
 
-type EntityData<Properties extends PropertyObject = PropertyObject> = {
-  metadata: EntityMetadata & {
+type EntityData<Properties extends EntityProperties = EntityProperties> = {
+  metadata: EntityMetadata<Properties["entityTypeId"]> & {
     confidence?: number;
     properties?: PropertyMetadataObject;
   };
-  properties: Properties;
+  properties: Properties["properties"];
   linkData?: LinkData & {
     leftEntityConfidence?: number;
     rightEntityConfidence?: number;
@@ -96,8 +113,8 @@ type EntityInput<Properties extends PropertyObject> =
   | GraphApiEntity
   | SerializedEntity<Properties>;
 
-const isSerializedEntity = <Properties extends PropertyObject>(
-  entity: EntityInput<Properties>,
+const isSerializedEntity = <Properties extends EntityProperties>(
+  entity: EntityInput<EntityProperties["properties"]>,
 ): entity is SerializedEntity => {
   return (
     "entityTypeId" in
@@ -105,8 +122,8 @@ const isSerializedEntity = <Properties extends PropertyObject>(
   );
 };
 
-const isGraphApiEntity = <Properties extends PropertyObject>(
-  entity: EntityInput<Properties>,
+const isGraphApiEntity = <Properties extends EntityProperties>(
+  entity: EntityInput<EntityProperties["properties"]>,
 ): entity is GraphApiEntity => {
   return (
     "entityTypeIds" in
@@ -114,7 +131,123 @@ const isGraphApiEntity = <Properties extends PropertyObject>(
   );
 };
 
-const mergePropertiesAndMetadata = (
+export const propertyObjectToPatches = (
+  object: PropertyObject,
+): PropertyPatchOperation[] =>
+  typedEntries(object).map(([propertyTypeBaseUrl, value]) => {
+    return {
+      op: "add",
+      path: [propertyTypeBaseUrl],
+      value,
+    };
+  });
+
+/**
+ * Creates an array of PropertyPatchOperations that, if applied, will transform the oldProperties into the
+ * newProperties.
+ *
+ * @deprecated this is a function for migration purposes only.
+ *    For new code, track which properties are actually changed where they are changed, and create the patch operations
+ *   directly. IF you use this, bear in mind that newProperties MUST represent ALL the properties that the entity will
+ *   have after the patch. Any properties not specified in newProperties will be removed.
+ */
+export const patchesFromPropertyObjects = ({
+  oldProperties,
+  newProperties,
+}: {
+  oldProperties: PropertyObject;
+  newProperties: PropertyObject;
+}): PropertyPatchOperation[] => {
+  const patches: PropertyPatchOperation[] = [];
+
+  for (const [key, value] of typedEntries(newProperties)) {
+    if (
+      typeof oldProperties[key] !== "undefined" &&
+      oldProperties[key] !== value
+    ) {
+      patches.push({
+        op: "replace",
+        path: [key],
+        value,
+      });
+    } else {
+      patches.push({
+        op: "add",
+        path: [key],
+        value,
+      });
+    }
+  }
+
+  for (const key of typedKeys(oldProperties)) {
+    if (typeof newProperties[key] === "undefined") {
+      patches.push({
+        op: "remove",
+        path: [key],
+      });
+    }
+  }
+
+  return patches;
+};
+
+/**
+ * Return a helper function for the given Properties object and patches, which can be called with a BaseUrl valid for
+ * that object, and will return the new value for that BaseUrl defined in the provided list of patches, or undefined if
+ * no new value has been set.
+ *
+ * The 'new value' is defined as the value for the first 'add' or 'replace' operation at that BaseUrl.
+ * NOT supported:
+ *  - the net effect of multiple operations on the same path
+ *  - nested paths / array paths
+ *
+ * If you want to see if a value has been _removed_, see {@link isValueRemovedByPatches}
+ *
+ * An alternative implementation could avoid the need for an inner function, by requiring that the Key was specified as
+ * a generic: export const getDefinedPropertyFromPatches = < Properties extends PropertyObject, Key extends keyof
+ * Properties,
+ * > => { ... }
+ *
+ * const newValue = getDefinedPropertyFromPatches<Properties, "https://example.com/">({ propertyPatches, baseUrl:
+ * "https://example.com/" });
+ *
+ * This alternative is more tedious if you need to check for multiple properties, as (1) each key must be specified as
+ * both a generic and as an argument, and (2) the propertyPatches provided each time. Unimplemented TS proposal partial
+ * type argument inference would solve (1) but not (2).
+ */
+export const getDefinedPropertyFromPatchesGetter = <
+  Properties extends PropertyObject,
+>(
+  propertyPatches: PropertyPatchOperation[],
+) => {
+  return <Key extends keyof Properties>(
+    baseUrl: Key,
+  ): Properties[Key] | undefined => {
+    const foundPatch = propertyPatches.find(
+      (patch) => patch.path[0] === baseUrl,
+    );
+
+    if (!foundPatch || foundPatch.op === "remove") {
+      return;
+    }
+
+    return foundPatch.value as Properties[Key];
+  };
+};
+
+export const isValueRemovedByPatches = <Properties extends PropertyObject>({
+  baseUrl,
+  propertyPatches,
+}: {
+  baseUrl: keyof Properties;
+  propertyPatches: PropertyPatchOperation[];
+}): boolean => {
+  return propertyPatches.some(
+    (patch) => patch.op === "remove" && patch.path[0] === baseUrl,
+  );
+};
+
+export const mergePropertiesAndMetadata = (
   property: Property,
   metadata?: PropertyMetadata,
 ): PropertyWithMetadata => {
@@ -255,7 +388,7 @@ const mergePropertiesAndMetadata = (
   }
 };
 
-const mergePropertyObjectAndMetadata = (
+export const mergePropertyObjectAndMetadata = (
   property: PropertyObject,
   metadata?: PropertyMetadataObject,
 ): PropertyObjectWithMetadata => {
@@ -321,16 +454,16 @@ export const flattenPropertyMetadata = (
   return flattened;
 };
 
-export class Entity<Properties extends PropertyObject = PropertyObject> {
-  #entity: EntityData<Properties>;
+export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
+  #entity: EntityData<PropertyMap>;
 
-  constructor(entity: EntityInput<Properties>) {
+  constructor(entity: EntityInput<PropertyMap["properties"]>) {
     if (isSerializedEntity(entity)) {
-      this.#entity = entity as unknown as EntityData<Properties>;
+      this.#entity = entity as unknown as EntityData<PropertyMap>;
     } else if (isGraphApiEntity(entity)) {
       this.#entity = {
         ...entity,
-        properties: entity.properties as Properties,
+        properties: entity.properties as PropertyMap["properties"],
         metadata: {
           ...entity.metadata,
           recordId: entity.metadata.recordId as EntityRecordId,
@@ -373,51 +506,97 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
     }
   }
 
-  public static async create(
+  public static async create<T extends EntityProperties>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: CreateEntityParameters,
-  ): Promise<Entity> {
+    params: CreateEntityParameters<T>,
+  ): Promise<Entity<T>> {
     return (
-      await Entity.createMultiple(graphAPI, authentication, [params])
-    )[0]!;
+      await Entity.createMultiple<[T]>(graphAPI, authentication, [params])
+    )[0];
   }
 
-  public static async createMultiple(
+  public static async createMultiple<T extends EntityProperties[]>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: CreateEntityParameters[],
-  ): Promise<Entity[]> {
+    params: { [I in keyof T]: CreateEntityParameters<T[I]> },
+  ): Promise<{ [I in keyof T]: Entity<T[I]> }> {
     return graphAPI
       .createEntities(
         authentication.actorId,
         params.map(
-          ({ entityTypeId, draft, properties, propertyMetadata, ...rest }) => ({
+          ({
+            entityTypeId,
+            draft,
+            properties,
+            propertyMetadata,
+            provenance,
+            ...rest
+          }) => ({
             entityTypeIds: [entityTypeId],
             draft: draft ?? false,
             properties: mergePropertyObjectAndMetadata(
               properties,
               propertyMetadata,
             ),
+            provenance: {
+              ...provenance,
+              origin: {
+                ...provenance.origin,
+                // ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+                type: provenance.origin
+                  .type as ProvidedEntityEditionProvenanceOriginTypeEnum,
+              },
+            },
             ...rest,
           }),
         ),
       )
-      .then(({ data: entities }) =>
-        entities.map((entity) => new Entity(entity)),
+      .then(
+        ({ data: entities }) =>
+          entities.map((entity, index) => {
+            return new Entity<T[typeof index]>(entity);
+          }) as { [I in keyof T]: Entity<T[I]> },
       );
+  }
+
+  public static async validate(
+    graphAPI: GraphApi,
+    authentication: AuthenticationContext,
+    params: Omit<ValidateEntityParams, "properties"> & {
+      properties: PropertyObjectWithMetadata;
+    },
+  ): Promise<void> {
+    return await graphAPI
+      .validateEntity(authentication.actorId, params)
+      .then(({ data }) => data);
   }
 
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    { entityTypeId, properties, ...params }: PatchEntityParameters,
-  ): Promise<Entity<Properties>> {
+    {
+      entityTypeId,
+      propertyPatches,
+      provenance,
+      ...params
+    }: PatchEntityParameters,
+    /**
+     * @todo H-3091: returning a specific 'this' will not be correct if the entityTypeId has been changed as part of the update.
+     *    I tried using generics to enforce that a new EntityProperties must be provided if the entityTypeId is changed, but
+     *    it isn't causing a compiler error:
+     *
+     *    public async patch<NewPropertyMap extends EntityProperties = PropertyMap>(
+     *      // PatchEntityParams sets a specific VersionedUrl based on NewPropertyMap, but this is not enforced by the compiler
+     *      params: PatchEntityParameters<NewPropertyMap>,
+     *    )
+     */
+  ): Promise<this> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
         entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-        properties: properties?.map((operation) =>
+        properties: propertyPatches?.map((operation) =>
           operation.op === "remove"
             ? operation
             : {
@@ -429,9 +608,17 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
                 ),
               },
         ),
+        provenance: {
+          ...provenance,
+          origin: {
+            ...provenance.origin,
+            // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+            type: provenance.origin.type satisfies "migration",
+          },
+        },
         ...params,
       })
-      .then(({ data }) => new Entity<Properties>(data));
+      .then(({ data }) => new Entity(data) as this);
   }
 
   public async archive(
@@ -462,7 +649,7 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
     return this.#entity.metadata.recordId.entityId;
   }
 
-  public get properties(): Properties {
+  public get properties(): PropertyMap["properties"] {
     return this.#entity.properties;
   }
 
@@ -498,7 +685,7 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
     return this.#entity.linkData;
   }
 
-  public toJSON(): SerializedEntity<Properties> {
+  public toJSON(): SerializedEntity<PropertyMap["properties"]> {
     return { [typeId]: typeId, ...this.#entity };
   }
 
@@ -508,7 +695,7 @@ export class Entity<Properties extends PropertyObject = PropertyObject> {
 }
 
 export class LinkEntity<
-  Properties extends PropertyObject = PropertyObject,
+  Properties extends EntityProperties = EntityProperties,
 > extends Entity<Properties> {
   constructor(entity: EntityInput<Properties> | Entity) {
     const input = (entity instanceof Entity ? entity.toJSON() : entity) as
@@ -524,51 +711,77 @@ export class LinkEntity<
     super(input as EntityInput<Properties>);
   }
 
-  public static async createMultiple(
+  public static async createMultiple<T extends EntityProperties[]>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: (CreateEntityParameters & { linkData: LinkData })[],
-  ): Promise<LinkEntity[]> {
+    params: {
+      [I in keyof T]: CreateEntityParameters<T[I]> & { linkData: LinkData };
+    },
+  ): Promise<{ [I in keyof T]: LinkEntity<T[I]> }> {
     return graphAPI
       .createEntities(
         authentication.actorId,
         params.map(
-          ({ entityTypeId, draft, properties, propertyMetadata, ...rest }) => ({
+          ({
+            entityTypeId,
+            draft,
+            properties,
+            propertyMetadata,
+            provenance,
+            ...rest
+          }) => ({
             entityTypeIds: [entityTypeId],
             draft: draft ?? false,
             properties: mergePropertyObjectAndMetadata(
               properties,
               propertyMetadata,
             ),
+            provenance: {
+              ...provenance,
+              origin: {
+                ...provenance.origin,
+                // ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+                type: provenance.origin
+                  .type as ProvidedEntityEditionProvenanceOriginTypeEnum,
+              },
+            },
             ...rest,
           }),
         ),
       )
-      .then(({ data: entities }) =>
-        entities.map((entity) => new LinkEntity(entity)),
+      .then(
+        ({ data: entities }) =>
+          entities.map((entity) => new LinkEntity(entity)) as {
+            [I in keyof T]: LinkEntity<T[I]>;
+          },
       );
   }
 
-  public static async create(
+  public static async create<T extends EntityProperties>(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    params: CreateEntityParameters & { linkData: LinkData },
-  ): Promise<LinkEntity> {
+    params: CreateEntityParameters<T> & { linkData: LinkData },
+  ): Promise<LinkEntity<T>> {
     return (
-      await LinkEntity.createMultiple(graphAPI, authentication, [params])
-    )[0]!;
+      await LinkEntity.createMultiple<[T]>(graphAPI, authentication, [params])
+    )[0];
   }
 
   public async patch(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
-    { entityTypeId, properties, ...params }: PatchEntityParameters,
-  ): Promise<LinkEntity<Properties>> {
+    {
+      entityTypeId,
+      propertyPatches,
+      provenance,
+      ...params
+    }: PatchEntityParameters,
+  ): Promise<this> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
         entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-        properties: properties?.map((operation) =>
+        properties: propertyPatches?.map((operation) =>
           operation.op === "remove"
             ? operation
             : {
@@ -580,9 +793,17 @@ export class LinkEntity<
                 ),
               },
         ),
+        provenance: {
+          ...provenance,
+          origin: {
+            ...provenance.origin,
+            // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+            type: provenance.origin.type satisfies "migration",
+          },
+        },
         ...params,
       })
-      .then(({ data }) => new LinkEntity<Properties>(data));
+      .then(({ data }) => new LinkEntity(data) as this);
   }
 
   public get linkData(): LinkData {

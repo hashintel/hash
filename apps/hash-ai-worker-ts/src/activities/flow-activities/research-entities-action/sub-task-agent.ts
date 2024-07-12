@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
@@ -30,7 +31,7 @@ import { deduplicateEntities } from "./deduplicate-entities";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { handleWebSearchToolCall } from "./handle-web-search-tool-call";
 import { linkFollowerAgent } from "./link-follower-agent";
-import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption";
+import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-for-llm-consumption";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
@@ -39,9 +40,7 @@ const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 const omittedCoordinatorToolNames = [
   "complete",
   "startFactGatheringSubTasks",
-  "proposeEntitiesFromFacts",
   "requestHumanInput",
-  "submitProposedEntities",
   "terminate",
 ] as const;
 
@@ -61,12 +60,14 @@ type SubTaskAgentToolName =
 const generateToolDefinitions = <
   T extends SubTaskAgentCustomToolName[],
 >(params: {
+  dataSources: FlowDataSources;
   omitTools: T;
 }): Record<
   Exclude<SubTaskAgentToolName, T[number]>,
   LlmToolDefinition<Exclude<SubTaskAgentToolName, T[number]>>
 > => {
   const coordinatorToolDefinitions = generateCoordinatorToolDefinitions({
+    dataSources: params.dataSources,
     omitTools: omittedCoordinatorToolNames.concat(),
   });
 
@@ -174,7 +175,7 @@ export type SubTaskAgentInput = {
 
 export type SubTaskAgentState = {
   plan: string;
-  inferredFactsAboutEntities: LocalEntitySummary[];
+  entitySummaries: LocalEntitySummary[];
   inferredFacts: Fact[];
   previousCalls: {
     completedToolCalls: CompletedToolCall<SubTaskAgentToolName>[];
@@ -233,11 +234,12 @@ const createInitialPlan = async (params: {
     Do not make any other tool calls.
   `);
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions({
+      dataSources,
       omitTools: ["complete"],
     }),
   );
@@ -357,16 +359,17 @@ const getNextToolCalls = async (params: {
       : [],
   ].flat();
 
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
+
   const tools = Object.values(
     generateToolDefinitions({
+      dataSources,
       omitTools: [
         ...(state.inferredFacts.length > 0 ? [] : ["complete" as const]),
       ],
     }),
   );
-
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -433,7 +436,7 @@ export const runSubTaskAgent = async (params: {
     state = {
       plan: initialPlan,
       inferredFacts: [],
-      inferredFactsAboutEntities: [],
+      entitySummaries: [],
       previousCalls: [],
     };
   }
@@ -486,24 +489,33 @@ export const runSubTaskAgent = async (params: {
                 output: `The plan has been successfully updated.`,
               };
             } else if (toolCall.name === "webSearch") {
-              const { output } = await handleWebSearchToolCall({
+              const webPageSummaries = await handleWebSearchToolCall({
                 input:
                   toolCall.input as SubTaskAgentToolCallArguments["webSearch"],
               });
+
+              const output = webPageSummaries
+                .map(
+                  ({ url, summary }, index) => `
+-------------------- SEARCH RESULT ${index + 1} --------------------
+URL: ${url}
+Summary: ${summary}`,
+                )
+                .join("\n");
 
               return {
                 ...toolCall,
                 output,
               };
-            } else if (toolCall.name === "inferFactsFromWebPages") {
-              const { webPages } =
-                toolCall.input as CoordinatorToolCallArguments["inferFactsFromWebPages"];
+            } else if (toolCall.name === "inferFactsFromResources") {
+              const { resources } =
+                toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
 
               const validEntityTypeIds = input.entityTypes.map(
                 ({ $id }) => $id,
               );
 
-              const invalidEntityTypeIds = webPages
+              const invalidEntityTypeIds = resources
                 .flatMap(({ entityTypeIds }) => entityTypeIds)
                 .filter(
                   (entityTypeId) =>
@@ -513,7 +525,7 @@ export const runSubTaskAgent = async (params: {
               const validLinkEntityTypeIds =
                 input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
 
-              const invalidLinkEntityTypeIds = webPages
+              const invalidLinkEntityTypeIds = resources
                 .flatMap(({ linkEntityTypeIds }) => linkEntityTypeIds ?? [])
                 .filter(
                   (entityTypeId) =>
@@ -562,7 +574,7 @@ export const runSubTaskAgent = async (params: {
               }
 
               const responsesWithUrl = await Promise.all(
-                webPages.map(
+                resources.map(
                   async ({
                     url,
                     prompt,
@@ -596,11 +608,11 @@ export const runSubTaskAgent = async (params: {
               let outputMessage = "";
 
               const inferredFacts: Fact[] = [];
-              const inferredFactsAboutEntities: LocalEntitySummary[] = [];
+              const entitySummaries: LocalEntitySummary[] = [];
 
               for (const { response, url } of responsesWithUrl) {
                 inferredFacts.push(...response.facts);
-                inferredFactsAboutEntities.push(...response.entitySummaries);
+                entitySummaries.push(...response.entitySummaries);
 
                 outputMessage += `Inferred ${
                   response.facts.length
@@ -625,12 +637,12 @@ export const runSubTaskAgent = async (params: {
                * @todo: deduplicate the entity summaries from existing entities provided as input.
                */
 
-              if (inferredFactsAboutEntities.length > 0) {
+              if (entitySummaries.length > 0) {
                 const { duplicates } = await deduplicateEntities({
                   entities: [
                     ...input.relevantEntities,
-                    ...inferredFactsAboutEntities,
-                    ...state.inferredFactsAboutEntities,
+                    ...entitySummaries,
+                    ...state.entitySummaries,
                   ],
                 });
 
@@ -696,9 +708,9 @@ export const runSubTaskAgent = async (params: {
                 state.inferredFacts.push(
                   ...inferredFactsWithDeduplicatedEntities,
                 );
-                state.inferredFactsAboutEntities = [
-                  ...state.inferredFactsAboutEntities,
-                  ...inferredFactsAboutEntities,
+                state.entitySummaries = [
+                  ...state.entitySummaries,
+                  ...entitySummaries,
                 ].filter(
                   ({ localId }) =>
                     !duplicates.some(({ duplicateIds }) =>
@@ -752,7 +764,7 @@ export const runSubTaskAgent = async (params: {
 
   return {
     ...result,
-    discoveredEntities: state.inferredFactsAboutEntities,
+    discoveredEntities: state.entitySummaries,
     discoveredFacts: state.inferredFacts,
   };
 };

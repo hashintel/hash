@@ -39,10 +39,10 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node-fetch": "^2.6.2",
-    "@vitest/coverage-istanbul": "1.6.0",
+    "@vitest/coverage-istanbul": "2.0.1",
     "eslint": "8.57.0",
-    "rimraf": "5.0.7",
-    "typescript": "5.5.2",
-    "vitest": "1.6.0"
+    "rimraf": "6.0.1",
+    "typescript": "5.5.3",
+    "vitest": "2.0.1"
   }
 }

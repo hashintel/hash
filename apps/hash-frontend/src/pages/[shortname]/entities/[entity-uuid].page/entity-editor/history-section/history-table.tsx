@@ -102,7 +102,7 @@ const TableRow = memo(
 
     const [showProvenance, setShowProvenance] = useState(false);
 
-    const [editionNumber, changedPropertyNumber] = number.split(".");
+    const [editionNumber, subChangeNumber] = number.split(".");
 
     const provenanceRef = useRef<HTMLDivElement>(null);
 
@@ -139,14 +139,14 @@ const TableRow = memo(
               }}
             >
               <Typography sx={typographySx}>{editionNumber}</Typography>
-              {changedPropertyNumber && (
+              {subChangeNumber && (
                 <Typography
                   sx={{
                     ...typographySx,
                     color: ({ palette }) => palette.gray[60],
                   }}
                 >
-                  .{changedPropertyNumber}
+                  .{subChangeNumber}
                 </Typography>
               )}
             </Box>

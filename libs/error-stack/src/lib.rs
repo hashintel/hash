@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2024-07-01&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2024-07-08&color=blue)][rust-version]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
 //! [libs.rs]: https://lib.rs/crates/error-stack
@@ -370,8 +370,9 @@
 //! ### Automatic Backtraces
 //!
 //! When on a Rust 1.65 or later, [`Report`] will try to capture a [`Backtrace`] if `RUST_BACKTRACE`
-//! or `RUST_BACKTRACE_LIB` is set. If on a nightly toolchain, it will use the [`Backtrace`] if
-//! provided by the base [`Context`], and will try to capture one otherwise.
+//! or `RUST_BACKTRACE_LIB` is set and the `backtrace` feature is enabled (by default this is the
+//! case). If on a nightly toolchain, it will use the [`Backtrace`] if provided by the base
+//! [`Context`], and will try to capture one otherwise.
 //!
 //! Unlike some other approaches, this does not require the user modifying their custom error types
 //! to be aware of backtraces, and doesn't require manual implementations to forward calls down any
@@ -450,13 +451,15 @@
 //!
 //! ### Feature Flags
 //!
-//!  Feature       | Description                                                        | default
-//! ---------------|--------------------------------------------------------------------|----------
-//! `std`          | Enables support for [`Error`], and, on Rust 1.65+, [`Backtrace`]   | enabled
-//! `spantrace`    | Enables automatic capturing of [`SpanTrace`]s                      | disabled
-//! `hooks`        | Enables hooks on `no-std` platforms using spin locks               | disabled
-//! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]  | disabled
-//! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]   | disabled
+//!  Feature       | Description                                                         | default
+//! ---------------|---------------------------------------------------------------------|----------
+//! `std`          | Enables support for [`Error`]                                       | enabled
+//! `backtrace`    | Enables automatic capturing of [`Backtrace`]s (requires Rust 1.65+) | enabled
+//! `spantrace`    | Enables automatic capturing of [`SpanTrace`]s                       | disabled
+//! `hooks`        | Enables hooks on `no-std` platforms using spin locks                | disabled
+//! `serde`        | Enables serialization support for [`Report`]                        | disabled
+//! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]   | disabled
+//! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]    | disabled
 //!
 //!
 //! [`set_debug_hook`]: Report::set_debug_hook
@@ -511,11 +514,7 @@ pub use self::{
     result::Result,
 };
 #[doc(inline)]
-#[allow(deprecated)]
-pub use self::{
-    future::FutureExt,
-    result::{IntoReport, ResultExt},
-};
+pub use self::{future::FutureExt, result::ResultExt};
 
 #[cfg(test)]
 #[allow(dead_code)]

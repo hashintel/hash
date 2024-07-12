@@ -49,22 +49,33 @@ export const NumberOrTextInput = ({
     "minLength" in expectedType ? expectedType.minLength : undefined;
   const maxLength =
     "maxLength" in expectedType ? expectedType.maxLength : undefined;
-  const minimum =
-    "minimum" in expectedType
-      ? expectedType.minimum
-      : "exclusiveMinimum" in expectedType &&
-          typeof expectedType.exclusiveMinimum === "number"
-        ? expectedType.exclusiveMinimum + 1
-        : undefined;
-  const maximum =
-    "maximum" in expectedType
-      ? expectedType.maximum
-      : "exclusiveMaximum" in expectedType &&
-          typeof expectedType.exclusiveMaximum === "number"
-        ? expectedType.exclusiveMaximum - 1
-        : undefined;
+
   const step =
-    "multipleOf" in expectedType ? expectedType.multipleOf : undefined;
+    "multipleOf" in expectedType && expectedType.multipleOf !== undefined
+      ? expectedType.multipleOf
+      : expectedType.type === "integer"
+        ? 1
+        : 0.01;
+
+  const exclusiveMinimum =
+    "exclusiveMinimum" in expectedType &&
+    typeof expectedType.exclusiveMinimum === "boolean"
+      ? expectedType.exclusiveMinimum
+      : false;
+  const minimum =
+    "minimum" in expectedType && typeof expectedType.minimum === "number"
+      ? expectedType.minimum + (exclusiveMinimum ? step : 0)
+      : undefined;
+
+  const exclusiveMaximum =
+    "exclusiveMaximum" in expectedType &&
+    typeof expectedType.exclusiveMaximum === "boolean"
+      ? expectedType.exclusiveMaximum
+      : false;
+  const maximum =
+    "maximum" in expectedType && typeof expectedType.maximum === "number"
+      ? expectedType.maximum - (exclusiveMaximum ? step : 0)
+      : undefined;
 
   const jsonStringFormat =
     "format" in expectedType ? expectedType.format : undefined;

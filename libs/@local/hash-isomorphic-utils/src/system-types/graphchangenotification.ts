@@ -61,7 +61,14 @@ export type {
   TextDataTypeWithMetadata,
 };
 
-export type GraphChangeNotification = Entity<GraphChangeNotificationProperties>;
+/**
+ * A notification of a change to a graph
+ */
+export type GraphChangeNotification = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1";
+  properties: GraphChangeNotificationProperties;
+  propertiesWithMetadata: GraphChangeNotificationPropertiesWithMetadata;
+};
 
 export type GraphChangeNotificationOccurredInEntityLink = {
   linkEntity: OccurredInEntity;

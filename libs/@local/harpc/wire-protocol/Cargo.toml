@@ -9,14 +9,14 @@ publish = false
 
 [dependencies]
 bytes = "1.6.0"
-enumflags2 = { version = "0.7.9", features = ["std"] }
+enumflags2 = { version = "0.7.10", features = ["std"] }
 error-stack.workspace = true
 harpc-types.workspace = true
-thiserror = "1.0.59"
+thiserror = "1.0.61"
 
 [dev-dependencies]
-proptest = "1.4.0"
-test-strategy = "0.3.1"
+proptest = "1.5.0"
+test-strategy = "0.4.0"
 harpc-types = { workspace = true, features = ["proptest"] }
 expect-test = "1.5.0"
 similar-asserts = "1.5.0"

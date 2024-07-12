@@ -6,7 +6,6 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { Confidence } from "@local/hash-graph-types/entity";
 
 /**
@@ -24,7 +23,14 @@ export type ObjectDataTypeMetadata = {
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
 };
 
-export type Query = Entity<QueryProperties>;
+/**
+ *
+ */
+export type Query = {
+  entityTypeId: "https://blockprotocol.org/@hash/types/entity-type/query/v/1";
+  properties: QueryProperties;
+  propertiesWithMetadata: QueryPropertiesWithMetadata;
+};
 
 export type QueryOutgoingLinkAndTarget = never;
 

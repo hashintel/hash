@@ -19,8 +19,8 @@ use error_stack::{Context, Report};
 use graph_types::knowledge::entity::{Entity, EntityId};
 use serde::Deserialize;
 use type_system::{
+    schema::ClosedEntityType,
     url::{BaseUrl, VersionedUrl},
-    ClosedEntityType,
 };
 
 trait Schema<V: ?Sized, P: Sync> {
@@ -32,33 +32,6 @@ trait Schema<V: ?Sized, P: Sync> {
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + 'a;
-}
-
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(transparent)]
-pub struct Valid<T> {
-    value: T,
-}
-
-impl<T> Valid<T> {
-    pub async fn new<S, C>(
-        value: T,
-        schema: S,
-        components: ValidateEntityComponents,
-        context: C,
-    ) -> Result<Self, Report<T::Error>>
-    where
-        T: Validate<S, C> + Send,
-        S: Send,
-        C: Send,
-    {
-        value.validate(&schema, components, &context).await?;
-        Ok(Self { value })
-    }
-
-    pub fn into_unvalidated(self) -> T {
-        self.value
-    }
 }
 
 const fn default_true() -> bool {
@@ -106,18 +79,6 @@ impl Default for ValidateEntityComponents {
     }
 }
 
-impl<T> AsRef<T> for Valid<T> {
-    fn as_ref(&self) -> &T {
-        &self.value
-    }
-}
-
-impl<T> Borrow<T> for Valid<T> {
-    fn borrow(&self) -> &T {
-        &self.value
-    }
-}
-
 pub trait Validate<S, C> {
     type Error: Context;
 
@@ -156,11 +117,12 @@ mod tests {
     use std::collections::HashMap;
 
     use graph_types::knowledge::{
-        Property, PropertyObject, PropertyWithMetadata, PropertyWithMetadataObject,
+        Property, PropertyObject, PropertyProvenance, PropertyWithMetadata,
+        PropertyWithMetadataObject, ValueMetadata, ValueWithMetadata,
     };
     use serde_json::Value as JsonValue;
     use thiserror::Error;
-    use type_system::{DataType, EntityType, PropertyType};
+    use type_system::schema::{DataType, EntityType, PropertyType};
 
     use super::*;
     use crate::error::install_error_stack_hooks;
@@ -241,7 +203,7 @@ mod tests {
             Ok(
                 OntologyTypeProvider::<ClosedEntityType>::provide_type(self, child)
                     .await?
-                    .inherits_from
+                    .all_of
                     .iter()
                     .any(|id| id.url.base_url == *parent),
             )
@@ -358,20 +320,24 @@ mod tests {
     }
 
     pub(crate) async fn validate_data(
-        data: JsonValue,
+        value: JsonValue,
         data_type: &str,
         components: ValidateEntityComponents,
     ) -> Result<(), Report<DataValidationError>> {
         install_error_stack_hooks();
 
-        let property: Property =
-            serde_json::from_value(data).expect("failed to deserialize data into property");
         let data_type: DataType =
             serde_json::from_str(data_type).expect("failed to parse data type");
 
-        PropertyWithMetadata::from_parts(property, None)
-            .expect("failed to create property with metadata")
-            .validate(&data_type, components, &())
-            .await
+        ValueWithMetadata {
+            value,
+            metadata: ValueMetadata {
+                data_type_id: None,
+                provenance: PropertyProvenance::default(),
+                confidence: None,
+            },
+        }
+        .validate(&data_type, components, &())
+        .await
     }
 }

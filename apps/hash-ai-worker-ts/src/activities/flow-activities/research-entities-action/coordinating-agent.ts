@@ -34,12 +34,14 @@ import type {
   CoordinatorToolName,
 } from "./coordinator-tools";
 import { generateToolDefinitions } from "./coordinator-tools";
-import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { getAnswersFromHuman } from "./get-answers-from-human";
-import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption";
+import {
+  simplifyEntityTypeForLlmConsumption,
+  simplifyProposedEntityForLlmConsumption,
+} from "./shared/simplify-for-llm-consumption";
 import type { ExistingEntitySummary } from "./summarize-existing-entities";
 import { summarizeExistingEntities } from "./summarize-existing-entities";
-import type { CompletedToolCall } from "./types";
+import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
 const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
@@ -57,17 +59,17 @@ export type CoordinatingAgentInput = {
 
 const generateSystemPromptPrefix = (params: {
   input: CoordinatingAgentInput;
-  questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
 }) => {
   const { linkEntityTypes, existingEntities, reportSpecification } =
     params.input;
-  const { questionsAndAnswers } = params;
 
   return dedent(`
     You are a coordinating agent for a research task.
-    You are tasked with proposing entities and links between entities to satisfy a research prompt.
-    You will have tools provided to you to gather facts about entities, propose entities from the obtained facts, and submit the proposed entities to the user.
-    Note that only proposed entities will be provided to the user, not the inferred facts.
+    The user provides you with a research brief, and the types of entities that are relevant.
+    Your job is to do research to gather facts about those types of entities, consistent with the research brief,
+    as well as relevant entities that they link to – forming a graph.
+    
+    You will have tools provided to you to gather facts, which will be automatically converted into entities.
 
     The user provides you with:
       - Prompt: the text prompt you need to satisfy to complete the research task
@@ -78,19 +80,18 @@ const generateSystemPromptPrefix = (params: {
       `)
           : ""
       }
-      - Entity Types: the types of entities you can propose to satisfy the research prompt
+      - Entity Types: the types of entities of interest
       ${
         linkEntityTypes
           ? dedent(`
-      - Link Types: the types of links you can propose between entities
+      - Link Types: the types of links which are possible between entities
       `)
           : ""
       }
       ${
         existingEntities
           ? dedent(`
-      - Existing Entities: a list of existing entities, that may contain relevant information
-        and you may want to link to from the proposed entities.
+      - Existing Entities: a list of existing entities, that may contain relevant information.
       `)
           : ""
       }
@@ -100,27 +101,24 @@ const generateSystemPromptPrefix = (params: {
     You must carefully examine the properties on the provided entity types and link types, because you must provide values for
       as many properties as possible.
 
-    This most likely will require:
-      - inferring facts from more than one web page
-      - conducting multiple web searches
+    This may well involve:
+      - inferring facts from more than one data source
+      - conducting multiple searches
       - starting sub-tasks to find additional relevant facts about specific entities
 
     If it would be useful to split up the task into sub-tasks to find detailed information on specific entities, do so. 
     Don't start sub-tasks in parallel which duplicate or overlap, or where one will depend on the result of another (do it in sequence).
     For simpler research tasks you might not need sub-tasks.
 
-    Do not waste resources and time trying to produce a table, report or any other form of output that isn't the proposed entities with all their properties.
-    
-    ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}` : ""}
-
-    The "complete" tool for completing the research task will only be available once you have submitted
-      proposed entities that satisfy the research prompt.
+    The "complete" tool for completing the research task will only be available once entities have been discovered.
+    When declaring the job complete, you specify which of the proposed entities should be included in the final return to the user.
   `);
 };
 
 const generateInitialUserMessage = (params: {
   input: CoordinatingAgentInput;
-}): LlmUserMessage => {
+  questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
+}): LlmMessageTextContent => {
   const {
     prompt,
     reportSpecification,
@@ -130,15 +128,13 @@ const generateInitialUserMessage = (params: {
   } = params.input;
 
   return {
-    role: "user",
-    content: [
-      {
-        type: "text",
-        text: dedent(`
-Prompt: ${prompt}
-${reportSpecification ? `Report specification: ${reportSpecification}` : ""}
-Entity Types:
+    type: "text",
+    text: dedent(`
+<ResearchPrompt>${prompt}</ResearchPrompt>
+${reportSpecification ? `<ReportSpecification>${reportSpecification}<ReportSpecification>` : ""}
+<EntityTypes>
 ${entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
+</EntityTypes>
 ${
   /**
    * @todo: simplify link type definitions, potentially by moving them to an "Outgoing Links" field
@@ -150,20 +146,23 @@ ${
 }
 ${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
       `),
-      },
-    ],
   };
 };
 
 export type CoordinatingAgentState = {
   plan: string;
   previousCalls: {
-    completedToolCalls: CompletedToolCall<CoordinatorToolName>[];
+    completedToolCalls: CompletedCoordinatorToolCall<CoordinatorToolName>[];
   }[];
-  inferredFactsAboutEntities: LocalEntitySummary[];
+  entitySummaries: LocalEntitySummary[];
   inferredFacts: Fact[];
   proposedEntities: ProposedEntity[];
+  subTasksCompleted: string[];
+  suggestionsForNextStepsMade: string[];
   submittedEntityIds: string[];
+  resourceUrlsVisited: string[];
+  resourcesNotVisited: ResourceSummary[];
+  webQueriesMade: string[];
   hasConductedCheckStep: boolean;
   questionsAndAnswers: string | null;
 };
@@ -174,71 +173,109 @@ const generateProgressReport = (params: {
 }): LlmMessageTextContent => {
   const { state } = params;
 
-  const submittedProposedEntities = state.proposedEntities.filter(
-    (proposedEntity) =>
-      !("sourceEntityId" in proposedEntity) &&
-      state.submittedEntityIds.includes(proposedEntity.localEntityId),
+  const {
+    subTasksCompleted,
+    suggestionsForNextStepsMade,
+    resourcesNotVisited,
+    resourceUrlsVisited,
+    webQueriesMade,
+  } = state;
+
+  const proposedEntities = state.proposedEntities.filter(
+    (proposedEntity) => !("sourceEntityId" in proposedEntity),
   );
 
-  const submittedProposedLinks = state.proposedEntities.filter(
-    (proposedEntity) =>
-      "sourceEntityId" in proposedEntity &&
-      state.submittedEntityIds.includes(proposedEntity.localEntityId),
+  const proposedLinks = state.proposedEntities.filter(
+    (proposedEntity) => "sourceEntityId" in proposedEntity,
   );
 
-  return {
-    type: "text",
-    text: dedent(`
-      Here is a summary of the progress you've made so far.
-
-      ${generatePreviouslyInferredFactsSystemPromptMessage(state)}
-
-      ${
-        submittedProposedEntities.length > 0
-          ? dedent(`
-            You have previously submitted the following proposed entities:
-            ${JSON.stringify(submittedProposedEntities, null, 2)}
-          `)
-          : "You have not previously submitted any proposed entities."
-      }
-
-      ${
-        submittedProposedLinks.length > 0
-          ? dedent(`
-            You have previously submitted the following proposed links:
-            ${JSON.stringify(submittedProposedLinks, null, 2)}
-          `)
-          : "You have not previously submitted any proposed links."
-      }
-
-      ${
-        submittedProposedEntities.length > 0 ||
-        submittedProposedLinks.length > 0
-          ? 'If the submitted entities and links satisfy the research prompt, call the "complete" tool.'
-          : ""
-      }
-
-      You have previously proposed the following plan:
+  let progressReport = state.plan
+    ? dedent`You have previously proposed the following plan:
       ${state.plan}
 
       If you want to deviate from this plan or improve it, update it using the "updatePlan" tool.
-      You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
-      
-      ${
-        state.inferredFactsAboutEntities.length > 0
-          ? dedent(`
-        Before calling the "proposeEntitiesFromFacts" tool, ensure you have gathered facts for as many
-          properties for each entity as possible.
+      You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.\n\n
+      `
+    : "";
 
-        If there is additional research to be done for one or more of the entities, you should call the "startFactGatheringSubTasks" tool
-          for to gather the required facts on a per-entity basis.
+  if (proposedEntities.length > 0 || proposedLinks.length > 0) {
+    progressReport +=
+      "Here's what we've discovered so far. If this is sufficient to satisfy the research brief, call 'complete' with the entityIds of the entities and links of interest:\n\n";
+    if (proposedEntities.length > 0) {
+      progressReport += dedent(`
+      <DiscoveredEntities>
+      ${proposedEntities.map((proposedEntity) => simplifyProposedEntityForLlmConsumption({ proposedEntity })).join("\n")}
+      </DiscoveredEntities>
+    `);
+    }
+    if (proposedLinks.length > 0) {
+      progressReport += dedent(`
+      <DiscoveredLinks>
+      ${proposedLinks.map((proposedLink) => simplifyProposedEntityForLlmConsumption({ proposedEntity: proposedLink })).join("\n")}
+      </DiscoveredLinks>
+    `);
+    }
 
-        Remember that the outputted information will only consist of the properties and links defined in the entity and link types,
-          so don't waste resources on gathering information that cannot be returned.
-      `)
-          : ""
-      }
-    `),
+    progressReport += dedent`
+    If further research is needed to fill more properties of any entities or links,
+      consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
+
+    Do not sequentially conduct additional actions for each of the entities,
+      instead start multiple sub-tasks via the "startFactGatheringSubTasks" tool to
+      conduct additional research per entity in parallel.`;
+  }
+  if (
+    resourceUrlsVisited.length > 0 ||
+    resourcesNotVisited.length > 0 ||
+    webQueriesMade.length > 0
+  ) {
+    if (resourceUrlsVisited.length > 0) {
+      progressReport += dedent(`
+        You have already visited the following resources – they may be worth visiting again if you need more information:
+        <ResourcesVisited>
+        ${resourceUrlsVisited.join("\n")}
+        </ResourcesVisited>
+      `);
+    }
+    if (resourcesNotVisited.length > 0) {
+      progressReport += dedent(`
+        You have not visited the following resources:
+        <ResourcesNotVisited>
+        ${resourcesNotVisited.map((webPage) => `Url: ${webPage.url}\nSummary:${webPage.summary}`).join("\n\n")}
+        </ResourcesNotVisited>
+      `);
+    }
+    if (webQueriesMade.length > 0) {
+      progressReport += dedent(`
+        You have made the following web searches – there is no point in making these or very similar searches again:
+        <WebSearchesMade>
+        ${webQueriesMade.join("\n")}
+        </WebSearchesMade>
+      `);
+    }
+  }
+
+  if (suggestionsForNextStepsMade.length > 0) {
+    progressReport += dedent(`
+      We have received the following suggestions for next steps (some may now be redundant or already have been acted upon):
+      <SuggestionsForNextSteps>
+      ${suggestionsForNextStepsMade.join("\n")}
+      </SuggestionsForNextSteps>
+    `);
+  }
+
+  if (subTasksCompleted.length > 0) {
+    progressReport += dedent(`
+      You have completed the following sub-tasks:
+      <SubTasksCompleted>
+      ${subTasksCompleted.join("\n")}
+      </SubTasksCompleted>
+    `);
+  }
+
+  return {
+    type: "text",
+    text: progressReport,
   };
 };
 
@@ -254,7 +291,6 @@ const getNextToolCalls = async (params: {
   const systemPrompt = dedent(`
       ${generateSystemPromptPrefix({
         input,
-        questionsAndAnswers: state.questionsAndAnswers,
       })}
 
       Make as many tool calls as are required to progress towards completing the task.
@@ -277,34 +313,34 @@ const getNextToolCalls = async (params: {
   const progressReport = generateProgressReport({ input, state });
 
   const messages: LlmMessage[] = [
-    generateInitialUserMessage({ input }),
-    ...llmMessagesFromPreviousToolCalls.slice(0, -1),
-    lastUserMessage
-      ? ({
-          ...lastUserMessage,
-          content: [
-            ...lastUserMessage.content,
-            // Add the progress report to the most recent user message.
-            progressReport,
-          ],
-        } satisfies LlmUserMessage)
-      : [],
+    {
+      role: "user",
+      content: [
+        generateInitialUserMessage({
+          input,
+          questionsAndAnswers: state.questionsAndAnswers,
+        }),
+        progressReport,
+      ],
+    } satisfies LlmUserMessage,
+    ...llmMessagesFromPreviousToolCalls,
   ].flat();
+
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions({
+      dataSources,
       omitTools: [
         ...(input.humanInputCanBeRequested
           ? []
           : ["requestHumanInput" as const]),
-        ...(state.submittedEntityIds.length > 0 ? [] : ["complete" as const]),
+        ...(state.proposedEntities.length > 0 ? [] : ["complete" as const]),
       ],
       state,
     }),
   );
-
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -344,12 +380,26 @@ const maximumRetries = 3;
 const createInitialPlan = async (params: {
   input: CoordinatingAgentInput;
   questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
+  providedFiles: CoordinatingAgentState["resourcesNotVisited"];
   retryContext?: { retryMessages: LlmMessage[]; retryCount: number };
 }): Promise<Pick<CoordinatingAgentState, "plan" | "questionsAndAnswers">> => {
-  const { input, questionsAndAnswers, retryContext } = params;
+  const { input, questionsAndAnswers, providedFiles, retryContext } = params;
+
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const systemPrompt = dedent(`
-    ${generateSystemPromptPrefix({ input, questionsAndAnswers })}
+    ${generateSystemPromptPrefix({ input })}
+    
+    ${
+      providedFiles.length
+        ? dedent(`
+      The user has provided you with the following resources which can be used to infer facts from:
+      ${providedFiles.map((file) => `<Resource>Url: ${file.url}\nTitle: ${file.title}</Resource>`).join("\n\n")}`)
+        : ""
+    }
+    
+    ${dataSources.internetAccess.enabled ? "You can also conduct web searches and visit public web pages." : "Public internet access is disabled – you must rely on the provided resources."}
 
     ${
       input.humanInputCanBeRequested
@@ -365,6 +415,13 @@ const createInitialPlan = async (params: {
           If in doubt, ask!
 
           2. Provide a plan of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
+          
+          ${
+            questionsAndAnswers
+              ? `<PreviouslyAnsweredQuestions>You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}          
+      </PreviouslyAnsweredQuestions>`
+              : ""
+          }
 
           Please now either ask the user your questions, or produce the initial plan if there are no ${
             questionsAndAnswers ? "more " : ""
@@ -379,11 +436,9 @@ const createInitialPlan = async (params: {
     }
   `);
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
-
   const tools = Object.values(
     generateToolDefinitions<["complete"]>({
+      dataSources,
       omitTools: input.humanInputCanBeRequested
         ? ["complete"]
         : (["complete", "requestHumanInput"] as unknown as ["complete"]),
@@ -394,7 +449,10 @@ const createInitialPlan = async (params: {
     {
       systemPrompt,
       messages: [
-        generateInitialUserMessage({ input }),
+        {
+          role: "user",
+          content: [generateInitialUserMessage({ input, questionsAndAnswers })],
+        } satisfies LlmUserMessage,
         ...(retryContext?.retryMessages ?? []),
       ],
       model,
@@ -461,6 +519,7 @@ const createInitialPlan = async (params: {
     return createInitialPlan({
       input,
       questionsAndAnswers,
+      providedFiles,
       retryContext: {
         retryMessages: [message, retryParams.retryMessage],
         retryCount: retryCount + 1,
@@ -482,6 +541,7 @@ const createInitialPlan = async (params: {
 
     return createInitialPlan({
       input,
+      providedFiles,
       questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
     });
   }

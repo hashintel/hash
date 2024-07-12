@@ -1,3 +1,5 @@
+import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
+import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { SourceProvenance } from "@local/hash-graph-client";
 import { SourceType } from "@local/hash-graph-client";
 import dedent from "dedent";
@@ -7,7 +9,10 @@ import { getWebPageActivity } from "../../get-web-page-activity";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
 import { logger } from "../../shared/activity-logger";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
-import { getFlowContext } from "../../shared/get-flow-context";
+import {
+  getFlowContext,
+  getProvidedFileByUrl,
+} from "../../shared/get-flow-context";
 import { logProgress } from "../../shared/log-progress";
 import { stringify } from "../../shared/stringify";
 import { inferFactsFromText } from "../shared/infer-facts-from-text";
@@ -38,15 +43,25 @@ const isContentAtUrlPdfFile = async (params: { url: string }) => {
   const { url } = params;
 
   try {
-    const urlHeadFetch = await fetch(url, { method: "HEAD" });
+    /**
+     * HASH files are accessed via presigned GET URLs, and therefore we can't use a HEAD request.
+     * This serves the same function of having the Content-Type header available without downloading the whole file.
+     */
+    const urlFirstByteFetch = await fetch(url, {
+      headers: {
+        Range: "bytes=0-0",
+      },
+      method: "GET",
+      signal: AbortSignal.timeout(5000),
+    });
 
     /**
-     * Only check the content type of the URL if the HEAD request was successful.
+     * Only check the content type of the URL if the request was successful.
      *
      * This may be because the web page requires an authenticated user to access it.
      */
-    if (urlHeadFetch.ok) {
-      const contentType = urlHeadFetch.headers.get("Content-Type");
+    if (urlFirstByteFetch.ok) {
+      const contentType = urlFirstByteFetch.headers.get("Content-Type");
 
       if (contentType && contentType.includes("application/pdf")) {
         return true;
@@ -81,19 +96,76 @@ const exploreResource = async (params: {
 
   logger.debug(`Exploring resource at URL: ${resource.url}`);
 
-  const { stepId } = await getFlowContext();
+  const { stepId, dataSources } = await getFlowContext();
 
-  const isResourcePdfFile = await isContentAtUrlPdfFile({
-    url: resource.url,
-  });
+  const hashEntityForFile = await getProvidedFileByUrl(resource.url);
 
   let content = "";
-  let resourceTitle: string | undefined = undefined;
+  let resourceTitle: string | undefined =
+    hashEntityForFile?.properties[
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings
+    ] ||
+    hashEntityForFile?.properties[
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"
+    ];
+
+  let urlForDownload = resource.url;
+
+  if (hashEntityForFile) {
+    /**
+     * If this is a file stored in HASH, we need a signed URL to be able to access it.
+     * The signed URL is (a) temporary and (b) not user-facing, so we only generate and use it here,
+     * and otherwise use the proxy URL stored on the entity itself in logs and provenance records.
+     */
+    const storageKey =
+      hashEntityForFile.properties[
+        "https://hash.ai/@hash/types/property-type/file-storage-key/"
+      ];
+
+    if (storageKey) {
+      const s3Config = getAwsS3Config();
+
+      const downloadProvider = new AwsS3StorageProvider(s3Config);
+
+      urlForDownload = await downloadProvider.presignDownload({
+        entity: hashEntityForFile,
+        expiresInSeconds: 60 * 60,
+        key: storageKey,
+      });
+    }
+  } else if (!dataSources.internetAccess.enabled) {
+    return {
+      status: "not-explored",
+      resource,
+      reason:
+        "Public internet access is disabled – you provided a URL to the public web.",
+    };
+  }
+
+  const isResourcePdfFile = await isContentAtUrlPdfFile({
+    url: urlForDownload,
+  });
 
   if (isResourcePdfFile) {
     const { vectorStoreIndex } = await indexPdfFile({
-      fileUrl: resource.url,
+      fileUrl: urlForDownload,
     });
+
+    if (!resourceTitle) {
+      // If we don't already have a filename, use the end of the URL (without any query params)
+
+      /**
+       * @todo: extract the title from the PDF file using a pdf parsing package or an LLM.
+       */
+      try {
+        const urlObject = new URL(resource.url);
+
+        resourceTitle = urlObject.pathname.split("/").pop();
+      } catch {
+        // Do nothing – if the URL was invalid the isResourcePdfFile would have failed anyway
+      }
+    }
 
     const queryEngine = vectorStoreIndex.asQueryEngine({
       retriever: vectorStoreIndex.asRetriever({
@@ -107,7 +179,10 @@ const exploreResource = async (params: {
         recordedAt: new Date().toISOString(),
         stepId,
         type: "ViewedFile",
-        fileUrl: resource.url,
+        file: {
+          title: resourceTitle ?? resource.url,
+          url: resource.url,
+        },
         explanation: resource.reason,
       },
     ]);
@@ -189,6 +264,14 @@ const exploreResource = async (params: {
       sanitizeForLlm: true,
     });
 
+    if ("error" in webPage) {
+      return {
+        status: "not-explored",
+        reason: webPage.error,
+        resource,
+      };
+    }
+
     resourceTitle = webPage.title;
 
     logProgress([
@@ -250,19 +333,21 @@ const exploreResource = async (params: {
   });
 
   const factSource: SourceProvenance = {
+    entityId: hashEntityForFile?.entityId,
     type: isResourcePdfFile ? SourceType.Document : SourceType.Webpage,
     location: {
-      uri: resource.url,
-      /**
-       * @todo: extract the title from the PDF file using a pdf parsing package or an LLM.
-       */
+      uri:
+        hashEntityForFile?.properties[
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+        ] ?? resource.url,
       name: resourceTitle,
       /**
-       * @todo: generate a description of the resource via an LLM. Alternatively the
-       * `descriptionOfExpectedContent` of the resource could be used, but this is
-       * imperfect as it was not generated based on the content of the resource.
+       * @todo: generate a description of the resource via an LLM.
        */
-      description: undefined,
+      description:
+        hashEntityForFile?.properties[
+          "https://blockprotocol.org/@blockprotocol/types/property-type/description/"
+        ],
     },
     loadedAt: new Date().toISOString(),
     /**

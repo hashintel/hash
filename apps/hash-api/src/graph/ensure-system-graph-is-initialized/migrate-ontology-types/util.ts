@@ -365,7 +365,9 @@ export const generateSystemPropertyTypeSchema = (
         > = {
           type: "object" as const,
           properties: propertyTypeObjectProperties,
-          required: propertyTypeObjectRequiredProperties ?? [],
+          required: propertyTypeObjectRequiredProperties
+            ? atLeastOne(propertyTypeObjectRequiredProperties)
+            : undefined,
         };
         inner = propertyTypeObject;
       } else {
@@ -715,7 +717,7 @@ export const generateSystemEntityTypeSchema = (
     description: params.description,
     type: "object",
     properties,
-    required: requiredProperties,
+    required: requiredProperties ? atLeastOne(requiredProperties) : undefined,
     links,
   };
 };

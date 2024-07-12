@@ -9,7 +9,7 @@ const replaceInterfaceWithTypeInCompiledTsType = (
   compiledTsType.replace(/interface ([a-zA-Z0-9]+)/gm, "type $1 =");
 
 /**
- * We want to be able to use generated types as generics within `Entity<Properties>` for example, so we make
+ * We want to be able to use generated types as generics within `Entity<User>` for example, so we make
  * everything consistently a `type` instead of an `interface`.
  *
  * This should be safe as:

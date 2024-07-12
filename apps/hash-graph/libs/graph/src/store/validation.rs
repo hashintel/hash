@@ -21,8 +21,8 @@ use graph_types::{
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
 use type_system::{
+    schema::{ClosedEntityType, DataType, PropertyType},
     url::{BaseUrl, VersionedUrl},
-    ClosedEntityType, DataType, PropertyType,
 };
 use validation::{EntityProvider, EntityTypeProvider, OntologyTypeProvider};
 

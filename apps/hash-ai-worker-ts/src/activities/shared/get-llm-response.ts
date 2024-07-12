@@ -1,6 +1,7 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
-import type { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -11,6 +12,7 @@ import { StatusCode } from "@local/status";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
 import { logger } from "./activity-logger";
+import { getFlowContext } from "./get-flow-context";
 import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-service-usage-not-exceeded";
 import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response";
 import { getOpenAiResponse } from "./get-llm-response/get-openai-reponse";
@@ -75,14 +77,15 @@ export const getLlmResponse = async <T extends LlmParams>(
 
   const timeBeforeApiCall = Date.now();
 
-  const { taskName, stepId } = customMetadata ?? {};
+  const { flowEntityId, stepId } = await getFlowContext();
+
+  const { taskName } = customMetadata ?? {};
   let debugMessage = `Getting LLM response for model ${llmParams.model}`;
   if (taskName) {
     debugMessage += ` for task ${taskName}`;
   }
-  if (stepId) {
-    debugMessage += ` in step ${stepId}`;
-  }
+
+  debugMessage += ` in step ${stepId}`;
 
   logger.debug(debugMessage);
 
@@ -140,6 +143,15 @@ export const getLlmResponse = async <T extends LlmParams>(
         { actorId: aiAssistantAccountId },
       );
 
+      const provenance: EnforcedEntityEditionProvenance = {
+        actorType: "ai",
+        origin: {
+          type: "flow",
+          id: flowEntityId,
+          stepIds: [stepId],
+        } satisfies OriginProvenance,
+      };
+
       const errors = await Promise.all(
         incurredInEntities.map(async ({ entityId }) => {
           try {
@@ -149,6 +161,7 @@ export const getLlmResponse = async <T extends LlmParams>(
               {
                 draft: false,
                 properties: {},
+                provenance,
                 ownedById: webId,
                 entityTypeId: systemLinkEntityTypes.incurredIn.linkEntityTypeId,
                 linkData: {

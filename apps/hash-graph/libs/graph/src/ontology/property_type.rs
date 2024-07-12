@@ -17,7 +17,7 @@ use crate::{
 
 /// A path to a [`PropertyType`] field.
 ///
-/// [`PropertyType`]: type_system::PropertyType
+/// [`PropertyType`]: type_system::schema::PropertyType
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PropertyTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`PropertyType`].
@@ -31,7 +31,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`PropertyType`]: type_system::PropertyType
+    /// [`PropertyType`]: type_system::schema::PropertyType
     /// [`BaseUrl`]: type_system::url::BaseUrl
     BaseUrl,
     /// The version of the [`PropertyType`].
@@ -49,7 +49,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// with a `"latest"` parameter, which will only match the latest version of the
     /// [`PropertyType`].
     ///
-    /// [`PropertyType`]: type_system::PropertyType
+    /// [`PropertyType`]: type_system::schema::PropertyType
     Version,
     /// The [`VersionedUrl`] of the [`PropertyType`].
     ///
@@ -62,7 +62,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`PropertyType`]: type_system::PropertyType
+    /// [`PropertyType`]: type_system::schema::PropertyType
     /// [`VersionedUrl`]: type_system::url::VersionedUrl
     VersionedUrl,
     /// The transaction time of the [`PropertyType`].
@@ -70,7 +70,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// It's not possible to query for the temporal axis directly, this has to be done via the
     /// `temporalAxes` parameter on the request.
     ///
-    /// [`PropertyType`]: type_system::PropertyType
+    /// [`PropertyType`]: type_system::schema::PropertyType
     TransactionTime,
     /// The [`OwnedById`] of the [`PropertyTypeMetadata`] belonging to the [`PropertyType`].
     ///
@@ -83,13 +83,13 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`PropertyType`]: type_system::PropertyType
+    /// [`PropertyType`]: type_system::schema::PropertyType
     /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
     /// [`PropertyTypeMetadata`]: graph_types::ontology::PropertyTypeMetadata
     OwnedById,
     /// Corresponds to [`PropertyType::title()`].
     ///
-    /// [`PropertyType::title()`]: type_system::PropertyType::title
+    /// [`PropertyType::title()`]: type_system::schema::PropertyType::title
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -102,7 +102,7 @@ pub enum PropertyTypeQueryPath<'p> {
     Title,
     /// Corresponds to [`PropertyType::description()`]
     ///
-    /// [`PropertyType::description()`]: type_system::PropertyType::description
+    /// [`PropertyType::description()`]: type_system::schema::PropertyType::description
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -120,9 +120,9 @@ pub enum PropertyTypeQueryPath<'p> {
     /// Allowed edge kinds are:
     /// - [`ConstrainsValuesOn`]
     ///
-    /// [`DataType`]: type_system::DataType
+    /// [`DataType`]: type_system::schema::DataType
     /// [`ConstrainsValuesOn`]: OntologyEdgeKind::ConstrainsValuesOn
-    /// [`PropertyType`]: type_system::PropertyType
+    /// [`PropertyType`]: type_system::schema::PropertyType
     ///
     /// ## Constraining data types
     ///
@@ -156,7 +156,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// - [`ConstrainsPropertiesOn`]
     ///
     /// [`ConstrainsPropertiesOn`]: OntologyEdgeKind::ConstrainsPropertiesOn
-    /// [`PropertyType`]: type_system::PropertyType
+    /// [`PropertyType`]: type_system::schema::PropertyType
     ///
     /// ## Constraining other property types
     ///
@@ -195,8 +195,8 @@ pub enum PropertyTypeQueryPath<'p> {
     /// - [`ConstrainsPropertiesOn`]
     ///
     /// [`ConstrainsPropertiesOn`]: OntologyEdgeKind::ConstrainsPropertiesOn
-    /// [`PropertyType`]: type_system::PropertyType
-    /// [`EntityType`]: type_system::PropertyType
+    /// [`PropertyType`]: type_system::schema::PropertyType
+    /// [`EntityType`]: type_system::schema::PropertyType
     ///
     /// ## Constraining other property types
     ///
@@ -217,7 +217,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// Deserializes from `["editionProvenance", ...]` where `...` is a path to a provenance entry
     /// of an [`PropertyType`].
     ///
-    /// [`PropertyType`]: type_system::PropertyType
+    /// [`PropertyType`]: type_system::schema::PropertyType
     ///
     /// ```rust
     /// # use serde::Deserialize;

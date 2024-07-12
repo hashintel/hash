@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
@@ -7,14 +8,8 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  HasSpatiallyPositionedContent,
-  HasSpatiallyPositionedContentProperties,
-} from "@local/hash-isomorphic-utils/system-types/canvas";
-import type {
-  HasDataProperties,
-  HasIndexedContentProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import type { PositionInput } from "../../../graphql/api-types.gen";
@@ -41,7 +36,12 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
     blockCollectionEntityId: EntityId;
     blockCollectionEntityTypeId: VersionedUrl;
   },
-  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>
+  Promise<
+    {
+      linkEntity: LinkEntity<HasSpatiallyPositionedContent | HasIndexedContent>;
+      rightEntity: Block;
+    }[]
+  >
 > = async (
   ctx,
   authentication,
@@ -60,8 +60,8 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
         : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     },
   )) as
-    | LinkEntity<HasSpatiallyPositionedContentProperties>[]
-    | LinkEntity<HasIndexedContentProperties>[];
+    | LinkEntity<HasSpatiallyPositionedContent>[]
+    | LinkEntity<HasIndexedContent>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
@@ -88,7 +88,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     block: Block;
     position: PositionInput;
   },
-  Promise<HasSpatiallyPositionedContent | HasIndexedContentProperties>
+  Promise<Entity<HasSpatiallyPositionedContent | HasIndexedContent>>
 > = async (ctx, authentication, params) => {
   const {
     blockCollectionEntityId,
@@ -111,8 +111,8 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
   });
 
   return linkEntity as
-    | HasSpatiallyPositionedContent
-    | HasIndexedContentProperties;
+    | Entity<HasSpatiallyPositionedContent>
+    | Entity<HasIndexedContent>;
 };
 
 /**
@@ -140,7 +140,13 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
   });
 
   await updateLinkEntity(ctx, authentication, {
-    properties: canvasPosition || indexPosition,
+    propertyPatches: [
+      {
+        op: "replace",
+        path: [],
+        value: indexPosition || canvasPosition,
+      },
+    ],
     linkEntity: new LinkEntity(linkEntity),
   });
 };

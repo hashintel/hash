@@ -20,6 +20,7 @@ const unsupportedPayloadKinds = [
   "ProposedEntityWithResolvedLinks",
   "FormattedText",
   "WebPage",
+  "WebSearchResult",
 ] as const satisfies ReadonlyArray<PayloadKind>;
 
 type UnsupportedPayloadKind = (typeof unsupportedPayloadKinds)[number];

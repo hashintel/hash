@@ -2,7 +2,6 @@ import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
 import { Skeleton } from "@hashintel/design-system";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
@@ -24,8 +23,9 @@ import type {
   StartFlowMutation,
   StartFlowMutationVariables,
 } from "../../../graphql/api-types.gen";
-import { startFlowMutation } from "../../../graphql/queries/knowledge/entity.queries";
+import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+import { defaultBrowserPluginDomains } from "../../goals/new.page/internet-settings";
 import { useFlowDefinitionsContext } from "../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../shared/flow-runs-context";
 import { ActivityLog } from "./flow-visualizer/activity-log";
@@ -294,7 +294,7 @@ export const FlowVisualizer = () => {
   const { logs, persistedEntities, proposedEntities } = useMemo<{
     logs: LocalProgressLog[];
     persistedEntities: PersistedEntity[];
-    proposedEntities: ProposedEntity[];
+    proposedEntities: Omit<ProposedEntity, "provenance" | "propertyMetadata">[];
   }>(() => {
     if (!selectedFlowRun) {
       return { logs: [], persistedEntities: [], proposedEntities: [] };
@@ -310,7 +310,8 @@ export const FlowVisualizer = () => {
     ];
 
     const persisted: PersistedEntity[] = [];
-    const proposed: ProposedEntity[] = [];
+    const proposed: Omit<ProposedEntity, "provenance" | "propertyMetadata">[] =
+      [];
 
     for (const step of selectedFlowRun.steps) {
       const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
@@ -404,6 +405,16 @@ export const FlowVisualizer = () => {
           runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
             const { data } = await startFlow({
               variables: {
+                dataSources: {
+                  files: { fileEntityIds: [] },
+                  internetAccess: {
+                    browserPlugin: {
+                      domains: defaultBrowserPluginDomains,
+                      enabled: true,
+                    },
+                    enabled: true,
+                  },
+                },
                 flowDefinition: selectedFlowDefinition,
                 flowTrigger: {
                   outputs,
@@ -461,7 +472,7 @@ export const FlowVisualizer = () => {
           {selectedFlowRun ? (
             <FlowRunSidebar
               flowDefinition={selectedFlowDefinition}
-              flowRunId={selectedFlowRun.flowRunId as EntityUuid}
+              flowRunId={selectedFlowRun.flowRunId}
               groups={flowMaybeGrouped.groups}
               name={selectedFlowRun.name}
             />

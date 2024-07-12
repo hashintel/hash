@@ -1,6 +1,6 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
+import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
 import Script from "next/script";
 import type { PropsWithChildren } from "react";
 import {
@@ -17,7 +17,7 @@ const googleOAuthClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 
 type GoogleAuthContextReturn =
   | {
-      accounts: Entity<GoogleAccountProperties>[];
+      accounts: Entity<GoogleAccount>[];
       addGoogleAccount: () => void;
       checkAccessToken: (args: {
         googleAccountId: string;

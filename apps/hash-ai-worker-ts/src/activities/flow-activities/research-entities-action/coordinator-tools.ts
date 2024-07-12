@@ -1,4 +1,5 @@
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
@@ -7,9 +8,7 @@ import type { CoordinatingAgentState } from "./coordinating-agent";
 export const coordinatorToolNames = [
   "requestHumanInput",
   "webSearch",
-  "inferFactsFromWebPages",
-  "proposeEntitiesFromFacts",
-  "submitProposedEntities",
+  "inferFactsFromResources",
   "startFactGatheringSubTasks",
   "complete",
   "terminate",
@@ -17,11 +16,6 @@ export const coordinatorToolNames = [
 ] as const;
 
 export type CoordinatorToolName = (typeof coordinatorToolNames)[number];
-
-export const isCoordinatorToolName = (
-  value: string,
-): value is CoordinatorToolName =>
-  coordinatorToolNames.includes(value as CoordinatorToolName);
 
 const explanationDefinition = {
   type: "string",
@@ -35,12 +29,20 @@ const explanationDefinition = {
 export const generateToolDefinitions = <
   T extends CoordinatorToolName[],
 >(params: {
+  dataSources: FlowDataSources;
   omitTools?: T;
   state?: CoordinatingAgentState;
 }): Record<
   Exclude<CoordinatorToolName, T[number]>,
   LlmToolDefinition<Exclude<CoordinatorToolName, T[number]>>
 > => {
+  const { internetAccess } = params.dataSources;
+
+  const omitTools: CoordinatorToolName[] = params.omitTools ?? [];
+  if (!internetAccess.enabled) {
+    omitTools.push("webSearch");
+  }
+
   const allToolDefinitions: Record<
     CoordinatorToolName,
     LlmToolDefinition<CoordinatorToolName>
@@ -64,7 +66,7 @@ export const generateToolDefinitions = <
               description:
                 "A question to help clarify or complete the research task",
             },
-            description: "A list of questions to ask the user",
+            description: "An array of questions to ask the user",
           },
         },
         required: ["explanation", "questions"],
@@ -73,8 +75,8 @@ export const generateToolDefinitions = <
     startFactGatheringSubTasks: {
       name: "startFactGatheringSubTasks",
       description: dedent(`
-      Start fact gathering sub-tasks to gather facts required to complete the research task.
-      Make use of this tool if the research task can be broken down into smaller sub-tasks.
+      Start fact gathering sub-tasks to gather facts about entities required to complete the research task.
+      Make use of this tool if the research task needs to be be broken down into smaller, non-overlapping sub-tasks.
       For example: "Find the technical specifications of the product with name X, including specification x, y and z".
       
       Subtasks must be independent and not overlap in any way with the information they gather.
@@ -101,7 +103,7 @@ export const generateToolDefinitions = <
                   The entity IDs of the entities which the sub-task is relevant to, for which existing
                     facts have already been inferred.
                   
-                  ${params.state?.inferredFactsAboutEntities.length ? `The possible values are: ${params.state.inferredFactsAboutEntities.map(({ localId }) => localId).join(", ")}` : ""}
+                  ${params.state?.entitySummaries.length ? `The possible values are: ${params.state.entitySummaries.map(({ localId }) => localId).join(", ")}` : ""}
                 `),
                 },
                 entityTypeIds: {
@@ -166,35 +168,35 @@ export const generateToolDefinitions = <
         required: ["query", "explanation"],
       },
     },
-    inferFactsFromWebPages: {
-      name: "inferFactsFromWebPages",
+    inferFactsFromResources: {
+      name: "inferFactsFromResources",
       description: dedent(`
-      Infer facts from the content of web pages.
-      This tool should be used to gather facts about entities of specific types, before the entities can be proposed.
+      Infer facts from the content of resources.
+      This tool should be used to gather facts about entities of specific types.
+      The URLs for resources selected must have been provided in the user messages to you,
+      or as the result of a previous action (e.g. a web search, or in suggestions for next steps). Don't guess URLs!
     `),
       inputSchema: {
         type: "object",
         properties: {
           explanation: explanationDefinition,
-          webPages: {
+          resources: {
             type: "array",
             items: {
               type: "object",
               properties: {
                 url: {
                   type: "string",
-                  description: "The URL of the web page",
+                  description: "The URL of the resource",
                 },
                 prompt: {
                   type: "string",
                   description: dedent(`
-                A prompt instructing the inference agent which entities it should gather facts about from the webpage.
+                A prompt instructing the inference agent which entities it should gather facts about from the resource.
                 Do not specify any information of the structure of the entities, as this is predefined by
                   the entity type.
     
-                You must be specific about which and how many entities you need to gather facts about from
-                  the webpage to satisfy the research task.
-              `),
+                You must be specific about which and how many entities you need to gather facts about to satisfy the research task.`),
                 },
                 descriptionOfExpectedContent: {
                   type: "string",
@@ -211,14 +213,14 @@ export const generateToolDefinitions = <
                 reason: {
                   type: "string",
                   description:
-                    "An explanation of why inferring facts from the web page is relevant to the research task.",
+                    "An explanation of why inferring facts from the resource is relevant to the research task.",
                 },
                 entityTypeIds: {
                   type: "array",
                   items: {
                     type: "string",
                     description: dedent(`
-                      The entity type IDs of the kind of entities to infer facts about on the web page.
+                      The entityTypeIds the kind of entities to infer facts about.
                       You must specify at least one.
                     `),
                   },
@@ -228,7 +230,7 @@ export const generateToolDefinitions = <
                   items: {
                     type: "string",
                     description:
-                      "The link entity type IDs of the kind of link entities to infer facts about on the web page",
+                      "The linkEntityTypeIds of the kind of link entities to infer facts about on the web page",
                   },
                 },
               },
@@ -243,13 +245,14 @@ export const generateToolDefinitions = <
             },
           },
         },
-        required: ["webPages", "explanation"],
+        required: ["resources", "explanation"],
       },
     },
-    submitProposedEntities: {
-      name: "submitProposedEntities",
-      description:
-        "Submit one or more proposed entities as the `result` of the research task.",
+    complete: {
+      name: "complete",
+      description: dedent(`
+            Complete the research task by specifying the entityIds of the entities to submit as the result of your research.
+          `),
       inputSchema: {
         type: "object",
         properties: {
@@ -260,27 +263,13 @@ export const generateToolDefinitions = <
               type: "string",
             },
             description: dedent(`
-            An array of entity IDs of the proposed entities to submit.
-            Each entity must have been proposed by a prior "proposeEntitiesFromFacts" tool call.
-            You must have made an effort to find all the facts required to infer as many properties and outgoing links
-              for each entity as possible.
+            An array of entityIds to submit.
+            You must have made an effort to find as many properties and outgoing links for each entity as possible,
+            as long as they relate to the research task in question.
           `),
           },
         },
         required: ["entityIds", "explanation"],
-      },
-    },
-    complete: {
-      name: "complete",
-      description: dedent(`
-            Complete the research task.
-          `),
-      inputSchema: {
-        type: "object",
-        properties: {
-          explanation: explanationDefinition,
-        },
-        required: ["explanation"],
       },
     },
     terminate: {
@@ -319,40 +308,11 @@ export const generateToolDefinitions = <
         required: ["plan", "explanation"],
       },
     },
-    proposeEntitiesFromFacts: {
-      name: "proposeEntitiesFromFacts",
-      description: dedent(`
-      Propose entities from the inferred facts about the entities.
-
-      All required facts must be obtained before proposing entities.
-
-      Before calling this tool, you must have made a significant effort to
-        find all the facts required to infer as many properties and outgoing links
-        as possible for each entity.
-
-      If you propose an entity more than once, the latest proposal will be used.
-    `),
-      inputSchema: {
-        type: "object",
-        properties: {
-          explanation: explanationDefinition,
-          entityIds: {
-            type: "array",
-            items: {
-              type: "string",
-              description:
-                "The fact IDs of the inferred facts to propose entities from.",
-            },
-          },
-        },
-        required: ["entityIds", "explanation"],
-      },
-    },
   };
 
   const filteredTools = Object.fromEntries(
     Object.entries(allToolDefinitions).filter(
-      ([toolName]) => !params.omitTools?.includes(toolName as T[number]),
+      ([toolName]) => !omitTools.includes(toolName as T[number]),
     ),
   ) as Record<
     Exclude<CoordinatorToolName, T[number]>,
@@ -373,9 +333,9 @@ export type CoordinatorToolCallArguments = Subtype<
       explanation: string;
       query: string;
     };
-    inferFactsFromWebPages: {
+    inferFactsFromResources: {
       explanation: string;
-      webPages: {
+      resources: {
         url: string;
         prompt: string;
         entityTypeIds: string[];
@@ -389,24 +349,17 @@ export type CoordinatorToolCallArguments = Subtype<
       subTasks: {
         goal: string;
         explanation: string;
-        relevantEntityIds: string[];
+        relevantEntityIds?: string[];
         entityTypeIds: string[];
         linkEntityTypeIds?: string[];
       }[];
-    };
-    proposeEntitiesFromFacts: {
-      explanation: string;
-      entityIds: string[];
-    };
-    submitProposedEntities: {
-      explanation: string;
-      entityIds: string[];
     };
     updatePlan: {
       explanation: string;
       plan: string;
     };
     complete: {
+      entityIds: string[];
       explanation: string;
     };
     terminate: {

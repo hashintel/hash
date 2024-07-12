@@ -1,3 +1,4 @@
+import { useMutation } from "@apollo/client";
 import { Select, TextField } from "@hashintel/design-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -13,8 +14,12 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 
 import { useBlockProtocolArchiveEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import { useBlockProtocolCreateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import { useBlockProtocolUpdateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useUpdateAuthenticatedUser } from "../../../components/hooks/use-update-authenticated-user";
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import type {
   ServiceAccountKind,
   User,
@@ -51,7 +56,11 @@ export const UserProfileInfoForm: FunctionComponent<{
   const { createEntity } = useBlockProtocolCreateEntity(
     userProfile.accountId as OwnedById,
   );
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const formMethods =
     // @ts-expect-error -- type instantiation is excessively deep and possibly infinite, will be fixed when we switch to V8 of react-hook-form (see https://github.com/react-hook-form/react-hook-form/issues/6679)
@@ -132,12 +141,16 @@ export const UserProfileInfoForm: FunctionComponent<{
         serviceAccount: { existingServiceAccountEntity, profileUrl },
       } = params;
       await updateEntity({
-        data: {
-          entityId: existingServiceAccountEntity.metadata.recordId.entityId,
-          entityTypeId: existingServiceAccountEntity.metadata.entityTypeId,
-          properties: {
-            ...existingServiceAccountEntity.properties,
-            [systemPropertyTypes.profileUrl.propertyTypeBaseUrl]: profileUrl,
+        variables: {
+          entityUpdate: {
+            entityId: existingServiceAccountEntity.metadata.recordId.entityId,
+            propertyPatches: [
+              {
+                op: "add",
+                path: [systemPropertyTypes.profileUrl.propertyTypeBaseUrl],
+                value: profileUrl,
+              },
+            ],
           },
         },
       });

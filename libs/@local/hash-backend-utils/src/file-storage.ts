@@ -3,7 +3,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { DataSource } from "apollo-datasource";
 
 export const storageTypes = ["AWS_S3", "LOCAL_FILE_SYSTEM"] as const;
@@ -63,7 +63,7 @@ export interface UploadableStorageProvider
   ): Promise<{
     presignedPut: PresignedPutUpload;
     fileStorageProperties: Pick<
-      FileProperties,
+      File["properties"],
       | "https://hash.ai/@hash/types/property-type/file-storage-bucket/"
       | "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"
       | "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"
@@ -101,7 +101,7 @@ export interface PresignedStorageRequest {
 /** Parameters needed to allow the download of a stored file */
 export interface PresignedDownloadRequest {
   /** The file entity to provide a download URL for */
-  entity: Entity<FileProperties>;
+  entity: Entity<File>;
   /** File storage key * */
   key: string;
   /** Expiry delay for the download authorisation */

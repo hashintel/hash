@@ -4,7 +4,10 @@ use authorization::schema::{
 use graph_types::{ontology::OntologyType, Embedding};
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};
-use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
+use type_system::{
+    schema::{DataType, EntityType, PropertyType},
+    url::VersionedUrl,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(

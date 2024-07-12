@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -133,6 +134,13 @@ export const createMachineActorEntity = async (
     ],
   );
 
+  const provenance: EnforcedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "api",
+    },
+  };
+
   await Entity.create(
     context.graphApi,
     { actorId: machineAccountId },
@@ -147,6 +155,7 @@ export const createMachineActorEntity = async (
         "https://hash.ai/@hash/types/property-type/machine-identifier/":
           identifier,
       } as MachineProperties,
+      provenance,
       relationships: [
         {
           relation: "administrator",

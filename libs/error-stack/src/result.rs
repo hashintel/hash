@@ -120,7 +120,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).attach(attachment)),
+            Err(error) => Err(Report::new(error).attach(attachment)),
         }
     }
 
@@ -132,7 +132,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).attach(attachment())),
+            Err(error) => Err(Report::new(error).attach(attachment())),
         }
     }
 
@@ -143,7 +143,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).attach_printable(attachment)),
+            Err(error) => Err(Report::new(error).attach_printable(attachment)),
         }
     }
 
@@ -155,7 +155,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).attach_printable(attachment())),
+            Err(error) => Err(Report::new(error).attach_printable(attachment())),
         }
     }
 
@@ -166,7 +166,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).change_context(context)),
+            Err(error) => Err(Report::new(error).change_context(context)),
         }
     }
 
@@ -178,7 +178,7 @@ where
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error).change_context(context())),
+            Err(error) => Err(Report::new(error).change_context(context())),
         }
     }
 }
@@ -262,39 +262,6 @@ where
         match self {
             Ok(ok) => Ok(ok),
             Err(report) => Err(report.change_context(context())),
-        }
-    }
-}
-
-/// Extends [`Result`] to convert the [`Err`] variant to a [`Report`]
-#[deprecated(
-    since = "0.4.0",
-    note = "Use `ResultExt` or `From` via `Result::map_err(Report::from)` instead"
-)]
-pub trait IntoReport: Sized {
-    /// Type of the [`Ok`] value in the [`Result`]
-    type Ok;
-
-    /// Type of the resulting [`Err`] variant wrapped inside a [`Report<E>`].
-    type Err;
-
-    /// Converts the [`Err`] variant of the [`Result`] to a [`Report`]
-    fn into_report(self) -> Result<Self::Ok, Self::Err>;
-}
-
-#[allow(deprecated)]
-impl<T, E> IntoReport for core::result::Result<T, E>
-where
-    Report<E>: From<E>,
-{
-    type Err = E;
-    type Ok = T;
-
-    #[track_caller]
-    fn into_report(self) -> Result<T, E> {
-        match self {
-            Ok(value) => Ok(value),
-            Err(error) => Err(Report::from(error)),
         }
     }
 }

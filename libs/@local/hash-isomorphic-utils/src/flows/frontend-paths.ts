@@ -1,3 +1,5 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+
 export const generateFlowDefinitionPath = ({
   shortname,
   flowDefinitionId,
@@ -11,8 +13,8 @@ export const generateWorkerRunPath = ({
   flowRunId,
 }: {
   shortname: string;
-  flowRunId: string;
-}) => `/@${shortname}/workers/${flowRunId}`;
+  flowRunId: EntityUuid;
+}) => `/@${shortname.replace(/^@/, "")}/workers/${flowRunId}`;
 
 export const workerFlowFilterParam = "flow";
 

@@ -4,8 +4,8 @@ use core::iter::once;
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 use type_system::{
+    schema::EntityType,
     url::{BaseUrl, VersionedUrl},
-    EntityType,
 };
 #[cfg(feature = "utoipa")]
 use utoipa::{
@@ -165,7 +165,7 @@ impl OntologyType for EntityType {
             .into_iter()
             .map(OntologyTypeReference::PropertyTypeReference)
             .chain(
-                self.inherits_from
+                self.all_of
                     .iter()
                     .map(OntologyTypeReference::EntityTypeReference),
             )

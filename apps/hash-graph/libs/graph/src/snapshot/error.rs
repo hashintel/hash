@@ -26,6 +26,7 @@ pub enum SnapshotRestoreError {
     Read,
     Buffer,
     Write,
+    Validation,
 }
 
 impl fmt::Display for SnapshotRestoreError {
@@ -36,6 +37,7 @@ impl fmt::Display for SnapshotRestoreError {
             Self::Read => write!(f, "could not read a snapshot entry"),
             Self::Buffer => write!(f, "could not buffer a snapshot entry"),
             Self::Write => write!(f, "could not write a snapshot entry into the store"),
+            Self::Validation => write!(f, "could not validate a snapshot entry"),
         }
     }
 }

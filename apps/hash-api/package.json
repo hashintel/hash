@@ -94,7 +94,7 @@
     "oembed-providers": "1.0.20220105",
     "ts-json-schema-generator": "1.5.0",
     "tsx": "3.13.0",
-    "typescript": "5.5.2",
+    "typescript": "5.5.3",
     "ws": "8.17.1"
   },
   "devDependencies": {
@@ -115,9 +115,9 @@
     "@types/md5": "2.3.5",
     "@types/mime-types": "2.1.1",
     "@types/nodemailer": "6.4.6",
-    "@vitest/coverage-istanbul": "1.6.0",
+    "@vitest/coverage-istanbul": "2.0.1",
     "eslint": "8.57.0",
-    "rimraf": "5.0.7",
-    "vitest": "1.6.0"
+    "rimraf": "6.0.1",
+    "vitest": "2.0.1"
   }
 }

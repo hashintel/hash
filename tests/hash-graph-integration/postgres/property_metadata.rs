@@ -13,7 +13,7 @@ use graph_types::{
         entity::{Location, ProvidedEntityEditionProvenance, SourceProvenance, SourceType},
         Confidence, ObjectMetadata, PropertyMetadata, PropertyMetadataObject, PropertyObject,
         PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
-        PropertyWithMetadata, PropertyWithMetadataObject, ValueMetadata,
+        PropertyWithMetadata, PropertyWithMetadataObject, ValueMetadata, ValueWithMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -76,6 +76,7 @@ fn property_provenance_a() -> PropertyProvenance {
         sources: vec![SourceProvenance {
             ty: SourceType::Webpage,
             authors: vec!["Alice".to_owned()],
+            entity_id: None,
             location: Some(Location {
                 name: Some("Alice's blog".to_owned()),
                 uri: Some("https://alice.com".try_into().expect("could not parse URI")),
@@ -195,10 +196,10 @@ async fn initial_metadata() {
                         name_property_type_id(),
                     )))
                     .collect(),
-                    property: PropertyWithMetadata::Value {
+                    property: PropertyWithMetadata::Value(ValueWithMetadata {
                         value: json!("Bob"),
                         metadata: name_property_metadata.clone(),
-                    },
+                    }),
                 }],
                 entity_type_ids: HashSet::new(),
                 archived: None,
@@ -356,14 +357,14 @@ async fn no_initial_metadata() {
                 entity_id: entity.metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value {
+                    property: PropertyWithMetadata::Value(ValueWithMetadata {
                         value: json!("Alice"),
                         metadata: ValueMetadata {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
                         },
-                    },
+                    }),
                 }],
                 entity_type_ids: HashSet::new(),
                 archived: None,
@@ -470,14 +471,14 @@ async fn properties_add() {
                 entity_type_ids: HashSet::new(),
                 properties: vec![PropertyPatchOperation::Add {
                     path: path.clone(),
-                    property: PropertyWithMetadata::Value {
+                    property: PropertyWithMetadata::Value(ValueWithMetadata {
                         value: json!(30),
                         metadata: ValueMetadata {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
                         },
-                    },
+                    }),
                 }],
                 draft: None,
                 archived: None,
@@ -575,14 +576,14 @@ async fn properties_remove() {
                     },
                     PropertyPatchOperation::Add {
                         path: film_path.clone(),
-                        property: PropertyWithMetadata::Value {
+                        property: PropertyWithMetadata::Value(ValueWithMetadata {
                             value: json!("Fight Club"),
                             metadata: ValueMetadata {
                                 confidence: Confidence::new(0.5),
                                 data_type_id: None,
                                 provenance: property_provenance_b(),
                             },
-                        },
+                        }),
                     },
                 ],
                 draft: None,

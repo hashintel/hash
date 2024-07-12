@@ -11,10 +11,10 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type {
-  BlockProperties,
-  HasIndexedContentProperties,
+  Block,
+  HasIndexedContent,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type {
@@ -118,9 +118,9 @@ export const getBlockCollectionContents = (params: {
   const outgoingContentLinks = getOutgoingLinkAndTargetEntities<
     {
       linkEntity:
-        | LinkEntity<HasIndexedContentProperties>[]
-        | LinkEntity<HasSpatiallyPositionedContentProperties>[];
-      rightEntity: Entity<BlockProperties>[];
+        | LinkEntity<HasIndexedContent>[]
+        | LinkEntity<HasSpatiallyPositionedContent>[];
+      rightEntity: Entity<Block>[];
     }[]
   >(blockCollectionSubgraph, blockCollectionEntityId)
     .filter(

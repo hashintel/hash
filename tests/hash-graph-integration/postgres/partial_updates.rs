@@ -17,7 +17,7 @@ use graph_types::{
     knowledge::{
         entity::ProvidedEntityEditionProvenance, PropertyObject, PropertyPatchOperation,
         PropertyPathElement, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
-        ValueMetadata,
+        ValueMetadata, ValueWithMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -111,25 +111,25 @@ async fn properties_add() {
             properties: vec![
                 PropertyPatchOperation::Add {
                     path: once(PropertyPathElement::from(age_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value {
+                    property: PropertyWithMetadata::Value(ValueWithMetadata {
                         value: json!(30),
                         metadata: ValueMetadata {
                             confidence: None,
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
                         },
-                    },
+                    }),
                 },
                 PropertyPatchOperation::Add {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value {
+                    property: PropertyWithMetadata::Value(ValueWithMetadata {
                         value: json!("Alice Allison"),
                         metadata: ValueMetadata {
                             confidence: None,
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
                         },
-                    },
+                    }),
                 },
             ],
             draft: None,
@@ -277,14 +277,14 @@ async fn properties_replace() {
             entity_type_ids: HashSet::new(),
             properties: vec![PropertyPatchOperation::Replace {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                property: PropertyWithMetadata::Value {
+                property: PropertyWithMetadata::Value(ValueWithMetadata {
                     value: json!("Bob"),
                     metadata: ValueMetadata {
                         confidence: None,
                         data_type_id: None,
                         provenance: PropertyProvenance::default(),
                     },
-                },
+                }),
             }],
             draft: None,
             archived: None,

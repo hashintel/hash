@@ -7,6 +7,7 @@ import type { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
+import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
 import * as Sentry from "@sentry/node";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
@@ -69,8 +70,14 @@ export const createApolloServer = ({
       authentication: {
         actorId: getActorIdFromRequest(ctx.req),
       },
+      provenance: {
+        actorType: "human",
+        origin: {
+          type: getHashClientTypeFromRequest(ctx.req) ?? "api",
+          userAgent: ctx.req.headers["user-agent"],
+        },
+      },
       user: ctx.req.user,
-      userAgent: ctx.req.headers["user-agent"],
       emailTransporter,
       logger: logger.child({
         requestId: ctx.res.get("x-hash-request-id") ?? "",

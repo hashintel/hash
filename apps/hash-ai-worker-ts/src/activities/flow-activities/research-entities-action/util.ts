@@ -3,51 +3,48 @@ import type {
   LlmMessage,
   LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message";
-import type { CompletedToolCall } from "./types";
+import type { CompletedCoordinatorToolCall, CompletedToolCall } from "./types";
 
 export const mapPreviousCallsToLlmMessages = (params: {
+  includeErrorsOnly?: boolean;
   previousCalls: {
-    completedToolCalls: CompletedToolCall<string>[];
+    completedToolCalls: (
+      | CompletedCoordinatorToolCall<string>
+      | CompletedToolCall<string>
+    )[];
   }[];
-  omitToolCallOutputsPriorReverseIndex?: number;
 }): LlmMessage[] => {
-  const { previousCalls, omitToolCallOutputsPriorReverseIndex } = params;
+  const { includeErrorsOnly, previousCalls } = params;
 
-  return previousCalls.flatMap<LlmMessage>(
-    ({ completedToolCalls }, index, all) => {
-      const isAfterOmitIndex =
-        typeof omitToolCallOutputsPriorReverseIndex !== "undefined"
-          ? index >= all.length - omitToolCallOutputsPriorReverseIndex
-          : true;
+  return previousCalls.flatMap<LlmMessage>(({ completedToolCalls }) => {
+    const toolCallsToInclude = includeErrorsOnly
+      ? completedToolCalls.filter((call) => call.isError)
+      : completedToolCalls;
 
-      return completedToolCalls.length > 0
-        ? [
-            {
-              role: "assistant",
-              content: completedToolCalls.map(
-                /** @todo: consider also omitting large arguments from prior tool calls */
-                ({ id, name, input }) => ({
-                  type: "tool_use",
-                  id,
-                  name,
-                  input,
-                }),
-              ),
-            } satisfies LlmAssistantMessage,
-            {
-              role: "user",
-              content: completedToolCalls.map((completedToolCall) => ({
-                type: "tool_result",
-                tool_use_id: completedToolCall.id,
-                content: isAfterOmitIndex
-                  ? completedToolCall.redactedOutputMessage ??
-                    completedToolCall.output
-                  : "This output has been omitted to reduce the length of the chat.",
-                is_error: completedToolCall.isError,
-              })),
-            } satisfies LlmUserMessage,
-          ]
-        : [];
-    },
-  );
+    return toolCallsToInclude.length > 0
+      ? [
+          {
+            role: "assistant",
+            content: toolCallsToInclude.map(
+              /** @todo: consider also omitting large arguments from prior tool calls */
+              ({ id, name, input }) => ({
+                type: "tool_use",
+                id,
+                name,
+                input,
+              }),
+            ),
+          } satisfies LlmAssistantMessage,
+          {
+            role: "user",
+            content: toolCallsToInclude.map((completedToolCall) => ({
+              type: "tool_result",
+              tool_use_id: completedToolCall.id,
+              content: completedToolCall.output,
+              is_error: completedToolCall.isError ? true : undefined,
+            })),
+          } satisfies LlmUserMessage,
+        ]
+      : [];
+  });
 };

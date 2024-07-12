@@ -10,10 +10,16 @@ import {
 test.skip(
   "Test getWebPageActivity with a Wikipedia page",
   async () => {
-    const { htmlContent } = await getWebPageActivity({
+    const webPage = await getWebPageActivity({
       url: "https://en.wikipedia.org/wiki/Tesla,_Inc.",
       sanitizeForLlm: true,
     });
+
+    if ("error" in webPage) {
+      throw new Error(webPage.error);
+    }
+
+    const { htmlContent } = webPage;
 
     // eslint-disable-next-line no-console
     console.log(JSON.stringify({ htmlContent }, null, 2));
@@ -28,10 +34,16 @@ test.skip(
 test.skip(
   "Test getWebPageActivity with a FTSE 350 page",
   async () => {
-    const { htmlContent } = await getWebPageActivity({
+    const webPage = await getWebPageActivity({
       url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
       sanitizeForLlm: true,
     });
+
+    if ("error" in webPage) {
+      throw new Error(webPage.error);
+    }
+
+    const { htmlContent } = webPage;
 
     // eslint-disable-next-line no-console
     console.log(JSON.stringify({ htmlContent }, null, 2));

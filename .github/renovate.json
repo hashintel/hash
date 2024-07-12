@@ -8,6 +8,12 @@
     "**/dist/**"
   ],
   "extends": ["config:base"],
+  "hostRules": [
+    {
+      "matchHost": "api.github.com",
+      "maxRetryAfter": 30
+    }
+  ],
 
   "automerge": true,
   "branchPrefix": "deps/",
@@ -21,6 +27,8 @@
   "semanticCommits": "disabled",
   "schedule": ["before 4am every weekday", "every weekend"],
   "assigneesFromCodeOwners": true,
+  "prConcurrentLimit": 15,
+  "branchConcurrentLimit": 0,
 
   "packageRules": [
     {
@@ -139,7 +147,7 @@
     {
       "groupName": "Vitest npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@vitest-", "^vite-", "vitest$"],
+      "matchPackagePatterns": ["^@vitest/", "^vitest", "^vite-", "vitest$"],
       "dependencyDashboardApproval": false
     },
     {
@@ -151,7 +159,7 @@
     {
       "groupName": "Playwright npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"],
+      "matchPackagePatterns": ["^@playwright/", "^playwright", "playwright$"],
       "dependencyDashboardApproval": false,
       "assignees": ["CiaranMn"]
     },
