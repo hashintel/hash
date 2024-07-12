@@ -18,7 +18,10 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { AccountGroupEntityId } from "@local/hash-subgraph";
 import { extractAccountGroupId } from "@local/hash-subgraph";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  versionedUrlFromComponents,
+} from "@local/hash-subgraph/type-system-patch";
 
 import {
   createAccountGroup,
@@ -49,13 +52,12 @@ export type Org = {
 function assertOrganizationEntity(
   entity: Entity,
 ): asserts entity is Entity<Organization> {
-  if (
-    entity.metadata.entityTypeId !== systemEntityTypes.organization.entityTypeId
-  ) {
+  const entityTypeBaseUrl = extractBaseUrl(entity.metadata.entityTypeId);
+  if (entityTypeBaseUrl !== systemEntityTypes.organization.entityTypeBaseUrl) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemEntityTypes.organization.entityTypeId,
-      entity.metadata.entityTypeId,
+      systemEntityTypes.organization.entityTypeBaseUrl,
+      entityTypeBaseUrl,
     );
   }
 }
