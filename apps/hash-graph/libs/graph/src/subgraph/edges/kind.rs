@@ -33,24 +33,24 @@ pub enum OntologyEdgeKind {
     InheritsFrom,
     /// A [`PropertyType`] or [`DataType`] can reference a [`DataType`] to constrain values.
     ///
-    /// [`DataType`]: type_system::DataType
-    /// [`PropertyType`]: type_system::PropertyType
+    /// [`DataType`]: type_system::schema::DataType
+    /// [`PropertyType`]: type_system::schema::PropertyType
     ConstrainsValuesOn,
     /// An [`EntityType`] or [`PropertyType`] can reference a [`PropertyType`] to constrain
     /// properties.
     ///
-    /// [`PropertyType`]: type_system::PropertyType
-    /// [`EntityType`]: type_system::EntityType
+    /// [`PropertyType`]: type_system::schema::PropertyType
+    /// [`EntityType`]: type_system::schema::EntityType
     ConstrainsPropertiesOn,
     /// An [`EntityType`] can reference a link [`EntityType`] to constrain the existence of
     /// certain kinds of links.
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     ConstrainsLinksOn,
     /// An [`EntityType`] can reference an [`EntityType`] to constrain the target entities of
     /// certain kinds of links.
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     ConstrainsLinkDestinationsOn,
 }
 
@@ -133,7 +133,7 @@ pub enum SharedEdgeKind {
     /// An [`Entity`] is of an [`EntityType`].
     ///
     /// [`Entity`]: graph_types::knowledge::entity::Entity
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     IsOfType,
 }
 

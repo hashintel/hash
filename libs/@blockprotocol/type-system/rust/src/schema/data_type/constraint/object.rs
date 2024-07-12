@@ -1,7 +1,7 @@
 use error_stack::Report;
 
 use super::{extend_report, ConstraintError};
-use crate::{schema::JsonSchemaValueType, DataType};
+use crate::schema::{DataType, JsonSchemaValueType};
 
 type JsonObject = serde_json::Map<String, serde_json::Value>;
 

@@ -49,8 +49,8 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
+    schema::DataType,
     url::{OntologyTypeVersion, VersionedUrl},
-    DataType,
 };
 use utoipa::{OpenApi, ToSchema};
 

@@ -3,7 +3,9 @@ use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 
 use crate::{
-    schema::object::ObjectSchema, url::BaseUrl, ClosedEntityType, EntityType, Valid, Validator,
+    schema::{object::ObjectSchema, ClosedEntityType, EntityType},
+    url::BaseUrl,
+    Valid, Validator,
 };
 
 #[derive(Debug, Error)]

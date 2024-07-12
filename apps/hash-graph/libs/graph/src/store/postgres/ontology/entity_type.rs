@@ -25,9 +25,9 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
-    schema::EntityTypeValidator,
+    schema::{ClosedEntityType, EntityType, EntityTypeValidator},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    ClosedEntityType, EntityType, Validator,
+    Validator,
 };
 use uuid::Uuid;
 

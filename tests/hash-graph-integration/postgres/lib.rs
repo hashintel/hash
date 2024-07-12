@@ -74,7 +74,7 @@ use graph_types::{
 use hash_tracing::logging::env_filter;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{DataType, EntityType, PropertyType};
+use type_system::schema::{DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper<A: AuthorizationApi> {
