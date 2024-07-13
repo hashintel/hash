@@ -6,7 +6,7 @@ use core::{
 
 use bytes::Buf;
 
-use super::{empty::Empty, Body, Frame};
+use super::{empty::Empty, Body, BodyState, Frame};
 
 pub struct BoxBody<D, C, E> {
     inner: Pin<Box<dyn Body<Data = D, Control = C, Error = E> + Send + Sync + 'static>>,
@@ -45,8 +45,8 @@ where
         self.inner.as_mut().poll_frame(cx)
     }
 
-    fn is_complete(&self) -> Option<bool> {
-        self.inner.is_complete()
+    fn state(&self) -> Option<BodyState> {
+        self.inner.state()
     }
 
     fn size_hint(&self) -> super::SizeHint {
@@ -100,8 +100,8 @@ where
         self.inner.as_mut().poll_frame(cx)
     }
 
-    fn is_complete(&self) -> Option<bool> {
-        self.inner.is_complete()
+    fn state(&self) -> Option<BodyState> {
+        self.inner.state()
     }
 
     fn size_hint(&self) -> super::SizeHint {

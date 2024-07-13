@@ -5,7 +5,7 @@ use core::{
 
 use bytes::Buf;
 
-use super::{Body, Frame, SizeHint};
+use super::{Body, BodyState, Frame, SizeHint};
 
 pin_project_lite::pin_project! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -42,12 +42,11 @@ where
         Poll::Ready(self.data.take().map(Frame::new_data).map(Ok))
     }
 
-    // TODO: rename
-    fn is_complete(&self) -> Option<bool> {
+    fn state(&self) -> Option<BodyState> {
         if self.data.is_some() {
             None
         } else {
-            Some(true)
+            Some(BodyState::Complete)
         }
     }
 
@@ -65,7 +64,7 @@ mod test {
 
     use bytes::Bytes;
 
-    use crate::body::{full::Full, test::poll_frame_unpin, Body, Frame, SizeHint};
+    use crate::body::{full::Full, test::poll_frame_unpin, Body, BodyState, Frame, SizeHint};
 
     #[test]
     fn poll_frame() {
@@ -98,10 +97,10 @@ mod test {
         let bytes = Bytes::from("hello");
 
         let mut body = Full::new(bytes.clone());
-        assert_eq!(body.is_complete(), None);
+        assert_eq!(body.state(), None);
 
         let _ = poll_frame_unpin(&mut body);
-        assert_eq!(body.is_complete(), Some(true));
+        assert_eq!(body.state(), Some(BodyState::Complete));
     }
 
     #[test]

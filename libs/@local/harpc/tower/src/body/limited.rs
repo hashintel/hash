@@ -6,7 +6,7 @@ use core::{
 use bytes::Buf;
 use error_stack::Report;
 
-use super::{Body, Frame, SizeHint};
+use super::{Body, BodyState, Frame, SizeHint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[non_exhaustive]
@@ -85,11 +85,11 @@ where
         Poll::Ready(Some(body))
     }
 
-    fn is_complete(&self) -> Option<bool> {
+    fn state(&self) -> Option<BodyState> {
         if self.limit_exceeded {
-            Some(false)
+            Some(BodyState::Incomplete)
         } else {
-            self.inner.is_complete()
+            self.inner.state()
         }
     }
 
@@ -124,7 +124,7 @@ mod test {
     use super::Limited;
     use crate::body::{
         full::Full, limited::LimitedError, stream::StreamBody, test::poll_frame_unpin, Body,
-        BodyExt, Frame, SizeHint,
+        BodyExt, BodyState, Frame, SizeHint,
     };
 
     const EXPECTED: &[u8] = b"hello, world";
@@ -160,7 +160,7 @@ mod test {
         let frame = poll_frame_unpin(&mut body);
         assert_matches!(frame, Poll::Ready(Some(Err(error))) if *error.current_context() == LimitedError::LimitReached { limit: 5 });
 
-        assert_eq!(body.is_complete(), Some(false));
+        assert_eq!(body.state(), Some(BodyState::Incomplete));
     }
 
     fn iter_body<I>(iter: I) -> impl Body<Data = Bytes, Control = !, Error = Report<!>>
@@ -187,7 +187,7 @@ mod test {
         assert_matches!(frame, Poll::Ready(Some(Err(err))) if *err.current_context() == LimitedError::LimitReached { limit: 5 });
 
         assert_eq!(body.size_hint().upper(), Some(0));
-        assert_eq!(body.is_complete(), Some(false));
+        assert_eq!(body.state(), Some(BodyState::Incomplete));
     }
 
     #[test]
@@ -199,14 +199,14 @@ mod test {
         assert_matches!(frame, Poll::Ready(Some(Err(err))) if *err.current_context() == LimitedError::LimitReached { limit: 1 });
 
         assert_eq!(body.size_hint().upper(), Some(0));
-        assert_eq!(body.is_complete(), Some(false));
+        assert_eq!(body.state(), Some(BodyState::Incomplete));
 
         // second poll should continue to return error
         let frame = poll_frame_unpin(&mut body);
         assert_matches!(frame, Poll::Ready(Some(Err(err))) if *err.current_context() == LimitedError::LimitReached { limit: 1 });
 
         assert_eq!(body.size_hint().upper(), Some(0));
-        assert_eq!(body.is_complete(), Some(false));
+        assert_eq!(body.state(), Some(BodyState::Incomplete));
     }
 
     #[test]
@@ -223,12 +223,12 @@ mod test {
         assert_matches!(frame, Poll::Ready(Some(Ok(Frame::Data(data)))) if data.as_ref() == b", world");
 
         assert_eq!(body.size_hint().upper(), Some(100 - 5 - 7));
-        assert_eq!(body.is_complete(), None);
+        assert_eq!(body.state(), None);
 
         let frame = poll_frame_unpin(&mut body);
         assert_matches!(frame, Poll::Ready(None));
 
         assert_eq!(body.size_hint().upper(), Some(100 - 5 - 7));
-        assert_eq!(body.is_complete(), Some(true));
+        assert_eq!(body.state(), Some(BodyState::Complete));
     }
 }

@@ -4,7 +4,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use super::{Body, Frame, SizeHint};
+use super::{Body, BodyState, Frame, SizeHint};
 
 pin_project_lite::pin_project! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -50,12 +50,12 @@ where
         Poll::Ready(Some(result.map(|frame| frame.map_control(From::from))))
     }
 
-    fn is_complete(&self) -> Option<bool> {
+    fn state(&self) -> Option<BodyState> {
         if self.control.is_some() {
             return None;
         }
 
-        self.body.is_complete()
+        self.body.state()
     }
 
     fn size_hint(&self) -> SizeHint {
@@ -70,7 +70,7 @@ mod test {
     use bytes::Bytes;
 
     use super::Controlled;
-    use crate::body::{full::Full, test::poll_frame_unpin, Body, Frame, SizeHint};
+    use crate::body::{full::Full, test::poll_frame_unpin, Body, BodyState, Frame, SizeHint};
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     struct Control;
@@ -100,13 +100,13 @@ mod test {
     #[test]
     fn is_complete() {
         let mut body = Controlled::new(Control, Full::new(Bytes::from("hello")));
-        assert_eq!(body.is_complete(), None);
+        assert_eq!(body.state(), None);
 
         let _ = poll_frame_unpin(&mut body);
-        assert_eq!(body.is_complete(), None);
+        assert_eq!(body.state(), None);
 
         let _ = poll_frame_unpin(&mut body);
-        assert_eq!(body.is_complete(), Some(true));
+        assert_eq!(body.state(), Some(BodyState::Complete));
     }
 
     #[test]

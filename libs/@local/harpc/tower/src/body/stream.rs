@@ -7,7 +7,7 @@ use std::{
 use bytes::Buf;
 use futures::Stream;
 
-use super::{Body, Frame};
+use super::{Body, BodyState, Frame};
 
 pin_project_lite::pin_project! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -51,8 +51,8 @@ where
         Poll::Ready(value)
     }
 
-    fn is_complete(&self) -> Option<bool> {
-        if self.is_complete { Some(true) } else { None }
+    fn state(&self) -> Option<BodyState> {
+        self.is_complete.then_some(BodyState::Complete)
     }
 }
 
@@ -155,7 +155,7 @@ mod test {
     use super::{BodyStream, StreamBody};
     use crate::body::{
         test::{poll_frame_unpin, poll_stream_unpin},
-        Body, Frame,
+        Body, BodyState, Frame,
     };
 
     const A: &[u8] = b"hello";
@@ -176,25 +176,25 @@ mod test {
             frame,
             Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(A)))))
         );
-        assert_eq!(body.is_complete(), None);
+        assert_eq!(body.state(), None);
 
         let frame = poll_frame_unpin(&mut body);
         assert_eq!(
             frame,
             Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(B)))))
         );
-        assert_eq!(body.is_complete(), None);
+        assert_eq!(body.state(), None);
 
         let frame = poll_frame_unpin(&mut body);
         assert_eq!(
             frame,
             Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(C)))))
         );
-        assert_eq!(body.is_complete(), None);
+        assert_eq!(body.state(), None);
 
         let frame = poll_frame_unpin(&mut body);
         assert_eq!(frame, Poll::Ready(None));
-        assert_eq!(body.is_complete(), Some(true));
+        assert_eq!(body.state(), Some(BodyState::Complete));
     }
 
     #[test]

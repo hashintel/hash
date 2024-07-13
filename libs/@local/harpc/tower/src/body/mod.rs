@@ -99,6 +99,12 @@ impl<D, C> Frame<D, C> {
 pub(crate) type BodyFrame<B> = Frame<<B as Body>::Data, <B as Body>::Control>;
 pub(crate) type BodyFrameResult<B> = Result<BodyFrame<B>, <B as Body>::Error>;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum BodyState {
+    Complete,
+    Incomplete,
+}
+
 pub trait Body {
     type Control;
     type Data: Buf;
@@ -107,7 +113,12 @@ pub trait Body {
 
     fn poll_frame(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<BodyFrameResult<Self>>>;
 
-    fn is_complete(&self) -> Option<bool>;
+    /// Signal if the body has been is complete.
+    ///
+    /// `Some` indicates that the body is complete, and no more items are to be expected, the
+    /// boolean indicates if the stream is either incomplete or complete, meaning it might have been
+    /// interrupted or truncated during transmission.
+    fn state(&self) -> Option<BodyState>;
 
     fn size_hint(&self) -> SizeHint {
         SizeHint::default()
@@ -129,8 +140,8 @@ where
         Pin::new(&mut **self).poll_frame(cx)
     }
 
-    fn is_complete(&self) -> Option<bool> {
-        Pin::new(&**self).is_complete()
+    fn state(&self) -> Option<BodyState> {
+        Pin::new(&**self).state()
     }
 
     fn size_hint(&self) -> SizeHint {
@@ -150,8 +161,8 @@ where
         Pin::get_mut(self).as_mut().poll_frame(cx)
     }
 
-    fn is_complete(&self) -> Option<bool> {
-        self.as_ref().is_complete()
+    fn state(&self) -> Option<BodyState> {
+        self.as_ref().state()
     }
 
     fn size_hint(&self) -> SizeHint {
@@ -174,8 +185,8 @@ where
         Pin::new(&mut **self).poll_frame(cx)
     }
 
-    fn is_complete(&self) -> Option<bool> {
-        self.as_ref().is_complete()
+    fn state(&self) -> Option<BodyState> {
+        self.as_ref().state()
     }
 
     fn size_hint(&self) -> SizeHint {

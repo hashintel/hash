@@ -7,7 +7,7 @@ use bytes::Bytes;
 use futures::StreamExt;
 use harpc_net::session::server::transaction::TransactionStream;
 
-use crate::body::{Body, BodyFrameResult, Frame};
+use crate::body::{Body, BodyFrameResult, BodyState, Frame};
 
 pub struct RequestBody {
     inner: TransactionStream,
@@ -29,7 +29,12 @@ impl Body for RequestBody {
             .map_ok(Frame::new_data)
     }
 
-    fn is_complete(&self) -> Option<bool> {
-        self.inner.is_incomplete().map(|incomplete| !incomplete)
+    fn state(&self) -> Option<BodyState> {
+        self.inner
+            .is_incomplete()
+            .map(|incomplete| match incomplete {
+                true => BodyState::Incomplete,
+                false => BodyState::Complete,
+            })
     }
 }

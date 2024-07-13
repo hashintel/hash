@@ -10,7 +10,7 @@ use futures::{Stream, StreamExt};
 use harpc_net::session::client::{ErrorStream, ResponseStream, TransactionStream, ValueStream};
 use harpc_wire_protocol::response::kind::ResponseKind;
 
-use crate::body::{Body, BodyFrameResult, Frame};
+use crate::body::{Body, BodyFrameResult, BodyState, Frame};
 
 struct Waiting {
     stream: ResponseStream,
@@ -190,11 +190,14 @@ impl Body for Unpack {
         self.poll(cx)
     }
 
-    fn is_complete(&self) -> Option<bool> {
+    fn state(&self) -> Option<BodyState> {
         match self.state {
             State::Waiting(_) => None,
             State::Running(_) => None,
-            State::Finished(Finished { complete }) => Some(complete),
+            State::Finished(Finished { complete }) => Some(match complete {
+                true => BodyState::Complete,
+                false => BodyState::Incomplete,
+            }),
         }
     }
 }

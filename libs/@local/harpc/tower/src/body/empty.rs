@@ -7,7 +7,7 @@ use core::{
 
 use bytes::Buf;
 
-use super::{Body, Frame, SizeHint};
+use super::{Body, BodyState, Frame, SizeHint};
 
 pub struct Empty<B> {
     _marker: PhantomData<fn() -> B>,
@@ -36,8 +36,8 @@ where
         Poll::Ready(None)
     }
 
-    fn is_complete(&self) -> Option<bool> {
-        Some(true)
+    fn state(&self) -> Option<BodyState> {
+        Some(BodyState::Complete)
     }
 
     fn size_hint(&self) -> SizeHint {

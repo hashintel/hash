@@ -6,7 +6,7 @@ use std::{
 use bytes::Buf;
 use error_stack::Report;
 
-use crate::body::{Body, Frame};
+use crate::body::{Body, BodyState, Frame};
 
 macro_rules! forward {
     (   $(#[$meta:meta])*
@@ -201,7 +201,7 @@ where
     type Error = Report<EitherError>;
 
     forward!(
-        fn is_complete(&self) -> Option<bool>;
+        fn state(&self) -> Option<BodyState>;
     );
 
     fn poll_frame(

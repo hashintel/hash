@@ -5,7 +5,7 @@ use core::{
 
 use bytes::Buf;
 
-use super::{Body, Frame, SizeHint};
+use super::{Body, BodyState, Frame, SizeHint};
 
 pin_project_lite::pin_project! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -50,8 +50,8 @@ where
         Poll::Ready(Some(Ok(body)))
     }
 
-    fn is_complete(&self) -> Option<bool> {
-        self.inner.is_complete()
+    fn state(&self) -> Option<BodyState> {
+        self.inner.state()
     }
 
     fn size_hint(&self) -> SizeHint {
@@ -102,8 +102,8 @@ where
         Poll::Ready(Some(Ok(body)))
     }
 
-    fn is_complete(&self) -> Option<bool> {
-        self.inner.is_complete()
+    fn state(&self) -> Option<BodyState> {
+        self.inner.state()
     }
 
     fn size_hint(&self) -> SizeHint {
@@ -148,8 +148,8 @@ where
         Poll::Ready(Some(result.map_err(this.map)))
     }
 
-    fn is_complete(&self) -> Option<bool> {
-        self.inner.is_complete()
+    fn state(&self) -> Option<BodyState> {
+        self.inner.state()
     }
 
     fn size_hint(&self) -> SizeHint {

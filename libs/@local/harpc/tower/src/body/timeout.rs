@@ -7,7 +7,7 @@ use core::{
 use error_stack::Report;
 use tokio::time::{Instant, Sleep};
 
-use super::{Body, Frame, SizeHint};
+use super::{Body, BodyState, Frame, SizeHint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[non_exhaustive]
@@ -90,11 +90,11 @@ where
         Poll::Pending
     }
 
-    fn is_complete(&self) -> Option<bool> {
+    fn state(&self) -> Option<BodyState> {
         if self.timeout_exceeded {
-            Some(false)
+            Some(BodyState::Incomplete)
         } else {
-            self.inner.is_complete()
+            self.inner.state()
         }
     }
 
