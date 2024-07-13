@@ -1,5 +1,4 @@
-#![feature(lint_reasons)]
-#![allow(
+#![expect(
     clippy::missing_panics_doc,
     clippy::missing_errors_doc,
     clippy::unwrap_used
@@ -64,7 +63,7 @@ use graph::{
 };
 use graph_types::{
     account::AccountId,
-    knowledge::entity::{Entity, EntityId, EntityMetadata},
+    knowledge::entity::{Entity, EntityId},
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, PropertyTypeMetadata,
@@ -681,7 +680,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: Vec<CreateEntityParams<R>>,
-    ) -> Result<Vec<EntityMetadata>, InsertionError>
+    ) -> Result<Vec<Entity>, InsertionError>
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {

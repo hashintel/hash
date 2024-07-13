@@ -1,7 +1,4 @@
-import type {
-  EntityId,
-  EntityPropertiesObject,
-} from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Draft } from "immer";
@@ -210,7 +207,10 @@ const setBlockChildEntity = (
       metadata: targetEntity.metadata,
       draftId: targetEntityDraftId,
       properties: castDraft(targetEntity.properties),
-      /** @todo use the actual updated date here https://app.asana.com/0/0/1203099452204542/f */
+      /**
+       * @todo use the actual updated date here
+       * @see https://linear.app/hash/issue/H-3000
+       */
       // updatedAt: targetEntity.updatedAt,
     };
 
@@ -225,7 +225,10 @@ const setBlockChildEntity = (
     );
   }
 
-  // @todo sort out entity store types – search https://app.asana.com/0/0/1203099452204542/f
+  /**
+   * @todo sort out entity store types
+   * @see https://linear.app/hash/issue/H-3000
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   draftBlockEntity.blockChildEntity = targetDraftEntity as any;
 };
@@ -295,7 +298,7 @@ const entityStoreReducer = (
                 );
               } else {
                 draftEntity.properties = castDraft(
-                  action.payload.properties as EntityPropertiesObject,
+                  action.payload.properties as PropertyObject,
                 );
               }
             }

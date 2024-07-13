@@ -7,11 +7,11 @@ import type {
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import { Entity, propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -25,6 +25,17 @@ import {
   getEntityOutgoingLinks,
 } from "./shared/graph-requests";
 
+const provenance: EnforcedEntityEditionProvenance = {
+  actorType: "machine",
+  origin: {
+    type: "flow",
+    /**
+     * @todo use correct EntityId for Flow when Linear integration migrated to Flows
+     */
+    id: "linear-integration",
+  } satisfies OriginProvenance,
+};
+
 const createHashEntity = async (params: {
   authentication: { actorId: AccountId };
   graphApiClient: GraphApi;
@@ -36,6 +47,7 @@ const createHashEntity = async (params: {
   ownedById: OwnedById;
 }): Promise<void> => {
   const { graphApiClient, ownedById } = params;
+
   const entity = await Entity.create(graphApiClient, params.authentication, {
     ownedById,
     draft: false,
@@ -63,6 +75,7 @@ const createHashEntity = async (params: {
     properties:
       (params.partialEntity.properties as Entity["properties"] | undefined) ??
       {},
+    provenance,
     entityTypeId: params.partialEntity.entityTypeId,
   });
 
@@ -77,6 +90,7 @@ const createHashEntity = async (params: {
       },
       entityTypeId: linkEntityTypeId,
       properties: {},
+      provenance,
       draft: false,
       relationships: [
         {
@@ -115,12 +129,11 @@ const createOrUpdateHashEntity = async (params: {
 }): Promise<void> => {
   const { partialEntity, graphApiClient } = params;
 
-  const linearIdBaseUrl = linearPropertyTypes.id.propertyTypeBaseUrl as BaseUrl;
+  const linearIdBaseUrl = linearPropertyTypes.id.propertyTypeBaseUrl;
 
   const linearId = partialEntity.properties[linearIdBaseUrl];
 
-  const updatedAtBaseUrl = linearPropertyTypes.updatedAt
-    .propertyTypeBaseUrl as BaseUrl;
+  const updatedAtBaseUrl = linearPropertyTypes.updatedAt.propertyTypeBaseUrl;
 
   const updatedAt = partialEntity.properties[updatedAtBaseUrl];
 
@@ -175,6 +188,7 @@ const createOrUpdateHashEntity = async (params: {
             rightEntityId: destinationEntityId,
           },
           properties: {},
+          provenance,
           ownedById: params.ownedById,
           draft: false,
           relationships: [
@@ -198,16 +212,13 @@ const createOrUpdateHashEntity = async (params: {
     if (
       updatedAt &&
       existingEntity.properties[updatedAtBaseUrl] &&
-      existingEntity.properties[updatedAtBaseUrl]! >= updatedAt
+      existingEntity.properties[updatedAtBaseUrl] >= updatedAt
     ) {
       continue;
     }
 
     /** @todo: check which values have changed in a more sophisticated manor */
-    const mergedProperties = {
-      ...existingEntity.properties,
-      // Ensure we don't accidentally set required properties to `undefined` by disabling
-      // the ability to set properties to `undefined`
+    const updatedProperties: PropertyObject = {
       ...Object.entries(partialEntity.properties).reduce(
         (acc, [propertyTypeUrl, value]) => ({
           ...acc,
@@ -222,13 +233,8 @@ const createOrUpdateHashEntity = async (params: {
     };
 
     await existingEntity.patch(graphApiClient, params.authentication, {
-      properties: [
-        {
-          op: "replace",
-          path: [],
-          value: mergedProperties,
-        },
-      ],
+      propertyPatches: propertyObjectToPatches(updatedProperties),
+      provenance,
     });
   }
 

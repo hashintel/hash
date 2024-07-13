@@ -1,5 +1,6 @@
 import type { ModalProps } from "@hashintel/design-system";
 import { IconButton, Modal as BaseModal } from "@hashintel/design-system";
+import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 
 import { XMarkRegularIcon } from "../icons/x-mark-regular-icon";
@@ -11,8 +12,10 @@ export const Modal = ({
   ...props
 }: ModalProps & {
   header?: {
+    hideBorder?: boolean;
     hideCloseButton?: boolean;
     subtitle?: string;
+    sx?: SxProps<Theme>;
     title?: string;
   };
 }) => (
@@ -33,12 +36,17 @@ export const Modal = ({
           alignItems={header.subtitle ? "flex-start" : "center"}
           direction="row"
           justifyContent="space-between"
-          sx={{
-            borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-            py: header.subtitle ? 1.5 : 1,
-            pl: 2.5,
-            pr: 1,
-          }}
+          sx={[
+            {
+              borderBottom: header.hideBorder
+                ? "none"
+                : ({ palette }) => `1px solid ${palette.gray[20]}`,
+              py: header.subtitle ? 1.5 : 1,
+              pl: 2.5,
+              pr: 1,
+            },
+            ...(Array.isArray(header.sx) ? header.sx : [header.sx]),
+          ]}
         >
           <Box>
             {header.title && (

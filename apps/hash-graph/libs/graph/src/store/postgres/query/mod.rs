@@ -1,4 +1,4 @@
-#![allow(dead_code, reason = "Work in progress")]
+#![expect(dead_code, reason = "Work in progress")]
 
 //! Postgres implementation to compile queries.
 
@@ -16,9 +16,9 @@ pub(crate) mod table;
 use alloc::borrow::Cow;
 use core::{
     convert::identity,
+    error::Error,
     fmt::{self, Display, Formatter},
 };
-use std::error::Error;
 
 use bytes::BytesMut;
 use error_stack::Context;

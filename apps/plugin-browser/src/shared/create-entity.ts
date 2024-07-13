@@ -1,9 +1,6 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityPropertiesObject,
-  LinkData,
-} from "@local/hash-graph-types/entity";
+import type { LinkData, PropertyObject } from "@local/hash-graph-types/entity";
 
 import type {
   CreateEntityMutation,
@@ -14,7 +11,7 @@ import { queryGraphQlApi } from "./query-graphql-api";
 
 export const createEntity = (params: {
   entityTypeId: VersionedUrl;
-  properties: EntityPropertiesObject;
+  properties: PropertyObject;
   linkData?: LinkData;
 }): Promise<Entity> =>
   queryGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(

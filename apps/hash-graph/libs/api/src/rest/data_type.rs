@@ -36,6 +36,7 @@ use graph::{
     subgraph::identifier::DataTypeVertexId,
 };
 use graph_types::{
+    knowledge::ValueWithMetadata,
     ontology::{
         DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
@@ -98,6 +99,8 @@ use crate::rest::{
             GetDataTypeSubgraphResponse,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
+
+            ValueWithMetadata,
         )
     ),
     tags(
@@ -226,7 +229,7 @@ where
             actor_id,
             schema.into_iter().map(|schema| {
                 domain_validator.validate(&schema).map_err(|report| {
-                    tracing::error!(error=?report, id=schema.id().to_string(), "Data Type ID failed to validate");
+                    tracing::error!(error=?report, id=%schema.id, "Data Type ID failed to validate");
                     StatusCode::UNPROCESSABLE_ENTITY
                 })?;
 
@@ -345,9 +348,9 @@ where
             relationships,
             provenance,
         } => {
-            if domain_validator.validate_url(schema.id().base_url.as_str()) {
+            if domain_validator.validate_url(schema.id.base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
-                tracing::error!(id=%schema.id(), error);
+                tracing::error!(id=%schema.id, error);
                 return Err(status_to_response(Status::<()>::new(
                     hash_status::StatusCode::InvalidArgument,
                     Some(error),
@@ -566,8 +569,8 @@ where
     let data_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't patch schema and convert to Data Type");
         StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
-        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        // TODO: We should probably return more information to the client
+        //   see https://linear.app/hash/issue/H-3009
     })?;
 
     let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {

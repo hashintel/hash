@@ -18,8 +18,7 @@ use crate::{
         crud::Read,
         postgres::query::rows::{
             EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
-            EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityPropertyRow,
-            EntityTemporalMetadataRow,
+            EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
         },
         query::Filter,
         AsClient, InsertionError, PostgresStore, StoreCache, StoreProvider,
@@ -34,7 +33,6 @@ pub enum EntityRowBatch {
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     LeftLinks(Vec<EntityHasLeftEntityRow>),
     RightLinks(Vec<EntityHasRightEntityRow>),
-    Property(Vec<EntityPropertyRow<'static>>),
     Embeddings(Vec<EntityEmbeddingRow>),
     Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
 }
@@ -67,10 +65,6 @@ where
 
                     CREATE TEMPORARY TABLE entity_is_of_type_tmp
                         (LIKE entity_is_of_type INCLUDING ALL)
-                        ON COMMIT DROP;
-
-                    CREATE TEMPORARY TABLE entity_property_tmp
-                        (LIKE entity_property INCLUDING ALL)
                         ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_temporal_metadata_tmp
@@ -219,23 +213,6 @@ where
                     tracing::info!("Read {} right entity links", rows.len());
                 }
             }
-            Self::Property(proeperties) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_property_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_property[])
-                            ON CONFLICT DO NOTHING
-                            RETURNING 1;
-                        ",
-                        &[&proeperties],
-                    )
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} entity properties", rows.len());
-                }
-            }
             Self::Relations(relations) => {
                 postgres_client
                     .authorization_api
@@ -292,9 +269,6 @@ where
 
                     INSERT INTO entity_has_right_entity
                         SELECT * FROM entity_has_right_entity_tmp;
-
-                    INSERT INTO entity_property
-                        SELECT * FROM entity_property_tmp;
 
                     INSERT INTO entity_embeddings
                         SELECT * FROM entity_embeddings_tmp;

@@ -1,6 +1,6 @@
 import { AlertModal, TextField } from "@hashintel/design-system";
 import type { GoogleSheet } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { Button } from "../../../../shared/ui/button";
@@ -66,7 +66,7 @@ export const SelectOrNameGoogleSheet = ({
           }}
         />
       )}
-      <Stack alignItems="center" direction="row" gap={2}>
+      <Stack alignItems="center" direction="row" gap={1.5}>
         <Box>
           <Button
             disabled={!googleAccountId}
@@ -85,7 +85,7 @@ export const SelectOrNameGoogleSheet = ({
                 setShowReauthModal(true);
               }
             }}
-            size="small"
+            size="xs"
           >
             Choose {existingSpreadsheetId ? "a different" : "a"} file
           </Button>
@@ -99,7 +99,14 @@ export const SelectOrNameGoogleSheet = ({
                 newSheetName: event.target.value,
               });
             }}
-            placeholder="New file name"
+            placeholder="Name a new file"
+            sx={{
+              [`.${outlinedInputClasses.root} input`]: {
+                fontSize: 15,
+                px: 2,
+                py: 1,
+              },
+            }}
           />
         </Box>
       </Stack>

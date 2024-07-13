@@ -2,7 +2,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
@@ -47,18 +47,12 @@ const mimeTypeStartsWithToIcon: Record<string, ReactNode> = {
 };
 
 const entityTypeIdToIcon: Record<BaseUrl, ReactNode> = {
-  [systemEntityTypes.pptxPresentation.entityTypeBaseUrl as BaseUrl]: (
+  [systemEntityTypes.pptxPresentation.entityTypeBaseUrl]: (
     <FilePowerpointLightIcon />
   ),
-  [systemEntityTypes.pdfDocument.entityTypeBaseUrl as BaseUrl]: (
-    <FilePdfLightIcon />
-  ),
-  [systemEntityTypes.docxDocument.entityTypeBaseUrl as BaseUrl]: (
-    <FileWordLightIcon />
-  ),
-  [systemEntityTypes.image.entityTypeBaseUrl as BaseUrl]: (
-    <FileImageLightIcon />
-  ),
+  [systemEntityTypes.pdfDocument.entityTypeBaseUrl]: <FilePdfLightIcon />,
+  [systemEntityTypes.docxDocument.entityTypeBaseUrl]: <FileWordLightIcon />,
+  [systemEntityTypes.image.entityTypeBaseUrl]: <FileImageLightIcon />,
 };
 
 const defaultFileIcon = <FileLightIcon />;
@@ -75,7 +69,7 @@ export const GridViewItem: FunctionComponent<{
       isSpecialEntityTypeLookup?.[entity.metadata.entityTypeId]?.isFile;
 
     if (isFileEntity) {
-      return entity as Entity<FileProperties>;
+      return entity as Entity<FileEntity>;
     }
   }, [isSpecialEntityTypeLookup, entity]);
 

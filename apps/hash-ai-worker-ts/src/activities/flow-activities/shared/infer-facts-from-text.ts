@@ -73,54 +73,19 @@ export const inferFactsFromText = async (params: {
           );
         }
 
-        const maximumNumberOfParallelizedRequests = 3;
+        return await Promise.all(
+          entitySummariesOfType.map(async (entity) => {
+            const { facts: factsForSingleEntity } =
+              await inferEntityFactsFromText({
+                subjectEntities: [entity],
+                potentialObjectEntities: entitySummaries,
+                text,
+                dereferencedEntityType,
+              });
 
-        const facts: Fact[] = [];
-
-        const chunks = entitySummariesOfType.reduce<LocalEntitySummary[][]>(
-          (previousArray, item, index) => {
-            const chunkIndex = Math.floor(
-              index / maximumNumberOfParallelizedRequests,
-            );
-
-            const resultArray = previousArray;
-
-            if (!resultArray[chunkIndex]) {
-              return [...resultArray, [item]];
-            }
-
-            return [
-              ...resultArray.slice(0, chunkIndex),
-              [...(resultArray[chunkIndex] ?? []), item],
-            ];
-          },
-          [],
-        );
-
-        /**
-         * Parallelize the facts for entities in chunks, to reduce risk of hitting rate limits.
-         *
-         * @todo: implement more robust strategy for dealing with rate limits
-         * @see https://linear.app/hash/issue/H-2787/handle-rate-limits-gracefully-particularly-when-gathering-facts-for
-         */
-        for (const chunk of chunks) {
-          const chunkResults = await Promise.all(
-            chunk.map(async (entity) => {
-              const { facts: factsForSingleEntity } =
-                await inferEntityFactsFromText({
-                  subjectEntities: [entity],
-                  potentialObjectEntities: entitySummaries,
-                  text,
-                  dereferencedEntityType,
-                });
-              return factsForSingleEntity;
-            }),
-          );
-
-          facts.push(...chunkResults.flat());
-        }
-
-        return facts;
+            return factsForSingleEntity;
+          }),
+        ).then((unflattenedFacts) => unflattenedFacts.flat());
       },
     ),
   ).then((unflattenedFacts) => unflattenedFacts.flat());

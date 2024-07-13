@@ -45,16 +45,11 @@ export const getWebsiteContent = async (urls: string[]) => {
       browser.tabs.onUpdated.addListener(tabChangeListener);
     });
 
-    const pageDetails = await (browser.tabs.sendMessage(tab.id, {
-      html: true,
+    const webPage = await (browser.tabs.sendMessage(tab.id, {
       type: "get-tab-content",
     } satisfies GetTabContentRequest) as Promise<GetTabContentReturn>);
 
-    webPages.push({
-      url: pageDetails.pageUrl,
-      title: pageDetails.pageTitle,
-      htmlContent: pageDetails.content,
-    });
+    webPages.push(webPage);
 
     await browser.tabs.remove(tab.id);
   }

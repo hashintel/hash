@@ -1,6 +1,6 @@
 {
   "extends": ["//"],
-  "pipeline": {
+  "tasks": {
     "codegen": {
       "inputs": ["./package.json"],
       "outputs": ["./src/types/generated/**"]

@@ -63,7 +63,11 @@ export const inferEntitySummariesFromWebPage = async (params: {
       : ""
   }
   For entities that link other entities together, the sourceEntityId must correspond to an entityId of an entity you provide, as must the targetEntityId.
-  I'm about to provide you with the content of a website${typeof webPage === "string" ? "" : ` hosted at ${webPage.url}, titled ${webPage.title}`}.
+  I'm about to provide you with the content of a website${
+    typeof webPage === "string"
+      ? ""
+      : ` hosted at ${webPage.url}, titled ${webPage.title}`
+  }.
   ${
     relevantEntitiesPrompt
       ? ""
@@ -74,7 +78,9 @@ export const inferEntitySummariesFromWebPage = async (params: {
   ${
     existingEntities && existingEntities.length > 0
       ? dedent(`
-        The user has provided these existing entities, which do not need to be inferred again: ${JSON.stringify(existingEntities.map(simplifyEntity))}
+        The user has provided these existing entities, which do not need to be inferred again: ${JSON.stringify(
+          existingEntities.map(simplifyEntity),
+        )}
 
         Do not provide summaries for entities which are already in this list.
       `)

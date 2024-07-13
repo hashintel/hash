@@ -2,67 +2,94 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
   ArchivedPropertyValue,
+  ArchivedPropertyValueWithMetadata,
   Block,
   BlockCollection,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
+  BlockCollectionPropertiesWithMetadata,
   BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
+  BlockPropertiesWithMetadata,
   BooleanDataType,
+  BooleanDataTypeWithMetadata,
   ComponentIdPropertyValue,
+  ComponentIdPropertyValueWithMetadata,
   FractionalIndexPropertyValue,
+  FractionalIndexPropertyValueWithMetadata,
   HasData,
   HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
+  HasDataPropertiesWithMetadata,
   HasIndexedContent,
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
+  HasIndexedContentPropertiesWithMetadata,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  LinkPropertiesWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 } from "./shared";
 
 export type {
   ArchivedPropertyValue,
+  ArchivedPropertyValueWithMetadata,
   Block,
   BlockCollection,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
+  BlockCollectionPropertiesWithMetadata,
   BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
+  BlockPropertiesWithMetadata,
   BooleanDataType,
+  BooleanDataTypeWithMetadata,
   ComponentIdPropertyValue,
+  ComponentIdPropertyValueWithMetadata,
   FractionalIndexPropertyValue,
+  FractionalIndexPropertyValueWithMetadata,
   HasData,
   HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
+  HasDataPropertiesWithMetadata,
   HasIndexedContent,
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
+  HasIndexedContentPropertiesWithMetadata,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  LinkPropertiesWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 };
 
-export type QuickNote = Entity<QuickNoteProperties>;
+/**
+ * A (usually) quick or short note.
+ */
+export type QuickNote = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/quick-note/v/1";
+  properties: QuickNoteProperties;
+  propertiesWithMetadata: QuickNotePropertiesWithMetadata;
+};
 
 export type QuickNoteHasIndexedContentLink = {
   linkEntity: HasIndexedContent;
@@ -83,4 +110,11 @@ export type QuickNoteProperties1 = BlockCollectionProperties;
 
 export type QuickNoteProperties2 = {
   "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
+};
+
+export type QuickNotePropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
+  };
 };

@@ -25,7 +25,8 @@ export type BlogPost = {
   subtitle: string;
   categories?: string[];
   authors: BlogPostAuthorWithPhotoSrc[];
-  date: string;
+  dateFirstPublished: string;
+  dateLastUpdated: string;
   postPhoto: string;
   postPhotoSquare?: string;
 };
@@ -140,7 +141,8 @@ const BlogPostPage: NextPage<BlogPostPageProps> = ({
         subtitle={data.subtitle}
         categories={data.categories}
         authors={data.authors}
-        date={data.date}
+        dateFirstPublished={data.dateFirstPublished}
+        dateLastUpdated={data.dateLastUpdated}
       />
       <BlogPostContent>
         <MdxPageContent serializedPage={serializedPage} />

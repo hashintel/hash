@@ -1,6 +1,7 @@
 import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
+import { backOff } from "exponential-backoff";
 
 import type { FlowActionActivity } from "./types";
 
@@ -12,19 +13,13 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
 
   const {
     data: { webSearchResults },
-  } = await internalApiClient.getWebSearchResults(query);
+  } = await backOff(() => internalApiClient.getWebSearchResults(query), {
+    jitter: "full",
+    numOfAttempts: 3,
+    startingDelay: 1_000,
+  });
 
-  const webPagesUrls = webSearchResults
-    .map(({ url }) => url)
-    /**
-     * The coordinator agent using this method does not have the ability to directly
-     * interact with PDFs, so we filter these out for now.
-     *
-     * @todo: account for PDFs being returned in search results in the coordinator agent
-     * @see https://linear.app/hash/issue/H-2676/allow-pdfs-returned-in-search-results-to-be-parsed
-     */
-    .filter((url) => !url.endsWith(".pdf"))
-    .slice(0, numberOfSearchResults);
+  const webPages = webSearchResults.slice(0, numberOfSearchResults);
 
   return {
     code: StatusCode.Ok,
@@ -34,8 +29,8 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
           {
             outputName: "webPageUrls",
             payload: {
-              kind: "Text",
-              value: webPagesUrls,
+              kind: "WebSearchResult",
+              value: webPages,
             },
           },
         ],

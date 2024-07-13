@@ -39,7 +39,7 @@ export const useBlockProtocolQueryEntities = (): {
        * @todo Add filtering to this query using structural querying.
        *   This may mean having the backend use structural querying and relaying
        *   or doing it from here.
-       *   https://app.asana.com/0/1202805690238892/1202890614880643/f
+       * @see https://linear.app/hash/issue/H-2998
        */
       const { data: response } = await queryFn({
         variables: {

@@ -39,7 +39,8 @@ const generateToolDefinitions = (params: {
             properties: {
               subjectEntityLocalId: {
                 type: "string",
-                description: "The local ID of the subject entity of the fact.",
+                description:
+                  "The local ID of the subject entity of the fact. Must be defined. If you don't have a relevant subject entity, don't include the fact.",
               },
               text: {
                 type: "string",
@@ -51,7 +52,6 @@ const generateToolDefinitions = (params: {
                   - must be standalone, and not depend on any contextual information to make sense
                   - must not contain any pronouns, and refer to all entities by their provided "name"
                   - must not be lists or contain multiple pieces of information, each piece of information must be expressed as a standalone fact
-                  - must not contain conjunctions or compound sentences, and therefore must not contain "and", "or", "but" or a comma (",")
                   - must not include prepositional phrases, these must be provided separately in the "prepositionalPhrases" argument
                   - must include full and complete units when specifying numeric data as the object of the fact
                 `),
@@ -110,6 +110,11 @@ const systemPrompt = dedent(`
 
   These facts will be later used to construct the entities with the properties and links which the user will specify.
   If any information in the text is relevant for constructing the relevant properties or outgoing links, you must include them as facts.
+  
+  Each fact should be in the format <subject> <predicate> <object>, where the subject is the singular subject of the fact.
+  Example:
+  [{ text: "Company X acquired Company Y.", prepositionalPhrases: ["in 2019", "for $10 million"], subjectEntityLocalId: "abc", objectEntityLocalId: "123" }]
+  Don't include facts which start with a subject you can't provide an id for.
 `);
 
 const constructUserMessage = (params: {
@@ -139,10 +144,20 @@ const constructUserMessage = (params: {
         type: "text",
         text: dedent(`
           Text: ${text}
-          Subject Entities: ${JSON.stringify(subjectEntities.map(({ localId, name }) => ({ localId, name })))}
+          Subject Entities: ${JSON.stringify(
+            subjectEntities.map(({ localId, name }) => ({ localId, name })),
+          )}
           Relevant Properties: ${JSON.stringify(relevantProperties)}
-          Relevant Outgoing Links: ${JSON.stringify(Object.values(dereferencedEntityType.links ?? {}))}
-          Potential Object Entities: ${JSON.stringify(potentialObjectEntities.map(({ localId, name, summary }) => ({ localId, name, summary })))}
+          Relevant Outgoing Links: ${JSON.stringify(
+            Object.values(dereferencedEntityType.links ?? {}),
+          )}
+          Potential Object Entities: ${JSON.stringify(
+            potentialObjectEntities.map(({ localId, name, summary }) => ({
+              localId,
+              name,
+              summary,
+            })),
+          )}
         `),
       },
     ],
@@ -170,11 +185,12 @@ export const inferEntityFactsFromText = async (params: {
     retryContext,
   } = params;
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
-      model: "gpt-4o-2024-05-13",
+      model: "claude-3-haiku-20240307",
       tools: Object.values(generateToolDefinitions({ subjectEntities })),
       toolChoice: toolNames[0],
       systemPrompt,
@@ -191,6 +207,10 @@ export const inferEntityFactsFromText = async (params: {
       ],
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "facts-from-text",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
@@ -198,7 +218,82 @@ export const inferEntityFactsFromText = async (params: {
     },
   );
 
-  if (llmResponse.status !== "ok") {
+  const retry = (retryParams: {
+    allValidInferredFacts: Fact[];
+    retryMessages: LlmMessage[];
+  }) => {
+    const { allValidInferredFacts, retryMessages } = retryParams;
+
+    const { retryCount = 0 } = retryContext ?? {};
+
+    if (retryCount >= retryMax) {
+      logger.debug(
+        "Exceeded the retry limit for inferring facts from text, returning the previously inferred facts.",
+      );
+      /**
+       * If some of the facts are repeatedly invalid, we handle this gracefully
+       * by returning all the valid facts which were parsed.
+       */
+      return {
+        facts: allValidInferredFacts,
+      };
+    }
+
+    return inferEntityFactsFromText({
+      ...params,
+      retryContext: {
+        previousValidFacts: allValidInferredFacts,
+        retryMessages,
+        retryCount: retryCount + 1,
+      },
+    });
+  };
+
+  if (llmResponse.status === "exceeded-maximum-output-tokens") {
+    /**
+     * @todo: ideally instead of retrying and asking for fewer facts, we would either:
+     *  - provide information on which facts are relevant, so that these aren't omitted
+     *  - gather facts on smaller chunks of text, so that obtaining all the facts for an
+     *    entity doesn't exceed the maximum output token limit
+     */
+    return retry({
+      allValidInferredFacts: params.retryContext?.previousValidFacts ?? [],
+      retryMessages: [
+        {
+          role: "assistant",
+          content: [
+            {
+              type: "text",
+              text: "The response exceeded the maximum token limit.",
+            },
+          ],
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: dedent(`
+                You attempted to submit too many facts.
+                Try again by submitting fewer facts (less than 40).
+              `),
+            },
+          ],
+        },
+      ],
+    });
+  } else if (llmResponse.status !== "ok") {
+    /**
+     * If a schema validation error couldn't be recovered from, we retry the
+     * request without retry messages.
+     */
+    if (llmResponse.status === "exceeded-maximum-retries") {
+      return retry({
+        allValidInferredFacts: params.retryContext?.previousValidFacts ?? [],
+        retryMessages: [],
+      });
+    }
+
     throw new Error(
       `Failed to get response from LLM: ${stringify(llmResponse)}`,
     );
@@ -223,61 +318,59 @@ export const inferEntityFactsFromText = async (params: {
       }[];
     };
 
-    const newFacts: Fact[] = input.facts.flatMap((fact) => {
-      const subjectEntity = subjectEntities.find(
-        ({ localId }) => localId === fact.subjectEntityLocalId,
-      );
+    for (const unfinishedFact of input.facts) {
+      const fact = {
+        ...unfinishedFact,
+        objectEntityLocalId: unfinishedFact.objectEntityLocalId ?? undefined,
+        factId: generateUuid(),
+      };
+
+      const subjectEntity =
+        subjectEntities.find(
+          ({ localId }) => localId === fact.subjectEntityLocalId,
+        ) ??
+        potentialObjectEntities.find(
+          ({ localId }) => localId === fact.subjectEntityLocalId,
+        );
 
       if (!subjectEntity) {
         invalidFacts.push({
-          factId: generateUuid(),
-          text: fact.text,
-          subjectEntityLocalId: fact.subjectEntityLocalId,
-          objectEntityLocalId: fact.objectEntityLocalId ?? undefined,
-          prepositionalPhrases: fact.prepositionalPhrases,
+          ...fact,
           invalidReason: `An invalid "subjectEntityLocalId" has been provided: ${fact.subjectEntityLocalId}`,
           toolCallId: toolCall.id,
         });
 
-        return [];
+        continue;
       }
 
-      return {
-        factId: generateUuid(),
-        text: fact.text,
-        subjectEntityLocalId: subjectEntity.localId,
-        objectEntityLocalId: fact.objectEntityLocalId ?? undefined,
-        prepositionalPhrases: fact.prepositionalPhrases,
-      };
-    });
+      const objectEntity =
+        potentialObjectEntities.find(
+          ({ localId }) => localId === fact.objectEntityLocalId,
+        ) ??
+        subjectEntities.find(
+          ({ localId }) => localId === fact.objectEntityLocalId,
+        );
 
-    for (const fact of newFacts) {
-      const objectEntity = potentialObjectEntities.find(
-        ({ localId }) => localId === fact.objectEntityLocalId,
-      );
-
-      const subjectEntity = subjectEntities.find(
-        ({ localId }) => localId === fact.subjectEntityLocalId,
-      )!;
-
-      /** @todo: ensure the provided `objectEntityLocalId` matches an ID in `potentialObjectEntities` */
-
-      if (fact.text.includes(" and ")) {
-        /**
-         * @todo: this can result in false positives, names may include the word "and"
-         */
+      if (fact.objectEntityLocalId && !objectEntity) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `The fact contains the forbidden word "and". Facts must be standalone and not contain conjunctions. You must split this fact into separate standalone facts.`,
+          invalidReason: `An invalid "objectEntityLocalId" has been provided: ${fact.objectEntityLocalId}`,
           toolCallId: toolCall.id,
         });
-      } else if (!fact.text.startsWith(subjectEntity.name)) {
+
+        continue;
+      }
+
+      if (!fact.text.startsWith(subjectEntity.name)) {
         invalidFacts.push({
           ...fact,
           invalidReason: `The fact does not start with "${subjectEntity.name}" as the subject of the fact. Facts must have the subject entity as the singular subject.`,
           toolCallId: toolCall.id,
         });
-      } else if (objectEntity && !fact.text.endsWith(objectEntity.name)) {
+      } else if (
+        objectEntity &&
+        !fact.text.replace(/\.$/, "").endsWith(objectEntity.name)
+      ) {
         invalidFacts.push({
           ...fact,
           invalidReason: `The fact does not end with "${objectEntity.name}" as the object of the fact. Facts must have the object entity as the singular object, and specify any prepositional phrases via the "prepositionalPhrases" argument.`,
@@ -297,21 +390,6 @@ export const inferEntityFactsFromText = async (params: {
   /** @todo: check if there are subject entities for which no facts have been provided */
 
   if (invalidFacts.length > 0) {
-    const { retryCount = 0 } = retryContext ?? {};
-
-    if (retryCount >= retryMax) {
-      logger.debug(
-        `Exceeded the retry limit for inferring facts from text, abandoning the following invalid facts: ${stringify(invalidFacts)}`,
-      );
-      /**
-       * If some of the facts are repeatedly invalid, we handle this gracefully
-       * by returning all the valid facts which were parsed.
-       */
-      return {
-        facts: allValidInferredFacts,
-      };
-    }
-
     const toolCallResponses = toolCalls.map<LlmMessageToolResultContent>(
       (toolCall) => {
         const invalidFactsProvidedInToolCall = invalidFacts.filter(
@@ -346,22 +424,20 @@ export const inferEntityFactsFromText = async (params: {
     );
 
     logger.debug(
-      `Retrying inferring facts from text with the following tool call responses: ${stringify(toolCallResponses)}`,
+      `Retrying inferring facts from text with the following tool call responses: ${stringify(
+        toolCallResponses,
+      )}`,
     );
 
-    return inferEntityFactsFromText({
-      ...params,
-      retryContext: {
-        previousValidFacts: allValidInferredFacts,
-        retryMessages: [
-          llmResponse.message,
-          {
-            role: "user",
-            content: toolCallResponses,
-          },
-        ],
-        retryCount: retryCount + 1,
-      },
+    return retry({
+      allValidInferredFacts,
+      retryMessages: [
+        llmResponse.message,
+        {
+          role: "user",
+          content: toolCallResponses,
+        },
+      ],
     });
   }
 

@@ -1,4 +1,3 @@
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import {
   systemEntityTypes,
@@ -96,7 +95,7 @@ const migrate: MigrationFunction = async ({
         title: "Prospective User",
         description:
           "Information about a prospective user of an application or system",
-        labelProperty: systemPropertyTypes.email.propertyTypeBaseUrl as BaseUrl,
+        labelProperty: systemPropertyTypes.email.propertyTypeBaseUrl,
         properties: [
           {
             propertyType: systemPropertyTypes.websiteUrl.propertyTypeId,
@@ -142,7 +141,7 @@ const migrate: MigrationFunction = async ({
       websiteUrl: "https://example.com",
       entityTypeVersion:
         migrationState.entityTypeVersions[
-          systemEntityTypes.organization.entityTypeBaseUrl as BaseUrl
+          systemEntityTypes.organization.entityTypeBaseUrl
         ],
     });
   }

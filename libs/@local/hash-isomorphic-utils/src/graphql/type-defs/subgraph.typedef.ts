@@ -9,8 +9,8 @@ export const subgraphTypedef = gql`
   scalar Edges
   scalar SubgraphTemporalAxes
 
-  # TODO: Replace with \`EdgeResolveDepths\`
-  #   see https://app.asana.com/0/1201095311341924/1203399511264512/f
+  # @todo Replace with \`EdgeResolveDepths\`
+  # @see https://linear.app/hash/issue/H-3018
   type OutgoingEdgeResolveDepth {
     outgoing: Int!
   }
@@ -27,7 +27,7 @@ export const subgraphTypedef = gql`
     outgoing: Int!
   }
 
-  # TODO: Maybe we want an exploration strategy instead of this? So you have parameters for a depth first search vs parameters for a breadth first, etc.
+  # @todo: Maybe we want an exploration strategy instead of this? So you have parameters for a depth first search vs parameters for a breadth first, etc.
   type ResolveDepths {
     inheritsFrom: OutgoingEdgeResolveDepth!
     constrainsValuesOn: OutgoingEdgeResolveDepth!

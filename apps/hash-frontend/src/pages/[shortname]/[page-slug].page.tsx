@@ -5,7 +5,6 @@ import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-u
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import type { EntityRootType } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
@@ -60,6 +59,13 @@ import {
 import { useEnabledFeatureFlags } from "../shared/use-enabled-feature-flags";
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
 import { ArchiveMenuItem } from "./shared/archive-menu-item";
+
+/**
+ * Use to check if current browser is Safari or not
+ */
+export const isSafariBrowser = () =>
+  navigator.userAgent.indexOf("Safari") > -1 &&
+  navigator.userAgent.indexOf("Chrome") <= -1;
 
 export const pageContentWidth = 696;
 export const commentsWidth = 320;

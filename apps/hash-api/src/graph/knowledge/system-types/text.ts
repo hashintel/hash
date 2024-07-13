@@ -14,7 +14,7 @@ import {
   pageEntityTypeFilter,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Text as TextEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
@@ -35,12 +35,12 @@ import { getUserById } from "./user";
 
 export type Text = {
   textualContent: TextToken[];
-  entity: Entity<TextProperties>;
+  entity: Entity<TextEntity>;
 };
 
 export const isEntityTextEntity = (
   entity: Entity,
-): entity is Entity<TextProperties> =>
+): entity is Entity<TextEntity> =>
   entity.metadata.entityTypeId === systemEntityTypes.text.entityTypeId;
 
 export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({

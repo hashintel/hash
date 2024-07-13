@@ -4,6 +4,7 @@ import {
   PlayIconSolid,
   Select,
 } from "@hashintel/design-system";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   generateFlowDefinitionPath,
   generateWorkerRunPath,
@@ -175,7 +176,7 @@ export const Topbar = ({
                 void push(
                   generateWorkerRunPath({
                     shortname,
-                    flowRunId: value,
+                    flowRunId: value as EntityUuid,
                   }),
                 );
               }}
@@ -191,7 +192,10 @@ export const Topbar = ({
                 >
                   Run
                   {run.closedAt
-                    ? ` – ${format(new Date(run.closedAt), "yyyy-MM-dd h:mm a")}`
+                    ? ` – ${format(
+                        new Date(run.closedAt),
+                        "yyyy-MM-dd h:mm a",
+                      )}`
                     : " – in progress"}
                 </MenuItem>
               ))}

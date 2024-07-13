@@ -287,9 +287,9 @@ export const SearchBar: FunctionComponent = () => {
      * Either the types in @blockprotocol/graph or the value delivered by HASH needs to change
      * H-2489
      */
-    (deserializeSubgraph(
+    deserializeSubgraph<EntityTypeRootType>(
       entityTypeResultData.queryEntityTypes,
-    ) as Subgraph<EntityTypeRootType>);
+    );
 
   const entityTypeResults = entityTypeSubgraph
     ? getRoots(entityTypeSubgraph)

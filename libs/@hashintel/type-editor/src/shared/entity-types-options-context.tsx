@@ -1,5 +1,8 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  EntityTypeReference,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 
@@ -29,12 +32,16 @@ export const useEntityTypesOptionsContextValue = (
         entityType.schema.$id === linkEntityTypeUrl
           ? linkEntityTypesRecord
           : nonLinkEntityTypesRecord;
-      let parentRefObjects = entityType.schema.allOf ?? [];
+
+      let parentRefObjects: EntityTypeReference[] =
+        entityType.schema.allOf ?? [];
+
       while (parentRefObjects.length) {
         if (parentRefObjects.find(({ $ref }) => $ref === linkEntityTypeUrl)) {
           targetRecord = linkEntityTypesRecord;
           break;
         }
+
         parentRefObjects = parentRefObjects.flatMap(({ $ref }) => {
           const parentEntityType = entityTypes[$ref];
           if (!parentEntityType) {

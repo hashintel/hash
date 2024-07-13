@@ -1,12 +1,3 @@
-#![allow(
-    clippy::print_stdout,
-    clippy::print_stderr,
-    unreachable_pub,
-    clippy::use_debug,
-    clippy::alloc_instead_of_core,
-    clippy::std_instead_of_alloc,
-    clippy::std_instead_of_core
-)]
 //! Example of using `attach` to set a custom exit code. Requires nightly and std feature.
 
 use std::process::{ExitCode, Termination};
@@ -18,8 +9,8 @@ struct CustomError;
 
 impl Context for CustomError {}
 
-impl std::fmt::Display for CustomError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for CustomError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("Custom Error")
     }
 }

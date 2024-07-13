@@ -12,6 +12,18 @@ use utoipa::{
 #[repr(transparent)]
 pub struct Confidence(f64);
 
+impl Confidence {
+    #[must_use]
+    pub fn new(value: f64) -> Option<Self> {
+        (0.0..=1.0).contains(&value).then_some(Self(value))
+    }
+
+    #[must_use]
+    pub const fn value(self) -> f64 {
+        self.0
+    }
+}
+
 impl<'de> Deserialize<'de> for Confidence {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

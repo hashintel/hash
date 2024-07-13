@@ -5,7 +5,7 @@ import {
   type KnowledgeGraphEdgeKind as KnowledgeGraphEdgeKindBp,
   type OntologyEdgeKind as OntologyEdgeKindBp,
   type SharedEdgeKind as SharedEdgeKindBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 
 export type OntologyEdgeKind = OntologyEdgeKindBp;
 

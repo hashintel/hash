@@ -1,30 +1,23 @@
-use std::collections::HashMap;
 #[cfg(feature = "postgres")]
-use std::error::Error;
+use core::error::Error;
+use std::collections::HashMap;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-use error_stack::{Report, ResultExt};
-use json_patch::{
-    AddOperation, CopyOperation, MoveOperation, PatchOperation, RemoveOperation, ReplaceOperation,
-    TestOperation,
-};
-use jsonptr::Pointer;
+use error_stack::Report;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use type_system::url::BaseUrl;
-#[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
 
 use crate::knowledge::{
-    property::{PatchError, Property},
-    PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyPathElement,
+    property::PropertyPathError, ObjectMetadata, Property, PropertyDiff, PropertyMetadataObject,
+    PropertyPath, PropertyPathElement, PropertyWithMetadata,
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct PropertyObject(HashMap<BaseUrl, Property>);
 
 impl PropertyObject {
@@ -77,83 +70,8 @@ impl PropertyObject {
             PropertyPathElement::Index(_) => return false,
         };
         self.0
-            .get(first_key)
+            .get(&first_key)
             .map_or(false, |property| property.get(path_iter).is_some())
-    }
-
-    /// Applies the given patch operations to the object.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the patch operation failed
-    pub fn patch(
-        &mut self,
-        operations: &[PropertyPatchOperation],
-    ) -> Result<(), Report<PatchError>> {
-        let patches = operations
-            .iter()
-            .map(|operation| {
-                Ok(match operation {
-                    PropertyPatchOperation::Add {
-                        path,
-                        value,
-                        confidence: _,
-                        provenance: _,
-                    } => PatchOperation::Add(AddOperation {
-                        path: Pointer::new(path),
-                        value: serde_json::to_value(value).change_context(PatchError)?,
-                    }),
-                    PropertyPatchOperation::Remove { path } => {
-                        PatchOperation::Remove(RemoveOperation {
-                            path: Pointer::new(path),
-                        })
-                    }
-                    PropertyPatchOperation::Replace {
-                        path,
-                        value,
-                        confidence: _,
-                        provenance: _,
-                    } => PatchOperation::Replace(ReplaceOperation {
-                        path: Pointer::new(path),
-                        value: serde_json::to_value(value).change_context(PatchError)?,
-                    }),
-                    PropertyPatchOperation::Move {
-                        from,
-                        path,
-                        confidence: _,
-                        provenance: _,
-                    } => PatchOperation::Move(MoveOperation {
-                        from: Pointer::new(from),
-                        path: Pointer::new(path),
-                    }),
-                    PropertyPatchOperation::Copy {
-                        from,
-                        path,
-                        confidence: _,
-                        provenance: _,
-                    } => PatchOperation::Copy(CopyOperation {
-                        from: Pointer::new(from),
-                        path: Pointer::new(path),
-                    }),
-                    PropertyPatchOperation::Test { path, value } => {
-                        PatchOperation::Test(TestOperation {
-                            path: Pointer::new(path),
-                            value: serde_json::to_value(value).change_context(PatchError)?,
-                        })
-                    }
-                })
-            })
-            .collect::<Result<Vec<_>, Report<PatchError>>>()?;
-
-        // TODO: Implement more efficient patching without serialization
-        #[expect(
-            clippy::needless_borrows_for_generic_args,
-            reason = "Would move `self`"
-        )]
-        let mut this = serde_json::to_value(&self).change_context(PatchError)?;
-        json_patch::patch(&mut this, &patches).change_context(PatchError)?;
-        *self = serde_json::from_value(this).change_context(PatchError)?;
-        Ok(())
     }
 }
 
@@ -169,6 +87,15 @@ impl PartialEq<JsonValue> for PropertyObject {
                     .get(key.as_str())
                     .map_or(false, |other_value| value == other_value)
             })
+    }
+}
+
+impl IntoIterator for PropertyObject {
+    type IntoIter = std::collections::hash_map::IntoIter<BaseUrl, Property>;
+    type Item = (BaseUrl, Property);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -203,5 +130,75 @@ impl<'a> FromSql<'a> for PropertyObject {
         Self: Sized,
     {
         <postgres_types::Json<Self> as ToSql>::accepts(ty)
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PropertyWithMetadataObject {
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub value: HashMap<BaseUrl, PropertyWithMetadata>,
+    #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
+    pub metadata: ObjectMetadata,
+}
+
+impl PropertyWithMetadataObject {
+    /// Creates a unified representation of the property and its metadata.
+    ///
+    /// # Errors
+    ///
+    /// - If the property and metadata types do not match.
+    pub fn from_parts(
+        properties: PropertyObject,
+        metadata: Option<PropertyMetadataObject>,
+    ) -> Result<Self, Report<PropertyPathError>> {
+        Ok(if let Some(mut metadata_elements) = metadata {
+            Self {
+                value: properties
+                    .into_iter()
+                    .map(|(key, property)| {
+                        let metadata = metadata_elements.value.remove(&key);
+                        Ok::<_, Report<PropertyPathError>>((
+                            key,
+                            PropertyWithMetadata::from_parts(property, metadata)?,
+                        ))
+                    })
+                    .collect::<Result<_, _>>()?,
+                metadata: metadata_elements.metadata,
+            }
+        } else {
+            Self {
+                value: properties
+                    .into_iter()
+                    .map(|(key, property)| {
+                        Ok::<_, Report<PropertyPathError>>((
+                            key,
+                            PropertyWithMetadata::from_parts(property, None)?,
+                        ))
+                    })
+                    .collect::<Result<_, _>>()?,
+                metadata: ObjectMetadata::default(),
+            }
+        })
+    }
+
+    #[must_use]
+    pub fn into_parts(self) -> (PropertyObject, PropertyMetadataObject) {
+        let (properties, metadata_properties) = self
+            .value
+            .into_iter()
+            .map(|(base_url, property_with_metadata)| {
+                let (property, metadata) = property_with_metadata.into_parts();
+                ((base_url.clone(), property), (base_url, metadata))
+            })
+            .unzip();
+        (
+            PropertyObject::new(properties),
+            PropertyMetadataObject {
+                value: metadata_properties,
+                metadata: self.metadata,
+            },
+        )
     }
 }

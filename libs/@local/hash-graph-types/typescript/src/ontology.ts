@@ -3,7 +3,8 @@ import type {
   EntityTypeWithMetadata as EntityTypeWithMetadataBp,
   OntologyElementMetadata as OntologyElementMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
+import { validateBaseUrl } from "@blockprotocol/type-system";
 import type {
   BaseUrl as BaseUrlBp,
   DataType,
@@ -31,6 +32,10 @@ import type {
 import type { OwnedById } from "./web";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
+
+export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
+  return validateBaseUrl(baseUrl).type === "Ok";
+};
 
 export type OntologyProvenance = {
   edition: OntologyEditionProvenance;
@@ -113,8 +118,8 @@ export type StringConstraint = {
 export type NumberConstraint = {
   minimum?: number;
   maximum?: number;
-  exclusiveMinimum?: number;
-  exclusiveMaximum?: number;
+  exclusiveMinimum?: boolean;
+  exclusiveMaximum?: boolean;
   multipleOf?: number;
   type: "number" | "integer";
 };

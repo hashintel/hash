@@ -6,7 +6,6 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { ModalProps } from "@mui/material";
 import { Box, Typography, typographyClasses } from "@mui/material";
 import type { FunctionComponent, ReactElement } from "react";
@@ -142,12 +141,15 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
         entityUpdate: {
           entityId: profile.entity.metadata.recordId.entityId,
           entityTypeId: profile.entity.metadata.entityTypeId,
-          updatedProperties: {
-            ...profile.entity.properties,
-            [extractBaseUrl(
-              systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeId,
-            )]: updatedPinnedEntityTypeBaseUrls,
-          },
+          propertyPatches: [
+            {
+              op: "add",
+              path: [
+                systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeBaseUrl,
+              ],
+              value: updatedPinnedEntityTypeBaseUrls,
+            },
+          ],
         },
       },
     });

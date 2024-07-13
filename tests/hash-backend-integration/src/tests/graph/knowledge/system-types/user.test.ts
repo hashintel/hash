@@ -112,7 +112,6 @@ describe("User model class", () => {
       graphContext,
       authentication,
       "userModelTest",
-      logger,
     );
 
     const orgEntityUuid = extractEntityUuidFromEntityId(

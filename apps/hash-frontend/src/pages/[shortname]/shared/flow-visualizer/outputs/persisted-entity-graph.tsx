@@ -1,64 +1,29 @@
-import { useQuery } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  EntityRootType as BpEntityRootType,
+  Subgraph as BpSubgraph,
+} from "@blockprotocol/graph";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import {
-  fullOntologyResolveDepths,
-  generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { isNotNullish } from "@local/hash-isomorphic-utils/types";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
-import type {
-  QueryEntityTypesQuery,
-  QueryEntityTypesQueryVariables,
-} from "../../../../../graphql/api-types.gen";
-import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 
 type PersistedEntityGraphProps = {
+  onEntityClick: (entity: Entity) => void;
   persistedEntities: PersistedEntity[];
+  persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
 };
 
 export const PersistedEntityGraph = ({
+  onEntityClick,
   persistedEntities,
+  persistedEntitiesSubgraph,
 }: PersistedEntityGraphProps) => {
-  const entityTypeIds = useMemo(
-    () =>
-      persistedEntities
-        .map(({ entity }) =>
-          entity ? new Entity(entity).metadata.entityTypeId : undefined,
-        )
-        .filter(isNotNullish),
-    [persistedEntities],
-  );
-
-  const { data: entityTypeResultData } = useQuery<
-    QueryEntityTypesQuery,
-    QueryEntityTypesQueryVariables
-  >(queryEntityTypesQuery, {
-    variables: {
-      filter: {
-        any: entityTypeIds.map((entityTypeId) =>
-          generateVersionedUrlMatchingFilter(entityTypeId, {
-            ignoreParents: true,
-          }),
-        ),
-      },
-      latestOnly: true,
-      ...zeroedGraphResolveDepths,
-      ...fullOntologyResolveDepths,
-    },
-    skip: persistedEntities.length === 0,
-  });
-
-  const entityTypeSubgraph = entityTypeResultData?.queryEntityTypes;
-
   /**
    * If a Flow updates the same entity as non-draft multiple times, it will have a record of persisting
    * an entity with the same id multiple times. Duplicates crash the chart.
@@ -89,7 +54,7 @@ export const PersistedEntityGraph = ({
     return Object.values(deduplicatedLatestEntitiesByEntityId);
   }, [persistedEntities]);
 
-  if (!entityTypeSubgraph && !persistedEntities.length) {
+  if (!persistedEntitiesSubgraph && !persistedEntities.length) {
     return (
       <OutputContainer sx={{ flex: 1.5 }}>
         <EmptyOutputBox
@@ -104,7 +69,10 @@ export const PersistedEntityGraph = ({
     <OutputContainer sx={{ flex: 1.5 }}>
       <EntitiesGraphChart
         entities={deduplicatedPersistedEntities}
-        subgraph={entityTypeSubgraph as unknown as Subgraph<EntityRootType>} // @todo sort out this param to EntitiesGraphChart
+        onEntityClick={(entity) => onEntityClick(entity)}
+        subgraph={
+          persistedEntitiesSubgraph as unknown as BpSubgraph<BpEntityRootType>
+        } // @todo sort out this param to EntitiesGraphChart
         sx={{ maxHeight: "100%" }}
       />
     </OutputContainer>

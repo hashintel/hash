@@ -1,6 +1,4 @@
-#![feature(lint_reasons)]
-
-use std::error::Error;
+use core::error::Error;
 
 use clap::Parser;
 

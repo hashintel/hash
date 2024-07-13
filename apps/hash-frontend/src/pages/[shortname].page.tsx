@@ -88,7 +88,7 @@ const ProfilePage: NextPageWithLayout = () => {
     () =>
       [
         enabledFeatureFlags.pages
-          ? (systemEntityTypes.page.entityTypeBaseUrl as BaseUrl)
+          ? systemEntityTypes.page.entityTypeBaseUrl
           : [],
         ...(profile?.pinnedEntityTypeBaseUrls ?? []),
       ].flat(),

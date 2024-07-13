@@ -1,4 +1,4 @@
-#![allow(clippy::panic_in_result_fn)]
+#![expect(clippy::panic_in_result_fn)]
 
 use deer::{
     error::{ArrayAccessError, DeserializeError, ObjectAccessError, VisitorError},
@@ -207,42 +207,6 @@ fn array_access_on_dirty_err() {
             Token::ArrayEnd,
         ],
     );
-}
-
-#[derive(Debug)]
-struct CalledTwiceArray;
-
-struct CalledTwiceArrayVisitor;
-
-impl<'de> Visitor<'de> for CalledTwiceArrayVisitor {
-    type Value = CalledTwiceArray;
-
-    fn expecting(&self) -> Document {
-        <()>::reflection()
-    }
-
-    fn visit_array<T>(self, array: T) -> Result<Self::Value, VisitorError>
-    where
-        T: ArrayAccess<'de>,
-    {
-        let array = array
-            .into_bound(2)
-            .expect("should be able to set bound on the first call");
-
-        array.into_bound(1).change_context(VisitorError)?;
-
-        unreachable!();
-    }
-}
-
-impl<'de> Deserialize<'de> for CalledTwiceArray {
-    type Reflection = <() as Deserialize<'de>>::Reflection;
-
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
-        deserializer
-            .deserialize_array(CalledTwiceArrayVisitor)
-            .change_context(DeserializeError)
-    }
 }
 
 #[test]
@@ -494,42 +458,6 @@ fn object_access_on_dirty_err() {
         }]),
         &tokens,
     );
-}
-
-#[derive(Debug)]
-struct CalledTwiceObject;
-
-struct CalledTwiceObjectVisitor;
-
-impl<'de> Visitor<'de> for CalledTwiceObjectVisitor {
-    type Value = CalledTwiceObject;
-
-    fn expecting(&self) -> Document {
-        <()>::reflection()
-    }
-
-    fn visit_object<T>(self, object: T) -> Result<Self::Value, VisitorError>
-    where
-        T: ObjectAccess<'de>,
-    {
-        let object = object
-            .into_bound(2)
-            .expect("should be able to set bound on the first call");
-
-        object.into_bound(1).change_context(VisitorError)?;
-
-        unreachable!()
-    }
-}
-
-impl<'de> Deserialize<'de> for CalledTwiceObject {
-    type Reflection = <() as Deserialize<'de>>::Reflection;
-
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
-        deserializer
-            .deserialize_array(CalledTwiceObjectVisitor)
-            .change_context(DeserializeError)
-    }
 }
 
 #[test]

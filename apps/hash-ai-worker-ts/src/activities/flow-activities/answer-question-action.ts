@@ -151,7 +151,7 @@ type ModelResponseArgs = {
 
 const maximumIterations = 10;
 
-const model: PermittedOpenAiModel = "gpt-4-0125-preview";
+const model: PermittedOpenAiModel = "gpt-4o";
 
 const callModel = async (
   messages: OpenAI.ChatCompletionCreateParams["messages"],
@@ -163,7 +163,8 @@ const callModel = async (
     outputs: StepOutput[];
   }>
 > => {
-  const { flowEntityId, userAuthentication, webId } = await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -175,6 +176,10 @@ const callModel = async (
       tools: answerTools,
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "answer-question",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],

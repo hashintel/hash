@@ -4,7 +4,7 @@ use graph_types::{
         entity::{
             DraftId, EntityEditionId, EntityEditionProvenance, EntityUuid, InferredEntityProvenance,
         },
-        Confidence, PropertyObject, PropertyPath, PropertyProvenance,
+        Confidence, PropertyMetadataObject, PropertyObject, PropertyProvenance,
     },
     ontology::{DataTypeId, EntityTypeId, OntologyEditionProvenance, PropertyTypeId},
     owned_by_id::OwnedById,
@@ -15,7 +15,7 @@ use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, T
 use time::OffsetDateTime;
 use type_system::{
     url::{BaseUrl, OntologyTypeVersion},
-    ClosedEntityType, DataType, EntityType, PropertyType,
+    ClosedEntityType, DataType, EntityType, PropertyType, Valid,
 };
 
 use crate::store::postgres::{ontology::OntologyId, query::Table};
@@ -54,7 +54,7 @@ pub struct DataTypeEmbeddingRow<'e> {
 #[postgres(name = "data_types")]
 pub struct DataTypeRow {
     pub ontology_id: DataTypeId,
-    pub schema: DataType,
+    pub schema: Valid<DataType>,
 }
 
 #[derive(Debug, ToSql)]
@@ -73,6 +73,7 @@ pub struct EntityEditionRow {
     pub archived: bool,
     pub confidence: Option<Confidence>,
     pub provenance: EntityEditionProvenance,
+    pub property_metadata: PropertyMetadataObject,
 }
 
 #[derive(Debug, ToSql)]
@@ -137,15 +138,6 @@ pub struct EntityIsOfTypeRow {
 }
 
 #[derive(Debug, ToSql)]
-#[postgres(name = "entity_property")]
-pub struct EntityPropertyRow<'p> {
-    pub entity_edition_id: EntityEditionId,
-    pub property_path: PropertyPath<'p>,
-    pub confidence: Option<Confidence>,
-    pub provenance: PropertyProvenance,
-}
-
-#[derive(Debug, ToSql)]
 #[postgres(name = "entity_temporal_metadata")]
 pub struct EntityTemporalMetadataRow {
     pub web_id: OwnedById,
@@ -196,7 +188,7 @@ pub struct EntityTypeInheritsFromRow {
 #[postgres(name = "entity_types")]
 pub struct EntityTypeRow {
     pub ontology_id: EntityTypeId,
-    pub schema: EntityType,
+    pub schema: Valid<EntityType>,
     pub closed_schema: ClosedEntityType,
     pub label_property: Option<String>,
     pub icon: Option<String>,
@@ -236,7 +228,7 @@ pub struct OntologyTemporalMetadataRow {
 #[postgres(name = "property_types")]
 pub struct PropertyTypeRow {
     pub ontology_id: PropertyTypeId,
-    pub schema: PropertyType,
+    pub schema: Valid<PropertyType>,
 }
 
 #[derive(Debug, ToSql)]

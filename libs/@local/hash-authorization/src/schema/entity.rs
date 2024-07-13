@@ -1,4 +1,4 @@
-use std::error::Error;
+use core::error::Error;
 
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -87,10 +87,11 @@ pub enum EntitySubject {
     AccountGroup(AccountGroupId),
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum EntitySubjectSet {
-    #[default]
+    Administrator,
     Member,
 }
 
@@ -212,7 +213,7 @@ pub enum EntityAdministratorSubject {
     AccountGroup {
         #[serde(rename = "subjectId")]
         id: AccountGroupId,
-        #[serde(skip)]
+        #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },
 }
@@ -228,7 +229,7 @@ pub enum EntityEditorSubject {
     AccountGroup {
         #[serde(rename = "subjectId")]
         id: AccountGroupId,
-        #[serde(skip)]
+        #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },
 }
@@ -245,7 +246,7 @@ pub enum EntityViewerSubject {
     AccountGroup {
         #[serde(rename = "subjectId")]
         id: AccountGroupId,
-        #[serde(skip)]
+        #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },
 }

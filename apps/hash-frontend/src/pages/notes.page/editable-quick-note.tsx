@@ -21,15 +21,19 @@ import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
 
-import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useAccountPages } from "../../components/hooks/use-account-pages";
 import type {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
   GetEntityQuery,
   GetEntityQueryVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
-import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import {
+  archiveEntityMutation,
+  updateEntityMutation,
+} from "../../graphql/queries/knowledge/entity.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { ArchiveRegularIcon } from "../../shared/icons/achive-regular-icon";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
@@ -65,7 +69,7 @@ const parseTextFromTextBlock = ({
   rightEntity,
 }: BlockCollectionContentItem) => {
   const textTokens = rightEntity.blockChildEntity.properties[
-    blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl as BaseUrl
+    blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl
   ] as TextToken[] | undefined;
 
   return (
@@ -102,7 +106,10 @@ export const EditableQuickNote: FunctionComponent<{
   const [convertedPage, setConvertedPage] = useState<PageWithParentLink>();
   const [isConvertingPage, setIsConvertingPage] = useState(false);
 
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const [isConvertToPageModalOpen, setIsConvertToPageModalOpen] =
     useState(false);
@@ -133,7 +140,7 @@ export const EditableQuickNote: FunctionComponent<{
             blockCollectionEntityId,
             blockCollectionSubgraph: deserializeSubgraph(
               data.getEntity.subgraph,
-            ) as Subgraph<EntityRootType>,
+            ),
           })
         : undefined,
     [blockCollectionEntityId, data],
@@ -194,13 +201,20 @@ export const EditableQuickNote: FunctionComponent<{
 
   const handleArchive = useCallback(async () => {
     await updateEntity({
-      data: {
-        entityId: quickNoteEntity.metadata.recordId.entityId,
-        entityTypeId: systemEntityTypes.quickNote.entityTypeId,
-        properties: {
-          ...quickNoteEntity.properties,
-          "https://hash.ai/@hash/types/property-type/archived/": true,
-        } as QuickNoteProperties,
+      variables: {
+        entityUpdate: {
+          entityId: quickNoteEntity.metadata.recordId.entityId,
+          entityTypeId: systemEntityTypes.quickNote.entityTypeId,
+          propertyPatches: [
+            {
+              path: [
+                "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof QuickNoteProperties as BaseUrl,
+              ],
+              value: true,
+              op: "add",
+            },
+          ],
+        },
       },
     });
     await refetchQuickNotes?.();
@@ -221,10 +235,12 @@ export const EditableQuickNote: FunctionComponent<{
     }
 
     await updateEntity({
-      data: {
-        entityId: blockCollectionEntityId,
-        entityTypeId: systemEntityTypes.quickNote.entityTypeId,
-        properties: {},
+      variables: {
+        entityUpdate: {
+          entityId: blockCollectionEntityId,
+          entityTypeId: systemEntityTypes.quickNote.entityTypeId,
+          propertyPatches: [],
+        },
       },
     });
 

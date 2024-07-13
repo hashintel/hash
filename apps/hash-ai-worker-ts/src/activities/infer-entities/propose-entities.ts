@@ -181,11 +181,12 @@ export const proposeEntities = async (params: {
 
   logger.debug(`Next messages to model: ${stringify(messages)}`);
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
-      model: "claude-3-opus-20240229",
+      model: "claude-3-5-sonnet-20240620",
       maxTokens,
       systemPrompt: inferEntitiesSystemPrompt,
       messages,
@@ -197,6 +198,10 @@ export const proposeEntities = async (params: {
       temperature: 0,
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "propose-entities",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],

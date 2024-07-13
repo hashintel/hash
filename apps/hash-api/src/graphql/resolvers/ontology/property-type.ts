@@ -82,7 +82,7 @@ export const queryPropertyTypesResolver: ResolverFn<
    * @todo: get all latest property types in specified account.
    *   This may mean implicitly filtering results by what an account is
    *   authorized to see.
-   *   https://app.asana.com/0/1202805690238892/1202890446280569/f
+   * @see https://linear.app/hash/issue/H-2995
    */
   const { data: response } = await graphApi.getPropertyTypeSubgraph(
     authentication.actorId,

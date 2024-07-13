@@ -132,7 +132,7 @@ impl OntologyType for PropertyType {
     type Metadata = PropertyTypeMetadata;
 
     fn id(&self) -> &VersionedUrl {
-        self.id()
+        &self.id
     }
 
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {

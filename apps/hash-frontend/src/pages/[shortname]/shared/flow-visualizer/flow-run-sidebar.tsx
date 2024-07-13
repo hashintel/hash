@@ -5,7 +5,8 @@ import {
   CircleEllipsisRegularIcon,
   CloseIcon,
 } from "@hashintel/design-system";
-import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type {
   FlowDefinition,
   StepDefinition,
@@ -30,6 +31,7 @@ import {
   useStatusForStep,
   useStatusForSteps,
 } from "../../../shared/flow-runs-context";
+import { useFlowRunsUsage } from "../../../shared/use-flow-runs-usage";
 import { SectionLabel } from "./section-label";
 import { flowSectionBorderRadius } from "./shared/styles";
 import type {
@@ -251,7 +253,7 @@ const GroupStatus = ({
               color: ({ palette }) =>
                 groupStatus === "In Progress"
                   ? palette.blue[70]
-                  : groupStatus === "Error"
+                  : groupStatus === "Errored"
                     ? palette.error.main
                     : palette.common.black,
             }}
@@ -293,15 +295,24 @@ const GroupStatus = ({
 
 type FlowRunSidebarProps = {
   flowDefinition: FlowDefinition;
+  flowRunId: EntityUuid;
   groups: FlowMaybeGrouped["groups"];
   name: FlowRun["name"];
 };
 
 export const FlowRunSidebar = ({
   flowDefinition,
+  flowRunId,
   groups,
   name,
 }: FlowRunSidebarProps) => {
+  const { isUsageAvailable, usageByFlowRun } = useFlowRunsUsage({
+    flowRunIds: [flowRunId],
+  });
+  const [showUsageBreakdown, setShowUsageBreakdown] = useState(false);
+
+  const usage = usageByFlowRun[flowRunId];
+
   const nameParts = useMemo<{ text: string; url?: boolean }[]>(() => {
     const parts = name.split(/( )/g);
     const urlRegex = /^https?:\/\//;
@@ -317,8 +328,7 @@ export const FlowRunSidebar = ({
       <Box sx={{ mb: 2 }}>
         <SectionLabel
           text={
-            flowDefinition.flowDefinitionId ===
-            goalFlowDefinition.flowDefinitionId
+            goalFlowDefinitionIds.includes(flowDefinition.flowDefinitionId)
               ? "Goal"
               : "Description"
           }
@@ -356,6 +366,87 @@ export const FlowRunSidebar = ({
           </Box>
         </SidebarSection>
       </Box>
+      {isUsageAvailable && usage ? (
+        <Box sx={{ mt: 2 }}>
+          <SectionLabel text="Cost" />
+          <SidebarSection>
+            <Stack
+              direction="row"
+              alignItems="center"
+              onClick={() => setShowUsageBreakdown(!showUsageBreakdown)}
+              sx={{ cursor: "pointer" }}
+            >
+              <Typography
+                variant="smallTextParagraphs"
+                sx={{ color: ({ palette }) => palette.gray[80] }}
+              >
+                <Box component="span" fontWeight={500}>
+                  Total:
+                </Box>{" "}
+                ${usage.total.toFixed(2)}
+              </Typography>
+              <CaretDownSolidIcon
+                sx={{
+                  color: ({ palette }) => palette.gray[50],
+                  height: 14,
+                  transform: !showUsageBreakdown
+                    ? "rotate(-90deg)"
+                    : "translateY(-1px)",
+                  transition: ({ transitions }) =>
+                    transitions.create("transform"),
+                }}
+              />
+            </Stack>
+            <Collapse in={showUsageBreakdown}>
+              <Box
+                sx={{
+                  pb: 0.5,
+                  mb: 0.5,
+                  mt: 0.5,
+                  borderBottom: ({ palette }) =>
+                    `1px solid ${palette.gray[30]}`,
+                }}
+              >
+                {usage.recordsByServiceFeature
+                  .sort((a, b) => b.totalCostInUsd - a.totalCostInUsd)
+                  .map((record) => (
+                    <Box key={record.featureName}>
+                      <Typography
+                        variant="smallTextParagraphs"
+                        sx={{ color: ({ palette }) => palette.gray[50] }}
+                      >
+                        <Box component="span" fontWeight={500}>
+                          {record.featureName
+                            .replace(/-(\b\d{4}[-]?\d{2}[-]?\d{2}\b)$/, "")
+                            .trim()}
+                          :
+                        </Box>{" "}
+                        ${record.totalCostInUsd.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  ))}
+              </Box>
+              <Box>
+                {usage.recordsByTask
+                  .sort((a, b) => b.totalCostInUsd - a.totalCostInUsd)
+                  .map((record) => (
+                    <Box key={record.taskName}>
+                      <Typography
+                        variant="smallTextParagraphs"
+                        sx={{ color: ({ palette }) => palette.gray[50] }}
+                      >
+                        <Box component="span" fontWeight={500}>
+                          {record.taskName}:
+                        </Box>{" "}
+                        ${record.totalCostInUsd.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  ))}
+              </Box>
+            </Collapse>
+          </SidebarSection>
+        </Box>
+      ) : null}
     </Box>
   );
 };

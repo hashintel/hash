@@ -1,5 +1,6 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, EntityMetadata } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -45,7 +46,7 @@ type SimplifiedUser = {
 
 type UserAndLinkedData = SimplifiedUser & {
   avatar?: Image;
-  orgs: (Simplified<Organization> & {
+  orgs: (Simplified<Entity<Organization>> & {
     avatar?: Image;
     webOwnedById: OwnedById;
   })[];

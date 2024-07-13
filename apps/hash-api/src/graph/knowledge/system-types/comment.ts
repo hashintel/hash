@@ -14,7 +14,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   ImpureGraphFunction,
@@ -25,8 +24,7 @@ import {
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  updateEntityProperties,
-  updateEntityProperty,
+  updateEntity,
 } from "../primitive/entity";
 import {
   getLinkEntityLeftEntity,
@@ -43,7 +41,7 @@ export type Comment = {
   /**
    * @todo - these should probably be changed to encapsulate multi-axis versioning information, or should be explicitly
    *   documented as pertaining to either transaction or decision time
-   *   - https://app.asana.com/0/1202805690238892/1203763454493756/f
+   *   - https://linear.app/hash/issue/H-2991
    */
   resolvedAt?: string;
   deletedAt?: string;
@@ -171,9 +169,8 @@ export const createComment: ImpureGraphFunction<
   const textEntity = await createEntity(ctx, authentication, {
     ownedById,
     properties: {
-      [extractBaseUrl(
-        blockProtocolPropertyTypes.textualContent.propertyTypeId,
-      )]: textualContent,
+      [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]:
+        textualContent,
     },
     entityTypeId: systemEntityTypes.text.entityTypeId,
     relationships,
@@ -245,12 +242,15 @@ export const updateCommentText: ImpureGraphFunction<
     commentEntityId,
   });
 
-  await updateEntityProperty(ctx, authentication, {
+  await updateEntity(ctx, authentication, {
     entity: text.entity,
-    propertyTypeBaseUrl: extractBaseUrl(
-      blockProtocolPropertyTypes.textualContent.propertyTypeId,
-    ),
-    value: textualContent,
+    propertyPatches: [
+      {
+        op: "replace",
+        path: [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl],
+        value: textualContent,
+      },
+    ],
   });
 };
 
@@ -270,21 +270,16 @@ export const deleteComment: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { comment } = params;
 
-  const updatedCommentEntity = await updateEntityProperties(
-    ctx,
-    authentication,
-    {
-      entity: comment.entity,
-      updatedProperties: [
-        {
-          propertyTypeBaseUrl: extractBaseUrl(
-            systemPropertyTypes.deletedAt.propertyTypeId,
-          ),
-          value: new Date().toISOString(),
-        },
-      ],
-    },
-  );
+  const updatedCommentEntity = await updateEntity(ctx, authentication, {
+    entity: comment.entity,
+    propertyPatches: [
+      {
+        op: "add",
+        path: [systemPropertyTypes.deletedAt.propertyTypeBaseUrl],
+        value: new Date().toISOString(),
+      },
+    ],
+  });
 
   return getCommentFromEntity({ entity: updatedCommentEntity });
 };
@@ -400,13 +395,12 @@ export const resolveComment: ImpureGraphFunction<
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { comment } = params;
 
-  const updatedEntity = await updateEntityProperties(ctx, authentication, {
+  const updatedEntity = await updateEntity(ctx, authentication, {
     entity: comment.entity,
-    updatedProperties: [
+    propertyPatches: [
       {
-        propertyTypeBaseUrl: extractBaseUrl(
-          systemPropertyTypes.resolvedAt.propertyTypeId,
-        ),
+        op: "add",
+        path: [systemPropertyTypes.resolvedAt.propertyTypeBaseUrl],
         value: new Date().toISOString(),
       },
     ],

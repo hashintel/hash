@@ -9,6 +9,7 @@ import {
   isHasRightEntityEdge,
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
+  stripDraftIdFromEntityId,
 } from "../../../main";
 import { getEntityRevisionsByEntityId } from "../../../stdlib";
 import {
@@ -57,7 +58,7 @@ export const getOutgoingLinksForEntity = (
       subgraph.temporalAxes.resolved.variable.interval.end.limit,
     );
 
-  const entityEdges = subgraph.edges[entityId];
+  const entityEdges = subgraph.edges[stripDraftIdFromEntityId(entityId)];
 
   if (!entityEdges) {
     return [];
@@ -132,7 +133,7 @@ export const getIncomingLinksForEntity = (
       subgraph.temporalAxes.resolved.variable.interval.end.limit,
     );
 
-  const entityEdges = subgraph.edges[entityId];
+  const entityEdges = subgraph.edges[stripDraftIdFromEntityId(entityId)];
 
   if (!entityEdges) {
     return [];
@@ -321,7 +322,7 @@ export const getOutgoingLinkAndTargetEntities = <
 
       // eslint-disable-next-line no-param-reassign
       revisionMap[linkEntityId] ??= [];
-      revisionMap[linkEntityId]!.push(entity);
+      revisionMap[linkEntityId].push(entity);
 
       return revisionMap;
     },

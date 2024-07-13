@@ -1,15 +1,15 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type {
-  PropertyMetadataMap,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+  EnforcedEntityEditionProvenance,
+  SerializedEntity,
+} from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
-  EntityPropertiesObject,
   EntityUuid,
+  PropertyMetadataObject,
+  PropertyObject,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
@@ -27,9 +27,10 @@ export type WebPage = {
   url: string;
   title: string;
   htmlContent: string;
+  innerText: string;
 };
 
-type LocalOrExistingEntityId =
+export type LocalOrExistingEntityId =
   | { kind: "proposed-entity"; localId: string }
   | { kind: "existing-entity"; entityId: EntityId };
 
@@ -38,12 +39,12 @@ type LocalOrExistingEntityId =
  *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
  */
 export type ProposedEntity = {
-  provenance?: ProvidedEntityEditionProvenance;
-  propertyMetadata?: PropertyMetadataMap;
+  provenance: EnforcedEntityEditionProvenance;
+  propertyMetadata: PropertyMetadataObject;
   localEntityId: string;
   entityTypeId: VersionedUrl;
   summary?: string;
-  properties: EntityPropertiesObject;
+  properties: PropertyObject;
   sourceEntityId?: LocalOrExistingEntityId;
   targetEntityId?: LocalOrExistingEntityId;
 };
@@ -95,6 +96,8 @@ export type FormattedText = {
 
 export type GoogleSheet = { spreadsheetId: string } | { newSheetName: string };
 
+export type WebSearchResult = Pick<WebPage, "title" | "url">;
+
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Boolean: boolean;
@@ -111,6 +114,7 @@ export type PayloadKindValues = {
   Text: string;
   VersionedUrl: VersionedUrl;
   WebPage: WebPage;
+  WebSearchResult: WebSearchResult;
 };
 
 export type PayloadKind = keyof PayloadKindValues;
@@ -341,6 +345,19 @@ export type FlowTrigger = {
   outputs?: StepOutput[];
 };
 
+export type FlowInternetAccessSettings = {
+  enabled: boolean;
+  browserPlugin: {
+    enabled: boolean;
+    domains: string[];
+  };
+};
+
+export type FlowDataSources = {
+  files: { fileEntityIds: EntityId[] };
+  internetAccess: FlowInternetAccessSettings;
+};
+
 export type LocalFlowRun = {
   name: string;
   flowRunId: EntityUuid;
@@ -380,14 +397,14 @@ export type StartedSubTaskLog = ProgressLogBase & {
 
 export type ViewedFile = {
   explanation: string;
-  fileUrl: string;
+  file: Pick<WebPage, "url" | "title">;
   recordedAt: string;
   stepId: string;
   type: "ViewedFile";
 };
 
 export type ProposedEntityLog = ProgressLogBase & {
-  proposedEntity: ProposedEntity;
+  proposedEntity: Omit<ProposedEntity, "provenance" | "propertyMetadata">;
   type: "ProposedEntity";
 };
 
@@ -466,6 +483,11 @@ export type ExternalInputRequest = ExternalInputRequestSignal & {
   resolvedBy?: AccountId;
   /** The time at which the request was made */
   raisedAt: string;
+};
+
+export type FlowUsageRecordCustomMetadata = {
+  taskName?: string;
+  stepId?: string;
 };
 
 export const detailedFlowFields = [

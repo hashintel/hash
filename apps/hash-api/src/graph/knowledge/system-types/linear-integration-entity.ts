@@ -2,6 +2,7 @@ import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -31,7 +32,6 @@ import {
   getRightEntityForLinkEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   ImpureGraphFunction,
@@ -90,9 +90,7 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.linearOrgId.propertyTypeId,
-                  ),
+                  systemPropertyTypes.linearOrgId.propertyTypeBaseUrl,
                 ],
               },
               { parameter: linearOrgId },
@@ -136,9 +134,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.linearOrgId.propertyTypeId,
-                  ),
+                  systemPropertyTypes.linearOrgId.propertyTypeBaseUrl,
                 ],
               },
               { parameter: linearOrgId },
@@ -311,12 +307,18 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
   } else if (existingLinkEntities[0]) {
     const [existingLinkEntity] = existingLinkEntities;
 
+    const teamIdPath =
+      "https://hash.ai/@hash/types/property-type/linear-team-id/" satisfies keyof SyncLinearDataWithProperties as BaseUrl;
+
     await updateEntity(context, authentication, {
       entity: existingLinkEntity,
-      properties: {
-        "https://hash.ai/@hash/types/property-type/linear-team-id/":
-          linearTeamIds,
-      } as SyncLinearDataWithProperties,
+      propertyPatches: [
+        {
+          op: existingLinkEntity.properties[teamIdPath] ? "replace" : "add",
+          path: [teamIdPath],
+          value: linearTeamIds,
+        },
+      ],
     });
   } else {
     await createLinkEntity(context, authentication, {

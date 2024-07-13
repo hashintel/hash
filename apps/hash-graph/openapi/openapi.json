@@ -839,11 +839,11 @@
         },
         "responses": {
           "200": {
-            "description": "The metadata of the created entity",
+            "description": "The created entity",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EntityMetadata"
+                  "$ref": "#/components/schemas/Entity"
                 }
               }
             }
@@ -945,13 +945,13 @@
         },
         "responses": {
           "200": {
-            "description": "The metadata of the created entity",
+            "description": "The created entities",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/EntityMetadata"
+                    "$ref": "#/components/schemas/Entity"
                   }
                 }
               }
@@ -2980,7 +2980,8 @@
         "type": "string",
         "enum": [
           "human",
-          "ai"
+          "ai",
+          "machine"
         ]
       },
       "ArchiveDataTypeParams": {
@@ -3015,6 +3016,22 @@
         "properties": {
           "propertyTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArrayMetadata": {
+        "type": "object",
+        "properties": {
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/PropertyProvenance"
           }
         },
         "additionalProperties": false
@@ -3162,14 +3179,7 @@
             "$ref": "#/components/schemas/OwnedById"
           },
           "properties": {
-            "$ref": "#/components/schemas/PropertyObject"
-          },
-          "propertyMetadata": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PropertyMetadataMap"
-              }
-            ]
+            "$ref": "#/components/schemas/PropertyWithMetadataObject"
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedEntityEditionProvenance"
@@ -3522,10 +3532,16 @@
       },
       "DiffEntityResult": {
         "type": "object",
-        "required": [
-          "properties"
-        ],
         "properties": {
+          "draftState": {
+            "type": "boolean"
+          },
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeIdDiff"
+            }
+          },
           "properties": {
             "type": "array",
             "items": {
@@ -3636,6 +3652,7 @@
             "type": "object",
             "required": [
               "subjectId",
+              "subjectSet",
               "kind"
             ],
             "properties": {
@@ -3647,6 +3664,9 @@
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
+              },
+              "subjectSet": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }
@@ -3708,6 +3728,7 @@
             "type": "object",
             "required": [
               "subjectId",
+              "subjectSet",
               "kind"
             ],
             "properties": {
@@ -3719,6 +3740,9 @@
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
+              },
+              "subjectSet": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }
@@ -3792,7 +3816,7 @@
             }
           },
           "properties": {
-            "$ref": "#/components/schemas/PropertyMetadataMap"
+            "$ref": "#/components/schemas/PropertyMetadataObject"
           },
           "provenance": {
             "$ref": "#/components/schemas/EntityProvenance"
@@ -4074,6 +4098,13 @@
           "propertyName": "kind"
         }
       },
+      "EntitySubjectSet": {
+        "type": "string",
+        "enum": [
+          "administrator",
+          "member"
+        ]
+      },
       "EntityTemporalMetadata": {
         "type": "object",
         "required": [
@@ -4146,6 +4177,49 @@
           "entityTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
           }
+        }
+      },
+      "EntityTypeIdDiff": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "added",
+              "op"
+            ],
+            "properties": {
+              "added": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              },
+              "op": {
+                "type": "string",
+                "enum": [
+                  "added"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "removed",
+              "op"
+            ],
+            "properties": {
+              "op": {
+                "type": "string",
+                "enum": [
+                  "removed"
+                ]
+              },
+              "removed": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "op"
         }
       },
       "EntityTypeInstantiatorSubject": {
@@ -4573,6 +4647,7 @@
             "type": "object",
             "required": [
               "subjectId",
+              "subjectSet",
               "kind"
             ],
             "properties": {
@@ -4584,6 +4659,9 @@
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
+              },
+              "subjectSet": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }
@@ -5384,7 +5462,6 @@
       },
       "GraphResolveDepths": {
         "type": "object",
-        "description": "TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>",
         "required": [
           "inheritsFrom",
           "constrainsValuesOn",
@@ -5968,6 +6045,22 @@
         "type": "string",
         "format": "date-time",
         "nullable": true
+      },
+      "ObjectMetadata": {
+        "type": "object",
+        "properties": {
+          "confidence": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/PropertyProvenance"
+          }
+        },
+        "additionalProperties": false
       },
       "OntologyEdgeKind": {
         "type": "string",
@@ -6640,37 +6733,65 @@
         }
       },
       "PropertyMetadata": {
-        "type": "object",
-        "properties": {
-          "confidence": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Confidence"
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "PropertyMetadataArray",
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ArrayMetadata"
+              },
+              "value": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PropertyMetadata"
+                }
               }
-            ]
+            }
           },
-          "provenance": {
-            "$ref": "#/components/schemas/PropertyProvenance"
-          }
-        }
-      },
-      "PropertyMetadataMap": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "path",
-            "metadata"
-          ],
-          "properties": {
-            "metadata": {
-              "$ref": "#/components/schemas/PropertyMetadata"
-            },
-            "path": {
-              "$ref": "#/components/schemas/PropertyPath"
+          {
+            "type": "object",
+            "title": "PropertyMetadataObject",
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ObjectMetadata"
+              },
+              "value": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/PropertyMetadata"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "PropertyMetadataValue",
+            "required": [
+              "metadata"
+            ],
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ValueMetadata"
+              }
             }
           }
-        }
+        ]
+      },
+      "PropertyMetadataObject": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ObjectMetadata"
+          },
+          "value": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyMetadata"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "PropertyObject": {
         "type": "object",
@@ -6684,17 +6805,10 @@
             "type": "object",
             "required": [
               "path",
-              "value",
+              "property",
               "op"
             ],
             "properties": {
-              "confidence": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Confidence"
-                  }
-                ]
-              },
               "op": {
                 "type": "string",
                 "enum": [
@@ -6704,15 +6818,8 @@
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
               },
-              "provenance": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/PropertyProvenance"
-                  }
-                ]
-              },
-              "value": {
-                "$ref": "#/components/schemas/Property"
+              "property": {
+                "$ref": "#/components/schemas/PropertyWithMetadata"
               }
             }
           },
@@ -6738,17 +6845,10 @@
             "type": "object",
             "required": [
               "path",
-              "value",
+              "property",
               "op"
             ],
             "properties": {
-              "confidence": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Confidence"
-                  }
-                ]
-              },
               "op": {
                 "type": "string",
                 "enum": [
@@ -6758,109 +6858,8 @@
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
               },
-              "provenance": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/PropertyProvenance"
-                  }
-                ]
-              },
-              "value": {
-                "$ref": "#/components/schemas/Property"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "from",
-              "path",
-              "op"
-            ],
-            "properties": {
-              "confidence": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Confidence"
-                  }
-                ]
-              },
-              "from": {
-                "$ref": "#/components/schemas/PropertyPath"
-              },
-              "op": {
-                "type": "string",
-                "enum": [
-                  "move"
-                ]
-              },
-              "path": {
-                "$ref": "#/components/schemas/PropertyPath"
-              },
-              "provenance": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/PropertyProvenance"
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "from",
-              "path",
-              "op"
-            ],
-            "properties": {
-              "confidence": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Confidence"
-                  }
-                ]
-              },
-              "from": {
-                "$ref": "#/components/schemas/PropertyPath"
-              },
-              "op": {
-                "type": "string",
-                "enum": [
-                  "copy"
-                ]
-              },
-              "path": {
-                "$ref": "#/components/schemas/PropertyPath"
-              },
-              "provenance": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/PropertyProvenance"
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "path",
-              "value",
-              "op"
-            ],
-            "properties": {
-              "op": {
-                "type": "string",
-                "enum": [
-                  "test"
-                ]
-              },
-              "path": {
-                "$ref": "#/components/schemas/PropertyPath"
-              },
-              "value": {
-                "$ref": "#/components/schemas/Property"
+              "property": {
+                "$ref": "#/components/schemas/PropertyWithMetadata"
               }
             }
           }
@@ -6895,7 +6894,8 @@
               "$ref": "#/components/schemas/SourceProvenance"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PropertyTypeEditorSubject": {
         "oneOf": [
@@ -7213,6 +7213,58 @@
           }
         }
       },
+      "PropertyWithMetadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "PropertyWithMetadataArray",
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ArrayMetadata"
+              },
+              "value": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PropertyWithMetadata"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "PropertyWithMetadataObject",
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/ObjectMetadata"
+              },
+              "value": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/PropertyWithMetadata"
+                }
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/ValueWithMetadata"
+          }
+        ]
+      },
+      "PropertyWithMetadataObject": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ObjectMetadata"
+          },
+          "value": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyWithMetadata"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "ProvidedEntityEditionProvenance": {
         "type": "object",
         "properties": {
@@ -7485,6 +7537,13 @@
               "type": "string"
             },
             "description": "The people or organizations that authored the material."
+          },
+          "entityId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityId"
+              }
+            ]
           },
           "firstPublished": {
             "allOf": [
@@ -7947,15 +8006,45 @@
             ]
           },
           "properties": {
-            "$ref": "#/components/schemas/PropertyObject"
-          },
-          "propertyMetadata": {
+            "$ref": "#/components/schemas/PropertyWithMetadataObject"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValueMetadata": {
+        "type": "object",
+        "properties": {
+          "confidence": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/PropertyMetadataMap"
+                "$ref": "#/components/schemas/Confidence"
               }
             ]
+          },
+          "dataTypeId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/PropertyProvenance"
           }
+        },
+        "additionalProperties": false
+      },
+      "ValueWithMetadata": {
+        "type": "object",
+        "required": [
+          "value",
+          "metadata"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ValueMetadata"
+          },
+          "value": {}
         },
         "additionalProperties": false
       },

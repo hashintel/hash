@@ -1,5 +1,12 @@
-import type { BaseUrl, EntityType, PropertyType } from "@blockprotocol/graph";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/graph";
+import type {
+  BaseUrl,
+  EntityType,
+  PropertyType,
+} from "@blockprotocol/type-system/slim";
+import {
+  extractBaseUrl,
+  extractVersion,
+} from "@blockprotocol/type-system/slim";
 import { useMemo } from "react";
 
 /**

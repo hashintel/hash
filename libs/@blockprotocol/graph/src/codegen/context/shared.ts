@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import { mustBeDefined } from "../../shared/util/must-be-defined.js";
+import { mustBeDefined } from "../../util/must-be-defined";
 
 type TypeDependencies = {
   typeId: VersionedUrl;
@@ -25,8 +25,8 @@ export class TypeDependencyMap {
     };
 
     this.dependencyMap[typeId] ??= { typeId, dependencies: [] };
-    this.dependencyMap[typeId]!.dependencies.push(
-      this.dependencyMap[dependency]!,
+    this.dependencyMap[typeId].dependencies.push(
+      this.dependencyMap[dependency],
     );
   }
 

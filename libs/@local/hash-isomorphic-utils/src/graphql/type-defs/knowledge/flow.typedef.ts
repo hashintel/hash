@@ -48,6 +48,7 @@ export const flowTypedef = gql`
   }
 
   scalar ArbitraryJsonData
+  scalar EntityUuid
   scalar ExternalInputRequest
   scalar FlowInputs
   scalar StepInput
@@ -127,7 +128,7 @@ export const flowTypedef = gql`
     1. in the 'continue as new' case, in which case we will need to combine the history of those runs to form a complete picture of the flow's execution.
     2. in the retry case, in which case the failed runs are only important if we want to expose past failures to the user.
     """
-    flowRunId: String!
+    flowRunId: EntityUuid!
     """
     The id for the definition of the flow this run is executing (the template for the flow)
     """
@@ -191,6 +192,7 @@ export const flowTypedef = gql`
   }
 
   scalar FlowDefinition
+  scalar FlowDataSources
   scalar FlowTrigger
   scalar ExternalInputResponseWithoutUser
 
@@ -199,10 +201,11 @@ export const flowTypedef = gql`
     Start a new flow run, and return its flowRunId to allow for identifying it later.
     """
     startFlow(
+      dataSources: FlowDataSources!
       flowDefinition: FlowDefinition!
       flowTrigger: FlowTrigger!
       webId: OwnedById!
-    ): ID!
+    ): EntityUuid!
 
     """
     Submit a response to a request from a flow step for external input

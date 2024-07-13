@@ -1,3 +1,4 @@
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -18,7 +19,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { FlowRunProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -34,7 +35,7 @@ export const getFlowRunEntityById = async (params: {
   flowRunId: EntityUuid;
   graphApiClient: GraphApi;
   userAuthentication: { actorId: AccountId };
-}): Promise<Entity<FlowRunProperties> | null> => {
+}): Promise<Entity<FlowRunEntity> | null> => {
   const { flowRunId, graphApiClient, userAuthentication } = params;
 
   const [existingFlowEntity] = await graphApiClient
@@ -59,7 +60,7 @@ export const getFlowRunEntityById = async (params: {
           mapGraphApiEntityToEntity(
             entity,
             userAuthentication.actorId,
-          ) as Entity<FlowRunProperties>,
+          ) as Entity<FlowRunEntity>,
       ),
     );
 
@@ -214,7 +215,7 @@ export async function getFlowRuns({
         );
 
         flowRunIdToOwnedByAndName[entityUuid] = {
-          name: (entity.properties as FlowRunProperties)[
+          name: (entity.properties as FlowRunEntity["properties"])[
             "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
           ],
           ownedById,
@@ -223,7 +224,7 @@ export async function getFlowRuns({
       return flowRunIdToOwnedByAndName;
     });
 
-  const relevantFlowRunIds = Object.keys(relevantFlows);
+  const relevantFlowRunIds = typedKeys(relevantFlows);
 
   if (!relevantFlowRunIds.length) {
     return [];
@@ -246,7 +247,8 @@ export async function getFlowRuns({
     const workflows: FlowRun[] = [];
 
     for await (const workflow of workflowIterable) {
-      const flowDetails = relevantFlows[workflow.workflowId as EntityUuid];
+      const flowRunId = workflow.workflowId as EntityUuid;
+      const flowDetails = relevantFlows[flowRunId];
 
       if (!flowDetails) {
         throw new Error(
@@ -254,10 +256,9 @@ export async function getFlowRuns({
         );
       }
 
-      const workflowId = workflow.workflowId;
       const runInfo = await getFlowRunFromWorkflowId({
         name: flowDetails.name,
-        workflowId,
+        workflowId: flowRunId,
         temporalClient,
         webId: flowDetails.ownedById,
       });
@@ -269,9 +270,9 @@ export async function getFlowRuns({
     const workflows: SparseFlowRun[] = [];
 
     for await (const workflow of workflowIterable) {
-      const workflowId = workflow.workflowId;
+      const flowRunId = workflow.workflowId as EntityUuid;
 
-      const flowDetails = relevantFlows[workflow.workflowId as EntityUuid];
+      const flowDetails = relevantFlows[flowRunId];
 
       if (!flowDetails) {
         throw new Error(
@@ -280,7 +281,7 @@ export async function getFlowRuns({
       }
       const runInfo = await getSparseFlowRunFromWorkflowId({
         name: flowDetails.name,
-        workflowId,
+        workflowId: flowRunId,
         temporalClient,
         webId: flowDetails.ownedById,
       });

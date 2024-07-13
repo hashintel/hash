@@ -1,5 +1,5 @@
 use core::{iter::repeat, str::FromStr};
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 use authorization::{schema::WebOwnerSubject, AuthorizationApi};
 use graph::store::{
@@ -13,7 +13,7 @@ use graph_types::{
     knowledge::{
         entity::{EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        PropertyMetadataMap, PropertyObject, PropertyProvenance,
+        PropertyObject, PropertyProvenance, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -22,9 +22,9 @@ use uuid::Uuid;
 
 use crate::util::{seed, StoreWrapper};
 
-// TODO: This is quite temporary at the moment. We'll want a lot more variation, a greater
+// SEE: This is quite temporary at the moment. We'll want a lot more variation, a greater
 //  quantity of types, increased number of versions, etc.
-//  https://app.asana.com/0/0/1203072189010768/f
+//  See https://linear.app/hash/issue/H-1628
 // WARNING: Careful when reordering these, unfortunately ordering matters here due to
 // interdependencies, it's flakey and a bit hacky
 const SEED_DATA_TYPES: [&str; 6] = [
@@ -166,7 +166,7 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
             serde_json::from_str(entity_str).expect("could not parse entity");
         let entity_type: EntityType =
             serde_json::from_str(entity_type_str).expect("could not parse entity type");
-        let entity_type_id = entity_type.id().clone();
+        let entity_type_id = entity_type.id;
 
         let uuids = transaction
             .create_entities(
@@ -175,10 +175,10 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                     entity_uuid: None,
                     decision_time: None,
-                    entity_type_ids: vec![entity_type_id],
-                    properties,
+                    entity_type_ids: HashSet::from([entity_type_id]),
+                    properties: PropertyWithMetadataObject::from_parts(properties, None)
+                        .expect("could not create property with metadata object"),
                     confidence: None,
-                    property_metadata: PropertyMetadataMap::default(),
                     link_data: None,
                     draft: false,
                     relationships: [],
@@ -197,7 +197,7 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
     for (entity_type_str, left_entity_index, right_entity_index) in SEED_LINKS {
         let entity_type: EntityType =
             serde_json::from_str(entity_type_str).expect("could not parse entity type");
-        let entity_type_id = entity_type.id().clone();
+        let entity_type_id = entity_type.id;
 
         let uuids = transaction
             .create_entities(
@@ -205,28 +205,29 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
                 entity_uuids[*left_entity_index]
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
-                    .map(
-                        |(left_entity_metadata, right_entity_metadata)| CreateEntityParams {
-                            owned_by_id: OwnedById::new(account_id.into_uuid()),
-                            entity_uuid: None,
-                            decision_time: None,
-                            entity_type_ids: vec![entity_type_id.clone()],
-                            properties: PropertyObject::empty(),
-                            confidence: None,
-                            property_metadata: PropertyMetadataMap::default(),
-                            link_data: Some(LinkData {
-                                left_entity_id: left_entity_metadata.record_id.entity_id,
-                                right_entity_id: right_entity_metadata.record_id.entity_id,
-                                left_entity_confidence: None,
-                                left_entity_provenance: PropertyProvenance::default(),
-                                right_entity_confidence: None,
-                                right_entity_provenance: PropertyProvenance::default(),
-                            }),
-                            draft: false,
-                            relationships: [],
-                            provenance: ProvidedEntityEditionProvenance::default(),
-                        },
-                    )
+                    .map(|(left_entity, right_entity)| CreateEntityParams {
+                        owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        entity_uuid: None,
+                        decision_time: None,
+                        entity_type_ids: HashSet::from([entity_type_id.clone()]),
+                        properties: PropertyWithMetadataObject::from_parts(
+                            PropertyObject::empty(),
+                            None,
+                        )
+                        .expect("could not create property with metadata object"),
+                        confidence: None,
+                        link_data: Some(LinkData {
+                            left_entity_id: left_entity.metadata.record_id.entity_id,
+                            right_entity_id: right_entity.metadata.record_id.entity_id,
+                            left_entity_confidence: None,
+                            left_entity_provenance: PropertyProvenance::default(),
+                            right_entity_confidence: None,
+                            right_entity_provenance: PropertyProvenance::default(),
+                        }),
+                        draft: false,
+                        relationships: [],
+                        provenance: ProvidedEntityEditionProvenance::default(),
+                    })
                     .collect(),
             )
             .await
@@ -266,7 +267,7 @@ async fn get_samples<A: AuthorizationApi>(
             .map(|entity_type_str| {
                 let entity_type: EntityType =
                     serde_json::from_str(entity_type_str).expect("could not parse entity type");
-                entity_type.id().clone()
+                entity_type.id
             })
             .collect(),
     );
@@ -284,7 +285,7 @@ async fn get_samples<A: AuthorizationApi>(
     for entity_type_id in SEED_ENTITIES.map(|(entity_type_str, ..)| {
         let entity_type: EntityType =
             serde_json::from_str(entity_type_str).expect("could not parse entity type");
-        entity_type.id().clone()
+        entity_type.id
     }) {
         // For now we'll just pick a sample of 50 entities.
         let sample_entity_uuids = store_wrapper
@@ -326,7 +327,8 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
     store_wrapper: &mut StoreWrapper<A>,
 ) -> Samples {
     // TODO: We'll want to test distribution across accounts
-    //  https://app.asana.com/0/1200211978612931/1203071961523000/f
+    //   see https://linear.app/hash/issue/H-3012
+    //
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id = AccountId::new(

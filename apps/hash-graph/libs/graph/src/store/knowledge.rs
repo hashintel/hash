@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
-use core::fmt;
-use std::error::Error;
+use core::{error::Error, fmt};
+use std::collections::HashSet;
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
@@ -8,13 +8,10 @@ use futures::TryFutureExt;
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{
-            Entity, EntityEmbedding, EntityId, EntityMetadata, EntityUuid,
-            ProvidedEntityEditionProvenance,
-        },
+        entity::{Entity, EntityEmbedding, EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        Confidence, PropertyDiff, PropertyMetadataMap, PropertyObject, PropertyPatchOperation,
-        PropertyPath,
+        Confidence, EntityTypeIdDiff, PropertyDiff, PropertyPatchOperation, PropertyPath,
+        PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -39,10 +36,9 @@ use crate::{
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-#[expect(clippy::large_enum_variant)]
 pub enum EntityValidationType<'a> {
     Schema(Vec<EntityType>),
-    Id(Cow<'a, [VersionedUrl]>),
+    Id(Cow<'a, HashSet<VersionedUrl>>),
     #[serde(skip)]
     ClosedSchema(Cow<'a, ClosedEntityType>),
 }
@@ -184,14 +180,12 @@ pub struct CreateEntityParams<R> {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
-    pub entity_type_ids: Vec<VersionedUrl>,
-    pub properties: PropertyObject,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
+    pub entity_type_ids: HashSet<VersionedUrl>,
+    pub properties: PropertyWithMetadataObject,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
-    pub property_metadata: PropertyMetadataMap<'static>,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
@@ -208,10 +202,7 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub entity_types: EntityValidationType<'a>,
     #[serde(borrow)]
-    pub properties: Cow<'a, PropertyObject>,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    #[serde(borrow, default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
-    pub property_metadata: Cow<'a, PropertyMetadataMap<'a>>,
+    pub properties: Cow<'a, PropertyWithMetadataObject>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,
@@ -286,10 +277,9 @@ pub struct PatchEntityParams {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub entity_type_ids: Vec<VersionedUrl>,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
+    pub entity_type_ids: HashSet<VersionedUrl>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub properties: Vec<PropertyPatchOperation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -339,7 +329,13 @@ pub struct DiffEntityParams {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DiffEntityResult<'e> {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub properties: Vec<PropertyDiff<'e>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub entity_type_ids: Vec<EntityTypeIdDiff<'e>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub draft_state: Option<bool>,
 }
 
 /// Describes the API of a store implementation for [Entities].
@@ -351,14 +347,15 @@ pub trait EntityStore {
     /// # Errors:
     ///
     /// - if the [`EntityType`] doesn't exist
-    /// - if the [`PropertyObject`] is not valid with respect to the specified [`EntityType`]
+    /// - if the [`PropertyWithMetadataObject`] is not valid with respect to the specified
+    ///   [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     fn create_entity<R>(
         &mut self,
         actor_id: AccountId,
         params: CreateEntityParams<R>,
-    ) -> impl Future<Output = Result<EntityMetadata, Report<InsertionError>>> + Send
+    ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send,
     {
@@ -375,7 +372,7 @@ pub trait EntityStore {
         &mut self,
         actor_id: AccountId,
         params: Vec<CreateEntityParams<R>>,
-    ) -> impl Future<Output = Result<Vec<EntityMetadata>, Report<InsertionError>>> + Send
+    ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send;
 
@@ -486,8 +483,35 @@ pub trait EntityStore {
                 .map(PropertyDiff::into_owned)
                 .collect();
 
+            let removed_types = first_entity
+                .metadata
+                .entity_type_ids
+                .difference(&second_entity.metadata.entity_type_ids)
+                .map(|removed| EntityTypeIdDiff::Removed {
+                    removed: Cow::Borrowed(removed),
+                });
+            let added_types = second_entity
+                .metadata
+                .entity_type_ids
+                .difference(&first_entity.metadata.entity_type_ids)
+                .map(|added| EntityTypeIdDiff::Added {
+                    added: Cow::Borrowed(added),
+                });
+            let first_is_draft = first_entity.metadata.record_id.entity_id.draft_id.is_some();
+            let second_is_draft = second_entity
+                .metadata
+                .record_id
+                .entity_id
+                .draft_id
+                .is_some();
+
             Ok(DiffEntityResult {
                 properties: property_diff,
+                entity_type_ids: removed_types
+                    .chain(added_types)
+                    .map(EntityTypeIdDiff::into_owned)
+                    .collect(),
+                draft_state: (first_is_draft != second_is_draft).then_some(second_is_draft),
             })
         }
     }

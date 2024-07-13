@@ -21,7 +21,7 @@ use crate::{
 ///
 /// [`DataType`]: type_system::DataType
 // TODO: Adjust enum and docs when adding non-primitive data types
-//   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+//   see https://linear.app/hash/issue/BP-104
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DataTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`DataType`].

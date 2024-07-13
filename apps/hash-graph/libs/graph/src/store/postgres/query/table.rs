@@ -36,8 +36,6 @@ pub enum Table {
     EntityEmbeddings,
     EntityIsOfType,
     EntityIsOfTypeIds,
-    EntityProperty,
-    EntityProperties,
     EntityHasLeftEntity,
     EntityHasRightEntity,
     Reference(ReferenceTable),
@@ -325,8 +323,6 @@ impl Table {
             Self::EntityEmbeddings => "entity_embeddings",
             Self::EntityIsOfType => "entity_is_of_type",
             Self::EntityIsOfTypeIds => "entity_is_of_type_ids",
-            Self::EntityProperty => "entity_property",
-            Self::EntityProperties => "entity_properties",
             Self::EntityHasLeftEntity => "entity_has_left_entity",
             Self::EntityHasRightEntity => "entity_has_right_entity",
             Self::Reference(table) => table.as_str(),
@@ -896,13 +892,14 @@ pub enum EntityEditions {
     Archived,
     Confidence,
     Provenance,
+    PropertyMetadata,
 }
 
 impl DatabaseColumn for EntityEditions {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::EditionId => ParameterType::Uuid,
-            Self::Properties | Self::Provenance => ParameterType::Any,
+            Self::Properties | Self::Provenance | Self::PropertyMetadata => ParameterType::Any,
             Self::Archived => ParameterType::Boolean,
             Self::Confidence => ParameterType::F64,
         }
@@ -911,7 +908,7 @@ impl DatabaseColumn for EntityEditions {
     fn nullable(self) -> bool {
         match self {
             Self::EditionId | Self::Archived | Self::Provenance => false,
-            Self::Properties | Self::Confidence => true,
+            Self::Properties | Self::Confidence | Self::PropertyMetadata => true,
         }
     }
 
@@ -922,6 +919,7 @@ impl DatabaseColumn for EntityEditions {
             Self::Provenance => "provenance",
             Self::Archived => "archived",
             Self::Confidence => "confidence",
+            Self::PropertyMetadata => "property_metadata",
         }
     }
 }
@@ -979,41 +977,6 @@ impl DatabaseColumn for EntityIsOfTypeIds {
             Self::EntityEditionId => "entity_edition_id",
             Self::BaseUrls => "base_urls",
             Self::Versions => "versions",
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum EntityProperties {
-    EntityEditionId,
-    PropertyPaths,
-    Confidences,
-    Provenances,
-}
-
-impl DatabaseColumn for EntityProperties {
-    fn parameter_type(self) -> ParameterType {
-        match self {
-            Self::EntityEditionId => ParameterType::Uuid,
-            Self::PropertyPaths => ParameterType::Vector(Box::new(ParameterType::Text)),
-            Self::Confidences => ParameterType::Vector(Box::new(ParameterType::F64)),
-            Self::Provenances => ParameterType::Any,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::EntityEditionId | Self::Provenances => false,
-            Self::PropertyPaths | Self::Confidences => true,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::EntityEditionId => "entity_edition_id",
-            Self::PropertyPaths => "property_paths",
-            Self::Confidences => "confidences",
-            Self::Provenances => "provenances",
         }
     }
 }
@@ -1302,7 +1265,6 @@ pub enum Column {
     EntityTypeConstrainsLinkDestinationsOn(EntityTypeConstrainsLinkDestinationsOn, Option<u32>),
     EntityIsOfType(EntityIsOfType, Option<u32>),
     EntityIsOfTypeIds(EntityIsOfTypeIds),
-    EntityProperties(EntityProperties),
     EntityHasLeftEntity(EntityHasLeftEntity),
     EntityHasRightEntity(EntityHasRightEntity),
 }
@@ -1445,12 +1407,6 @@ impl From<EntityIsOfTypeIds> for Column {
     }
 }
 
-impl From<EntityProperties> for Column {
-    fn from(column: EntityProperties) -> Self {
-        Self::EntityProperties(column)
-    }
-}
-
 impl From<EntityHasLeftEntity> for Column {
     fn from(column: EntityHasLeftEntity) -> Self {
         Self::EntityHasLeftEntity(column)
@@ -1507,7 +1463,6 @@ impl Column {
                 Table::Reference(ReferenceTable::EntityIsOfType { inheritance_depth })
             }
             Self::EntityIsOfTypeIds(_) => Table::EntityIsOfTypeIds,
-            Self::EntityProperties(_) => Table::EntityProperties,
             Self::EntityHasLeftEntity(_) => Table::Reference(ReferenceTable::EntityHasLeftEntity),
             Self::EntityHasRightEntity(_) => Table::Reference(ReferenceTable::EntityHasRightEntity),
         }
@@ -1558,7 +1513,6 @@ impl DatabaseColumn for Column {
             Self::EntityTypeConstrainsLinkDestinationsOn(column, _) => column.parameter_type(),
             Self::EntityIsOfType(column, _) => column.parameter_type(),
             Self::EntityIsOfTypeIds(column) => column.parameter_type(),
-            Self::EntityProperties(column) => column.parameter_type(),
             Self::EntityHasLeftEntity(column) => column.parameter_type(),
             Self::EntityHasRightEntity(column) => column.parameter_type(),
         }
@@ -1589,7 +1543,6 @@ impl DatabaseColumn for Column {
             Self::EntityTypeConstrainsLinkDestinationsOn(column, _) => column.nullable(),
             Self::EntityIsOfType(column, _) => column.nullable(),
             Self::EntityIsOfTypeIds(column) => column.nullable(),
-            Self::EntityProperties(column) => column.nullable(),
             Self::EntityHasLeftEntity(column) => column.nullable(),
             Self::EntityHasRightEntity(column) => column.nullable(),
         }
@@ -1620,7 +1573,6 @@ impl DatabaseColumn for Column {
             Self::EntityTypeConstrainsLinkDestinationsOn(column, _) => column.as_str(),
             Self::EntityIsOfType(column, _) => column.as_str(),
             Self::EntityIsOfTypeIds(column) => column.as_str(),
-            Self::EntityProperties(column) => column.as_str(),
             Self::EntityHasLeftEntity(column) => column.as_str(),
             Self::EntityHasRightEntity(column) => column.as_str(),
         }
@@ -1708,7 +1660,6 @@ pub enum Relation {
     DataTypeIds,
     PropertyTypeIds,
     EntityTypeIds,
-    EntityProperties,
     EntityIsOfTypes,
     EntityIds,
     EntityEditions,
@@ -1860,11 +1811,6 @@ impl Relation {
                 on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
                 join: Column::EntityIsOfTypeIds(EntityIsOfTypeIds::EntityEditionId),
                 join_type: JoinType::Inner,
-            }),
-            Self::EntityProperties => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
-                join: Column::EntityProperties(EntityProperties::EntityEditionId),
-                join_type: JoinType::LeftOuter,
             }),
             Self::EntityTypeEmbeddings => {
                 ForeignKeyJoin::from_reference(ForeignKeyReference::Single {

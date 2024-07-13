@@ -47,6 +47,7 @@ export const submitEarlyAccessFormResolver: ResolverFn<
           subject: {
             kind: "accountGroup",
             subjectId: adminAccountGroupId,
+            subjectSet: "member",
           },
         },
         {

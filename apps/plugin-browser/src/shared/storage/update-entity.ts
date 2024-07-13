@@ -1,9 +1,6 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type {
-  EntityId,
-  EntityPropertiesObject,
-} from "@local/hash-graph-types/entity";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { Entity, propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 
 import type {
   UpdateEntityMutation,
@@ -15,7 +12,7 @@ import { queryGraphQlApi } from "../query-graphql-api";
 export const updateEntity = (params: {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
-  updatedProperties: EntityPropertiesObject;
+  updatedProperties: PropertyObject;
 }): Promise<Entity> =>
   queryGraphQlApi<UpdateEntityMutation, UpdateEntityMutationVariables>(
     updateEntityMutation,
@@ -23,7 +20,7 @@ export const updateEntity = (params: {
       entityUpdate: {
         entityId: params.entityId,
         entityTypeId: params.entityTypeId,
-        updatedProperties: params.updatedProperties,
+        propertyPatches: propertyObjectToPatches(params.updatedProperties),
       },
     },
   ).then(({ data }) => {

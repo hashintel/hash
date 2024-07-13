@@ -11,10 +11,10 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type {
-  BlockProperties,
-  HasIndexedContentProperties,
+  Block,
+  HasIndexedContent,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type {
@@ -26,7 +26,6 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type { GetEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
 
@@ -96,7 +95,7 @@ export const isBlockCollectionContentsEmpty = (params: {
       systemEntityTypes.text.entityTypeId
   ) {
     const textualContent = contents[0]!.rightEntity.blockChildEntity.properties[
-      extractBaseUrl(blockProtocolPropertyTypes.textualContent.propertyTypeId)
+      blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl
     ] as TextToken[];
 
     return textualContent.length === 0;
@@ -119,9 +118,9 @@ export const getBlockCollectionContents = (params: {
   const outgoingContentLinks = getOutgoingLinkAndTargetEntities<
     {
       linkEntity:
-        | LinkEntity<HasIndexedContentProperties>[]
-        | LinkEntity<HasSpatiallyPositionedContentProperties>[];
-      rightEntity: Entity<BlockProperties>[];
+        | LinkEntity<HasIndexedContent>[]
+        | LinkEntity<HasSpatiallyPositionedContent>[];
+      rightEntity: Entity<Block>[];
     }[]
   >(blockCollectionSubgraph, blockCollectionEntityId)
     .filter(

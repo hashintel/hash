@@ -1,4 +1,5 @@
 use core::{iter::repeat, str::FromStr};
+use std::collections::HashSet;
 
 use authorization::{schema::WebOwnerSubject, AuthorizationApi, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
@@ -22,9 +23,9 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{EntityMetadata, ProvidedEntityEditionProvenance},
+        entity::{Entity, ProvidedEntityEditionProvenance},
         link::LinkData,
-        PropertyMetadataMap, PropertyObject, PropertyProvenance,
+        PropertyObject, PropertyProvenance, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -39,11 +40,11 @@ use crate::util::{seed, setup, setup_subscriber, Store, StoreWrapper};
 const DB_NAME: &str = "entity_scale";
 
 struct DatastoreEntitiesMetadata {
-    pub entity_metadata_list: Vec<EntityMetadata>,
+    pub entity_list: Vec<Entity>,
     // TODO: we should also check average query time for link entities, but combining them here
     //   would affect the distribution within sampling
     #[expect(dead_code, reason = "See TODO")]
-    pub link_entity_metadata_list: Vec<EntityMetadata>,
+    pub link_entity_list: Vec<Entity>,
 }
 
 #[expect(clippy::too_many_lines)]
@@ -115,17 +116,17 @@ async fn seed_db<A: AuthorizationApi>(
 
     let owned_by_id = OwnedById::new(account_id.into_uuid());
 
-    let entity_metadata_list = transaction
+    let entity_list = transaction
         .create_entities(
             account_id,
             repeat(CreateEntityParams {
                 owned_by_id,
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![entity_type.id().clone()],
-                properties,
+                entity_type_ids: HashSet::from([entity_type.id]),
+                properties: PropertyWithMetadataObject::from_parts(properties, None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -140,31 +141,32 @@ async fn seed_db<A: AuthorizationApi>(
     let link_entity_metadata_list = transaction
         .create_entities(
             account_id,
-            entity_metadata_list
+            entity_list
                 .iter()
-                .flat_map(|entity_a_metadata| {
-                    entity_metadata_list
-                        .iter()
-                        .map(|entity_b_metadata| CreateEntityParams {
-                            owned_by_id,
-                            entity_uuid: None,
-                            decision_time: None,
-                            entity_type_ids: vec![link_type.id().clone()],
-                            properties: PropertyObject::empty(),
-                            confidence: None,
-                            property_metadata: PropertyMetadataMap::default(),
-                            link_data: Some(LinkData {
-                                left_entity_id: entity_a_metadata.record_id.entity_id,
-                                right_entity_id: entity_b_metadata.record_id.entity_id,
-                                left_entity_confidence: None,
-                                left_entity_provenance: PropertyProvenance::default(),
-                                right_entity_confidence: None,
-                                right_entity_provenance: PropertyProvenance::default(),
-                            }),
-                            draft: false,
-                            relationships: [],
-                            provenance: ProvidedEntityEditionProvenance::default(),
-                        })
+                .flat_map(|entity_a| {
+                    entity_list.iter().map(|entity_b| CreateEntityParams {
+                        owned_by_id,
+                        entity_uuid: None,
+                        decision_time: None,
+                        entity_type_ids: HashSet::from([link_type.id.clone()]),
+                        properties: PropertyWithMetadataObject::from_parts(
+                            PropertyObject::empty(),
+                            None,
+                        )
+                        .expect("could not create property with metadata object"),
+                        confidence: None,
+                        link_data: Some(LinkData {
+                            left_entity_id: entity_a.metadata.record_id.entity_id,
+                            right_entity_id: entity_b.metadata.record_id.entity_id,
+                            left_entity_confidence: None,
+                            left_entity_provenance: PropertyProvenance::default(),
+                            right_entity_confidence: None,
+                            right_entity_provenance: PropertyProvenance::default(),
+                        }),
+                        draft: false,
+                        relationships: [],
+                        provenance: ProvidedEntityEditionProvenance::default(),
+                    })
                 })
                 .collect(),
         )
@@ -185,8 +187,8 @@ async fn seed_db<A: AuthorizationApi>(
     );
 
     DatastoreEntitiesMetadata {
-        entity_metadata_list,
-        link_entity_metadata_list,
+        entity_list,
+        link_entity_list: link_entity_metadata_list,
     }
 }
 
@@ -195,7 +197,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
-    entity_metadata_list: &[EntityMetadata],
+    entity_metadata_list: &[Entity],
     graph_resolve_depths: GraphResolveDepths,
 ) {
     b.to_async(runtime).iter_batched(
@@ -204,7 +206,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
             // query
             entity_metadata_list
                 .iter()
-                .map(|metadata| metadata.record_id)
+                .map(|entity| entity.metadata.record_id)
                 .choose(&mut thread_rng())
                 .expect("could not choose random entity")
         },
@@ -257,7 +259,7 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id, NoAuthorization);
 
         let DatastoreEntitiesMetadata {
-            entity_metadata_list,
+            entity_list: entity_metadata_list,
             ..
         } = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
@@ -267,14 +269,14 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_metadata_list),
-            |b, (_account_id, entity_metadata_list)| {
+            |b, (_account_id, entity_list)| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 bench_get_entity_by_id(
                     b,
                     &runtime,
                     store,
                     account_id,
-                    entity_metadata_list,
+                    entity_list,
                     GraphResolveDepths {
                         inherits_from: OutgoingEdgeResolveDepth::default(),
                         constrains_values_on: OutgoingEdgeResolveDepth::default(),
@@ -310,7 +312,7 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id, NoAuthorization);
 
         let DatastoreEntitiesMetadata {
-            entity_metadata_list,
+            entity_list: entity_metadata_list,
             ..
         } = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;

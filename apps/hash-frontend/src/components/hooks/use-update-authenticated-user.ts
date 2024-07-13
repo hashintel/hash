@@ -1,4 +1,6 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { PropertyPatchOperation } from "@local/hash-graph-types/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
@@ -6,7 +8,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { GraphQLError } from "graphql";
 import { useCallback, useState } from "react";
 
@@ -79,54 +80,39 @@ export const useUpdateAuthenticatedUser = () => {
 
         const latestUserEntity = getRoots(latestUserEntitySubgraph)[0]!;
 
-        /**
-         * @todo: use a partial update mutation instead
-         * @see https://app.asana.com/0/1202805690238892/1203285029221330/f
-         */
-        const { properties: currentProperties } = latestUserEntity;
+        const propertyPatches: PropertyPatchOperation[] = [];
+        const {
+          shortname,
+          displayName,
+          location,
+          websiteUrl,
+          preferredPronouns,
+        } = params;
+        for (const [key, value] of typedEntries({
+          shortname,
+          displayName,
+          location,
+          websiteUrl,
+          preferredPronouns,
+        })) {
+          if (typeof value !== "undefined") {
+            propertyPatches.push({
+              path: [
+                key === "displayName"
+                  ? blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl
+                  : systemPropertyTypes[key].propertyTypeBaseUrl,
+              ],
+              op: "add",
+              value,
+            });
+          }
+        }
 
         const { errors } = await updateEntity({
           variables: {
             entityUpdate: {
               entityId: latestUserEntity.metadata.recordId.entityId,
-              updatedProperties: {
-                ...currentProperties,
-                ...(params.shortname
-                  ? {
-                      [extractBaseUrl(
-                        systemPropertyTypes.shortname.propertyTypeId,
-                      )]: params.shortname,
-                    }
-                  : {}),
-                ...(params.displayName
-                  ? {
-                      [extractBaseUrl(
-                        blockProtocolPropertyTypes.displayName.propertyTypeId,
-                      )]: params.displayName,
-                    }
-                  : {}),
-                ...(typeof params.location !== "undefined"
-                  ? {
-                      [extractBaseUrl(
-                        systemPropertyTypes.location.propertyTypeId,
-                      )]: params.location,
-                    }
-                  : {}),
-                ...(typeof params.websiteUrl !== "undefined"
-                  ? {
-                      [extractBaseUrl(
-                        systemPropertyTypes.websiteUrl.propertyTypeId,
-                      )]: params.websiteUrl,
-                    }
-                  : {}),
-                ...(typeof params.preferredPronouns !== "undefined"
-                  ? {
-                      [extractBaseUrl(
-                        systemPropertyTypes.preferredPronouns.propertyTypeId,
-                      )]: params.preferredPronouns,
-                    }
-                  : {}),
-              },
+              propertyPatches,
             },
           },
         });

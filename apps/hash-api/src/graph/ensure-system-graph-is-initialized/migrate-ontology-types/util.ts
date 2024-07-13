@@ -4,11 +4,11 @@ import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type {
-  Array,
+  ArraySchema,
   DataTypeReference,
   EntityType,
-  Object as ObjectSchema,
-  OneOf,
+  ObjectSchema,
+  OneOfSchema,
   PropertyType,
   PropertyTypeReference,
   PropertyValues,
@@ -16,6 +16,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
+  atLeastOne,
   DATA_TYPE_META_SCHEMA,
   ENTITY_TYPE_META_SCHEMA,
   extractVersion,
@@ -27,7 +28,7 @@ import type {
   UpdatePropertyType,
 } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type { PropertyObject } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   ConstructDataTypeParams,
@@ -375,12 +376,13 @@ export const generateSystemPropertyTypeSchema = (
 
       // Optionally wrap inner in an array
       if (array) {
-        const arrayOfPropertyValues: Array<OneOf<PropertyValues>> = {
-          type: "array",
-          items: {
-            oneOf: [inner],
-          },
-        };
+        const arrayOfPropertyValues: ArraySchema<OneOfSchema<PropertyValues>> =
+          {
+            type: "array",
+            items: {
+              oneOf: [inner],
+            },
+          };
         return arrayOfPropertyValues;
       } else {
         return inner;
@@ -623,7 +625,6 @@ export type EntityTypeDefinition = {
     ];
     minItems?: number;
     maxItems?: number;
-    ordered?: boolean;
   }[];
 };
 
@@ -633,7 +634,7 @@ export type EntityTypeDefinition = {
 export const generateSystemEntityTypeSchema = (
   params: EntityTypeDefinition,
 ): EntityType => {
-  /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
+  /** @todo - clean this up to be more readable */
   const properties =
     params.properties?.reduce(
       (prev, { propertyType, array }) => ({
@@ -673,20 +674,13 @@ export const generateSystemEntityTypeSchema = (
     params.outgoingLinks?.reduce<EntityType["links"]>(
       (
         prev,
-        {
-          linkEntityType,
-          destinationEntityTypes,
-          ordered = false,
-          minItems,
-          maxItems,
-        },
+        { linkEntityType, destinationEntityTypes, minItems, maxItems },
       ): EntityType["links"] => ({
         ...prev,
         [typeof linkEntityType === "object"
           ? linkEntityType.schema.$id
           : linkEntityType]: {
           type: "array",
-          ordered,
           items: destinationEntityTypes
             ? {
                 oneOf: destinationEntityTypes.map(
@@ -708,7 +702,9 @@ export const generateSystemEntityTypeSchema = (
       {},
     ) ?? undefined;
 
-  const allOf = params.allOf?.map((url) => ({ $ref: url }));
+  const allOf = params.allOf
+    ? atLeastOne(params.allOf.map((url) => ({ $ref: url })))
+    : undefined;
 
   return {
     $schema: ENTITY_TYPE_META_SCHEMA,
@@ -836,8 +832,7 @@ export const getCurrentHashSystemEntityTypeId = ({
   entityTypeKey: keyof typeof systemEntityTypes;
   migrationState: MigrationState;
 }) => {
-  const entityTypeBaseUrl = systemEntityTypes[entityTypeKey]
-    .entityTypeBaseUrl as BaseUrl;
+  const entityTypeBaseUrl = systemEntityTypes[entityTypeKey].entityTypeBaseUrl;
 
   const entityTypeVersion =
     migrationState.entityTypeVersions[entityTypeBaseUrl];
@@ -858,8 +853,8 @@ export const getCurrentHashLinkEntityTypeId = ({
   linkEntityTypeKey: keyof typeof systemLinkEntityTypes;
   migrationState: MigrationState;
 }) => {
-  const linkEntityTypeBaseUrl = systemLinkEntityTypes[linkEntityTypeKey]
-    .linkEntityTypeBaseUrl as BaseUrl;
+  const linkEntityTypeBaseUrl =
+    systemLinkEntityTypes[linkEntityTypeKey].linkEntityTypeBaseUrl;
 
   const linkEntityTypeVersion =
     migrationState.entityTypeVersions[linkEntityTypeBaseUrl];
@@ -883,8 +878,8 @@ export const getCurrentHashPropertyTypeId = ({
   propertyTypeKey: keyof typeof systemPropertyTypes;
   migrationState: MigrationState;
 }) => {
-  const propertyTypeBaseUrl = systemPropertyTypes[propertyTypeKey]
-    .propertyTypeBaseUrl as BaseUrl;
+  const propertyTypeBaseUrl =
+    systemPropertyTypes[propertyTypeKey].propertyTypeBaseUrl;
 
   const propertyTypeVersion =
     migrationState.propertyTypeVersions[propertyTypeBaseUrl];
@@ -905,8 +900,7 @@ export const getCurrentHashDataTypeId = ({
   dataTypeKey: keyof typeof systemDataTypes;
   migrationState: MigrationState;
 }) => {
-  const dataTypeBaseUrl = systemDataTypes[dataTypeKey]
-    .dataTypeBaseUrl as BaseUrl;
+  const dataTypeBaseUrl = systemDataTypes[dataTypeKey].dataTypeBaseUrl;
 
   const dataTypeVersion = migrationState.dataTypeVersions[dataTypeBaseUrl];
 
@@ -1219,7 +1213,7 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
     migrationState: MigrationState;
     migrateProperties?: Record<
       BaseUrl,
-      (previousProperties: EntityPropertiesObject) => EntityPropertiesObject
+      (previousProperties: PropertyObject) => PropertyObject
     >;
   },
   Promise<void>,

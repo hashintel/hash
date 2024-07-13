@@ -1,7 +1,7 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { ServiceFeature } from "@local/hash-isomorphic-utils/system-types/shared";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import { logger } from "../../../../logger";
@@ -342,6 +342,12 @@ const migrate: MigrationFunction = async ({
     },
     {
       serviceName: "Anthropic",
+      featureName: "claude-3-5-sonnet-20240620",
+      inputUnitCost: 0.000003,
+      outputUnitCost: 0.000015,
+    },
+    {
+      serviceName: "Anthropic",
       featureName: "claude-3-haiku-20240307",
       inputUnitCost: 0.00000025,
       outputUnitCost: 0.00000125,
@@ -382,7 +388,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeId: serviceFeatureEntityType.schema.$id,
     },
-  )) as Entity<ServiceFeatureProperties>[];
+  )) as Entity<ServiceFeature>[];
 
   for (const {
     serviceName,

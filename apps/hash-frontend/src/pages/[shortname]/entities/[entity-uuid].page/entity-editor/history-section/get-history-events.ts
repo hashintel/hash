@@ -1,5 +1,8 @@
+import { extractBaseUrl, type VersionedUrl } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityTypeIdDiff } from "@local/hash-graph-client";
+import type { EntityId, PropertyPath } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { Subgraph } from "@local/hash-subgraph";
@@ -13,7 +16,10 @@ import type { EntityDiff } from "../../../../../../graphql/api-types.gen";
 import type { HistoryEvent } from "./shared/types";
 
 export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
-  const firstEditionIdentifier = subgraph.roots[0];
+  const firstEditionIdentifier = [...subgraph.roots].sort((a, b) =>
+    a.revisionId < b.revisionId ? -1 : 1,
+  )[0];
+
   if (!firstEditionIdentifier) {
     throw new Error("No first edition for entity found in roots");
   }
@@ -29,17 +35,6 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
   }
 
   const events: HistoryEvent[] = [];
-
-  const entityTypeWithMetadata = getEntityTypeById(
-    subgraph,
-    firstEntityEdition.metadata.entityTypeId,
-  );
-
-  if (!entityTypeWithMetadata) {
-    throw new Error(
-      `Could not find entity type with id ${firstEntityEdition.metadata.entityTypeId} in subgraph`,
-    );
-  }
 
   for (
     let changedEntityIndex = diffs.length - 1;
@@ -61,50 +56,148 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     }
 
     /**
-     * @todo H-2774 – also handle 'changed type' and 'change draft status' events
+     * The original edition is not included in the diffs, so the 0-based index needs +2 to get the nth edition with base 1
      */
+    const editionNumber = changedEntityIndex + 2;
 
-    for (const [
-      changedPropertyIndex,
-      propertyDiff,
-    ] of diffData.diff.properties.entries()) {
-      const propertyProvenance = changedEntityEdition.propertyMetadata(
-        propertyDiff.path,
-      )?.provenance;
+    let subChangeNumber = 1;
 
-      /**
-       * @todo H-2775 – handle property objects and changes to array contents
-       */
-      const propertyBaseUrl = propertyDiff.path[0] as BaseUrl;
-      try {
-        const propertyTypeWithMetadata = getPropertyTypeForEntity(
+    const timestamp =
+      changedEntityEdition.metadata.temporalVersioning.decisionTime.start.limit;
+
+    const editionProvenance = changedEntityEdition.metadata.provenance.edition;
+
+    if (diffData.diff.entityTypeIds) {
+      const upgradedFromEntityTypeIds: VersionedUrl[] = [];
+
+      const diffsWithAdditionsFirst = [...diffData.diff.entityTypeIds].sort(
+        (a) => {
+          return a.op === "added" ? -1 : 1;
+        },
+      );
+
+      for (const entityTypeDiff of diffsWithAdditionsFirst) {
+        const addedOrRemovedTypeId =
+          entityTypeDiff.op === "added"
+            ? (entityTypeDiff.added as VersionedUrl)
+            : (entityTypeDiff.removed as VersionedUrl);
+        const addedOrRemovedType = getEntityTypeById(
           subgraph,
-          firstEntityEdition.metadata.entityTypeId,
-
-          propertyBaseUrl,
+          addedOrRemovedTypeId,
         );
 
-        events.push({
-          /**
-           * The original entity is not included in the diffs, so the 0-based index needs +2
-           */
-          number: `${changedEntityIndex + 2}.${changedPropertyIndex + 1}`,
-          provenance: {
-            edition: changedEntityEdition.metadata.provenance.edition,
-            property: propertyProvenance,
-          },
-          propertyType: propertyTypeWithMetadata.propertyType,
-          timestamp:
-            changedEntityEdition.metadata.temporalVersioning.decisionTime.start
-              .limit,
-          type: "property-update",
-          diff: propertyDiff,
-        });
-      } catch (err) {
-        throw new Error(
-          `Could not find property type with baseUrl ${propertyBaseUrl} for entity type with id ${firstEntityEdition.metadata.entityTypeId} in subgraph`,
-        );
+        if (!addedOrRemovedType) {
+          throw new Error(
+            `Could not find entity type with id ${addedOrRemovedTypeId} in subgraph`,
+          );
+        }
+
+        if (entityTypeDiff.op === "added") {
+          const baseUrl = extractBaseUrl(entityTypeDiff.added as VersionedUrl);
+
+          const removedOldVersion = diffData.diff.entityTypeIds.find(
+            (
+              entityTypeIdDiff,
+            ): entityTypeIdDiff is EntityTypeIdDiff & { op: "removed" } =>
+              entityTypeIdDiff.op === "removed" &&
+              extractBaseUrl(entityTypeIdDiff.removed as VersionedUrl) ===
+                baseUrl,
+          );
+          if (removedOldVersion) {
+            upgradedFromEntityTypeIds.push(
+              removedOldVersion.removed as VersionedUrl,
+            );
+          }
+
+          events.push({
+            type: "type-update",
+            op: removedOldVersion ? "upgraded" : "added",
+            number: `${editionNumber}.${subChangeNumber++}`,
+            provenance: {
+              edition: editionProvenance,
+            },
+            timestamp,
+            entityType: {
+              title: addedOrRemovedType.schema.title,
+              version: addedOrRemovedType.metadata.recordId.version,
+              oldVersion: removedOldVersion
+                ? extractVersion(removedOldVersion.removed as VersionedUrl)
+                : undefined,
+            },
+          });
+        } else {
+          const removed = entityTypeDiff.removed as VersionedUrl;
+          if (upgradedFromEntityTypeIds.includes(removed)) {
+            // we already captured this as an 'upgrade' event
+            continue;
+          }
+          events.push({
+            type: "type-update",
+            op: "removed",
+            number: `${editionNumber}.${subChangeNumber++}`,
+            provenance: {
+              edition: editionProvenance,
+            },
+            timestamp,
+            entityType: {
+              title: addedOrRemovedType.schema.title,
+              version: addedOrRemovedType.metadata.recordId.version,
+            },
+          });
+        }
       }
+    }
+
+    if (diffData.diff.properties) {
+      for (const propertyDiff of diffData.diff.properties) {
+        const propertyProvenance = changedEntityEdition.propertyMetadata(
+          propertyDiff.path as PropertyPath,
+        )?.provenance;
+
+        /**
+         * @todo H-2775 – handle property objects and changes to array contents
+         */
+        const propertyBaseUrl = propertyDiff.path[0] as BaseUrl;
+        try {
+          const propertyTypeWithMetadata = getPropertyTypeForEntity(
+            subgraph,
+            firstEntityEdition.metadata.entityTypeId,
+
+            propertyBaseUrl,
+          );
+
+          events.push({
+            number: `${editionNumber}.${subChangeNumber++}`,
+            provenance: {
+              edition: changedEntityEdition.metadata.provenance.edition,
+              property: propertyProvenance,
+            },
+            propertyType: propertyTypeWithMetadata.propertyType,
+            timestamp:
+              changedEntityEdition.metadata.temporalVersioning.decisionTime
+                .start.limit,
+            type: "property-update",
+            diff: propertyDiff,
+          });
+        } catch (err) {
+          throw new Error(
+            `Could not find property type with baseUrl ${propertyBaseUrl} for entity type with id ${firstEntityEdition.metadata.entityTypeId} in subgraph`,
+          );
+        }
+      }
+    }
+
+    if (diffData.diff.draftState !== undefined) {
+      const newDraftState = diffData.diff.draftState;
+      events.push({
+        number: `${editionNumber}.${subChangeNumber++}`,
+        provenance: {
+          edition: changedEntityEdition.metadata.provenance.edition,
+        },
+        newDraftStatus: newDraftState,
+        timestamp,
+        type: "draft-status-change",
+      });
     }
   }
 
@@ -150,11 +243,22 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     }
   }
 
+  const firstEntityType = getEntityTypeById(
+    subgraph,
+    firstEntityEdition.metadata.entityTypeId,
+  );
+
+  if (!firstEntityType) {
+    throw new Error(
+      `Could not find entity type with id ${firstEntityEdition.metadata.entityTypeId} in subgraph`,
+    );
+  }
+
   events.push({
     type: "created",
     number: "1",
     entity: firstEntityEdition,
-    entityType: entityTypeWithMetadata.schema,
+    entityType: firstEntityType.schema,
     timestamp: firstEditionIdentifier.revisionId,
     provenance: {
       edition: firstEntityEdition.metadata.provenance.edition,

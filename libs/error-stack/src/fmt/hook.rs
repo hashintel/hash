@@ -421,6 +421,7 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
 /// [`.insert()`]: Hooks::insert
+#[allow(clippy::field_scoped_visibility_modifiers)]
 pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
@@ -452,7 +453,7 @@ impl Hooks {
 }
 
 mod default {
-    #[cfg(any(all(feature = "std", rust_1_65), feature = "spantrace"))]
+    #[cfg(any(feature = "backtrace", feature = "spantrace"))]
     use alloc::format;
     #[cfg_attr(feature = "std", allow(unused_imports))]
     use alloc::string::ToString;
@@ -460,7 +461,7 @@ mod default {
         panic::Location,
         sync::atomic::{AtomicBool, Ordering},
     };
-    #[cfg(all(rust_1_65, feature = "std"))]
+    #[cfg(feature = "backtrace")]
     use std::backtrace::Backtrace;
     #[cfg(feature = "std")]
     use std::sync::Once;
@@ -501,7 +502,7 @@ mod default {
 
             Report::install_debug_hook::<Location>(location);
 
-            #[cfg(all(feature = "std", rust_1_65))]
+            #[cfg(feature = "backtrace")]
             Report::install_debug_hook::<Backtrace>(backtrace);
 
             #[cfg(feature = "spantrace")]
@@ -513,7 +514,7 @@ mod default {
         context.push_body(LocationAttachment::new(location, context.color_mode()).to_string());
     }
 
-    #[cfg(all(feature = "std", rust_1_65))]
+    #[cfg(feature = "backtrace")]
     fn backtrace(backtrace: &Backtrace, context: &mut HookContext<Backtrace>) {
         let idx = context.increment_counter();
 

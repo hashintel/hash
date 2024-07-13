@@ -83,6 +83,13 @@ pub(crate) mod test_utils {
     use super::RequestId;
 
     #[must_use]
+    #[cfg_attr(
+        not(feature = "test-utils"),
+        expect(
+            unreachable_pub,
+            reason = "This is re-exported if the `test-utils` feature is enabled"
+        )
+    )]
     pub const fn mock_request_id(id: u32) -> RequestId {
         RequestId(id)
     }
@@ -90,7 +97,7 @@ pub(crate) mod test_utils {
 
 #[cfg(test)]
 pub(crate) mod test {
-    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
+    #![expect(clippy::needless_raw_strings)]
     use core::sync::atomic::AtomicU32;
 
     use expect_test::expect;

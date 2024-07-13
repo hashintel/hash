@@ -1,13 +1,15 @@
-use core::{borrow::Borrow, num::NonZero};
+use core::borrow::Borrow;
 use std::collections::HashMap;
 
-use error_stack::{bail, Report, ResultExt};
-use graph_types::knowledge::Property;
+use error_stack::{bail, ensure, Report, ResultExt};
+use graph_types::knowledge::PropertyWithMetadata;
 use thiserror::Error;
 use type_system::{
+    schema::{
+        ArraySchema, JsonSchemaValueType, ObjectSchema, OneOfSchema, PropertyValues, ValueOrArray,
+    },
     url::{BaseUrl, VersionedUrl},
-    Array, DataType, JsonSchemaValueType, Object, OneOf, PropertyType, PropertyTypeReference,
-    PropertyValues, ValueOrArray,
+    DataType, PropertyType, PropertyTypeReference,
 };
 
 use crate::{
@@ -56,9 +58,25 @@ pub enum PropertyValidationError {
         actual: JsonSchemaValueType,
         expected: JsonSchemaValueType,
     },
+    #[error(
+        "a value of type `{expected}` was expected, but the property provided was of type \
+         `{actual}`"
+    )]
+    ExpectedValue {
+        actual: JsonSchemaValueType,
+        expected: VersionedUrl,
+    },
+    #[error(
+        "The provided data type is not allowed on the property, expected `{expected}`, got \
+         `{actual}`"
+    )]
+    InvalidDataType {
+        actual: VersionedUrl,
+        expected: VersionedUrl,
+    },
 }
 
-impl<P> Schema<Property, P> for PropertyType
+impl<P> Schema<PropertyWithMetadata, P> for PropertyType
 where
     P: OntologyTypeProvider<Self> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -66,23 +84,24 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a Property,
+        value: &'a PropertyWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<PropertyValidationError>> {
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
-        OneOf::new(self.one_of().to_vec())
-            .expect("was validated before")
-            .validate_value(value, components, provider)
-            .await
-            .attach_lazy(|| Expected::PropertyType(self.clone()))
-            .attach_lazy(|| Actual::Property(value.clone()))
+        OneOfSchema {
+            possibilities: self.one_of.clone(),
+        }
+        .validate_value(value, components, provider)
+        .await
+        .attach_lazy(|| Expected::PropertyType(self.clone()))
+        .attach_lazy(|| Actual::Property(value.clone()))
     }
 }
 
-impl<P> Validate<PropertyType, P> for Property
+impl<P> Validate<PropertyType, P> for PropertyWithMetadata
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -98,7 +117,7 @@ where
     }
 }
 
-impl<P> Schema<Property, P> for PropertyTypeReference
+impl<P> Schema<PropertyWithMetadata, P> for PropertyTypeReference
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -106,16 +125,15 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a Property,
+        value: &'a PropertyWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
-        let property_type =
-            OntologyTypeProvider::<PropertyType>::provide_type(provider, self.url())
-                .await
-                .change_context_lazy(|| PropertyValidationError::PropertyTypeRetrieval {
-                    id: self.url().clone(),
-                })?;
+        let property_type = OntologyTypeProvider::<PropertyType>::provide_type(provider, &self.url)
+            .await
+            .change_context_lazy(|| PropertyValidationError::PropertyTypeRetrieval {
+                id: self.url.clone(),
+            })?;
         property_type
             .borrow()
             .validate_value(value, components, provider)
@@ -125,7 +143,7 @@ where
     }
 }
 
-impl<P> Validate<PropertyTypeReference, P> for Property
+impl<P> Validate<PropertyTypeReference, P> for PropertyWithMetadata
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -141,7 +159,7 @@ where
     }
 }
 
-impl<V, P, S> Schema<[V], P> for Array<S>
+impl<V, P, S> Schema<[V], P> for ArraySchema<S>
 where
     V: Sync,
     P: Sync,
@@ -158,7 +176,7 @@ where
         let mut status: Result<(), Report<PropertyValidationError>> = Ok(());
 
         if components.num_items {
-            if let Some(min) = self.min_items() {
+            if let Some(min) = self.min_items {
                 if value.len() < min {
                     extend_report!(
                         status,
@@ -170,7 +188,7 @@ where
                 }
             }
 
-            if let Some(max) = self.max_items().map(NonZero::get) {
+            if let Some(max) = self.max_items {
                 if value.len() > max {
                     extend_report!(
                         status,
@@ -184,11 +202,7 @@ where
         }
 
         for value in value {
-            if let Err(report) = self
-                .items()
-                .validate_value(value, components, provider)
-                .await
-            {
+            if let Err(report) = self.items.validate_value(value, components, provider).await {
                 extend_report!(status, report);
             }
         }
@@ -197,7 +211,7 @@ where
     }
 }
 
-impl<V, P, S> Schema<V, P> for OneOf<S>
+impl<V, P, S> Schema<V, P> for OneOfSchema<S>
 where
     V: Sync,
     P: Sync,
@@ -213,7 +227,7 @@ where
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<S::Error>> = Ok(());
 
-        for schema in self.one_of() {
+        for schema in &self.possibilities {
             if let Err(error) = schema.validate_value(value, components, provider).await {
                 extend_report!(status, error);
             } else {
@@ -226,16 +240,16 @@ where
     }
 }
 
-impl<P, S> Schema<Property, P> for ValueOrArray<S>
+impl<P, S> Schema<PropertyWithMetadata, P> for ValueOrArray<S>
 where
     P: Sync,
-    S: Schema<Property, P, Error = PropertyValidationError> + Sync,
+    S: Schema<PropertyWithMetadata, P, Error = PropertyValidationError> + Sync,
 {
     type Error = PropertyValidationError;
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a Property,
+        value: &'a PropertyWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
@@ -243,8 +257,8 @@ where
             (value, Self::Value(schema)) => {
                 schema.validate_value(value, components, provider).await
             }
-            (Property::Array(array), Self::Array(schema)) => {
-                schema.validate_value(array, components, provider).await
+            (PropertyWithMetadata::Array { value, metadata: _ }, Self::Array(schema)) => {
+                schema.validate_value(value, components, provider).await
             }
             (_, Self::Array(_)) => {
                 bail!(PropertyValidationError::InvalidType {
@@ -256,8 +270,8 @@ where
     }
 }
 
-impl<P, const MIN: usize> Schema<HashMap<BaseUrl, Property>, P>
-    for Object<ValueOrArray<PropertyTypeReference>, MIN>
+impl<P> Schema<HashMap<BaseUrl, PropertyWithMetadata>, P>
+    for ObjectSchema<ValueOrArray<PropertyTypeReference>>
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -265,14 +279,14 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a HashMap<BaseUrl, Property>,
+        value: &'a HashMap<BaseUrl, PropertyWithMetadata>,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<Self::Error>> = Ok(());
 
         for (key, property) in value {
-            if let Some(object_schema) = self.properties().get(key) {
+            if let Some(object_schema) = self.properties.get(key) {
                 if let Err(report) = object_schema
                     .validate_value(property, components, provider)
                     .await
@@ -293,7 +307,7 @@ where
         }
 
         if components.required_properties {
-            for required_property in self.required() {
+            for required_property in &self.required {
                 if !value.contains_key(required_property) {
                     extend_report!(
                         status,
@@ -309,7 +323,7 @@ where
     }
 }
 
-impl<P> Schema<Property, P> for PropertyValues
+impl<P> Schema<PropertyWithMetadata, P> for PropertyValues
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -317,48 +331,71 @@ where
 
     fn validate_value<'a>(
         &'a self,
-        value: &'a Property,
+        value: &'a PropertyWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + '_ {
         Box::pin(async move {
             match (value, self) {
-                (value, Self::DataTypeReference(reference)) => reference
-                    .validate_value(value, components, provider)
-                    .await
-                    .change_context(PropertyValidationError::DataTypeValidation {
-                        id: reference.url().clone(),
-                    }),
-                (Property::Array(values), Self::ArrayOfPropertyValues(schema)) => {
-                    schema.validate_value(values, components, provider).await
+                (PropertyWithMetadata::Value(property), Self::DataTypeReference(reference)) => {
+                    if let Some(data_type_id) = &property.metadata.data_type_id {
+                        ensure!(
+                            reference.url == *data_type_id,
+                            PropertyValidationError::InvalidDataType {
+                                actual: data_type_id.clone(),
+                                expected: reference.url.clone(),
+                            }
+                        );
+                    }
+                    reference
+                        .validate_value(property, components, provider)
+                        .await
+                        .change_context(PropertyValidationError::DataTypeValidation {
+                            id: reference.url.clone(),
+                        })
                 }
-                (Property::Array(_), Self::PropertyTypeObject(_)) => {
+                (
+                    PropertyWithMetadata::Array { value, metadata: _ },
+                    Self::ArrayOfPropertyValues(schema),
+                ) => schema.validate_value(value, components, provider).await,
+                (PropertyWithMetadata::Array { .. }, Self::PropertyTypeObject(_)) => {
                     Err(Report::new(PropertyValidationError::InvalidType {
                         actual: JsonSchemaValueType::Array,
                         expected: JsonSchemaValueType::Object,
                     }))
                 }
-                (Property::Object(object), Self::PropertyTypeObject(schema)) => {
-                    schema
-                        .validate_value(object.properties(), components, provider)
-                        .await
-                }
-                (Property::Object(_), Self::ArrayOfPropertyValues(_)) => {
+                (
+                    PropertyWithMetadata::Object { value, metadata: _ },
+                    Self::PropertyTypeObject(schema),
+                ) => schema.validate_value(value, components, provider).await,
+                (PropertyWithMetadata::Object { .. }, Self::ArrayOfPropertyValues(_)) => {
                     Err(Report::new(PropertyValidationError::InvalidType {
                         actual: JsonSchemaValueType::Object,
                         expected: JsonSchemaValueType::Array,
                     }))
                 }
-                (Property::Value(_), Self::ArrayOfPropertyValues(_)) => {
+                (PropertyWithMetadata::Value { .. }, Self::ArrayOfPropertyValues(_)) => {
                     Err(Report::new(PropertyValidationError::InvalidType {
                         actual: value.json_type(),
                         expected: JsonSchemaValueType::Array,
                     }))
                 }
-                (Property::Value(_), Self::PropertyTypeObject(_)) => {
+                (PropertyWithMetadata::Value { .. }, Self::PropertyTypeObject(_)) => {
                     Err(Report::new(PropertyValidationError::InvalidType {
                         actual: value.json_type(),
                         expected: JsonSchemaValueType::Object,
+                    }))
+                }
+                (PropertyWithMetadata::Array { .. }, Self::DataTypeReference(reference)) => {
+                    Err(Report::new(PropertyValidationError::ExpectedValue {
+                        actual: JsonSchemaValueType::Array,
+                        expected: reference.url.clone(),
+                    }))
+                }
+                (PropertyWithMetadata::Object { .. }, Self::DataTypeReference(reference)) => {
+                    Err(Report::new(PropertyValidationError::ExpectedValue {
+                        actual: JsonSchemaValueType::Object,
+                        expected: reference.url.clone(),
                     }))
                 }
             }

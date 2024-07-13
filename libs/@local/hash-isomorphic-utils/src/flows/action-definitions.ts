@@ -23,8 +23,6 @@ const actionDefinitionIds = [
 
 export type ActionDefinitionId = (typeof actionDefinitionIds)[number];
 
-const defaultModel: InferenceModelName = "gpt-4-turbo";
-
 const actionDefinitionsAsConst = {
   generateWebQueries: {
     actionDefinitionId: "generateWebQueries",
@@ -45,7 +43,7 @@ const actionDefinitionsAsConst = {
         array: false,
         default: {
           kind: "Text",
-          value: defaultModel,
+          value: "gpt-4-turbo" satisfies InferenceModelName,
         },
       },
     ],
@@ -84,8 +82,8 @@ const actionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "Text",
-        name: "webPageUrls",
+        payloadKind: "WebSearchResult",
+        name: "webSearchResult",
         array: true,
         required: true,
       },
@@ -175,7 +173,7 @@ const actionDefinitionsAsConst = {
         required: true,
         default: {
           kind: "Text",
-          value: defaultModel,
+          value: "gpt-4-turbo" satisfies InferenceModelName,
         },
         array: false,
       },
@@ -317,6 +315,12 @@ const actionDefinitionsAsConst = {
         required: true,
         array: false,
       },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "reportSpecification",
+        required: false,
+        array: false,
+      },
       /**
        * This is a placeholder for an 'additional context' input that can be used to provide context to the model,
        * e.g. a list of entities that are already known to the user, whether to enable the model to link proposed entities to,
@@ -359,7 +363,7 @@ const actionDefinitionsAsConst = {
         array: false,
         default: {
           kind: "Text",
-          value: defaultModel,
+          value: "claude-3-haiku" satisfies InferenceModelName,
         },
       },
       {

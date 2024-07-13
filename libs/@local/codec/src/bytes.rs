@@ -67,9 +67,8 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<T>, Self::Error> {
         self.lines
             .decode(src)
-            .map(|line| {
+            .inspect(|_| {
                 self.current_line += 1;
-                line
             })
             .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?
             .filter(|line| !line.is_empty())
@@ -85,9 +84,8 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
     fn decode_eof(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         self.lines
             .decode_eof(buf)
-            .map(|line| {
+            .inspect(|_| {
                 self.current_line += 1;
-                line
             })
             .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?
             .filter(|line| !line.is_empty())

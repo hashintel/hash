@@ -1,7 +1,13 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
-import type { AccountId } from "@local/hash-graph-types/account";
+import {
+  type EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -17,44 +23,39 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { getAggregateUsageRecordsByServiceFeature } from "@local/hash-isomorphic-utils/service-usage";
 import {
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
+import type {
+  RecordsUsageOf,
+  UsageRecord,
+} from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type {
   EntityRelationAndSubject,
   EntityRootType,
 } from "@local/hash-subgraph";
 import { entityIdFromComponents } from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
-
-const generateAggregateUsageKey = ({
-  serviceName,
-  featureName,
-}: {
-  serviceName: string;
-  featureName: string;
-}) => `${serviceName}:${featureName}`;
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 /**
- * Retrieve a user's service usage
+ * Retrieve a web's service usage
  */
-export const getUserServiceUsage = async (
+export const getWebServiceUsage = async (
   context: { graphApi: GraphApi },
-  authentication: { actorId: AccountId },
   {
-    userAccountId,
     decisionTimeInterval,
-  }: { userAccountId: AccountId; decisionTimeInterval?: BoundedTimeInterval },
+    userAccountId,
+    webId,
+  }: {
+    userAccountId: AccountId;
+    decisionTimeInterval?: BoundedTimeInterval;
+    webId: OwnedById;
+  },
 ): Promise<AggregatedUsageRecord[]> => {
   const serviceUsageRecordSubgraph = await context.graphApi
-    .getEntitySubgraph(authentication.actorId, {
+    .getEntitySubgraph(userAccountId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -66,7 +67,7 @@ export const getUserServiceUsage = async (
               {
                 path: ["ownedById"],
               },
-              { parameter: userAccountId },
+              { parameter: webId },
             ],
           },
         ],
@@ -92,136 +93,77 @@ export const getUserServiceUsage = async (
       includeDrafts: false,
     })
     .then(({ data }) => {
-      return mapGraphApiSubgraphToSubgraph<EntityRootType>(
+      return mapGraphApiSubgraphToSubgraph<EntityRootType<UsageRecord>>(
         data.subgraph,
-        authentication.actorId,
+        userAccountId,
       );
     });
 
   const serviceUsageRecords = getRoots(serviceUsageRecordSubgraph);
 
-  const aggregateUsageByServiceFeature: Record<string, AggregatedUsageRecord> =
-    {};
+  const aggregateUsageRecords = getAggregateUsageRecordsByServiceFeature({
+    decisionTimeInterval,
+    serviceUsageRecords,
+    serviceUsageRecordSubgraph,
+  });
 
-  for (const record of serviceUsageRecords) {
-    const linkedEntities = getOutgoingLinkAndTargetEntities(
-      serviceUsageRecordSubgraph,
-      record.metadata.recordId.entityId,
-    );
-
-    const serviceFeatureLinkAndEntities = linkedEntities.filter(
-      ({ linkEntity }) =>
-        linkEntity[0]!.metadata.entityTypeId ===
-        systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
-    );
-    if (serviceFeatureLinkAndEntities.length !== 1) {
-      throw new Error(
-        `Expected exactly one service feature link for service usage record ${record.metadata.recordId.entityId}, got ${serviceFeatureLinkAndEntities.length}.`,
-      );
-    }
-
-    const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
-      .rightEntity[0]! as Entity<ServiceFeatureProperties>;
-
-    const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
-      serviceFeatureEntity.properties,
-    );
-    if (!serviceUnitCost) {
-      throw new Error("Cannot calculate usage cost without service unit cost.");
-    }
-
-    const serviceFeatureKey = generateAggregateUsageKey({
-      serviceName,
-      featureName,
-    });
-
-    const { inputUnitCount, outputUnitCount } = simplifyProperties(
-      record.properties as UsageRecordProperties,
-    );
-
-    aggregateUsageByServiceFeature[serviceFeatureKey] ??= {
-      serviceName,
-      featureName,
-      limitedToPeriod: decisionTimeInterval ?? null,
-      totalInputUnitCount: 0,
-      totalOutputUnitCount: 0,
-      totalCostInUsd: 0,
-      last24hoursTotalCostInUsd: 0,
-    };
-    const aggregateUsage = aggregateUsageByServiceFeature[serviceFeatureKey]!;
-
-    aggregateUsage.totalInputUnitCount +=
-      inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;
-    aggregateUsage.totalOutputUnitCount +=
-      outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0;
-
-    const applicablePrice = serviceUnitCost.find((entry) => {
-      const { appliesUntil, appliesFrom } = simplifyProperties(entry);
-      if (
-        appliesUntil &&
-        appliesUntil <= record.metadata.provenance.createdAtTransactionTime
-      ) {
-        return false;
-      }
-      if (!appliesFrom) {
-        return false;
-      }
-      return appliesFrom <= record.metadata.provenance.createdAtTransactionTime;
-    });
-
-    if (!applicablePrice) {
-      throw new Error(
-        `No applicable price found for service feature ${serviceFeatureKey}.`,
-      );
-    }
-
-    const { inputUnitCost, outputUnitCost } =
-      simplifyProperties(applicablePrice);
-
-    const inputCost =
-      (inputUnitCount ?? 0) *
-      (inputUnitCost && inputUnitCost >= 0 ? inputUnitCost : 0);
-    const outputCost =
-      (outputUnitCount ?? 0) *
-      (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
-    const totalCost = inputCost + outputCost;
-
-    aggregateUsage.totalCostInUsd += totalCost;
-
-    const oneDayEarlier = new Date(
-      new Date().valueOf() - 24 * 60 * 60 * 1000,
-    ).toISOString();
-    if (record.metadata.provenance.createdAtTransactionTime > oneDayEarlier) {
-      aggregateUsage.last24hoursTotalCostInUsd += totalCost;
-    }
-  }
-
-  return Object.values(aggregateUsageByServiceFeature);
+  return aggregateUsageRecords;
 };
 
 export const createUsageRecord = async (
   context: { graphApi: GraphApi },
-  authentication: { actorId: AccountId },
   {
-    userAccountId,
+    additionalViewers,
+    assignUsageToWebId,
+    customMetadata,
     serviceName,
     featureName,
     inputUnitCount,
     outputUnitCount,
+    userAccountId,
   }: {
-    userAccountId: AccountId;
+    /**
+     * Grant view access on the usage record to these additional accounts
+     */
+    additionalViewers?: AccountId[];
+    /**
+     * The web the usage will be assigned to (user or org)
+     */
+    assignUsageToWebId: OwnedById;
+    /**
+     * Additional arbitrary metadata to store on the usage record.
+     */
+    customMetadata?: Record<string, unknown> | null;
     serviceName: string;
     featureName: string;
     inputUnitCount?: number;
     outputUnitCount?: number;
+    /**
+     * The user that is incurring the usage (e.g. the user that triggered the flow)
+     * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
+     */
+    userAccountId: AccountId;
   },
 ) => {
-  const properties: UsageRecordProperties = {
+  const properties: UsageRecord["properties"] = {
     "https://hash.ai/@hash/types/property-type/input-unit-count/":
       inputUnitCount,
     "https://hash.ai/@hash/types/property-type/output-unit-count/":
       outputUnitCount,
   };
+
+  if (customMetadata) {
+    properties["https://hash.ai/@hash/types/property-type/custom-metadata/"] =
+      customMetadata;
+  }
+
+  /**
+   * We want to assign usage to the web, which may be an org, but be able to identify which users
+   * incurred which usage in an org – so we create the usage record using the user that incurred it.
+   * For manually-triggered flows, this is the user that triggered the flow.
+   * For automatically triggered (scheduled, reactive), this is the user that created the trigger/schedule.
+   */
+  const authentication = { actorId: userAccountId };
 
   const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
     context,
@@ -280,65 +222,81 @@ export const createUsageRecord = async (
     {
       relation: "administrator",
       subject: {
-        kind: "account",
-        subjectId: authentication.actorId,
-      },
-    },
-    {
-      relation: "viewer",
-      subject: { kind: "account", subjectId: userAccountId },
-    },
-    {
-      relation: "viewer",
-      subject: {
         kind: "accountGroup",
         subjectId: hashInstanceAdminGroupId,
+        subjectSet: "member",
       },
     },
   ];
 
+  if (assignUsageToWebId === userAccountId) {
+    entityRelationships.push({
+      relation: "viewer",
+      subject: {
+        kind: "account",
+        subjectId: userAccountId,
+      },
+    });
+  } else {
+    entityRelationships.push({
+      relation: "viewer",
+      subject: {
+        kind: "accountGroup",
+        subjectId: assignUsageToWebId as AccountGroupId,
+        subjectSet: "administrator",
+      },
+    });
+  }
+
+  for (const additionalViewer of additionalViewers ?? []) {
+    entityRelationships.push({
+      relation: "viewer",
+      subject: {
+        kind: "account",
+        subjectId: additionalViewer,
+      },
+    });
+  }
+
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
 
   const usageRecordEntityId = entityIdFromComponents(
-    userAccountId as OwnedById,
+    assignUsageToWebId,
     usageRecordEntityUuid,
   );
 
-  const createdEntities = await Entity.createMultiple(
-    context.graphApi,
-    { actorId: authentication.actorId },
-    [
-      {
-        ownedById: userAccountId as OwnedById,
-        draft: false,
-        entityUuid: usageRecordEntityUuid,
-        properties,
-        entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
-        relationships: entityRelationships,
+  const provenance: EnforcedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "api",
+    },
+  };
+
+  const [usageRecord] = await Entity.createMultiple<
+    [UsageRecord, RecordsUsageOf]
+  >(context.graphApi, authentication, [
+    {
+      ownedById: assignUsageToWebId,
+      draft: false,
+      entityUuid: usageRecordEntityUuid,
+      properties,
+      provenance,
+      entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
+      relationships: entityRelationships,
+    },
+    {
+      ownedById: assignUsageToWebId,
+      draft: false,
+      properties: {},
+      provenance,
+      linkData: {
+        leftEntityId: usageRecordEntityId,
+        rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
       },
-      {
-        ownedById: userAccountId as OwnedById,
-        draft: false,
-        properties: {},
-        linkData: {
-          leftEntityId: usageRecordEntityId,
-          rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
-        },
-        entityTypeId: systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
-        relationships: entityRelationships,
-      },
-    ],
-  );
+      entityTypeId: systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+      relationships: entityRelationships,
+    },
+  ]);
 
-  const usageRecordEntity = createdEntities.find(
-    (entity) => entity.metadata.recordId.entityId === usageRecordEntityId,
-  );
-
-  if (!usageRecordEntity) {
-    throw new Error(
-      `Failed to create usage record entity for user ${userAccountId}.`,
-    );
-  }
-
-  return usageRecordEntity;
+  return usageRecord;
 };

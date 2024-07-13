@@ -1,8 +1,8 @@
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import { mustBeDefined, typedValues } from "../../shared/util.js";
-import type { PreprocessContext } from "../context.js";
-import { primitiveLinkEntityTypeId } from "../shared.js";
+import { mustBeDefined, typedValues } from "../../util";
+import type { PreprocessContext } from "../context";
+import { primitiveLinkEntityTypeId } from "../shared";
 
 /** Check the inheritance tree of this type to see if it inherits from a link entity type */
 const isLinkEntityType = (

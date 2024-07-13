@@ -2,4 +2,7 @@ import { createApolloClient } from "@local/hash-isomorphic-utils/create-apollo-c
 
 import { isBrowser } from "./config";
 
-export const apolloClient = createApolloClient({ isBrowser });
+export const apolloClient = createApolloClient({
+  clientId: "web-app",
+  isBrowser,
+});

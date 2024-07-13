@@ -5,7 +5,6 @@ const config: CodegenConfig = {
   overwrite: true,
   schema:
     "../../libs/@local/hash-isomorphic-utils/src/graphql/type-defs/**/*.ts",
-  require: ["ts-node/register"],
   generates: {
     "./src/graphql/graphql-schema.gen.json": {
       plugins: ["introspection"],

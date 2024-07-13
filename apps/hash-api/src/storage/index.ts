@@ -1,4 +1,3 @@
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import type {
   FileStorageProvider,
@@ -20,7 +19,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isEntityId, splitEntityId } from "@local/hash-subgraph";
 import type { Express } from "express";
 
@@ -89,7 +88,7 @@ export const setupStorageProviders = (
   return getUploadStorageProvider();
 };
 
-const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
+const isFileEntity = (entity: Entity): entity is Entity<FileEntity> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
@@ -115,9 +114,7 @@ const getFileEntity = async (
             {
               path: [
                 "properties",
-                extractBaseUrl(
-                  systemPropertyTypes.fileStorageKey.propertyTypeId,
-                ),
+                systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl,
               ],
             },
             { parameter: key },

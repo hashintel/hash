@@ -21,8 +21,12 @@ export const EventDetail = ({
       return (
         <>
           <Chip>{entityLabel}</Chip>
-          <Box mx={1}>created with type</Box>
-          <Chip type>{event.entityType.title}</Chip>
+          <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
+            created with type
+          </Box>
+          <Chip showInFull type>
+            {event.entityType.title}
+          </Chip>
         </>
       );
     }
@@ -33,16 +37,27 @@ export const EventDetail = ({
         case "added": {
           return (
             <>
-              <Chip type>{propertyType.title}</Chip> <Box mx={1}>added as</Box>
-              <Chip value>{diff.added}</Chip>
+              <Chip showInFull type>
+                {propertyType.title}
+              </Chip>{" "}
+              <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
+                added as
+              </Box>
+              <Chip value tooltip={diff.added}>
+                {diff.added}
+              </Chip>
             </>
           );
         }
         case "removed": {
           return (
             <>
-              <Chip type>{propertyType.title}</Chip>{" "}
-              <Box mx={1}>removed, was</Box>
+              <Chip showInFull type>
+                {propertyType.title}
+              </Chip>{" "}
+              <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
+                removed, was
+              </Box>
               <Chip value>{diff.removed}</Chip>
             </>
           );
@@ -50,8 +65,12 @@ export const EventDetail = ({
         case "changed": {
           return (
             <>
-              <Chip type>{propertyType.title}</Chip>{" "}
-              <Box mx={1}>updated from</Box>
+              <Chip showInFull type>
+                {propertyType.title}
+              </Chip>{" "}
+              <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
+                updated from
+              </Box>
               <Chip value>{diff.old}</Chip>
               <Box mx={1}>to</Box>
               <Chip value>{diff.new}</Chip>
@@ -61,7 +80,34 @@ export const EventDetail = ({
       }
       break;
     }
-    case "type-update":
-      return <span>Updated type</span>;
+    case "type-update": {
+      const { entityType } = event;
+      return (
+        <>
+          <Chip showInFull type>
+            {entityType.title}
+          </Chip>
+          <Box ml={1} sx={{ whiteSpace: "nowrap" }}>
+            type {event.op}
+          </Box>
+          {event.op === "upgraded" && (
+            <Box ml={0.5}>
+              from v{entityType.oldVersion} to v{entityType.version}
+            </Box>
+          )}
+        </>
+      );
+    }
+    case "draft-status-change":
+      return (
+        <span>
+          {event.newDraftStatus
+            ? "Edition created as draft"
+            : "Live edition created from draft"}
+        </span>
+      );
+    default: {
+      throw new Error("Unhandled history event type");
+    }
   }
 };

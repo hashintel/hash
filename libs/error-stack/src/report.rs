@@ -1,12 +1,8 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, vec, vec::Vec};
-#[cfg(nightly)]
-use core::error::Error;
-use core::{fmt, marker::PhantomData, mem, panic::Location};
-#[cfg(all(rust_1_65, feature = "std"))]
+use core::{error::Error, fmt, marker::PhantomData, mem, panic::Location};
+#[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
-#[cfg(all(not(nightly), feature = "std"))]
-use std::error::Error;
 #[cfg(feature = "std")]
 use std::process::ExitCode;
 
@@ -16,6 +12,7 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
+    context::SourceContext,
     iter::{Frames, FramesMut},
     Context, Frame,
 };
@@ -239,6 +236,7 @@ use crate::{
 /// # }
 /// ```
 #[must_use]
+#[allow(clippy::field_scoped_visibility_modifiers)]
 pub struct Report<C> {
     // The vector is boxed as this implies a memory footprint equal to a single pointer size
     // instead of three pointer sizes. Even for small `Result::Ok` variants, the `Result` would
@@ -260,11 +258,34 @@ impl<C> Report<C> {
     /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
     #[inline]
     #[track_caller]
+    #[allow(clippy::missing_panics_doc)] // Reason: No panic possible
     pub fn new(context: C) -> Self
     where
         C: Context,
     {
-        Self::from_frame(Frame::from_context(context, Box::new([])))
+        if let Some(mut current_source) = context.__source() {
+            // The sources needs to be applied in reversed order, so we buffer them in a vector
+            let mut sources = vec![SourceContext::from_error(current_source)];
+            while let Some(source) = current_source.source() {
+                sources.push(SourceContext::from_error(source));
+                current_source = source;
+            }
+
+            // We create a new report with the oldest source as the base
+            let mut report = Report::from_frame(Frame::from_context(
+                sources.pop().expect("At least one context is guaranteed"),
+                Box::new([]),
+            ));
+            // We then extend the report with the rest of the sources
+            while let Some(source) = sources.pop() {
+                report = report.change_context(source);
+            }
+            // Finally, we add the new context passed to this function
+            report.change_context(context)
+        } else {
+            // We don't have any sources, directly create the `Report` from the context
+            Self::from_frame(Frame::from_context(context, Box::new([])))
+        }
     }
 
     #[track_caller]
@@ -277,13 +298,13 @@ impl<C> Report<C> {
         #[cfg(not(nightly))]
         let location = Some(Location::caller());
 
-        #[cfg(all(nightly, feature = "std"))]
+        #[cfg(all(nightly, feature = "backtrace"))]
         let backtrace = core::error::request_ref::<Backtrace>(&frame.as_error())
             .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
             .is_none()
             .then(Backtrace::capture);
 
-        #[cfg(all(rust_1_65, not(nightly), feature = "std"))]
+        #[cfg(all(not(nightly), feature = "backtrace"))]
         let backtrace = Some(Backtrace::capture());
 
         #[cfg(all(nightly, feature = "spantrace"))]
@@ -305,7 +326,7 @@ impl<C> Report<C> {
             report = report.attach(*location);
         }
 
-        #[cfg(all(rust_1_65, feature = "std"))]
+        #[cfg(feature = "backtrace")]
         if let Some(backtrace) =
             backtrace.filter(|bt| matches!(bt.status(), BacktraceStatus::Captured))
         {
@@ -629,7 +650,6 @@ impl<C> Report<C> {
     }
 
     /// Converts this `Report` to an [`Error`].
-    #[cfg(any(nightly, feature = "std"))]
     #[must_use]
     pub fn into_error(self) -> impl Error + Send + Sync + 'static
     where
@@ -639,7 +659,6 @@ impl<C> Report<C> {
     }
 
     /// Returns this `Report` as an [`Error`].
-    #[cfg(any(nightly, feature = "std"))]
     #[must_use]
     pub fn as_error(&self) -> &(impl Error + Send + Sync + 'static)
     where
@@ -649,28 +668,24 @@ impl<C> Report<C> {
     }
 }
 
-#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Send> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Sync> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Send + Sync> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())

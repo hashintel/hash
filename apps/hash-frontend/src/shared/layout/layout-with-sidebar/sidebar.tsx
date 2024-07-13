@@ -78,7 +78,7 @@ export const PageSidebar: FunctionComponent = () => {
         ? [
             {
               title: "Workers",
-              path: "/goals",
+              path: enabledFeatureFlags.ai ? "/goals" : "/flows",
               icon: <BoltLightIcon sx={{ fontSize: 16 }} />,
               tooltipTitle: "",
               activeIfPathMatches: /^\/@([^/]+)\/(flows|workers)\//,
@@ -121,20 +121,20 @@ export const PageSidebar: FunctionComponent = () => {
       ...workersSection,
       {
         title: "Inbox",
-        path: "/inbox",
+        path: "/actions",
         icon: <InboxIcon sx={{ fontSize: 16 }} />,
         tooltipTitle: "",
         count: (numberOfUnreadNotifications ?? 0) + numberOfPendingActions,
         children: [
           {
-            title: "Notifications",
-            path: "/inbox",
-            count: numberOfUnreadNotifications,
-          },
-          {
             title: "Actions",
             path: "/actions",
             count: numberOfPendingActions,
+          },
+          {
+            title: "Notifications",
+            path: "/inbox",
+            count: numberOfUnreadNotifications,
           },
         ],
       },
@@ -271,6 +271,7 @@ export const PageSidebar: FunctionComponent = () => {
         sx={{
           flex: 1,
           overflowY: "auto",
+          pb: 4,
         }}
       >
         {activeWorkspaceOwnedById ? (

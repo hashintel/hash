@@ -95,8 +95,8 @@ const acquireReplicationSlot = async (
     /**
      * @todo the 'for update' clause only works for single-shard queries in citus
      *   make sure that this use case falls under that category.
-     *   See: https://docs.citusdata.com/en/stable/develop/reference_workarounds.html#sql-support-and-workarounds
-     *   Task: https://app.asana.com/0/0/1203010655090001/f
+     * @see https://linear.app/hash/issue/H-3013
+     * @see https://docs.citusdata.com/en/stable/develop/reference_workarounds.html#sql-support-and-workarounds
      */
     const slotIsOwned = await tx.maybeOneFirst(sql`
       select ownership_expires_at > now() as owned from realtime.ownership
@@ -225,8 +225,8 @@ const main = async () => {
     host: pgHost,
     port: pgPort,
     /**
-     * @todo: update how the database is set once realtime if realtime is run in the testing environment.
-     *   See https://app.asana.com/0/0/1203046447168483/f
+     * @todo update how the database is set once realtime if realtime is run in the testing environment.
+     * @see https://linear.app/hash/issue/H-3014
      */
     database: getRequiredEnv("HASH_GRAPH_PG_DATABASE"),
     password: getRequiredEnv("HASH_GRAPH_REALTIME_PG_PASSWORD"),

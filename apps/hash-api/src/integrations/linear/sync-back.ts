@@ -15,7 +15,6 @@ import {
   entityIdFromComponents,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphContext } from "../../graph/context-types";
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
@@ -70,6 +69,16 @@ export const processEntityChange = async (
 
   const graphContext: ImpureGraphContext = {
     graphApi,
+    provenance: {
+      actorType: "machine",
+      origin: {
+        /**
+         * @todo use correct EntityId for Flow when Linear integration migrated to Flows
+         */
+        id: "linear-integration",
+        type: "flow",
+      },
+    },
     temporalClient: null,
   };
 
@@ -116,9 +125,7 @@ export const processEntityChange = async (
   );
 
   const linearId =
-    linearEntityToUpdate.properties[
-      extractBaseUrl(linearPropertyTypes.id.propertyTypeId)
-    ];
+    linearEntityToUpdate.properties[linearPropertyTypes.id.propertyTypeBaseUrl];
 
   if (!linearId) {
     return;

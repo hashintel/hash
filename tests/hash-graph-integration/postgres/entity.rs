@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use graph::{
     store::{
         knowledge::{
@@ -13,8 +15,8 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance, Property, PropertyMetadataMap, PropertyObject,
-        PropertyPatchOperation, PropertyPath, PropertyProvenance,
+        entity::ProvidedEntityEditionProvenance, Property, PropertyObject, PropertyPatchOperation,
+        PropertyPath, PropertyWithMetadata, PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
@@ -50,23 +52,23 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    let metadata = api
+    let entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![VersionedUrl {
+                entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(
                         "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
-                }],
-                properties: person.clone(),
+                }]),
+                properties: PropertyWithMetadataObject::from_parts(person.clone(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -80,7 +82,7 @@ async fn insert() {
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -120,24 +122,24 @@ async fn query() {
         .await
         .expect("could not seed database");
 
-    let metadata = api
+    let entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![VersionedUrl {
+                entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(
                         "https://blockprotocol.org/@alice/types/entity-type/organization/"
                             .to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
-                }],
-                properties: organization.clone(),
+                }]),
+                properties: PropertyWithMetadataObject::from_parts(organization.clone(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -151,7 +153,7 @@ async fn query() {
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -194,23 +196,23 @@ async fn update() {
         .await
         .expect("could not seed database:");
 
-    let v1_metadata = api
+    let v1_entity = api
         .create_entity(
             api.account_id,
             CreateEntityParams {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
                 entity_uuid: None,
                 decision_time: None,
-                entity_type_ids: vec![VersionedUrl {
+                entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(
                         "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion::new(1),
-                }],
-                properties: page_v1.clone(),
+                }]),
+                properties: PropertyWithMetadataObject::from_parts(page_v1.clone(), None)
+                    .expect("could not create property with metadata object"),
                 confidence: None,
-                property_metadata: PropertyMetadataMap::default(),
                 link_data: None,
                 draft: false,
                 relationships: [],
@@ -220,18 +222,20 @@ async fn update() {
         .await
         .expect("could not create entity");
 
-    let v2 = api
+    let v2_entity = api
         .patch_entity(
             api.account_id,
             PatchEntityParams {
-                entity_id: v1_metadata.record_id.entity_id,
+                entity_id: v1_entity.metadata.record_id.entity_id,
                 properties: vec![PropertyPatchOperation::Replace {
                     path: PropertyPath::default(),
-                    value: Property::Object(page_v2.clone()),
-                    confidence: None,
-                    provenance: PropertyProvenance::default(),
+                    property: PropertyWithMetadata::from_parts(
+                        Property::Object(page_v2.clone()),
+                        None,
+                    )
+                    .expect("could not create property with metadata"),
                 }],
-                entity_type_ids: vec![],
+                entity_type_ids: HashSet::new(),
                 archived: None,
                 draft: None,
                 decision_time: None,
@@ -246,7 +250,7 @@ async fn update() {
         .count_entities(
             api.account_id,
             CountEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v2.metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -265,7 +269,7 @@ async fn update() {
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v2.metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(None, None),
@@ -288,13 +292,13 @@ async fn update() {
     assert_eq!(entity_v2.properties.properties(), page_v2.properties());
 
     let ClosedTemporalBound::Inclusive(entity_v1_timestamp) =
-        *v1_metadata.temporal_versioning.decision_time.start();
+        *v1_entity.metadata.temporal_versioning.decision_time.start();
 
     let mut response_v1 = api
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v1_metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(v1_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(
@@ -318,12 +322,12 @@ async fn update() {
     assert_eq!(entity_v1.properties.properties(), page_v1.properties());
 
     let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
-        *v2.metadata.temporal_versioning.decision_time.start();
+        *v2_entity.metadata.temporal_versioning.decision_time.start();
     let mut response_v2 = api
         .get_entities(
             api.account_id,
             GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v2.metadata.record_id.entity_id),
+                filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(

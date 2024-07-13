@@ -3,24 +3,28 @@ mod metadata;
 mod object;
 mod patch;
 mod path;
-mod provenance;
 
 use alloc::borrow::Cow;
-use core::{cmp::Ordering, fmt};
+use core::{cmp::Ordering, fmt, iter, mem};
 use std::{collections::HashMap, io};
 
+use error_stack::Report;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use thiserror::Error;
-use type_system::{url::BaseUrl, JsonSchemaValueType};
+use type_system::{
+    schema::JsonSchemaValueType,
+    url::{BaseUrl, VersionedUrl},
+};
 
 pub use self::{
     diff::PropertyDiff,
-    metadata::{PropertyMetadata, PropertyMetadataMap},
-    object::PropertyObject,
-    patch::PropertyPatchOperation,
+    metadata::{
+        ArrayMetadata, ObjectMetadata, PropertyMetadata, PropertyMetadataObject,
+        PropertyProvenance, ValueMetadata, ValueWithMetadata,
+    },
+    object::{PropertyObject, PropertyWithMetadataObject},
+    patch::{PatchError, PropertyPatchOperation},
     path::{PropertyPath, PropertyPathElement},
-    provenance::PropertyProvenance,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -32,20 +36,353 @@ pub enum Property {
     Value(serde_json::Value),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Error)]
-#[error("Failed to apply patch")]
-pub struct PatchError;
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(untagged, deny_unknown_fields)]
+pub enum PropertyWithMetadata {
+    #[cfg_attr(feature = "utoipa", schema(title = "PropertyWithMetadataArray"))]
+    Array {
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        value: Vec<Self>,
+        #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
+        metadata: ArrayMetadata,
+    },
+    #[cfg_attr(feature = "utoipa", schema(title = "PropertyWithMetadataObject"))]
+    Object {
+        #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+        value: HashMap<BaseUrl, Self>,
+        #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
+        metadata: ObjectMetadata,
+    },
+    Value(ValueWithMetadata),
+}
 
-impl Property {
+#[derive(Debug, thiserror::Error)]
+pub enum PropertyPathError {
+    #[error("Property path is empty")]
+    EmptyPath,
+    #[error("Property path index `{index}` is out of bounds, length is `{len}`")]
+    IndexOutOfBounds { index: usize, len: usize },
+    #[error("Property path key `{key}` does not exist")]
+    InvalidKey { key: BaseUrl },
+    #[error("Expected object but got array index `{index}`")]
+    UnexpectedIndex { index: usize },
+    #[error("Expected array but got object key `{key}`")]
+    UnexpectedKey { key: BaseUrl },
+    #[error("Tried to add value to existing value")]
+    UnexpectedValue,
+    #[error("Properties and metadata do not match")]
+    PropertyMetadataMismatch,
+}
+
+impl PropertyWithMetadata {
     #[must_use]
     pub fn json_type(&self) -> JsonSchemaValueType {
         match self {
-            Self::Array(_) => JsonSchemaValueType::Array,
-            Self::Object(_) => JsonSchemaValueType::Object,
-            Self::Value(property) => JsonSchemaValueType::from(property),
+            Self::Array { .. } => JsonSchemaValueType::Array,
+            Self::Object { .. } => JsonSchemaValueType::Object,
+            Self::Value(property) => JsonSchemaValueType::from(&property.value),
         }
     }
 
+    #[must_use]
+    pub const fn data_type_id(&self) -> Option<&VersionedUrl> {
+        if let Self::Value(property) = self {
+            property.metadata.data_type_id.as_ref()
+        } else {
+            None
+        }
+    }
+
+    fn get_mut(
+        &mut self,
+        path: &[PropertyPathElement<'_>],
+    ) -> Result<&mut Self, Report<PropertyPathError>> {
+        let mut value = self;
+        for path_element in path {
+            match (value, path_element) {
+                (
+                    Self::Array {
+                        value: elements, ..
+                    },
+                    PropertyPathElement::Index(index),
+                ) => {
+                    let len = elements.len();
+                    value = elements
+                        .get_mut(*index)
+                        .ok_or(PropertyPathError::IndexOutOfBounds { index: *index, len })?;
+                }
+                (Self::Array { .. }, PropertyPathElement::Property(key)) => {
+                    return Err(Report::new(PropertyPathError::UnexpectedKey {
+                        key: key.clone().into_owned(),
+                    }));
+                }
+                (
+                    Self::Object {
+                        value: properties, ..
+                    },
+                    PropertyPathElement::Property(key),
+                ) => {
+                    value = properties.get_mut(key.as_ref()).ok_or_else(|| {
+                        PropertyPathError::InvalidKey {
+                            key: key.clone().into_owned(),
+                        }
+                    })?;
+                }
+                (Self::Object { .. }, PropertyPathElement::Index(index)) => {
+                    return Err(Report::new(PropertyPathError::UnexpectedIndex {
+                        index: *index,
+                    }));
+                }
+                (Self::Value { .. }, _) => {
+                    return Err(Report::new(PropertyPathError::UnexpectedValue));
+                }
+            }
+        }
+
+        Ok(value)
+    }
+
+    /// Adds a new property to the object or array at the given path.
+    ///
+    /// # Errors
+    ///
+    /// - If the path is empty.
+    /// - If the value cannot be added to the parent, e.g. when attempting to add an index to an
+    ///   object or the index is out of bounds.
+    /// - The path to the last element is not valid.
+    pub fn add(
+        &mut self,
+        mut path: PropertyPath<'_>,
+        value: Self,
+    ) -> Result<(), Report<PropertyPathError>> {
+        let Some(last) = path.pop() else {
+            return Err(Report::new(PropertyPathError::EmptyPath));
+        };
+
+        let parent = self.get_mut(path.as_ref())?;
+        match (parent, last) {
+            (
+                Self::Array {
+                    value: elements, ..
+                },
+                PropertyPathElement::Index(index),
+            ) => {
+                if index <= elements.len() {
+                    elements.insert(index, value);
+                    Ok(())
+                } else {
+                    Err(Report::new(PropertyPathError::IndexOutOfBounds {
+                        index,
+                        len: elements.len(),
+                    }))
+                }
+            }
+            (Self::Array { .. }, PropertyPathElement::Property(key)) => {
+                Err(Report::new(PropertyPathError::UnexpectedKey {
+                    key: key.clone().into_owned(),
+                }))
+            }
+            (
+                Self::Object {
+                    value: properties, ..
+                },
+                PropertyPathElement::Property(key),
+            ) => {
+                properties.insert(key.into_owned(), value);
+                Ok(())
+            }
+            (Self::Object { .. }, PropertyPathElement::Index(index)) => {
+                Err(Report::new(PropertyPathError::UnexpectedIndex { index }))
+            }
+            (Self::Value { .. }, _) => Err(Report::new(PropertyPathError::UnexpectedValue)),
+        }
+    }
+
+    /// Replaces the property at the given path with the given value.
+    ///
+    /// # Errors
+    ///
+    /// - If the path does not point to a property.
+    /// - If the value cannot be replaced in the parent, e.g. when attempting to replace an index in
+    ///   an object or the index is out of bounds.
+    pub fn replace(
+        &mut self,
+        path: &PropertyPath<'_>,
+        value: Self,
+    ) -> Result<Self, Report<PropertyPathError>> {
+        Ok(mem::replace(self.get_mut(path.as_ref())?, value))
+    }
+
+    /// Removes the property at the given path.
+    ///
+    /// # Errors
+    ///
+    /// - If the path is empty.
+    /// - If the value cannot be removed from the parent, e.g. when attempting to remove an index
+    ///   from an object or the index is out of bounds.
+    /// - The path to the last element is not valid.
+    pub fn remove(&mut self, path: &PropertyPath<'_>) -> Result<(), Report<PropertyPathError>> {
+        let [path @ .., last] = path.as_ref() else {
+            return Err(Report::new(PropertyPathError::EmptyPath));
+        };
+        let parent = self.get_mut(path)?;
+        match (parent, last) {
+            (
+                Self::Array {
+                    value: elements, ..
+                },
+                PropertyPathElement::Index(index),
+            ) => {
+                if *index <= elements.len() {
+                    elements.remove(*index);
+                    Ok(())
+                } else {
+                    Err(Report::new(PropertyPathError::IndexOutOfBounds {
+                        index: *index,
+                        len: elements.len(),
+                    }))
+                }
+            }
+            (Self::Array { .. }, PropertyPathElement::Property(key)) => {
+                Err(Report::new(PropertyPathError::UnexpectedKey {
+                    key: key.clone().into_owned(),
+                }))
+            }
+            (
+                Self::Object {
+                    value: properties, ..
+                },
+                PropertyPathElement::Property(key),
+            ) => {
+                properties.remove(key);
+                Ok(())
+            }
+            (Self::Object { .. }, PropertyPathElement::Index(index)) => {
+                Err(Report::new(PropertyPathError::UnexpectedIndex {
+                    index: *index,
+                }))
+            }
+            (Self::Value { .. }, _) => Err(Report::new(PropertyPathError::UnexpectedValue)),
+        }
+    }
+
+    /// Creates a unified representation of the property and its metadata.
+    ///
+    /// # Errors
+    ///
+    /// - If the property and metadata types do not match.
+    pub fn from_parts(
+        property: Property,
+        metadata: Option<PropertyMetadata>,
+    ) -> Result<Self, Report<PropertyPathError>> {
+        match (property, metadata) {
+            (
+                Property::Array(properties),
+                Some(PropertyMetadata::Array {
+                    value: metadata_elements,
+                    metadata,
+                }),
+            ) => Ok(Self::Array {
+                value: metadata_elements
+                    .into_iter()
+                    .map(Some)
+                    .chain(iter::repeat_with(|| None))
+                    .zip(properties)
+                    .map(|(metadata, property)| Self::from_parts(property, metadata))
+                    .collect::<Result<_, _>>()?,
+                metadata,
+            }),
+            (Property::Array(properties), None) => Ok(Self::Array {
+                value: properties
+                    .into_iter()
+                    .map(|property| Self::from_parts(property, None))
+                    .collect::<Result<_, _>>()?,
+                metadata: ArrayMetadata::default(),
+            }),
+            (
+                Property::Object(properties),
+                Some(PropertyMetadata::Object {
+                    value: mut metadata_elements,
+                    metadata,
+                }),
+            ) => Ok(Self::Object {
+                value: properties
+                    .into_iter()
+                    .map(|(key, property)| {
+                        let metadata = metadata_elements.remove(&key);
+                        Ok::<_, Report<PropertyPathError>>((
+                            key,
+                            Self::from_parts(property, metadata)?,
+                        ))
+                    })
+                    .collect::<Result<_, _>>()?,
+                metadata,
+            }),
+            (Property::Object(properties), None) => Ok(Self::Object {
+                value: properties
+                    .into_iter()
+                    .map(|(key, property)| {
+                        Ok::<_, Report<PropertyPathError>>((key, Self::from_parts(property, None)?))
+                    })
+                    .collect::<Result<_, _>>()?,
+                metadata: ObjectMetadata::default(),
+            }),
+            (Property::Value(value), Some(PropertyMetadata::Value { metadata })) => {
+                Ok(Self::Value(ValueWithMetadata { value, metadata }))
+            }
+            (Property::Value(value), None) => Ok(Self::Value(ValueWithMetadata {
+                value,
+                metadata: ValueMetadata {
+                    provenance: PropertyProvenance::default(),
+                    confidence: None,
+                    data_type_id: None,
+                },
+            })),
+            _ => Err(Report::new(PropertyPathError::PropertyMetadataMismatch)),
+        }
+    }
+
+    pub fn into_parts(self) -> (Property, PropertyMetadata) {
+        match self {
+            Self::Array { value, metadata } => {
+                let (properties, metadata_elements) =
+                    value.into_iter().map(Self::into_parts).unzip();
+                (
+                    Property::Array(properties),
+                    PropertyMetadata::Array {
+                        value: metadata_elements,
+                        metadata,
+                    },
+                )
+            }
+            Self::Object { value, metadata } => {
+                let (properties, metadata_properties) = value
+                    .into_iter()
+                    .map(|(base_url, property_with_metadata)| {
+                        let (property, metadata) = property_with_metadata.into_parts();
+                        ((base_url.clone(), property), (base_url, metadata))
+                    })
+                    .unzip();
+                (
+                    Property::Object(PropertyObject::new(properties)),
+                    PropertyMetadata::Object {
+                        value: metadata_properties,
+                        metadata,
+                    },
+                )
+            }
+            Self::Value(property) => (
+                Property::Value(property.value),
+                PropertyMetadata::Value {
+                    metadata: property.metadata,
+                },
+            ),
+        }
+    }
+}
+
+impl Property {
     pub gen fn properties(&self) -> (PropertyPath<'_>, &JsonValue) {
         let mut elements = PropertyPath::default();
         match self {
@@ -74,20 +411,20 @@ impl Property {
     #[must_use]
     pub fn get<'a>(
         &self,
-        path: impl IntoIterator<Item = &'a PropertyPathElement<'a>>,
+        path: impl IntoIterator<Item = PropertyPathElement<'a>>,
     ) -> Option<&Self> {
         let mut value = self;
         for element in path {
             match element {
                 PropertyPathElement::Property(key) => {
                     value = match value {
-                        Self::Object(object) => object.properties().get(key)?,
+                        Self::Object(object) => object.properties().get(&key)?,
                         _ => return None,
                     };
                 }
                 PropertyPathElement::Index(index) => {
                     value = match value {
-                        Self::Array(array) => array.get(*index)?,
+                        Self::Array(array) => array.get(index)?,
                         _ => return None,
                     };
                 }
@@ -134,7 +471,7 @@ impl Property {
         }
     }
 
-    pub(super) gen fn diff_object<'a>(
+    gen fn diff_object<'a>(
         lhs: &'a HashMap<BaseUrl, Self>,
         rhs: &'a HashMap<BaseUrl, Self>,
         path: &mut PropertyPath<'a>,
@@ -241,8 +578,8 @@ impl PartialEq<JsonValue> for Property {
                     return false;
                 };
 
-                lhs.properties().len() == rhs.len()
-                    && lhs.properties().iter().all(|(key, value)| {
+                lhs.len() == rhs.len()
+                    && lhs.iter().all(|(key, value)| {
                         rhs.get(key.as_str())
                             .map_or(false, |other_value| value == other_value)
                     })

@@ -37,6 +37,7 @@ export * from "./icon-circle-plus";
 export * from "./icon-clock-regular";
 export * from "./icon-close";
 export * from "./icon-code";
+export * from "./icon-copy-regular";
 export * from "./icon-dash";
 export * from "./icon-discord";
 export * from "./icon-download-regular";

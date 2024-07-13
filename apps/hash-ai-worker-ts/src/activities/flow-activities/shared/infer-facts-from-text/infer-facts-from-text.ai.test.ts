@@ -132,10 +132,15 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
 test.skip(
   "Test inferFactsFromText with FTSE350 web page html",
   async () => {
-    const { htmlContent } = await getWebPageActivity({
+    const webPage = await getWebPageActivity({
       url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
       sanitizeForLlm: true,
     });
+    if ("error" in webPage) {
+      throw new Error(webPage.error);
+    }
+
+    const { htmlContent } = webPage;
 
     const { userAuthentication } = await getFlowContext();
 
@@ -410,10 +415,15 @@ test.skip(
   async () => {
     const url = "https://platform.openai.com/docs/models";
 
-    const { title, htmlContent } = await getWebPageActivity({
+    const webPage = await getWebPageActivity({
       url,
       sanitizeForLlm: true,
     });
+    if ("error" in webPage) {
+      throw new Error(webPage.error);
+    }
+
+    const { title, htmlContent } = webPage;
 
     const text = dedent(`
       The following HTML content was obtained from the web page with title "${title}", hosted at the URL "${url}".

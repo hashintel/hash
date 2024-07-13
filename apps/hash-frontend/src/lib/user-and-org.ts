@@ -15,12 +15,13 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
 import type {
-  IsMemberOfProperties,
-  OrganizationProperties,
-  ProfileBioProperties,
-  ServiceAccountProperties,
+  HasBio,
+  IsMemberOf,
+  Organization,
+  ProfileBio,
+  ServiceAccount,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
   AccountEntityId,
   AccountGroupEntityId,
@@ -39,7 +40,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 export const constructMinimalOrg = (params: {
-  orgEntity: Entity<OrganizationProperties>;
+  orgEntity: Entity<Organization>;
 }): MinimalOrg => {
   const { orgEntity } = params;
 
@@ -64,7 +65,7 @@ export const constructMinimalOrg = (params: {
 
 export type MinimalUser = {
   kind: "user";
-  entity: Entity<UserProperties>;
+  entity: Entity<UserEntity>;
   accountId: AccountId;
   accountSignupComplete: boolean;
   enabledFeatureFlags: FeatureFlag[];
@@ -78,11 +79,11 @@ export type MinimalUser = {
 
 export const isEntityUserEntity = (
   entity: Entity,
-): entity is Entity<UserProperties> =>
+): entity is Entity<UserEntity> =>
   entity.metadata.entityTypeId === systemEntityTypes.user.entityTypeId;
 
 export const constructMinimalUser = (params: {
-  userEntity: Entity<UserProperties>;
+  userEntity: Entity<UserEntity>;
 }): MinimalUser => {
   const { userEntity } = params;
 
@@ -117,21 +118,21 @@ export type Org = MinimalOrg & {
   createdAt: Date;
   hasAvatar?: {
     linkEntity: LinkEntity;
-    imageEntity: Image;
+    imageEntity: Entity<Image>;
   };
   hasBio?: {
     linkEntity: LinkEntity;
-    profileBioEntity: Entity<ProfileBioProperties>;
+    profileBioEntity: Entity<ProfileBio>;
   };
   memberships: {
-    linkEntity: Entity<IsMemberOfProperties>;
+    linkEntity: LinkEntity<IsMemberOf>;
     user: MinimalUser;
   }[];
 };
 
 export const isEntityOrgEntity = (
   entity: Entity,
-): entity is Entity<OrganizationProperties> =>
+): entity is Entity<Organization> =>
   entity.metadata.entityTypeId === systemEntityTypes.organization.entityTypeId;
 
 /**
@@ -147,7 +148,7 @@ export const isEntityOrgEntity = (
  */
 export const constructOrg = (params: {
   subgraph: Subgraph;
-  orgEntity: Entity<OrganizationProperties>;
+  orgEntity: Entity<Organization>;
 }): Org => {
   const { subgraph, orgEntity } = params;
 
@@ -169,7 +170,7 @@ export const constructOrg = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: avatarLinkAndEntities[0].linkEntity[0]!,
-        imageEntity: avatarLinkAndEntities[0].rightEntity[0]! as Image,
+        imageEntity: avatarLinkAndEntities[0].rightEntity[0]! as Entity<Image>,
       }
     : undefined;
 
@@ -187,7 +188,8 @@ export const constructOrg = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: hasBioLinkAndEntities[0].linkEntity[0]!,
-        profileBioEntity: hasBioLinkAndEntities[0].rightEntity[0]!,
+        profileBioEntity: hasBioLinkAndEntities[0]
+          .rightEntity[0]! as Entity<ProfileBio>,
       }
     : undefined;
 
@@ -196,7 +198,7 @@ export const constructOrg = (params: {
     orgEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
   ).filter(
-    (linkEntity): linkEntity is LinkEntity<IsMemberOfProperties> =>
+    (linkEntity): linkEntity is LinkEntity<IsMemberOf> =>
       linkEntity.metadata.entityTypeId ===
       systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
   );
@@ -267,19 +269,19 @@ export type User = MinimalUser & {
   emails: { address: string; primary: boolean; verified: boolean }[];
   hasAvatar?: {
     linkEntity: LinkEntity;
-    imageEntity: Image;
+    imageEntity: Entity<Image>;
   };
   hasCoverImage?: {
     linkEntity: LinkEntity;
-    imageEntity: Image;
+    imageEntity: Entity<Image>;
   };
   hasBio?: {
     linkEntity: LinkEntity;
-    profileBioEntity: Entity<ProfileBioProperties>;
+    profileBioEntity: Entity<ProfileBio>;
   };
   hasServiceAccounts: UserServiceAccount[];
   memberOf: {
-    linkEntity: Entity<IsMemberOfProperties>;
+    linkEntity: Entity<IsMemberOf>;
     org: Org;
   }[];
 };
@@ -303,7 +305,7 @@ export const constructUser = (params: {
   orgMembershipLinks?: LinkEntity[];
   subgraph: Subgraph<EntityRootType>;
   resolvedOrgs?: Org[];
-  userEntity: Entity<UserProperties>;
+  userEntity: Entity<UserEntity>;
 }): User => {
   const { orgMembershipLinks, resolvedOrgs, subgraph, userEntity } = params;
 
@@ -332,12 +334,10 @@ export const constructUser = (params: {
         systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
     );
 
-  const memberOf = orgMemberships.map((linkEntity) => {
-    const { linkData, metadata } = linkEntity;
+  const memberOf = orgMemberships.map((untypedLinkEntity) => {
+    const linkEntity = untypedLinkEntity as LinkEntity<IsMemberOf>;
 
-    if (!linkData?.rightEntityId) {
-      throw new Error("Expected org membership to contain a right entity");
-    }
+    const { linkData, metadata } = linkEntity;
 
     const fullyResolvedOrg = resolvedOrgs?.find(
       (org) => org.entity.metadata.recordId.entityId === linkData.rightEntityId,
@@ -396,7 +396,7 @@ export const constructUser = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: avatarLinkAndEntities[0].linkEntity[0]!,
-        imageEntity: avatarLinkAndEntities[0].rightEntity[0]! as Image,
+        imageEntity: avatarLinkAndEntities[0].rightEntity[0]! as Entity<Image>,
       }
     : undefined;
 
@@ -414,7 +414,8 @@ export const constructUser = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: coverImageLinkAndEntities[0].linkEntity[0]!,
-        imageEntity: coverImageLinkAndEntities[0].rightEntity[0]! as Image,
+        imageEntity: coverImageLinkAndEntities[0]
+          .rightEntity[0]! as Entity<Image>,
       }
     : undefined;
 
@@ -431,8 +432,10 @@ export const constructUser = (params: {
   const hasBio = hasBioLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasBioLinkAndEntities[0].linkEntity[0]!,
-        profileBioEntity: hasBioLinkAndEntities[0].rightEntity[0]!,
+        linkEntity: hasBioLinkAndEntities[0]
+          .linkEntity[0]! as LinkEntity<HasBio>,
+        profileBioEntity: hasBioLinkAndEntities[0]
+          .rightEntity[0]! as Entity<ProfileBio>,
       }
     : undefined;
 
@@ -450,7 +453,7 @@ export const constructUser = (params: {
       const serviceAccountEntity = rightEntity[0]!;
 
       const { profileUrl } = simplifyProperties(
-        serviceAccountEntity.properties as ServiceAccountProperties,
+        serviceAccountEntity.properties as ServiceAccount["properties"],
       );
 
       const kind = Object.entries(systemEntityTypes).find(

@@ -344,7 +344,7 @@ mod tests {
     /// [A, G]
     /// ```
     #[test]
-    #[allow(clippy::many_single_char_names)]
+    #[expect(clippy::many_single_char_names)]
     fn split() {
         let f = Report::new(Root).attach_printable(Printable("F"));
         let e = Report::new(Root).attach_printable(Printable("E"));
@@ -433,7 +433,7 @@ mod tests {
     /// [A, G, Y Error, Z Error, Z Error]
     /// ```
     #[test]
-    #[allow(clippy::many_single_char_names)]
+    #[expect(clippy::many_single_char_names)]
     fn divide_integration() {
         let mut b = Report::new(Error::new(Z))
             .attach_printable(Printable("D"))
@@ -517,7 +517,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::std_instead_of_alloc)] // Reason: `assert_serde_eq!` uses `std`
     fn serialize_single() {
         // simulates that we expected to receive `id` (of type int) at `.0.a.b`, but did not
         let report = Report::new(Error::new(MissingError))
@@ -555,7 +554,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::std_instead_of_alloc)] // Reason: `assert_serde_eq!` uses `std`
     fn serialize_multiple() {
         // simulates that we have two errors:
         // * ValueError: u8 @ `.0.a`, received 256
@@ -622,31 +620,5 @@ mod tests {
                 }
             }])
         );
-    }
-
-    #[derive(Debug)]
-    struct X;
-
-    impl Display for X {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("X Error")
-        }
-    }
-
-    impl Context for X {}
-
-    impl Variant for X {
-        type Properties = ();
-
-        const ID: Id = id!["value"];
-        const NAMESPACE: Namespace = NAMESPACE;
-
-        fn message(
-            &self,
-            fmt: &mut Formatter,
-            _properties: &<Self::Properties as ErrorProperties>::Value<'_>,
-        ) -> core::fmt::Result {
-            fmt.write_str("X Error")
-        }
     }
 }

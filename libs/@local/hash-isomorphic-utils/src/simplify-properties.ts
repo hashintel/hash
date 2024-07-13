@@ -3,7 +3,7 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityMetadata,
-  EntityPropertiesObject,
+  PropertyObject,
 } from "@local/hash-graph-types/entity";
 import camelCase from "lodash/camelCase";
 
@@ -28,7 +28,7 @@ type BeforeTrailingLast<
 /**
  * An entity properties object where the baseUrl keys have been replaced by the last segment of the URL, camelCased
  */
-export type SimpleProperties<Properties extends EntityPropertiesObject> = {
+export type SimpleProperties<Properties extends PropertyObject> = {
   [Key in keyof Properties as BeforeTrailingLast<
     Extract<Key, string>,
     "/"
@@ -40,7 +40,7 @@ export type Simplified<T extends Entity | BpEntity> = {
   properties: SimpleProperties<T["properties"]>;
 };
 
-export const simplifyProperties = <T extends EntityPropertiesObject>(
+export const simplifyProperties = <T extends PropertyObject>(
   properties: T,
 ): SimpleProperties<T> => {
   // this function is only called with property objects that follow the HASH URL/bp scheme

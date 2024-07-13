@@ -11,6 +11,7 @@ use futures::{
     Sink, SinkExt, Stream, StreamExt,
 };
 use graph_types::ontology::{DataTypeId, PropertyTypeId};
+use type_system::Valid;
 
 use crate::{
     snapshot::{
@@ -86,7 +87,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
             .into_iter()
             .map(|data_type_ref| PropertyTypeConstrainsValuesOnRow {
                 source_property_type_ontology_id: ontology_id,
-                target_data_type_ontology_id: DataTypeId::from_url(data_type_ref.url()),
+                target_data_type_ontology_id: DataTypeId::from_url(&data_type_ref.url),
             })
             .collect();
         if !values.is_empty() {
@@ -102,7 +103,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
             .into_iter()
             .map(|property_type_ref| PropertyTypeConstrainsPropertiesOnRow {
                 source_property_type_ontology_id: ontology_id,
-                target_property_type_ontology_id: PropertyTypeId::from_url(property_type_ref.url()),
+                target_property_type_ontology_id: PropertyTypeId::from_url(&property_type_ref.url),
             })
             .collect();
         if !properties.is_empty() {
@@ -115,7 +116,9 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
         self.schema
             .start_send_unpin(PropertyTypeRow {
                 ontology_id,
-                schema: property_type.schema,
+                // TODO: Validate ontology types in snapshots
+                //   see https://linear.app/hash/issue/H-3038
+                schema: Valid::new_unchecked(property_type.schema),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

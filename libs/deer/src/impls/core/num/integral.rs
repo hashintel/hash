@@ -115,7 +115,7 @@ impl Reflection for usize {
 }
 
 // Reason: code is architecture dependent, therefore truncation is not possible
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 impl<'de> Deserialize<'de> for usize {
     type Reflection = Self;
 
@@ -144,7 +144,7 @@ impl Reflection for isize {
 }
 
 // Reason: code is architecture dependent, therefore truncation is not possible
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 impl<'de> Deserialize<'de> for isize {
     type Reflection = Self;
 

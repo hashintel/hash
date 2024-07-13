@@ -1,7 +1,8 @@
 import { extractVersion, type VersionedUrl } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type { PropertyObject } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -41,7 +42,7 @@ export const upgradeWebEntities = async ({
   migrationState: MigrationState;
   migrateProperties?: Record<
     BaseUrl,
-    (previousProperties: EntityPropertiesObject) => EntityPropertiesObject
+    (previousProperties: PropertyObject) => PropertyObject
   >;
   webOwnedById: OwnedById;
 }) => {
@@ -197,9 +198,11 @@ export const upgradeWebEntities = async ({
         await updateEntity(context, updateAuthentication, {
           entity,
           entityTypeId: newEntityTypeId,
-          properties: migratePropertiesFunction
-            ? migratePropertiesFunction(entity.properties)
-            : entity.properties,
+          propertyPatches: migratePropertiesFunction
+            ? propertyObjectToPatches(
+                migratePropertiesFunction(entity.properties),
+              )
+            : undefined,
         });
       } finally {
         for (const entityTypeId of temporaryEntityTypePermissionsGranted) {

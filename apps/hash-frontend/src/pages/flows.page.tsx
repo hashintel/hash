@@ -1,7 +1,7 @@
 import { InfinityLightIcon } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
 import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { Box, Container, TableCell, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { memo, useMemo, useState } from "react";
@@ -136,9 +136,7 @@ const FlowsPageContent = () => {
 
   const flowDefinitionRows = useMemo<VirtualizedTableRow<FlowSummary>[]>(() => {
     const rowData: VirtualizedTableRow<FlowSummary>[] = allFlowDefinitions
-      .filter(
-        (def) => def.flowDefinitionId !== goalFlowDefinition.flowDefinitionId,
-      )
+      .filter((def) => !goalFlowDefinitionIds.includes(def.flowDefinitionId))
       .map((flowDefinition) => {
         let lastRunStartedAt = null;
         for (const flowRun of flowRuns) {

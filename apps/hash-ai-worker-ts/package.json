@@ -37,9 +37,10 @@
     "test:unit": "vitest --run  --exclude \"**/*.ai.test.ts\""
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.21.0",
-    "@blockprotocol/graph": "0.3.4",
-    "@blockprotocol/type-system": "0.1.1",
+    "@anthropic-ai/bedrock-sdk": "0.10.0",
+    "@anthropic-ai/sdk": "0.24.0",
+    "@blockprotocol/graph": "0.4.0-canary.0",
+    "@blockprotocol/type-system": "0.1.2-canary.0",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
@@ -60,8 +61,10 @@
     "dedent": "0.7.0",
     "dotenv-flow": "3.2.0",
     "e2b": "0.13.1",
+    "exponential-backoff": "3.1.1",
     "googleapis": "133.0.0",
     "is-docker": "2.2.1",
+    "jsdom": "24.1.0",
     "llamaindex": "0.2.10",
     "lodash.debounce": "4.0.8",
     "lodash.isequal": "4.5.0",
@@ -78,7 +81,7 @@
     "puppeteer-extra-plugin-stealth": "2.11.2",
     "sanitize-html": "2.13.0",
     "tsx": "3.13.0",
-    "typescript": "5.1.6"
+    "typescript": "5.5.3"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
@@ -86,6 +89,7 @@
     "@sentry/cli": "2.31.0",
     "@types/dedent": "0.7.0",
     "@types/dotenv-flow": "3.2.0",
+    "@types/jsdom": "21.1.7",
     "@types/lodash.debounce": "4.0.9",
     "@types/lodash.isequal": "4.5.8",
     "@types/lodash.ismatch": "4.4.9",

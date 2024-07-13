@@ -25,8 +25,9 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
+    schema::EntityTypeValidator,
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    ClosedEntityType, EntityType,
+    ClosedEntityType, EntityType, Validator,
 };
 use uuid::Uuid;
 
@@ -157,7 +158,7 @@ where
                 .into_iter()
                 .filter_map(|row| {
                     let entity_type = row.decode_record(&artifacts);
-                    let id = EntityTypeId::from_url(entity_type.schema.id());
+                    let id = EntityTypeId::from_url(&entity_type.schema.id);
                     // The records are already sorted by time, so we can just take the first one
                     visited_ontology_ids.insert(id).then_some((id, entity_type))
                 })
@@ -403,8 +404,8 @@ where
         let mut visited_ids = HashSet::from([entity_type_id]);
 
         loop {
-            for parent in current_type.inherits_from.clone() {
-                let parent_id = EntityTypeId::from_url(parent.url());
+            for parent in current_type.all_of.clone() {
+                let parent_id = EntityTypeId::from_url(&parent.url);
 
                 ensure!(
                     parent_id != entity_type_id,
@@ -414,7 +415,7 @@ where
                 if visited_ids.contains(&parent_id) {
                     // This may happen in case of multiple inheritance or cycles. Cycles are
                     // already checked above, so we can just skip this parent.
-                    current_type.inherits_from.remove(&parent);
+                    current_type.all_of.remove(&parent);
                     break;
                 }
 
@@ -423,14 +424,14 @@ where
                         .get(&parent_id)
                         .ok_or_else(|| Report::new(QueryError))
                         .attach_printable("entity type not available")
-                        .attach_printable_lazy(|| parent.url().clone())?
+                        .attach_printable_lazy(|| parent.url.clone())?
                         .clone(),
                 );
 
                 visited_ids.insert(parent_id);
             }
 
-            if current_type.inherits_from.is_empty() {
+            if current_type.all_of.is_empty() {
                 break;
             }
         }
@@ -448,7 +449,7 @@ where
             .into_iter()
             .map(|entity_type| {
                 (
-                    EntityTypeId::from_url(entity_type.id()).into_uuid(),
+                    EntityTypeId::from_url(&entity_type.id).into_uuid(),
                     entity_type,
                 )
             })
@@ -458,8 +459,8 @@ where
         // schemas
         let parent_entity_type_ids = entity_types
             .iter()
-            .flat_map(|(_, schema)| schema.inherits_from().all_of())
-            .map(|reference| EntityTypeId::from_url(reference.url()).into_uuid())
+            .flat_map(|(_, schema)| &schema.all_of)
+            .map(|reference| EntityTypeId::from_url(&reference.url).into_uuid())
             .collect::<Vec<_>>();
 
         // We read all relevant schemas from the graph
@@ -536,6 +537,8 @@ where
         let mut inserted_entity_types = Vec::new();
         let mut inserted_entity_type_metadata = Vec::new();
 
+        let validator = EntityTypeValidator;
+
         let mut schemas = Vec::new();
         let mut metadatas = Vec::new();
         for param in params {
@@ -549,7 +552,7 @@ where
 
             metadatas.push((
                 PartialEntityTypeMetadata {
-                    record_id: OntologyTypeRecordId::from(param.schema.id().clone()),
+                    record_id: OntologyTypeRecordId::from(param.schema.id.clone()),
                     classification: param.classification,
                     label_property: param.label_property,
                     icon: param.icon,
@@ -574,7 +577,7 @@ where
                 closed_schema,
             } = insertion;
 
-            let entity_type_id = EntityTypeId::from_url(schema.id());
+            let entity_type_id = EntityTypeId::from_url(&schema.id);
 
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
                 &metadata.classification
@@ -613,8 +616,14 @@ where
                 transaction
                     .insert_entity_type_with_id(
                         ontology_id,
-                        &schema,
-                        &closed_schema,
+                        validator
+                            .validate_ref(&schema)
+                            .await
+                            .change_context(InsertionError)?,
+                        validator
+                            .validate_ref(&closed_schema)
+                            .await
+                            .change_context(InsertionError)?,
                         metadata.label_property.as_ref(),
                         metadata.icon.as_deref(),
                     )
@@ -655,7 +664,7 @@ where
                 .attach_printable_lazy(|| {
                     format!(
                         "could not insert references for entity type: {}",
-                        entity_type.schema.id()
+                        entity_type.schema.id
                     )
                 })
                 .attach_lazy(|| entity_type.schema.clone())?;
@@ -780,7 +789,7 @@ where
             .iter()
             .map(|entity_type| {
                 (
-                    EntityTypeId::from_url(entity_type.schema.id()),
+                    EntityTypeId::from_url(&entity_type.schema.id),
                     GraphElementVertexId::from(entity_type.vertex_id(time_axis)),
                 )
             })
@@ -834,11 +843,11 @@ where
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
         let old_ontology_id = EntityTypeId::from_url(&VersionedUrl {
-            base_url: params.schema.id().base_url.clone(),
+            base_url: params.schema.id.base_url.clone(),
             version: OntologyTypeVersion::new(
                 params
                     .schema
-                    .id()
+                    .id
                     .version
                     .inner()
                     .checked_sub(1)
@@ -862,7 +871,7 @@ where
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let url = params.schema.id();
+        let url = &params.schema.id;
         let record_id = OntologyTypeRecordId::from(url.clone());
 
         let provenance = OntologyProvenance {
@@ -888,11 +897,19 @@ where
             .pop()
             .ok_or_else(|| Report::new(UpdateError).attach_printable("entity type not found"))?;
 
+        let validator = EntityTypeValidator;
+
         transaction
             .insert_entity_type_with_id(
                 ontology_id,
-                &schema,
-                &closed_schema,
+                validator
+                    .validate_ref(&schema)
+                    .await
+                    .change_context(UpdateError)?,
+                validator
+                    .validate_ref(&closed_schema)
+                    .await
+                    .change_context(UpdateError)?,
                 params.label_property.as_ref(),
                 params.icon.as_deref(),
             )
@@ -911,10 +928,7 @@ where
             .await
             .change_context(UpdateError)
             .attach_printable_lazy(|| {
-                format!(
-                    "could not insert references for entity type: {}",
-                    schema.id()
-                )
+                format!("could not insert references for entity type: {}", schema.id)
             })
             .attach_lazy(|| schema.clone())?;
 
@@ -1070,7 +1084,11 @@ where
                         WHERE (ontology_id) IN (SELECT ontology_id FROM embeddings_to_delete)
                     )
                 INSERT INTO entity_type_embeddings
-                SELECT ontology_id, embedding, updated_at_transaction_time FROM provided_embeddings
+                SELECT
+                    ontology_id,
+                    embedding,
+                    updated_at_transaction_time
+                FROM provided_embeddings
                 ON CONFLICT (ontology_id) DO UPDATE SET
                     embedding = EXCLUDED.embedding,
                     updated_at_transaction_time = EXCLUDED.updated_at_transaction_time

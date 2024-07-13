@@ -2,7 +2,7 @@ import {
   type QueryTemporalAxes as QueryTemporalAxesBp,
   type QueryTemporalAxesUnresolved as QueryTemporalAxesUnresolvedBp,
   type SubgraphTemporalAxes as SubgraphTemporalAxesBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   PinnedTemporalAxis,

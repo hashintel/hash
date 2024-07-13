@@ -365,7 +365,7 @@ export const mutateSchema = (
           // @ts-expect-error -- NodeType#nodes is readonly in prosemirror-model
           this.nodes[key] = value;
         } else {
-          this.nodes[key]!.contentMatch = value.contentMatch;
+          this.nodes[key].contentMatch = value.contentMatch;
         }
       }
     }

@@ -1,5 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { validateBaseUrl } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
 import type {
   DataTypeRelationAndSubject as DataTypeRelationAndSubjectGraph,
@@ -19,13 +18,8 @@ import type {
   EntityUuid,
 } from "@local/hash-graph-types/entity";
 import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { validate as validateUuid } from "uuid";
-
-export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
-  return validateBaseUrl(baseUrl).type === "Ok";
-};
 
 export const isEntityId = (entityId: string): entityId is EntityId => {
   const [accountId, entityUuid] = entityId.split(ENTITY_ID_DELIMITER);
@@ -44,11 +38,11 @@ export const entityIdFromComponents = (
 ): EntityId => {
   const base = `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}`;
 
-  if (draftId) {
+  if (!draftId) {
     return base as EntityId;
   }
 
-  return `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}` as EntityId;
+  return `${base}${ENTITY_ID_DELIMITER}${draftId}` as EntityId;
 };
 
 export const splitEntityId = (
@@ -56,6 +50,11 @@ export const splitEntityId = (
 ): [OwnedById, EntityUuid, DraftId?] => {
   const [ownedById, entityUuid, draftId] = entityId.split(ENTITY_ID_DELIMITER);
   return [ownedById as OwnedById, entityUuid as EntityUuid, draftId as DraftId];
+};
+
+export const stripDraftIdFromEntityId = (entityId: EntityId) => {
+  const [ownedById, entityUuid] = splitEntityId(entityId);
+  return entityIdFromComponents(ownedById, entityUuid);
 };
 
 export const extractOwnedByIdFromEntityId = (entityId: EntityId): OwnedById => {

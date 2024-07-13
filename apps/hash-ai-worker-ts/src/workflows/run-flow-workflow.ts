@@ -198,7 +198,9 @@ export const runFlowWorkflow = async (
   const userHasPermissionToRunFlowInWeb = await userHasPermissionActivity();
 
   if (userHasPermissionToRunFlowInWeb.status !== "ok") {
-    const errorMessage = `User does not have permission to run flow in web ${webId}, because they are missing permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(`,`)}`;
+    const errorMessage = `User does not have permission to run flow in web ${webId}, because they are missing permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(
+      `,`,
+    )}`;
     throw ApplicationFailure.create({
       message: errorMessage,
       details: [
@@ -269,7 +271,7 @@ export const runFlowWorkflow = async (
 
       const actionActivity = proxyFlowActivity({
         actionId: `${currentStep.actionDefinitionId}Action`,
-        maximumAttempts: actionStepDefinition.retryCount ?? 1,
+        maximumAttempts: actionStepDefinition.retryCount ?? 3,
         activityId: currentStep.stepId,
       });
 
@@ -289,13 +291,17 @@ export const runFlowWorkflow = async (
         });
       } catch (error) {
         log(
-          `Step ${currentStepId}: encountered runtime error executing "${currentStep.actionDefinitionId}" action: ${stringify(error)}`,
+          `Step ${currentStepId}: encountered runtime error executing "${
+            currentStep.actionDefinitionId
+          }" action: ${stringify(error)}`,
         );
 
         actionResponse = {
           contents: [],
           code: StatusCode.Internal,
-          message: `Error executing action ${currentStep.actionDefinitionId}: ${stringify(error)}`,
+          message: `Error executing action ${
+            currentStep.actionDefinitionId
+          }: ${stringify(error)}`,
         };
 
         processStepErrors[currentStepId] = actionResponse;

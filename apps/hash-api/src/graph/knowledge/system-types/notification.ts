@@ -20,14 +20,13 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-import type { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
-import type { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
+import type { CommentNotification as CommentNotificationEntity } from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import type { MentionNotification as MentionNotificationEntity } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
+import type { Notification as NotificationEntity } from "@local/hash-isomorphic-utils/system-types/notification";
 import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   ImpureGraphFunction,
@@ -36,7 +35,7 @@ import type {
 import {
   createEntity,
   getEntitySubgraph,
-  updateEntityProperties,
+  updateEntity,
 } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 import type { Block } from "./block";
@@ -47,22 +46,21 @@ import type { User } from "./user";
 
 type Notification = {
   archived?: boolean;
-  entity: Entity<NotificationProperties>;
+  entity: Entity<NotificationEntity>;
 };
 
 export const archiveNotification: ImpureGraphFunction<
-  { notification: Notification },
+  { notification: Notification | MentionNotification | CommentNotification },
   Promise<void>,
   false,
   true
 > = async (context, authentication, params) => {
-  await updateEntityProperties(context, authentication, {
+  await updateEntity(context, authentication, {
     entity: params.notification.entity,
-    updatedProperties: [
+    propertyPatches: [
       {
-        propertyTypeBaseUrl: extractBaseUrl(
-          systemPropertyTypes.archived.propertyTypeId,
-        ),
+        op: "add",
+        path: [systemPropertyTypes.archived.propertyTypeBaseUrl],
         value: true,
       },
     ],
@@ -70,18 +68,18 @@ export const archiveNotification: ImpureGraphFunction<
 };
 
 export type MentionNotification = {
-  entity: Entity<MentionNotificationProperties>;
-} & Notification;
+  entity: Entity<MentionNotificationEntity>;
+} & Omit<Notification, "entity">;
 
 export const isEntityMentionNotificationEntity = (
   entity: Entity,
-): entity is Entity<MentionNotificationProperties> =>
+): entity is Entity<MentionNotificationEntity> =>
   entity.metadata.entityTypeId ===
   systemEntityTypes.mentionNotification.entityTypeId;
 
 export const getMentionNotificationFromEntity: PureGraphFunction<
   { entity: Entity },
-  Notification
+  MentionNotification
 > = ({ entity }) => {
   if (!isEntityMentionNotificationEntity(entity)) {
     throw new EntityTypeMismatchError(
@@ -127,12 +125,12 @@ export const createMentionNotification: ImpureGraphFunction<
       machineActorId: webMachineActorId,
     });
 
-  const entity = await createEntity(context, botAuthentication, {
+  const entity = (await createEntity(context, botAuthentication, {
     ownedById,
     properties: {},
     entityTypeId: systemEntityTypes.mentionNotification.entityTypeId,
     relationships: notificationEntityRelationships,
-  });
+  })) as Entity<MentionNotificationEntity>;
 
   await Promise.all(
     [
@@ -326,18 +324,18 @@ export const getMentionNotification: ImpureGraphFunction<
 };
 
 export type CommentNotification = {
-  entity: Entity<MentionNotificationProperties>;
-} & Notification;
+  entity: Entity<CommentNotificationEntity>;
+} & Omit<Notification, "entity">;
 
 export const isEntityCommentNotificationEntity = (
   entity: Entity,
-): entity is Entity<CommentNotificationProperties> =>
+): entity is Entity<CommentNotificationEntity> =>
   entity.metadata.entityTypeId ===
   systemEntityTypes.commentNotification.entityTypeId;
 
 export const getCommentNotificationFromEntity: PureGraphFunction<
   { entity: Entity },
-  Notification
+  CommentNotification
 > = ({ entity }) => {
   if (!isEntityCommentNotificationEntity(entity)) {
     throw new EntityTypeMismatchError(
@@ -489,7 +487,7 @@ export const getCommentNotification: ImpureGraphFunction<
                 {
                   path: [
                     "properties",
-                    extractBaseUrl(systemPropertyTypes.archived.propertyTypeId),
+                    systemPropertyTypes.archived.propertyTypeBaseUrl,
                   ],
                 },
                 // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
@@ -502,7 +500,7 @@ export const getCommentNotification: ImpureGraphFunction<
                 {
                   path: [
                     "properties",
-                    extractBaseUrl(systemPropertyTypes.archived.propertyTypeId),
+                    systemPropertyTypes.archived.propertyTypeBaseUrl,
                   ],
                 },
                 { parameter: false },

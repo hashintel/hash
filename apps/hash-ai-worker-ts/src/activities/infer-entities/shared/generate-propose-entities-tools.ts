@@ -10,7 +10,7 @@ import type { JSONSchema } from "openai/lib/jsonschema";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
 import { generateSimplifiedTypeId } from "./generate-simplified-type-id";
-import type { EntityPropertyValueWithSimplifiedProperties } from "./map-simplified-properties-to-properties";
+import type { PropertyValueWithSimplifiedProperties } from "./map-simplified-properties-to-properties";
 import { stripIdsFromDereferencedProperties } from "./strip-ids-from-dereferenced-properties";
 
 export type ProposeEntitiesToolName = "abandon_entities" | "create_entities";
@@ -19,7 +19,7 @@ type ProposedEntityWithSimplifiedProperties = DistributiveOmit<
   ProposedEntity,
   "properties"
 > & {
-  properties?: Record<string, EntityPropertyValueWithSimplifiedProperties>;
+  properties?: Record<string, PropertyValueWithSimplifiedProperties>;
 };
 
 export type ProposedEntityToolCreationsByType = Record<
@@ -33,7 +33,11 @@ export const generateToolLinkFields = (params: {
   sourceEntityId: {
     description: dedent(`
       The entityId of the source entity of the link.
-      ${params.canLinkToExistingEntities ? "If the source is an existing entity, it must be a string. If it is a proposed entity, it must be a number." : ""}
+      ${
+        params.canLinkToExistingEntities
+          ? "If the source is an existing entity, it must be a string. If it is a proposed entity, it must be a number."
+          : ""
+      }
     `),
     ...(params.canLinkToExistingEntities
       ? {
@@ -51,7 +55,11 @@ export const generateToolLinkFields = (params: {
   targetEntityId: {
     description: dedent(`
       The entityId of the target entity of the link.
-      ${params.canLinkToExistingEntities ? "If the target is an existing entity, it must be a string. If it is a proposed entity, it must be a number." : ""}
+      ${
+        params.canLinkToExistingEntities
+          ? "If the target is an existing entity, it must be a string. If it is a proposed entity, it must be a number."
+          : ""
+      }
     `),
     ...(params.canLinkToExistingEntities
       ? {

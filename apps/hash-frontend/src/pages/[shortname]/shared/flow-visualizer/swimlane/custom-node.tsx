@@ -62,7 +62,7 @@ const useStatusText = ({
         return "Successfully completed";
       case "In Progress":
         return "Currently processing step...";
-      case "Error":
+      case "Errored":
         return "Step failed to complete";
       case "Cancelled":
         return "Cancelled";

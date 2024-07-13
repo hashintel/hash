@@ -1,9 +1,9 @@
-#![allow(clippy::too_many_lines)]
+#![expect(clippy::too_many_lines)]
 
 mod api;
 mod schema;
 
-use std::error::Error;
+use core::error::Error;
 
 use authorization::{
     backend::ZanzibarBackend,
@@ -28,6 +28,7 @@ async fn test_schema() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
+#[expect(clippy::panic_in_result_fn)]
 async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     let mut api = api::connect();
 

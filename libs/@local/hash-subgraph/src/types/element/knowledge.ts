@@ -1,8 +1,7 @@
 import type {
   EntityRevisionId as EntityRevisionIdBp,
   isEntityRecordId as isEntityRecordIdBp,
-  JsonValue as JsonValueBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { DiffEntityParams } from "@local/hash-graph-client";
@@ -42,7 +41,6 @@ export const isEntityRecordId: typeof isEntityRecordIdBp = (
     "editionId" in recordId
   );
 };
-export type JsonValue = JsonValueBp;
 
 export type LinkEntityAndRightEntity = {
   linkEntity: LinkEntity[];

@@ -38,7 +38,7 @@
           "title": "domain"
         },
         "metadata": {
-          "$ref": "#/definitions/Object",
+          "$ref": "#/definitions/ErrorInfoMetadata",
           "description": "Additional structured details about this error.\n\nKeys should match /[a-zA-Z0-9-_]/ and be limited to 64 characters in length. When\nidentifying the current value of an exceeded limit, the units should be contained in the\nkey, not the value.  For example, rather than {\"instanceLimit\": \"100/request\"}, should be\nreturned as, {\"instanceLimitPerRequest\": \"100\"}, if the client exceeds the number of\ninstances that can be created in a single (batch) request.",
           "title": "metadata"
         }
@@ -87,7 +87,7 @@
       },
       "required": ["description", "resourceName", "resourceType"]
     },
-    "Object": {
+    "ErrorInfoMetadata": {
       "description": "Construct a type with a set of properties K of type T",
       "title": "Record<string,any>",
       "type": "object"

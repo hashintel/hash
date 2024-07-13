@@ -1,6 +1,5 @@
 /* eslint-disable no-param-reassign */
 
-import type { EntityPropertyValue } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Issue, Organization, User } from "@linear/sdk";
 import type {
@@ -9,7 +8,7 @@ import type {
   UpdateUserInput,
 } from "@linear/sdk/dist/_generated_documents";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { Property } from "@local/hash-graph-types/entity";
 import {
   blockProtocolPropertyTypes,
   linearEntityTypes,
@@ -41,7 +40,7 @@ export type SupportedLinearTypeNames = keyof SupportedLinearTypes;
 
 const getLinearIdFromEntity = (entity: Entity): string => {
   const linearId =
-    entity.properties[linearPropertyTypes.id.propertyTypeBaseUrl as BaseUrl];
+    entity.properties[linearPropertyTypes.id.propertyTypeBaseUrl];
 
   if (!linearId) {
     throw new Error(
@@ -59,7 +58,7 @@ const getLinearIdFromEntity = (entity: Entity): string => {
 type PropertyMapping<
   LinearType extends SupportedLinearTypeNames,
   Key extends keyof SupportedLinearTypes[LinearType],
-  HashPropertyValue extends EntityPropertyValue = EntityPropertyValue,
+  HashPropertyValue extends Property = Property,
 > = {
   linearPropertyKey: Key;
   hashPropertyTypeId: VersionedUrl;

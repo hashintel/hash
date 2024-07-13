@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
-import type { EntityPropertiesObject } from "@local/hash-graph-types/entity";
+import type { PropertyObject } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
@@ -55,9 +55,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
    * I tried calling handleCreateEntity after setting the draftEntity state, but state was not updating
    * @todo find a better way to do this
    */
-  const handleCreateEntity = async (
-    overrideProperties?: EntityPropertiesObject,
-  ) => {
+  const handleCreateEntity = async (overrideProperties?: PropertyObject) => {
     if (!draftEntitySubgraph || !activeWorkspace) {
       return;
     }

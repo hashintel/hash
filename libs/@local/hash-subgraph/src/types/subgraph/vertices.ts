@@ -10,12 +10,12 @@ import {
   type OntologyVertices as OntologyVerticesBp,
   type PropertyTypeVertex as PropertyTypeVertexBp,
   type VertexId as VertexIdBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
-  EntityPropertiesObject,
+  EntityProperties,
 } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
@@ -51,8 +51,11 @@ export type EntityTypeVertex = Subtype<
 >;
 
 export type EntityVertex<
-  Properties extends EntityPropertiesObject = EntityPropertiesObject,
-> = { kind: "entity"; inner: Entity<Properties> };
+  Properties extends EntityProperties = EntityProperties,
+> = {
+  kind: "entity";
+  inner: Entity<Properties>;
+};
 export type SerializedEntityVertex = {
   kind: "entity";
   inner: SerializedEntity;

@@ -1,7 +1,12 @@
+import type { InitializeContext } from "../../context/initialize";
+
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 100;
 
-export const fetchTypeAsJson = async (versionedUrl: string) => {
+export const fetchTypeAsJson = async (
+  versionedUrl: string,
+  context: InitializeContext,
+) => {
   for (let retry = 0; retry < MAX_RETRIES; retry++) {
     const delay = RETRY_DELAY_MS * retry;
 
@@ -25,6 +30,7 @@ export const fetchTypeAsJson = async (versionedUrl: string) => {
       return await response.json();
     } catch (err) {
       if (retry === MAX_RETRIES - 1) {
+        context.logWarn(`Could not fetch ${versionedUrl}`);
         throw err;
       }
     }

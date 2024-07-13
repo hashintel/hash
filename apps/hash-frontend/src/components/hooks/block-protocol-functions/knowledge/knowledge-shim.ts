@@ -9,15 +9,18 @@
 import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import type {
   CreateResourceError,
-  EntityPropertiesObject,
   QueryOperationInput,
   ReadOrModifyResourceError,
   UploadFileData as BpUploadFileData,
 } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId, LinkData } from "@local/hash-graph-types/entity";
-import type { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  EntityId,
+  LinkData,
+  PropertyObject,
+} from "@local/hash-graph-types/entity";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 
 import type {
@@ -52,7 +55,7 @@ export type GetEntityMessageCallback = MessageCallback<
 export type UpdateEntityData = {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
-  properties: EntityPropertiesObject;
+  properties: PropertyObject;
 };
 
 export type UpdateEntityMessageCallback = MessageCallback<
@@ -73,7 +76,7 @@ export type UploadFileRequestData = BpUploadFileData &
 export type UploadFileRequestCallback = MessageCallback<
   UploadFileRequestData,
   null,
-  MessageReturn<FileEntityType>,
+  MessageReturn<Entity<FileEntity>>,
   CreateResourceError
 >;
 
@@ -94,7 +97,7 @@ export type QueryEntitiesMessageCallback = MessageCallback<
 
 export type CreateEntityRequest = {
   entityTypeId: VersionedUrl;
-  properties: EntityPropertiesObject;
+  properties: PropertyObject;
   linkData?: LinkData;
 };
 

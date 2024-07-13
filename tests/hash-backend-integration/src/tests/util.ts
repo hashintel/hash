@@ -1,7 +1,5 @@
 import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import { migrateOntologyTypes } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types";
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
@@ -49,6 +47,12 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<
 
   return {
     graphApi,
+    provenance: {
+      actorType: "machine",
+      origin: {
+        type: "api",
+      },
+    },
     uploadProvider: {
       getFileEntityStorageKey: (_params) => {
         throw new Error(
@@ -79,8 +83,6 @@ export const createTestUser = async (
   shortNamePrefix: string,
   logger: Logger,
 ) => {
-  await ensureSystemGraphIsInitialized({ logger, context });
-
   const shortname = generateRandomShortname(shortNamePrefix);
 
   const identity = await createKratosIdentity({
@@ -118,10 +120,7 @@ export const createTestOrg = async (
   context: ImpureGraphContext<false, true>,
   authentication: AuthenticationContext,
   shortNamePrefix: string,
-  logger: Logger,
 ) => {
-  await migrateOntologyTypes({ logger, context });
-
   const shortname = generateRandomShortname(shortNamePrefix);
 
   return createOrg(context, authentication, {

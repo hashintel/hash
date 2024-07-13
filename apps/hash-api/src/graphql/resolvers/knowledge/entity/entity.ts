@@ -9,10 +9,7 @@ import type {
   AccountGroupId,
   AccountId,
 } from "@local/hash-graph-types/account";
-import type {
-  EntityEditionProvenance,
-  EntityId,
-} from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   createDefaultAuthorizationRelationships,
@@ -93,26 +90,16 @@ export const createEntityResolver: ResolverFn<
   },
   graphQLContext,
 ) => {
-  const { authentication, user, userAgent } = graphQLContext;
+  const { authentication, user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   /**
    * @todo: prevent callers of this mutation from being able to create restricted
    * system types (e.g. a `User` or an `Org`)
-   *
-   * @see https://app.asana.com/0/1202805690238892/1203084714149803/f
+   * @see https://linear.app/hash/issue/H-2993
    */
 
   let entity: Entity;
-
-  const provenance: EntityEditionProvenance = {
-    actorType: "human",
-    origin: {
-      userAgent,
-      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
-      type: "web-app",
-    },
-  };
 
   if (linkData) {
     const { leftEntityId, rightEntityId } = linkData;
@@ -140,7 +127,6 @@ export const createEntityResolver: ResolverFn<
         relationships ??
         createDefaultAuthorizationRelationships(authentication),
       draft: draft ?? undefined,
-      provenance,
     });
   } else {
     entity = await createEntityWithLinks(context, authentication, {
@@ -150,7 +136,6 @@ export const createEntityResolver: ResolverFn<
       linkedEntities: linkedEntities ?? undefined,
       relationships: createDefaultAuthorizationRelationships(authentication),
       draft: draft ?? undefined,
-      provenance,
     });
   }
 
@@ -333,10 +318,10 @@ export const updateEntityResolver: ResolverFn<
   MutationUpdateEntityArgs
 > = async (
   _,
-  { entityUpdate: { draft, entityId, updatedProperties, entityTypeId } },
+  { entityUpdate: { draft, entityId, propertyPatches, entityTypeId } },
   graphQLContext,
 ) => {
-  const { authentication, user, userAgent } = graphQLContext;
+  const { authentication, user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const isIncompleteUser = !user.isAccountSignupComplete;
@@ -356,29 +341,18 @@ export const updateEntityResolver: ResolverFn<
 
   let updatedEntity: Entity;
 
-  const provenance: EntityEditionProvenance = {
-    actorType: "human",
-    origin: {
-      userAgent,
-      // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
-      type: "web-app",
-    },
-  };
-
   if (isEntityLinkEntity(entity)) {
     updatedEntity = await updateLinkEntity(context, authentication, {
       linkEntity: entity,
-      properties: updatedProperties,
+      propertyPatches,
       draft: draft ?? undefined,
-      provenance,
     });
   } else {
     updatedEntity = await updateEntity(context, authentication, {
       entity,
       entityTypeId: entityTypeId ?? undefined,
-      properties: updatedProperties,
+      propertyPatches,
       draft: draft ?? undefined,
-      provenance,
     });
   }
 
@@ -547,6 +521,7 @@ const parseGqlAuthorizationViewerInput = ({
     return {
       kind: "accountGroup",
       subjectId: viewer as AccountGroupId,
+      subjectSet: "member",
     } as const;
   }
 };

@@ -58,7 +58,6 @@ where
 /// # Panics
 ///
 /// if error could not be serialized
-#[allow(clippy::std_instead_of_alloc)] // Reason: `assert_serde_eq!` uses `std`
 pub fn assert_tokens_with_context_error<'de, T>(
     error: &ErrorVec,
     tokens: &'de [Token],

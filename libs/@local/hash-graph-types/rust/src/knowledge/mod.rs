@@ -3,9 +3,12 @@ pub mod link;
 
 pub use self::{
     confidence::Confidence,
+    entity::EntityTypeIdDiff,
     property::{
-        Property, PropertyDiff, PropertyMetadata, PropertyMetadataMap, PropertyObject,
-        PropertyPatchOperation, PropertyPath, PropertyPathElement, PropertyProvenance,
+        ArrayMetadata, ObjectMetadata, PatchError, Property, PropertyDiff, PropertyMetadata,
+        PropertyMetadataObject, PropertyObject, PropertyPatchOperation, PropertyPath,
+        PropertyPathElement, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
+        ValueMetadata, ValueWithMetadata,
     },
 };
 

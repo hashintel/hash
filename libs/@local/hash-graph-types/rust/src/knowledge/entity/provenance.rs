@@ -1,6 +1,6 @@
-use std::collections::HashSet;
 #[cfg(feature = "postgres")]
-use std::error::Error;
+use core::error::Error;
+use std::collections::HashSet;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
@@ -16,7 +16,10 @@ use utoipa::{
     ToSchema,
 };
 
-use crate::account::{CreatedById, EditionArchivedById, EditionCreatedById};
+use crate::{
+    account::{CreatedById, EditionArchivedById, EditionCreatedById},
+    knowledge::entity::EntityId,
+};
 
 /// The type of source material which was used to produce a value.
 // This enumeration is expected to grow over time, thus it's marked as non-exhaustive.
@@ -54,11 +57,16 @@ pub struct Location {
 /// The source material used in producing a value.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SourceProvenance {
     /// The type of source material.
     #[serde(rename = "type")]
     pub ty: SourceType,
+
+    /// The entityId of the HASH entity that mirrors the source.
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entity_id: Option<EntityId>,
 
     /// The people or organizations that authored the material.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -98,7 +106,12 @@ pub struct SourceProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+#[serde(
+    deny_unknown_fields,
+    tag = "type",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
 pub enum OriginType {
     WebApp,
     MobileApp,
@@ -112,10 +125,11 @@ pub enum OriginType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct OriginProvenance {
-    #[serde(rename = "type")]
+    #[serde(flatten)]
     pub ty: OriginType,
+    /// A unique identifier for the origin, if one is available
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// The origin version, in whatever format the origin natively provides.
@@ -240,6 +254,7 @@ pub enum ActorType {
     Human,
     #[serde(rename = "ai")]
     AI,
+    Machine,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -26,8 +26,9 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
+    schema::PropertyTypeValidator,
     url::{OntologyTypeVersion, VersionedUrl},
-    PropertyType,
+    PropertyType, Validator,
 };
 
 use crate::{
@@ -152,7 +153,7 @@ where
                 .into_iter()
                 .filter_map(|row| {
                     let property_type = row.decode_record(&artifacts);
-                    let id = PropertyTypeId::from_url(property_type.schema.id());
+                    let id = PropertyTypeId::from_url(&property_type.schema.id);
                     // The records are already sorted by time, so we can just take the first one
                     visited_ontology_ids
                         .insert(id)
@@ -385,6 +386,8 @@ where
         let mut inserted_property_types = Vec::new();
         let mut inserted_ontology_ids = Vec::new();
 
+        let property_type_validator = PropertyTypeValidator;
+
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
@@ -394,8 +397,8 @@ where
                 },
             };
 
-            let record_id = OntologyTypeRecordId::from(parameters.schema.id().clone());
-            let property_type_id = PropertyTypeId::from_url(parameters.schema.id());
+            let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
+            let property_type_id = PropertyTypeId::from_url(&parameters.schema.id);
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
                 &parameters.classification
             {
@@ -438,7 +441,13 @@ where
                 .await?
             {
                 transaction
-                    .insert_with_id(ontology_id, &parameters.schema)
+                    .insert_with_id(
+                        ontology_id,
+                        property_type_validator
+                            .validate_ref(&parameters.schema)
+                            .await
+                            .change_context(InsertionError)?,
+                    )
                     .await?;
                 let metadata = PropertyTypeMetadata {
                     record_id,
@@ -467,7 +476,7 @@ where
                 .attach_printable_lazy(|| {
                     format!(
                         "could not insert references for property type: {}",
-                        property_type.schema.id()
+                        &property_type.schema.id
                     )
                 })
                 .attach_lazy(|| property_type.schema.clone())?;
@@ -595,7 +604,7 @@ where
             .iter()
             .map(|property_type| {
                 (
-                    PropertyTypeId::from_url(property_type.schema.id()),
+                    PropertyTypeId::from_url(&property_type.schema.id),
                     GraphElementVertexId::from(property_type.vertex_id(time_axis)),
                 )
             })
@@ -648,12 +657,14 @@ where
     where
         R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
+        let property_type_validator = PropertyTypeValidator;
+
         let old_ontology_id = PropertyTypeId::from_url(&VersionedUrl {
-            base_url: params.schema.id().base_url.clone(),
+            base_url: params.schema.id.base_url.clone(),
             version: OntologyTypeVersion::new(
                 params
                     .schema
-                    .id()
+                    .id
                     .version
                     .inner()
                     .checked_sub(1)
@@ -687,7 +698,13 @@ where
         };
 
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update::<PropertyType>(&params.schema, &provenance.edition)
+            .update::<PropertyType>(
+                property_type_validator
+                    .validate_ref(&params.schema)
+                    .await
+                    .change_context(UpdateError)?,
+                &provenance.edition,
+            )
             .await?;
 
         transaction
@@ -697,7 +714,7 @@ where
             .attach_printable_lazy(|| {
                 format!(
                     "could not insert references for property type: {}",
-                    params.schema.id()
+                    params.schema.id
                 )
             })
             .attach_lazy(|| params.schema.clone())?;
@@ -749,7 +766,7 @@ where
             Err(error)
         } else {
             let metadata = PropertyTypeMetadata {
-                record_id: OntologyTypeRecordId::from(params.schema.id().clone()),
+                record_id: OntologyTypeRecordId::from(params.schema.id.clone()),
                 classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
                 provenance,
@@ -852,7 +869,11 @@ where
                         WHERE (ontology_id) IN (SELECT ontology_id FROM embeddings_to_delete)
                     )
                 INSERT INTO property_type_embeddings
-                SELECT ontology_id, embedding, updated_at_transaction_time FROM provided_embeddings
+                SELECT
+                    ontology_id,
+                    embedding,
+                    updated_at_transaction_time
+                FROM provided_embeddings
                 ON CONFLICT (ontology_id) DO UPDATE SET
                     embedding = EXCLUDED.embedding,
                     updated_at_transaction_time = EXCLUDED.updated_at_transaction_time

@@ -1,16 +1,18 @@
 use core::borrow::Borrow;
+use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 use graph_types::knowledge::{
     entity::{Entity, EntityId},
     link::LinkData,
-    PropertyObject, PropertyPath,
+    PropertyPath, PropertyWithMetadataObject,
 };
 use thiserror::Error;
 use type_system::{
+    schema::ObjectSchema,
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    ClosedEntityType, DataType, Object, PropertyType,
+    ClosedEntityType, DataType, PropertyType,
 };
 
 use crate::{
@@ -40,7 +42,7 @@ pub enum EntityValidationError {
     #[error("Entities without a type are not allowed")]
     EmptyEntityTypes,
     #[error("the validator was unable to read the entity type `{ids:?}`")]
-    EntityTypeRetrieval { ids: Vec<VersionedUrl> },
+    EntityTypeRetrieval { ids: HashSet<VersionedUrl> },
     #[error("the validator was unable to read the entity `{id}`")]
     EntityRetrieval { id: EntityId },
     #[error("The link type `{link_types:?}` is not allowed")]
@@ -51,7 +53,7 @@ pub enum EntityValidationError {
     InvalidPropertyPath { path: PropertyPath<'static> },
 }
 
-impl<P> Schema<PropertyObject, P> for ClosedEntityType
+impl<P> Schema<PropertyWithMetadataObject, P> for ClosedEntityType
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -59,24 +61,26 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a PropertyObject,
+        value: &'a PropertyWithMetadataObject,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
-        Object::<_, 0>::new(self.properties.clone(), self.required.clone())
-            .expect("`Object` was already validated")
-            .validate_value(value.properties(), components, provider)
-            .await
-            .change_context(EntityValidationError::InvalidProperties)
-            .attach_lazy(|| Expected::EntityType(self.clone()))
-            .attach_lazy(|| Actual::Properties(value.clone()))
+        ObjectSchema::<_> {
+            properties: self.properties.clone(),
+            required: self.required.clone(),
+        }
+        .validate_value(&value.value, components, provider)
+        .await
+        .change_context(EntityValidationError::InvalidProperties)
+        .attach_lazy(|| Expected::EntityType(Box::new(self.clone())))
+        .attach_lazy(|| Actual::Properties(value.clone()))
     }
 }
 
-impl<P> Validate<ClosedEntityType, P> for PropertyObject
+impl<P> Validate<ClosedEntityType, P> for PropertyWithMetadataObject
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -163,9 +167,24 @@ where
         if self.metadata.entity_type_ids.is_empty() {
             extend_report!(status, EntityValidationError::EmptyEntityTypes);
         }
-        if let Err(error) = self.properties.validate(schema, components, context).await {
-            extend_report!(status, error);
+
+        match PropertyWithMetadataObject::from_parts(
+            self.properties.clone(),
+            Some(self.metadata.properties.clone()),
+        ) {
+            Ok(properties) => {
+                if let Err(error) = properties.validate(schema, components, context).await {
+                    extend_report!(status, error);
+                }
+            }
+            Err(error) => {
+                extend_report!(
+                    status,
+                    error.change_context(EntityValidationError::InvalidProperties)
+                );
+            }
         }
+
         if let Err(error) = self
             .link_data
             .as_ref()
@@ -253,25 +272,24 @@ where
         // link type was found.
         let mut found_link_target = false;
         for link_type_id in self.schemas.keys() {
-            let Some(maybe_allowed_targets) = left_entity_type.links.links().get(link_type_id)
-            else {
+            let Some(maybe_allowed_targets) = left_entity_type.links.get(link_type_id) else {
                 continue;
             };
 
             // At least one link type was found
             found_link_target = true;
 
-            let Some(allowed_targets) = maybe_allowed_targets.array().items() else {
+            let Some(allowed_targets) = &maybe_allowed_targets.items else {
                 continue;
             };
 
             // Link destinations are constrained, search for the right entity's type
             let mut found_match = false;
-            for allowed_target in allowed_targets.one_of() {
+            for allowed_target in &allowed_targets.possibilities {
                 if right_entity_type
                     .schemas
                     .keys()
-                    .any(|right_type| right_type.base_url == allowed_target.url().base_url)
+                    .any(|right_type| right_type.base_url == allowed_target.url.base_url)
                 {
                     found_match = true;
                     break;

@@ -1,4 +1,3 @@
-#![allow(clippy::ignored_unit_patterns)] // Reason: `proptest` does not match against `Ok(())` but `Ok(_)`
 use deer::{
     error::{DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant, VisitorError},
     value::{
@@ -19,8 +18,7 @@ macro_rules! generate_proptest {
         paste::paste! {
             #[test]
             #[cfg(not(miri))]
-            // we're dealing with the same float, therefore should be the same!
-            #[allow(clippy::float_cmp)]
+            #[allow(clippy::float_cmp, reason = "we're dealing with the same float, therefore should be the same!")]
             fn [< $ty _ok >]() {
                 let context = Context::new();
 
@@ -34,8 +32,7 @@ macro_rules! generate_proptest {
 
             #[test]
             #[cfg(not(miri))]
-            // we're dealing with the same float, therefore should be the same!
-            #[allow(clippy::float_cmp)]
+            #[allow(clippy::float_cmp, reason = "we're dealing with the same float, therefore should be the same!")]
             fn [< $ty _into_deserializer_ok >]() {
                 let context = Context::new();
 

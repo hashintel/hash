@@ -1,3 +1,4 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   AutomaticInferenceWebsocketRequestMessage,
   CancelInferEntitiesWebsocketRequestMessage,
@@ -215,27 +216,15 @@ export const inferEntities = async (
     throw new Error("Cannot infer entities without a logged-in user.");
   }
 
-  const {
-    createAs,
-    entityTypeIds,
-    model,
-    ownedById,
-    sourceUrl,
-    sourceTitle,
-    textInput,
-  } = message;
+  const { createAs, entityTypeIds, model, ownedById, sourceWebPage } = message;
 
-  const requestUuid = uuid();
+  const requestUuid = uuid() as EntityUuid;
 
   const basePayload = {
     webId: ownedById,
     visitedWebPage: {
       kind: "WebPage",
-      value: {
-        htmlContent: textInput,
-        title: sourceTitle,
-        url: sourceUrl,
-      },
+      value: sourceWebPage,
     },
   } as const satisfies AutomaticInferenceArguments;
 

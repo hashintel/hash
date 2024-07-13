@@ -27,7 +27,7 @@ import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url";
 import { getEntityUpdate } from "./shared/graph-requests";
 import type { FlowActionActivity } from "./types";
 
-const fileEntityTypeIds: VersionedUrl[] = [
+export const fileEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.file.entityTypeId,
   systemEntityTypes.image.entityTypeId,
   systemEntityTypes.document.entityTypeId,
@@ -66,7 +66,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
   const ownedById = webId;
 
-  const isAiGenerated = provenance?.actorType === "ai";
+  const isAiGenerated = provenance.actorType === "ai";
 
   const webBotActorId = isAiGenerated
     ? await getAiAssistantAccountIdActivity({
@@ -198,8 +198,9 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           graphApiClient,
           { actorId: webBotActorId },
           {
+            ...entityValues,
             draft: existingEntityIsDraft ? true : createEditionAsDraft,
-            properties: patchOperations,
+            propertyPatches: patchOperations,
           },
         );
       } else {

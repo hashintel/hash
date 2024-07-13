@@ -161,6 +161,7 @@ impl Serialize for SerializeDefinitions<'_> {
     }
 }
 
+#[expect(clippy::field_scoped_visibility_modifiers)]
 pub struct Document {
     pub(crate) id: TypeId,
     schemas: BTreeMap<TypeId, Schema>,
@@ -261,7 +262,7 @@ pub(crate) mod visitor {
     use crate::{schema::Reflection, Document, Schema};
 
     // TODO: below here these are temporary until stdlib is implemented
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(crate) struct BoolSchema;
     impl Reflection for BoolSchema {
         fn schema(_: &mut Document) -> Schema {
@@ -269,7 +270,7 @@ pub(crate) mod visitor {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg_attr(not(test), expect(dead_code))]
     pub(crate) struct StringSchema;
     impl Reflection for StringSchema {
         fn schema(_: &mut Document) -> Schema {
@@ -343,7 +344,7 @@ mod tests {
 
     // test for self referential
     // Reason: we don't actually use them, but it is easier to visualize the schema that way
-    #[allow(unused)]
+    #[expect(unused)]
     struct Node {
         child: Box<Node>,
     }
@@ -386,7 +387,7 @@ mod tests {
 
     // test for multi self referential
     // Reason: we don't actually use them, but it is easier to visualize the schema that way
-    #[allow(unused)]
+    #[expect(unused)]
     struct Tree {
         left: Box<Node>,
         right: Box<Node>,
@@ -442,7 +443,7 @@ mod tests {
     }
 
     // types are only here for illustration
-    #[allow(unused)]
+    #[expect(unused)]
     struct Vertex {
         a: u8,
         b: u16,
@@ -468,7 +469,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::std_instead_of_alloc)] // Reason: `assert_serde_eq!` uses `std`
     fn integration() {
         // patented sanity integration test™
         let document = Vertex::document();

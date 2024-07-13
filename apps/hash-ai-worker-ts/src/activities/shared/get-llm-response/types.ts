@@ -1,4 +1,5 @@
-import type { AxiosError } from "axios";
+import type { APIError as AnthropicApiError } from "@anthropic-ai/sdk/error";
+import type { APIError as OpenAiApiError } from "openai/error";
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type {
   ChatCompletion as OpenAiChatCompletion,
@@ -17,7 +18,9 @@ import type { LlmAssistantMessage, LlmMessage } from "./llm-message";
 export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
   description: string;
-  inputSchema: JSONSchema;
+  inputSchema: Omit<JSONSchema, "type"> & {
+    type: "object";
+  };
   sanitizeInputBeforeValidation?: (rawInput: object) => object;
 };
 
@@ -127,7 +130,13 @@ export type LlmErrorResponse =
     }
   | {
       status: "api-error";
-      axiosError?: AxiosError;
+      openAiApiError?: OpenAiApiError;
+      anthropicApiError?: AnthropicApiError;
+    }
+  | {
+      status: "exceeded-maximum-output-tokens";
+      requestMaxTokens?: number;
+      response: AnthropicMessagesCreateResponse | OpenAiChatCompletion;
     }
   | {
       status: "exceeded-usage-limit";

@@ -5,7 +5,11 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { OriginProvenance } from "@local/hash-graph-client";
+import {
+  type EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   createDefaultAuthorizationRelationships,
@@ -70,7 +74,8 @@ type ActivityHeartbeatDetails = {
 export const writeGoogleSheetAction: FlowActionActivity<{
   vaultClient: VaultClient;
 }> = async ({ inputs, vaultClient }) => {
-  const { userAuthentication, webId } = await getFlowContext();
+  const { flowEntityId, stepId, userAuthentication, webId } =
+    await getFlowContext();
 
   const { audience, dataToWrite, googleAccountId, googleSheet } =
     getSimplifiedActionInputs({
@@ -324,6 +329,15 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     { ownedById: webId },
   );
 
+  const provenance: EnforcedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "flow",
+      id: flowEntityId,
+      stepIds: [stepId],
+    } satisfies OriginProvenance,
+  };
+
   const existingEntity = await getEntityByFilter({
     actorId: webBotActorId,
     includeDrafts: false,
@@ -364,7 +378,8 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         { actorId: webBotActorId },
         {
           draft: existingEntityIsDraft,
-          properties: patchOperations,
+          propertyPatches: patchOperations,
+          provenance,
         },
       );
     }
@@ -386,6 +401,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         draft: false,
         ownedById: webId,
         relationships: authRelationships,
+        provenance,
       },
     );
 
@@ -402,6 +418,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
           rightEntityId: googleAccount.metadata.recordId.entityId,
         },
         properties: {},
+        provenance,
         relationships: authRelationships,
       },
     );

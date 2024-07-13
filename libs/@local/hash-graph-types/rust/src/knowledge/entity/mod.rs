@@ -1,8 +1,10 @@
+mod diff;
 mod provenance;
 
 use core::{fmt, str::FromStr};
+use std::collections::HashSet;
 
-use error_stack::Report;
+use error_stack::{Report, ResultExt};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -12,15 +14,20 @@ use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
-pub use self::provenance::{
-    ActorType, EntityEditionProvenance, EntityProvenance, InferredEntityProvenance, Location,
-    OriginProvenance, OriginType, ProvidedEntityEditionProvenance, SourceProvenance, SourceType,
+pub use self::{
+    diff::EntityTypeIdDiff,
+    provenance::{
+        ActorType, EntityEditionProvenance, EntityProvenance, InferredEntityProvenance, Location,
+        OriginProvenance, OriginType, ProvidedEntityEditionProvenance, SourceProvenance,
+        SourceType,
+    },
 };
 use crate::{
     knowledge::{
         link::LinkData,
-        property::{PatchError, PropertyMetadataMap},
-        Confidence, PropertyObject, PropertyPatchOperation,
+        property::{PatchError, PropertyMetadataObject},
+        Confidence, Property, PropertyMetadata, PropertyObject, PropertyPatchOperation,
+        PropertyWithMetadata,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -91,14 +98,15 @@ impl fmt::Display for DraftId {
 pub struct EntityMetadata {
     pub record_id: EntityRecordId,
     pub temporal_versioning: EntityTemporalMetadata,
-    pub entity_type_ids: Vec<VersionedUrl>,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
+    pub entity_type_ids: HashSet<VersionedUrl>,
     pub archived: bool,
     pub provenance: EntityProvenance,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
-    #[serde(default, skip_serializing_if = "PropertyMetadataMap::is_empty")]
-    pub properties: PropertyMetadataMap<'static>,
+    #[serde(default, skip_serializing_if = "PropertyMetadataObject::is_empty")]
+    pub properties: PropertyMetadataObject,
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -122,10 +130,52 @@ impl Entity {
     /// Returns an error if the patch operation failed
     pub fn patch(
         &mut self,
-        operations: &[PropertyPatchOperation],
+        operations: impl IntoIterator<Item = PropertyPatchOperation>,
     ) -> Result<(), Report<PatchError>> {
-        self.properties.patch(operations)?;
-        self.metadata.properties.patch(operations);
+        let mut properties_with_metadata = PropertyWithMetadata::from_parts(
+            Property::Object(self.properties.clone()),
+            Some(PropertyMetadata::Object {
+                value: self.metadata.properties.value.clone(),
+                metadata: self.metadata.properties.metadata.clone(),
+            }),
+        )
+        .change_context(PatchError)?;
+
+        for operation in operations {
+            match operation {
+                PropertyPatchOperation::Add { path, property } => {
+                    properties_with_metadata
+                        .add(path, property)
+                        .change_context(PatchError)?;
+                }
+                PropertyPatchOperation::Remove { path } => {
+                    properties_with_metadata
+                        .remove(&path)
+                        .change_context(PatchError)?;
+                }
+                PropertyPatchOperation::Replace { path, property } => {
+                    properties_with_metadata
+                        .replace(&path, property)
+                        .change_context(PatchError)?;
+                }
+            }
+        }
+
+        let (
+            Property::Object(properties),
+            PropertyMetadata::Object {
+                value: metadata_object,
+                metadata,
+            },
+        ) = properties_with_metadata.into_parts()
+        else {
+            unreachable!("patching should not change the property type");
+        };
+        self.properties = properties;
+        self.metadata.properties = PropertyMetadataObject {
+            value: metadata_object,
+            metadata,
+        };
 
         Ok(())
     }

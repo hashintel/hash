@@ -1,16 +1,21 @@
+import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
 import type { ModalProps } from "@hashintel/design-system";
 import { IconButton, Modal } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   blockProtocolEntityTypes,
   blockProtocolLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
+import type {
+  Query,
+  QueryProperties,
+} from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -21,7 +26,11 @@ import { useCallback, useMemo, useState } from "react";
 
 import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useLatestEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
 import { XMarkRegularIcon } from "../../../../shared/icons/x-mark-regular-icon";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
@@ -72,7 +81,7 @@ export const BlockSelectDataModal: FunctionComponent<
           linkEntityRevisions[0]?.metadata.entityTypeId ===
           blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
       )
-      .map(({ rightEntity }) => rightEntity[0] as Entity<QueryProperties>);
+      .map(({ rightEntity }) => rightEntity[0] as Entity<Query>);
 
     return existingQueries[0];
   }, [blockSubgraph, blockDataEntity]);
@@ -89,20 +98,28 @@ export const BlockSelectDataModal: FunctionComponent<
     authenticatedUser.accountId as OwnedById,
   );
 
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const handleSave = useCallback(
     async (query: MultiFilter) => {
       if (existingQuery) {
         await updateEntity({
-          data: {
-            entityId: existingQuery.metadata.recordId.entityId,
-            entityTypeId: existingQuery.metadata.entityTypeId,
-            properties: {
-              ...existingQuery.properties,
-              "https://blockprotocol.org/@hash/types/property-type/query/":
-                query,
-            } as QueryProperties,
+          variables: {
+            entityUpdate: {
+              entityId: existingQuery.metadata.recordId.entityId,
+              propertyPatches: [
+                {
+                  op: "add",
+                  path: [
+                    "https://blockprotocol.org/@hash/types/property-type/query/" satisfies keyof Query["properties"] as BaseUrl,
+                  ],
+                  value: query,
+                },
+              ],
+            },
           },
         });
       } else {
@@ -116,7 +133,7 @@ export const BlockSelectDataModal: FunctionComponent<
             properties: {
               "https://blockprotocol.org/@hash/types/property-type/query/":
                 query,
-            } as QueryProperties,
+            } satisfies QueryProperties as PropertyObject,
           },
         });
 

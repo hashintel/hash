@@ -8,30 +8,13 @@ import { useMemo, useRef, useState } from "react";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { Link } from "../../shared/ui";
-import { EditEntityModal } from "../[shortname]/entities/[entity-uuid].page/edit-entity-modal";
+import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
+import { generateEntityRootedSubgraph } from "../shared/subgraphs";
 import { useEntityHref } from "../shared/use-entity-href";
 import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";
 import { DraftEntityWeb } from "./draft-entity/draft-entity-web";
-
-const generateEntityRootedSubgraph = (
-  entity: Entity,
-  subgraph: Subgraph<EntityRootType>,
-) => {
-  const entityRoot = subgraph.roots.find(
-    ({ baseId }) => baseId === entity.metadata.recordId.entityId,
-  );
-
-  if (!entityRoot) {
-    return undefined;
-  }
-
-  return {
-    ...subgraph,
-    roots: [entityRoot],
-  };
-};
 
 export const DraftEntity: FunctionComponent<{
   subgraph: Subgraph<EntityRootType>;
@@ -127,7 +110,7 @@ export const DraftEntity: FunctionComponent<{
             }}
           />
           {entityRootedSubgraph ? (
-            <EditEntityModal
+            <EditEntitySlideOver
               open={displayEntityModal}
               entitySubgraph={entityRootedSubgraph}
               onClose={() => setDisplayEntityModal(false)}

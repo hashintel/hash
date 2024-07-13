@@ -2,15 +2,18 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
   Actor,
   ActorOutgoingLinkAndTarget,
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
+  ActorPropertiesWithMetadata,
   DisplayNamePropertyValue,
+  DisplayNamePropertyValueWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 } from "./shared";
 
 export type {
@@ -18,16 +21,29 @@ export type {
   ActorOutgoingLinkAndTarget,
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
+  ActorPropertiesWithMetadata,
   DisplayNamePropertyValue,
+  DisplayNamePropertyValueWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 };
 
-export type Machine = Entity<MachineProperties>;
+/**
+ * A machine that can perform actions in the system
+ */
+export type Machine = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/machine/v/2";
+  properties: MachineProperties;
+  propertiesWithMetadata: MachinePropertiesWithMetadata;
+};
 
 /**
  * A unique identifier for a machine
  */
 export type MachineIdentifierPropertyValue = TextDataType;
+
+export type MachineIdentifierPropertyValueWithMetadata =
+  TextDataTypeWithMetadata;
 
 export type MachineOutgoingLinkAndTarget = never;
 
@@ -42,4 +58,12 @@ export type MachineProperties1 = ActorProperties;
 export type MachineProperties2 = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/machine-identifier/": MachineIdentifierPropertyValue;
+};
+
+export type MachinePropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValueWithMetadata;
+    "https://hash.ai/@hash/types/property-type/machine-identifier/": MachineIdentifierPropertyValueWithMetadata;
+  };
 };

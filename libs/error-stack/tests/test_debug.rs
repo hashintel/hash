@@ -1,5 +1,5 @@
 #![cfg(not(miri))] // debug formatting does not utilize any unsafe code
-#![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
+#![cfg_attr(nightly, feature(error_generic_member_access))]
 #![allow(clippy::std_instead_of_core)]
 mod common;
 
@@ -28,12 +28,12 @@ fn setup_tracing() {
 #[cfg(not(feature = "spantrace"))]
 const fn setup_tracing() {}
 
-#[cfg(not(all(rust_1_65, feature = "std")))]
+#[cfg(not(feature = "backtrace"))]
 fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "0");
 }
 
-#[cfg(all(rust_1_65, feature = "std"))]
+#[cfg(feature = "backtrace")]
 fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 }
@@ -58,7 +58,7 @@ fn snap_suffix() -> String {
         suffix.push("spantrace");
     }
 
-    #[cfg(all(rust_1_65, feature = "std"))]
+    #[cfg(feature = "backtrace")]
     if supports_backtrace() {
         suffix.push("backtrace");
     }
@@ -229,11 +229,7 @@ fn sources_nested_alternate() {
 }
 
 mod full {
-    #![cfg(all(
-        rust_1_65,
-        any(feature = "std", feature = "hooks"),
-        feature = "spantrace"
-    ))]
+    #![cfg(all(feature = "backtrace", feature = "spantrace"))]
     //! Why so many cfg guards?
     //! What was found during initial development of the feature was,
     //! that a complete test of all tests with snapshots on every possible feature combination
@@ -254,7 +250,7 @@ mod full {
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
     #[cfg(nightly)]
-    use std::error::Request;
+    use core::error::Request;
     use std::{
         error::Error,
         fmt::{Display, Formatter},
@@ -302,7 +298,7 @@ mod full {
     struct ContextC;
 
     impl Display for ContextC {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
             f.write_str("A multiline\ncontext that might have\na bit more info")
         }
     }
@@ -567,7 +563,7 @@ mod full {
 
     #[cfg(nightly)]
     impl Display for ContextD {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
             f.write_str("context D")
         }
     }

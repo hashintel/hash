@@ -22,18 +22,17 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.4",
+    "@blockprotocol/graph": "0.4.0-canary.0",
+    "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
-    "@local/hash-graph-types": "0.0.0-private",
-    "lodash": "4.17.21"
+    "@local/hash-graph-types": "0.0.0-private"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/lodash": "4.17.4",
     "@vitest/coverage-istanbul": "1.6.0",
     "eslint": "8.57.0",
-    "typescript": "5.1.6",
+    "typescript": "5.5.3",
     "vitest": "1.6.0"
   }
 }

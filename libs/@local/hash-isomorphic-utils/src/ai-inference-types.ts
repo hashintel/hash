@@ -1,7 +1,7 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
-import type { EntityPropertyValue } from "@blockprotocol/graph/temporal";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { Property } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   AutomaticInferenceArguments,
@@ -18,6 +18,9 @@ export const inferenceModelNames = [
   "gpt-4",
   "gpt-4-turbo",
   "gpt-3.5-turbo",
+  "claude-3-haiku",
+  "claude-3-sonnet",
+  "claude-3-opus",
 ] as const;
 
 export type InferenceModelName = (typeof inferenceModelNames)[number];
@@ -46,7 +49,7 @@ export type ProposedEntitySchemaOrData =
 type BaseProposedEntity = {
   entityId: number;
   updateEntityId?: string;
-  properties?: Record<BaseUrl, EntityPropertyValue>;
+  properties?: Record<BaseUrl, Property>;
 };
 
 export type ProposedEntityLinkFields = {

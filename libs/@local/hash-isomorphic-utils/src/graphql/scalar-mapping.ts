@@ -35,8 +35,9 @@ export const scalars = {
   GetEntitySubgraphRequest: "@local/hash-graph-client#GetEntitySubgraphRequest",
   EntityTemporalVersioningMetadata:
     "@local/hash-graph-types/entity#EntityTemporalVersioningMetadata",
-  EntityPropertiesObject:
-    "@local/hash-graph-types/entity#EntityPropertiesObject",
+  PropertyObject: "@local/hash-graph-types/entity#PropertyObject",
+  PropertyPatchOperation:
+    "@local/hash-graph-types/entity#PropertyPatchOperation",
   DiffEntityInput: "@local/hash-subgraph#DiffEntityInput",
   DiffEntityResult: "@local/hash-graph-client#DiffEntityResult",
 
@@ -73,6 +74,7 @@ export const scalars = {
   OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
 
   FlowTrigger: "@local/hash-isomorphic-utils/flows/types#FlowTrigger",
+  FlowDataSources: "@local/hash-isomorphic-utils/flows/types#FlowDataSources",
   FlowDefinition: "@local/hash-isomorphic-utils/flows/types#FlowDefinition",
   FlowInputs: "@local/hash-isomorphic-utils/flows/types#FlowInputs",
   ExternalInputRequest:

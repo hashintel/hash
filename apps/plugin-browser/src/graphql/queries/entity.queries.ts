@@ -4,7 +4,7 @@ import { print } from "graphql";
 export const createEntityMutation = /* GraphQL */ `
   mutation createEntity(
     $entityTypeId: VersionedUrl!
-    $properties: EntityPropertiesObject!
+    $properties: PropertyObject!
     $linkData: LinkData
   ) {
     createEntity(

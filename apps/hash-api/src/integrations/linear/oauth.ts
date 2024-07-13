@@ -257,6 +257,7 @@ export const oAuthLinearCallback: RequestHandler<
       expiresAt: expiredAt.toISOString(),
       graphApi: req.context.graphApi,
       managingBotAccountId: linearBotAccountId,
+      provenance: req.context.provenance,
       restOfPath: `workspace/${linearOrgId}`,
       secretData: { value: access_token },
       service: "linear",

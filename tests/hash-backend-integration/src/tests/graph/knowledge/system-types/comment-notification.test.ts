@@ -59,7 +59,6 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: triggerUser.accountId },
       "notif",
-      logger,
     );
 
     await joinOrg(

@@ -28,7 +28,7 @@ import { useUserBlocks } from "../../../../blocks/user-blocks";
 import { useUsers } from "../../../../components/hooks/use-users";
 import { getBlockDomId } from "../../../../shared/get-block-dom-id";
 import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
-import { EditEntityModal } from "../../../[shortname]/entities/[entity-uuid].page/edit-entity-modal";
+import { EditEntitySlideOver } from "../../../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import { useBlockContext } from "../block-context";
 import { BlockContextMenuItem } from "./block-context-menu-item";
 import { BlockListMenuContent } from "./block-list-menu-content";
@@ -93,7 +93,10 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const entityId = blockEntity?.metadata.recordId.entityId ?? null;
 
   const menuItems = useMemo(() => {
-    /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
+    /**
+     * @todo properly type this part of the DraftEntity type
+     * @see https://linear.app/hash/issue/H-3000
+     */
     const hasChildEntityWithData =
       Object.keys(blockEntity?.blockChildEntity?.properties ?? []).length > 0;
     const items = [
@@ -245,7 +248,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         />
       ) : null}
       {blockSubgraph && (
-        <EditEntityModal
+        <EditEntitySlideOver
           open={entityEditorOpen}
           onClose={() => setEntityEditorOpen(false)}
           entitySubgraph={
@@ -333,8 +336,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
           >
             Last edited by
             {/**
-             * @todo: re-implement when provenance fields are made available to the frontend
-             * @see https://app.asana.com/0/1201095311341924/1203170881776185/f
+             * @todo re-implement when provenance fields are made available to the frontend
+             * @see https://linear.app/hash/issue/H-3001
              */}
             {/* {
             users?.find(
@@ -344,7 +347,10 @@ const BlockContextMenu: ForwardRefRenderFunction<
             )?.displayName
           } */}
           </Typography>
-          {/* @todo re-implement after collab works https://app.asana.com/0/0/1203099452204542/f */}
+          {/**
+           * @todo re-implement after collab works
+           * @see https://linear.app/hash/issue/H-3000
+           */}
           {/* {typeof blockEntity?.properties.entity.updatedAt === "string" && (
             <Typography
               variant="microText"

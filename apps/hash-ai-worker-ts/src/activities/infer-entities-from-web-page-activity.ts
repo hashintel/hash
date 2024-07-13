@@ -86,7 +86,11 @@ export const inferEntitiesFromWebPageActivity = async (params: {
    */
 
   const proposeEntitiesPrompt = dedent(`
-    ${typeof webPage === "string" ? "The content of the web page is as follows:" : `The website page title is ${webPage.title}, hosted at ${webPage.url}. Its content is as follows:`}
+    ${
+      typeof webPage === "string"
+        ? "The content of the web page is as follows:"
+        : `The website page title is ${webPage.title}, hosted at ${webPage.url}. Its content is as follows:`
+    }
     ${typeof webPage === "string" ? webPage : webPage.htmlContent}
     ---WEBSITE CONTENT ENDS---
 
@@ -100,14 +104,20 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     ${
       existingEntities && existingEntities.length > 0
         ? dedent(`
-          The user has provided these existing entities, which do not need to be inferred again: ${JSON.stringify(existingEntities.map(simplifyEntity))}
+          The user has provided these existing entities, which do not need to be inferred again: ${JSON.stringify(
+            existingEntities.map(simplifyEntity),
+          )}
 
           You are encouraged to link to existing entities from the new entities you propose, where it may be relevant.
         `)
         : ""
     }
 
-    You already provided a summary of the ${relevantEntitiesPrompt ? "relevant entities you inferred" : "entities you can infer"} from the website. Here it is:
+    You already provided a summary of the ${
+      relevantEntitiesPrompt
+        ? "relevant entities you inferred"
+        : "entities you can infer"
+    } from the website. Here it is:
     ${JSON.stringify(Object.values(inferenceState.proposedEntitySummaries))}
   `);
 

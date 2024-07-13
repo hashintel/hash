@@ -5,11 +5,12 @@ import {
   TerminalLightIcon,
 } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   generateWorkerRunPath,
   workerFlowFilterParam,
 } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import {
   Box,
   Container,
@@ -46,6 +47,7 @@ import {
   flowTableRowHeight,
   FlowTableWebChip,
 } from "./shared/flow-tables";
+import { useFlowRunsUsage } from "./shared/use-flow-runs-usage";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -54,9 +56,18 @@ import type {
 } from "./shared/virtualized-table";
 import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
 
-type FieldId = "web" | "type" | "name" | "executedAt" | "closedAt" | "status";
+type FieldId =
+  | "web"
+  | "type"
+  | "name"
+  | "executedAt"
+  | "closedAt"
+  | "status"
+  | "cost";
 
-const columns: VirtualizedTableColumn<FieldId>[] = [
+const createColumns: (
+  usageAvailable: boolean,
+) => VirtualizedTableColumn<FieldId>[] = (usageAvailable) => [
   {
     id: "web",
     label: "Web",
@@ -93,12 +104,22 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     sortable: true,
     width: 140,
   },
+  ...(usageAvailable
+    ? [
+        {
+          id: "cost" as const,
+          label: "Cost",
+          sortable: true,
+          width: 120,
+        },
+      ]
+    : []),
 ];
 
 type WorkerSummary = Subtype<
   Record<FieldId, unknown>,
   {
-    flowRunId: string;
+    flowRunId: EntityUuid;
     executedAt: string | null;
     closedAt: string | null;
     type: "flow" | "goal";
@@ -109,12 +130,23 @@ type WorkerSummary = Subtype<
     };
     name: string;
     status: SimpleFlowRunStatus;
+    cost: number | null;
+    usageAvailable: boolean;
   }
 >;
 
 const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
-  const { web, flowRunId, type, name, executedAt, closedAt, status } =
-    workerSummary;
+  const {
+    web,
+    flowRunId,
+    type,
+    name,
+    executedAt,
+    closedAt,
+    status,
+    cost,
+    usageAvailable,
+  } = workerSummary;
 
   const Icon = type === "flow" ? InfinityLightIcon : BullseyeLightIcon;
 
@@ -130,7 +162,11 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
           />
           <Typography
             component="span"
-            sx={{ fontSize: 12, fontWeight: 500, textTransform: "capitalize" }}
+            sx={{
+              fontSize: 12,
+              fontWeight: 500,
+              textTransform: "capitalize",
+            }}
           >
             {type}
           </Typography>
@@ -138,7 +174,10 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
       </MuiTableCell>
       <MuiTableCell sx={flowTableCellSx}>
         <Link
-          href={generateWorkerRunPath({ shortname: web.shortname, flowRunId })}
+          href={generateWorkerRunPath({
+            shortname: web.shortname,
+            flowRunId,
+          })}
           sx={{
             display: "block",
             fontSize: 14,
@@ -175,6 +214,19 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
       <MuiTableCell sx={flowTableCellSx}>
         <FlowStatusChip status={status} />
       </MuiTableCell>
+      {usageAvailable ? (
+        <MuiTableCell sx={flowTableCellSx}>
+          <Typography
+            sx={{
+              fontSize: 13,
+              color: ({ palette }) => palette.gray[70],
+              fontWeight: 500,
+            }}
+          >
+            {cost ? `$${cost.toFixed(2)}` : undefined}
+          </Typography>
+        </MuiTableCell>
+      ) : null}
     </>
   );
 });
@@ -186,18 +238,27 @@ const createRowContent: CreateVirtualizedRowContentFn<WorkerSummary> = (
 
 const placeholderHeight = 200;
 
-const PlaceholderContainer = ({ children }: PropsWithChildren) => (
+const PlaceholderContainer = ({
+  children,
+  columnCount,
+}: PropsWithChildren<{ columnCount: number }>) => (
   <MuiTableBody>
     <MuiTableRow>
-      <MuiTableCell colSpan={columns.length} sx={{ height: placeholderHeight }}>
+      <MuiTableCell colSpan={columnCount} sx={{ height: placeholderHeight }}>
         {children}
       </MuiTableCell>
     </MuiTableRow>
   </MuiTableBody>
 );
 
-const EmptyComponent = ({ filtered }: { filtered: boolean }) => (
-  <PlaceholderContainer>
+const EmptyComponent = ({
+  columnCount,
+  filtered,
+}: {
+  columnCount: number;
+  filtered: boolean;
+}) => (
+  <PlaceholderContainer columnCount={columnCount}>
     <Stack
       alignItems="center"
       justifyContent="center"
@@ -208,8 +269,8 @@ const EmptyComponent = ({ filtered }: { filtered: boolean }) => (
   </PlaceholderContainer>
 );
 
-const LoadingPlaceholder = () => (
-  <PlaceholderContainer>
+const LoadingComponent = ({ columnCount }: { columnCount: number }) => (
+  <PlaceholderContainer columnCount={columnCount}>
     <Box sx={{ height: "100%", marginTop: -0.6 }}>
       <Skeleton height="100%" />
     </Box>
@@ -218,8 +279,8 @@ const LoadingPlaceholder = () => (
 
 const WorkersPageContent = () => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-    field: "name",
-    direction: "asc",
+    field: "closedAt",
+    direction: "desc",
   });
 
   const {
@@ -247,15 +308,22 @@ const WorkersPageContent = () => {
     );
   }, [unfilteredFlowRuns, definitionFilterQueryParam]);
 
+  const { isUsageAvailable: usageAvailable, usageByFlowRun } = useFlowRunsUsage(
+    {
+      flowRunIds: filteredFlowRuns.map((run) => run.flowRunId),
+    },
+  );
+
   const flowRunRows = useMemo<VirtualizedTableRow<WorkerSummary>[]>(() => {
     const webByWebId: Record<string, WorkerSummary["web"] | undefined> = {};
 
     const rowData: VirtualizedTableRow<WorkerSummary>[] = filteredFlowRuns.map(
       (flowRun) => {
-        const type =
-          flowRun.flowDefinitionId === goalFlowDefinition.flowDefinitionId
-            ? "goal"
-            : "flow";
+        const type = goalFlowDefinitionIds.includes(
+          flowRun.flowDefinitionId as EntityUuid,
+        )
+          ? "goal"
+          : "flow";
 
         const flowDefinition = flowDefinitions.find(
           (def) => def.flowDefinitionId === flowRun.flowDefinitionId,
@@ -300,6 +368,8 @@ const WorkersPageContent = () => {
           webByWebId[webId] = web;
         }
 
+        const cost = usageByFlowRun[flowRunId]?.total ?? null;
+
         return {
           id: flowRunId,
           data: {
@@ -310,6 +380,8 @@ const WorkersPageContent = () => {
             closedAt: closedAt ?? null,
             executedAt: executedAt ?? null,
             status: flowRunStatusToStatusText(status),
+            cost,
+            usageAvailable,
           },
         };
       },
@@ -323,11 +395,22 @@ const WorkersPageContent = () => {
         return a.data[field].name.localeCompare(b.data[field].name) * direction;
       }
 
+      if (field === "cost") {
+        return (a.data[field] ?? 0) - (b.data[field] ?? 0) * direction;
+      }
+
       return (
         (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction
       );
     });
-  }, [authenticatedUser, flowDefinitions, filteredFlowRuns, sort]);
+  }, [
+    authenticatedUser,
+    flowDefinitions,
+    filteredFlowRuns,
+    sort,
+    usageByFlowRun,
+    usageAvailable,
+  ]);
 
   const tableHeight = Math.min(
     600,
@@ -338,9 +421,24 @@ const WorkersPageContent = () => {
         : placeholderHeight),
   );
 
+  const columns = useMemo(
+    () => createColumns(usageAvailable),
+    [usageAvailable],
+  );
+
   const EmptyPlaceholder = useCallback(
-    () => <EmptyComponent filtered={!!definitionFilterQueryParam} />,
-    [definitionFilterQueryParam],
+    () => (
+      <EmptyComponent
+        columnCount={columns.length}
+        filtered={!!definitionFilterQueryParam}
+      />
+    ),
+    [columns, definitionFilterQueryParam],
+  );
+
+  const LoadingPlaceholder = useCallback(
+    () => <LoadingComponent columnCount={columns.length} />,
+    [columns],
   );
 
   return (

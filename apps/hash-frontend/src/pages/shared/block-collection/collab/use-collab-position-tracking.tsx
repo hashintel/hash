@@ -51,6 +51,6 @@ export const useCollabPositionTracking = (report: CollabPositionReporter) => {
 
   /**
    * @todo capture tabindex movements
-   * @see https://app.asana.com/0/1200211978612931/1201373663718971/f
+   * @see https://linear.app/hash/issue/H-3002
    */
 };

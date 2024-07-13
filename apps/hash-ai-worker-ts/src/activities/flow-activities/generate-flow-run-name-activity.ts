@@ -6,8 +6,8 @@ import type {
   AutomaticInferenceTriggerInputName,
   ManualInferenceTriggerInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
-import { goalFlowDefinition } from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
+import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type {
   FlowDefinition,
   FlowTrigger,
@@ -62,7 +62,9 @@ const getModelSuggestedFlowRunName = async (
 
   if (llmResponse.status !== "ok") {
     throw new Error(
-      `Failed to generate flow run name - ${llmResponse.status}:${"message" in llmResponse ? llmResponse.message : "unknown"}`,
+      `Failed to generate flow run name - ${llmResponse.status}:${
+        "message" in llmResponse ? llmResponse.message : "unknown"
+      }`,
     );
   }
 
@@ -101,19 +103,26 @@ export const generateFlowRunName = async (
       throw new Error(`Web page not found in browser flow trigger outputs`);
     }
 
-    return `${flowDefinition.flowDefinitionId === automaticBrowserInferenceFlowDefinition.flowDefinitionId ? "Auto-analyze" : "Analyze"} webpage: ${webPage.url}`;
+    return `${
+      flowDefinition.flowDefinitionId ===
+      automaticBrowserInferenceFlowDefinition.flowDefinitionId
+        ? "Auto-analyze"
+        : "Analyze"
+    } webpage: ${webPage.url}`;
   }
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const usageTrackingParams: UsageTrackingParams = {
+    customMetadata: { taskName: "name-flow", stepId },
     userAccountId: userAuthentication.actorId,
     graphApiClient,
     incurredInEntities: [{ entityId: flowEntityId }],
     webId,
   };
 
-  if (flowDefinition.flowDefinitionId === goalFlowDefinition.flowDefinitionId) {
+  if (goalFlowDefinitionIds.includes(flowDefinition.flowDefinitionId)) {
     const researchBrief = flowTrigger.outputs?.find(
       ({ outputName }) =>
         outputName === ("Research guidance" satisfies GoalFlowTriggerInput),
@@ -136,8 +145,12 @@ export const generateFlowRunName = async (
   );
 
   return getModelSuggestedFlowRunName(
-    `The workflow template is named ${flowDefinition.name} with a description of ${flowDefinition.description}.
-    The inputs to the workflow run to be named: ${inputsOfInterest?.map((input) => JSON.stringify(input)).join("\n")}`,
+    `The workflow template is named ${
+      flowDefinition.name
+    } with a description of ${flowDefinition.description}.
+    The inputs to the workflow run to be named: ${inputsOfInterest
+      ?.map((input) => JSON.stringify(input))
+      .join("\n")}`,
     usageTrackingParams,
   );
 };

@@ -30,7 +30,6 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use postgres_types::Json;
 use serde::Serialize;
 use temporal_client::TemporalClient;
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
@@ -39,7 +38,7 @@ use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     ClosedEntityType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
-    PropertyTypeReference,
+    PropertyTypeReference, Valid,
 };
 
 pub use self::{
@@ -394,7 +393,7 @@ where
     async fn insert_with_id<T>(
         &self,
         ontology_id: OntologyId,
-        database_type: &T,
+        database_type: &Valid<T>,
     ) -> Result<Option<OntologyId>, InsertionError>
     where
         T: OntologyDatabaseType + Serialize + Debug + Sync,
@@ -414,7 +413,7 @@ where
                     "#,
                     T::table()
                 ),
-                &[&ontology_id, &Json(database_type)],
+                &[&ontology_id, database_type],
             )
             .await
             .change_context(InsertionError)?
@@ -433,8 +432,8 @@ where
     async fn insert_entity_type_with_id(
         &self,
         ontology_id: OntologyId,
-        entity_type: &EntityType,
-        closed_entity_type: &ClosedEntityType,
+        entity_type: &Valid<EntityType>,
+        closed_entity_type: &Valid<ClosedEntityType>,
         label_property: Option<&BaseUrl>,
         icon: Option<&str>,
     ) -> Result<Option<OntologyId>, InsertionError> {
@@ -454,8 +453,8 @@ where
                 ",
                 &[
                     &ontology_id,
-                    &Json(entity_type),
-                    &Json(closed_entity_type),
+                    entity_type,
+                    closed_entity_type,
                     &label_property,
                     &icon,
                 ],
@@ -486,8 +485,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &property_type.url().base_url,
-                        &property_type.url().version,
+                        &property_type.url.base_url,
+                        &property_type.url.version,
                     ],
                 )
                 .await
@@ -509,8 +508,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &data_type.url().base_url,
-                        &data_type.url().version,
+                        &data_type.url.base_url,
+                        &data_type.url.version,
                     ],
                 )
                 .await
@@ -541,15 +540,15 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &property_type.url().base_url,
-                        &property_type.url().version,
+                        &property_type.url.base_url,
+                        &property_type.url.version,
                     ],
                 )
                 .await
                 .change_context(InsertionError)?;
         }
 
-        for inherits_from in entity_type.inherits_from().all_of() {
+        for inherits_from in &entity_type.all_of {
             self.as_client()
                 .query_one(
                     "
@@ -564,8 +563,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &inherits_from.url().base_url,
-                        &inherits_from.url().version,
+                        &inherits_from.url.base_url,
+                        &inherits_from.url.version,
                     ],
                 )
                 .await
@@ -573,7 +572,6 @@ where
         }
 
         // TODO: should we check that the `link_entity_type_ref` is a link entity type?
-        //   see https://app.asana.com/0/0/1203277018227719/f
         for (link_reference, destinations) in entity_type.link_mappings() {
             self.as_client()
                 .query_one(
@@ -589,8 +587,8 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &link_reference.url().base_url,
-                        &link_reference.url().version,
+                        &link_reference.url.base_url,
+                        &link_reference.url.version,
                     ],
                 )
                 .await
@@ -612,8 +610,8 @@ where
                             ",
                             &[
                                 &ontology_id,
-                                &destination.url().base_url,
-                                &destination.url().version,
+                                &destination.url.base_url,
+                                &destination.url.version,
                             ],
                         )
                         .await
@@ -638,7 +636,7 @@ where
         let referenced_entity_types = referenced_entity_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_entity_types.size_hint().0);
         for reference in referenced_entity_types {
-            ids.push(self.ontology_id_by_url(reference.url()).await?);
+            ids.push(self.ontology_id_by_url(&reference.url).await?);
         }
         Ok(ids)
     }
@@ -655,7 +653,7 @@ where
         let referenced_property_types = referenced_property_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_property_types.size_hint().0);
         for reference in referenced_property_types {
-            ids.push(self.ontology_id_by_url(reference.url()).await?);
+            ids.push(self.ontology_id_by_url(&reference.url).await?);
         }
         Ok(ids)
     }
@@ -672,7 +670,7 @@ where
         let referenced_data_types = referenced_data_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_data_types.size_hint().0);
         for reference in referenced_data_types {
-            ids.push(self.ontology_id_by_url(reference.url()).await?);
+            ids.push(self.ontology_id_by_url(&reference.url).await?);
         }
         Ok(ids)
     }
@@ -800,7 +798,7 @@ where
     #[tracing::instrument(level = "info", skip(self, database_type))]
     async fn update<T>(
         &self,
-        database_type: &T,
+        database_type: &Valid<T>,
         provenance: &OntologyEditionProvenance,
     ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError>
     where

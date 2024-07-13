@@ -1,6 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { StatusCode } from "@local/status";
+import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
@@ -30,20 +30,17 @@ import type { DuplicateReport } from "./deduplicate-entities";
 import { deduplicateEntities } from "./deduplicate-entities";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { handleWebSearchToolCall } from "./handle-web-search-tool-call";
-import { inferFactsFromWebPageWorkerAgent } from "./infer-facts-from-web-page-worker-agent";
-import type { AccessedRemoteFile } from "./infer-facts-from-web-page-worker-agent/types";
-import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-ontology-types-for-llm-consumption";
+import { linkFollowerAgent } from "./link-follower-agent";
+import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-for-llm-consumption";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
-const model: LlmParams["model"] = "claude-3-opus-20240229";
+const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
 const omittedCoordinatorToolNames = [
   "complete",
   "startFactGatheringSubTasks",
-  "proposeEntitiesFromFacts",
   "requestHumanInput",
-  "submitProposedEntities",
   "terminate",
 ] as const;
 
@@ -63,12 +60,14 @@ type SubTaskAgentToolName =
 const generateToolDefinitions = <
   T extends SubTaskAgentCustomToolName[],
 >(params: {
+  dataSources: FlowDataSources;
   omitTools: T;
 }): Record<
   Exclude<SubTaskAgentToolName, T[number]>,
   LlmToolDefinition<Exclude<SubTaskAgentToolName, T[number]>>
 > => {
   const coordinatorToolDefinitions = generateCoordinatorToolDefinitions({
+    dataSources: params.dataSources,
     omitTools: omittedCoordinatorToolNames.concat(),
   });
 
@@ -142,9 +141,21 @@ const generateSystemPromptPrefix = (params: { input: SubTaskAgentInput }) => {
     The user will provide you with:
       - Goal: the research goal you need to satisfy to complete the research task
       - Entity Types: a list of entity types of the entities that you may need to discover facts about
-      ${linkEntityTypes ? `- Link Entity Types: a list of link entity types of the entities that you may need to discover facts about` : ""}
-      ${relevantEntities.length > 0 ? `- Relevant Entities: a list entities which have already been discovered and may be relevant to the research goal` : ""}
-      ${existingFactsAboutRelevantEntities.length > 0 ? `- Existing Facts About Relevant Entities: a list of facts that have already been discovered about the relevant entities` : ""}
+      ${
+        linkEntityTypes
+          ? `- Link Entity Types: a list of link entity types of the entities that you may need to discover facts about`
+          : ""
+      }
+      ${
+        relevantEntities.length > 0
+          ? `- Relevant Entities: a list entities which have already been discovered and may be relevant to the research goal`
+          : ""
+      }
+      ${
+        existingFactsAboutRelevantEntities.length > 0
+          ? `- Existing Facts About Relevant Entities: a list of facts that have already been discovered about the relevant entities`
+          : ""
+      }
 
     The user will provide you with a research goal, and you are tasked with
       finding the facts with the provided tools to satisfy the research goal.
@@ -164,12 +175,11 @@ export type SubTaskAgentInput = {
 
 export type SubTaskAgentState = {
   plan: string;
-  inferredFactsAboutEntities: LocalEntitySummary[];
+  entitySummaries: LocalEntitySummary[];
   inferredFacts: Fact[];
   previousCalls: {
     completedToolCalls: CompletedToolCall<SubTaskAgentToolName>[];
   }[];
-  filesUsedToInferFacts: AccessedRemoteFile[];
 };
 
 const generateInitialUserMessage = (params: {
@@ -191,10 +201,22 @@ const generateInitialUserMessage = (params: {
         text: dedent(`
 Goal: ${goal}
 Entity Types:
-${entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
+${entityTypes
+  .map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType }))
+  .join("\n")}
 ${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
-${relevantEntities.length > 0 ? `Relevant Entities: ${JSON.stringify(relevantEntities)}` : ""}
-${existingFactsAboutRelevantEntities.length > 0 ? `Existing Facts About Relevant Entities: ${JSON.stringify(existingFactsAboutRelevantEntities)}` : ""}
+${
+  relevantEntities.length > 0
+    ? `Relevant Entities: ${JSON.stringify(relevantEntities)}`
+    : ""
+}
+${
+  existingFactsAboutRelevantEntities.length > 0
+    ? `Existing Facts About Relevant Entities: ${JSON.stringify(
+        existingFactsAboutRelevantEntities,
+      )}`
+    : ""
+}
       `),
       },
     ],
@@ -212,10 +234,12 @@ const createInitialPlan = async (params: {
     Do not make any other tool calls.
   `);
 
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions({
+      dataSources,
       omitTools: ["complete"],
     }),
   );
@@ -229,6 +253,10 @@ const createInitialPlan = async (params: {
       toolChoice: "updatePlan" satisfies SubTaskAgentToolName,
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "subtask",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
@@ -331,15 +359,17 @@ const getNextToolCalls = async (params: {
       : [],
   ].flat();
 
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
+
   const tools = Object.values(
     generateToolDefinitions({
+      dataSources,
       omitTools: [
         ...(state.inferredFacts.length > 0 ? [] : ["complete" as const]),
       ],
     }),
   );
-
-  const { userAuthentication, flowEntityId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -350,6 +380,10 @@ const getNextToolCalls = async (params: {
       toolChoice: "required",
     },
     {
+      customMetadata: {
+        stepId,
+        taskName: "subtask",
+      },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       incurredInEntities: [{ entityId: flowEntityId }],
@@ -380,14 +414,12 @@ export const runSubTaskAgent = async (params: {
   | {
       status: "ok";
       explanation: string;
-      filesUsedToInferFacts: AccessedRemoteFile[];
       discoveredEntities: LocalEntitySummary[];
       discoveredFacts: Fact[];
     }
   | {
       status: "terminated";
       reason: string;
-      filesUsedToInferFacts: AccessedRemoteFile[];
       discoveredEntities: LocalEntitySummary[];
       discoveredFacts: Fact[];
     }
@@ -404,9 +436,8 @@ export const runSubTaskAgent = async (params: {
     state = {
       plan: initialPlan,
       inferredFacts: [],
-      inferredFactsAboutEntities: [],
+      entitySummaries: [],
       previousCalls: [],
-      filesUsedToInferFacts: [],
     };
   }
 
@@ -458,24 +489,33 @@ export const runSubTaskAgent = async (params: {
                 output: `The plan has been successfully updated.`,
               };
             } else if (toolCall.name === "webSearch") {
-              const { output } = await handleWebSearchToolCall({
+              const webPageSummaries = await handleWebSearchToolCall({
                 input:
                   toolCall.input as SubTaskAgentToolCallArguments["webSearch"],
               });
+
+              const output = webPageSummaries
+                .map(
+                  ({ url, summary }, index) => `
+-------------------- SEARCH RESULT ${index + 1} --------------------
+URL: ${url}
+Summary: ${summary}`,
+                )
+                .join("\n");
 
               return {
                 ...toolCall,
                 output,
               };
-            } else if (toolCall.name === "inferFactsFromWebPages") {
-              const { webPages } =
-                toolCall.input as CoordinatorToolCallArguments["inferFactsFromWebPages"];
+            } else if (toolCall.name === "inferFactsFromResources") {
+              const { resources } =
+                toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
 
               const validEntityTypeIds = input.entityTypes.map(
                 ({ $id }) => $id,
               );
 
-              const invalidEntityTypeIds = webPages
+              const invalidEntityTypeIds = resources
                 .flatMap(({ entityTypeIds }) => entityTypeIds)
                 .filter(
                   (entityTypeId) =>
@@ -485,7 +525,7 @@ export const runSubTaskAgent = async (params: {
               const validLinkEntityTypeIds =
                 input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
 
-              const invalidLinkEntityTypeIds = webPages
+              const invalidLinkEntityTypeIds = resources
                 .flatMap(({ linkEntityTypeIds }) => linkEntityTypeIds ?? [])
                 .filter(
                   (entityTypeId) =>
@@ -508,7 +548,9 @@ export const runSubTaskAgent = async (params: {
                           invalidEntityTypeIds,
                         )}
 
-                        Valid entity type IDs are: ${JSON.stringify(validEntityTypeIds)}
+                        Valid entity type IDs are: ${JSON.stringify(
+                          validEntityTypeIds,
+                        )}
                       `)
                       : ""
                   }
@@ -519,7 +561,9 @@ export const runSubTaskAgent = async (params: {
                           invalidLinkEntityTypeIds,
                         )}
                         
-                        The valid link entity types type IDs are: ${JSON.stringify(validLinkEntityTypeIds)}
+                        The valid link entity types type IDs are: ${JSON.stringify(
+                          validLinkEntityTypeIds,
+                        )}
                       `)
                       : ""
                   }
@@ -529,21 +573,34 @@ export const runSubTaskAgent = async (params: {
                 };
               }
 
-              const statusesWithUrl = await Promise.all(
-                webPages.map(
-                  async ({ url, prompt, entityTypeIds, linkEntityTypeIds }) => {
-                    const status = await inferFactsFromWebPageWorkerAgent({
-                      prompt,
+              const responsesWithUrl = await Promise.all(
+                resources.map(
+                  async ({
+                    url,
+                    prompt,
+                    entityTypeIds,
+                    linkEntityTypeIds,
+                    descriptionOfExpectedContent,
+                    exampleOfExpectedContent,
+                    reason,
+                  }) => {
+                    const response = await linkFollowerAgent({
+                      initialResource: {
+                        url,
+                        descriptionOfExpectedContent,
+                        exampleOfExpectedContent,
+                        reason,
+                      },
+                      task: prompt,
                       entityTypes: input.entityTypes.filter(({ $id }) =>
                         entityTypeIds.includes($id),
                       ),
                       linkEntityTypes: input.linkEntityTypes?.filter(
                         ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
                       ),
-                      url,
                     });
 
-                    return { status, url };
+                    return { response, url };
                   },
                 ),
               );
@@ -551,49 +608,41 @@ export const runSubTaskAgent = async (params: {
               let outputMessage = "";
 
               const inferredFacts: Fact[] = [];
-              const inferredFactsAboutEntities: LocalEntitySummary[] = [];
-              const filesUsedToInferFacts: AccessedRemoteFile[] = [];
+              const entitySummaries: LocalEntitySummary[] = [];
 
-              for (const { status, url } of statusesWithUrl) {
-                if (status.code !== StatusCode.Ok) {
-                  outputMessage += `An error occurred when inferring facts from the web page with url ${url}: ${status.message}\n`;
+              for (const { response, url } of responsesWithUrl) {
+                inferredFacts.push(...response.facts);
+                entitySummaries.push(...response.entitySummaries);
 
-                  continue;
-                }
-
-                const content = status.contents[0]!;
-
-                inferredFacts.push(...content.inferredFacts);
-                inferredFactsAboutEntities.push(
-                  ...content.inferredFactsAboutEntities,
-                );
-                filesUsedToInferFacts.push(...content.filesUsedToInferFacts);
-
-                outputMessage += `Inferred ${content.inferredFacts.length} facts on the web page with url ${url} for the following entities: ${stringify(
-                  content.inferredFactsAboutEntities.map(
-                    ({ name, summary }) => ({
-                      name,
-                      summary,
-                    }),
-                  ),
-                )}. ${content.suggestionForNextSteps}\n`;
+                outputMessage += `Inferred ${
+                  response.facts.length
+                } facts on the web page with url ${url} for the following entities: ${stringify(
+                  response.entitySummaries.map(({ name, summary }) => ({
+                    name,
+                    summary,
+                  })),
+                )}. ${response.suggestionForNextSteps}\n`;
               }
 
               outputMessage += dedent(`
               If further research is needed to fill more properties of the entities,
                 consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
+
+              Do not sequentially conduct additional web searches for each of the entities,
+                instead start multiple sub-tasks via the "startFactGatheringSubTasks" tool to
+                conduct additional research per entity in parallel.
             `);
 
               /**
                * @todo: deduplicate the entity summaries from existing entities provided as input.
                */
 
-              if (inferredFactsAboutEntities.length > 0) {
+              if (entitySummaries.length > 0) {
                 const { duplicates } = await deduplicateEntities({
                   entities: [
                     ...input.relevantEntities,
-                    ...inferredFactsAboutEntities,
-                    ...state.inferredFactsAboutEntities,
+                    ...entitySummaries,
+                    ...state.entitySummaries,
                   ],
                 });
 
@@ -659,17 +708,15 @@ export const runSubTaskAgent = async (params: {
                 state.inferredFacts.push(
                   ...inferredFactsWithDeduplicatedEntities,
                 );
-                state.inferredFactsAboutEntities = [
-                  ...state.inferredFactsAboutEntities,
-                  ...inferredFactsAboutEntities,
+                state.entitySummaries = [
+                  ...state.entitySummaries,
+                  ...entitySummaries,
                 ].filter(
                   ({ localId }) =>
                     !duplicates.some(({ duplicateIds }) =>
                       duplicateIds.includes(localId),
                     ),
                 );
-
-                state.filesUsedToInferFacts.push(...filesUsedToInferFacts);
 
                 return {
                   ...toolCall,
@@ -717,8 +764,7 @@ export const runSubTaskAgent = async (params: {
 
   return {
     ...result,
-    filesUsedToInferFacts: state.filesUsedToInferFacts,
-    discoveredEntities: state.inferredFactsAboutEntities,
+    discoveredEntities: state.entitySummaries,
     discoveredFacts: state.inferredFacts,
   };
 };

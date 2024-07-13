@@ -2,27 +2,40 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { ObjectMetadata } from "@local/hash-graph-client";
 
 import type {
   ProfileURLPropertyValue,
+  ProfileURLPropertyValueWithMetadata,
   ServiceAccount,
   ServiceAccountOutgoingLinkAndTarget,
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
+  ServiceAccountPropertiesWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 } from "./shared";
 
 export type {
   ProfileURLPropertyValue,
+  ProfileURLPropertyValueWithMetadata,
   ServiceAccount,
   ServiceAccountOutgoingLinkAndTarget,
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
+  ServiceAccountPropertiesWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 };
 
-export type TwitterAccount = Entity<TwitterAccountProperties>;
+/**
+ * A Twitter account.
+ */
+export type TwitterAccount = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/twitter-account/v/1";
+  properties: TwitterAccountProperties;
+  propertiesWithMetadata: TwitterAccountPropertiesWithMetadata;
+};
 
 export type TwitterAccountOutgoingLinkAndTarget = never;
 
@@ -36,3 +49,8 @@ export type TwitterAccountProperties = TwitterAccountProperties1 &
 export type TwitterAccountProperties1 = ServiceAccountProperties;
 
 export type TwitterAccountProperties2 = {};
+
+export type TwitterAccountPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {};
+};

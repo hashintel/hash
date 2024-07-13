@@ -25,8 +25,8 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
-  HasIndexedContentProperties,
-  TextProperties,
+  HasIndexedContent,
+  Text as TextEntity,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import { generateKeyBetween } from "fractional-indexing";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -69,7 +69,7 @@ describe("Page", () => {
       properties: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
           [],
-      } as TextProperties,
+      } as TextEntity["properties"],
       relationships: createDefaultAuthorizationRelationships({
         actorId: testUser.accountId,
       }),
@@ -192,13 +192,13 @@ describe("Page", () => {
   });
 
   let testBlock1: Block;
-  let testBlockLink1: LinkEntity<HasIndexedContentProperties>;
+  let testBlockLink1: LinkEntity<HasIndexedContent>;
 
   let testBlock2: Block;
-  let testBlockLink2: LinkEntity<HasIndexedContentProperties>;
+  let testBlockLink2: LinkEntity<HasIndexedContent>;
 
   let testBlock3: Block;
-  let testBlockLink3: LinkEntity<HasIndexedContentProperties>;
+  let testBlockLink3: LinkEntity<HasIndexedContent>;
 
   let firstKey: string;
 
@@ -229,7 +229,7 @@ describe("Page", () => {
     expect(existingBlocks).toHaveLength(1);
 
     testBlock1 = existingBlocks[0]!.rightEntity!;
-    testBlockLink1 = new LinkEntity<HasIndexedContentProperties>(
+    testBlockLink1 = new LinkEntity<HasIndexedContent>(
       existingBlocks[0]!.linkEntity,
     );
 
@@ -258,7 +258,7 @@ describe("Page", () => {
           },
         },
       },
-    )) as unknown as LinkEntity<HasIndexedContentProperties>;
+    )) as unknown as LinkEntity<HasIndexedContent>;
 
     testBlockLink3 = (await addBlockToBlockCollection(
       graphContext,
@@ -279,7 +279,7 @@ describe("Page", () => {
           },
         },
       },
-    )) as unknown as LinkEntity<HasIndexedContentProperties>;
+    )) as unknown as LinkEntity<HasIndexedContent>;
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {

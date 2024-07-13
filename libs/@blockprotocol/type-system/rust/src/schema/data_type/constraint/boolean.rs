@@ -1,0 +1,20 @@
+use error_stack::Report;
+
+use super::{extend_report, ConstraintError};
+use crate::{schema::JsonSchemaValueType, DataType};
+
+pub(crate) fn check_boolean_constraints(
+    _actual: bool,
+    data_type: &DataType,
+    result: &mut Result<(), Report<ConstraintError>>,
+) {
+    if data_type.json_type != JsonSchemaValueType::Boolean {
+        extend_report!(
+            *result,
+            ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::Boolean,
+                expected: data_type.json_type
+            }
+        );
+    }
+}

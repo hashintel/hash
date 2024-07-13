@@ -78,7 +78,7 @@ impl AsRef<[u8]> for Payload {
 
 #[cfg(test)]
 mod test {
-    #![allow(clippy::needless_raw_strings, clippy::needless_raw_string_hashes)]
+    #![expect(clippy::needless_raw_strings)]
     use bytes::Bytes;
     use expect_test::expect;
 
