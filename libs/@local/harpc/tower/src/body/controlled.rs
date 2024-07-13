@@ -7,6 +7,7 @@ use std::{
 use super::{Body, Frame, SizeHint};
 
 pin_project_lite::pin_project! {
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Controlled<C, B> {
         control: Option<C>,
         #[pin]

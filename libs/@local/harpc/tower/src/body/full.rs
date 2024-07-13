@@ -9,16 +9,16 @@ use super::{Body, Frame, SizeHint};
 
 pin_project_lite::pin_project! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct Full<B> {
-        data: Option<B>,
+    pub struct Full<D> {
+        data: Option<D>,
     }
 }
 
-impl<B> Full<B>
+impl<D> Full<D>
 where
-    B: Buf,
+    D: Buf,
 {
-    pub fn new(body: B) -> Self {
+    pub fn new(body: D) -> Self {
         if body.has_remaining() {
             Self { data: Some(body) }
         } else {
@@ -27,12 +27,12 @@ where
     }
 }
 
-impl<B> Body for Full<B>
+impl<D> Body for Full<D>
 where
-    B: Buf,
+    D: Buf,
 {
     type Control = !;
-    type Data = B;
+    type Data = D;
     type Error = !;
 
     fn poll_frame(

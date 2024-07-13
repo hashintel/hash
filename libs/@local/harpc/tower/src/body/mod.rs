@@ -257,12 +257,16 @@ pub trait BodyExt: Body {
     }
 }
 
+impl<B> BodyExt for B where B: Body {}
+
 #[cfg(test)]
 pub(crate) mod test {
     use core::{
         pin::Pin,
         task::{Context, Poll, Waker},
     };
+
+    use futures::Stream;
 
     use super::{Body, Frame};
 
@@ -280,5 +284,15 @@ pub(crate) mod test {
 
         let body = Pin::new(body);
         body.poll_frame(&mut cx)
+    }
+
+    pub(crate) fn poll_stream_unpin<S>(stream: &mut S) -> Poll<Option<S::Item>>
+    where
+        S: Stream + Unpin,
+    {
+        let mut cx = Context::from_waker(Waker::noop());
+
+        let body = Pin::new(stream);
+        body.poll_next(&mut cx)
     }
 }

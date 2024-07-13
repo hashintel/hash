@@ -4,9 +4,57 @@ use std::{
     task::{Context, Poll},
 };
 
+use bytes::Buf;
 use futures::Stream;
 
 use super::{Body, Frame};
+
+pin_project_lite::pin_project! {
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct StreamBody<S> {
+        #[pin]
+        stream: S,
+        is_complete: bool,
+    }
+}
+
+impl<S> StreamBody<S> {
+    pub fn new(stream: S) -> Self {
+        Self {
+            stream,
+            is_complete: false,
+        }
+    }
+}
+
+impl<S, D, C, E> Body for StreamBody<S>
+where
+    S: Stream<Item = Result<Frame<D, C>, E>>,
+    D: Buf,
+{
+    type Control = C;
+    type Data = D;
+    type Error = E;
+
+    fn poll_frame(
+        self: Pin<&mut Self>,
+        cx: &mut Context,
+    ) -> Poll<Option<super::BodyFrameResult<Self>>> {
+        let this = self.project();
+
+        let value = ready!(this.stream.poll_next(cx));
+
+        if value.is_none() {
+            *this.is_complete = true;
+        }
+
+        Poll::Ready(value)
+    }
+
+    fn is_complete(&self) -> Option<bool> {
+        if self.is_complete { Some(true) } else { None }
+    }
+}
 
 pin_project_lite::pin_project! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -94,5 +142,86 @@ where
                 None => Poll::Ready(None),
             };
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use core::task::Poll;
+
+    use bytes::Bytes;
+    use futures::stream;
+
+    use super::{BodyStream, StreamBody};
+    use crate::body::{
+        test::{poll_frame_unpin, poll_stream_unpin},
+        Body, Frame,
+    };
+
+    const A: &[u8] = b"hello";
+    const B: &[u8] = b"world";
+    const C: &[u8] = b"!";
+
+    #[test]
+    fn body_from_stream() {
+        let stream = stream::iter([
+            Ok(Frame::Data(Bytes::from_static(A))),
+            Ok(Frame::Data(Bytes::from_static(B))),
+            Ok(Frame::Data(Bytes::from_static(C))),
+        ] as [Result<Frame<_, !>, !>; 3]);
+        let mut body = StreamBody::new(stream);
+
+        let frame = poll_frame_unpin(&mut body);
+        assert_eq!(
+            frame,
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(A)))))
+        );
+        assert_eq!(body.is_complete(), None);
+
+        let frame = poll_frame_unpin(&mut body);
+        assert_eq!(
+            frame,
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(B)))))
+        );
+        assert_eq!(body.is_complete(), None);
+
+        let frame = poll_frame_unpin(&mut body);
+        assert_eq!(
+            frame,
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(C)))))
+        );
+        assert_eq!(body.is_complete(), None);
+
+        let frame = poll_frame_unpin(&mut body);
+        assert_eq!(frame, Poll::Ready(None));
+        assert_eq!(body.is_complete(), Some(true));
+    }
+
+    #[test]
+    fn stream_from_body() {
+        let stream = stream::iter([
+            Ok(Frame::Data(Bytes::from_static(A))),
+            Ok(Frame::Data(Bytes::from_static(B))),
+            Ok(Frame::Data(Bytes::from_static(C))),
+        ] as [Result<Frame<_, !>, !>; 3]);
+        let body = StreamBody::new(stream);
+        let mut stream = BodyStream::new(body);
+
+        assert_eq!(
+            poll_stream_unpin(&mut stream),
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(A)))))
+        );
+
+        assert_eq!(
+            poll_stream_unpin(&mut stream),
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(B)))))
+        );
+
+        assert_eq!(
+            poll_stream_unpin(&mut stream),
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(C)))))
+        );
+
+        assert_eq!(poll_stream_unpin(&mut stream), Poll::Ready(None));
     }
 }
