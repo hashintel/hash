@@ -1,5 +1,6 @@
 use core::task::{Context, Poll};
 
+use bytes::Bytes;
 use error_stack::Report;
 use harpc_net::codec::{ErrorEncoder, WireError};
 use harpc_wire_protocol::response::kind::ResponseKind;
@@ -51,7 +52,7 @@ where
     ResBody: Body<Control: AsRef<ResponseKind>>,
 {
     type Error = !;
-    type Response = Response<Either<ResBody, Controlled<ResponseKind, Full>>>;
+    type Response = Response<Either<ResBody, Controlled<ResponseKind, Full<Bytes>>>>;
 
     type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
 
@@ -123,7 +124,7 @@ where
     ResBody: Body<Control: AsRef<ResponseKind>>,
 {
     type Error = !;
-    type Response = Response<Either<ResBody, Controlled<ResponseKind, Full>>>;
+    type Response = Response<Either<ResBody, Controlled<ResponseKind, Full<Bytes>>>>;
 
     type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
 

@@ -4,7 +4,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use super::{Body, Frame};
+use super::{Body, Frame, SizeHint};
 
 pin_project_lite::pin_project! {
     pub struct Controlled<C, B> {
@@ -55,5 +55,70 @@ where
         }
 
         self.body.is_complete()
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        self.body.size_hint()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use core::task::Poll;
+
+    use bytes::Bytes;
+
+    use super::Controlled;
+    use crate::body::{full::Full, test::poll_frame_unpin, Body, Frame, SizeHint};
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    struct Control;
+
+    impl From<!> for Control {
+        fn from(value: !) -> Self {
+            match value {}
+        }
+    }
+
+    #[test]
+    fn poll_frame() {
+        let bytes = Bytes::from("hello");
+
+        let mut body = Controlled::new(Control, Full::new(bytes.clone()));
+
+        let frame = poll_frame_unpin(&mut body);
+        assert_eq!(frame, Poll::Ready(Some(Ok(Frame::Control(Control)))));
+
+        let frame = poll_frame_unpin(&mut body);
+        assert_eq!(frame, Poll::Ready(Some(Ok(Frame::Data(bytes)))));
+
+        let frame = poll_frame_unpin(&mut body);
+        assert_eq!(frame, Poll::Ready(None));
+    }
+
+    #[test]
+    fn is_complete() {
+        let mut body = Controlled::new(Control, Full::new(Bytes::from("hello")));
+        assert_eq!(body.is_complete(), None);
+
+        let _ = poll_frame_unpin(&mut body);
+        assert_eq!(body.is_complete(), None);
+
+        let _ = poll_frame_unpin(&mut body);
+        assert_eq!(body.is_complete(), Some(true));
+    }
+
+    #[test]
+    fn size_hint() {
+        let bytes = Bytes::from("hello");
+
+        let mut body = Controlled::new(Control, Full::new(bytes.clone()));
+        assert_eq!(body.size_hint(), SizeHint::with_exact(5));
+
+        let _ = poll_frame_unpin(&mut body);
+        assert_eq!(body.size_hint(), SizeHint::with_exact(5));
+
+        let _ = poll_frame_unpin(&mut body);
+        assert_eq!(body.size_hint(), SizeHint::with_exact(0));
     }
 }

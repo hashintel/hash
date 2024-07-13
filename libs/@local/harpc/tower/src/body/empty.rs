@@ -1,4 +1,5 @@
 use core::{
+    fmt::Debug,
     marker::PhantomData,
     pin::Pin,
     task::{Context, Poll},
@@ -49,3 +50,17 @@ impl<B> Default for Empty<B> {
         Self::new()
     }
 }
+
+impl<B> Debug for Empty<B> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Empty").finish()
+    }
+}
+
+impl<B> Clone for Empty<B> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<B> Copy for Empty<B> {}

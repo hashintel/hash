@@ -3,23 +3,36 @@ use core::{
     task::{Context, Poll},
 };
 
-use bytes::{Buf, Bytes};
+use bytes::Buf;
 
 use super::{Body, Frame, SizeHint};
 
-pub struct Full {
-    data: Option<Bytes>,
-}
-
-impl Full {
-    pub fn new(body: Bytes) -> Self {
-        Self { data: Some(body) }
+pin_project_lite::pin_project! {
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct Full<B> {
+        data: Option<B>,
     }
 }
 
-impl Body for Full {
+impl<B> Full<B>
+where
+    B: Buf,
+{
+    pub fn new(body: B) -> Self {
+        if body.has_remaining() {
+            Self { data: Some(body) }
+        } else {
+            Self { data: None }
+        }
+    }
+}
+
+impl<B> Body for Full<B>
+where
+    B: Buf,
+{
     type Control = !;
-    type Data = Bytes;
+    type Data = B;
     type Error = !;
 
     fn poll_frame(
@@ -29,6 +42,7 @@ impl Body for Full {
         Poll::Ready(self.data.take().map(Frame::new_data).map(Ok))
     }
 
+    // TODO: rename
     fn is_complete(&self) -> Option<bool> {
         if self.data.is_some() {
             None
@@ -64,6 +78,16 @@ mod test {
 
         let frame = poll_frame_unpin(&mut body);
         assert_eq!(frame, Poll::Ready(None));
+
+        let frame = poll_frame_unpin(&mut body);
+        assert_eq!(frame, Poll::Ready(None));
+    }
+
+    #[test]
+    fn poll_frame_empty_returns_none() {
+        let bytes = Bytes::new();
+
+        let mut body = Full::new(bytes.clone());
 
         let frame = poll_frame_unpin(&mut body);
         assert_eq!(frame, Poll::Ready(None));

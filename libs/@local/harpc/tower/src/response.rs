@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use harpc_net::session::{error::TransactionError, server::SessionId};
 use harpc_wire_protocol::response::kind::ResponseKind;
 
@@ -66,7 +67,7 @@ where
     }
 }
 
-impl Response<Controlled<ResponseKind, Full>> {
+impl Response<Controlled<ResponseKind, Full<Bytes>>> {
     pub fn from_error(parts: Parts, error: TransactionError) -> Self {
         Self {
             head: parts,

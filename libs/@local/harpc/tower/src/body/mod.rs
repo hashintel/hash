@@ -266,6 +266,10 @@ pub(crate) mod test {
 
     use super::{Body, Frame};
 
+    #[expect(
+        clippy::type_complexity,
+        reason = "polling code always results in complex types"
+    )]
     pub(crate) fn poll_frame_unpin<B>(
         body: &mut B,
     ) -> Poll<Option<Result<Frame<B::Data, B::Control>, B::Error>>>
