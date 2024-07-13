@@ -9,6 +9,7 @@ use harpc_net::session::server::transaction::TransactionStream;
 
 use crate::body::{Body, BodyFrameResult, BodyState, Frame};
 
+#[derive(Debug)]
 pub struct RequestBody {
     inner: TransactionStream,
 }

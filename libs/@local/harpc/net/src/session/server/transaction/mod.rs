@@ -312,6 +312,7 @@ enum TransactionStreamState {
 }
 
 #[must_use = "streams do nothing unless polled"]
+#[derive(Debug)]
 pub struct TransactionStream {
     state: TransactionStreamState,
 }

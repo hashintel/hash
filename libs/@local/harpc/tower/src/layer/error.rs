@@ -108,7 +108,6 @@ where
     }
 }
 
-// TODO: this is on tower level (which works)
 pub struct HandleError<S, E> {
     inner: S,
 
@@ -118,7 +117,7 @@ pub struct HandleError<S, E> {
 impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleError<S, E>
 where
     S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
-    S::Error: WireError,
+    S::Error: WireError + Send,
     E: ErrorEncoder + Clone,
     ReqBody: Body<Control = !>,
     ResBody: Body<Control: AsRef<ResponseKind>>,
@@ -153,5 +152,96 @@ where
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use bytes::{Bytes, BytesMut};
+    use error_stack::Report;
+    use harpc_net::{
+        codec::{ErrorEncoder, WireError},
+        session::error::TransactionError,
+        test_utils::mock_session_id,
+    };
+    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+    use harpc_wire_protocol::{
+        request::{procedure::ProcedureDescriptor, service::ServiceDescriptor},
+        response::kind::ErrorCode,
+    };
+    use tower_test::mock::spawn_layer;
+
+    use crate::{
+        body::full::Full,
+        layer::error::HandleErrorLayer,
+        request::{self, Request},
+        response::Response,
+        Extensions,
+    };
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    struct PlainErrorEncoder;
+
+    impl ErrorEncoder for PlainErrorEncoder {
+        async fn encode_report<C>(&self, report: Report<C>) -> TransactionError {
+            let code = report
+                .request_ref::<ErrorCode>()
+                .next()
+                .copied()
+                .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR);
+
+            let mut bytes = BytesMut::new();
+
+            let display = report.to_string();
+            bytes.extend_from_slice(b"report|");
+            bytes.extend_from_slice(display.as_bytes());
+
+            TransactionError {
+                code,
+                bytes: bytes.freeze(),
+            }
+        }
+
+        async fn encode_error<E>(&self, error: E) -> TransactionError
+        where
+            E: WireError + Send,
+        {
+            let code = error.code();
+
+            let mut bytes = BytesMut::new();
+
+            let display = error.to_string();
+            bytes.extend_from_slice(b"plain|");
+            bytes.extend_from_slice(display.as_bytes());
+
+            TransactionError {
+                code,
+                bytes: bytes.freeze(),
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn handle_error() {
+        let (service, handle) =
+            spawn_layer::<Request<_>, Response<_>, _>(HandleErrorLayer::new(PlainErrorEncoder));
+
+        service.call(Request::from_parts(
+            request::Parts {
+                service: ServiceDescriptor {
+                    id: ServiceId::new(0x00),
+                    version: Version {
+                        major: 0x00,
+                        minor: 0x00,
+                    },
+                },
+                procedure: ProcedureDescriptor {
+                    id: ProcedureId::new(0x00),
+                },
+                session: mock_session_id(0x00),
+                extensions: Extensions::new(),
+            },
+            Full::new(Bytes::from_static(b"hello world" as &[_])),
+        ));
     }
 }
