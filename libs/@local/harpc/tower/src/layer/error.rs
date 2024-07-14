@@ -5,7 +5,6 @@ use core::{
 };
 
 use bytes::Bytes;
-use error_stack::Report;
 use harpc_net::codec::{ErrorEncoder, WireError};
 use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
 use tower::{Layer, Service, ServiceExt};
@@ -17,84 +16,6 @@ use crate::{
     response::{Parts, Response},
     Extensions,
 };
-
-pub struct HandleReportLayer<E> {
-    encoder: E,
-}
-
-impl<E> HandleReportLayer<E> {
-    pub fn new(encoder: E) -> Self {
-        Self { encoder }
-    }
-}
-
-impl<S, E> Layer<S> for HandleReportLayer<E>
-where
-    E: Clone,
-{
-    type Service = HandleReport<S, E>;
-
-    fn layer(&self, inner: S) -> Self::Service {
-        HandleReport {
-            inner,
-            encoder: self.encoder.clone(),
-        }
-    }
-}
-
-pub struct HandleReport<S, E> {
-    inner: S,
-
-    encoder: E,
-}
-
-impl<S, E, C, ReqBody, ResBody> Service<Request<ReqBody>> for HandleReport<S, E>
-where
-    S: Service<Request<ReqBody>, Error = Report<C>, Response = Response<ResBody>> + Clone + Send,
-    E: ErrorEncoder + Clone,
-    C: error_stack::Context,
-    ReqBody: Body<Control = !>,
-    ResBody: Body<Control: AsRef<ResponseKind>>,
-{
-    type Error = !;
-    type Response = Response<Either<ResBody, Controlled<ResponseKind, Full<Bytes>>>>;
-
-    type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
-
-    fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        // Taken from axum::HandleError
-        // we're always ready because we clone the inner service, therefore it is unused and always
-        // ready
-        Poll::Ready(Ok(()))
-    }
-
-    fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        let encoder = self.encoder.clone();
-
-        let clone = self.inner.clone();
-        let inner = std::mem::replace(&mut self.inner, clone);
-
-        let session = req.session();
-
-        async move {
-            match inner.oneshot(req).await {
-                Ok(response) => Ok(response.map_body(Either::Left)),
-                Err(report) => {
-                    let error = encoder.encode_report(report).await;
-
-                    Ok(Response::from_error(
-                        Parts {
-                            session,
-                            extensions: Extensions::new(),
-                        },
-                        error,
-                    )
-                    .map_body(Either::Right))
-                }
-            }
-        }
-    }
-}
 
 pub struct BoxedError(Box<dyn Error + Send + Sync + 'static>);
 
@@ -223,7 +144,7 @@ where
 }
 
 #[cfg(test)]
-mod test {
+pub(crate) mod test {
     use core::{error::Error, fmt::Display};
 
     use bytes::{Bytes, BytesMut};
@@ -238,21 +159,20 @@ mod test {
         request::{procedure::ProcedureDescriptor, service::ServiceDescriptor},
         response::kind::{ErrorCode, ResponseKind},
     };
-    use tokio::pin;
     use tokio_test::{assert_pending, assert_ready};
-    use tower_test::{assert_request_eq, mock::spawn_layer};
+    use tower_test::mock::spawn_layer;
 
     use crate::{
         body::{controlled::Controlled, full::Full, BodyExt, Frame},
         either::Either,
         layer::error::HandleErrorLayer,
         request::{self, Request},
-        response::Response,
+        response::{self, Response},
         Extensions,
     };
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    struct PlainErrorEncoder;
+    pub(crate) struct PlainErrorEncoder;
 
     impl ErrorEncoder for PlainErrorEncoder {
         async fn encode_report<C>(&self, report: Report<C>) -> TransactionError {
@@ -294,7 +214,13 @@ mod test {
     }
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    struct GenericError(ErrorCode);
+    pub(crate) struct GenericError(ErrorCode);
+
+    impl GenericError {
+        pub(crate) fn new(code: ErrorCode) -> Self {
+            Self(code)
+        }
+    }
 
     impl Display for GenericError {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -308,14 +234,10 @@ mod test {
         }
     }
 
-    #[tokio::test]
-    async fn handle_error() {
-        let (mut service, mut handle) = spawn_layer(HandleErrorLayer::new(PlainErrorEncoder));
+    pub(crate) const BODY: &[u8] = b"hello world";
 
-        assert_pending!(handle.poll_request());
-        assert_ready!(service.poll_ready()).expect("should be ready");
-
-        let response = tokio::spawn(service.call(Request::from_parts(
+    pub(crate) fn request() -> Request<Full<Bytes>> {
+        Request::from_parts(
             request::Parts {
                 service: ServiceDescriptor {
                     id: ServiceId::new(0x00),
@@ -330,8 +252,18 @@ mod test {
                 session: mock_session_id(0x00),
                 extensions: Extensions::new(),
             },
-            Full::new(Bytes::from_static(b"hello world" as &[_])),
-        )));
+            Full::new(Bytes::from_static(BODY)),
+        )
+    }
+
+    #[tokio::test]
+    async fn handle_error() {
+        let (mut service, mut handle) = spawn_layer(HandleErrorLayer::new(PlainErrorEncoder));
+
+        assert_pending!(handle.poll_request());
+        assert_ready!(service.poll_ready()).expect("should be ready");
+
+        let response = tokio::spawn(service.call(request()));
 
         let Some((mut actual, send_response)) = handle.next_request().await else {
             panic!("expected a request, but non was received.");
@@ -340,10 +272,7 @@ mod test {
         let body = actual.body_mut();
         let Ok(frame) = body.frame().await.expect("frame should be present");
 
-        assert_eq!(
-            frame,
-            Frame::Data(Bytes::from_static(b"hello world" as &[_]))
-        );
+        assert_eq!(frame, Frame::Data(Bytes::from_static(BODY)));
 
         send_response.send_error(GenericError(ErrorCode::INTERNAL_SERVER_ERROR));
 
@@ -367,5 +296,56 @@ mod test {
             .expect("should be data frame")
             .into_inner();
         assert_eq!(data, Bytes::from_static(b"plain|generic error" as &[_]));
+    }
+
+    #[tokio::test]
+    async fn passthrough() {
+        let (mut service, mut handle) = spawn_layer(HandleErrorLayer::new(PlainErrorEncoder));
+
+        assert_pending!(handle.poll_request());
+        assert_ready!(service.poll_ready()).expect("should be ready");
+
+        let response = tokio::spawn(service.call(request()));
+
+        let Some((mut actual, send_response)) = handle.next_request().await else {
+            panic!("expected a request, but non was received.");
+        };
+
+        let body = actual.body_mut();
+        let Ok(frame) = body.frame().await.expect("frame should be present");
+
+        assert_eq!(frame, Frame::Data(Bytes::from_static(BODY)));
+
+        send_response.send_response(Response::from_parts(
+            response::Parts {
+                session: actual.session(),
+                extensions: Extensions::new(),
+            },
+            Controlled::new(
+                ResponseKind::Ok,
+                Full::new(Bytes::from_static(b"response" as &[_])),
+            ),
+        ));
+
+        // the left side is never invoked, but we still need to poll it
+        let mut response = response
+            .await
+            .expect("should be able to join")
+            .expect("response should be present");
+
+        let body = response.body_mut();
+        let Ok(frame) = body.frame().await.expect("frame should be present");
+        let control = frame
+            .into_control()
+            .expect("should be data frame")
+            .into_inner();
+        assert_eq!(control, ResponseKind::Ok);
+
+        let Ok(frame) = body.frame().await.expect("frame should be present");
+        let data = frame
+            .into_data()
+            .expect("should be data frame")
+            .into_inner();
+        assert_eq!(data, Bytes::from_static(b"response" as &[_]));
     }
 }

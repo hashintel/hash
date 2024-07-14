@@ -4,7 +4,6 @@ use std::{
 };
 
 use bytes::Buf;
-use error_stack::Report;
 
 use crate::body::{Body, BodyState, Frame};
 
