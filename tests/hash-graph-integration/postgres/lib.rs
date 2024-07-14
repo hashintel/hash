@@ -78,8 +78,8 @@ use type_system::schema::{DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper<A: AuthorizationApi> {
-    _pool: PostgresStorePool<NoTls>,
-    connection: <PostgresStorePool<NoTls> as StorePool>::Store<'static, A>,
+    _pool: PostgresStorePool,
+    connection: <PostgresStorePool as StorePool>::Store<'static, A>,
 }
 
 pub struct DatabaseApi<'pool, A: AuthorizationApi> {
