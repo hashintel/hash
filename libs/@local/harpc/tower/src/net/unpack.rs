@@ -19,15 +19,15 @@ struct Waiting {
 impl Waiting {
     fn poll(mut self, cx: &mut Context) -> (State, Poll<Option<BodyFrameResult<Unpack>>>) {
         let Poll::Ready(next) = self.stream.poll_next_unpin(cx) else {
-            // we're just propagating the underlying stream `Pending`, this means we need to
+            // we're just propagating the underlying stream `Pending`, this means we don't need to
             // register any waker
             return (State::Waiting(self), Poll::Pending);
         };
 
         // get a new value from stream, as we're currently no longer holding any value
         let Some(value) = next else {
-            // we have exhausted the stream, but have been empty, this means that we're
-            // incomplete and transition to that state
+            // The stream has been exhausted, but the previous stream has not indicated
+            // completion, therefore we must assume that we're incomplete (but finished).
             return (
                 State::Finished(Finished { complete: false }),
                 Poll::Ready(None),
@@ -65,7 +65,7 @@ impl Running {
         // done
         let state = current.state().unwrap_or_else(|| {
             unreachable!(
-                "the stream has been terminated (and is fused) and the state will always be set"
+                "the fused stream has been terminated, meaning the state will always be set"
             )
         });
 
@@ -168,6 +168,7 @@ impl Unpack {
             &mut self.state,
             State::Finished(Finished { complete: false }),
         );
+
         loop {
             let (next, poll) = state.poll(cx);
             state = next;
@@ -201,3 +202,5 @@ impl Body for Unpack {
         }
     }
 }
+
+// TODO: like body/server/request.rs this needs a way to integrate with `net` in test-utils?
