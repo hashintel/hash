@@ -26,7 +26,7 @@ impl<D, C, E> BoxBody<D, C, E> {
 
 impl<D, C, E> Debug for BoxBody<D, C, E> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("BoxBody").finish()
+        f.debug_struct("BoxBody").finish_non_exhaustive()
     }
 }
 
