@@ -7,21 +7,14 @@ use crate::{
     extensions::Extensions,
 };
 
+#[derive(Debug, Clone)]
 pub struct Parts {
     pub session: SessionId,
 
     pub extensions: Extensions,
 }
 
-impl Parts {
-    pub fn new(session: SessionId) -> Self {
-        Self {
-            session,
-            extensions: Extensions::new(),
-        }
-    }
-}
-
+#[derive(Debug, Clone)]
 pub struct Response<B> {
     head: Parts,
     body: B,

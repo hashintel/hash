@@ -3,7 +3,8 @@
     never_type,
     type_changing_struct_update,
     min_exhaustive_patterns,
-    control_flow_enum
+    control_flow_enum,
+    error_generic_member_access
 )]
 #![cfg_attr(test, feature(noop_waker, assert_matches))]
 

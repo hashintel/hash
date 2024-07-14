@@ -4,6 +4,7 @@ use harpc_wire_protocol::request::{procedure::ProcedureDescriptor, service::Serv
 use crate::{body::Body, extensions::Extensions};
 
 /// Component parts of a hrpc `Request`.
+#[derive(Debug, Clone)]
 pub struct Parts {
     pub service: ServiceDescriptor,
     pub procedure: ProcedureDescriptor,
@@ -13,6 +14,7 @@ pub struct Parts {
     pub extensions: Extensions,
 }
 
+#[derive(Debug, Clone)]
 pub struct Request<B> {
     head: Parts,
     body: B,

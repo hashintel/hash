@@ -23,3 +23,4 @@ tower = { version = "0.4.13", features = ["util"] }
 tokio-util = { workspace = true, features = ["time"] }
 tower-test = "0.4.0"
 harpc-net = {workspace = true, features = ["test-utils"]}
+tokio-test = "0.4.4"

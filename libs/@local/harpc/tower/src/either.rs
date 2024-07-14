@@ -191,14 +191,15 @@ where
     }
 }
 
-impl<L, R, C1, C2> Body for Either<L, R>
+// TODO: (if needed: layer that merges errors of both sides) (that's just map_err)
+impl<L, R, E> Body for Either<L, R>
 where
-    L: Body<Error = Report<C1>>,
-    R: Body<Error = Report<C2>>,
+    L: Body<Error = E>,
+    R: Body<Error = E>,
 {
     type Control = Either<L::Control, R::Control>;
     type Data = Either<L::Data, R::Data>;
-    type Error = Report<EitherError>;
+    type Error = E;
 
     forward!(
         fn state(&self) -> Option<BodyState>;
@@ -213,13 +214,11 @@ where
         match this {
             EitherProj::Left(left) => left
                 .poll_frame(cx)
-                .map_ok(|frame| frame.map_data(Either::Left).map_control(Either::Left))
-                .map_err(|error| error.change_context(EitherError::Left)),
+                .map_ok(|frame| frame.map_data(Either::Left).map_control(Either::Left)),
 
             EitherProj::Right(right) => right
                 .poll_frame(cx)
-                .map_ok(|frame| frame.map_data(Either::Right).map_control(Either::Right))
-                .map_err(|error| error.change_context(EitherError::Right)),
+                .map_ok(|frame| frame.map_data(Either::Right).map_control(Either::Right)),
         }
     }
 }

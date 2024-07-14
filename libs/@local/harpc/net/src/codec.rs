@@ -18,12 +18,11 @@ pub trait ValueEncoder<T> {
     + Send;
 }
 
+// TODO: WireError is auto trait, using `request_ref` and `request_value`
+// ^ needs thiserror provide (snafu provides it, but snafu is big)
 pub trait WireError: Error {
     fn code(&self) -> ErrorCode;
 }
-
-// TODO: fully convert to an auto trait, with default implementation
-// ^ needed for boxed errors to be used
 
 pub trait ErrorEncoder {
     /// Encode an error report into a stream of bytes.
