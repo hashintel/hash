@@ -19,6 +19,7 @@ import {
   extractBaseUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
+import { isEqual } from "lodash";
 
 import type { ImpureGraphContext } from "../../../context-types";
 import {
@@ -147,49 +148,37 @@ export const upgradeWebEntities = async ({
            * to instantiate entities of both the old and new entityTypeId,
            * because an actor cannot update or remove an entity type without being able to instantiate it.
            */
+          const relationships = await context.graphApi
+            .getEntityTypeAuthorizationRelationships(
+              systemAccountId,
+              entityTypeId,
+            )
+            .then(({ data }) => data);
 
-          try {
+          const relationAndSubject = {
+            subject: {
+              kind: "account",
+              subjectId: entity.metadata.provenance.createdById,
+            },
+            relation: "instantiator",
+          } as const;
+
+          if (
+            !relationships.find((relationship) =>
+              isEqual(relationship, relationAndSubject),
+            )
+          ) {
             await context.graphApi.modifyEntityTypeAuthorizationRelationships(
               systemAccountId,
               [
                 {
                   operation: "create",
                   resource: entityTypeId,
-                  relationAndSubject: {
-                    subject: {
-                      kind: "account",
-                      subjectId: entity.metadata.provenance.createdById,
-                    },
-                    relation: "instantiator",
-                  },
+                  relationAndSubject,
                 },
               ],
             );
-
-            /** If the 'create' call didn't error, the actor didn't already have the permission */
             temporaryEntityTypePermissionsGranted.push(entityTypeId);
-          } catch {
-            /**
-             * the actor already had the permission, so we must 'touch' the permission instead.
-             * in theory we could just do nothing, but maybe 'touch' will throw some other error we need to know about
-             */
-
-            await context.graphApi.modifyEntityTypeAuthorizationRelationships(
-              systemAccountId,
-              [
-                {
-                  operation: "touch",
-                  resource: entityTypeId,
-                  relationAndSubject: {
-                    subject: {
-                      kind: "account",
-                      subjectId: entity.metadata.provenance.createdById,
-                    },
-                    relation: "instantiator",
-                  },
-                },
-              ],
-            );
           }
         }
       }
