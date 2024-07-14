@@ -13,9 +13,8 @@ use url::{Host, Url};
 use uuid::Uuid;
 
 use super::{extend_report, ConstraintError};
-use crate::{
-    schema::{data_type::constraint::error::StringFormatError, JsonSchemaValueType},
-    DataType,
+use crate::schema::{
+    data_type::constraint::error::StringFormatError, DataType, JsonSchemaValueType,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

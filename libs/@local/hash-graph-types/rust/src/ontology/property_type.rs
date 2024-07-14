@@ -1,7 +1,7 @@
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
-use type_system::{url::VersionedUrl, PropertyType};
+use type_system::{schema::PropertyType, url::VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     openapi::{schema, Ref, RefOr, Schema},

@@ -2,7 +2,7 @@ pub(crate) mod subgraph;
 
 use graph_types::ontology::{DataTypeMetadata, EntityTypeMetadata, PropertyTypeMetadata};
 use serde::{Deserialize, Serialize};
-use type_system::{DataType, EntityType, PropertyType};
+use type_system::schema::{DataType, EntityType, PropertyType};
 use utoipa::{
     openapi::{OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,

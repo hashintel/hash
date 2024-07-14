@@ -50,8 +50,8 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
+    schema::PropertyType,
     url::{OntologyTypeVersion, VersionedUrl},
-    PropertyType,
 };
 use utoipa::{OpenApi, ToSchema};
 

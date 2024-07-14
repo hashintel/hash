@@ -14,7 +14,7 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use temporal_versioning::TemporalBound;
-use type_system::EntityType;
+use type_system::schema::EntityType;
 
 use crate::{entity_type_relationships, DatabaseTestWrapper};
 

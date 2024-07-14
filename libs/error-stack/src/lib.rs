@@ -516,11 +516,7 @@ pub use self::{
     result::Result,
 };
 #[doc(inline)]
-#[allow(deprecated)]
-pub use self::{
-    future::FutureExt,
-    result::{IntoReport, ResultExt},
-};
+pub use self::{future::FutureExt, result::ResultExt};
 
 #[cfg(test)]
 #[allow(dead_code)]

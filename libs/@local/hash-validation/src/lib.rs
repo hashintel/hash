@@ -19,8 +19,8 @@ use error_stack::{Context, Report};
 use graph_types::knowledge::entity::{Entity, EntityId};
 use serde::Deserialize;
 use type_system::{
+    schema::ClosedEntityType,
     url::{BaseUrl, VersionedUrl},
-    ClosedEntityType,
 };
 
 trait Schema<V: ?Sized, P: Sync> {
@@ -122,7 +122,7 @@ mod tests {
     };
     use serde_json::Value as JsonValue;
     use thiserror::Error;
-    use type_system::{DataType, EntityType, PropertyType};
+    use type_system::schema::{DataType, EntityType, PropertyType};
 
     use super::*;
     use crate::error::install_error_stack_hooks;

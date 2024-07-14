@@ -1,7 +1,4 @@
 #[cfg(target_arch = "wasm32")]
-pub use wasm::*;
-
-#[cfg(target_arch = "wasm32")]
 mod wasm {
     use serde::{Deserialize, Serialize};
     use tsify::Tsify;

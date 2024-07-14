@@ -6,10 +6,10 @@ use graph_types::knowledge::PropertyWithMetadata;
 use thiserror::Error;
 use type_system::{
     schema::{
-        ArraySchema, JsonSchemaValueType, ObjectSchema, OneOfSchema, PropertyValues, ValueOrArray,
+        ArraySchema, DataType, JsonSchemaValueType, ObjectSchema, OneOfSchema, PropertyType,
+        PropertyTypeReference, PropertyValues, ValueOrArray,
     },
     url::{BaseUrl, VersionedUrl},
-    DataType, PropertyType, PropertyTypeReference,
 };
 
 use crate::{
