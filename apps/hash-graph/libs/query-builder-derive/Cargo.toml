@@ -11,10 +11,10 @@ proc-macro = true
 
 [dependencies]
 virtue = "0.0.17"
-syn = "2.0.60"
+syn = "2.0.70"
 
 [dev-dependencies]
-trybuild = "1.0.93"
+trybuild = "1.0.97"
 
 [lints]
 workspace = true

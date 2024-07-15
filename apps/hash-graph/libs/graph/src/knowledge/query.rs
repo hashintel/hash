@@ -104,7 +104,7 @@ pub enum EntityQueryPath<'p> {
     /// instead.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeBaseUrls,
     /// The list of [`EntityType`]s' versions belonging to the [`Entity`].
@@ -112,7 +112,7 @@ pub enum EntityQueryPath<'p> {
     /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
     /// instead.
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeVersions,
     /// The confidence value for the [`Entity`].
@@ -188,7 +188,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType`]: type_system::PropertyType
+    /// [`EntityType`]: type_system::schema::PropertyType
     EntityTypeEdge {
         edge_kind: SharedEdgeKind,
         path: EntityTypeQueryPath<'p>,

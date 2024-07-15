@@ -2,7 +2,10 @@ use core::{error::Error, fmt};
 
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
+use type_system::{
+    schema::{DataType, EntityType, PropertyType},
+    url::VersionedUrl,
+};
 
 // We would really like to use error-stack for this. It's not possible because
 // we need Serialize and Deserialize for `Report`

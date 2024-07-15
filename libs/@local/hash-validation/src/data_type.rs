@@ -5,7 +5,10 @@ use graph_types::knowledge::{Property, ValueWithMetadata};
 use regex::Regex;
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use thiserror::Error;
-use type_system::{schema::JsonSchemaValueType, url::VersionedUrl, DataType, DataTypeReference};
+use type_system::{
+    schema::{DataType, DataTypeReference, JsonSchemaValueType},
+    url::VersionedUrl,
+};
 
 use crate::{
     error::{Actual, Expected},

@@ -21,11 +21,6 @@ use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
 #[cfg(feature = "postgres")]
 use serde::{Deserialize, Serialize};
 
-pub use self::schema::{
-    ClosedEntityType, DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
-    PropertyTypeReference,
-};
-
 pub trait Validator<V>: Sync {
     type Error;
     type Validated: Sized + From<V>;

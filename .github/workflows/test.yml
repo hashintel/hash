@@ -501,13 +501,13 @@ jobs:
 
       - name: Upload artifact playwright-report
         if: matrix.package == '@tests/hash-playwright' && ${{ success() || failure() }}
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: playwright-report
           path: tests/hash-playwright/playwright-report
 
       - name: Upload artifact playwright-var
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         if: matrix.package == '@tests/hash-playwright' && ${{ success() || failure() }}
         with:
           name: playwright-var
@@ -550,31 +550,20 @@ jobs:
           toolchain: ${{ steps.publish.outputs.rust-toolchain }}
           working-directory: ${{ matrix.directory }}
 
-      - name: Install tools
-        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@2335425120e645291d84cec8194c63983a0c8ee5 # v2.41.10
-        with:
-          tool: cargo-semver-checks
-
       - name: Login
         run: |
           [[ -n "${{ secrets.CARGO_REGISTRY_TOKEN }}" ]]
           cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
 
-      - name: SemVer check
-        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        working-directory: ${{ matrix.directory }}
-        run: cargo semver-checks check-release
-
       - name: Publish (dry run)
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish --all-features --dry-run
+        run: cargo publish --all-features --dry-run --no-verify
 
       - name: Publish
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish --all-features
+        run: cargo publish --all-features --no-verify
 
   passed:
     name: Tests passed

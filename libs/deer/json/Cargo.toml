@@ -15,7 +15,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-error-stack = { version = "0.4.1", default-features = false }
+error-stack = { workspace = true, default-features = false }
 
 deer = { path = "..", default-features = false }
 
@@ -25,7 +25,7 @@ lexical = { version = "6.1.1", default-features = false, features = [
     'parse-integers',
     'format',
 ] }
-memchr = "2.7.2"
+memchr = "2.7.4"
 
 [build-dependencies]
 rustc_version = "0.4.0"

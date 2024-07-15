@@ -73,6 +73,7 @@ pub struct DataType<'a> {
         skip_serializing_if = "<[_]>::is_empty",
         borrow = "'a"
     )]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "[JsonValue, ...JsonValue[]]"))]
     pub enum_values: Cow<'a, [JsonValue]>,
 
     // constraints for number types

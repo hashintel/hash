@@ -2,7 +2,7 @@ use core::fmt;
 
 use error_stack::{Context, ResultExt};
 use regex::{Captures, Regex};
-use type_system::{DataType, EntityType, PropertyType};
+use type_system::schema::{DataType, EntityType, PropertyType};
 
 #[derive(Debug)]
 pub struct DomainValidationError;
