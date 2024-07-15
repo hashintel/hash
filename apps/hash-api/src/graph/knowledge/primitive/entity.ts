@@ -16,11 +16,7 @@ import type {
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
-import {
-  Entity,
-  LinkEntity,
-  mergePropertyObjectAndMetadata,
-} from "@local/hash-graph-sdk/entity";
+import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -91,6 +87,21 @@ type CreateEntityFunction<Properties extends EntityProperties> =
       })[];
     },
     Promise<Entity<Properties>>
+  >;
+
+type CreateEntityWithLinksFunction<Properties extends EntityProperties> =
+  ImpureGraphFunction<
+    {
+      ownedById: OwnedById;
+      entityTypeId: Properties["entityTypeId"];
+      properties: Properties["propertiesWithMetadata"];
+      linkedEntities?: LinkedEntityDefinition[];
+      relationships: EntityRelationAndSubject[];
+      draft?: boolean;
+    },
+    Promise<Entity<Properties>>,
+    false,
+    true
   >;
 
 /**
@@ -406,26 +417,13 @@ export const canUserReadEntity: ImpureGraphFunction<
 
 /**
  * Create an entity along with any new/existing entities specified through links.
- *
- * @param params.ownedById - the id of owner of the entity
- * @param params.entityTypeId - the id of the entity's type
- * @param params.entityProperties - the properties of the entity
- * @param params.linkedEntities (optional) - the linked entity definitions of the entity
- * @param params.actorId - the id of the account that is creating the entity
  */
-export const createEntityWithLinks: ImpureGraphFunction<
-  {
-    ownedById: OwnedById;
-    entityTypeId: VersionedUrl;
-    properties: PropertyObject;
-    linkedEntities?: LinkedEntityDefinition[];
-    relationships: EntityRelationAndSubject[];
-    draft?: boolean;
-  },
-  Promise<Entity>,
-  false,
-  true
-> = async (context, authentication, params) => {
+export const createEntityWithLinks = async <
+  Properties extends EntityProperties,
+>(
+  ...args: Parameters<CreateEntityWithLinksFunction<Properties>>
+): ReturnType<CreateEntityWithLinksFunction<Properties>> => {
+  const [context, authentication, params] = args;
   const {
     ownedById,
     entityTypeId,
@@ -477,13 +475,11 @@ export const createEntityWithLinks: ImpureGraphFunction<
        * pages which may affect this.
        */
       const entity = existingEntityId
-        ? await getLatestEntityById(context, authentication, {
+        ? ((await getLatestEntityById(context, authentication, {
             entityId: existingEntityId,
-          })
-        : await createEntity(context, authentication, {
-            properties: mergePropertyObjectAndMetadata(
-              definition.entityProperties!,
-            ),
+          })) as Entity<Properties>)
+        : await createEntity<Properties>(context, authentication, {
+            properties: definition.entityProperties!,
             entityTypeId: definition.entityTypeId!,
             ownedById,
             relationships,
@@ -502,7 +498,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     }),
   );
 
-  let rootEntity: Entity;
+  let rootEntity: Entity<Properties>;
   if (entities[0]) {
     // First element will be the root entity.
     rootEntity = entities[0].entity;

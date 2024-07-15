@@ -1,6 +1,10 @@
 import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  LinkEntity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -510,7 +514,9 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
               leftEntityId: linkedEntityId,
               rightEntityId: fileEntity.metadata.recordId.entityId,
             },
-            properties: linkProperties ?? {},
+            properties: linkProperties
+              ? mergePropertyObjectAndMetadata(linkProperties, undefined)
+              : { value: {} },
           },
         });
 

@@ -531,23 +531,20 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(
-          ({ entityTypeId, draft, properties, provenance, ...rest }) => ({
-            entityTypeIds: [entityTypeId],
-            draft: draft ?? false,
-            properties,
-            provenance: {
-              ...provenance,
-              origin: {
-                ...provenance.origin,
-                // ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
-                type: provenance.origin
-                  .type as ProvidedEntityEditionProvenanceOriginTypeEnum,
-              },
+        params.map(({ entityTypeId, draft, provenance, ...rest }) => ({
+          entityTypeIds: [entityTypeId],
+          draft: draft ?? false,
+          provenance: {
+            ...provenance,
+            origin: {
+              ...provenance.origin,
+              // ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+              type: provenance.origin
+                .type as ProvidedEntityEditionProvenanceOriginTypeEnum,
             },
-            ...rest,
-          }),
-        ),
+          },
+          ...rest,
+        })),
       )
       .then(
         ({ data: entities }) =>
@@ -718,23 +715,20 @@ export class LinkEntity<
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(
-          ({ entityTypeId, draft, properties, provenance, ...rest }) => ({
-            entityTypeIds: [entityTypeId],
-            draft: draft ?? false,
-            properties,
-            provenance: {
-              ...provenance,
-              origin: {
-                ...provenance.origin,
-                // ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
-                type: provenance.origin
-                  .type as ProvidedEntityEditionProvenanceOriginTypeEnum,
-              },
+        params.map(({ entityTypeId, draft, provenance, ...rest }) => ({
+          entityTypeIds: [entityTypeId],
+          draft: draft ?? false,
+          provenance: {
+            ...provenance,
+            origin: {
+              ...provenance.origin,
+              // ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+              type: provenance.origin
+                .type as ProvidedEntityEditionProvenanceOriginTypeEnum,
             },
-            ...rest,
-          }),
-        ),
+          },
+          ...rest,
+        })),
       )
       .then(
         ({ data: entities }) =>

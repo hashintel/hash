@@ -18,12 +18,13 @@ import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-pro
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
+  HASHInstance,
   HASHInstance as HASHInstanceEntity,
   HASHInstanceProperties,
 } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 export type HashInstance = {
-  entity: Entity;
+  entity: Entity<HASHInstance>;
 } & SimpleProperties<HASHInstanceProperties>;
 
 export const getHashInstanceFromEntity = ({

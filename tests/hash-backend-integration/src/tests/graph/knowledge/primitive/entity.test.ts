@@ -356,8 +356,22 @@ describe("Entity CRU", () => {
         // First create a new entity given the following definition
         entityTypeId: entityType.schema.$id,
         properties: {
-          [namePropertyType.metadata.recordId.baseUrl]: "Alice",
-          [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
+          value: {
+            [namePropertyType.metadata.recordId.baseUrl]: {
+              value: "Alice",
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+            [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
+              value: "some text",
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          },
         },
         linkedEntities: [
           {

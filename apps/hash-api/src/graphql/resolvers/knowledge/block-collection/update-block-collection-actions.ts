@@ -64,7 +64,7 @@ export const createEntityWithPlaceholdersFn =
       return await createEntityWithLinks(context, authentication, {
         ownedById,
         entityTypeId: entityDefinition.entityTypeId!,
-        properties: entityDefinition.entityProperties ?? {},
+        properties: entityDefinition.entityProperties ?? { value: {} },
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
         relationships: createDefaultAuthorizationRelationships(authentication),
       });
