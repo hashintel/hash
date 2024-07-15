@@ -4,7 +4,10 @@ import {
   IconButton,
 } from "@hashintel/design-system";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import {
+  goalFlowDefinitionIds,
+  GoalFlowTriggerInput,
+} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
@@ -68,6 +71,11 @@ export const FlowRunSidebar = ({
     }));
   }, [name]);
 
+  const researchPrompt = selectedFlowRun?.inputs[0].flowTrigger?.outputs?.find(
+    (input) =>
+      input.outputName === ("Research guidance" satisfies GoalFlowTriggerInput),
+  )?.payload.value as string | undefined;
+
   return (
     <Box sx={{ ml: 3, minWidth: 320, width: 320 }}>
       <Box sx={{ mb: 2 }}>
@@ -82,7 +90,7 @@ export const FlowRunSidebar = ({
           <Typography
             component="p"
             variant="smallTextParagraphs"
-            sx={{ lineHeight: 1.2, mb: 0.7, wordBreak: "break-word" }}
+            sx={{ lineHeight: 1.2, wordBreak: "break-word" }}
           >
             {nameParts.map((part, index) =>
               part.url ? (
@@ -96,6 +104,15 @@ export const FlowRunSidebar = ({
               ),
             )}
           </Typography>
+          {researchPrompt && (
+            <Typography
+              component="p"
+              variant="smallTextParagraphs"
+              sx={{ fontWeight: 300, mt: 1 }}
+            >
+              "{researchPrompt}"
+            </Typography>
+          )}
         </SidebarSection>
       </Box>
       <Box>
