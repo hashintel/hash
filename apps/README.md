@@ -23,7 +23,7 @@ This `apps` directory contains the source-code and/or content for a number of HA
 
 The [README in the `hash` directory](hash/README.md) provides a more detailed overview of the app, and instructions for running it.
 
-The application depends on a suite of constituent services, which are briefly described below. Please note that these are not designed or guaranteed to be useful when ran independently.
+The application depends on a suite of constituent services, which are briefly described below. Please note that these are not designed or guaranteed to be useful when run independently.
 
 | Subdirectory                                       | Description                                                                                                                                                                  |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
