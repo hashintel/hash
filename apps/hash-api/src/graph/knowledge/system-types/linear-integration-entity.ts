@@ -20,7 +20,8 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
-  LinearIntegrationProperties,
+  LinearIntegration as LinearIntegrationEntity,
+  SyncLinearDataWith,
   SyncLinearDataWithProperties,
 } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { EntityRootType } from "@local/hash-subgraph";
@@ -43,13 +44,12 @@ import { createLinkEntity } from "../primitive/link-entity";
 
 export type LinearIntegration = {
   linearOrgId: string;
-  entity: Entity;
+  entity: Entity<LinearIntegrationEntity>;
 };
 
-export const getLinearIntegrationFromEntity: PureGraphFunction<
-  { entity: Entity },
-  LinearIntegration
-> = ({ entity }) => {
+function assertLinearIntegrationEntity(
+  entity: Entity,
+): asserts entity is Entity<LinearIntegrationEntity> {
   if (
     entity.metadata.entityTypeId !==
     systemEntityTypes.linearIntegration.entityTypeId
@@ -60,10 +60,15 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
       entity.metadata.entityTypeId,
     );
   }
+}
 
-  const { linearOrgId } = simplifyProperties(
-    entity.properties as LinearIntegrationProperties,
-  );
+export const getLinearIntegrationFromEntity: PureGraphFunction<
+  { entity: Entity },
+  LinearIntegration
+> = ({ entity }) => {
+  assertLinearIntegrationEntity(entity);
+
+  const { linearOrgId } = simplifyProperties(entity.properties);
 
   return { linearOrgId, entity };
 };
@@ -103,7 +108,7 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
     })
     .then(({ data: response }) =>
       response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, null, true),
+        mapGraphApiEntityToEntity<LinearIntegrationEntity>(entity, null, true),
       ),
     );
 
@@ -296,9 +301,23 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     })
     .then(({ data: response }) =>
       response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, null, true),
+        mapGraphApiEntityToEntity<SyncLinearDataWith>(entity, null, true),
       ),
     );
+
+  const properties: SyncLinearDataWith["propertiesWithMetadata"] = {
+    value: {
+      "https://hash.ai/@hash/types/property-type/linear-team-id/": {
+        value: linearTeamIds.map((linearTeamId) => ({
+          value: linearTeamId,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        })),
+      },
+    },
+  };
 
   if (existingLinkEntities.length > 1) {
     throw new Error(
@@ -310,23 +329,23 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     const teamIdPath =
       "https://hash.ai/@hash/types/property-type/linear-team-id/" satisfies keyof SyncLinearDataWithProperties as BaseUrl;
 
-    await updateEntity(context, authentication, {
+    await updateEntity<SyncLinearDataWith>(context, authentication, {
       entity: existingLinkEntity,
       propertyPatches: [
         {
-          op: existingLinkEntity.properties[teamIdPath] ? "replace" : "add",
+          op: "add",
           path: [teamIdPath],
-          value: linearTeamIds,
+          property:
+            properties.value[
+              "https://hash.ai/@hash/types/property-type/linear-team-id/"
+            ]!,
         },
       ],
     });
   } else {
-    await createLinkEntity(context, authentication, {
+    await createLinkEntity<SyncLinearDataWith>(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
-      properties: {
-        "https://hash.ai/@hash/types/property-type/linear-team-id/":
-          linearTeamIds,
-      } as SyncLinearDataWithProperties,
+      properties,
       linkData: {
         leftEntityId: linearIntegrationEntityId,
         rightEntityId: workspaceEntityId,

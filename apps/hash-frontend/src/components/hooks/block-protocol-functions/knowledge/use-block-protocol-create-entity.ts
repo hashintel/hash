@@ -1,5 +1,8 @@
 import { useMutation } from "@apollo/client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { useCallback } from "react";
 
@@ -81,7 +84,7 @@ export const useBlockProtocolCreateEntity = (
         variables: {
           entityTypeId,
           ownedById,
-          properties,
+          properties: mergePropertyObjectAndMetadata(properties, undefined),
           linkData,
         },
       });

@@ -1,6 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Entity, propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  EntityProperties,
+} from "@local/hash-graph-types/entity";
 
 import type {
   UpdateEntityMutation,
@@ -9,11 +11,11 @@ import type {
 import { updateEntityMutation } from "../../graphql/queries/entity.queries";
 import { queryGraphQlApi } from "../query-graphql-api";
 
-export const updateEntity = (params: {
+export const updateEntity = <T extends EntityProperties>(params: {
   entityId: EntityId;
-  entityTypeId: VersionedUrl;
-  updatedProperties: PropertyObject;
-}): Promise<Entity> =>
+  entityTypeId: T["entityTypeId"];
+  updatedProperties: T["propertiesWithMetadata"];
+}): Promise<Entity<T>> =>
   queryGraphQlApi<UpdateEntityMutation, UpdateEntityMutationVariables>(
     updateEntityMutation,
     {

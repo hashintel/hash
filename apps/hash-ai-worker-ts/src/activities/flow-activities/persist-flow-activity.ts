@@ -8,6 +8,7 @@ import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows
 import type { LocalFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { FlowRun } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { getFlowContext } from "../shared/get-flow-context";
 import { graphApiClient } from "../shared/graph-api-client";
@@ -50,13 +51,13 @@ export const persistFlowActivity = async (
         {
           op: "replace",
           path: [],
-          value: flowRunProperties,
+          property: flowRunProperties,
         },
       ],
       provenance,
     });
   } else {
-    await Entity.create(graphApiClient, userAuthentication, {
+    await Entity.create<FlowRun>(graphApiClient, userAuthentication, {
       ownedById: webId,
       entityUuid: flowRunId,
       entityTypeId: systemEntityTypes.flowRun.entityTypeId,

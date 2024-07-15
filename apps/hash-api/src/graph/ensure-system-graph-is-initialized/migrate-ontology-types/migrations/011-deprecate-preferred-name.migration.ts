@@ -200,11 +200,14 @@ const migrate: MigrationFunction = async ({
           [systemPropertyTypes.preferredName.propertyTypeBaseUrl]:
             previousPreferredName,
           ...remainingProperties
-        } = previousUserProperties;
+        } = previousUserProperties.value;
 
         return {
-          ...remainingProperties,
-          [displayNameBaseUrl]: previousPreferredName,
+          value: {
+            ...remainingProperties,
+            [displayNameBaseUrl]: previousPreferredName,
+          },
+          metadata: previousUserProperties.metadata,
         };
       },
     },

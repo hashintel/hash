@@ -7,6 +7,7 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { ProfileURLPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useState } from "react";
@@ -148,7 +149,13 @@ export const UserProfileInfoForm: FunctionComponent<{
               {
                 op: "add",
                 path: [systemPropertyTypes.profileUrl.propertyTypeBaseUrl],
-                value: profileUrl,
+                property: {
+                  value: profileUrl,
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                } satisfies ProfileURLPropertyValueWithMetadata,
               },
             ],
           },

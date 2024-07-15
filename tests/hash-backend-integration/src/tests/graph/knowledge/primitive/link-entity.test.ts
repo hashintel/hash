@@ -166,7 +166,7 @@ describe("Link entity", () => {
       createEntity(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: testEntityType.schema.$id,
-        properties: {},
+        properties: { value: {} },
         relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
         leftEntity = entity;
@@ -174,7 +174,7 @@ describe("Link entity", () => {
       createEntity(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: testEntityType.schema.$id,
-        properties: {},
+        properties: { value: {} },
         relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
         friendRightEntity = entity;
@@ -182,7 +182,7 @@ describe("Link entity", () => {
       createEntity(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: testEntityType.schema.$id,
-        properties: {},
+        properties: { value: {} },
         relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
         acquaintanceRightEntity = entity;
@@ -206,7 +206,7 @@ describe("Link entity", () => {
 
     linkEntityFriend = await createLinkEntity(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
-      properties: {},
+      properties: { value: {} },
       linkData: {
         leftEntityId: leftEntity.metadata.recordId.entityId,
         rightEntityId: friendRightEntity.metadata.recordId.entityId,
@@ -220,7 +220,7 @@ describe("Link entity", () => {
       authentication,
       {
         ownedById: testUser.accountId as OwnedById,
-        properties: {},
+        properties: { value: {} },
         linkData: {
           leftEntityId: leftEntity.metadata.recordId.entityId,
           rightEntityId: acquaintanceRightEntity.metadata.recordId.entityId,

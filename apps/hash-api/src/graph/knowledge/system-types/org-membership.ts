@@ -81,9 +81,9 @@ export const createOrgMembership: ImpureGraphFunction<
 
   let linkEntity;
   try {
-    linkEntity = await createLinkEntity(ctx, authentication, {
+    linkEntity = await createLinkEntity<IsMemberOf>(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
-      properties: {},
+      properties: { value: {} },
       linkData: {
         leftEntityId: userEntityId,
         rightEntityId: orgEntityId,
@@ -103,7 +103,7 @@ export const createOrgMembership: ImpureGraphFunction<
     throw error;
   }
 
-  return getOrgMembershipFromLinkEntity({ linkEntity });
+  return { linkEntity };
 };
 
 /**
