@@ -2,8 +2,8 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 
-import type { HistoryEvent } from "../../shared/types";
 import { ValueChip } from "../../../../../../../shared/value-chip";
+import type { HistoryEvent } from "../../shared/types";
 
 export const EventDetail = ({
   event,

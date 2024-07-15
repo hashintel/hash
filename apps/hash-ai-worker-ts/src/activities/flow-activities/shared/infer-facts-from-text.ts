@@ -11,7 +11,6 @@ export const inferFactsFromText = async (params: {
   text: string;
   existingEntitiesOfInterest: LocalEntitySummary[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
-  entityTypesToInferSummariesFor: VersionedUrl[];
   relevantEntitiesPrompt?: string;
   testingParams?: {
     existingEntitySummaries?: LocalEntitySummary[];
@@ -25,7 +24,6 @@ export const inferFactsFromText = async (params: {
     existingEntitiesOfInterest,
     testingParams,
     dereferencedEntityTypes,
-    entityTypesToInferSummariesFor,
     relevantEntitiesPrompt,
   } = params;
 

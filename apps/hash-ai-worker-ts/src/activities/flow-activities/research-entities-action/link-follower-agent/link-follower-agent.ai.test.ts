@@ -24,9 +24,6 @@ test.skip(
       entityTypes: Object.values(dereferencedEntityTypes).map(
         ({ schema }) => schema,
       ),
-      entityTypesToInferSummariesFor: Object.values(
-        dereferencedEntityTypes,
-      ).map((type) => type.schema.$id),
       existingEntitiesOfInterest: [],
       initialResource: {
         url: "https://churchlab.hms.harvard.edu/index.php/lab-members#current",
@@ -64,9 +61,6 @@ test.skip(
       entityTypes: Object.values(dereferencedEntityTypes).map(
         ({ schema }) => schema,
       ),
-      entityTypesToInferSummariesFor: Object.values(
-        dereferencedEntityTypes,
-      ).map((type) => type.schema.$id),
       existingEntitiesOfInterest: [],
       initialResource: {
         url: "https://openai.com/index/video-generation-models-as-world-simulators/",
@@ -106,9 +100,6 @@ test.skip(
       entityTypes: Object.values(dereferencedEntityTypes).map(
         ({ schema }) => schema,
       ),
-      entityTypesToInferSummariesFor: Object.values(
-        dereferencedEntityTypes,
-      ).map((type) => type.schema.$id),
       existingEntitiesOfInterest: [],
       initialResource: {
         url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
@@ -148,9 +139,6 @@ test.skip(
       entityTypes: Object.values(dereferencedEntityTypes).map(
         ({ schema }) => schema,
       ),
-      entityTypesToInferSummariesFor: Object.values(
-        dereferencedEntityTypes,
-      ).map((type) => type.schema.$id),
       existingEntitiesOfInterest: [],
       initialResource: {
         url: "https://www.gpu-mart.com/blog/best-gpus-for-deep-learning-2023",
@@ -191,9 +179,6 @@ test.skip(
       entityTypes: Object.values(dereferencedEntityTypes).map(
         ({ schema }) => schema,
       ),
-      entityTypesToInferSummariesFor: Object.values(
-        dereferencedEntityTypes,
-      ).map((type) => type.schema.$id),
       existingEntitiesOfInterest: [],
       initialResource: {
         url: "https://corporate.marksandspencer.com/investors",

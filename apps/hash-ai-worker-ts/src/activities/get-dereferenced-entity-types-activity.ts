@@ -7,10 +7,10 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { backOff } from "exponential-backoff";
 
 import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types";
 import { dereferenceEntityType } from "./shared/dereference-entity-type";
-import { backOff } from "exponential-backoff";
 
 /**
  * @todo: allow for specifying additional entity types which may be linked to

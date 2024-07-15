@@ -606,8 +606,6 @@ Summary: ${summary}`,
                         reason,
                       },
                       task: prompt,
-                      entityTypesToInferSummariesFor:
-                        entityTypeIds as VersionedUrl[],
                       entityTypes: input.entityTypes.filter(
                         ({ $id }) =>
                           entityTypeIds.includes($id) ||

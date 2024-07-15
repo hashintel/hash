@@ -50,9 +50,9 @@ export {
   getPropertyTypeById,
   getPropertyTypeByVertexId,
   getPropertyTypeForEntity,
-  getPropertyTypesForEntityType,
   getPropertyTypes,
   getPropertyTypesByBaseUrl,
+  getPropertyTypesForEntityType,
   guessSchemaForPropertyValue,
 } from "./stdlib/subgraph/element/property-type";
 export * from "./stdlib/subgraph/roots";

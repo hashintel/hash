@@ -17,11 +17,11 @@ import {
   useFlowRunsContext,
   useStatusForCurrentStep,
 } from "../../../../shared/flow-runs-context";
+import { QuestionModal } from "../shared/question-modal";
 import type { NodeData } from "../shared/types";
 import { Handles } from "./custom-node/handles";
 import { NodeContainer } from "./custom-node/node-container";
 import { statusSx } from "./custom-node/node-styles";
-import { QuestionModal } from "../shared/question-modal";
 
 const getTimeAgo = (isoString: string) =>
   formatDistance(new Date(isoString), new Date(), {

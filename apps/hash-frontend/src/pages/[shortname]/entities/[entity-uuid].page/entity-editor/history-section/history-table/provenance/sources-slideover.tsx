@@ -22,8 +22,8 @@ import {
 import { useUserOrOrgShortnameByOwnedById } from "../../../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { Link } from "../../../../../../../../shared/ui/link";
 import { Cell } from "../../../../../../../settings/organizations/shared/cell";
-import type { HistoryEvent } from "../../shared/types";
 import { ValueChip } from "../../../../../../../shared/value-chip";
+import type { HistoryEvent } from "../../shared/types";
 import { EventDetail } from "../shared/event-detail";
 
 const boxPadding = {

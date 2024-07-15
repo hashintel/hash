@@ -1,7 +1,6 @@
 import {
   ArrowUpRightRegularIcon,
   CaretDownSolidIcon,
-  CircleCheckRegularIcon,
   IconButton,
 } from "@hashintel/design-system";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
@@ -15,11 +14,11 @@ import type { FlowRun } from "../../../../graphql/api-types.gen";
 import { Link } from "../../../../shared/ui/link";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { useFlowRunsUsage } from "../../../shared/use-flow-runs-usage";
+import { GroupStatus } from "./flow-run-sidebar/group-status";
+import { Manager } from "./flow-run-sidebar/manager";
 import { SectionLabel } from "./section-label";
 import { flowSectionBorderRadius } from "./shared/styles";
 import type { FlowMaybeGrouped } from "./shared/types";
-import { GroupStatus } from "./flow-run-sidebar/group-status";
-import { Manager } from "./flow-run-sidebar/manager";
 
 const SidebarSection = ({ children }: PropsWithChildren) => (
   <Box

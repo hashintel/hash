@@ -1,5 +1,5 @@
-import { Button, CircleCheckRegularIcon } from "@hashintel/design-system";
-import { Box, SxProps, Theme } from "@mui/material";
+import { CircleCheckRegularIcon } from "@hashintel/design-system";
+import type { SxProps, Theme } from "@mui/material";
 import { Stack, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 

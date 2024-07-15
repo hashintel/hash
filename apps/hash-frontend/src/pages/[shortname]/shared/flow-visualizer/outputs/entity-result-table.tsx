@@ -71,7 +71,6 @@ const generateColumns = (
       ).values();
 
       for (const { schema } of entityPropertyTypes) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         propertyTypesByVersionedUrl[schema.$id] ??= {
           ...schema,
           appliesToEntityTypeIds: [],

@@ -513,8 +513,6 @@ export const researchEntitiesAction: FlowActionActivity<{
                     },
                     task: prompt,
                     existingEntitiesOfInterest: relevantEntities,
-                    entityTypesToInferSummariesFor:
-                      entityTypeIds as VersionedUrl[],
                     entityTypes: input.entityTypes.filter(
                       ({ $id }) =>
                         entityTypeIds.includes($id) ||
