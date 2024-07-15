@@ -39,7 +39,7 @@ use temporal_versioning::{
     TransactionTime,
 };
 use tokio_postgres::{error::SqlState, GenericClient, Row};
-use type_system::{url::VersionedUrl, ClosedEntityType};
+use type_system::{schema::ClosedEntityType, url::VersionedUrl};
 use uuid::Uuid;
 use validation::{Validate, ValidateEntityComponents};
 

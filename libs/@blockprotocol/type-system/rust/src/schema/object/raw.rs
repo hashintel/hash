@@ -19,6 +19,7 @@ pub(super) struct ObjectSchema<T> {
     _type: ObjectTypeTag,
     properties: HashMap<BaseUrl, T>,
     #[serde(default)]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "[BaseUrl, ...BaseUrl[]]"))]
     required: HashSet<BaseUrl>,
 }
 

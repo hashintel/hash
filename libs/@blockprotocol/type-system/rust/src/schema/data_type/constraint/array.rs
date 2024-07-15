@@ -2,7 +2,7 @@ use error_stack::Report;
 use serde_json::Value as JsonValue;
 
 use super::{extend_report, ConstraintError};
-use crate::{schema::JsonSchemaValueType, DataType};
+use crate::schema::{DataType, JsonSchemaValueType};
 
 pub(crate) fn check_array_constraints(
     _actual: &[JsonValue],

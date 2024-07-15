@@ -6,7 +6,7 @@ use graph_types::ontology::{EntityTypeId, EntityTypeWithMetadata};
 use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient;
-use type_system::{url::VersionedUrl, ClosedEntityType};
+use type_system::{schema::ClosedEntityType, url::VersionedUrl};
 
 use crate::{
     ontology::EntityTypeQueryPath,

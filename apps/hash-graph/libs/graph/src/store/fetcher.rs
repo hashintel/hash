@@ -30,7 +30,10 @@ use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
-use type_system::{url::VersionedUrl, DataType, EntityType, EntityTypeReference, PropertyType};
+use type_system::{
+    schema::{DataType, EntityType, EntityTypeReference, PropertyType},
+    url::VersionedUrl,
+};
 
 use crate::{
     ontology::domain_validator::DomainValidator,

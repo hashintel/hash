@@ -25,7 +25,6 @@ use graph::{
 use graph_types::account::AccountId;
 use hash_status::{Status, StatusCode};
 use tokio::io;
-use tokio_postgres::NoTls;
 use tokio_util::{codec::FramedRead, io::StreamReader};
 use uuid::Uuid;
 
@@ -35,7 +34,7 @@ use crate::{
 };
 
 /// Create routes for interacting with entities.
-pub fn routes<A>(store_pool: PostgresStorePool<NoTls>, authorization_api: A) -> Router
+pub fn routes<A>(store_pool: PostgresStorePool, authorization_api: A) -> Router
 where
     A: AuthorizationApi + ZanzibarBackend + Clone + Send + Sync + 'static,
 {
@@ -91,7 +90,7 @@ fn report_to_response<C>(report: &Report<C>, code: impl Into<String>) -> Respons
 }
 
 async fn restore_snapshot<A>(
-    store_pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    store_pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
     snapshot: Body,
 ) -> Result<Response, Response>
@@ -130,7 +129,7 @@ where
 }
 
 async fn delete_accounts<A>(
-    pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
 ) -> Result<Response, Response>
 where
@@ -176,7 +175,7 @@ where
 }
 
 async fn delete_data_types<A>(
-    pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
 ) -> Result<Response, Response>
 where
@@ -223,7 +222,7 @@ where
 }
 
 async fn delete_property_types<A>(
-    pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
 ) -> Result<Response, Response>
 where
@@ -259,7 +258,7 @@ where
 }
 
 async fn delete_entity_types<A>(
-    pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
 ) -> Result<Response, Response>
 where
@@ -295,7 +294,7 @@ where
 }
 
 async fn delete_entities<A>(
-    pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
 ) -> Result<Response, Response>
 where

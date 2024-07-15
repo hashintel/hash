@@ -21,7 +21,7 @@ use crate::{
 
 /// A path to a [`EntityType`] field.
 ///
-/// [`EntityType`]: type_system::EntityType
+/// [`EntityType`]: type_system::schema::EntityType
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EntityTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`EntityType`].
@@ -35,7 +35,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     /// [`BaseUrl`]: type_system::url::BaseUrl
     BaseUrl,
     /// The version of the [`EntityType`].
@@ -69,7 +69,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     Version,
     /// The [`VersionedUrl`] of the [`EntityType`].
     ///
@@ -82,7 +82,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     /// [`VersionedUrl`]: type_system::url::VersionedUrl
     VersionedUrl,
     /// The transaction time of the [`EntityType`].
@@ -90,7 +90,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// It's not possible to query for the temporal axis directly, this has to be done via the
     /// `temporalAxes` parameter on the request.
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     TransactionTime,
     /// The [`OwnedById`] of the [`EntityTypeMetadata`] belonging to the [`EntityType`].
     ///
@@ -103,7 +103,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
     /// [`EntityTypeMetadata`]: graph_types::ontology::EntityTypeMetadata
     OwnedById,
@@ -118,7 +118,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType::title()`]: type_system::EntityType::title
+    /// [`EntityType::title()`]: type_system::schema::EntityType::title
     Title,
     /// Corresponds to [`EntityType::description()`]
     ///
@@ -131,7 +131,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType::description()`]: type_system::EntityType::description
+    /// [`EntityType::description()`]: type_system::schema::EntityType::description
     Description,
     /// Corresponds to [`EntityType::examples()`].
     ///
@@ -144,7 +144,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType::examples()`]: type_system::EntityType::examples
+    /// [`EntityType::examples()`]: type_system::schema::EntityType::examples
     Examples,
     /// Corresponds to [`EntityType::required()`].
     ///
@@ -157,7 +157,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType::required()`]: type_system::EntityType::required
+    /// [`EntityType::required()`]: type_system::schema::EntityType::required
     Required,
     /// The label property metadata of the entity type.
     ///
@@ -188,8 +188,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// Allowed edge kinds are:
     /// - [`ConstrainsPropertiesOn`]
     ///
-    /// [`PropertyType`]: type_system::PropertyType
-    /// [`EntityType`]: type_system::EntityType
+    /// [`PropertyType`]: type_system::schema::PropertyType
+    /// [`EntityType`]: type_system::schema::EntityType
     /// [`ConstrainsPropertiesOn`]: OntologyEdgeKind::ConstrainsPropertiesOn
     ///
     ///
@@ -253,7 +253,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// - [`ConstrainsLinksOn`]
     /// - [`ConstrainsLinkDestinationsOn`]
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     /// [`InheritsFrom`]: OntologyEdgeKind::InheritsFrom
     /// [`ConstrainsLinksOn`]: OntologyEdgeKind::ConstrainsLinksOn
     /// [`ConstrainsLinkDestinationsOn`]: OntologyEdgeKind::ConstrainsLinkDestinationsOn
@@ -410,7 +410,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType::link_mappings()`]: type_system::EntityType::link_mappings
+    /// [`EntityType::link_mappings()`]: type_system::schema::EntityType::link_mappings
     ///
     ///
     /// ## Constraining link destinations
@@ -430,7 +430,7 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// Only used internally and not available for deserialization.
     ///
-    /// [`EntityType`]: type_system::PropertyType
+    /// [`EntityType`]: type_system::schema::PropertyType
     /// [`Entity`]: graph_types::knowledge::entity::Entity
     EntityEdge {
         edge_kind: SharedEdgeKind,
@@ -450,7 +450,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// Deserializes from `["editionProvenance", ...]` where `...` is a path to a provenance entry
     /// of an [`EntityType`].
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     ///
     /// ```rust
     /// # use serde::Deserialize;

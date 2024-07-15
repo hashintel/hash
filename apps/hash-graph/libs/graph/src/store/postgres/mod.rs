@@ -1,9 +1,7 @@
 mod crud;
 mod knowledge;
-mod ontology;
-
-// mod database;
 mod migration;
+mod ontology;
 mod pool;
 pub(crate) mod query;
 mod traversal_context;
@@ -30,15 +28,17 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use serde::Serialize;
 use temporal_client::TemporalClient;
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
+    schema::{
+        ClosedDataType, ClosedEntityType, DataType, DataTypeReference, EntityType,
+        EntityTypeReference, PropertyType, PropertyTypeReference,
+    },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    ClosedEntityType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
-    PropertyTypeReference, Valid,
+    Valid,
 };
 
 pub use self::{
@@ -53,7 +53,6 @@ use crate::store::{
         DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
         VersionedUrlAlreadyExists,
     },
-    postgres::ontology::OntologyDatabaseType,
     AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError, StoreError,
     UpdateError,
 };
@@ -381,39 +380,66 @@ where
         Ok(())
     }
 
-    /// Inserts an [`OntologyDatabaseType`] identified by [`OntologyId`], and associated with an
-    /// [`OwnedById`] and [`EditionCreatedById`], into the database.
+    /// Inserts a [`DataType`] identified by [`OntologyId`], and associated with an
+    /// [`OwnedById`], and [`EditionCreatedById`] into the database.
     ///
     /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
     ///
     /// # Errors
     ///
     /// - if inserting failed.
-    #[tracing::instrument(level = "debug", skip(self, database_type))]
-    async fn insert_with_id<T>(
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn insert_data_type_with_id(
         &self,
         ontology_id: OntologyId,
-        database_type: &Valid<T>,
-    ) -> Result<Option<OntologyId>, InsertionError>
-    where
-        T: OntologyDatabaseType + Serialize + Debug + Sync,
-    {
-        // Generally bad practice to construct a query without preparation, but it's not possible to
-        // pass a table name as a parameter and `T::table()` is well-defined, so this is a safe
-        // usage.
+        data_type: &Valid<DataType>,
+        closed_data_type: &Valid<ClosedDataType>,
+    ) -> Result<Option<OntologyId>, InsertionError> {
         Ok(self
             .as_client()
             .query_opt(
-                &format!(
-                    r#"
-                        INSERT INTO {} (ontology_id, schema)
-                        VALUES ($1, $2)
-                        ON CONFLICT DO NOTHING
-                        RETURNING ontology_id;
-                    "#,
-                    T::table()
-                ),
-                &[&ontology_id, database_type],
+                "
+                    INSERT INTO data_types (
+                        ontology_id,
+                        schema,
+                        closed_schema
+                    ) VALUES ($1, $2, $3)
+                    ON CONFLICT DO NOTHING
+                    RETURNING ontology_id;
+                ",
+                &[&ontology_id, data_type, closed_data_type],
+            )
+            .await
+            .change_context(InsertionError)?
+            .map(|row| row.get(0)))
+    }
+
+    /// Inserts a [`PropertyType`] identified by [`OntologyId`], and associated with an
+    /// [`OwnedById`], and [`EditionCreatedById`] into the database.
+    ///
+    /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
+    ///
+    /// # Errors
+    ///
+    /// - if inserting failed.
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn insert_property_type_with_id(
+        &self,
+        ontology_id: OntologyId,
+        property_type: &Valid<PropertyType>,
+    ) -> Result<Option<OntologyId>, InsertionError> {
+        Ok(self
+            .as_client()
+            .query_opt(
+                "
+                    INSERT INTO property_types (
+                        ontology_id,
+                        schema
+                    ) VALUES ($1, $2)
+                    ON CONFLICT DO NOTHING
+                    RETURNING ontology_id;
+                ",
+                &[&ontology_id, property_type],
             )
             .await
             .change_context(InsertionError)?
@@ -428,7 +454,7 @@ where
     /// # Errors
     ///
     /// - if inserting failed.
-    #[tracing::instrument(level = "debug", skip(self, entity_type))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_entity_type_with_id(
         &self,
         ontology_id: OntologyId,
@@ -721,7 +747,7 @@ impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
 where
     A: Send + Sync,
 {
-    /// Inserts the specified [`OntologyDatabaseType`].
+    /// Inserts the specified ontology metadata.
     ///
     /// This first extracts the [`BaseUrl`] from the [`VersionedUrl`] and attempts to insert it into
     /// the database. It will create a new [`OntologyId`] for this [`VersionedUrl`] and then finally
@@ -783,35 +809,6 @@ where
                 }
             }
         }
-    }
-
-    /// Updates the specified [`OntologyDatabaseType`].
-    ///
-    /// First this ensures the [`BaseUrl`] of the type already exists. It then creates a
-    /// new [`OntologyId`] from the contained [`VersionedUrl`] and inserts the type.
-    ///
-    /// # Errors
-    ///
-    /// - If the [`BaseUrl`] does not already exist
-    ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
-    #[tracing::instrument(level = "info", skip(self, database_type))]
-    async fn update<T>(
-        &self,
-        database_type: &Valid<T>,
-        provenance: &OntologyEditionProvenance,
-    ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError>
-    where
-        T: OntologyDatabaseType + Serialize + Debug + Sync,
-    {
-        let (ontology_id, owned_by_id, temporal_versioning) = self
-            .update_owned_ontology_id(database_type.id(), provenance)
-            .await?;
-        self.insert_with_id(ontology_id, database_type)
-            .await
-            .change_context(UpdateError)?;
-
-        Ok((ontology_id, owned_by_id, temporal_versioning))
     }
 
     /// Updates the latest version of [`VersionedUrl::base_url`] and creates a new [`OntologyId`]

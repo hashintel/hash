@@ -1,7 +1,7 @@
 use error_stack::Report;
 
 use super::{extend_report, ConstraintError};
-use crate::{schema::JsonSchemaValueType, DataType};
+use crate::schema::{DataType, JsonSchemaValueType};
 
 pub(crate) fn check_boolean_constraints(
     _actual: bool,

@@ -6,7 +6,7 @@ All notable changes to `error-stack` will be documented in this file.
 
 - Support for [`defmt`](https://defmt.ferrous-systems.com)
 
-## 0.5.0 - Unreleased
+## [0.5.0](https://github.com/hashintel/hash/tree/error-stack%400.5.0/libs/error-stack) - 2024-07-12
 
 ### Features
 
@@ -15,6 +15,7 @@ All notable changes to `error-stack` will be documented in this file.
 ### Breaking Changes
 
 - `Backtrace`s are not included in the `std` feature anymore. Instead, the `backtrace` feature is used which is enabled by default ([#4685](https://github.com/hashintel/hash/pull/4685))
+- Remove deprecated `IntoReport` ([#4706](https://github.com/hashintel/hash/pull/4706))
 
 ## [0.4.1](https://github.com/hashintel/hash/tree/error-stack%400.4.1/libs/error-stack) - 2023-09-04
 

@@ -32,9 +32,9 @@ use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
 use tracing_flame::FlameLayer;
 use tracing_subscriber::{prelude::*, registry::Registry};
-use type_system::{DataType, EntityType, PropertyType};
+use type_system::schema::{DataType, EntityType, PropertyType};
 
-type Pool = PostgresStorePool<NoTls>;
+type Pool = PostgresStorePool;
 pub type Store<A> = <Pool as StorePool>::Store<'static, A>;
 
 // TODO - deduplicate with integration/postgres.rs

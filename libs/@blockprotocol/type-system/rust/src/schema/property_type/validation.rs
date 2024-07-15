@@ -3,10 +3,10 @@ use thiserror::Error;
 use crate::{
     schema::{
         ObjectSchemaValidationError, ObjectSchemaValidator, OneOfSchemaValidationError,
-        OneOfSchemaValidator, PropertyValues, ValueOrArray,
+        OneOfSchemaValidator, PropertyType, PropertyTypeReference, PropertyValues, ValueOrArray,
     },
     url::BaseUrl,
-    PropertyType, PropertyTypeReference, Valid, Validator,
+    Valid, Validator,
 };
 
 #[derive(Debug, Error)]
