@@ -101,7 +101,7 @@ const generateColumns = (
       label: "Label",
       id: "entityLabel",
       sortable: true,
-      width: "auto",
+      width: 140,
     },
     ...Object.values(propertyTypesByVersionedUrl)
       .sort((a, b) => a.title.localeCompare(b.title))
@@ -136,6 +136,7 @@ const typographySx = {
 const cellSx = {
   ...defaultCellSx,
   ...typographySx,
+  background: "white",
   "&:not(:last-child)": {
     borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
   },
@@ -153,8 +154,18 @@ const TableRow = memo(
 
     return (
       <>
-        <TableCell sx={cellSx}>{row.status}</TableCell>
-        <TableCell sx={{ ...cellSx, px: 0.5 }}>
+        <TableCell sx={{ ...cellSx, position: "sticky", left: 0, zIndex: 1 }}>
+          {row.status}
+        </TableCell>
+        <TableCell
+          sx={{
+            ...cellSx,
+            position: "sticky",
+            zIndex: 1,
+            left: columns[0]!.width,
+            px: 0.5,
+          }}
+        >
           <Box
             component="button"
             onClick={() => row.onEntityTypeClick(row.entityTypeId)}
@@ -172,7 +183,14 @@ const TableRow = memo(
             </ValueChip>
           </Box>
         </TableCell>
-        <TableCell sx={cellSx}>
+        <TableCell
+          sx={{
+            ...cellSx,
+            position: "sticky",
+            left: (columns[0]!.width as number) + (columns[1]!.width as number),
+            zIndex: 1,
+          }}
+        >
           {row.persistedEntity ? (
             <Box
               component="button"
@@ -263,20 +281,18 @@ const TableRow = memo(
           return (
             <TableCell key={column.id} sx={cellSx}>
               {!!value.length && (
-                <ValueChip tooltip={value} sx={{ maxWidth: 700 }}>
-                  <Typography
-                    sx={{
-                      ...typographySx,
-                      maxWidth: "100%",
-                      lineHeight: 1,
-                      textOverflow: "ellipsis",
-                      overflow: "hidden",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {value}
-                  </Typography>
-                </ValueChip>
+                <Typography
+                  sx={{
+                    ...typographySx,
+                    maxWidth: 700,
+                    lineHeight: 1,
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {value}
+                </Typography>
               )}
             </TableCell>
           );
@@ -479,6 +495,7 @@ export const EntityResultTable = ({
         <VirtualizedTable
           columns={columns}
           createRowContent={createRowContent}
+          fixedColumns={3}
           rows={rows}
           sort={sort}
           setSort={setSort}

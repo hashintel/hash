@@ -149,12 +149,23 @@ const HeaderContent = <
   M extends ColumnMetadata,
 >({
   columns,
+  fixedColumns,
   sort,
   setSort,
-}: { columns: VirtualizedTableColumn<F, M>[] } & TableSortProps<Sort>) => {
+}: {
+  columns: VirtualizedTableColumn<F, M>[];
+  fixedColumns?: number;
+} & TableSortProps<Sort>) => {
   return (
     <TableRow>
-      {columns.map((column) => {
+      {columns.map((column, index) => {
+        const isFixed = fixedColumns !== undefined && index < fixedColumns;
+
+        let left = 0;
+        for (let i = index - 1; i >= 0; i--) {
+          left += columns[i]!.width as number;
+        }
+
         return (
           <TableCell
             key={column.id}
@@ -162,6 +173,17 @@ const HeaderContent = <
             sx={({ palette }) => ({
               background: palette.common.white,
               width: column.width,
+              minWidth:
+                typeof column.width === "number" ? column.width : undefined,
+              maxWidth:
+                typeof column.width === "number" ? column.width : undefined,
+              ...(isFixed
+                ? {
+                    position: "sticky",
+                    left,
+                    zIndex: 1,
+                  }
+                : {}),
             })}
           >
             <Stack
@@ -216,6 +238,7 @@ type VirtualizedTableProps<
    */
   createRowContent: CreateVirtualizedRowContentFn<D, F, M>;
   columns?: VirtualizedTableColumn<F, M>[];
+  fixedColumns?: number;
   EmptyPlaceholder?: () => ReactElement;
   rows: VirtualizedTableRow<D>[];
 } & TableSortProps<S>;
@@ -230,14 +253,16 @@ export const VirtualizedTable = <
 >({
   createRowContent,
   columns,
+  fixedColumns,
   EmptyPlaceholder,
   rows,
   sort,
   setSort,
 }: VirtualizedTableProps<D, S, F, M>) => {
   const fixedHeaderContent = useCallback(
-    () => (columns ? HeaderContent({ columns, sort, setSort }) : null),
-    [columns, sort, setSort],
+    () =>
+      columns ? HeaderContent({ columns, fixedColumns, sort, setSort }) : null,
+    [columns, fixedColumns, sort, setSort],
   );
 
   const components = useMemo(
