@@ -6,14 +6,15 @@ import {
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   goalFlowDefinitionIds,
-  GoalFlowTriggerInput,
+  type GoalFlowTriggerInput,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Collapse, Stack, Typography } from "@mui/material";
+import { Box, Collapse, Stack, Tooltip, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { FlowRun } from "../../../../graphql/api-types.gen";
+import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../shared/ui/link";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { useFlowRunsUsage } from "../../../shared/use-flow-runs-usage";
@@ -71,7 +72,7 @@ export const FlowRunSidebar = ({
     }));
   }, [name]);
 
-  const researchPrompt = selectedFlowRun?.inputs[0].flowTrigger?.outputs?.find(
+  const researchPrompt = selectedFlowRun?.inputs[0].flowTrigger.outputs?.find(
     (input) =>
       input.outputName === ("Research guidance" satisfies GoalFlowTriggerInput),
   )?.payload.value as string | undefined;
@@ -92,27 +93,44 @@ export const FlowRunSidebar = ({
             variant="smallTextParagraphs"
             sx={{ lineHeight: 1.2, wordBreak: "break-word" }}
           >
-            {nameParts.map((part, index) =>
-              part.url ? (
+            {nameParts.map((part, index) => (
+              <Box
+                component="span"
                 // eslint-disable-next-line react/no-array-index-key
-                <Link href={part.text} key={index} target="_blank">
-                  {part.text}
-                </Link>
-              ) : (
-                // eslint-disable-next-line react/no-array-index-key
-                <Fragment key={index}>{part.text}</Fragment>
-              ),
-            )}
+                key={index}
+                sx={{ display: "inline-block", marginRight: "2px" }}
+              >
+                {part.url ? (
+                  <Link href={part.text} target="_blank">
+                    {part.text}
+                  </Link>
+                ) : (
+                  part.text
+                )}
+                {index === nameParts.length - 1 && researchPrompt && (
+                  <Tooltip title={researchPrompt}>
+                    <Box
+                      component="span"
+                      sx={{
+                        display: "inline-block",
+                        height: 12,
+                        top: 1,
+                        position: "relative",
+                      }}
+                    >
+                      <CircleInfoIcon
+                        sx={{
+                          fontSize: 12,
+                          fill: ({ palette }) => palette.gray[40],
+                          ml: 0.8,
+                        }}
+                      />
+                    </Box>
+                  </Tooltip>
+                )}
+              </Box>
+            ))}
           </Typography>
-          {researchPrompt && (
-            <Typography
-              component="p"
-              variant="smallTextParagraphs"
-              sx={{ fontWeight: 300, mt: 1 }}
-            >
-              "{researchPrompt}"
-            </Typography>
-          )}
         </SidebarSection>
       </Box>
       <Box>
