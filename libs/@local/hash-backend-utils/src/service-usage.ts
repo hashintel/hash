@@ -147,7 +147,7 @@ export const createUsageRecord = async (
 ) => {
   const properties: UsageRecord["propertiesWithMetadata"] = {
     value: {
-      ...(inputUnitCount
+      ...(inputUnitCount !== undefined
         ? {
             "https://hash.ai/@hash/types/property-type/input-unit-count/": {
               value: inputUnitCount,
@@ -158,7 +158,7 @@ export const createUsageRecord = async (
             },
           }
         : {}),
-      ...(outputUnitCount
+      ...(outputUnitCount !== undefined
         ? {
             "https://hash.ai/@hash/types/property-type/output-unit-count/": {
               value: outputUnitCount,
@@ -169,7 +169,7 @@ export const createUsageRecord = async (
             },
           }
         : {}),
-      ...(customMetadata
+      ...(customMetadata !== undefined && customMetadata !== null
         ? {
             "https://hash.ai/@hash/types/property-type/custom-metadata/": {
               value: customMetadata,
