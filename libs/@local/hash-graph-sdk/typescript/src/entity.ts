@@ -246,6 +246,10 @@ export const isValueRemovedByPatches = <Properties extends PropertyObject>({
   );
 };
 
+/**
+ * @hidden
+ * @deprecated - For migration purposes only.
+ */
 export const mergePropertiesAndMetadata = (
   property: Property,
   metadata?: PropertyMetadata,
@@ -387,6 +391,10 @@ export const mergePropertiesAndMetadata = (
   }
 };
 
+/**
+ * @hidden
+ * @deprecated - For migration purposes only.
+ */
 export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
   property: T["properties"],
   metadata?: PropertyMetadataObject,
@@ -629,6 +637,17 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
 
   public get properties(): PropertyMap["properties"] {
     return this.#entity.properties;
+  }
+
+  /**
+   * @hidden
+   * @deprecated - For migration purposes only.
+   */
+  public get propertiesWithMetadata(): PropertyMap["propertiesWithMetadata"] {
+    return mergePropertyObjectAndMetadata<PropertyMap>(
+      this.#entity.properties,
+      this.#entity.metadata.properties,
+    );
   }
 
   public propertyMetadata(path: PropertyPath): PropertyMetadata["metadata"] {
