@@ -73,7 +73,7 @@ describe("File", () => {
                   },
                 },
             },
-          },
+          } as const,
           presignedPut: { url: uploadUrl },
         }),
       ),
