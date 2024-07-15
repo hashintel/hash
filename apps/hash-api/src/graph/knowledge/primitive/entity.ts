@@ -29,7 +29,6 @@ import type {
   PropertyPatchOperation,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -46,7 +45,6 @@ import type {
 import type {
   DiffEntityInput,
   EntityAuthorizationRelationship,
-  EntityRelationAndSubject,
   EntityRootType,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -91,13 +89,8 @@ type CreateEntityFunction<Properties extends EntityProperties> =
 
 type CreateEntityWithLinksFunction<Properties extends EntityProperties> =
   ImpureGraphFunction<
-    {
-      ownedById: OwnedById;
-      entityTypeId: Properties["entityTypeId"];
-      properties: Properties["propertiesWithMetadata"];
+    Omit<CreateEntityParameters<Properties>, "linkData" | "provenance"> & {
       linkedEntities?: LinkedEntityDefinition[];
-      relationships: EntityRelationAndSubject[];
-      draft?: boolean;
     },
     Promise<Entity<Properties>>,
     false,
@@ -111,13 +104,7 @@ export const createEntity = async <Properties extends EntityProperties>(
   ...args: Parameters<CreateEntityFunction<Properties>>
 ): ReturnType<CreateEntityFunction<Properties>> => {
   const [context, authentication, params] = args;
-  const {
-    ownedById,
-    entityTypeId,
-    outgoingLinks,
-    entityUuid: overrideEntityUuid,
-    draft = false,
-  } = params;
+  const { outgoingLinks, ...createParams } = params;
 
   const { graphApi, provenance } = context;
   const { actorId } = authentication;
@@ -125,7 +112,7 @@ export const createEntity = async <Properties extends EntityProperties>(
   let properties = params.properties;
 
   for (const beforeCreateHook of beforeCreateEntityHooks) {
-    if (beforeCreateHook.entityTypeId === entityTypeId) {
+    if (beforeCreateHook.entityTypeId === createParams.entityTypeId) {
       const { properties: hookReturnedProperties } =
         await beforeCreateHook.callback({
           context,
@@ -141,13 +128,8 @@ export const createEntity = async <Properties extends EntityProperties>(
     graphApi,
     { actorId },
     {
-      ownedById,
-      entityTypeId,
+      ...createParams,
       properties,
-      entityUuid: overrideEntityUuid,
-      draft,
-      relationships: params.relationships,
-      confidence: params.confidence,
       provenance,
     },
   );
@@ -424,14 +406,7 @@ export const createEntityWithLinks = async <
   ...args: Parameters<CreateEntityWithLinksFunction<Properties>>
 ): ReturnType<CreateEntityWithLinksFunction<Properties>> => {
   const [context, authentication, params] = args;
-  const {
-    ownedById,
-    entityTypeId,
-    properties,
-    linkedEntities,
-    relationships,
-    draft,
-  } = params;
+  const { entityTypeId, properties, linkedEntities, ...createParams } = params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -479,11 +454,9 @@ export const createEntityWithLinks = async <
             entityId: existingEntityId,
           })) as Entity<Properties>)
         : await createEntity<Properties>(context, authentication, {
+            ...createParams,
             properties: definition.entityProperties!,
             entityTypeId: definition.entityTypeId!,
-            ownedById,
-            relationships,
-            draft,
           });
 
       return {
@@ -519,17 +492,16 @@ export const createEntityWithLinks = async <
 
         // links are created as an outgoing link from the parent entity to the children.
         await createLinkEntity(context, authentication, {
-          ownedById,
+          ...createParams,
           properties: { value: {} },
           linkData: {
             leftEntityId: parentEntity.entity.metadata.recordId.entityId,
             rightEntityId: entity.metadata.recordId.entityId,
           },
           entityTypeId: link.meta.linkEntityTypeId,
-          relationships,
           draft:
             /** If either side of the link is a draft entity, the link entity must be draft also */
-            draft ||
+            params.draft ||
             !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
         });
       }
