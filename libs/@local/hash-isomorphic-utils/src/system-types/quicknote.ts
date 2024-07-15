@@ -112,7 +112,12 @@ export type QuickNoteProperties2 = {
   "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
 };
 
-export type QuickNotePropertiesWithMetadata = {
+export type QuickNotePropertiesWithMetadata = QuickNotePropertiesWithMetadata1 &
+  QuickNotePropertiesWithMetadata2;
+export type QuickNotePropertiesWithMetadata1 =
+  BlockCollectionPropertiesWithMetadata;
+
+export type QuickNotePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;

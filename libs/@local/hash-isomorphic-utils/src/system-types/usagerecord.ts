@@ -130,7 +130,11 @@ export type CreatedProperties1 = LinkProperties;
 
 export type CreatedProperties2 = {};
 
-export type CreatedPropertiesWithMetadata = {
+export type CreatedPropertiesWithMetadata = CreatedPropertiesWithMetadata1 &
+  CreatedPropertiesWithMetadata2;
+export type CreatedPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type CreatedPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -165,7 +169,11 @@ export type IncurredInProperties1 = LinkProperties;
 
 export type IncurredInProperties2 = {};
 
-export type IncurredInPropertiesWithMetadata = {
+export type IncurredInPropertiesWithMetadata =
+  IncurredInPropertiesWithMetadata1 & IncurredInPropertiesWithMetadata2;
+export type IncurredInPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type IncurredInPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -208,7 +216,11 @@ export type RecordsUsageOfProperties1 = LinkProperties;
 
 export type RecordsUsageOfProperties2 = {};
 
-export type RecordsUsageOfPropertiesWithMetadata = {
+export type RecordsUsageOfPropertiesWithMetadata =
+  RecordsUsageOfPropertiesWithMetadata1 & RecordsUsageOfPropertiesWithMetadata2;
+export type RecordsUsageOfPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type RecordsUsageOfPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -234,7 +246,11 @@ export type UpdatedProperties1 = LinkProperties;
 
 export type UpdatedProperties2 = {};
 
-export type UpdatedPropertiesWithMetadata = {
+export type UpdatedPropertiesWithMetadata = UpdatedPropertiesWithMetadata1 &
+  UpdatedPropertiesWithMetadata2;
+export type UpdatedPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type UpdatedPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

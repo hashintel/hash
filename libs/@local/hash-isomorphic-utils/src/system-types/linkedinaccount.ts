@@ -50,7 +50,13 @@ export type LinkedInAccountProperties1 = ServiceAccountProperties;
 
 export type LinkedInAccountProperties2 = {};
 
-export type LinkedInAccountPropertiesWithMetadata = {
+export type LinkedInAccountPropertiesWithMetadata =
+  LinkedInAccountPropertiesWithMetadata1 &
+    LinkedInAccountPropertiesWithMetadata2;
+export type LinkedInAccountPropertiesWithMetadata1 =
+  ServiceAccountPropertiesWithMetadata;
+
+export type LinkedInAccountPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

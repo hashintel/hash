@@ -139,7 +139,11 @@ export type CanvasProperties1 = PageProperties;
 
 export type CanvasProperties2 = {};
 
-export type CanvasPropertiesWithMetadata = {
+export type CanvasPropertiesWithMetadata = CanvasPropertiesWithMetadata1 &
+  CanvasPropertiesWithMetadata2;
+export type CanvasPropertiesWithMetadata1 = PagePropertiesWithMetadata;
+
+export type CanvasPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -173,7 +177,13 @@ export type HasSpatiallyPositionedContentProperties2 = {
   "https://hash.ai/@hash/types/property-type/y-position/": YPositionPropertyValue;
 };
 
-export type HasSpatiallyPositionedContentPropertiesWithMetadata = {
+export type HasSpatiallyPositionedContentPropertiesWithMetadata =
+  HasSpatiallyPositionedContentPropertiesWithMetadata1 &
+    HasSpatiallyPositionedContentPropertiesWithMetadata2;
+export type HasSpatiallyPositionedContentPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type HasSpatiallyPositionedContentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/height-in-pixels/": HeightInPixelsPropertyValueWithMetadata;

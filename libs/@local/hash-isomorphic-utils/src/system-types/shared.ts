@@ -81,7 +81,11 @@ export type AuthoredByProperties1 = LinkProperties;
 
 export type AuthoredByProperties2 = {};
 
-export type AuthoredByPropertiesWithMetadata = {
+export type AuthoredByPropertiesWithMetadata =
+  AuthoredByPropertiesWithMetadata1 & AuthoredByPropertiesWithMetadata2;
+export type AuthoredByPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type AuthoredByPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -327,7 +331,11 @@ export type DocumentFileProperties2 = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
 };
 
-export type DocumentFilePropertiesWithMetadata = {
+export type DocumentFilePropertiesWithMetadata =
+  DocumentFilePropertiesWithMetadata1 & DocumentFilePropertiesWithMetadata2;
+export type DocumentFilePropertiesWithMetadata1 = FilePropertiesWithMetadata;
+
+export type DocumentFilePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
@@ -593,7 +601,11 @@ export type HasAvatarProperties1 = LinkProperties;
 
 export type HasAvatarProperties2 = {};
 
-export type HasAvatarPropertiesWithMetadata = {
+export type HasAvatarPropertiesWithMetadata = HasAvatarPropertiesWithMetadata1 &
+  HasAvatarPropertiesWithMetadata2;
+export type HasAvatarPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type HasAvatarPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -619,7 +631,11 @@ export type HasBioProperties1 = LinkProperties;
 
 export type HasBioProperties2 = {};
 
-export type HasBioPropertiesWithMetadata = {
+export type HasBioPropertiesWithMetadata = HasBioPropertiesWithMetadata1 &
+  HasBioPropertiesWithMetadata2;
+export type HasBioPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type HasBioPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -646,7 +662,11 @@ export type HasCoverImageProperties1 = LinkProperties;
 
 export type HasCoverImageProperties2 = {};
 
-export type HasCoverImagePropertiesWithMetadata = {
+export type HasCoverImagePropertiesWithMetadata =
+  HasCoverImagePropertiesWithMetadata1 & HasCoverImagePropertiesWithMetadata2;
+export type HasCoverImagePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type HasCoverImagePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -672,7 +692,11 @@ export type HasDataProperties1 = LinkProperties;
 
 export type HasDataProperties2 = {};
 
-export type HasDataPropertiesWithMetadata = {
+export type HasDataPropertiesWithMetadata = HasDataPropertiesWithMetadata1 &
+  HasDataPropertiesWithMetadata2;
+export type HasDataPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type HasDataPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -701,7 +725,13 @@ export type HasIndexedContentProperties2 = {
   "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValue;
 };
 
-export type HasIndexedContentPropertiesWithMetadata = {
+export type HasIndexedContentPropertiesWithMetadata =
+  HasIndexedContentPropertiesWithMetadata1 &
+    HasIndexedContentPropertiesWithMetadata2;
+export type HasIndexedContentPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type HasIndexedContentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValueWithMetadata;
@@ -733,7 +763,11 @@ export type HasParentProperties1 = LinkProperties;
 
 export type HasParentProperties2 = {};
 
-export type HasParentPropertiesWithMetadata = {
+export type HasParentPropertiesWithMetadata = HasParentPropertiesWithMetadata1 &
+  HasParentPropertiesWithMetadata2;
+export type HasParentPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type HasParentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -746,7 +780,11 @@ export type HasProperties1 = LinkProperties;
 
 export type HasProperties2 = {};
 
-export type HasPropertiesWithMetadata = {
+export type HasPropertiesWithMetadata = HasPropertiesWithMetadata1 &
+  HasPropertiesWithMetadata2;
+export type HasPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type HasPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -773,7 +811,13 @@ export type HasServiceAccountProperties1 = LinkProperties;
 
 export type HasServiceAccountProperties2 = {};
 
-export type HasServiceAccountPropertiesWithMetadata = {
+export type HasServiceAccountPropertiesWithMetadata =
+  HasServiceAccountPropertiesWithMetadata1 &
+    HasServiceAccountPropertiesWithMetadata2;
+export type HasServiceAccountPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type HasServiceAccountPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -799,7 +843,11 @@ export type HasTextProperties1 = LinkProperties;
 
 export type HasTextProperties2 = {};
 
-export type HasTextPropertiesWithMetadata = {
+export type HasTextPropertiesWithMetadata = HasTextPropertiesWithMetadata1 &
+  HasTextPropertiesWithMetadata2;
+export type HasTextPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type HasTextPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -832,7 +880,11 @@ export type ImageProperties1 = FileProperties;
 
 export type ImageProperties2 = {};
 
-export type ImagePropertiesWithMetadata = {
+export type ImagePropertiesWithMetadata = ImagePropertiesWithMetadata1 &
+  ImagePropertiesWithMetadata2;
+export type ImagePropertiesWithMetadata1 = FilePropertiesWithMetadata;
+
+export type ImagePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -866,7 +918,11 @@ export type IsMemberOfProperties1 = LinkProperties;
 
 export type IsMemberOfProperties2 = {};
 
-export type IsMemberOfPropertiesWithMetadata = {
+export type IsMemberOfPropertiesWithMetadata =
+  IsMemberOfPropertiesWithMetadata1 & IsMemberOfPropertiesWithMetadata2;
+export type IsMemberOfPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type IsMemberOfPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -1011,7 +1067,12 @@ export type OccurredInBlockProperties1 = LinkProperties;
 
 export type OccurredInBlockProperties2 = {};
 
-export type OccurredInBlockPropertiesWithMetadata = {
+export type OccurredInBlockPropertiesWithMetadata =
+  OccurredInBlockPropertiesWithMetadata1 &
+    OccurredInBlockPropertiesWithMetadata2;
+export type OccurredInBlockPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type OccurredInBlockPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -1040,7 +1101,13 @@ export type OccurredInEntityProperties2 = {
   "https://hash.ai/@hash/types/property-type/entity-edition-id/"?: EntityEditionIdPropertyValue;
 };
 
-export type OccurredInEntityPropertiesWithMetadata = {
+export type OccurredInEntityPropertiesWithMetadata =
+  OccurredInEntityPropertiesWithMetadata1 &
+    OccurredInEntityPropertiesWithMetadata2;
+export type OccurredInEntityPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type OccurredInEntityPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/entity-edition-id/"?: EntityEditionIdPropertyValueWithMetadata;
@@ -1215,7 +1282,11 @@ export type PageProperties2 = {
   "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValue;
 };
 
-export type PagePropertiesWithMetadata = {
+export type PagePropertiesWithMetadata = PagePropertiesWithMetadata1 &
+  PagePropertiesWithMetadata2;
+export type PagePropertiesWithMetadata1 = BlockCollectionPropertiesWithMetadata;
+
+export type PagePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
@@ -1266,7 +1337,13 @@ export type PresentationFileProperties2 = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
 };
 
-export type PresentationFilePropertiesWithMetadata = {
+export type PresentationFilePropertiesWithMetadata =
+  PresentationFilePropertiesWithMetadata1 &
+    PresentationFilePropertiesWithMetadata2;
+export type PresentationFilePropertiesWithMetadata1 =
+  FilePropertiesWithMetadata;
+
+export type PresentationFilePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
@@ -1302,7 +1379,12 @@ export type ProfileBioProperties1 = BlockCollectionProperties;
 
 export type ProfileBioProperties2 = {};
 
-export type ProfileBioPropertiesWithMetadata = {
+export type ProfileBioPropertiesWithMetadata =
+  ProfileBioPropertiesWithMetadata1 & ProfileBioPropertiesWithMetadata2;
+export type ProfileBioPropertiesWithMetadata1 =
+  BlockCollectionPropertiesWithMetadata;
+
+export type ProfileBioPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -1547,7 +1629,12 @@ export type TriggeredByUserProperties1 = LinkProperties;
 
 export type TriggeredByUserProperties2 = {};
 
-export type TriggeredByUserPropertiesWithMetadata = {
+export type TriggeredByUserPropertiesWithMetadata =
+  TriggeredByUserPropertiesWithMetadata1 &
+    TriggeredByUserPropertiesWithMetadata2;
+export type TriggeredByUserPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type TriggeredByUserPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -1653,7 +1740,11 @@ export type UserProperties2 = {
   "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValue;
 };
 
-export type UserPropertiesWithMetadata = {
+export type UserPropertiesWithMetadata = UserPropertiesWithMetadata1 &
+  UserPropertiesWithMetadata2;
+export type UserPropertiesWithMetadata1 = ActorPropertiesWithMetadata;
+
+export type UserPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/email/": {
