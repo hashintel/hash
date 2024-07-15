@@ -142,7 +142,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
   const initialProperties: File["propertiesWithMetadata"] = {
     value: {
-      ...(description
+      ...(description !== undefined && description !== null
         ? {
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               {
@@ -170,7 +170,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
-      ...(displayName
+      ...(displayName !== undefined && displayName !== null
         ? {
             "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
               {
@@ -298,7 +298,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
   try {
     const properties: File["propertiesWithMetadata"] = {
       value: {
-        ...(description
+        ...(description !== undefined && description !== null
           ? {
               "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
                 {
@@ -318,7 +318,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-        ...(displayName
+        ...(displayName !== undefined && displayName !== null
           ? {
               "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
                 {

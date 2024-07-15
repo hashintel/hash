@@ -54,7 +54,7 @@ export const constructMinimalOrg = (params: {
       orgEntity.metadata.recordId.entityId as AccountGroupEntityId,
     ),
     name: organizationName,
-    ...(pinnedEntityTypeBaseUrl
+    ...(pinnedEntityTypeBaseUrl !== undefined
       ? {
           pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
         }
@@ -106,7 +106,7 @@ export const constructMinimalUser = (params: {
     accountSignupComplete,
     ...simpleProperties,
     enabledFeatureFlags,
-    ...(pinnedEntityTypeBaseUrl
+    ...(pinnedEntityTypeBaseUrl !== undefined
       ? {
           pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
         }

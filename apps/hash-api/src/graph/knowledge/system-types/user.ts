@@ -340,7 +340,7 @@ export const createUser: ImpureGraphFunction<
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
-      ...(shortname
+      ...(shortname !== undefined
         ? {
             "https://hash.ai/@hash/types/property-type/shortname/": {
               value: shortname,
@@ -351,7 +351,7 @@ export const createUser: ImpureGraphFunction<
             },
           }
         : {}),
-      ...(displayName
+      ...(displayName !== undefined
         ? {
             "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
               {
@@ -363,7 +363,7 @@ export const createUser: ImpureGraphFunction<
               },
           }
         : {}),
-      ...(enabledFeatureFlags
+      ...(enabledFeatureFlags !== undefined
         ? {
             "https://hash.ai/@hash/types/property-type/enabled-feature-flags/":
               {

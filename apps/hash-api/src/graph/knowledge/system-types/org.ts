@@ -147,7 +147,7 @@ export const createOrg: ImpureGraphFunction<
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
-      ...(websiteUrl
+      ...(websiteUrl !== null
         ? {
             "https://hash.ai/@hash/types/property-type/website-url/": {
               value: websiteUrl,

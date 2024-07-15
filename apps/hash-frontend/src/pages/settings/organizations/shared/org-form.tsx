@@ -150,7 +150,7 @@ export const OrgForm = ({
         description: `The avatar for the ${nameWatcher} organization in HASH`,
         file,
         name: `${nameWatcher}'s avatar`,
-        ...(existingImageEntity
+        ...(existingImageEntity !== undefined
           ? {
               fileEntityUpdateInput: {
                 existingFileEntityId:

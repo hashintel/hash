@@ -149,7 +149,7 @@ export const createPage: ImpureGraphFunction<
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
-      ...(summary
+      ...(summary !== undefined
         ? {
             "https://hash.ai/@hash/types/property-type/summary/": {
               value: summary,
