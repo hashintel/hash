@@ -144,7 +144,12 @@ export type DOCXDocumentProperties1 = DocumentFileProperties;
 
 export type DOCXDocumentProperties2 = {};
 
-export type DOCXDocumentPropertiesWithMetadata = {
+export type DOCXDocumentPropertiesWithMetadata =
+  DOCXDocumentPropertiesWithMetadata1 & DOCXDocumentPropertiesWithMetadata2;
+export type DOCXDocumentPropertiesWithMetadata1 =
+  DocumentFilePropertiesWithMetadata;
+
+export type DOCXDocumentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

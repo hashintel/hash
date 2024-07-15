@@ -50,7 +50,12 @@ export type TikTokAccountProperties1 = ServiceAccountProperties;
 
 export type TikTokAccountProperties2 = {};
 
-export type TikTokAccountPropertiesWithMetadata = {
+export type TikTokAccountPropertiesWithMetadata =
+  TikTokAccountPropertiesWithMetadata1 & TikTokAccountPropertiesWithMetadata2;
+export type TikTokAccountPropertiesWithMetadata1 =
+  ServiceAccountPropertiesWithMetadata;
+
+export type TikTokAccountPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

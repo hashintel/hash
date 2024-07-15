@@ -170,7 +170,11 @@ export type UsesUserSecretProperties1 = LinkProperties;
 
 export type UsesUserSecretProperties2 = {};
 
-export type UsesUserSecretPropertiesWithMetadata = {
+export type UsesUserSecretPropertiesWithMetadata =
+  UsesUserSecretPropertiesWithMetadata1 & UsesUserSecretPropertiesWithMetadata2;
+export type UsesUserSecretPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type UsesUserSecretPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

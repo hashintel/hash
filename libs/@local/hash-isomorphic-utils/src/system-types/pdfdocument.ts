@@ -144,7 +144,12 @@ export type PDFDocumentProperties1 = DocumentFileProperties;
 
 export type PDFDocumentProperties2 = {};
 
-export type PDFDocumentPropertiesWithMetadata = {
+export type PDFDocumentPropertiesWithMetadata =
+  PDFDocumentPropertiesWithMetadata1 & PDFDocumentPropertiesWithMetadata2;
+export type PDFDocumentPropertiesWithMetadata1 =
+  DocumentFilePropertiesWithMetadata;
+
+export type PDFDocumentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
