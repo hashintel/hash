@@ -137,8 +137,6 @@ export const loadExternalDataTypeIfNotExists: ImpureGraphFunction<
     throw error;
   });
 
-  console.log({ existingDataType });
-
   if (existingDataType) {
     return existingDataType;
   }
