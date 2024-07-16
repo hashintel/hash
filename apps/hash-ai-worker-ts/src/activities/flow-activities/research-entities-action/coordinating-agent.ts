@@ -38,11 +38,11 @@ import { getAnswersFromHuman } from "./get-answers-from-human.js";
 import {
   simplifyEntityTypeForLlmConsumption,
   simplifyProposedEntityForLlmConsumption,
-} from "./shared/simplify-for-llm-consumption";
-import type { ExistingEntitySummary } from "./summarize-existing-entities";
-import { summarizeExistingEntities } from "./summarize-existing-entities";
-import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types";
-import { mapPreviousCallsToLlmMessages } from "./util";
+} from "./shared/simplify-for-llm-consumption.js";
+import type { ExistingEntitySummary } from "./summarize-existing-entities.js";
+import { summarizeExistingEntities } from "./summarize-existing-entities.js";
+import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types.js";
+import { mapPreviousCallsToLlmMessages } from "./util.js";
 
 const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
