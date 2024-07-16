@@ -46,6 +46,7 @@
     "apollo-datasource": "3.3.2",
     "axios": "1.6.0",
     "dotenv-flow": "3.2.0",
+    "exponential-backoff": "3.1.1",
     "googleapis": "133.0.0",
     "redis": "4.6.12",
     "slonik": "24.1.2",

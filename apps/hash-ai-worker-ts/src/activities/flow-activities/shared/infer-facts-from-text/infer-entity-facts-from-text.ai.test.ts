@@ -6,7 +6,7 @@ import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-en
 import { getWebPageActivity } from "../../../get-web-page-activity";
 import { getFlowContext } from "../../../shared/get-flow-context";
 import { graphApiClient } from "../../../shared/graph-api-client";
-import { inferEntityFactsFromText } from "./infer-entity-facts-from-text";
+import { inferEntityFactsFromTextAgent } from "./infer-entity-facts-from-text-agent";
 
 test.skip(
   "Test inferEntityFactsFromText with the FTSE350 table",
@@ -36,7 +36,7 @@ test.skip(
 
     const { htmlContent } = webPage;
 
-    const { facts } = await inferEntityFactsFromText({
+    const { facts } = await inferEntityFactsFromTextAgent({
       text: htmlContent,
       dereferencedEntityType,
       subjectEntities: [
@@ -90,7 +90,7 @@ test.skip(
 
     const { htmlContent } = webPage;
 
-    const { facts } = await inferEntityFactsFromText({
+    const { facts } = await inferEntityFactsFromTextAgent({
       text: htmlContent,
       dereferencedEntityType,
       subjectEntities: [

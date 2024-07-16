@@ -12,6 +12,7 @@ import type {
 import { graphApiClient } from "../../../shared/graph-api-client";
 import type { LocalEntitySummary } from "../../shared/infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../../shared/infer-facts-from-text/types";
+import { simplifyFactForLlmConsumption } from "../shared/simplify-for-llm-consumption";
 import type { Link } from "./extract-links-from-content";
 
 const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
@@ -52,10 +53,6 @@ type GetLinkFollowerNextToolCallsParams = {
   possibleNextLinks: Link[];
 };
 
-const simplifyFactForLlmConsumption = (fact: Fact) => {
-  return `${fact.text} ${fact.prepositionalPhrases.join(", ")}`;
-};
-
 const generateUserMessage = (
   params: GetLinkFollowerNextToolCallsParams,
 ): LlmUserMessage => {
@@ -75,34 +72,33 @@ const generateUserMessage = (
         text: dedent(`
 <Task>${task}</Task>
 <PreviouslyVisitedLinks>${previouslyVisitedLinks.map(({ url }) => url).join("\n")}</PreviouslyVisitedLinks>
-<Entities> ${
-          (JSON.stringify(
-            entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
-              const factsAboutEntity = factsGathered.filter(
-                (fact) => fact.subjectEntityLocalId === localId,
-              );
+<Entities>${JSON.stringify(
+          entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
+            const factsAboutEntity = factsGathered.filter(
+              (fact) => fact.subjectEntityLocalId === localId,
+            );
 
-              return {
-                name,
-                summary,
-                entityType: entityTypeId,
-                facts: JSON.stringify(
-                  factsAboutEntity.map(simplifyFactForLlmConsumption),
-                ),
-              };
-            }),
-          ),
-          undefined,
-          2)
-        }</Entities>
-Possible Next Links: ${JSON.stringify(
-          possibleNextLinks.filter(
-            (link) =>
-              !previouslyVisitedLinks.some(({ url }) => url === link.url),
-          ),
+            return {
+              name,
+              summary,
+              entityType: entityTypeId,
+              facts: JSON.stringify(
+                factsAboutEntity.map(simplifyFactForLlmConsumption),
+              ),
+            };
+          }),
           undefined,
           2,
-        )}
+        )}</Entities>
+<PossibleNextLinks>
+${JSON.stringify(
+  possibleNextLinks.filter(
+    (link) => !previouslyVisitedLinks.some(({ url }) => url === link.url),
+  ),
+  undefined,
+  2,
+)}
+</PossibleNextLinks>
     `),
       },
     ],
@@ -329,5 +325,5 @@ export const getLinkFollowerNextToolCalls = async (
     };
   }
 
-  throw new Error(`Failed to get LLM response: ${response.status}`);
+  return getLinkFollowerNextToolCalls(params);
 };

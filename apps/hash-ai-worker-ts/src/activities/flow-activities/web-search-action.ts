@@ -1,5 +1,8 @@
 import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
-import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import {
+  getSimplifiedActionInputs,
+  type OutputNameForAction,
+} from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
 
@@ -27,7 +30,8 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
       {
         outputs: [
           {
-            outputName: "webPageUrls",
+            outputName:
+              "webSearchResult" satisfies OutputNameForAction<"webSearch">,
             payload: {
               kind: "WebSearchResult",
               value: webPages,

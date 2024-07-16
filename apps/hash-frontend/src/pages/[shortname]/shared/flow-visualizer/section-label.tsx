@@ -2,11 +2,11 @@ import { Typography } from "@mui/material";
 
 export const SectionLabel = ({ text }: { text: string }) => (
   <Typography
+    component="div"
     variant="smallCaps"
     sx={{
       color: ({ palette }) => palette.gray[50],
-      fontWeight: 600,
-      textTransform: "uppercase",
+      mb: 0.4,
     }}
   >
     {text}

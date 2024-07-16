@@ -6,13 +6,16 @@ import { flowSectionBorderRadius } from "../../shared/styles";
 
 export const OutputContainer = ({
   children,
+  noBorder,
   sx,
-}: PropsWithChildren<{ sx?: SxProps<Theme> }>) => (
+}: PropsWithChildren<{ noBorder?: boolean; sx?: SxProps<Theme> }>) => (
   <Box
     sx={[
       {
         background: ({ palette }) => palette.common.white,
-        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
+        border: noBorder
+          ? undefined
+          : ({ palette }) => `1px solid ${palette.gray[20]}`,
         borderRadius: flowSectionBorderRadius,
         height: "100%",
         textAlign: "center",

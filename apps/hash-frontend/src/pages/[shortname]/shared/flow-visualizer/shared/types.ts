@@ -4,6 +4,7 @@ import type {
   ActionStepWithParallelInput,
   ParallelGroupStepDefinition,
   ProgressLogBase,
+  ProposedEntity,
   StepDefinition,
   StepGroup,
   StepProgressLog,
@@ -60,3 +61,10 @@ export type StateChangeLog = ProgressLogBase & {
 };
 
 export type LocalProgressLog = StepProgressLog | StateChangeLog;
+
+export type ProposedEntityOutput = Omit<
+  ProposedEntity,
+  "provenance" | "propertyMetadata"
+> & {
+  researchOngoing: boolean;
+};

@@ -31,7 +31,10 @@ import { deduplicateEntities } from "./deduplicate-entities";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message";
 import { handleWebSearchToolCall } from "./handle-web-search-tool-call";
 import { linkFollowerAgent } from "./link-follower-agent";
-import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-for-llm-consumption";
+import {
+  simplifyEntityTypeForLlmConsumption,
+  simplifyFactForLlmConsumption,
+} from "./shared/simplify-for-llm-consumption";
 import type { CompletedToolCall } from "./types";
 import { mapPreviousCallsToLlmMessages } from "./util";
 
@@ -199,25 +202,35 @@ const generateInitialUserMessage = (params: {
       {
         type: "text",
         text: dedent(`
-Goal: ${goal}
-Entity Types:
+<Goal>${goal}</Goal>
+<EntityTypes>
 ${entityTypes
   .map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType }))
   .join("\n")}
-${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
+</EntityTypes>
+${linkEntityTypes ? `<LinkTypes>${JSON.stringify(linkEntityTypes)}</LinkTypes>` : ""}
 ${
   relevantEntities.length > 0
-    ? `Relevant Entities: ${JSON.stringify(relevantEntities)}`
+    ? `<RelevantEntities>${JSON.stringify(
+        relevantEntities.map(({ localId, name, summary, entityTypeId }) => {
+          const factsAboutEntity = existingFactsAboutRelevantEntities.filter(
+            (fact) => fact.subjectEntityLocalId === localId,
+          );
+
+          return {
+            name,
+            summary,
+            entityType: entityTypeId,
+            facts: JSON.stringify(
+              factsAboutEntity.map(simplifyFactForLlmConsumption),
+            ),
+          };
+        }),
+        undefined,
+        2,
+      )}</RelevantEntities>`
     : ""
-}
-${
-  existingFactsAboutRelevantEntities.length > 0
-    ? `Existing Facts About Relevant Entities: ${JSON.stringify(
-        existingFactsAboutRelevantEntities,
-      )}`
-    : ""
-}
-      `),
+}`),
       },
     ],
   };
@@ -585,6 +598,7 @@ Summary: ${summary}`,
                     reason,
                   }) => {
                     const response = await linkFollowerAgent({
+                      existingEntitiesOfInterest: input.relevantEntities,
                       initialResource: {
                         url,
                         descriptionOfExpectedContent,
@@ -592,11 +606,19 @@ Summary: ${summary}`,
                         reason,
                       },
                       task: prompt,
-                      entityTypes: input.entityTypes.filter(({ $id }) =>
-                        entityTypeIds.includes($id),
+                      entityTypes: input.entityTypes.filter(
+                        ({ $id }) =>
+                          entityTypeIds.includes($id) ||
+                          input.relevantEntities.some(
+                            (entity) => entity.entityTypeId === $id,
+                          ),
                       ),
                       linkEntityTypes: input.linkEntityTypes?.filter(
-                        ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
+                        ({ $id }) =>
+                          !!linkEntityTypeIds?.includes($id) ||
+                          input.relevantEntities.some(
+                            (entity) => entity.entityTypeId === $id,
+                          ),
                       ),
                     });
 
@@ -612,15 +634,17 @@ Summary: ${summary}`,
 
               for (const { response, url } of responsesWithUrl) {
                 inferredFacts.push(...response.facts);
-                entitySummaries.push(...response.entitySummaries);
+                entitySummaries.push(...response.existingEntitiesOfInterest);
 
                 outputMessage += `Inferred ${
                   response.facts.length
                 } facts on the web page with url ${url} for the following entities: ${stringify(
-                  response.entitySummaries.map(({ name, summary }) => ({
-                    name,
-                    summary,
-                  })),
+                  response.existingEntitiesOfInterest.map(
+                    ({ name, summary }) => ({
+                      name,
+                      summary,
+                    }),
+                  ),
                 )}. ${response.suggestionForNextSteps}\n`;
               }
 
