@@ -41,8 +41,8 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@types/uuid": "8.3.0",
-    "@vitest/coverage-istanbul": "2.0.2",
+    "@vitest/coverage-istanbul": "2.0.3",
     "typescript": "5.5.3",
-    "vitest": "2.0.2"
+    "vitest": "2.0.3"
   }
 }
