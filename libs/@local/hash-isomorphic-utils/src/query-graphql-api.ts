@@ -1,5 +1,6 @@
-import { hashClientHeaderKey } from "@local/hash-isomorphic-utils/http-requests";
 import type { GraphQLError } from "graphql/index.js";
+
+import { hashClientHeaderKey } from "./http-requests.js";
 
 export const queryGraphQlApi = <
   ReturnData,

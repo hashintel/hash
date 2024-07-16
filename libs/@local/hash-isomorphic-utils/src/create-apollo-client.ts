@@ -6,11 +6,11 @@ import {
   InMemoryCache,
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
-import { hashClientHeaderKey } from "@local/hash-isomorphic-utils/http-requests";
 import * as Sentry from "@sentry/browser";
 
 import { apiGraphQLEndpoint } from "./environment.js";
 import possibleTypes from "./graphql/fragment-types.gen.json";
+import { hashClientHeaderKey } from "./http-requests.js";
 
 const errorLink = onError(({ graphQLErrors, operation }) => {
   if (graphQLErrors) {
