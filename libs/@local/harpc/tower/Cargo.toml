@@ -3,6 +3,7 @@ cargo-features = ["edition2024"]
 [package]
 name = "harpc-tower"
 version = "0.1.0"
+license = "AGPL-3.0"
 authors.workspace = true
 edition.workspace = true
 
