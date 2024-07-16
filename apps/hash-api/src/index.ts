@@ -30,6 +30,7 @@ import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
+import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import * as Sentry from "@sentry/node";
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -274,12 +275,17 @@ const main = async () => {
 
   app.use(express.static("public"));
 
-  if (isProdEnv) {
+  if (isProdEnv && !isSelfHostedInstance) {
     /**
-     * Trust the first proxy, on the assumption that we are running behind a load balancer in production.
-     * This means, for example, that `req.ip` will be set as the rightmost IP in the `X-Forwarded-For` header.
+     * In production, hosted HASH, take the client IP from the Cloudflare-set header.
      */
-    app.set("trust proxy", 1);
+    Object.defineProperty(app.request, "ip", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return this.get("cf-connecting-ip");
+      },
+    });
   }
 
   const jsonParser = bodyParser.json({

@@ -95,6 +95,7 @@ data "aws_ecs_cluster" "ecs" {
   cluster_name = "${var.prefix}-ecs"
 }
 
+data "cloudflare_ip_ranges" "cloudflare" {}
 
 resource "aws_security_group" "alb_sg" {
   name   = "${var.prefix}-sgalb"
@@ -112,18 +113,7 @@ resource "aws_security_group" "alb_sg" {
     from_port        = 443
     to_port          = 443
     protocol         = "TCP"
-    description      = "Inbound HTTPS"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
-
-  ingress {
-    from_port        = 80
-    to_port          = 80
-    protocol         = "TCP"
-    description      = "Inbound HTTP"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    source_ranges    = data.cloudflare_ip_ranges.cloudflare.cidr_blocks
   }
 
   ingress {
