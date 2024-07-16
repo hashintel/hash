@@ -195,14 +195,13 @@ export const FlowRunSidebar = ({
           </Box>
         </SidebarSection>
       </Box>
-      {!selectedFlowRun?.closedAt && (
-        <Box sx={{ mt: 2 }}>
-          <SectionLabel text="Manager" />
-          <SidebarSection>
-            <Manager />
-          </SidebarSection>
-        </Box>
-      )}
+
+      <Box sx={{ mt: 2 }}>
+        <SectionLabel text="Manager" />
+        <SidebarSection>
+          <Manager />
+        </SidebarSection>
+      </Box>
       {isUsageAvailable && usage ? (
         <Box sx={{ mt: 2 }}>
           <SectionLabel text="Cost" />
