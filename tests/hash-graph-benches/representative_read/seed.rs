@@ -17,7 +17,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use type_system::{url::VersionedUrl, EntityType};
+use type_system::{schema::EntityType, url::VersionedUrl};
 use uuid::Uuid;
 
 use crate::util::{seed, StoreWrapper};

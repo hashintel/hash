@@ -10,9 +10,8 @@ use graph_types::knowledge::{
 };
 use thiserror::Error;
 use type_system::{
-    schema::ObjectSchema,
+    schema::{ClosedEntityType, DataType, ObjectSchema, PropertyType},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    ClosedEntityType, DataType, PropertyType,
 };
 
 use crate::{

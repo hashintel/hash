@@ -3,7 +3,7 @@ use harpc_wire_protocol::request::{procedure::ProcedureDescriptor, service::Serv
 
 use crate::{body::Body, extensions::Extensions};
 
-/// Component parts of a hrpc `Request`.
+/// Component parts of a harpc `Request`.
 #[derive(Debug, Clone)]
 pub struct Parts {
     pub service: ServiceDescriptor,

@@ -27,7 +27,7 @@ use graph_types::{
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
-use type_system::EntityType;
+use type_system::schema::EntityType;
 use uuid::Uuid;
 
 use crate::util::{seed, setup, setup_subscriber, Store, StoreWrapper};

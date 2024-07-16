@@ -1,9 +1,12 @@
 use thiserror::Error;
 
 use crate::{
-    schema::{ObjectSchemaValidationError, ObjectSchemaValidator, ValueOrArray},
+    schema::{
+        ClosedEntityType, EntityType, ObjectSchemaValidationError, ObjectSchemaValidator,
+        PropertyTypeReference, ValueOrArray,
+    },
     url::BaseUrl,
-    ClosedEntityType, EntityType, PropertyTypeReference, Valid, Validator,
+    Valid, Validator,
 };
 
 #[derive(Debug, Error)]
