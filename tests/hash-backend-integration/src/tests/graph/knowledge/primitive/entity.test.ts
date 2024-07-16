@@ -14,7 +14,6 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -61,7 +60,6 @@ describe("Entity CRU", () => {
   let linkEntityTypeFriend: EntityTypeWithMetadata;
 
   beforeAll(async () => {
-    await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "entitytest", logger);

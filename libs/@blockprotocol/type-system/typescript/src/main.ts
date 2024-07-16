@@ -1,9 +1,9 @@
-import wasm from "@blockprotocol/type-system-rs/wasm";
-
-import { setWasmInit } from "./common.js";
+// import wasm from "@blockprotocol/type-system-rs/wasm";
+//
+// import { setWasmInit } from "./common.js";
 
 export { atLeastOne, TypeSystemInitializer } from "./common.js";
 export * from "./native.js";
 export * from "@blockprotocol/type-system-rs";
 
-setWasmInit(() => wasm.memory);
+// setWasmInit(() => (typeof wasm === "function" ? wasm() : wasm));

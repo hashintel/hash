@@ -9,7 +9,6 @@ import {
   getPropertyTypeSubgraphById,
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
@@ -44,7 +43,6 @@ let testUser2: User;
 let propertyTypeSchema: ConstructPropertyTypeParams;
 
 beforeAll(async () => {
-  await TypeSystemInitializer.initialize();
   await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
   testUser = await createTestUser(graphContext, "pt-test-1", logger);

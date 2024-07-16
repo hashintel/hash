@@ -1,6 +1,5 @@
 /* eslint-disable import/first */
 
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   getRequiredEnv,
   monorepoRootDir,
@@ -130,7 +129,6 @@ const hydraProxy = proxy(hydraPublicUrl ?? "", {
 });
 
 const main = async () => {
-  await TypeSystemInitializer.initialize();
   logger.info("Type System initialized");
 
   registerOpenTelemetryTracing(process.env.HASH_OTLP_ENDPOINT ?? null);
