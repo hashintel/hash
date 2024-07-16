@@ -10,8 +10,12 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  Comment as CommentEntity,
+  CommentPropertiesWithMetadata,
+  Text as TextEntity,
+  TextPropertiesWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
@@ -45,13 +49,12 @@ export type Comment = {
    */
   resolvedAt?: string;
   deletedAt?: string;
-  entity: Entity;
+  entity: Entity<CommentEntity>;
 };
 
-export const getCommentFromEntity: PureGraphFunction<
-  { entity: Entity },
-  Comment
-> = ({ entity }) => {
+function assertCommentEntity(
+  entity: Entity,
+): asserts entity is Entity<CommentEntity> {
   if (entity.metadata.entityTypeId !== systemEntityTypes.comment.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -59,14 +62,23 @@ export const getCommentFromEntity: PureGraphFunction<
       entity.metadata.entityTypeId,
     );
   }
+}
 
-  const { resolvedAt, deletedAt } = simplifyProperties(
-    entity.properties as CommentProperties,
-  );
+export const getCommentFromEntity: PureGraphFunction<
+  { entity: Entity },
+  Comment
+> = ({ entity }) => {
+  assertCommentEntity(entity);
 
   return {
-    resolvedAt,
-    deletedAt,
+    resolvedAt:
+      entity.properties[
+        "https://hash.ai/@hash/types/property-type/resolved-at/"
+      ],
+    deletedAt:
+      entity.properties[
+        "https://hash.ai/@hash/types/property-type/deleted-at/"
+      ],
     entity,
   };
 };
@@ -166,24 +178,34 @@ export const createComment: ImpureGraphFunction<
     },
   ];
 
-  const textEntity = await createEntity(ctx, authentication, {
+  const textEntity = await createEntity<TextEntity>(ctx, authentication, {
     ownedById,
     properties: {
-      [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]:
-        textualContent,
+      value: {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+          {
+            value: textualContent.map((text) => ({
+              value: text,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+              },
+            })),
+          },
+      },
     },
     entityTypeId: systemEntityTypes.text.entityTypeId,
     relationships,
   });
 
-  const commentEntity = await createEntity(ctx, authentication, {
+  const commentEntity = await createEntity<CommentEntity>(ctx, authentication, {
     ownedById,
-    properties: {},
+    properties: { value: {} },
     entityTypeId: systemEntityTypes.comment.entityTypeId,
     outgoingLinks: [
       {
         ownedById,
-        properties: {},
+        properties: { value: {} },
         linkData: {
           rightEntityId: parentEntityId,
         },
@@ -192,7 +214,7 @@ export const createComment: ImpureGraphFunction<
       },
       {
         ownedById,
-        properties: {},
+        properties: { value: {} },
         linkData: {
           rightEntityId: author.entity.metadata.recordId.entityId,
         },
@@ -206,7 +228,7 @@ export const createComment: ImpureGraphFunction<
        */
       {
         ownedById,
-        properties: {},
+        properties: { value: {} },
         linkData: {
           rightEntityId: textEntity.metadata.recordId.entityId,
         },
@@ -242,13 +264,21 @@ export const updateCommentText: ImpureGraphFunction<
     commentEntityId,
   });
 
-  await updateEntity(ctx, authentication, {
+  await updateEntity<TextEntity>(ctx, authentication, {
     entity: text.entity,
     propertyPatches: [
       {
         op: "replace",
         path: [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl],
-        value: textualContent,
+        property: {
+          value: textualContent.map((textToken) => ({
+            value: textToken,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+            },
+          })),
+        } satisfies TextPropertiesWithMetadata["value"]["https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"],
       },
     ],
   });
@@ -276,7 +306,13 @@ export const deleteComment: ImpureGraphFunction<
       {
         op: "add",
         path: [systemPropertyTypes.deletedAt.propertyTypeBaseUrl],
-        value: new Date().toISOString(),
+        property: {
+          value: new Date().toISOString(),
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        } satisfies CommentPropertiesWithMetadata["value"]["https://hash.ai/@hash/types/property-type/deleted-at/"],
       },
     ],
   });
@@ -395,13 +431,19 @@ export const resolveComment: ImpureGraphFunction<
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { comment } = params;
 
-  const updatedEntity = await updateEntity(ctx, authentication, {
+  const updatedEntity = await updateEntity<CommentEntity>(ctx, authentication, {
     entity: comment.entity,
     propertyPatches: [
       {
         op: "add",
         path: [systemPropertyTypes.resolvedAt.propertyTypeBaseUrl],
-        value: new Date().toISOString(),
+        property: {
+          value: new Date().toISOString(),
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        } satisfies CommentPropertiesWithMetadata["value"]["https://hash.ai/@hash/types/property-type/resolved-at/"],
       },
     ],
   });
@@ -425,7 +467,8 @@ export const getCommentAncestorBlock: ImpureGraphFunction<
   if (
     parentEntity.metadata.entityTypeId === systemEntityTypes.block.entityTypeId
   ) {
-    return getBlockFromEntity({ entity: parentEntity });
+    // @todo - make sure the entity is really a block
+    return getBlockFromEntity({ entity: parentEntity as Block["entity"] });
   } else {
     return getCommentAncestorBlock(context, authentication, {
       commentEntityId: parentEntity.metadata.recordId.entityId,

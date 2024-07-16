@@ -89,7 +89,13 @@ export type BelongsToOrganizationProperties1 = LinkProperties;
 
 export type BelongsToOrganizationProperties2 = {};
 
-export type BelongsToOrganizationPropertiesWithMetadata = {
+export type BelongsToOrganizationPropertiesWithMetadata =
+  BelongsToOrganizationPropertiesWithMetadata1 &
+    BelongsToOrganizationPropertiesWithMetadata2;
+export type BelongsToOrganizationPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type BelongsToOrganizationPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -262,7 +268,11 @@ export type HasAssigneeProperties1 = LinkProperties;
 
 export type HasAssigneeProperties2 = {};
 
-export type HasAssigneePropertiesWithMetadata = {
+export type HasAssigneePropertiesWithMetadata =
+  HasAssigneePropertiesWithMetadata1 & HasAssigneePropertiesWithMetadata2;
+export type HasAssigneePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type HasAssigneePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -289,7 +299,11 @@ export type HasCreatorProperties1 = LinkProperties;
 
 export type HasCreatorProperties2 = {};
 
-export type HasCreatorPropertiesWithMetadata = {
+export type HasCreatorPropertiesWithMetadata =
+  HasCreatorPropertiesWithMetadata1 & HasCreatorPropertiesWithMetadata2;
+export type HasCreatorPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type HasCreatorPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -316,7 +330,11 @@ export type HasSubscriberProperties1 = LinkProperties;
 
 export type HasSubscriberProperties2 = {};
 
-export type HasSubscriberPropertiesWithMetadata = {
+export type HasSubscriberPropertiesWithMetadata =
+  HasSubscriberPropertiesWithMetadata1 & HasSubscriberPropertiesWithMetadata2;
+export type HasSubscriberPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type HasSubscriberPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -646,7 +664,11 @@ export type ParentProperties1 = LinkProperties;
 
 export type ParentProperties2 = {};
 
-export type ParentPropertiesWithMetadata = {
+export type ParentPropertiesWithMetadata = ParentPropertiesWithMetadata1 &
+  ParentPropertiesWithMetadata2;
+export type ParentPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type ParentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -746,7 +768,11 @@ export type SnoozedByProperties1 = LinkProperties;
 
 export type SnoozedByProperties2 = {};
 
-export type SnoozedByPropertiesWithMetadata = {
+export type SnoozedByPropertiesWithMetadata = SnoozedByPropertiesWithMetadata1 &
+  SnoozedByPropertiesWithMetadata2;
+export type SnoozedByPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type SnoozedByPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -800,7 +826,11 @@ export type StateProperties1 = LinkProperties;
 
 export type StateProperties2 = {};
 
-export type StatePropertiesWithMetadata = {
+export type StatePropertiesWithMetadata = StatePropertiesWithMetadata1 &
+  StatePropertiesWithMetadata2;
+export type StatePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type StatePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

@@ -18,8 +18,8 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { LinearIntegration } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   extractOwnedByIdFromEntityId,
   splitEntityId,
@@ -33,13 +33,12 @@ import type {
 export type LinearUserSecret = {
   connectionSourceName: string;
   vaultPath: string;
-  entity: Entity;
+  entity: Entity<UserSecret>;
 };
 
-export const getLinearUserSecretFromEntity: PureGraphFunction<
-  { entity: Entity },
-  LinearUserSecret
-> = ({ entity }) => {
+function assertLinearUserSecret(
+  entity: Entity,
+): asserts entity is Entity<UserSecret> {
   if (
     entity.metadata.entityTypeId !== systemEntityTypes.userSecret.entityTypeId
   ) {
@@ -49,9 +48,31 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
       entity.metadata.entityTypeId,
     );
   }
+}
+
+function assertLinearIntegration(
+  entity: Entity,
+): asserts entity is Entity<LinearIntegration> {
+  if (
+    entity.metadata.entityTypeId !==
+    systemEntityTypes.linearIntegration.entityTypeId
+  ) {
+    throw new EntityTypeMismatchError(
+      entity.metadata.recordId.entityId,
+      systemEntityTypes.linearIntegration.entityTypeId,
+      entity.metadata.entityTypeId,
+    );
+  }
+}
+
+export const getLinearUserSecretFromEntity: PureGraphFunction<
+  { entity: Entity },
+  LinearUserSecret
+> = ({ entity }) => {
+  assertLinearUserSecret(entity);
 
   const { connectionSourceName, vaultPath } = simplifyProperties(
-    entity.properties as UserSecretProperties,
+    entity.properties,
   );
 
   return {
@@ -208,9 +229,8 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
     );
   }
 
-  const { linearOrgId } = simplifyProperties(
-    integrationEntity.properties as LinearIntegrationProperties,
-  );
+  assertLinearIntegration(integrationEntity);
+  const { linearOrgId } = simplifyProperties(integrationEntity.properties);
 
   const userAccountId = extractOwnedByIdFromEntityId(
     integrationEntity.metadata.recordId.entityId,

@@ -559,7 +559,13 @@ export type CommentNotificationProperties1 = NotificationProperties;
 
 export type CommentNotificationProperties2 = {};
 
-export type CommentNotificationPropertiesWithMetadata = {
+export type CommentNotificationPropertiesWithMetadata =
+  CommentNotificationPropertiesWithMetadata1 &
+    CommentNotificationPropertiesWithMetadata2;
+export type CommentNotificationPropertiesWithMetadata1 =
+  NotificationPropertiesWithMetadata;
+
+export type CommentNotificationPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -601,7 +607,13 @@ export type RepliedToCommentProperties1 = LinkProperties;
 
 export type RepliedToCommentProperties2 = {};
 
-export type RepliedToCommentPropertiesWithMetadata = {
+export type RepliedToCommentPropertiesWithMetadata =
+  RepliedToCommentPropertiesWithMetadata1 &
+    RepliedToCommentPropertiesWithMetadata2;
+export type RepliedToCommentPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type RepliedToCommentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -628,7 +640,13 @@ export type TriggeredByCommentProperties1 = LinkProperties;
 
 export type TriggeredByCommentProperties2 = {};
 
-export type TriggeredByCommentPropertiesWithMetadata = {
+export type TriggeredByCommentPropertiesWithMetadata =
+  TriggeredByCommentPropertiesWithMetadata1 &
+    TriggeredByCommentPropertiesWithMetadata2;
+export type TriggeredByCommentPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type TriggeredByCommentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

@@ -144,7 +144,11 @@ export type DocumentProperties1 = PageProperties;
 
 export type DocumentProperties2 = {};
 
-export type DocumentPropertiesWithMetadata = {
+export type DocumentPropertiesWithMetadata = DocumentPropertiesWithMetadata1 &
+  DocumentPropertiesWithMetadata2;
+export type DocumentPropertiesWithMetadata1 = PagePropertiesWithMetadata;
+
+export type DocumentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

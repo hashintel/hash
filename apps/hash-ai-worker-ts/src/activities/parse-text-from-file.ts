@@ -7,6 +7,7 @@ import {
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
+import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import officeParser from "officeparser";
 
 import { fetchFileFromUrl } from "./shared/fetch-file-from-url";
@@ -71,7 +72,13 @@ export const parseTextFromFile = async (
             path: [
               blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
             ],
-            value: textualContent,
+            property: {
+              value: textualContent,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            } satisfies TextualContentPropertyValueWithMetadata,
           },
         ],
         provenance,

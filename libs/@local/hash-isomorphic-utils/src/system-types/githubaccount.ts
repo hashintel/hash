@@ -50,7 +50,12 @@ export type GitHubAccountProperties1 = ServiceAccountProperties;
 
 export type GitHubAccountProperties2 = {};
 
-export type GitHubAccountPropertiesWithMetadata = {
+export type GitHubAccountPropertiesWithMetadata =
+  GitHubAccountPropertiesWithMetadata1 & GitHubAccountPropertiesWithMetadata2;
+export type GitHubAccountPropertiesWithMetadata1 =
+  ServiceAccountPropertiesWithMetadata;
+
+export type GitHubAccountPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

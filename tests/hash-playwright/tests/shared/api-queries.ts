@@ -1,6 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { LinkData, PropertyObject } from "@local/hash-graph-types/entity";
+import type {
+  EntityProperties,
+  LinkData,
+} from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
@@ -52,17 +54,17 @@ export const getUser = async (requestContext: APIRequestContext) => {
   });
 };
 
-export const createEntity = async (
+export const createEntity = async <T extends EntityProperties>(
   requestContext: APIRequestContext,
   params: {
     draft: boolean;
-    entityTypeId: VersionedUrl;
-    properties: PropertyObject;
+    entityTypeId: T["entityTypeId"];
+    properties: T["propertiesWithMetadata"];
     linkData?: LinkData;
     linkedEntities?: LinkedEntityDefinition[];
     ownedById: OwnedById;
   },
-): Promise<Entity> => {
+): Promise<Entity<T>> => {
   return callGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
     requestContext,
     {
@@ -80,6 +82,6 @@ export const createEntity = async (
     if (!data) {
       throw new Error("Entity not created");
     }
-    return new Entity(data.createEntity);
+    return new Entity<T>(data.createEntity);
   });
 };

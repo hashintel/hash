@@ -67,7 +67,13 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
               : systemPropertyTypes[key].propertyTypeBaseUrl,
           ],
           op: "add",
-          value,
+          property: {
+            value,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
         });
       }
     }

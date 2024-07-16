@@ -20,7 +20,10 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { GoogleSheetsFileProperties } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
+import type {
+  AssociatedWithAccount,
+  GoogleSheetsFile,
+} from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -309,18 +312,54 @@ export const writeGoogleSheetAction: FlowActionActivity<{
   /**
    * 5. Create or update and return the associated Google Sheets entity
    */
-  const fileProperties: GoogleSheetsFileProperties = {
-    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-      spreadsheet.properties?.title ?? "Untitled",
-    "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-      spreadsheet.spreadsheetUrl,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
-      spreadsheet.properties?.title ?? "Untitled",
-    "https://hash.ai/@hash/types/property-type/file-id/":
-      spreadsheet.spreadsheetId,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
-      "application/vnd.google-apps.spreadsheet",
-    "https://hash.ai/@hash/types/property-type/data-audience/": audience,
+  const fileProperties: GoogleSheetsFile["propertiesWithMetadata"] = {
+    value: {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+        {
+          value: spreadsheet.properties?.title ?? "Untitled",
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+        {
+          value: spreadsheet.spreadsheetUrl,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
+        {
+          value: spreadsheet.properties?.title ?? "Untitled",
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+      "https://hash.ai/@hash/types/property-type/file-id/": {
+        value: spreadsheet.spreadsheetId,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
+        {
+          value: "application/vnd.google-apps.spreadsheet",
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+      "https://hash.ai/@hash/types/property-type/data-audience/": {
+        value: audience,
+        metadata: {
+          dataTypeId: "https://hash.ai/@hash/types/data-type/actor-type/v/1",
+        },
+      },
+    },
   };
 
   const webBotActorId = await getWebMachineActorId(
@@ -388,16 +427,12 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       actorId: userAccountId,
     });
 
-    const entityValues = {
-      entityTypeId: googleEntityTypes.googleSheetsFile.entityTypeId,
-      properties: fileProperties,
-    };
-
-    entityToReturn = await Entity.create(
+    entityToReturn = await Entity.create<GoogleSheetsFile>(
       graphApiClient,
       { actorId: webBotActorId },
       {
-        ...entityValues,
+        entityTypeId: googleEntityTypes.googleSheetsFile.entityTypeId,
+        properties: fileProperties,
         draft: false,
         ownedById: webId,
         relationships: authRelationships,
@@ -405,7 +440,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       },
     );
 
-    await Entity.create(
+    await Entity.create<AssociatedWithAccount>(
       graphApiClient,
       { actorId: webBotActorId },
       {
@@ -417,7 +452,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
           leftEntityId: entityToReturn.metadata.recordId.entityId,
           rightEntityId: googleAccount.metadata.recordId.entityId,
         },
-        properties: {},
+        properties: { value: {} },
         provenance,
         relationships: authRelationships,
       },

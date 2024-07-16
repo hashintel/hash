@@ -30,9 +30,9 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@vitest/coverage-istanbul": "2.0.2",
+    "@vitest/coverage-istanbul": "2.0.3",
     "eslint": "8.57.0",
     "typescript": "5.5.3",
-    "vitest": "2.0.2"
+    "vitest": "2.0.3"
   }
 }

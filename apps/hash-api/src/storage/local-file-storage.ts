@@ -10,6 +10,7 @@ import type {
   StorageType,
   UploadableStorageProvider,
 } from "@local/hash-backend-utils/file-storage";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import appRoot from "app-root-path";
 import type { Express } from "express";
 import express from "express";
@@ -58,9 +59,26 @@ export class LocalFileSystemStorageProvider
     return {
       presignedPut,
       fileStorageProperties: {
-        "https://hash.ai/@hash/types/property-type/file-storage-key/": key,
-        "https://hash.ai/@hash/types/property-type/file-storage-provider/":
-          this.storageType,
+        value: {
+          "https://hash.ai/@hash/types/property-type/file-storage-key/": {
+            value: key,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+          "https://hash.ai/@hash/types/property-type/file-storage-provider/": {
+            value: this.storageType,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        } satisfies Pick<
+          File["propertiesWithMetadata"]["value"],
+          | "https://hash.ai/@hash/types/property-type/file-storage-key/"
+          | "https://hash.ai/@hash/types/property-type/file-storage-provider/"
+        >,
       },
     };
   }

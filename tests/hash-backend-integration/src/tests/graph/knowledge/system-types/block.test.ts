@@ -83,7 +83,7 @@ describe("Block", () => {
 
     testBlockDataEntity = await createEntity(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
-      properties: {},
+      properties: { value: {} },
       entityTypeId: dummyEntityType.schema.$id,
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
@@ -137,7 +137,7 @@ describe("Block", () => {
       authentication,
       {
         ownedById: testUser.accountId as OwnedById,
-        properties: {},
+        properties: { value: {} },
         entityTypeId: dummyEntityType.schema.$id,
         relationships: createDefaultAuthorizationRelationships(authentication),
       },

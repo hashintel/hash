@@ -1,7 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -59,10 +62,9 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     "relationships" | "ownedById" | "draft" | "linkData"
   > & { linkData: Entity["linkData"] } = {
     entityTypeId,
-    properties,
+    properties: mergePropertyObjectAndMetadata(properties, propertyMetadata),
     linkData,
     provenance,
-    propertyMetadata,
   };
 
   const ownedById = webId;
@@ -166,7 +168,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         const { existingEntityIsDraft, isExactMatch, patchOperations } =
           getEntityUpdate({
             existingEntity,
-            newProperties: properties,
+            newProperties: mergePropertyObjectAndMetadata(
+              properties,
+              undefined,
+            ),
           });
 
         const serializedEntity = existingEntity.toJSON();

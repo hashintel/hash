@@ -62,15 +62,17 @@ export interface UploadableStorageProvider
     params: PresignedStorageRequest,
   ): Promise<{
     presignedPut: PresignedPutUpload;
-    fileStorageProperties: Pick<
-      File["properties"],
-      | "https://hash.ai/@hash/types/property-type/file-storage-bucket/"
-      | "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"
-      | "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"
-      | "https://hash.ai/@hash/types/property-type/file-storage-key/"
-      | "https://hash.ai/@hash/types/property-type/file-storage-provider/"
-      | "https://hash.ai/@hash/types/property-type/file-storage-region/"
-    >;
+    fileStorageProperties: Omit<File["propertiesWithMetadata"], "value"> & {
+      value: Pick<
+        File["propertiesWithMetadata"]["value"],
+        | "https://hash.ai/@hash/types/property-type/file-storage-bucket/"
+        | "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"
+        | "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"
+        | "https://hash.ai/@hash/types/property-type/file-storage-key/"
+        | "https://hash.ai/@hash/types/property-type/file-storage-provider/"
+        | "https://hash.ai/@hash/types/property-type/file-storage-region/"
+      >;
+    };
   }>;
 
   /**

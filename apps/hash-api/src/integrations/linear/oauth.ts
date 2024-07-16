@@ -13,7 +13,7 @@ import {
 } from "@local/hash-isomorphic-utils/environment";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
 
@@ -218,9 +218,18 @@ export const oAuthLinearCallback: RequestHandler<
     if (existingLinearIntegration) {
       linearIntegration = existingLinearIntegration;
     } else {
-      const linearIntegrationProperties: LinearIntegrationProperties = {
-        "https://hash.ai/@hash/types/property-type/linear-org-id/": linearOrgId,
-      };
+      const linearIntegrationProperties: LinearIntegrationPropertiesWithMetadata =
+        {
+          value: {
+            "https://hash.ai/@hash/types/property-type/linear-org-id/": {
+              value: linearOrgId,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          },
+        };
 
       // Create the Linear integration entity, which any web member can view and edit
       const linearIntegrationEntity = await createEntity(

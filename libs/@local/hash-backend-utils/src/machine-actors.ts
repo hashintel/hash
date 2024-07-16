@@ -12,7 +12,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
+import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
 import { backOff } from "exponential-backoff";
 
 export type WebMachineActorIdentifier = `system-${OwnedById}`;
@@ -150,20 +150,34 @@ export const createMachineActorEntity = async (
     },
   };
 
-  await Entity.create(
+  await Entity.create<Machine>(
     context.graphApi,
     { actorId: machineAccountId },
     {
       draft: false,
       entityTypeId:
-        machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
+        (machineEntityTypeId as Machine["entityTypeId"] | undefined) ??
+        systemEntityTypes.machine.entityTypeId,
       ownedById,
       properties: {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          displayName,
-        "https://hash.ai/@hash/types/property-type/machine-identifier/":
-          identifier,
-      } as MachineProperties,
+        value: {
+          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+            {
+              value: displayName,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          "https://hash.ai/@hash/types/property-type/machine-identifier/": {
+            value: identifier,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
+      },
       provenance,
       relationships: [
         {

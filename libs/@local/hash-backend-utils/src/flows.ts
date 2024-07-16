@@ -55,12 +55,11 @@ export const getFlowRunEntityById = async (params: {
       includeDrafts: false,
     })
     .then(({ data: response }) =>
-      response.entities.map(
-        (entity) =>
-          mapGraphApiEntityToEntity(
-            entity,
-            userAuthentication.actorId,
-          ) as Entity<FlowRunEntity>,
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity<FlowRunEntity>(
+          entity,
+          userAuthentication.actorId,
+        ),
       ),
     );
 

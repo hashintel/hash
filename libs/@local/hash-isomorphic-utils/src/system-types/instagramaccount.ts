@@ -50,7 +50,13 @@ export type InstagramAccountProperties1 = ServiceAccountProperties;
 
 export type InstagramAccountProperties2 = {};
 
-export type InstagramAccountPropertiesWithMetadata = {
+export type InstagramAccountPropertiesWithMetadata =
+  InstagramAccountPropertiesWithMetadata1 &
+    InstagramAccountPropertiesWithMetadata2;
+export type InstagramAccountPropertiesWithMetadata1 =
+  ServiceAccountPropertiesWithMetadata;
+
+export type InstagramAccountPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

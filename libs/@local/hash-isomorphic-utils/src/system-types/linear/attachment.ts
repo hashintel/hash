@@ -503,7 +503,11 @@ export type BelongsToIssueProperties1 = LinkProperties;
 
 export type BelongsToIssueProperties2 = {};
 
-export type BelongsToIssuePropertiesWithMetadata = {
+export type BelongsToIssuePropertiesWithMetadata =
+  BelongsToIssuePropertiesWithMetadata1 & BelongsToIssuePropertiesWithMetadata2;
+export type BelongsToIssuePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type BelongsToIssuePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

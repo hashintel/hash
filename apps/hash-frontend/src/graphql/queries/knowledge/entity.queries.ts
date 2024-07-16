@@ -5,7 +5,7 @@ export const createEntityMutation = gql`
   mutation createEntity(
     $entityTypeId: VersionedUrl!
     $ownedById: OwnedById
-    $properties: PropertyObject!
+    $properties: PropertyObjectWithMetadata!
     $linkData: LinkData
     $draft: Boolean
     $relationships: [EntityRelationAndSubject!]

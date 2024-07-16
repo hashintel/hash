@@ -569,7 +569,13 @@ export type MentionNotificationProperties1 = NotificationProperties;
 
 export type MentionNotificationProperties2 = {};
 
-export type MentionNotificationPropertiesWithMetadata = {
+export type MentionNotificationPropertiesWithMetadata =
+  MentionNotificationPropertiesWithMetadata1 &
+    MentionNotificationPropertiesWithMetadata2;
+export type MentionNotificationPropertiesWithMetadata1 =
+  NotificationPropertiesWithMetadata;
+
+export type MentionNotificationPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -601,7 +607,13 @@ export type OccurredInCommentProperties1 = LinkProperties;
 
 export type OccurredInCommentProperties2 = {};
 
-export type OccurredInCommentPropertiesWithMetadata = {
+export type OccurredInCommentPropertiesWithMetadata =
+  OccurredInCommentPropertiesWithMetadata1 &
+    OccurredInCommentPropertiesWithMetadata2;
+export type OccurredInCommentPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type OccurredInCommentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -628,7 +640,11 @@ export type OccurredInTextProperties1 = LinkProperties;
 
 export type OccurredInTextProperties2 = {};
 
-export type OccurredInTextPropertiesWithMetadata = {
+export type OccurredInTextPropertiesWithMetadata =
+  OccurredInTextPropertiesWithMetadata1 & OccurredInTextPropertiesWithMetadata2;
+export type OccurredInTextPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type OccurredInTextPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

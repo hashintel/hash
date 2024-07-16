@@ -1,7 +1,10 @@
 import type { ApolloClient } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { LinkEntity } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
@@ -163,7 +166,10 @@ const calculateSaveActions = (
           entityPlaceholderId: placeholderId,
           entity: {
             entityTypeId,
-            entityProperties: draftEntity.properties,
+            entityProperties: mergePropertyObjectAndMetadata(
+              draftEntity.properties,
+              undefined,
+            ),
           },
         },
       };

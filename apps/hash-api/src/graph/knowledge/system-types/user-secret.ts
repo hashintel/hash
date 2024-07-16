@@ -13,7 +13,8 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
+import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 import type { Auth } from "googleapis";
 
@@ -85,11 +86,30 @@ export const createUserSecret = async <
     restOfPath,
   });
 
-  const secretMetadata: UserSecretProperties = {
-    "https://hash.ai/@hash/types/property-type/connection-source-name/":
-      service,
-    "https://hash.ai/@hash/types/property-type/expired-at/": expiresAt,
-    "https://hash.ai/@hash/types/property-type/vault-path/": vaultPath,
+  const secretMetadata: UserSecret["propertiesWithMetadata"] = {
+    value: {
+      "https://hash.ai/@hash/types/property-type/connection-source-name/": {
+        value: service,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      "https://hash.ai/@hash/types/property-type/expired-at/": {
+        value: expiresAt,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      "https://hash.ai/@hash/types/property-type/vault-path/": {
+        value: vaultPath,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+    },
   };
 
   /**
@@ -152,7 +172,7 @@ export const createUserSecret = async <
     );
   }
 
-  const userSecretEntity = await createEntity(
+  const userSecretEntity = await createEntity<UserSecret>(
     { graphApi, provenance },
     authentication,
     {
@@ -164,16 +184,20 @@ export const createUserSecret = async <
   );
 
   /** Link the user secret to the Google Account */
-  await createLinkEntity({ graphApi, provenance }, authentication, {
-    ownedById: userAccountId as OwnedById,
-    properties: {},
-    linkData: {
-      leftEntityId: sourceIntegrationEntityId,
-      rightEntityId: userSecretEntity.metadata.recordId.entityId,
+  await createLinkEntity<UsesUserSecret>(
+    { graphApi, provenance },
+    authentication,
+    {
+      ownedById: userAccountId as OwnedById,
+      properties: { value: {} },
+      linkData: {
+        leftEntityId: sourceIntegrationEntityId,
+        rightEntityId: userSecretEntity.metadata.recordId.entityId,
+      },
+      entityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+      relationships: botEditorUserViewerOnly,
     },
-    entityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-    relationships: botEditorUserViewerOnly,
-  });
+  );
 
   return userSecretEntity.metadata.recordId.entityId;
 };

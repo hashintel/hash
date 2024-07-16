@@ -13,7 +13,10 @@ import {
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { QuickNoteProperties } from "@local/hash-isomorphic-utils/system-types/quicknote";
+import type {
+  ArchivedPropertyValueWithMetadata,
+  QuickNoteProperties,
+} from "@local/hash-isomorphic-utils/system-types/quicknote";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
@@ -207,11 +210,17 @@ export const EditableQuickNote: FunctionComponent<{
           entityTypeId: systemEntityTypes.quickNote.entityTypeId,
           propertyPatches: [
             {
+              op: "add",
               path: [
                 "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof QuickNoteProperties as BaseUrl,
               ],
-              value: true,
-              op: "add",
+              property: {
+                value: true,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+                },
+              } satisfies ArchivedPropertyValueWithMetadata,
             },
           ],
         },

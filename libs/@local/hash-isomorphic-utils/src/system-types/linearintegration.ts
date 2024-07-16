@@ -474,7 +474,13 @@ export type SyncLinearDataWithProperties2 = {
   "https://hash.ai/@hash/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
 };
 
-export type SyncLinearDataWithPropertiesWithMetadata = {
+export type SyncLinearDataWithPropertiesWithMetadata =
+  SyncLinearDataWithPropertiesWithMetadata1 &
+    SyncLinearDataWithPropertiesWithMetadata2;
+export type SyncLinearDataWithPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type SyncLinearDataWithPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/linear-team-id/"?: {
@@ -506,7 +512,11 @@ export type UsesUserSecretProperties1 = LinkProperties;
 
 export type UsesUserSecretProperties2 = {};
 
-export type UsesUserSecretPropertiesWithMetadata = {
+export type UsesUserSecretPropertiesWithMetadata =
+  UsesUserSecretPropertiesWithMetadata1 & UsesUserSecretPropertiesWithMetadata2;
+export type UsesUserSecretPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type UsesUserSecretPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

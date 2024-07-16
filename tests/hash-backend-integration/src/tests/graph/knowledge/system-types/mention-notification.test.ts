@@ -27,14 +27,13 @@ import { getTextFromEntity } from "@apps/hash-api/src/graph/knowledge/system-typ
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Text as TextEntity } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -258,7 +257,7 @@ describe.skip("Page Mention Notification", () => {
     ];
 
     occurredInText.textualContent = updatedTextualContent;
-    occurredInText.entity = (await updateEntity(
+    occurredInText.entity = await updateEntity(
       graphContext,
       { actorId: triggerUser.accountId },
       {
@@ -269,11 +268,19 @@ describe.skip("Page Mention Notification", () => {
             path: [
               blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
             ],
-            value: updatedTextualContent,
+            property: {
+              value: updatedTextualContent.map((token) => ({
+                value: token,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                },
+              })),
+            } satisfies TextualContentPropertyValueWithMetadata,
           },
         ],
       },
-    )) as Entity<TextEntity>;
+    );
 
     /**
      * Notifications are created after the request is resolved, so we need to wait
@@ -318,7 +325,7 @@ describe.skip("Page Mention Notification", () => {
     const updatedTextualContent: TextToken[] = [];
 
     occurredInText.textualContent = updatedTextualContent;
-    occurredInText.entity = (await updateEntity(
+    occurredInText.entity = await updateEntity(
       graphContext,
       { actorId: triggerUser.accountId },
       {
@@ -329,11 +336,19 @@ describe.skip("Page Mention Notification", () => {
             path: [
               blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
             ],
-            value: updatedTextualContent,
+            property: {
+              value: updatedTextualContent.map((token) => ({
+                value: token,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                },
+              })),
+            } satisfies TextualContentPropertyValueWithMetadata,
           },
         ],
       },
-    )) as Entity<TextEntity>;
+    );
 
     /**
      * Notifications are created after the request is resolved, so we need to wait
@@ -432,7 +447,7 @@ describe.skip("Page Mention Notification", () => {
 
     const updatedCommentTextualContent: TextToken[] = [];
 
-    commentText.entity = (await updateEntity(
+    commentText.entity = await updateEntity(
       graphContext,
       { actorId: triggerUser.accountId },
       {
@@ -443,11 +458,19 @@ describe.skip("Page Mention Notification", () => {
             path: [
               blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
             ],
-            value: updatedCommentTextualContent,
+            property: {
+              value: updatedCommentTextualContent.map((token) => ({
+                value: token,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                },
+              })),
+            } satisfies TextualContentPropertyValueWithMetadata,
           },
         ],
       },
-    )) as Entity<TextEntity>;
+    );
     commentText.textualContent = updatedCommentTextualContent;
 
     /**
