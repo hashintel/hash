@@ -1,130 +1,90 @@
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value as JsonValue;
+use thiserror::Error;
 
-use crate::schema::{
-    data_type::constraint::StringFormat, DataType, DataTypeLabel, JsonSchemaValueType,
+use self::raw::RawDataType;
+use crate::{
+    schema::{
+        data_type::{constraint::StringFormat, raw},
+        DataType, DataTypeLabel, JsonSchemaValueType,
+    },
+    url::VersionedUrl,
 };
 
-#[expect(
-    clippy::trivially_copy_pass_by_ref,
-    reason = "Only used in serde skip_serializing_if"
-)]
-const fn is_false(value: &bool) -> bool {
-    !*value
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(from = "RawDataType::<Self>")]
 pub struct ClosedDataType {
-    #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
+    pub id: VersionedUrl,
+    pub title: String,
+    pub description: Option<String>,
     pub label: DataTypeLabel,
 
-    // constraints for any types
-    #[serde(rename = "type")]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "[JsonSchemaValueType]"))]
-    pub json_type: Vec<JsonSchemaValueType>,
-    #[serde(rename = "enum", default, skip_serializing_if = "Vec::is_empty")]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "[JsonValue, ...JsonValue[]]"))]
+    pub all_of: Vec<Self>,
+
+    // constraints for any type
+    pub json_type: JsonSchemaValueType,
+    pub const_value: Option<JsonValue>,
     pub enum_values: Vec<JsonValue>,
 
-    // constraints for number types
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "[number, ...number[]]"))]
-    pub multiple_of: Vec<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    // constraints for numbers
+    pub multiple_of: Option<f64>,
     pub maximum: Option<f64>,
-    #[serde(default, skip_serializing_if = "is_false")]
     pub exclusive_maximum: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub minimum: Option<f64>,
-    #[serde(default, skip_serializing_if = "is_false")]
     pub exclusive_minimum: bool,
 
-    // constraints for string types
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    // constraints for strings
     pub min_length: Option<usize>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_length: Option<usize>,
-    #[serde(
-        default,
-        skip_serializing_if = "Vec::is_empty",
-        with = "codec::serde::regex::iter"
-    )]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "[string, ...string[]]"))]
-    pub pattern: Vec<Regex>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pattern: Option<Regex>,
     pub format: Option<StringFormat>,
 }
 
+#[derive(Debug, Error)]
+pub enum ClosedDataTypeError {
+    #[error("Missing closed data type for {id}")]
+    MissingClosedDataType { id: VersionedUrl },
+}
+
 impl ClosedDataType {
-    #[must_use]
-    pub fn new(data_type: DataType) -> Self {
-        Self {
+    /// Create a new closed data type from a data type.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a parent data type is missing.
+    pub fn new(data_type: DataType) -> Result<Self, ClosedDataTypeError> {
+        Ok(Self {
+            id: data_type.id,
+            title: data_type.title,
+            description: data_type.description,
             label: data_type.label,
-            json_type: vec![data_type.json_type],
-            // We don't need to check if `enum` matches `const` as this is done in the validation
-            // step
-            enum_values: data_type
-                .const_value
-                .map_or(data_type.enum_values, |const_value| vec![const_value]),
-            multiple_of: data_type.multiple_of.map(|x| vec![x]).unwrap_or_default(),
+            all_of: data_type
+                .all_of
+                .into_iter()
+                .map(|parent| Err(ClosedDataTypeError::MissingClosedDataType { id: parent.url }))
+                .collect::<Result<_, _>>()?,
+            json_type: data_type.json_type,
+            const_value: data_type.const_value,
+            enum_values: data_type.enum_values,
+            multiple_of: data_type.multiple_of,
             maximum: data_type.maximum,
             exclusive_maximum: data_type.exclusive_maximum,
             minimum: data_type.minimum,
             exclusive_minimum: data_type.exclusive_minimum,
             min_length: data_type.min_length,
             max_length: data_type.max_length,
-            pattern: data_type.pattern.map(|x| vec![x]).unwrap_or_default(),
+            pattern: data_type.pattern,
             format: data_type.format,
-        }
+        })
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use regex::Regex;
-    use serde_json::{json, Value as JsonValue};
-
-    use crate::{
-        schema::{ClosedDataType, DataType, DataTypeValidator},
-        utils::tests::{ensure_validation, ensure_validation_from_str, JsonEqualityCheck},
-    };
-
-    #[tokio::test]
-    async fn empty_list() {
-        let empty_list = ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::EMPTY_LIST_V1,
-            DataTypeValidator,
-            JsonEqualityCheck::Yes,
-        )
-        .await;
-
-        let closed_schema = ClosedDataType::new(empty_list.into_inner());
-        assert_eq!(closed_schema.enum_values, [JsonValue::Array(Vec::new())]);
-    }
-
-    #[tokio::test]
-    async fn zip_code() {
-        let zip_code_pattern = "^[0-9]{5}(?:-[0-9]{4})?$";
-        let zip_code = ensure_validation::<ClosedDataType, _>(
-            json!({
-                "type": ["string"],
-                "pattern": [zip_code_pattern],
-            }),
-            DataTypeValidator,
-            JsonEqualityCheck::Yes,
-        )
-        .await;
-
-        assert_eq!(
-            zip_code
-                .pattern
-                .iter()
-                .map(Regex::to_string)
-                .collect::<Vec<_>>(),
-            [zip_code_pattern]
-        );
+impl Serialize for ClosedDataType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        raw::RawDataType::from(self).serialize(serializer)
     }
 }
