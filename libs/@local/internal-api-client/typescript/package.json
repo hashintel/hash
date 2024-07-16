@@ -19,7 +19,6 @@
     "@openapitools/openapi-generator-cli": "2.5.2",
     "@types/node": "20.12.3",
     "eslint": "8.57.0",
-    "eslint-plugin-file-extension-in-import-ts": "2.1.0",
     "rimraf": "6.0.1",
     "typescript": "5.5.3"
   }

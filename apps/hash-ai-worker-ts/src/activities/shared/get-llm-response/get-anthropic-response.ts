@@ -1,7 +1,6 @@
 import type { Headers } from "@anthropic-ai/sdk/core";
 import type { RateLimitError } from "@anthropic-ai/sdk/error";
 import { APIError } from "@anthropic-ai/sdk/error";
-import type { Tool } from "@anthropic-ai/sdk/resources";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
 
@@ -45,6 +44,7 @@ import {
   getInputValidationErrors,
   sanitizeInputBeforeValidation,
 } from "./validation.js";
+import { Tool } from "@anthropic-ai/sdk/resources/messages";
 
 const mapLlmToolDefinitionToAnthropicToolDefinition = (
   tool: LlmToolDefinition,

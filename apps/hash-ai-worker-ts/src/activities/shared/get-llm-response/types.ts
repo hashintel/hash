@@ -1,10 +1,7 @@
 import type { APIError as AnthropicApiError } from "@anthropic-ai/sdk/error";
+import type { OpenAI } from "openai";
 import type { APIError as OpenAiApiError } from "openai/error";
 import type { JSONSchema } from "openai/lib/jsonschema";
-import type {
-  ChatCompletion as OpenAiChatCompletion,
-  ChatCompletionCreateParams as OpenAiChatCompletionCreateParams,
-} from "openai/resources";
 
 import type { PermittedOpenAiModel } from "../openai-client.js";
 import type {
@@ -53,11 +50,11 @@ export type OpenAiLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
     model: PermittedOpenAiModel;
     trimMessageAtIndex?: number;
-    previousInvalidResponses?: (OpenAiChatCompletion & {
+    previousInvalidResponses?: (OpenAI.ChatCompletion & {
       requestTime: number;
     })[];
   } & Omit<
-      OpenAiChatCompletionCreateParams,
+      OpenAI.ChatCompletionCreateParams,
       "tools" | "messages" | "tool_choice"
     >;
 
@@ -78,8 +75,11 @@ export type AnthropicResponse = Omit<
   })[];
 };
 
-export type OpenAiResponse = Omit<OpenAiChatCompletion, "usage" | "choices"> & {
-  invalidResponses: (OpenAiChatCompletion & { requestTime: number })[];
+export type OpenAiResponse = Omit<
+  OpenAI.ChatCompletion,
+  "usage" | "choices"
+> & {
+  invalidResponses: (OpenAI.ChatCompletion & { requestTime: number })[];
 };
 
 export type ParsedLlmToolCall<ToolName extends string = string> = {
@@ -136,7 +136,7 @@ export type LlmErrorResponse =
   | {
       status: "exceeded-maximum-output-tokens";
       requestMaxTokens?: number;
-      response: AnthropicMessagesCreateResponse | OpenAiChatCompletion;
+      response: AnthropicMessagesCreateResponse | OpenAI.ChatCompletion;
     }
   | {
       status: "exceeded-usage-limit";

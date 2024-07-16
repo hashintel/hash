@@ -17,7 +17,7 @@ import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { CodeInterpreter, Sandbox } from "e2b";
-import OpenAI from "openai/index";
+import { OpenAI } from "openai";
 
 import { logger } from "../shared/activity-logger.js";
 import type { PermittedOpenAiModel } from "../shared/openai-client.js";

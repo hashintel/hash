@@ -1,15 +1,8 @@
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
-import type OpenAI from "openai";
 import type { Headers } from "openai/core";
 import { APIError, RateLimitError } from "openai/error";
-import type {
-  ChatCompletion,
-  ChatCompletion as OpenAiChatCompletion,
-  ChatCompletionCreateParamsNonStreaming,
-  ChatCompletionMessageParam,
-  FunctionParameters as OpenAiFunctionParameters,
-} from "openai/resources";
+import type { OpenAI } from "openai";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
 import { logger } from "../activity-logger.js";
@@ -49,13 +42,13 @@ const mapLlmToolDefinitionToOpenAiToolDefinition = (
   type: "function",
   function: {
     name: tool.name,
-    parameters: tool.inputSchema as OpenAiFunctionParameters,
+    parameters: tool.inputSchema as OpenAI.FunctionParameters,
     description: tool.description,
   },
 });
 
 const mapOpenAiFinishReasonToLlmStopReason = (
-  finishReason: OpenAiChatCompletion["choices"][0]["finish_reason"],
+  finishReason: OpenAI.ChatCompletion["choices"][0]["finish_reason"],
 ): LlmStopReason => {
   switch (finishReason) {
     case "stop":
@@ -122,9 +115,9 @@ const isServerError = (error: unknown): error is APIError =>
   error.status < 600;
 
 const openAiChatCompletionWithBackoff = async (params: {
-  completionPayload: ChatCompletionCreateParamsNonStreaming;
+  completionPayload: OpenAI.ChatCompletionCreateParamsNonStreaming;
   retryCount?: number;
-}): Promise<ChatCompletion> => {
+}): Promise<OpenAI.ChatCompletion> => {
   const { completionPayload, retryCount = 0 } = params;
 
   try {
@@ -189,7 +182,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
 
   const openAiTools = tools?.map(mapLlmToolDefinitionToOpenAiToolDefinition);
 
-  const openAiMessages: ChatCompletionMessageParam[] = [
+  const openAiMessages: OpenAI.ChatCompletionMessageParam[] = [
     ...(systemPrompt
       ? [
           {
@@ -203,7 +196,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
     ),
   ];
 
-  const completionPayload: ChatCompletionCreateParamsNonStreaming = {
+  const completionPayload: OpenAI.ChatCompletionCreateParamsNonStreaming = {
     ...remainingParams,
     messages: openAiMessages,
     tools: openAiTools,
@@ -265,7 +258,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
     } while (excessTokens > 9);
   }
 
-  let openAiResponse: ChatCompletion;
+  let openAiResponse: OpenAI.ChatCompletion;
 
   const timeBeforeRequest = Date.now();
 

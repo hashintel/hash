@@ -31,7 +31,6 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "eslint": "8.57.0",
-    "eslint-plugin-file-extension-in-import-ts": "2.1.0",
     "rimraf": "6.0.1",
     "typescript": "5.5.3"
   }

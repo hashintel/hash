@@ -1,7 +1,6 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   ...require("@local/eslint-config/generate-workspace-config.cjs")(__dirname),
-  plugins: ["file-extension-in-import-ts"],
   rules: {
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
       /* 2022-11-29:   6 */ "@typescript-eslint/no-unsafe-argument",
@@ -11,7 +10,6 @@ module.exports = {
       /* 2022-11-29:   7 */ "@typescript-eslint/no-unsafe-return",
     ]),
     "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
-    "file-extension-in-import-ts/file-extension-in-import-ts": "error",
   },
   overrides: [
     {

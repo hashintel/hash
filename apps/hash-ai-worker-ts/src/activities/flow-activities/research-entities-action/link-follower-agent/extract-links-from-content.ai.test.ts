@@ -7,9 +7,9 @@ import dedent from "dedent";
 import { test } from "vitest";
 
 import { getWebPageActivity } from "../../../get-web-page-activity.js";
-import type { LlmParams } from "../../../shared/get-llm-response/types";
-import { optimizeSystemPrompt } from "../../../shared/optimize-system-prompt";
-import type { MetricDefinition } from "../../../shared/optimize-system-prompt/types";
+import type { LlmParams } from "../../../shared/get-llm-response/types.js";
+import { optimizeSystemPrompt } from "../../../shared/optimize-system-prompt.js";
+import type { MetricDefinition } from "../../../shared/optimize-system-prompt/types.js";
 import {
   extractLinksFromContent,
   extractLinksFromContentSystemPrompt,

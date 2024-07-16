@@ -18,7 +18,7 @@ import {
   ActivityCancellationType,
   proxyActivities,
 } from "@temporalio/workflow";
-import type { CreateEmbeddingResponse } from "openai/resources";
+import type { OpenAI } from "openai";
 
 import type {
   createAiActivities,
@@ -64,7 +64,7 @@ type UpdateDataTypeEmbeddingsParams = {
 
 export const updateDataTypeEmbeddings = async (
   params: UpdateDataTypeEmbeddingsParams,
-): Promise<CreateEmbeddingResponse.Usage> => {
+): Promise<OpenAI.CreateEmbeddingResponse.Usage> => {
   const temporalAxes = {
     pinned: {
       axis: "transactionTime",
@@ -81,7 +81,7 @@ export const updateDataTypeEmbeddings = async (
 
   let dataTypes: DataTypeWithMetadata[];
 
-  const usage: CreateEmbeddingResponse.Usage = {
+  const usage: OpenAI.CreateEmbeddingResponse.Usage = {
     prompt_tokens: 0,
     total_tokens: 0,
   };
@@ -149,7 +149,7 @@ type UpdatePropertyTypeEmbeddingsParams = {
 
 export const updatePropertyTypeEmbeddings = async (
   params: UpdatePropertyTypeEmbeddingsParams,
-): Promise<CreateEmbeddingResponse.Usage> => {
+): Promise<OpenAI.CreateEmbeddingResponse.Usage> => {
   const temporalAxes = {
     pinned: {
       axis: "transactionTime",
@@ -166,7 +166,7 @@ export const updatePropertyTypeEmbeddings = async (
 
   let propertyTypes: PropertyTypeWithMetadata[];
 
-  const usage: CreateEmbeddingResponse.Usage = {
+  const usage: OpenAI.CreateEmbeddingResponse.Usage = {
     prompt_tokens: 0,
     total_tokens: 0,
   };
@@ -234,7 +234,7 @@ type UpdateEntityTypeEmbeddingsParams = {
 
 export const updateEntityTypeEmbeddings = async (
   params: UpdateEntityTypeEmbeddingsParams,
-): Promise<CreateEmbeddingResponse.Usage> => {
+): Promise<OpenAI.CreateEmbeddingResponse.Usage> => {
   const temporalAxes = {
     pinned: {
       axis: "transactionTime",
@@ -251,7 +251,7 @@ export const updateEntityTypeEmbeddings = async (
 
   let entityTypes: EntityTypeWithMetadata[];
 
-  const usage: CreateEmbeddingResponse.Usage = {
+  const usage: OpenAI.CreateEmbeddingResponse.Usage = {
     prompt_tokens: 0,
     total_tokens: 0,
   };
@@ -319,7 +319,7 @@ type UpdateEntityEmbeddingsParams = {
 
 export const updateEntityEmbeddings = async (
   params: UpdateEntityEmbeddingsParams,
-): Promise<CreateEmbeddingResponse.Usage> => {
+): Promise<OpenAI.CreateEmbeddingResponse.Usage> => {
   const temporalAxes = {
     pinned: {
       axis: "transactionTime",
@@ -337,7 +337,7 @@ export const updateEntityEmbeddings = async (
   let entities: SerializedEntity[];
   let cursor: EntityQueryCursor | undefined | null = undefined;
 
-  const usage: CreateEmbeddingResponse.Usage = {
+  const usage: OpenAI.CreateEmbeddingResponse.Usage = {
     prompt_tokens: 0,
     total_tokens: 0,
   };
@@ -455,7 +455,7 @@ export const updateEntityEmbeddings = async (
 };
 
 export const updateAllDataTypeEmbeddings =
-  async (): Promise<CreateEmbeddingResponse.Usage> =>
+  async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
     await updateDataTypeEmbeddings({
       authentication: {
         actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
@@ -475,7 +475,7 @@ export const updateAllDataTypeEmbeddings =
     });
 
 export const updateAllPropertyTypeEmbeddings =
-  async (): Promise<CreateEmbeddingResponse.Usage> =>
+  async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
     await updatePropertyTypeEmbeddings({
       authentication: {
         actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
@@ -495,7 +495,7 @@ export const updateAllPropertyTypeEmbeddings =
     });
 
 export const updateAllEntityTypeEmbeddings =
-  async (): Promise<CreateEmbeddingResponse.Usage> =>
+  async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
     await updateEntityTypeEmbeddings({
       authentication: {
         actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
@@ -515,10 +515,10 @@ export const updateAllEntityTypeEmbeddings =
     });
 
 export const updateAllEntityEmbeddings =
-  async (): Promise<CreateEmbeddingResponse.Usage> => {
+  async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> => {
     const accountIds = await graphActivities.getUserAccountIds();
 
-    const usage: CreateEmbeddingResponse.Usage = {
+    const usage: OpenAI.CreateEmbeddingResponse.Usage = {
       prompt_tokens: 0,
       total_tokens: 0,
     };

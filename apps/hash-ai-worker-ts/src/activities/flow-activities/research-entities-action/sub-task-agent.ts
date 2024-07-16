@@ -24,7 +24,7 @@ import type { Fact } from "../shared/infer-facts-from-text/types.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
-} from "./coordinator-tools";
+} from "./coordinator-tools.js";
 import { generateToolDefinitions as generateCoordinatorToolDefinitions } from "./coordinator-tools.js";
 import type { DuplicateReport } from "./deduplicate-entities.js";
 import { deduplicateEntities } from "./deduplicate-entities.js";

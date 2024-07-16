@@ -66,7 +66,6 @@
     "@types/pluralize": "0.0.33",
     "@vitest/coverage-istanbul": "2.0.3",
     "eslint": "8.57.0",
-    "eslint-plugin-file-extension-in-import-ts": "2.1.0",
     "graphql": "16.8.1",
     "next": "13.5.5",
     "react": "18.2.0",

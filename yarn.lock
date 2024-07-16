@@ -15001,14 +15001,6 @@ eslint-plugin-canonical@4.18.0:
     ts-unused-exports "^9.0.3"
     xregexp "^5.1.1"
 
-eslint-plugin-file-extension-in-import-ts@2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-file-extension-in-import-ts/-/eslint-plugin-file-extension-in-import-ts-2.1.0.tgz#7abf1c5a5318c072777cb20e90b286f505166dda"
-  integrity sha512-zK8HbxkWlMI+t8hmMRg8pgQB8e1WVglnpcAQ2YkEIMyUh0jb5bgU++Bjwh60qVbJUh820x7DzwJDR72r3tLbUA==
-  dependencies:
-    is-core-module "^2.13.1"
-    resolve "^1.22.8"
-
 eslint-plugin-import@2.29.1:
   version "2.29.1"
   resolved "https://registry.yarnpkg.com/eslint-plugin-import/-/eslint-plugin-import-2.29.1.tgz#d45b37b5ef5901d639c15270d74d46d161150643"
@@ -24792,7 +24784,7 @@ resolve-pkg-maps@^1.0.0:
   resolved "https://registry.yarnpkg.com/resolve-pkg-maps/-/resolve-pkg-maps-1.0.0.tgz#616b3dc2c57056b5588c31cdf4b3d64db133720f"
   integrity sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==
 
-resolve@1.22.8, resolve@^1.1.6, resolve@^1.10.0, resolve@^1.14.2, resolve@^1.19.0, resolve@^1.22.1, resolve@^1.22.4, resolve@^1.22.8, resolve@^1.9.0:
+resolve@1.22.8, resolve@^1.1.6, resolve@^1.10.0, resolve@^1.14.2, resolve@^1.19.0, resolve@^1.22.1, resolve@^1.22.4, resolve@^1.9.0:
   version "1.22.8"
   resolved "https://registry.yarnpkg.com/resolve/-/resolve-1.22.8.tgz#b6c87a9f2aa06dfab52e3d70ac8cde321fa5a48d"
   integrity sha512-oKWePCxqpd6FlLvGV1VU0x7bkPmmCNolxzjMf4NczoDnQcIWrAF+cPtZn5i6n+RfD2d9i0tzpKnG6Yk168yIyw==

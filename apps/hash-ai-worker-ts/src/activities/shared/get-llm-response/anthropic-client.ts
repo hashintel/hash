@@ -1,9 +1,9 @@
 import AnthropicBedrock from "@anthropic-ai/bedrock-sdk";
 import Anthropic from "@anthropic-ai/sdk";
-import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources";
 import type {
   Message,
   MessageCreateParamsBase,
+  MessageCreateParamsNonStreaming,
   MessageParam,
   ToolUseBlock,
 } from "@anthropic-ai/sdk/resources/messages";

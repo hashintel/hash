@@ -6,9 +6,9 @@ import { expect, test } from "vitest";
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "../infer-facts-from-text/types";
-import { proposeEntitiesFromFacts } from "../propose-entities-from-facts";
+import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { Fact } from "../infer-facts-from-text/types.js";
+import { proposeEntitiesFromFacts } from "../propose-entities-from-facts.js";
 
 const ftse350EntitySummaries: LocalEntitySummary[] = [
   {

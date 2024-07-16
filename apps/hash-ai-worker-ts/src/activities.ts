@@ -14,7 +14,7 @@ import type {
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type { CreateEmbeddingResponse } from "openai/resources";
+import type { APIResource } from "openai/resource";
 
 import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity.js";
 import { getDereferencedEntityTypesActivity } from "./activities/get-dereferenced-entity-types-activity.js";
@@ -29,6 +29,7 @@ import {
   createEntityTypeEmbeddings,
   createPropertyTypeEmbeddings,
 } from "./activities/shared/embeddings.js";
+import { OpenAI } from "openai";
 
 export { createGraphActivities } from "./activities/graph.js";
 
@@ -53,7 +54,7 @@ export const createAiActivities = ({
     dataType: DataTypeWithMetadata;
   }): Promise<{
     embedding: Embedding;
-    usage: CreateEmbeddingResponse.Usage;
+    usage: OpenAI.CreateEmbeddingResponse.Usage;
   }> {
     return createDataTypeEmbeddings({
       dataType: params.dataType,
@@ -64,7 +65,7 @@ export const createAiActivities = ({
     propertyType: PropertyTypeWithMetadata;
   }): Promise<{
     embedding: Embedding;
-    usage: CreateEmbeddingResponse.Usage;
+    usage: OpenAI.CreateEmbeddingResponse.Usage;
   }> {
     return createPropertyTypeEmbeddings({
       propertyType: params.propertyType,
@@ -75,7 +76,7 @@ export const createAiActivities = ({
     entityType: EntityTypeWithMetadata;
   }): Promise<{
     embedding: Embedding;
-    usage: CreateEmbeddingResponse.Usage;
+    usage: OpenAI.CreateEmbeddingResponse.Usage;
   }> {
     return createEntityTypeEmbeddings({
       entityType: params.entityType,
@@ -87,7 +88,7 @@ export const createAiActivities = ({
     propertyTypes: PropertyTypeWithMetadata[];
   }): Promise<{
     embeddings: EntityEmbedding[];
-    usage: CreateEmbeddingResponse.Usage;
+    usage: OpenAI.CreateEmbeddingResponse.Usage;
   }> {
     return createEntityEmbeddings({
       entityProperties: params.entityProperties,
