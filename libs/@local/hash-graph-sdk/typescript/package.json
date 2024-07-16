@@ -34,7 +34,7 @@
     "@vitest/coverage-istanbul": "2.0.3",
     "eslint": "8.57.0",
     "eslint-plugin-file-extension-in-import-ts": "2.1.0",
-    "rimraf": "5.0.7",
+    "rimraf": "6.0.1",
     "typescript": "5.5.3",
     "vitest": "2.0.3"
   }

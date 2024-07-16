@@ -49,8 +49,8 @@ import {
   systemLinkEntityTypes,
 } from "./ontology-type-ids.js";
 import { isEntityNode } from "./prosemirror.js";
-import type { Block, HasIndexedContent } from "./system-types/shared.js";
 import type { HasSpatiallyPositionedContent } from "./system-types/canvas.js";
+import type { Block, HasIndexedContent } from "./system-types/shared.js";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
