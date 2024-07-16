@@ -50,11 +50,7 @@ use graph_types::{
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
-use tokio_postgres::{
-    error::SqlState,
-    tls::{MakeTlsConnect, TlsConnect},
-    Socket,
-};
+use tokio_postgres::error::SqlState;
 use type_system::url::VersionedUrl;
 
 use crate::{
@@ -253,14 +249,7 @@ impl<C, A> SnapshotStore<C, A> {
     }
 }
 
-impl<Tls: Clone + Send + Sync + 'static> PostgresStorePool<Tls>
-where
-    Tls: MakeTlsConnect<
-            Socket,
-            Stream: Send + Sync,
-            TlsConnect: Send + TlsConnect<Socket, Future: Send>,
-        >,
-{
+impl PostgresStorePool {
     async fn read_accounts(
         &self,
     ) -> Result<impl Stream<Item = Result<Account, SnapshotDumpError>> + Send, SnapshotDumpError>

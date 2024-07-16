@@ -1,3 +1,4 @@
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type {
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
@@ -9,11 +10,15 @@ import type { MutationStartFlowArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
 
 export const startFlow: ResolverFn<
-  Promise<string>,
+  Promise<EntityUuid>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationStartFlowArgs
-> = async (_, { flowTrigger, flowDefinition, webId }, graphQLContext) => {
+> = async (
+  _,
+  { dataSources, flowTrigger, flowDefinition, webId },
+  graphQLContext,
+) => {
   const { temporal, user } = graphQLContext;
 
   validateFlowDefinition(flowDefinition);
@@ -26,6 +31,7 @@ export const startFlow: ResolverFn<
     taskQueue: "ai",
     args: [
       {
+        dataSources,
         flowTrigger,
         flowDefinition,
         userAuthentication: { actorId: user.accountId },
@@ -43,5 +49,5 @@ export const startFlow: ResolverFn<
     },
   });
 
-  return workflowId;
+  return workflowId as EntityUuid;
 };

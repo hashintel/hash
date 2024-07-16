@@ -5,6 +5,7 @@ import type {
 } from "@local/hash-backend-utils/vault";
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -12,7 +13,8 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
+import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 import type { Auth } from "googleapis";
 
@@ -26,6 +28,7 @@ type CreateUserSecretParams<T extends object> = {
   archiveExistingSecrets: boolean;
   expiresAt: string; // ISO String
   graphApi: GraphApi;
+  provenance: EnforcedEntityEditionProvenance;
   /**
    * The bot that will manage the secret, e.g. update, archive, upgrade it.
    * This is the only account that will have edit permissions for the secret.
@@ -68,6 +71,7 @@ export const createUserSecret = async <
     expiresAt,
     graphApi,
     managingBotAccountId,
+    provenance,
     userAccountId,
     restOfPath,
     secretData,
@@ -82,11 +86,30 @@ export const createUserSecret = async <
     restOfPath,
   });
 
-  const secretMetadata: UserSecretProperties = {
-    "https://hash.ai/@hash/types/property-type/connection-source-name/":
-      service,
-    "https://hash.ai/@hash/types/property-type/expired-at/": expiresAt,
-    "https://hash.ai/@hash/types/property-type/vault-path/": vaultPath,
+  const secretMetadata: UserSecret["propertiesWithMetadata"] = {
+    value: {
+      "https://hash.ai/@hash/types/property-type/connection-source-name/": {
+        value: service,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      "https://hash.ai/@hash/types/property-type/expired-at/": {
+        value: expiresAt,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      "https://hash.ai/@hash/types/property-type/vault-path/": {
+        value: vaultPath,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+    },
   };
 
   /**
@@ -149,24 +172,32 @@ export const createUserSecret = async <
     );
   }
 
-  const userSecretEntity = await createEntity({ graphApi }, authentication, {
-    entityTypeId: systemEntityTypes.userSecret.entityTypeId,
-    ownedById: userAccountId as OwnedById,
-    properties: secretMetadata,
-    relationships: botEditorUserViewerOnly,
-  });
+  const userSecretEntity = await createEntity<UserSecret>(
+    { graphApi, provenance },
+    authentication,
+    {
+      entityTypeId: systemEntityTypes.userSecret.entityTypeId,
+      ownedById: userAccountId as OwnedById,
+      properties: secretMetadata,
+      relationships: botEditorUserViewerOnly,
+    },
+  );
 
   /** Link the user secret to the Google Account */
-  await createLinkEntity({ graphApi }, authentication, {
-    ownedById: userAccountId as OwnedById,
-    properties: {},
-    linkData: {
-      leftEntityId: sourceIntegrationEntityId,
-      rightEntityId: userSecretEntity.metadata.recordId.entityId,
+  await createLinkEntity<UsesUserSecret>(
+    { graphApi, provenance },
+    authentication,
+    {
+      ownedById: userAccountId as OwnedById,
+      properties: { value: {} },
+      linkData: {
+        leftEntityId: sourceIntegrationEntityId,
+        rightEntityId: userSecretEntity.metadata.recordId.entityId,
+      },
+      entityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+      relationships: botEditorUserViewerOnly,
     },
-    entityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-    relationships: botEditorUserViewerOnly,
-  });
+  );
 
   return userSecretEntity.metadata.recordId.entityId;
 };

@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -111,7 +110,14 @@ export type {
   TitlePropertyValueWithMetadata,
 };
 
-export type Canvas = Entity<CanvasProperties>;
+/**
+ * A page in canvas format, with content in a free-form arrangement.
+ */
+export type Canvas = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/canvas/v/1";
+  properties: CanvasProperties;
+  propertiesWithMetadata: CanvasPropertiesWithMetadata;
+};
 
 export type CanvasHasSpatiallyPositionedContentLink = {
   linkEntity: HasSpatiallyPositionedContent;
@@ -133,13 +139,23 @@ export type CanvasProperties1 = PageProperties;
 
 export type CanvasProperties2 = {};
 
-export type CanvasPropertiesWithMetadata = {
+export type CanvasPropertiesWithMetadata = CanvasPropertiesWithMetadata1 &
+  CanvasPropertiesWithMetadata2;
+export type CanvasPropertiesWithMetadata1 = PagePropertiesWithMetadata;
+
+export type CanvasPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
 
-export type HasSpatiallyPositionedContent =
-  LinkEntity<HasSpatiallyPositionedContentProperties>;
+/**
+ * Something contained at a spatial position by something
+ */
+export type HasSpatiallyPositionedContent = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/has-spatially-positioned-content/v/1";
+  properties: HasSpatiallyPositionedContentProperties;
+  propertiesWithMetadata: HasSpatiallyPositionedContentPropertiesWithMetadata;
+};
 
 export type HasSpatiallyPositionedContentOutgoingLinkAndTarget = never;
 
@@ -161,7 +177,13 @@ export type HasSpatiallyPositionedContentProperties2 = {
   "https://hash.ai/@hash/types/property-type/y-position/": YPositionPropertyValue;
 };
 
-export type HasSpatiallyPositionedContentPropertiesWithMetadata = {
+export type HasSpatiallyPositionedContentPropertiesWithMetadata =
+  HasSpatiallyPositionedContentPropertiesWithMetadata1 &
+    HasSpatiallyPositionedContentPropertiesWithMetadata2;
+export type HasSpatiallyPositionedContentPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type HasSpatiallyPositionedContentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/height-in-pixels/": HeightInPixelsPropertyValueWithMetadata;

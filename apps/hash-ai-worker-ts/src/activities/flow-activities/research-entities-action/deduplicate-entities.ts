@@ -151,9 +151,7 @@ export const deduplicateEntities = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    throw new Error(
-      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
-    );
+    return deduplicateEntities(params);
   }
 
   const { message, usage, totalRequestTime } = llmResponse;

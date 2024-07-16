@@ -9,7 +9,7 @@ import type {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system/slim";
 
 import type {
   ArrayExpectedValue,
@@ -51,7 +51,7 @@ const getObjectSchema = (
   return {
     type: "object",
     properties: propertyList,
-    required: requiredArray,
+    required: atLeastOne(requiredArray),
   };
 };
 

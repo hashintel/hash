@@ -1,6 +1,8 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { atLeastOne } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  EntityTypeReference,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 
@@ -31,24 +33,24 @@ export const useEntityTypesOptionsContextValue = (
           ? linkEntityTypesRecord
           : nonLinkEntityTypesRecord;
 
-      while (entityType.schema.allOf) {
-        if (
-          entityType.schema.allOf.find(({ $ref }) => $ref === linkEntityTypeUrl)
-        ) {
+      let parentRefObjects: EntityTypeReference[] =
+        entityType.schema.allOf ?? [];
+
+      while (parentRefObjects.length) {
+        if (parentRefObjects.find(({ $ref }) => $ref === linkEntityTypeUrl)) {
           targetRecord = linkEntityTypesRecord;
           break;
         }
-        entityType.schema.allOf = atLeastOne(
-          entityType.schema.allOf.flatMap(({ $ref }) => {
-            const parentEntityType = entityTypes[$ref];
-            if (!parentEntityType) {
-              throw new Error(
-                `Entity type ${$ref} not found when looking up ancestors of ${entityType.schema.$id}`,
-              );
-            }
-            return parentEntityType.schema.allOf ?? [];
-          }),
-        );
+
+        parentRefObjects = parentRefObjects.flatMap(({ $ref }) => {
+          const parentEntityType = entityTypes[$ref];
+          if (!parentEntityType) {
+            throw new Error(
+              `Entity type ${$ref} not found when looking up ancestors of ${entityType.schema.$id}`,
+            );
+          }
+          return parentEntityType.schema.allOf ?? [];
+        });
       }
 
       targetRecord[entityType.schema.$id] = entityType;

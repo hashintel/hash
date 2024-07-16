@@ -9,7 +9,7 @@ import type {
   GoogleOAuth2CallbackResponse,
 } from "@local/hash-isomorphic-utils/google-integration";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
+import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
 import type { RequestHandler } from "express";
 import { google } from "googleapis";
 
@@ -92,13 +92,31 @@ export const googleOAuthCallback: RequestHandler<
 
     let newGoogleAccountEntity;
     if (!existingGoogleAccountEntity) {
-      const googleAccountProperties: GoogleAccountProperties = {
-        "https://hash.ai/@hash/types/property-type/email/":
-          googleUser.data.email,
-        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          googleUser.data.name ?? googleUser.data.email,
-        "https://hash.ai/@google/types/property-type/account-id/":
-          googleUser.data.id,
+      const googleAccountProperties: GoogleAccount["propertiesWithMetadata"] = {
+        value: {
+          "https://hash.ai/@hash/types/property-type/email/": {
+            value: googleUser.data.email,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+            {
+              value: googleUser.data.name ?? googleUser.data.email,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          "https://hash.ai/@google/types/property-type/account-id/": {
+            value: googleUser.data.id,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
       };
 
       newGoogleAccountEntity = await createEntity(req.context, authentication, {
@@ -156,6 +174,7 @@ export const googleOAuthCallback: RequestHandler<
       expiresAt: "", // the secret data includes an refresh token that lasts indefinitely and will be used as needed
       graphApi: req.context.graphApi,
       managingBotAccountId: googleBotAccountId,
+      provenance: req.context.provenance,
       restOfPath: `account/${googleUser.data.id}`,
       secretData: tokens,
       service: "google",

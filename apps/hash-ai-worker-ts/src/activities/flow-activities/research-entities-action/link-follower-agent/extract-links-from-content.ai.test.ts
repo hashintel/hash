@@ -22,6 +22,10 @@ const ftse350WebPage = await getWebPageActivity({
   sanitizeForLlm: true,
 });
 
+if ("error" in ftse350WebPage) {
+  throw new Error(ftse350WebPage.error);
+}
+
 const ftse350Metric: MetricDefinition = {
   name: "Get all FTSE350 paginated links",
   description: dedent(`
@@ -96,6 +100,10 @@ const marksAndSpencersInvestorsPage = await getWebPageActivity({
   sanitizeForLlm: true,
 });
 
+if ("error" in marksAndSpencersInvestorsPage) {
+  throw new Error(marksAndSpencersInvestorsPage.error);
+}
+
 const marksAndSpencerInvestorsPrompt =
   "Find the investors of Marks and Spencers in its latest annual company report.";
 
@@ -168,6 +176,10 @@ const gpuSpecsPage = await getWebPageActivity({
   url: "https://www.techpowerup.com/gpu-specs/",
   sanitizeForLlm: true,
 });
+
+if ("error" in gpuSpecsPage) {
+  throw new Error(gpuSpecsPage.error);
+}
 
 const graphicsCardSpecificationPrompt =
   "Find the technical specifications of the NVIDIA GeForce RTX 4090 graphics card";

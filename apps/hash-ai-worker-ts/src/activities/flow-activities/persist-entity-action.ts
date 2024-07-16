@@ -1,7 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -12,6 +15,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
+import { backOff } from "exponential-backoff";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
@@ -27,7 +31,7 @@ import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url.js";
 import { getEntityUpdate } from "./shared/graph-requests.js";
 import type { FlowActionActivity } from "./types.js";
 
-const fileEntityTypeIds: VersionedUrl[] = [
+export const fileEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.file.entityTypeId,
   systemEntityTypes.image.entityTypeId,
   systemEntityTypes.document.entityTypeId,
@@ -58,15 +62,14 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     "relationships" | "ownedById" | "draft" | "linkData"
   > & { linkData: Entity["linkData"] } = {
     entityTypeId,
-    properties,
+    properties: mergePropertyObjectAndMetadata(properties, propertyMetadata),
     linkData,
     provenance,
-    propertyMetadata,
   };
 
   const ownedById = webId;
 
-  const isAiGenerated = provenance?.actorType === "ai";
+  const isAiGenerated = provenance.actorType === "ai";
 
   const webBotActorId = isAiGenerated
     ? await getAiAssistantAccountIdActivity({
@@ -165,7 +168,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         const { existingEntityIsDraft, isExactMatch, patchOperations } =
           getEntityUpdate({
             existingEntity,
-            newProperties: properties,
+            newProperties: mergePropertyObjectAndMetadata(
+              properties,
+              undefined,
+            ),
           });
 
         const serializedEntity = existingEntity.toJSON();
@@ -194,25 +200,42 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           };
         }
 
-        entity = await existingEntity.patch(
-          graphApiClient,
-          { actorId: webBotActorId },
+        entity = await backOff(
+          () =>
+            existingEntity.patch(
+              graphApiClient,
+              { actorId: webBotActorId },
+              {
+                ...entityValues,
+                draft: existingEntityIsDraft ? true : createEditionAsDraft,
+                propertyPatches: patchOperations,
+              },
+            ),
           {
-            draft: existingEntityIsDraft ? true : createEditionAsDraft,
-            properties: patchOperations,
+            jitter: "full",
+            numOfAttempts: 3,
+            startingDelay: 1_000,
           },
         );
       } else {
-        entity = await Entity.create(
-          graphApiClient,
-          { actorId: webBotActorId },
+        entity = await backOff(
+          () =>
+            Entity.create(
+              graphApiClient,
+              { actorId: webBotActorId },
+              {
+                ...entityValues,
+                draft: createEditionAsDraft,
+                ownedById,
+                relationships: createDefaultAuthorizationRelationships({
+                  actorId,
+                }),
+              },
+            ),
           {
-            ...entityValues,
-            draft: createEditionAsDraft,
-            ownedById,
-            relationships: createDefaultAuthorizationRelationships({
-              actorId,
-            }),
+            jitter: "full",
+            numOfAttempts: 3,
+            startingDelay: 1_000,
           },
         );
       }

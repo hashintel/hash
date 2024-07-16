@@ -6,7 +6,7 @@ import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-en
 import { getWebPageActivity } from "../../../get-web-page-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import { inferEntityFactsFromText } from "./infer-entity-facts-from-text.js";
+import { inferEntityFactsFromTextAgent } from "./infer-entity-facts-from-text-agent.js";
 
 test.skip(
   "Test inferEntityFactsFromText with the FTSE350 table",
@@ -25,12 +25,18 @@ test.skip(
     const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
       .schema;
 
-    const { htmlContent } = await getWebPageActivity({
+    const webPage = await getWebPageActivity({
       url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
       sanitizeForLlm: true,
     });
 
-    const { facts } = await inferEntityFactsFromText({
+    if ("error" in webPage) {
+      throw new Error(webPage.error);
+    }
+
+    const { htmlContent } = webPage;
+
+    const { facts } = await inferEntityFactsFromTextAgent({
       text: htmlContent,
       dereferencedEntityType,
       subjectEntities: [
@@ -73,12 +79,18 @@ test.skip(
     const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
       .schema;
 
-    const { htmlContent } = await getWebPageActivity({
+    const webPage = await getWebPageActivity({
       url: "https://www.nvidia.com/de-de/geforce/graphics-cards/40-series/rtx-4090/",
       sanitizeForLlm: true,
     });
 
-    const { facts } = await inferEntityFactsFromText({
+    if ("error" in webPage) {
+      throw new Error(webPage.error);
+    }
+
+    const { htmlContent } = webPage;
+
+    const { facts } = await inferEntityFactsFromTextAgent({
       text: htmlContent,
       dereferencedEntityType,
       subjectEntities: [

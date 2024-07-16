@@ -5,8 +5,8 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockCollection } from "@local/hash-isomorphic-utils/entity";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
-import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
-import type { HasIndexedContentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { useApp } from "@tldraw/editor";
 import type { DialogProps } from "@tldraw/tldraw";
@@ -66,7 +66,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
                 componentId: blockMeta.componentId,
                 entity: {
                   entityTypeId: blockEntityTypeId,
-                  entityProperties: {},
+                  entityProperties: { value: {} },
                 },
                 ownedById: accountId as OwnedById,
                 position: {
@@ -106,8 +106,8 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
           data.updateBlockCollectionContents.blockCollection.contents.map(
             (item) => ({
               linkEntity: new LinkEntity(item.linkEntity) as
-                | LinkEntity<HasIndexedContentProperties>
-                | LinkEntity<HasSpatiallyPositionedContentProperties>,
+                | LinkEntity<HasIndexedContent>
+                | LinkEntity<HasSpatiallyPositionedContent>,
               rightEntity: {
                 ...item.rightEntity,
                 blockChildEntity: new Entity(item.rightEntity.blockChildEntity),

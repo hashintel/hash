@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   Actor,
@@ -517,7 +516,14 @@ export type {
   WebsiteURLPropertyValueWithMetadata,
 };
 
-export type MentionNotification = Entity<MentionNotificationProperties>;
+/**
+ * A notification that a user was mentioned somewhere.
+ */
+export type MentionNotification = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/mention-notification/v/5";
+  properties: MentionNotificationProperties;
+  propertiesWithMetadata: MentionNotificationPropertiesWithMetadata;
+};
 
 export type MentionNotificationOccurredInBlockLink = {
   linkEntity: OccurredInBlock;
@@ -563,7 +569,13 @@ export type MentionNotificationProperties1 = NotificationProperties;
 
 export type MentionNotificationProperties2 = {};
 
-export type MentionNotificationPropertiesWithMetadata = {
+export type MentionNotificationPropertiesWithMetadata =
+  MentionNotificationPropertiesWithMetadata1 &
+    MentionNotificationPropertiesWithMetadata2;
+export type MentionNotificationPropertiesWithMetadata1 =
+  NotificationPropertiesWithMetadata;
+
+export type MentionNotificationPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -573,7 +585,14 @@ export type MentionNotificationTriggeredByUserLink = {
   rightEntity: User;
 };
 
-export type OccurredInComment = LinkEntity<OccurredInCommentProperties>;
+/**
+ * A comment that something occurred in.
+ */
+export type OccurredInComment = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1";
+  properties: OccurredInCommentProperties;
+  propertiesWithMetadata: OccurredInCommentPropertiesWithMetadata;
+};
 
 export type OccurredInCommentOutgoingLinkAndTarget = never;
 
@@ -588,12 +607,25 @@ export type OccurredInCommentProperties1 = LinkProperties;
 
 export type OccurredInCommentProperties2 = {};
 
-export type OccurredInCommentPropertiesWithMetadata = {
+export type OccurredInCommentPropertiesWithMetadata =
+  OccurredInCommentPropertiesWithMetadata1 &
+    OccurredInCommentPropertiesWithMetadata2;
+export type OccurredInCommentPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type OccurredInCommentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
 
-export type OccurredInText = LinkEntity<OccurredInTextProperties>;
+/**
+ * Text that something occurred in.
+ */
+export type OccurredInText = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1";
+  properties: OccurredInTextProperties;
+  propertiesWithMetadata: OccurredInTextPropertiesWithMetadata;
+};
 
 export type OccurredInTextOutgoingLinkAndTarget = never;
 
@@ -608,7 +640,11 @@ export type OccurredInTextProperties1 = LinkProperties;
 
 export type OccurredInTextProperties2 = {};
 
-export type OccurredInTextPropertiesWithMetadata = {
+export type OccurredInTextPropertiesWithMetadata =
+  OccurredInTextPropertiesWithMetadata1 & OccurredInTextPropertiesWithMetadata2;
+export type OccurredInTextPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type OccurredInTextPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

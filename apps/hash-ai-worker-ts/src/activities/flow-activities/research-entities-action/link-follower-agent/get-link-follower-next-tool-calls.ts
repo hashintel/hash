@@ -12,6 +12,7 @@ import type {
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import type { LocalEntitySummary } from "../../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
 import type { Fact } from "../../shared/infer-facts-from-text/types.js";
+import { simplifyFactForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
 import type { Link } from "./extract-links-from-content.js";
 
 const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
@@ -21,17 +22,14 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
 
   <UserMessageDefinition>
   The user will provide you with:
-    - Task: a research task you have been instructed to fulfill,
-        based on the contents of a resource (e.g. a webpage)
-    - Previously Visited Links: links to resources which have been
-        previously visited to extract facts
+    - Task: a research task you have been instructed to fulfill, based on the contents of a resource (e.g. a webpage)
+    - Previously Visited Links: links to resources which have been previously visited to extract facts
     - Entities: a list of entities for which facts have been gathered, including:
         - name: the name of the entity
         - summary: a summary of the entity
         - entityType: the type of the entity
         - facts: the facts that have been gathered about the entity
-    - Possible Next Links: a list of the possible next links which
-        may be explored next to gather more facts and fulfill the task
+    - Possible Next Links: a list of the possible next links which may be explored next to gather more facts and fulfill the task
   </UserMessageDefinition>
 
   <TaskDescription>
@@ -41,6 +39,9 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
     - exploreLinks: call this tool to explore additional links to gather more facts that may fulfill the task
     - complete: complete the research task if all the gathered facts fulfill the task
     - terminate: terminate the research task if it cannot be progressed further
+    
+  If you already have enough facts to meet the research brief, call 'complete'. 
+  Don't follow more links unless it is required to meet the goal of the research task.
   </TaskDescription>
 `);
 
@@ -50,10 +51,6 @@ type GetLinkFollowerNextToolCallsParams = {
   factsGathered: Fact[];
   previouslyVisitedLinks: { url: string }[];
   possibleNextLinks: Link[];
-};
-
-const simplifyFactForLlmConsumption = (fact: Fact) => {
-  return `${fact.text} ${fact.prepositionalPhrases.join(", ")}`;
 };
 
 const generateUserMessage = (
@@ -73,9 +70,9 @@ const generateUserMessage = (
       {
         type: "text",
         text: dedent(`
-Task: ${task}
-Previously Visited Links: ${JSON.stringify(previouslyVisitedLinks)}
-Entities: ${JSON.stringify(
+<Task>${task}</Task>
+<PreviouslyVisitedLinks>${previouslyVisitedLinks.map(({ url }) => url).join("\n")}</PreviouslyVisitedLinks>
+<Entities>${JSON.stringify(
           entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
             const factsAboutEntity = factsGathered.filter(
               (fact) => fact.subjectEntityLocalId === localId,
@@ -90,8 +87,18 @@ Entities: ${JSON.stringify(
               ),
             };
           }),
-        )}
-Possible Next Links: ${JSON.stringify(possibleNextLinks)}
+          undefined,
+          2,
+        )}</Entities>
+<PossibleNextLinks>
+${JSON.stringify(
+  possibleNextLinks.filter(
+    (link) => !previouslyVisitedLinks.some(({ url }) => url === link.url),
+  ),
+  undefined,
+  2,
+)}
+</PossibleNextLinks>
     `),
       },
     ],
@@ -247,8 +254,12 @@ export const getLinkFollowerNextToolCalls = async (
 
   const userMessage = generateUserMessage(params);
 
-  const { userAuthentication, flowEntityId, webId, stepId } =
+  const { dataSources, userAuthentication, flowEntityId, webId, stepId } =
     await getFlowContext();
+
+  const availableTools = dataSources.internetAccess.enabled
+    ? tools
+    : tools.filter((tool) => tool.name !== "exploreLinks");
 
   const response = await getLlmResponse(
     {
@@ -257,14 +268,14 @@ export const getLinkFollowerNextToolCalls = async (
       messages: [userMessage],
       model: testingParams?.model ?? defaultModel,
       toolChoice: "required",
-      tools,
+      tools: availableTools,
     },
     {
       userAccountId: userAuthentication.actorId,
       graphApiClient,
       webId,
       incurredInEntities: [{ entityId: flowEntityId }],
-      customMetadata: { taskName: "extract-links-from-content", stepId },
+      customMetadata: { taskName: "link-follower", stepId },
     },
   );
 
@@ -314,5 +325,5 @@ export const getLinkFollowerNextToolCalls = async (
     };
   }
 
-  throw new Error(`Failed to get LLM response: ${response.status}`);
+  return getLinkFollowerNextToolCalls(params);
 };

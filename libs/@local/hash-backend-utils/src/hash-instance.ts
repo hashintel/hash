@@ -12,19 +12,24 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import type {
+  HASHInstance,
+  HASHInstance as HASHInstanceEntity,
+  HASHInstanceProperties,
+} from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import { backOff } from "exponential-backoff";
 
 import { EntityTypeMismatchError, NotFoundError } from "./error.js";
 import { getMachineActorId } from "./machine-actors.js";
 
 export type HashInstance = {
-  entity: Entity;
+  entity: Entity<HASHInstance>;
 } & SimpleProperties<HASHInstanceProperties>;
 
 export const getHashInstanceFromEntity = ({
   entity,
 }: {
-  entity: Entity;
+  entity: Entity<HASHInstanceEntity>;
 }): HashInstance => {
   if (
     entity.metadata.entityTypeId !== systemEntityTypes.hashInstance.entityTypeId
@@ -37,7 +42,7 @@ export const getHashInstanceFromEntity = ({
   }
 
   return {
-    ...simplifyProperties(entity.properties as HASHInstanceProperties),
+    ...simplifyProperties(entity.properties),
     entity,
   };
 };
@@ -49,20 +54,28 @@ export const getHashInstance = async (
   { graphApi }: { graphApi: GraphApi },
   { actorId }: { actorId: AccountId },
 ): Promise<HashInstance> => {
-  const entities = await graphApi
-    .getEntities(actorId, {
-      filter: generateVersionedUrlMatchingFilter(
-        systemEntityTypes.hashInstance.entityTypeId,
-        { ignoreParents: true },
-      ),
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId),
-      ),
-    );
+  const entities = await backOff(
+    () =>
+      graphApi
+        .getEntities(actorId, {
+          filter: generateVersionedUrlMatchingFilter(
+            systemEntityTypes.hashInstance.entityTypeId,
+            { ignoreParents: true },
+          ),
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+        })
+        .then(({ data: response }) =>
+          response.entities.map((entity) =>
+            mapGraphApiEntityToEntity<HASHInstanceEntity>(entity, actorId),
+          ),
+        ),
+    {
+      numOfAttempts: 3,
+      startingDelay: 1_000,
+      jitter: "full",
+    },
+  );
 
   if (entities.length > 1) {
     throw new Error("More than one hash instance entity found in the graph.");

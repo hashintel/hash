@@ -15,7 +15,7 @@ import {
 } from "./layout-with-sidebar/page-sidebar";
 
 const Main = styled("main")(({ theme }) => ({
-  height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+  minHeight: `calc(100vh - ${HEADER_HEIGHT}px)`,
   flexGrow: 1,
   marginLeft: "auto",
   marginRight: "auto",
@@ -57,6 +57,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
             position: "relative",
             marginLeft: `-${SIDEBAR_WIDTH}px`,
             overflowX: "hidden",
+            overflowY: "hidden",
             transition: theme.transitions.create("margin", {
               easing: theme.transitions.easing.easeOut,
               duration: theme.transitions.duration.enteringScreen,
@@ -107,8 +108,8 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                 ? palette.gray[10]
                 : palette.common.white,
               minHeight: "100%",
-              overflowY: "scroll",
               flex: 1,
+              width: "100%",
             })}
           >
             <Main

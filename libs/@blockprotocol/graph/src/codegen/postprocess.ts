@@ -23,8 +23,6 @@ export const postprocess = async (context: PostprocessContext) => {
   prependImportsAndExports(context);
   prependBannerComments(context);
 
-  /* @todo - Modify the generated docs of types to include the URLs they came from */
-  /* @todo - Move documentation from the `Properties` definition to the `Entity` definition */
   /* @todo - Generate mappings of TypeURLs to prettified names (fallback to camelCased title if not overriden) */
 
   await writeToFiles(context);

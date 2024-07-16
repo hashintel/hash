@@ -1,4 +1,5 @@
-import type { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import type {
@@ -9,7 +10,7 @@ import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const createFileFromUrl: ResolverFn<
-  Promise<FileEntityType>,
+  Promise<Entity<FileEntity>>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreateFileFromUrlArgs

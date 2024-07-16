@@ -1,7 +1,11 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
+import type {
+  EntityId,
+  PropertyPatchOperation,
+} from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { ApolloError, UserInputError } from "apollo-server-errors";
@@ -12,7 +16,7 @@ import type { PropertyValue } from "../../../../graph/knowledge/primitive/entity
 import {
   createEntityWithLinks,
   getLatestEntityById,
-  updateEntityProperties,
+  updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import type { Block } from "../../../../graph/knowledge/system-types/block";
 import {
@@ -60,7 +64,7 @@ export const createEntityWithPlaceholdersFn =
       return await createEntityWithLinks(context, authentication, {
         ownedById,
         entityTypeId: entityDefinition.entityTypeId!,
-        properties: entityDefinition.entityProperties ?? {},
+        properties: entityDefinition.entityProperties ?? { value: {} },
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
         relationships: createDefaultAuthorizationRelationships(authentication),
       });
@@ -326,11 +330,17 @@ export const handleUpdateEntity = async (
     entityId,
   });
 
-  await updateEntityProperties(context, authentication, {
+  await updateEntity(context, authentication, {
     entity,
-    updatedProperties: typedEntries(action.properties).map(([key, value]) => ({
-      propertyTypeBaseUrl: key,
-      value: (value ?? undefined) as PropertyValue,
-    })),
+    propertyPatches: typedEntries(action.properties).map(
+      ([key, value]) =>
+        ({
+          op: entity.properties[key] === value ? "replace" : "add",
+          path: [key],
+          property: mergePropertiesAndMetadata(
+            (value ?? undefined) as PropertyValue,
+          ),
+        }) satisfies PropertyPatchOperation,
+    ),
   });
 };

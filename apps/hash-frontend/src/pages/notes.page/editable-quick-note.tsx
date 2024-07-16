@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
@@ -12,7 +13,10 @@ import {
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { QuickNoteProperties } from "@local/hash-isomorphic-utils/system-types/quicknote";
+import type {
+  ArchivedPropertyValueWithMetadata,
+  QuickNoteProperties,
+} from "@local/hash-isomorphic-utils/system-types/quicknote";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
@@ -20,15 +24,19 @@ import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
 
-import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useAccountPages } from "../../components/hooks/use-account-pages";
 import type {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
   GetEntityQuery,
   GetEntityQueryVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
-import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import {
+  archiveEntityMutation,
+  updateEntityMutation,
+} from "../../graphql/queries/knowledge/entity.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { ArchiveRegularIcon } from "../../shared/icons/achive-regular-icon";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
@@ -101,7 +109,10 @@ export const EditableQuickNote: FunctionComponent<{
   const [convertedPage, setConvertedPage] = useState<PageWithParentLink>();
   const [isConvertingPage, setIsConvertingPage] = useState(false);
 
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const [isConvertToPageModalOpen, setIsConvertToPageModalOpen] =
     useState(false);
@@ -193,13 +204,26 @@ export const EditableQuickNote: FunctionComponent<{
 
   const handleArchive = useCallback(async () => {
     await updateEntity({
-      data: {
-        entityId: quickNoteEntity.metadata.recordId.entityId,
-        entityTypeId: systemEntityTypes.quickNote.entityTypeId,
-        properties: {
-          ...quickNoteEntity.properties,
-          "https://hash.ai/@hash/types/property-type/archived/": true,
-        } as QuickNoteProperties,
+      variables: {
+        entityUpdate: {
+          entityId: quickNoteEntity.metadata.recordId.entityId,
+          entityTypeId: systemEntityTypes.quickNote.entityTypeId,
+          propertyPatches: [
+            {
+              op: "add",
+              path: [
+                "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof QuickNoteProperties as BaseUrl,
+              ],
+              property: {
+                value: true,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+                },
+              } satisfies ArchivedPropertyValueWithMetadata,
+            },
+          ],
+        },
       },
     });
     await refetchQuickNotes?.();
@@ -220,10 +244,12 @@ export const EditableQuickNote: FunctionComponent<{
     }
 
     await updateEntity({
-      data: {
-        entityId: blockCollectionEntityId,
-        entityTypeId: systemEntityTypes.quickNote.entityTypeId,
-        properties: {},
+      variables: {
+        entityUpdate: {
+          entityId: blockCollectionEntityId,
+          entityTypeId: systemEntityTypes.quickNote.entityTypeId,
+          propertyPatches: [],
+        },
       },
     });
 

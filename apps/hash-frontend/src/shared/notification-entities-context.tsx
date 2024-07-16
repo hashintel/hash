@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -9,28 +10,42 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import type {
+  ArchivedPropertyValueWithMetadata,
+  CommentNotification,
+  Notification,
+  ReadAtPropertyValueWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import type { GraphChangeNotification } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
+import type { MentionNotification } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
-import { useBlockProtocolUpdateEntity } from "../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
   UpdateEntitiesMutation,
   UpdateEntitiesMutationVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
 } from "../graphql/api-types.gen";
 import {
   getEntitySubgraphQuery,
   updateEntitiesMutation,
+  updateEntityMutation,
 } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { pollInterval } from "./poll-interval";
 
 export type NotificationEntitiesContextValues = {
-  notificationEntities?: Entity<NotificationProperties>[];
+  notificationEntities?: Entity<
+    | Notification
+    | MentionNotification
+    | CommentNotification
+    | GraphChangeNotification
+  >[];
   numberOfUnreadNotifications?: number;
   loading: boolean;
   refetch: () => Promise<void>;
@@ -105,7 +120,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
   const notificationEntitiesSubgraph = useMemo(
     () =>
       notificationEntitiesData
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<Notification>>(
             notificationEntitiesData.getEntitySubgraph.subgraph,
           )
         : undefined,
@@ -113,12 +128,18 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
   );
 
   const notificationEntities = useMemo<
-    Entity<NotificationProperties>[] | undefined
+    | Entity<
+        | Notification
+        | MentionNotification
+        | CommentNotification
+        | GraphChangeNotification
+      >[]
+    | undefined
   >(
     () =>
       notificationEntitiesSubgraph
         ? getRoots(notificationEntitiesSubgraph)
-        : notificationEntitiesSubgraph,
+        : undefined,
     [notificationEntitiesSubgraph],
   );
 
@@ -126,7 +147,10 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     await refetchNotificationEntities();
   }, [refetchNotificationEntities]);
 
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const markNotificationAsRead = useCallback(
     async (params: { notificationEntity: Entity }) => {
@@ -135,14 +159,25 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
       const now = new Date();
 
       await updateEntity({
-        data: {
-          entityId: notificationEntity.metadata.recordId.entityId,
-          entityTypeId: notificationEntity.metadata.entityTypeId,
-          properties: {
-            ...notificationEntity.properties,
-            "https://hash.ai/@hash/types/property-type/read-at/":
-              now.toISOString(),
-          } as NotificationProperties,
+        variables: {
+          entityUpdate: {
+            entityId: notificationEntity.metadata.recordId.entityId,
+            propertyPatches: [
+              {
+                op: "add",
+                path: [
+                  "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
+                ],
+                property: {
+                  value: now.toISOString(),
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                } satisfies ReadAtPropertyValueWithMetadata,
+              },
+            ],
+          },
         },
       });
 
@@ -166,11 +201,21 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
             (notificationEntity) => ({
               entityId: notificationEntity.metadata.recordId.entityId,
               entityTypeId: notificationEntity.metadata.entityTypeId,
-              updatedProperties: {
-                ...notificationEntity.properties,
-                "https://hash.ai/@hash/types/property-type/read-at/":
-                  now.toISOString(),
-              } as NotificationProperties,
+              propertyPatches: [
+                {
+                  op: "add",
+                  path: [
+                    "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
+                  ],
+                  property: {
+                    value: now.toISOString(),
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  } satisfies ReadAtPropertyValueWithMetadata,
+                },
+              ],
             }),
           ),
         },
@@ -186,13 +231,26 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
       const { notificationEntity, shouldRefetch = true } = params;
 
       await updateEntity({
-        data: {
-          entityId: notificationEntity.metadata.recordId.entityId,
-          entityTypeId: notificationEntity.metadata.entityTypeId,
-          properties: {
-            ...notificationEntity.properties,
-            "https://hash.ai/@hash/types/property-type/archived/": true,
-          } as NotificationProperties,
+        variables: {
+          entityUpdate: {
+            entityId: notificationEntity.metadata.recordId.entityId,
+            entityTypeId: notificationEntity.metadata.entityTypeId,
+            propertyPatches: [
+              {
+                op: "add",
+                path: [
+                  "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof Notification["properties"] as BaseUrl,
+                ],
+                property: {
+                  value: true,
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+                  },
+                } satisfies ArchivedPropertyValueWithMetadata,
+              },
+            ],
+          },
         },
       });
 
@@ -211,10 +269,21 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
             (notificationEntity) => ({
               entityId: notificationEntity.metadata.recordId.entityId,
               entityTypeId: notificationEntity.metadata.entityTypeId,
-              updatedProperties: {
-                ...notificationEntity.properties,
-                "https://hash.ai/@hash/types/property-type/archived/": true,
-              } as NotificationProperties,
+              propertyPatches: [
+                {
+                  op: "add",
+                  path: [
+                    "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof Notification["properties"] as BaseUrl,
+                  ],
+                  property: {
+                    value: true,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+                    },
+                  } satisfies ArchivedPropertyValueWithMetadata,
+                },
+              ],
             }),
           ),
         },

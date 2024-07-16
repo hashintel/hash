@@ -16,8 +16,8 @@ import type {
   Block,
   BlockCollection as BlockCollectionGql,
 } from "./graphql/api-types.gen.js";
-import type { HasSpatiallyPositionedContentProperties } from "./system-types/canvas.js";
-import type { HasIndexedContentProperties } from "./system-types/shared.js";
+import type { HasSpatiallyPositionedContent } from "./system-types/canvas.js";
+import type { HasIndexedContent, Text } from "./system-types/shared.js";
 import type { TextToken } from "./types.js";
 
 export type BlockEntity = Omit<Block, "blockChildEntity"> & {
@@ -26,8 +26,8 @@ export type BlockEntity = Omit<Block, "blockChildEntity"> & {
 
 export type BlockCollectionContentItem = {
   linkEntity:
-    | LinkEntity<HasIndexedContentProperties>
-    | LinkEntity<HasSpatiallyPositionedContentProperties>;
+    | LinkEntity<HasIndexedContent>
+    | LinkEntity<HasSpatiallyPositionedContent>;
   rightEntity: BlockEntity;
 };
 
@@ -39,13 +39,17 @@ export type TextProperties = {
   [_ in typeof textualContentPropertyTypeBaseUrl]: TextToken[];
 };
 
-export type TextEntityType = Omit<EntityStoreType, "properties"> & {
+export type TextEntityStoreEntity = Omit<EntityStoreType, "properties"> & {
+  properties: TextProperties;
+};
+
+export type TextWithTokens = Omit<Text, "properties"> & {
   properties: TextProperties;
 };
 
 export const isRichTextProperties = (
   properties: Record<string, unknown>,
-): properties is TextEntityType["properties"] =>
+): properties is TextEntityStoreEntity["properties"] =>
   textualContentPropertyTypeBaseUrl in properties &&
   Array.isArray(
     properties[textualContentPropertyTypeBaseUrl as keyof typeof properties],

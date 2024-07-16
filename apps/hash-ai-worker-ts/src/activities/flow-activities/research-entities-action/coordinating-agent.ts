@@ -38,11 +38,11 @@ import { getAnswersFromHuman } from "./get-answers-from-human.js";
 import {
   simplifyEntityTypeForLlmConsumption,
   simplifyProposedEntityForLlmConsumption,
-} from "./shared/simplify-for-llm-consumption.js";
-import type { ExistingEntitySummary } from "./summarize-existing-entities.js";
-import { summarizeExistingEntities } from "./summarize-existing-entities.js";
-import type { CompletedCoordinatorToolCall, WebPageSummary } from "./types.js";
-import { mapPreviousCallsToLlmMessages } from "./util.js";
+} from "./shared/simplify-for-llm-consumption";
+import type { ExistingEntitySummary } from "./summarize-existing-entities";
+import { summarizeExistingEntities } from "./summarize-existing-entities";
+import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types";
+import { mapPreviousCallsToLlmMessages } from "./util";
 
 const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
@@ -102,8 +102,8 @@ const generateSystemPromptPrefix = (params: {
       as many properties as possible.
 
     This may well involve:
-      - inferring facts from more than one web page
-      - conducting multiple web searches
+      - inferring facts from more than one data source
+      - conducting multiple searches
       - starting sub-tasks to find additional relevant facts about specific entities
 
     If it would be useful to split up the task into sub-tasks to find detailed information on specific entities, do so. 
@@ -160,8 +160,8 @@ export type CoordinatingAgentState = {
   subTasksCompleted: string[];
   suggestionsForNextStepsMade: string[];
   submittedEntityIds: string[];
-  webPageUrlsVisited: string[];
-  webPagesNotVisited: WebPageSummary[];
+  resourceUrlsVisited: string[];
+  resourcesNotVisited: ResourceSummary[];
   webQueriesMade: string[];
   hasConductedCheckStep: boolean;
   questionsAndAnswers: string | null;
@@ -176,8 +176,8 @@ const generateProgressReport = (params: {
   const {
     subTasksCompleted,
     suggestionsForNextStepsMade,
-    webPagesNotVisited,
-    webPageUrlsVisited,
+    resourcesNotVisited,
+    resourceUrlsVisited,
     webQueriesMade,
   } = state;
 
@@ -189,12 +189,14 @@ const generateProgressReport = (params: {
     (proposedEntity) => "sourceEntityId" in proposedEntity,
   );
 
-  let progressReport = dedent`You have previously proposed the following plan:
+  let progressReport = state.plan
+    ? dedent`You have previously proposed the following plan:
       ${state.plan}
 
       If you want to deviate from this plan or improve it, update it using the "updatePlan" tool.
       You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.\n\n
-      `;
+      `
+    : "";
 
   if (proposedEntities.length > 0 || proposedLinks.length > 0) {
     progressReport +=
@@ -218,29 +220,29 @@ const generateProgressReport = (params: {
     If further research is needed to fill more properties of any entities or links,
       consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
 
-    Do not sequentially conduct additional web searches for each of the entities,
+    Do not sequentially conduct additional actions for each of the entities,
       instead start multiple sub-tasks via the "startFactGatheringSubTasks" tool to
       conduct additional research per entity in parallel.`;
   }
   if (
-    webPageUrlsVisited.length > 0 ||
-    webPagesNotVisited.length > 0 ||
+    resourceUrlsVisited.length > 0 ||
+    resourcesNotVisited.length > 0 ||
     webQueriesMade.length > 0
   ) {
-    if (webPageUrlsVisited.length > 0) {
+    if (resourceUrlsVisited.length > 0) {
       progressReport += dedent(`
-        You have already visited the following web pages – there is no need to visit them again:
-        <WebPagesVisited>
-        ${webPageUrlsVisited.join("\n")}
-        </WebPagesVisited>
+        You have already visited the following resources – they may be worth visiting again if you need more information:
+        <ResourcesVisited>
+        ${resourceUrlsVisited.join("\n")}
+        </ResourcesVisited>
       `);
     }
-    if (webPagesNotVisited.length > 0) {
+    if (resourcesNotVisited.length > 0) {
       progressReport += dedent(`
-        You have not visited the following web pages. If none are of interest, you may need to make further web searches:
-        <WebPagesNotVisited>
-        ${webPagesNotVisited.map((webPage) => `Url: ${webPage.url}\nSummary:${webPage.summary}`).join("\n\n")}
-        </WebPagesNotVisited>
+        You have not visited the following resources:
+        <ResourcesNotVisited>
+        ${resourcesNotVisited.map((webPage) => `Url: ${webPage.url}\nSummary:${webPage.summary}`).join("\n\n")}
+        </ResourcesNotVisited>
       `);
     }
     if (webQueriesMade.length > 0) {
@@ -324,8 +326,12 @@ const getNextToolCalls = async (params: {
     ...llmMessagesFromPreviousToolCalls,
   ].flat();
 
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
+
   const tools = Object.values(
     generateToolDefinitions({
+      dataSources,
       omitTools: [
         ...(input.humanInputCanBeRequested
           ? []
@@ -335,9 +341,6 @@ const getNextToolCalls = async (params: {
       state,
     }),
   );
-
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -377,12 +380,26 @@ const maximumRetries = 3;
 const createInitialPlan = async (params: {
   input: CoordinatingAgentInput;
   questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
+  providedFiles: CoordinatingAgentState["resourcesNotVisited"];
   retryContext?: { retryMessages: LlmMessage[]; retryCount: number };
 }): Promise<Pick<CoordinatingAgentState, "plan" | "questionsAndAnswers">> => {
-  const { input, questionsAndAnswers, retryContext } = params;
+  const { input, questionsAndAnswers, providedFiles, retryContext } = params;
+
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const systemPrompt = dedent(`
     ${generateSystemPromptPrefix({ input })}
+    
+    ${
+      providedFiles.length
+        ? dedent(`
+      The user has provided you with the following resources which can be used to infer facts from:
+      ${providedFiles.map((file) => `<Resource>Url: ${file.url}\nTitle: ${file.title}</Resource>`).join("\n\n")}`)
+        : ""
+    }
+    
+    ${dataSources.internetAccess.enabled ? "You can also conduct web searches and visit public web pages." : "Public internet access is disabled – you must rely on the provided resources."}
 
     ${
       input.humanInputCanBeRequested
@@ -396,10 +413,15 @@ const createInitialPlan = async (params: {
             - The research brief or terms within it are ambiguous
             - You can think of any other questions that will help you deliver a better response to the user
           If in doubt, ask!
-          
-    ${questionsAndAnswers ? `You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}` : ""}
 
           2. Provide a plan of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
+          
+          ${
+            questionsAndAnswers
+              ? `<PreviouslyAnsweredQuestions>You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}          
+      </PreviouslyAnsweredQuestions>`
+              : ""
+          }
 
           Please now either ask the user your questions, or produce the initial plan if there are no ${
             questionsAndAnswers ? "more " : ""
@@ -414,11 +436,9 @@ const createInitialPlan = async (params: {
     }
   `);
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
-
   const tools = Object.values(
     generateToolDefinitions<["complete"]>({
+      dataSources,
       omitTools: input.humanInputCanBeRequested
         ? ["complete"]
         : (["complete", "requestHumanInput"] as unknown as ["complete"]),
@@ -499,6 +519,7 @@ const createInitialPlan = async (params: {
     return createInitialPlan({
       input,
       questionsAndAnswers,
+      providedFiles,
       retryContext: {
         retryMessages: [message, retryParams.retryMessage],
         retryCount: retryCount + 1,
@@ -520,6 +541,7 @@ const createInitialPlan = async (params: {
 
     return createInitialPlan({
       input,
+      providedFiles,
       questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
     });
   }

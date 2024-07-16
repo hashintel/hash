@@ -5,6 +5,7 @@ import {
 } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -50,9 +51,11 @@ export type EntityTypeRootType = Subtype<
   }
 >;
 
-export type EntityRootType = {
+export type EntityRootType<
+  Properties extends EntityProperties = EntityProperties,
+> = {
   vertexId: EntityVertexId;
-  element: Entity;
+  element: Entity<Properties>;
 };
 
 export type SubgraphRootType =

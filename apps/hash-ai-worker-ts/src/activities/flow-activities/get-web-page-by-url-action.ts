@@ -19,6 +19,13 @@ export const getWebPageByUrlAction: FlowActionActivity = async ({ inputs }) => {
    * by HASH flows.
    */
   const webPage = await getWebPageActivity({ url });
+  if ("error" in webPage) {
+    return {
+      code: StatusCode.Unavailable,
+      message: webPage.error,
+      contents: [],
+    };
+  }
 
   return {
     code: StatusCode.Ok,

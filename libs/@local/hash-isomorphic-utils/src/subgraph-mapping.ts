@@ -10,7 +10,11 @@ import type {
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
+import type {
+  EntityId,
+  EntityProperties,
+  PropertyObject,
+} from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -38,12 +42,12 @@ const restrictedPropertyBaseUrls: string[] = [
   systemPropertyTypes.email.propertyTypeBaseUrl,
 ];
 
-export const mapGraphApiEntityToEntity = (
+export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
   entity: GraphApiEntity,
   userAccountId: AccountId | null,
   preserveProperties: boolean = false,
 ) =>
-  new Entity({
+  new Entity<T>({
     ...entity,
     /**
      * Until cell-level permissions is implemented (H-814), remove user properties that shouldn't be generally visible

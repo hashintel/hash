@@ -52,6 +52,7 @@ export {
   getPropertyTypeForEntity,
   getPropertyTypes,
   getPropertyTypesByBaseUrl,
+  getPropertyTypesForEntityType,
   guessSchemaForPropertyValue,
 } from "./stdlib/subgraph/element/property-type.js";
 export * from "./stdlib/subgraph/roots.js";

@@ -1,5 +1,13 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import { typedKeys } from "@local/advanced-types/typed-entries";
+import type {
+  OriginProvenance,
+  SourceProvenance,
+} from "@local/hash-graph-client";
+import type {
+  EntityId,
+  PropertyMetadataObject,
+} from "@local/hash-graph-types/entity";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   getSimplifiedActionInputs,
@@ -41,7 +49,8 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
     : [];
 
-  const { userAuthentication, webId } = await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } =
+    await getFlowContext();
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: userAuthentication,
@@ -107,6 +116,8 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     };
   }
 
+  const processBeginTime = new Date().toISOString();
+
   const status = await inferEntitiesFromWebPageActivity({
     webPage: content,
     relevantEntitiesPrompt,
@@ -128,6 +139,18 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
 
   webPageInferenceState = status.contents[0]!;
 
+  const source: SourceProvenance =
+    typeof content === "object"
+      ? {
+          type: "webpage",
+          loadedAt: processBeginTime,
+          location: {
+            uri: content.url,
+            name: content.title,
+          },
+        }
+      : { type: "document", loadedAt: processBeginTime };
+
   const proposedEntities = Object.entries(
     webPageInferenceState.proposedEntityCreationsByType,
   ).flatMap(([entityTypeId, proposedEntitiesByType]) =>
@@ -137,11 +160,33 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
           proposedEntitySummary.entityId === proposal.entityId,
       )?.summary;
 
+      const provenance: ProposedEntity["provenance"] = {
+        actorType: "ai",
+        origin: {
+          type: "flow",
+          stepIds: [stepId],
+          id: flowEntityId,
+        } satisfies OriginProvenance,
+      };
+
       return {
         localEntityId: `${actionIdPrefix}-${proposal.entityId}`,
         entityTypeId: entityTypeId as VersionedUrl,
         summary,
         properties: proposal.properties ?? {},
+        propertyMetadata: typedKeys(
+          proposal.properties ?? {},
+        ).reduce<PropertyMetadataObject>(
+          (acc, propertyKey) => {
+            acc.value[propertyKey] = {
+              metadata: { provenance: { sources: [source] } },
+            };
+
+            return acc;
+          },
+          { value: {} },
+        ),
+        provenance,
         sourceEntityId:
           "sourceEntityId" in proposal
             ? typeof proposal.sourceEntityId === "number"

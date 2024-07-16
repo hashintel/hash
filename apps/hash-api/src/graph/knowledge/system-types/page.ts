@@ -22,13 +22,14 @@ import {
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type {
-  HasDataProperties,
-  HasIndexedContentProperties,
-  PageProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+  Canvas,
+  FractionalIndexPropertyValueWithMetadata,
+  HasParent,
+  HasSpatiallyPositionedContent,
+} from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { Document } from "@local/hash-isomorphic-utils/system-types/document";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -41,7 +42,7 @@ import {
   getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  updateEntityProperty,
+  updateEntity,
 } from "../primitive/entity";
 import {
   createLinkEntity,
@@ -58,12 +59,12 @@ export type Page = {
   fractionalIndex?: string;
   icon?: string;
   archived?: boolean;
-  entity: Entity;
+  entity: Entity<Canvas | Document>;
 };
 
-export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
-  entity,
-}) => {
+function assertPageEntity(
+  entity: Entity,
+): asserts entity is Entity<Canvas | Document> {
   if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -71,9 +72,15 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
       entity.metadata.entityTypeId,
     );
   }
+}
+
+export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
+  entity,
+}) => {
+  assertPageEntity(entity);
 
   const { title, summary, fractionalIndex, icon, archived } =
-    simplifyProperties(entity.properties as PageProperties);
+    simplifyProperties(entity.properties);
 
   return {
     title,
@@ -126,18 +133,37 @@ export const createPage: ImpureGraphFunction<
 
   const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
-  const properties: PageProperties = {
-    "https://hash.ai/@hash/types/property-type/title/": title,
-    "https://hash.ai/@hash/types/property-type/fractional-index/":
-      fractionalIndex,
-    ...(summary
-      ? {
-          "https://hash.ai/@hash/types/property-type/summary/": summary,
-        }
-      : {}),
+  const properties: (Canvas | Document)["propertiesWithMetadata"] = {
+    value: {
+      "https://hash.ai/@hash/types/property-type/title/": {
+        value: title,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      "https://hash.ai/@hash/types/property-type/fractional-index/": {
+        value: fractionalIndex,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      ...(summary !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/summary/": {
+              value: summary,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          }
+        : {}),
+    },
   };
 
-  const entity = await createEntity(ctx, authentication, {
+  const entity = await createEntity<Canvas | Document>(ctx, authentication, {
     ownedById,
     properties,
     entityTypeId:
@@ -209,7 +235,7 @@ export const getPageParentPage: ImpureGraphFunction<
     linkEntity: parentPageLink,
   });
 
-  return getPageFromEntity({ entity: pageEntity as Entity<PageProperties> });
+  return getPageFromEntity({ entity: pageEntity });
 };
 
 /**
@@ -408,9 +434,9 @@ export const setPageParentPage: ImpureGraphFunction<
       );
     }
 
-    await createLinkEntity(ctx, authentication, {
+    await createLinkEntity<HasParent>(ctx, authentication, {
       ownedById: authentication.actorId as OwnedById,
-      properties: {},
+      properties: { value: {} },
       linkData: {
         leftEntityId: page.entity.metadata.recordId.entityId,
         rightEntityId: parentPage.entity.metadata.recordId.entityId,
@@ -421,12 +447,21 @@ export const setPageParentPage: ImpureGraphFunction<
   }
 
   if (page.fractionalIndex !== newIndex) {
-    const updatedPageEntity = await updateEntityProperty(ctx, authentication, {
+    const updatedPageEntity = await updateEntity(ctx, authentication, {
       entity: page.entity,
-      propertyTypeBaseUrl: extractBaseUrl(
-        systemPropertyTypes.fractionalIndex.propertyTypeId,
-      ),
-      value: newIndex,
+      propertyPatches: [
+        {
+          op: "replace",
+          path: [systemPropertyTypes.fractionalIndex.propertyTypeBaseUrl],
+          property: {
+            value: newIndex,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          } satisfies FractionalIndexPropertyValueWithMetadata,
+        },
+      ],
     });
 
     return getPageFromEntity({ entity: updatedPageEntity });
@@ -442,7 +477,12 @@ export const setPageParentPage: ImpureGraphFunction<
  */
 export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
-  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>,
+  Promise<
+    {
+      linkEntity: LinkEntity<HasIndexedContent | HasSpatiallyPositionedContent>;
+      rightEntity: Block;
+    }[]
+  >,
   false,
   true
 > = async (ctx, authentication, { pageEntityId, type }) => {
@@ -458,8 +498,8 @@ export const getPageBlocks: ImpureGraphFunction<
               .linkEntityTypeId,
     },
   )) as
-    | LinkEntity<HasIndexedContentProperties>[]
-    | LinkEntity<HasSpatiallyPositionedContentProperties>[];
+    | LinkEntity<HasIndexedContent>[]
+    | LinkEntity<HasSpatiallyPositionedContent>[];
 
   return await Promise.all(
     outgoingBlockDataLinks

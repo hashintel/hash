@@ -61,7 +61,7 @@ runs:
 
     # Build images and push to ECR
     - name: Build and push ${{inputs.SHORTNAME}} image
-      uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+      uses: docker/build-push-action@a254f8ca60a858f3136a2f1f23a60969f2c402dd # v6.4.0
       env:
         GH_RUN_ID: ${{ github.run_id }}
       with:

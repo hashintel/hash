@@ -118,8 +118,8 @@ export type StringConstraint = {
 export type NumberConstraint = {
   minimum?: number;
   maximum?: number;
-  exclusiveMinimum?: number;
-  exclusiveMaximum?: number;
+  exclusiveMinimum?: boolean;
+  exclusiveMaximum?: boolean;
   multipleOf?: number;
   type: "number" | "integer";
 };
@@ -137,12 +137,12 @@ export type ObjectConstraint = {
 };
 
 export type StringEnumConstraint = {
-  enum: string[];
+  enum: [string, ...string[]];
   type: "string";
 };
 
 export type NumberEnumConstraint = {
-  enum: number[];
+  enum: [number, ...number[]];
   type: "number" | "integer";
 };
 

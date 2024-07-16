@@ -5,12 +5,12 @@ import { useMemo } from "react";
 import { useUserOrOrg } from "../../shared/use-user-or-org";
 
 export const useUserOrOrgShortnameByOwnedById = (params: {
-  ownedById: OwnedById;
+  ownedById: OwnedById | null;
 }) => {
   const { ownedById } = params;
 
   const { userOrOrg, loading } = useUserOrOrg({
-    accountOrAccountGroupId: ownedById,
+    accountOrAccountGroupId: ownedById ?? undefined,
   });
 
   const shortname = useMemo(() => {

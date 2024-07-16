@@ -20,7 +20,7 @@ import type {
   LinkData,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
-import type { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 
 import type {
@@ -76,7 +76,7 @@ export type UploadFileRequestData = BpUploadFileData &
 export type UploadFileRequestCallback = MessageCallback<
   UploadFileRequestData,
   null,
-  MessageReturn<FileEntityType>,
+  MessageReturn<Entity<FileEntity>>,
   CreateResourceError
 >;
 

@@ -6,7 +6,6 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Confidence } from "@local/hash-graph-types/entity";
 
 import type {
@@ -413,7 +412,14 @@ export type {
   WorkflowStatePropertiesWithMetadata,
 };
 
-export type Attachment = Entity<AttachmentProperties>;
+/**
+ * Issue attachment (e.g. support ticket, pull request).
+ */
+export type Attachment = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/attachment/v/1";
+  properties: AttachmentProperties;
+  propertiesWithMetadata: AttachmentPropertiesWithMetadata;
+};
 
 export type AttachmentBelongsToIssueLink = {
   linkEntity: BelongsToIssue;
@@ -475,7 +481,14 @@ export type AttachmentURLPropertyValue = TextDataType;
 
 export type AttachmentURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type BelongsToIssue = LinkEntity<BelongsToIssueProperties>;
+/**
+ * The issue this attachment belongs to.
+ */
+export type BelongsToIssue = {
+  entityTypeId: "https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1";
+  properties: BelongsToIssueProperties;
+  propertiesWithMetadata: BelongsToIssuePropertiesWithMetadata;
+};
 
 export type BelongsToIssueOutgoingLinkAndTarget = never;
 
@@ -490,7 +503,11 @@ export type BelongsToIssueProperties1 = LinkProperties;
 
 export type BelongsToIssueProperties2 = {};
 
-export type BelongsToIssuePropertiesWithMetadata = {
+export type BelongsToIssuePropertiesWithMetadata =
+  BelongsToIssuePropertiesWithMetadata1 & BelongsToIssuePropertiesWithMetadata2;
+export type BelongsToIssuePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type BelongsToIssuePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

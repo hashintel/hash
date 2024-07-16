@@ -35,6 +35,6 @@ export const logLlmRequest = <T extends LlmParams>(params: {
 
   writeFileSync(
     logFilePath,
-    JSON.stringify({ taskName, stepId, llmParams, llmResponse }, null, 2),
+    JSON.stringify({ taskName, stepId, llmResponse, llmParams }, null, 2),
   );
 };

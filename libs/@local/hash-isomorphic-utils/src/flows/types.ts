@@ -1,7 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  EnforcedEntityEditionProvenance,
+  SerializedEntity,
+} from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
@@ -37,8 +39,8 @@ export type LocalOrExistingEntityId =
  *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
  */
 export type ProposedEntity = {
-  provenance?: ProvidedEntityEditionProvenance;
-  propertyMetadata?: PropertyMetadataObject;
+  provenance: EnforcedEntityEditionProvenance;
+  propertyMetadata: PropertyMetadataObject;
   localEntityId: string;
   entityTypeId: VersionedUrl;
   summary?: string;
@@ -94,6 +96,8 @@ export type FormattedText = {
 
 export type GoogleSheet = { spreadsheetId: string } | { newSheetName: string };
 
+export type WebSearchResult = Pick<WebPage, "title" | "url">;
+
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Boolean: boolean;
@@ -110,6 +114,7 @@ export type PayloadKindValues = {
   Text: string;
   VersionedUrl: VersionedUrl;
   WebPage: WebPage;
+  WebSearchResult: WebSearchResult;
 };
 
 export type PayloadKind = keyof PayloadKindValues;
@@ -340,6 +345,19 @@ export type FlowTrigger = {
   outputs?: StepOutput[];
 };
 
+export type FlowInternetAccessSettings = {
+  enabled: boolean;
+  browserPlugin: {
+    enabled: boolean;
+    domains: string[];
+  };
+};
+
+export type FlowDataSources = {
+  files: { fileEntityIds: EntityId[] };
+  internetAccess: FlowInternetAccessSettings;
+};
+
 export type LocalFlowRun = {
   name: string;
   flowRunId: EntityUuid;
@@ -379,14 +397,14 @@ export type StartedSubTaskLog = ProgressLogBase & {
 
 export type ViewedFile = {
   explanation: string;
-  fileUrl: string;
+  file: Pick<WebPage, "url" | "title">;
   recordedAt: string;
   stepId: string;
   type: "ViewedFile";
 };
 
 export type ProposedEntityLog = ProgressLogBase & {
-  proposedEntity: ProposedEntity;
+  proposedEntity: Omit<ProposedEntity, "provenance" | "propertyMetadata">;
   type: "ProposedEntity";
 };
 

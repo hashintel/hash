@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   EmailPropertyValue,
@@ -37,7 +36,14 @@ export type IntendedUsePropertyValue = TextDataType;
 
 export type IntendedUsePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
-export type ProspectiveUser = Entity<ProspectiveUserProperties>;
+/**
+ * Information about a prospective user of an application or system
+ */
+export type ProspectiveUser = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/prospective-user/v/1";
+  properties: ProspectiveUserProperties;
+  propertiesWithMetadata: ProspectiveUserPropertiesWithMetadata;
+};
 
 export type ProspectiveUserOutgoingLinkAndTarget = never;
 

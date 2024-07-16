@@ -11,6 +11,7 @@ use futures::{
     Sink, SinkExt, Stream, StreamExt,
 };
 use graph_types::ontology::{DataTypeId, PropertyTypeId};
+use type_system::Valid;
 
 use crate::{
     snapshot::{
@@ -115,7 +116,9 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
         self.schema
             .start_send_unpin(PropertyTypeRow {
                 ontology_id,
-                schema: property_type.schema,
+                // TODO: Validate ontology types in snapshots
+                //   see https://linear.app/hash/issue/H-3038
+                schema: Valid::new_unchecked(property_type.schema),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

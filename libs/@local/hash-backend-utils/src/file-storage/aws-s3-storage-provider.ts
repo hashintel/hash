@@ -6,6 +6,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import type {
   GetFileEntityStorageKeyParams,
@@ -77,18 +78,64 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
 
     return {
       fileStorageProperties: {
-        "https://hash.ai/@hash/types/property-type/file-storage-bucket/":
-          this.bucket,
-        "https://hash.ai/@hash/types/property-type/file-storage-endpoint/":
-          this.endpoint,
-        "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/":
-          !!this.forcePathStyle,
-        "https://hash.ai/@hash/types/property-type/file-storage-key/":
-          params.key,
-        "https://hash.ai/@hash/types/property-type/file-storage-provider/":
-          this.storageType,
-        "https://hash.ai/@hash/types/property-type/file-storage-region/":
-          this.region,
+        value: {
+          "https://hash.ai/@hash/types/property-type/file-storage-bucket/": {
+            value: this.bucket,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+          ...(this.endpoint
+            ? {
+                "https://hash.ai/@hash/types/property-type/file-storage-endpoint/":
+                  {
+                    value: this.endpoint,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  },
+              }
+            : {}),
+          "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/":
+            {
+              value: !!this.forcePathStyle,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+              },
+            },
+          "https://hash.ai/@hash/types/property-type/file-storage-key/": {
+            value: params.key,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+          "https://hash.ai/@hash/types/property-type/file-storage-provider/": {
+            value: this.storageType,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+          "https://hash.ai/@hash/types/property-type/file-storage-region/": {
+            value: this.region,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        } satisfies Pick<
+          File["propertiesWithMetadata"]["value"],
+          | "https://hash.ai/@hash/types/property-type/file-storage-bucket/"
+          | "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"
+          | "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"
+          | "https://hash.ai/@hash/types/property-type/file-storage-key/"
+          | "https://hash.ai/@hash/types/property-type/file-storage-provider/"
+          | "https://hash.ai/@hash/types/property-type/file-storage-region/"
+        >,
       },
       presignedPut: { url: presignedPutUrl },
     };

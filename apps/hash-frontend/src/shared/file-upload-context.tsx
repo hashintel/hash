@@ -1,9 +1,17 @@
 import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  LinkEntity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  File as FileEntity,
+  UploadCompletedAtPropertyValueWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import type { PropsWithChildren } from "react";
 import {
   createContext,
@@ -77,7 +85,7 @@ type FileUploadRequestData = {
 };
 
 type FileUploadEntities = {
-  fileEntity: Entity<FileProperties>;
+  fileEntity: Entity<FileEntity>;
   linkEntity?: LinkEntity;
 };
 
@@ -273,7 +281,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             throw new Error(errors?.[0]?.message ?? "unknown error");
           }
 
-          fileEntity = new Entity<FileProperties>(data.createFileFromUrl);
+          fileEntity = new Entity<FileEntity>(data.createFileFromUrl);
 
           if (makePublic) {
             /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -335,9 +343,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
               throw new Error(errors?.[0]?.message ?? "unknown error");
             }
 
-            fileEntity = new Entity<FileProperties>(
-              data.requestFileUpload.entity,
-            );
+            fileEntity = new Entity<FileEntity>(data.requestFileUpload.entity);
 
             if (makePublic) {
               /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -387,11 +393,21 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             variables: {
               entityUpdate: {
                 entityId: fileEntity.metadata.recordId.entityId,
-                updatedProperties: {
-                  ...fileEntity.properties,
-                  "https://hash.ai/@hash/types/property-type/upload-completed-at/":
-                    uploadCompletedAt.toISOString(),
-                } as FileProperties,
+                propertyPatches: [
+                  {
+                    op: "add",
+                    path: [
+                      "https://hash.ai/@hash/types/property-type/upload-completed-at/" satisfies keyof FileEntity["properties"] as BaseUrl,
+                    ],
+                    property: {
+                      value: uploadCompletedAt.toISOString(),
+                      metadata: {
+                        dataTypeId:
+                          "https://hash.ai/@hash/types/data-type/datetime/v/1",
+                      },
+                    } satisfies UploadCompletedAtPropertyValueWithMetadata,
+                  },
+                ],
               },
             },
           });
@@ -498,7 +514,9 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
               leftEntityId: linkedEntityId,
               rightEntityId: fileEntity.metadata.recordId.entityId,
             },
-            properties: linkProperties ?? {},
+            properties: linkProperties
+              ? mergePropertyObjectAndMetadata(linkProperties, undefined)
+              : { value: {} },
           },
         });
 

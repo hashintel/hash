@@ -66,16 +66,17 @@ export type EntityTemporalVersioningMetadata = Subtype<
   Record<TemporalAxis, HalfClosedInterval>
 >;
 
-export type EntityMetadata = Subtype<
-  EntityMetadataBp,
-  {
-    recordId: EntityRecordId;
-    entityTypeId: VersionedUrl;
-    temporalVersioning: EntityTemporalVersioningMetadata;
-    archived: boolean;
-    provenance: EntityProvenance;
-  }
->;
+export type EntityMetadata<EntityTypeId extends VersionedUrl = VersionedUrl> =
+  Subtype<
+    EntityMetadataBp,
+    {
+      recordId: EntityRecordId;
+      entityTypeId: EntityTypeId;
+      temporalVersioning: EntityTemporalVersioningMetadata;
+      archived: boolean;
+      provenance: EntityProvenance;
+    }
+  >;
 
 /**
  * The value of a property.
@@ -100,6 +101,12 @@ export type PropertyArray = Property[];
  */
 export type PropertyObject = {
   [key: BaseUrl]: Property;
+};
+
+export type EntityProperties = {
+  entityTypeId: VersionedUrl;
+  properties: PropertyObject;
+  propertiesWithMetadata: PropertyObjectWithMetadata;
 };
 
 /**
@@ -207,6 +214,17 @@ export type PropertyWithMetadata =
   | PropertyObjectWithMetadata
   | PropertyValueWithMetadata;
 
+/**
+ * A path to a property in a properties object
+ *
+ * @example where the 'address' property is an array, the path to the street of the first address
+ *    ["https://example.com/address/", 0, "https://example.com/street/"]
+ * @example where the 'address' property is not an array, the path to the street of the single address
+ *    ["https://example.com/address/", "https://example.com/street/"]
+ * @example where the 'color' property is an array of RGB tuples [number, number, number], the green value of the first
+ *   color
+ *    ["https://example.com/color/", 0, 1]
+ */
 export type PropertyPath = (BaseUrl | number)[];
 
 export type LinkData = Subtype<
@@ -234,23 +252,21 @@ export type EntityEditionProvenance = {
   sources?: Array<SourceProvenance>;
 };
 
-type AddPropertyPatchOperation = {
+export type AddPropertyPatchOperation = {
   op: "add";
   path: PropertyPath;
-  value: PropertyValue;
-  metadata?: PropertyMetadata;
+  property: PropertyWithMetadata;
 };
 
-type RemovePropertyPatchOperation = {
+export type RemovePropertyPatchOperation = {
   op: "remove";
   path: PropertyPath;
 };
 
-type ReplacePropertyPatchOperation = {
+export type ReplacePropertyPatchOperation = {
   op: "replace";
   path: PropertyPath;
-  value: PropertyValue;
-  metadata?: PropertyMetadata;
+  property: PropertyWithMetadata;
 };
 
 export type PropertyPatchOperation =

@@ -1,5 +1,8 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  type EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
@@ -7,8 +10,11 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
-  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type {
+  GraphChangeNotification,
+  OccurredInEntity,
+} from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 import { getWebMachineActorId } from "./machine-actors.js";
@@ -93,10 +99,17 @@ export const createGraphChangeNotification = async (
       machineActorId: webMachineActorId,
     });
 
+  const provenance: EnforcedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "api",
+    },
+  };
+
   /**
    * We create the notification entity with the user's web bot, as we know it has the necessary permissions in the user's web
    */
-  const notificationEntity = await Entity.create(
+  const notificationEntity = await Entity.create<GraphChangeNotification>(
     graphApi,
     { actorId: webMachineActorId },
     {
@@ -104,13 +117,22 @@ export const createGraphChangeNotification = async (
       entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
       ownedById: notifiedUserAccountId as OwnedById,
       properties: {
-        [systemPropertyTypes.graphChangeType.propertyTypeBaseUrl]: operation,
+        value: {
+          "https://hash.ai/@hash/types/property-type/graph-change-type/": {
+            value: operation,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
       },
+      provenance,
       relationships: notificationEntityRelationships,
     },
   );
 
-  await Entity.create(
+  await Entity.create<OccurredInEntity>(
     graphApi,
     /**
      * We use the user's authority to create the link to the entity because it might be in a different web, e.g. an org's,
@@ -129,9 +151,17 @@ export const createGraphChangeNotification = async (
         rightEntityId: changedEntityId,
       },
       properties: {
-        [systemPropertyTypes.entityEditionId.propertyTypeBaseUrl]:
-          changedEntityEditionId,
+        value: {
+          "https://hash.ai/@hash/types/property-type/entity-edition-id/": {
+            value: changedEntityEditionId,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
       },
+      provenance,
       relationships: linkEntityRelationships,
     },
   );

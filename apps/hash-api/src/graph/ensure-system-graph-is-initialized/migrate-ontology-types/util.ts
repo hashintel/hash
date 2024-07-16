@@ -28,7 +28,7 @@ import type {
   UpdatePropertyType,
 } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { PropertyObject } from "@local/hash-graph-types/entity";
+import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
   ConstructDataTypeParams,
@@ -365,7 +365,9 @@ export const generateSystemPropertyTypeSchema = (
         > = {
           type: "object" as const,
           properties: propertyTypeObjectProperties,
-          required: propertyTypeObjectRequiredProperties ?? [],
+          required: propertyTypeObjectRequiredProperties
+            ? atLeastOne(propertyTypeObjectRequiredProperties)
+            : undefined,
         };
         inner = propertyTypeObject;
       } else {
@@ -715,7 +717,7 @@ export const generateSystemEntityTypeSchema = (
     description: params.description,
     type: "object",
     properties,
-    required: requiredProperties,
+    required: requiredProperties ? atLeastOne(requiredProperties) : undefined,
     links,
   };
 };
@@ -1213,7 +1215,9 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
     migrationState: MigrationState;
     migrateProperties?: Record<
       BaseUrl,
-      (previousProperties: PropertyObject) => PropertyObject
+      (
+        previousProperties: PropertyObjectWithMetadata,
+      ) => PropertyObjectWithMetadata
     >;
   },
   Promise<void>,

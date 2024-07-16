@@ -1,0 +1,27 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "harpc-tower"
+version = "0.1.0"
+license = "AGPL-3.0"
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+bytes.workspace = true
+error-stack.workspace = true
+futures.workspace = true
+harpc-net.workspace = true
+harpc-types.workspace = true
+harpc-wire-protocol.workspace = true
+pin-project = "1.1.5"
+pin-project-lite = "0.2.14"
+thiserror = "1.0.61"
+tokio = { workspace = true, features = ["time"] }
+tower = { version = "0.4.13", features = ["util"] }
+
+[dev-dependencies]
+tokio-util = { workspace = true, features = ["time"] }
+tower-test = "0.4.0"
+harpc-net = {workspace = true, features = ["test-utils"]}
+tokio-test = "0.4.4"

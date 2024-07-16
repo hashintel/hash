@@ -7,8 +7,8 @@ export type CompletedCoordinatorToolCall<ToolId extends string> = {
   entitySummaries: LocalEntitySummary[] | null;
   subTasksCompleted?: string[] | null;
   suggestionsForNextStepsMade?: string[] | null;
-  webPageUrlsVisited: string[] | null;
-  webPagesFromSearchQuery: WebPageSummary[] | null;
+  resourceUrlsVisited: string[] | null;
+  webPagesFromSearchQuery: ResourceSummary[] | null;
   webQueriesMade: string[] | null;
   output: string;
   isError?: boolean;
@@ -19,19 +19,21 @@ export type CompletedToolCall<ToolId extends string> = {
   isError?: boolean;
 } & ParsedLlmToolCall<ToolId>;
 
-export const nullReturns = {
+export const nullReturns: Omit<
+  CompletedCoordinatorToolCall<string>,
+  "output" | "isError" | keyof ParsedLlmToolCall
+> = {
   inferredFacts: null,
   entitySummaries: null,
-  filesUsedToInferFacts: null,
   subTasksCompleted: null,
   suggestionsForNextStepsMade: null,
-  webPageUrlsVisited: null,
-  webPagesNotVisited: null,
+  resourceUrlsVisited: null,
   webPagesFromSearchQuery: null,
   webQueriesMade: null,
 };
 
-export type WebPageSummary = {
+export type ResourceSummary = {
   url: string;
+  title: string;
   summary: string;
 };

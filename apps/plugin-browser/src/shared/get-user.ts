@@ -9,9 +9,10 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { ImageProperties } from "@local/hash-isomorphic-utils/system-types/image";
+import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
 import type {
   BrowserPluginSettingsProperties,
+  BrowserPluginSettingsPropertiesWithMetadata,
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
@@ -33,7 +34,7 @@ import { getFromLocalStorage, setInLocalStorage } from "./storage";
 const getAvatarForEntity = (
   subgraph: Subgraph<EntityRootType>,
   entityId: EntityId,
-): Entity<ImageProperties> | undefined => {
+): Entity<Image> | undefined => {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     entityId,
@@ -43,9 +44,7 @@ const getAvatarForEntity = (
       linkEntity[0]?.metadata.entityTypeId ===
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
   );
-  return avatarLinkAndEntities[0]?.rightEntity[0] as
-    | Entity<ImageProperties>
-    | undefined;
+  return avatarLinkAndEntities[0]?.rightEntity[0] as Entity<Image> | undefined;
 };
 
 /**
@@ -164,15 +163,43 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
         const draftQuickNote = await getFromLocalStorage("draftQuickNote");
 
-        const properties: BrowserPluginSettingsProperties = {
-          "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
-            automaticInferenceConfig,
-          "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
-            manualInferenceConfig,
-          "https://hash.ai/@hash/types/property-type/browser-plugin-tab/":
-            popupTab,
-          "https://hash.ai/@hash/types/property-type/draft-note/":
-            draftQuickNote,
+        const properties: BrowserPluginSettingsPropertiesWithMetadata = {
+          value: {
+            "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
+              {
+                value: automaticInferenceConfig,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                },
+              },
+            "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
+              {
+                value: manualInferenceConfig,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                },
+              },
+            "https://hash.ai/@hash/types/property-type/browser-plugin-tab/": {
+              value: popupTab,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+            ...(draftQuickNote
+              ? {
+                  "https://hash.ai/@hash/types/property-type/draft-note/": {
+                    value: draftQuickNote,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  },
+                }
+              : {}),
+          },
         };
 
         const settingsEntityMetadata = await createEntity({
@@ -184,7 +211,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
         await createEntity({
           entityTypeId: systemLinkEntityTypes.has.linkEntityTypeId,
-          properties: {},
+          properties: { value: {} },
           linkData: {
             leftEntityId: user.metadata.recordId.entityId,
             rightEntityId: settingsEntityId,

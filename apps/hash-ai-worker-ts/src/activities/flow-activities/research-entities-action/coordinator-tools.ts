@@ -1,4 +1,5 @@
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
@@ -7,7 +8,7 @@ import type { CoordinatingAgentState } from "./coordinating-agent.js";
 export const coordinatorToolNames = [
   "requestHumanInput",
   "webSearch",
-  "inferFactsFromWebPages",
+  "inferFactsFromResources",
   "startFactGatheringSubTasks",
   "complete",
   "terminate",
@@ -28,12 +29,20 @@ const explanationDefinition = {
 export const generateToolDefinitions = <
   T extends CoordinatorToolName[],
 >(params: {
+  dataSources: FlowDataSources;
   omitTools?: T;
   state?: CoordinatingAgentState;
 }): Record<
   Exclude<CoordinatorToolName, T[number]>,
   LlmToolDefinition<Exclude<CoordinatorToolName, T[number]>>
 > => {
+  const { internetAccess } = params.dataSources;
+
+  const omitTools: CoordinatorToolName[] = params.omitTools ?? [];
+  if (!internetAccess.enabled) {
+    omitTools.push("webSearch");
+  }
+
   const allToolDefinitions: Record<
     CoordinatorToolName,
     LlmToolDefinition<CoordinatorToolName>
@@ -91,8 +100,7 @@ export const generateToolDefinitions = <
                     type: "string",
                   },
                   description: dedent(`
-                  The entity IDs of the entities which the sub-task is relevant to, for which existing
-                    facts have already been inferred.
+                  The entity IDs of the proposed entities which the sub-task is relevant to.
                   
                   ${params.state?.entitySummaries.length ? `The possible values are: ${params.state.entitySummaries.map(({ localId }) => localId).join(", ")}` : ""}
                 `),
@@ -159,35 +167,35 @@ export const generateToolDefinitions = <
         required: ["query", "explanation"],
       },
     },
-    inferFactsFromWebPages: {
-      name: "inferFactsFromWebPages",
+    inferFactsFromResources: {
+      name: "inferFactsFromResources",
       description: dedent(`
-      Infer facts from the content of web pages.
+      Infer facts from the content of resources.
       This tool should be used to gather facts about entities of specific types.
+      The URLs for resources selected must have been provided in the user messages to you,
+      or as the result of a previous action (e.g. a web search, or in suggestions for next steps). Don't guess URLs!
     `),
       inputSchema: {
         type: "object",
         properties: {
           explanation: explanationDefinition,
-          webPages: {
+          resources: {
             type: "array",
             items: {
               type: "object",
               properties: {
                 url: {
                   type: "string",
-                  description: "The URL of the web page",
+                  description: "The URL of the resource",
                 },
                 prompt: {
                   type: "string",
                   description: dedent(`
-                A prompt instructing the inference agent which entities it should gather facts about from the webpage.
+                A prompt instructing the inference agent which entities it should gather facts about from the resource.
                 Do not specify any information of the structure of the entities, as this is predefined by
                   the entity type.
     
-                You must be specific about which and how many entities you need to gather facts about from
-                  the webpage to satisfy the research task.
-              `),
+                You must be specific about which and how many entities you need to gather facts about to satisfy the research task.`),
                 },
                 descriptionOfExpectedContent: {
                   type: "string",
@@ -204,14 +212,14 @@ export const generateToolDefinitions = <
                 reason: {
                   type: "string",
                   description:
-                    "An explanation of why inferring facts from the web page is relevant to the research task.",
+                    "An explanation of why inferring facts from the resource is relevant to the research task.",
                 },
                 entityTypeIds: {
                   type: "array",
                   items: {
                     type: "string",
                     description: dedent(`
-                      The entity type IDs of the kind of entities to infer facts about on the web page.
+                      The entityTypeIds the kind of entities to infer facts about.
                       You must specify at least one.
                     `),
                   },
@@ -221,8 +229,17 @@ export const generateToolDefinitions = <
                   items: {
                     type: "string",
                     description:
-                      "The link entity type IDs of the kind of link entities to infer facts about on the web page",
+                      "The linkEntityTypeIds of the kind of link entities to infer facts about on the web page",
                   },
+                },
+                relevantEntityIds: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                  },
+                  description: dedent(`
+                  The entityIds of already proposed entities which you are seeking further detail on, if any.
+                `),
                 },
               },
               required: [
@@ -236,25 +253,32 @@ export const generateToolDefinitions = <
             },
           },
         },
-        required: ["webPages", "explanation"],
+        required: ["resources", "explanation"],
       },
     },
     complete: {
       name: "complete",
       description: dedent(`
-            Complete the research task by specifying the entityIds of the entities to submit as the result of your research.
+            Complete the research task by specifying the entityIds of the entities to highlight as the result of your research.
           `),
       inputSchema: {
         type: "object",
         properties: {
-          explanation: explanationDefinition,
+          explanation: {
+            type: "string",
+            description: dedent(`
+              An explanation of why these entities were chosen to highlight as the result of the research task,
+              e.g. if the task asked for the 'top X' entities, explain why these are the top X.
+            `),
+          },
           entityIds: {
             type: "array",
             items: {
               type: "string",
             },
             description: dedent(`
-            An array of entityIds to submit.
+            An array of entityIds to highlight. 
+            The user will receive all entities discovered, with the highlighted entityIds identified for special attention.
             You must have made an effort to find as many properties and outgoing links for each entity as possible,
             as long as they relate to the research task in question.
           `),
@@ -303,7 +327,7 @@ export const generateToolDefinitions = <
 
   const filteredTools = Object.fromEntries(
     Object.entries(allToolDefinitions).filter(
-      ([toolName]) => !params.omitTools?.includes(toolName as T[number]),
+      ([toolName]) => !omitTools.includes(toolName as T[number]),
     ),
   ) as Record<
     Exclude<CoordinatorToolName, T[number]>,
@@ -324,13 +348,14 @@ export type CoordinatorToolCallArguments = Subtype<
       explanation: string;
       query: string;
     };
-    inferFactsFromWebPages: {
+    inferFactsFromResources: {
       explanation: string;
-      webPages: {
+      resources: {
         url: string;
         prompt: string;
         entityTypeIds: string[];
         linkEntityTypeIds?: string[];
+        relevantEntityIds?: string[];
         reason: string;
         descriptionOfExpectedContent: string;
         exampleOfExpectedContent: string;

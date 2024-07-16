@@ -7,8 +7,8 @@ import type { FlowUsageRecordCustomMetadata } from "./flows/types.js";
 import { systemLinkEntityTypes } from "./ontology-type-ids.js";
 import { simplifyProperties } from "./simplify-properties.js";
 import type {
-  ServiceFeatureProperties,
-  UsageRecordProperties,
+  ServiceFeature,
+  UsageRecord,
 } from "./system-types/usagerecord.js";
 
 const generateAggregateUsageKey = ({
@@ -24,7 +24,7 @@ const getServiceFeatureForUsage = ({
   usageRecord,
 }: {
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
-  usageRecord: Entity<UsageRecordProperties>;
+  usageRecord: Entity<UsageRecord>;
 }) => {
   const linkedEntities = getOutgoingLinkAndTargetEntities(
     serviceUsageRecordSubgraph,
@@ -43,7 +43,7 @@ const getServiceFeatureForUsage = ({
   }
 
   const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
-    .rightEntity[0]! as Entity<ServiceFeatureProperties>;
+    .rightEntity[0]! as Entity<ServiceFeature>;
 
   const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
     serviceFeatureEntity.properties,
@@ -100,7 +100,7 @@ export const getAggregateUsageRecordsByServiceFeature = ({
   serviceUsageRecordSubgraph,
 }: {
   decisionTimeInterval?: BoundedTimeInterval;
-  serviceUsageRecords: Entity<UsageRecordProperties>[];
+  serviceUsageRecords: Entity<UsageRecord>[];
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
 }): AggregatedUsageRecord[] => {
   const aggregateUsageByServiceFeature: Record<string, AggregatedUsageRecord> =
@@ -170,7 +170,7 @@ export const getAggregateUsageRecordsByTask = ({
   serviceUsageRecords,
   serviceUsageRecordSubgraph,
 }: {
-  serviceUsageRecords: Entity<UsageRecordProperties>[];
+  serviceUsageRecords: Entity<UsageRecord>[];
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
 }): AggregatedUsageByTask[] => {
   const aggregateUsageByTask: Record<string, AggregatedUsageByTask> = {};

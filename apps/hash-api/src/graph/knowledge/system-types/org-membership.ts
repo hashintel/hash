@@ -4,7 +4,7 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   AccountEntityId,
   AccountGroupEntityId,
@@ -30,7 +30,7 @@ import type { User } from "./user";
 import { getUserFromEntity } from "./user";
 
 export type OrgMembership = {
-  linkEntity: LinkEntity<IsMemberOfProperties>;
+  linkEntity: LinkEntity<IsMemberOf>;
 };
 
 export const getOrgMembershipFromLinkEntity: PureGraphFunction<
@@ -49,7 +49,7 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
   }
 
   return {
-    linkEntity,
+    linkEntity: linkEntity as LinkEntity<IsMemberOf>,
   };
 };
 
@@ -81,9 +81,9 @@ export const createOrgMembership: ImpureGraphFunction<
 
   let linkEntity;
   try {
-    linkEntity = await createLinkEntity(ctx, authentication, {
+    linkEntity = await createLinkEntity<IsMemberOf>(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
-      properties: {},
+      properties: { value: {} },
       linkData: {
         leftEntityId: userEntityId,
         rightEntityId: orgEntityId,
@@ -103,7 +103,7 @@ export const createOrgMembership: ImpureGraphFunction<
     throw error;
   }
 
-  return getOrgMembershipFromLinkEntity({ linkEntity });
+  return { linkEntity };
 };
 
 /**

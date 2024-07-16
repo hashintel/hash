@@ -21,16 +21,21 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type {
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  type EnforcedEntityEditionProvenance,
+  Entity,
+  mergePropertyObjectAndMetadata,
+  propertyObjectToPatches,
+} from "@local/hash-graph-sdk/entity";
 import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  File,
+  FileProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import mime from "mime-types";
 
 import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity.js";
@@ -122,14 +127,14 @@ const writeFileToS3URL = async ({
 export const getFileEntityFromUrl = async (params: {
   url: string;
   propertyMetadata?: PropertyMetadataObject;
-  provenance?: ProvidedEntityEditionProvenance;
+  provenance?: EnforcedEntityEditionProvenance;
   entityTypeId?: VersionedUrl;
   description?: string;
   displayName?: string;
 }): Promise<
   | {
       status: "ok";
-      entity: Entity<FileProperties>;
+      entity: Entity<File>;
     }
   | {
       status: "error-uploading-file";
@@ -153,7 +158,9 @@ export const getFileEntityFromUrl = async (params: {
 
   const urlObject = new URL(originalUrl);
   const urlWithoutParams = new URL(urlObject.origin + urlObject.pathname);
-  const filename = urlWithoutParams.pathname.split("/").pop()!;
+  const filename = normalizeWhitespace(
+    urlWithoutParams.pathname.split("/").pop()!,
+  );
 
   let localFilePath;
   try {
@@ -223,24 +230,26 @@ export const getFileEntityFromUrl = async (params: {
     );
   }
 
-  // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
-  const provenance: ProvidedEntityEditionProvenance = provenanceFromParams ?? {
+  const provenance: EnforcedEntityEditionProvenance = provenanceFromParams ?? {
+    actorType: "machine",
     origin: {
       type: "flow",
       id: flowEntityId,
       stepIds: [stepId],
-    } satisfies OriginProvenance,
+    },
   };
 
-  const incompleteFileEntity = await Entity.create(
+  const incompleteFileEntity = await Entity.create<File>(
     graphApiClient,
     { actorId: webBotActorId },
     {
       draft: false,
       ownedById: webId,
-      propertyMetadata,
-      properties: initialProperties,
-      entityTypeId,
+      properties: mergePropertyObjectAndMetadata<File>(
+        initialProperties,
+        propertyMetadata,
+      ),
+      entityTypeId: entityTypeId as typeof systemEntityTypes.file.entityTypeId,
       relationships:
         createDefaultAuthorizationRelationships(userAuthentication),
       provenance,
@@ -269,27 +278,29 @@ export const getFileEntityFromUrl = async (params: {
       key,
     });
 
-  const properties: FileProperties = {
-    ...initialProperties,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-      formatFileUrl(key),
+  const updatedProperties: File["propertiesWithMetadata"] = {
     ...fileStorageProperties,
+    value: {
+      ...fileStorageProperties.value,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+        {
+          value: formatFileUrl(key),
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+    },
   };
 
-  const updatedEntity = (await incompleteFileEntity.patch(
+  const updatedEntity = await incompleteFileEntity.patch(
     graphApiClient,
     { actorId: webBotActorId },
     {
-      properties: [
-        {
-          op: "replace",
-          path: [],
-          value: properties,
-        },
-      ],
+      propertyPatches: propertyObjectToPatches(updatedProperties),
       provenance,
     },
-  )) as Entity<FileProperties>;
+  );
 
   try {
     await writeFileToS3URL({

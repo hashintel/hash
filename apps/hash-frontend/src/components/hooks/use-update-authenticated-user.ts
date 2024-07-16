@@ -1,4 +1,6 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import type { PropertyPatchOperation } from "@local/hash-graph-types/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
@@ -78,49 +80,45 @@ export const useUpdateAuthenticatedUser = () => {
 
         const latestUserEntity = getRoots(latestUserEntitySubgraph)[0]!;
 
-        /**
-         * @todo use a partial update mutation instead
-         * @see https://linear.app/hash/issue/H-2997
-         */
-        const { properties: currentProperties } = latestUserEntity;
+        const propertyPatches: PropertyPatchOperation[] = [];
+        const {
+          shortname,
+          displayName,
+          location,
+          websiteUrl,
+          preferredPronouns,
+        } = params;
+        for (const [key, value] of typedEntries({
+          shortname,
+          displayName,
+          location,
+          websiteUrl,
+          preferredPronouns,
+        })) {
+          if (typeof value !== "undefined") {
+            propertyPatches.push({
+              path: [
+                key === "displayName"
+                  ? blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl
+                  : systemPropertyTypes[key].propertyTypeBaseUrl,
+              ],
+              op: "add",
+              property: {
+                value,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              },
+            });
+          }
+        }
 
         const { errors } = await updateEntity({
           variables: {
             entityUpdate: {
               entityId: latestUserEntity.metadata.recordId.entityId,
-              updatedProperties: {
-                ...currentProperties,
-                ...(params.shortname
-                  ? {
-                      [systemPropertyTypes.shortname.propertyTypeBaseUrl]:
-                        params.shortname,
-                    }
-                  : {}),
-                ...(params.displayName
-                  ? {
-                      [blockProtocolPropertyTypes.displayName
-                        .propertyTypeBaseUrl]: params.displayName,
-                    }
-                  : {}),
-                ...(typeof params.location !== "undefined"
-                  ? {
-                      [systemPropertyTypes.location.propertyTypeBaseUrl]:
-                        params.location,
-                    }
-                  : {}),
-                ...(typeof params.websiteUrl !== "undefined"
-                  ? {
-                      [systemPropertyTypes.websiteUrl.propertyTypeBaseUrl]:
-                        params.websiteUrl,
-                    }
-                  : {}),
-                ...(typeof params.preferredPronouns !== "undefined"
-                  ? {
-                      [systemPropertyTypes.preferredPronouns
-                        .propertyTypeBaseUrl]: params.preferredPronouns,
-                    }
-                  : {}),
-              },
+              propertyPatches,
             },
           },
         });

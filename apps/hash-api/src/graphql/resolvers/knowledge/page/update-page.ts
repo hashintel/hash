@@ -1,6 +1,7 @@
+import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { updateEntityProperties } from "../../../../graph/knowledge/primitive/entity";
+import { updateEntity } from "../../../../graph/knowledge/primitive/entity";
 import {
   getPageById,
   getPageFromEntity,
@@ -25,22 +26,23 @@ export const updatePageResolver: ResolverFn<
 
   const page = await getPageById(context, authentication, { entityId });
 
-  const updatedPageEntity = await updateEntityProperties(
-    context,
-    authentication,
-    {
-      entity: page.entity,
-      updatedProperties: Object.entries(updatedProperties).map(
-        ([propertyName, value]) => ({
-          propertyTypeBaseUrl:
-            systemPropertyTypes[
-              propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
-            ].propertyTypeBaseUrl,
-          value: value ?? undefined,
-        }),
-      ),
-    },
-  );
+  const updatedPageEntity = await updateEntity(context, authentication, {
+    entity: page.entity,
+    propertyPatches: Object.entries(updatedProperties).map(
+      ([propertyName, value]) => {
+        const propertyTypeBaseUrl =
+          systemPropertyTypes[
+            propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
+          ].propertyTypeBaseUrl;
+
+        return {
+          op: "add",
+          path: [propertyTypeBaseUrl],
+          property: mergePropertiesAndMetadata(value, undefined),
+        };
+      },
+    ),
+  });
 
   return mapPageToGQL(getPageFromEntity({ entity: updatedPageEntity }));
 };

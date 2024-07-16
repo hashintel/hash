@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 
 import type {
   Actor,
@@ -517,7 +516,14 @@ export type {
   WebsiteURLPropertyValueWithMetadata,
 };
 
-export type CommentNotification = Entity<CommentNotificationProperties>;
+/**
+ * A notification related to a comment.
+ */
+export type CommentNotification = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/comment-notification/v/5";
+  properties: CommentNotificationProperties;
+  propertiesWithMetadata: CommentNotificationPropertiesWithMetadata;
+};
 
 export type CommentNotificationOccurredInBlockLink = {
   linkEntity: OccurredInBlock;
@@ -553,7 +559,13 @@ export type CommentNotificationProperties1 = NotificationProperties;
 
 export type CommentNotificationProperties2 = {};
 
-export type CommentNotificationPropertiesWithMetadata = {
+export type CommentNotificationPropertiesWithMetadata =
+  CommentNotificationPropertiesWithMetadata1 &
+    CommentNotificationPropertiesWithMetadata2;
+export type CommentNotificationPropertiesWithMetadata1 =
+  NotificationPropertiesWithMetadata;
+
+export type CommentNotificationPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -573,7 +585,14 @@ export type CommentNotificationTriggeredByUserLink = {
   rightEntity: User;
 };
 
-export type RepliedToComment = LinkEntity<RepliedToCommentProperties>;
+/**
+ * The comment that something replied to.
+ */
+export type RepliedToComment = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1";
+  properties: RepliedToCommentProperties;
+  propertiesWithMetadata: RepliedToCommentPropertiesWithMetadata;
+};
 
 export type RepliedToCommentOutgoingLinkAndTarget = never;
 
@@ -588,12 +607,25 @@ export type RepliedToCommentProperties1 = LinkProperties;
 
 export type RepliedToCommentProperties2 = {};
 
-export type RepliedToCommentPropertiesWithMetadata = {
+export type RepliedToCommentPropertiesWithMetadata =
+  RepliedToCommentPropertiesWithMetadata1 &
+    RepliedToCommentPropertiesWithMetadata2;
+export type RepliedToCommentPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type RepliedToCommentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
 
-export type TriggeredByComment = LinkEntity<TriggeredByCommentProperties>;
+/**
+ * A comment that triggered something.
+ */
+export type TriggeredByComment = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1";
+  properties: TriggeredByCommentProperties;
+  propertiesWithMetadata: TriggeredByCommentPropertiesWithMetadata;
+};
 
 export type TriggeredByCommentOutgoingLinkAndTarget = never;
 
@@ -608,7 +640,13 @@ export type TriggeredByCommentProperties1 = LinkProperties;
 
 export type TriggeredByCommentProperties2 = {};
 
-export type TriggeredByCommentPropertiesWithMetadata = {
+export type TriggeredByCommentPropertiesWithMetadata =
+  TriggeredByCommentPropertiesWithMetadata1 &
+    TriggeredByCommentPropertiesWithMetadata2;
+export type TriggeredByCommentPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type TriggeredByCommentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

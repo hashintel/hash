@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -117,7 +116,14 @@ export type {
   TitlePropertyValueWithMetadata,
 };
 
-export type Document = Entity<DocumentProperties>;
+/**
+ * A page in document format, with content arranged in columns.
+ */
+export type Document = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/document/v/1";
+  properties: DocumentProperties;
+  propertiesWithMetadata: DocumentPropertiesWithMetadata;
+};
 
 export type DocumentHasIndexedContentLink = {
   linkEntity: HasIndexedContent;
@@ -138,7 +144,11 @@ export type DocumentProperties1 = PageProperties;
 
 export type DocumentProperties2 = {};
 
-export type DocumentPropertiesWithMetadata = {
+export type DocumentPropertiesWithMetadata = DocumentPropertiesWithMetadata1 &
+  DocumentPropertiesWithMetadata2;
+export type DocumentPropertiesWithMetadata1 = PagePropertiesWithMetadata;
+
+export type DocumentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

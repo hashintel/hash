@@ -23,8 +23,9 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
+    schema::{ClosedDataType, DataTypeValidator},
     url::{OntologyTypeVersion, VersionedUrl},
-    DataType,
+    Validator,
 };
 
 use crate::{
@@ -214,7 +215,7 @@ where
     ) -> Result<(), QueryError> {
         // TODO: data types currently have no references to other types, so we don't need to do
         //       anything here
-        //   see https://linear.app/hash/issue/BP-104
+        //   see https://linear.app/hash/issue/H-3075/allow-traversing-data-type-edges
 
         Ok(())
     }
@@ -228,6 +229,8 @@ where
             .simple_query(
                 "
                     DELETE FROM data_type_embeddings;
+                    DELETE FROM data_type_inherits_from;
+                    DELETE FROM data_type_constrains_values_on;
                 ",
             )
             .await
@@ -277,6 +280,8 @@ where
 
         let mut inserted_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
+
+        let data_type_validator = DataTypeValidator;
 
         for parameters in params {
             let provenance = OntologyProvenance {
@@ -330,8 +335,16 @@ where
                 )
                 .await?
             {
+                let schema = data_type_validator
+                    .validate_ref(&parameters.schema)
+                    .await
+                    .change_context(InsertionError)?;
+                let closed_schema = data_type_validator
+                    .validate(ClosedDataType::new(schema.clone().into_inner()))
+                    .await
+                    .change_context(InsertionError)?;
                 transaction
-                    .insert_with_id(ontology_id, &parameters.schema)
+                    .insert_data_type_with_id(ontology_id, schema, &closed_schema)
                     .await?;
                 let metadata = DataTypeMetadata {
                     record_id,
@@ -525,6 +538,8 @@ where
     where
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
+        let data_type_validator = DataTypeValidator;
+
         let old_ontology_id = DataTypeId::from_url(&VersionedUrl {
             base_url: params.schema.id.base_url.clone(),
             version: OntologyTypeVersion::new(
@@ -562,9 +577,22 @@ where
             },
         };
 
+        let schema = data_type_validator
+            .validate_ref(&params.schema)
+            .await
+            .change_context(UpdateError)?;
+        let closed_schema = data_type_validator
+            .validate(ClosedDataType::new(schema.clone().into_inner()))
+            .await
+            .change_context(UpdateError)?;
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update::<DataType>(&params.schema, &provenance.edition)
+            .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
+        transaction
+            .insert_data_type_with_id(ontology_id, schema, &closed_schema)
+            .await
+            .change_context(UpdateError)?;
+
         let data_type_id = DataTypeId::from(ontology_id);
 
         let relationships = params

@@ -1,3 +1,4 @@
+import { hashClientHeaderKey } from "@local/hash-isomorphic-utils/http-requests";
 import type { GraphQLError } from "graphql/index.js";
 
 export const queryGraphQlApi = <
@@ -20,6 +21,7 @@ export const queryGraphQlApi = <
     }),
     headers: {
       "content-type": "application/json",
+      [hashClientHeaderKey]: "browser-plugin",
     },
     credentials: "include",
   })

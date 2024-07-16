@@ -98,7 +98,7 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
       return `${prefix} ${entityLabel}`;
     }
     case "ViewedFile": {
-      return `${viewedPdfFilePrefix}${log.fileUrl}`;
+      return `${viewedPdfFilePrefix}${log.file.title}`;
     }
     case "StateChange": {
       return log.message;
@@ -122,6 +122,13 @@ const ModelTooltip = ({ text }: { text: string }) => (
   </Tooltip>
 );
 
+const ellipsisOverflow = {
+  display: "block",
+  textOverflow: "ellipsis",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+};
+
 const LogDetail = ({
   log,
 }: {
@@ -130,33 +137,39 @@ const LogDetail = ({
   switch (log.type) {
     case "VisitedWebPage": {
       return (
-        <>
+        <Stack direction="row" alignItems="center" gap={0.5}>
           {visitedWebPagePrefix}
-          <Link href={log.webPage.url} sx={{ textDecoration: "none" }}>
+          <Link
+            href={log.webPage.url}
+            sx={{ textDecoration: "none", ...ellipsisOverflow }}
+          >
             {log.webPage.title}
           </Link>
           <ModelTooltip text={log.explanation} />
-        </>
+        </Stack>
       );
     }
     case "ViewedFile": {
       return (
-        <>
+        <Stack direction="row" alignItems="center" gap={0.5}>
           {viewedPdfFilePrefix}
-          <Link href={log.fileUrl} sx={{ textDecoration: "none" }}>
-            {log.fileUrl}
+          <Link
+            href={log.file.url}
+            sx={{ textDecoration: "none", ...ellipsisOverflow }}
+          >
+            {log.file.title}
           </Link>
           <ModelTooltip text={log.explanation} />
-        </>
+        </Stack>
       );
     }
     case "QueriedWeb": {
       return (
-        <>
+        <Stack direction="row" alignItems="center" gap={0.5}>
           {queriedWebPrefix}
-          <strong>“{log.query}”</strong>
+          <strong style={ellipsisOverflow}>“{log.query}”</strong>
           <ModelTooltip text={log.explanation} />
-        </>
+        </Stack>
       );
     }
     case "ProposedEntity":
@@ -166,10 +179,10 @@ const LogDetail = ({
       const entityLabel = getEntityLabelFromLog(log);
 
       return (
-        <>
+        <Stack direction="row" alignItems="center" gap={0.5}>
           {isPersistedEntity ? "Persisted" : "Proposed"} entity{" "}
-          <strong>{entityLabel}</strong>
-        </>
+          <strong style={ellipsisOverflow}>{entityLabel}</strong>
+        </Stack>
       );
     }
     case "CreatedPlan": {
@@ -185,10 +198,12 @@ const LogDetail = ({
     }
     case "StartedSubTask": {
       return (
-        <>
-          Started sub-task with goal “{log.goal}”
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Box sx={ellipsisOverflow}>
+            Started sub-task with goal <strong>“{log.goal}”</strong>
+          </Box>
           <ModelTooltip text={log.explanation} />
-        </>
+        </Stack>
       );
     }
   }
@@ -236,7 +251,7 @@ const TableRow = memo(
           <strong>{format(new Date(log.recordedAt), "h:mm:ss a")}</strong>
         </TableCell>
         <TableCell sx={{ ...defaultCellSx, fontSize: 13, lineHeight: 1.4 }}>
-          <Box sx={{ position: "relative", pr: 3 }}>
+          <Box sx={{ position: "relative", pr: 3, maxWidth: "auto" }}>
             <LogDetail log={log} />
           </Box>
         </TableCell>

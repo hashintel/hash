@@ -1,3 +1,4 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { GraphResolveDepths } from "@local/hash-subgraph";
 
 import { simplifyProperties } from "./simplify-properties.js";
@@ -37,8 +38,8 @@ const isSpatiallyPositionedProperties = (
 };
 
 export const sortBlockCollectionLinks = <
-  Left extends HasSpatiallyPositionedContent | HasIndexedContent,
-  Right extends HasSpatiallyPositionedContent | HasIndexedContent,
+  Left extends Entity<HasSpatiallyPositionedContent | HasIndexedContent>,
+  Right extends Entity<HasSpatiallyPositionedContent | HasIndexedContent>,
 >(
   a: Left,
   b: Right,

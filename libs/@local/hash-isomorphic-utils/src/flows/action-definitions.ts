@@ -82,8 +82,8 @@ const actionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "Text",
-        name: "webPageUrls",
+        payloadKind: "WebSearchResult",
+        name: "webSearchResult",
         array: true,
         required: true,
       },

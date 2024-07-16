@@ -70,9 +70,10 @@ const InputGroup = ({ children }: PropsWithChildren) => {
   return <Box mb={3}>{children}</Box>;
 };
 
-export type OrgFormData = Omit<Org, "kind" | "entity" | "memberships"> & {
-  entity?: Org["entity"];
-};
+export type OrgFormData = Pick<
+  Org,
+  "name" | "description" | "location" | "shortname" | "websiteUrl"
+>;
 
 type OrgFormProps = {
   autoFocusDisplayName?: boolean;
@@ -81,7 +82,7 @@ type OrgFormProps = {
    * An existing org to edit. Editing the shortname will not be allowed.
    * Without an existing org, some fields will be hidden from the user.
    */
-  org?: OrgFormData;
+  org?: Org;
   readonly: boolean;
   submitLabel: string;
 };
@@ -149,7 +150,7 @@ export const OrgForm = ({
         description: `The avatar for the ${nameWatcher} organization in HASH`,
         file,
         name: `${nameWatcher}'s avatar`,
-        ...(existingImageEntity
+        ...(existingImageEntity !== undefined
           ? {
               fileEntityUpdateInput: {
                 existingFileEntityId:

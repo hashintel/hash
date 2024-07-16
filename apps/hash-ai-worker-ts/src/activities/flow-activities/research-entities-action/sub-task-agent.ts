@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
@@ -30,7 +31,10 @@ import { deduplicateEntities } from "./deduplicate-entities.js";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message.js";
 import { handleWebSearchToolCall } from "./handle-web-search-tool-call.js";
 import { linkFollowerAgent } from "./link-follower-agent.js";
-import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-for-llm-consumption.js";
+import {
+  simplifyEntityTypeForLlmConsumption,
+  simplifyFactForLlmConsumption,
+} from "./shared/simplify-for-llm-consumption.js";
 import type { CompletedToolCall } from "./types.js";
 import { mapPreviousCallsToLlmMessages } from "./util.js";
 
@@ -59,12 +63,14 @@ type SubTaskAgentToolName =
 const generateToolDefinitions = <
   T extends SubTaskAgentCustomToolName[],
 >(params: {
+  dataSources: FlowDataSources;
   omitTools: T;
 }): Record<
   Exclude<SubTaskAgentToolName, T[number]>,
   LlmToolDefinition<Exclude<SubTaskAgentToolName, T[number]>>
 > => {
   const coordinatorToolDefinitions = generateCoordinatorToolDefinitions({
+    dataSources: params.dataSources,
     omitTools: omittedCoordinatorToolNames.concat(),
   });
 
@@ -196,25 +202,35 @@ const generateInitialUserMessage = (params: {
       {
         type: "text",
         text: dedent(`
-Goal: ${goal}
-Entity Types:
+<Goal>${goal}</Goal>
+<EntityTypes>
 ${entityTypes
   .map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType }))
   .join("\n")}
-${linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""}
+</EntityTypes>
+${linkEntityTypes ? `<LinkTypes>${JSON.stringify(linkEntityTypes)}</LinkTypes>` : ""}
 ${
   relevantEntities.length > 0
-    ? `Relevant Entities: ${JSON.stringify(relevantEntities)}`
+    ? `<RelevantEntities>${JSON.stringify(
+        relevantEntities.map(({ localId, name, summary, entityTypeId }) => {
+          const factsAboutEntity = existingFactsAboutRelevantEntities.filter(
+            (fact) => fact.subjectEntityLocalId === localId,
+          );
+
+          return {
+            name,
+            summary,
+            entityType: entityTypeId,
+            facts: JSON.stringify(
+              factsAboutEntity.map(simplifyFactForLlmConsumption),
+            ),
+          };
+        }),
+        undefined,
+        2,
+      )}</RelevantEntities>`
     : ""
-}
-${
-  existingFactsAboutRelevantEntities.length > 0
-    ? `Existing Facts About Relevant Entities: ${JSON.stringify(
-        existingFactsAboutRelevantEntities,
-      )}`
-    : ""
-}
-      `),
+}`),
       },
     ],
   };
@@ -231,11 +247,12 @@ const createInitialPlan = async (params: {
     Do not make any other tool calls.
   `);
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions({
+      dataSources,
       omitTools: ["complete"],
     }),
   );
@@ -355,16 +372,17 @@ const getNextToolCalls = async (params: {
       : [],
   ].flat();
 
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
+
   const tools = Object.values(
     generateToolDefinitions({
+      dataSources,
       omitTools: [
         ...(state.inferredFacts.length > 0 ? [] : ["complete" as const]),
       ],
     }),
   );
-
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -502,15 +520,15 @@ Summary: ${summary}`,
                 ...toolCall,
                 output,
               };
-            } else if (toolCall.name === "inferFactsFromWebPages") {
-              const { webPages } =
-                toolCall.input as CoordinatorToolCallArguments["inferFactsFromWebPages"];
+            } else if (toolCall.name === "inferFactsFromResources") {
+              const { resources } =
+                toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
 
               const validEntityTypeIds = input.entityTypes.map(
                 ({ $id }) => $id,
               );
 
-              const invalidEntityTypeIds = webPages
+              const invalidEntityTypeIds = resources
                 .flatMap(({ entityTypeIds }) => entityTypeIds)
                 .filter(
                   (entityTypeId) =>
@@ -520,7 +538,7 @@ Summary: ${summary}`,
               const validLinkEntityTypeIds =
                 input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
 
-              const invalidLinkEntityTypeIds = webPages
+              const invalidLinkEntityTypeIds = resources
                 .flatMap(({ linkEntityTypeIds }) => linkEntityTypeIds ?? [])
                 .filter(
                   (entityTypeId) =>
@@ -569,7 +587,7 @@ Summary: ${summary}`,
               }
 
               const responsesWithUrl = await Promise.all(
-                webPages.map(
+                resources.map(
                   async ({
                     url,
                     prompt,
@@ -580,6 +598,7 @@ Summary: ${summary}`,
                     reason,
                   }) => {
                     const response = await linkFollowerAgent({
+                      existingEntitiesOfInterest: input.relevantEntities,
                       initialResource: {
                         url,
                         descriptionOfExpectedContent,
@@ -587,11 +606,19 @@ Summary: ${summary}`,
                         reason,
                       },
                       task: prompt,
-                      entityTypes: input.entityTypes.filter(({ $id }) =>
-                        entityTypeIds.includes($id),
+                      entityTypes: input.entityTypes.filter(
+                        ({ $id }) =>
+                          entityTypeIds.includes($id) ||
+                          input.relevantEntities.some(
+                            (entity) => entity.entityTypeId === $id,
+                          ),
                       ),
                       linkEntityTypes: input.linkEntityTypes?.filter(
-                        ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
+                        ({ $id }) =>
+                          !!linkEntityTypeIds?.includes($id) ||
+                          input.relevantEntities.some(
+                            (entity) => entity.entityTypeId === $id,
+                          ),
                       ),
                     });
 
@@ -607,15 +634,17 @@ Summary: ${summary}`,
 
               for (const { response, url } of responsesWithUrl) {
                 inferredFacts.push(...response.facts);
-                entitySummaries.push(...response.entitySummaries);
+                entitySummaries.push(...response.existingEntitiesOfInterest);
 
                 outputMessage += `Inferred ${
                   response.facts.length
                 } facts on the web page with url ${url} for the following entities: ${stringify(
-                  response.entitySummaries.map(({ name, summary }) => ({
-                    name,
-                    summary,
-                  })),
+                  response.existingEntitiesOfInterest.map(
+                    ({ name, summary }) => ({
+                      name,
+                      summary,
+                    }),
+                  ),
                 )}. ${response.suggestionForNextSteps}\n`;
               }
 

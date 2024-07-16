@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -10,7 +11,8 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
+import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
+import { backOff } from "exponential-backoff";
 
 import { NotFoundError } from "./error.js";
 
@@ -36,41 +38,49 @@ export const getMachineActorId = async (
   authentication: { actorId: AccountId },
   { identifier }: { identifier: MachineActorIdentifier },
 ): Promise<AccountId> => {
-  const [machineEntity, ...unexpectedEntities] = await context.graphApi
-    .getEntities(authentication.actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
+  const [machineEntity, ...unexpectedEntities] = await backOff(
+    () =>
+      context.graphApi
+        .getEntities(authentication.actorId, {
+          filter: {
+            all: [
               {
-                path: ["type(inheritanceDepth = 0)", "baseUrl"],
-              },
-              {
-                parameter: systemEntityTypes.machine.entityTypeBaseUrl,
-              },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
+                equal: [
+                  {
+                    path: ["type(inheritanceDepth = 0)", "baseUrl"],
+                  },
+                  {
+                    parameter: systemEntityTypes.machine.entityTypeBaseUrl,
+                  },
                 ],
               },
-              { parameter: identifier },
+              {
+                equal: [
+                  {
+                    path: [
+                      "properties",
+                      systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
+                    ],
+                  },
+                  { parameter: identifier },
+                ],
+              },
             ],
           },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, authentication.actorId),
-      ),
-    );
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+        })
+        .then(({ data: response }) =>
+          response.entities.map((entity) =>
+            mapGraphApiEntityToEntity(entity, authentication.actorId),
+          ),
+        ),
+    {
+      numOfAttempts: 3,
+      startingDelay: 1000,
+      jitter: "full",
+    },
+  );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -134,20 +144,42 @@ export const createMachineActorEntity = async (
     ],
   );
 
-  await Entity.create(
+  const provenance: EnforcedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "api",
+    },
+  };
+
+  await Entity.create<Machine>(
     context.graphApi,
     { actorId: machineAccountId },
     {
       draft: false,
       entityTypeId:
-        machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
+        (machineEntityTypeId as Machine["entityTypeId"] | undefined) ??
+        systemEntityTypes.machine.entityTypeId,
       ownedById,
       properties: {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          displayName,
-        "https://hash.ai/@hash/types/property-type/machine-identifier/":
-          identifier,
-      } as MachineProperties,
+        value: {
+          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+            {
+              value: displayName,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          "https://hash.ai/@hash/types/property-type/machine-identifier/": {
+            value: identifier,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
+      },
+      provenance,
       relationships: [
         {
           relation: "administrator",

@@ -7,7 +7,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/google/account";
+import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -20,7 +20,7 @@ import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge
 import { useAuthenticatedUser } from "../../../auth-info-context";
 
 type UseGoogleAccountsResult = {
-  accounts: Entity<GoogleAccountProperties>[];
+  accounts: Entity<GoogleAccount>[];
   loading: boolean;
   refetch: () => void;
 };
@@ -61,14 +61,12 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
 
   return useMemo(() => {
     const subgraph = data
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<GoogleAccount>>(
           data.getEntitySubgraph.subgraph,
         )
       : undefined;
 
-    const accounts = subgraph
-      ? (getRoots(subgraph) as Entity<GoogleAccountProperties>[])
-      : [];
+    const accounts = subgraph ? getRoots(subgraph) : [];
 
     return {
       accounts,

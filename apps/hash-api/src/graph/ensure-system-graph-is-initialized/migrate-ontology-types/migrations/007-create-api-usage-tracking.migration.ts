@@ -1,7 +1,7 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { ServiceFeature } from "@local/hash-isomorphic-utils/system-types/shared";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import { logger } from "../../../../logger";
@@ -388,7 +388,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeId: serviceFeatureEntityType.schema.$id,
     },
-  )) as Entity<ServiceFeatureProperties>[];
+  )) as Entity<ServiceFeature>[];
 
   for (const {
     serviceName,
@@ -421,22 +421,57 @@ const migrate: MigrationFunction = async ({
       `Creating service feature entity for ${serviceName}:${featureName}`,
     );
 
-    await createEntity(context, authentication, {
-      entityTypeId: serviceFeatureEntityType.schema.$id,
+    await createEntity<ServiceFeature>(context, authentication, {
+      entityTypeId: serviceFeatureEntityType.schema
+        .$id as ServiceFeature["entityTypeId"],
       properties: {
-        [serviceNamePropertyType.metadata.recordId.baseUrl]: serviceName,
-        [featureNamePropertyType.metadata.recordId.baseUrl]: featureName,
-        [serviceUnitCost.metadata.recordId.baseUrl]: [
-          {
-            [inputUnitCostPropertyType.metadata.recordId.baseUrl]:
-              inputUnitCost,
-            [outputUnitCostPropertyType.metadata.recordId.baseUrl]:
-              outputUnitCost,
-            [appliesFromPropertyType.metadata.recordId.baseUrl]: new Date(
-              "2023-12-20",
-            ).toISOString(),
+        value: {
+          "https://hash.ai/@hash/types/property-type/service-name/": {
+            value: serviceName,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
           },
-        ],
+          "https://hash.ai/@hash/types/property-type/feature-name/": {
+            value: featureName,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+          "https://hash.ai/@hash/types/property-type/service-unit-cost/": {
+            value: [
+              {
+                value: {
+                  "https://hash.ai/@hash/types/property-type/input-unit-cost/":
+                    {
+                      value: inputUnitCost,
+                      metadata: {
+                        dataTypeId:
+                          "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+                      },
+                    },
+                  "https://hash.ai/@hash/types/property-type/output-unit-cost/":
+                    {
+                      value: outputUnitCost,
+                      metadata: {
+                        dataTypeId:
+                          "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+                      },
+                    },
+                  "https://hash.ai/@hash/types/property-type/applies-from/": {
+                    value: new Date("2023-12-20").toISOString(),
+                    metadata: {
+                      dataTypeId:
+                        "https://hash.ai/@hash/types/data-type/datetime/v/1",
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
       },
       ownedById: hashOwnedById as OwnedById,
       relationships: [

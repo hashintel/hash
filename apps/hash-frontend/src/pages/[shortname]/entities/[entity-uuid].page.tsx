@@ -1,5 +1,9 @@
-import { useLazyQuery } from "@apollo/client";
+import { useLazyQuery, useMutation } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  mergePropertyObjectAndMetadata,
+  patchesFromPropertyObjects,
+} from "@local/hash-graph-sdk/entity";
 import type {
   DraftId,
   EntityId,
@@ -28,13 +32,15 @@ import NextErrorComponent from "next/error";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 
-import { useBlockProtocolUpdateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { PageErrorState } from "../../../components/page-error-state";
 import type {
   GetEntityQuery,
   GetEntityQueryVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { EditBar } from "../shared/edit-bar";
@@ -57,7 +63,11 @@ const Page: NextPageWithLayout = () => {
     { fetchPolicy: "cache-and-network" },
   );
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
@@ -220,12 +230,19 @@ const Page: NextPageWithLayout = () => {
         draftLinksToArchive,
       );
 
-      /** @todo add validation here */
       await updateEntity({
-        data: {
-          entityId: draftEntity.metadata.recordId.entityId,
-          entityTypeId: draftEntity.metadata.entityTypeId,
-          properties: overrideProperties ?? draftEntity.properties,
+        variables: {
+          entityUpdate: {
+            entityId: draftEntity.metadata.recordId.entityId,
+            entityTypeId: draftEntity.metadata.entityTypeId,
+            propertyPatches: patchesFromPropertyObjects({
+              oldProperties: entityFromDb?.properties ?? {},
+              newProperties: mergePropertyObjectAndMetadata(
+                overrideProperties ?? draftEntity.properties,
+                undefined,
+              ),
+            }),
+          },
         },
       });
 

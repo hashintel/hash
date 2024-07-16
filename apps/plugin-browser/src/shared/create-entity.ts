@@ -1,6 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { LinkData, PropertyObject } from "@local/hash-graph-types/entity";
+import type {
+  EntityProperties,
+  LinkData,
+} from "@local/hash-graph-types/entity";
 
 import type {
   CreateEntityMutation,
@@ -9,11 +11,11 @@ import type {
 import { createEntityMutation } from "../graphql/queries/entity.queries";
 import { queryGraphQlApi } from "./query-graphql-api";
 
-export const createEntity = (params: {
-  entityTypeId: VersionedUrl;
-  properties: PropertyObject;
+export const createEntity = <T extends EntityProperties>(params: {
+  entityTypeId: T["entityTypeId"];
+  properties: T["propertiesWithMetadata"];
   linkData?: LinkData;
-}): Promise<Entity> =>
+}): Promise<Entity<T>> =>
   queryGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
     createEntityMutation,
     {
@@ -22,5 +24,5 @@ export const createEntity = (params: {
       linkData: params.linkData,
     },
   ).then(({ data }) => {
-    return new Entity(data.createEntity);
+    return new Entity<T>(data.createEntity);
   });

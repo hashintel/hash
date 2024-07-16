@@ -61,7 +61,14 @@ export type {
   TextDataTypeWithMetadata,
 };
 
-export type GraphChangeNotification = Entity<GraphChangeNotificationProperties>;
+/**
+ * A notification of a change to a graph
+ */
+export type GraphChangeNotification = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1";
+  properties: GraphChangeNotificationProperties;
+  propertiesWithMetadata: GraphChangeNotificationPropertiesWithMetadata;
+};
 
 export type GraphChangeNotificationOccurredInEntityLink = {
   linkEntity: OccurredInEntity;
@@ -86,7 +93,13 @@ export type GraphChangeNotificationProperties2 = {
   "https://hash.ai/@hash/types/property-type/graph-change-type/": GraphChangeTypePropertyValue;
 };
 
-export type GraphChangeNotificationPropertiesWithMetadata = {
+export type GraphChangeNotificationPropertiesWithMetadata =
+  GraphChangeNotificationPropertiesWithMetadata1 &
+    GraphChangeNotificationPropertiesWithMetadata2;
+export type GraphChangeNotificationPropertiesWithMetadata1 =
+  NotificationPropertiesWithMetadata;
+
+export type GraphChangeNotificationPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/graph-change-type/": GraphChangeTypePropertyValueWithMetadata;

@@ -14,7 +14,7 @@ import {
   pageEntityTypeFilter,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Text as TextEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
@@ -35,28 +35,34 @@ import { getUserById } from "./user";
 
 export type Text = {
   textualContent: TextToken[];
-  entity: Entity<TextProperties>;
+  entity: Entity<TextEntity>;
 };
 
-export const isEntityTextEntity = (
+function assertTextEntity(
   entity: Entity,
-): entity is Entity<TextProperties> =>
-  entity.metadata.entityTypeId === systemEntityTypes.text.entityTypeId;
-
-export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
-  entity,
-}) => {
-  if (!isEntityTextEntity(entity)) {
+): asserts entity is Entity<TextEntity> {
+  if (entity.metadata.entityTypeId !== systemEntityTypes.text.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.text.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
+}
+
+export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
+  entity,
+}) => {
+  assertTextEntity(entity);
 
   const { textualContent } = simplifyProperties(entity.properties);
 
-  return { entity, textualContent: textualContent as TextToken[] };
+  return {
+    entity,
+    textualContent: Array.isArray(textualContent)
+      ? (textualContent as TextToken[])
+      : [{ tokenType: "text", text: textualContent } satisfies TextToken],
+  };
 };
 
 /**

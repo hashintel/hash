@@ -15,7 +15,10 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { BlockProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  Block as BlockEntity,
+  HasData,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -43,13 +46,12 @@ import { getCommentFromEntity } from "./comment";
 
 export type Block = {
   componentId: string;
-  entity: Entity;
+  entity: Entity<BlockEntity>;
 };
 
-export const getBlockFromEntity: PureGraphFunction<
-  { entity: Entity },
-  Block
-> = ({ entity }) => {
+function assertBlockEntity(
+  entity: Entity,
+): asserts entity is Entity<BlockEntity> {
   if (entity.metadata.entityTypeId !== systemEntityTypes.block.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -57,10 +59,15 @@ export const getBlockFromEntity: PureGraphFunction<
       entity.metadata.entityTypeId,
     );
   }
+}
 
-  const { componentId } = simplifyProperties(
-    entity.properties as BlockProperties,
-  );
+export const getBlockFromEntity: PureGraphFunction<
+  { entity: Entity },
+  Block
+> = ({ entity }) => {
+  assertBlockEntity(entity);
+
+  const { componentId } = simplifyProperties(entity.properties);
 
   return {
     componentId,
@@ -99,20 +106,26 @@ export const createBlock: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { componentId, blockData, ownedById } = params;
 
-  const properties: BlockProperties = {
-    "https://hash.ai/@hash/types/property-type/component-id/": componentId,
-  };
-
-  const entity = await createEntity(ctx, authentication, {
+  const entity = await createEntity<BlockEntity>(ctx, authentication, {
     ownedById,
-    properties,
+    properties: {
+      value: {
+        "https://hash.ai/@hash/types/property-type/component-id/": {
+          value: componentId,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+      },
+    },
     entityTypeId: systemEntityTypes.block.entityTypeId,
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
-  await createLinkEntity(ctx, authentication, {
+  await createLinkEntity<HasData>(ctx, authentication, {
     ownedById,
-    properties: {},
+    properties: { value: {} },
     linkData: {
       leftEntityId: entity.metadata.recordId.entityId,
       rightEntityId: blockData.metadata.recordId.entityId,
@@ -212,7 +225,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     ownedById: extractOwnedByIdFromEntityId(
       block.entity.metadata.recordId.entityId,
     ),
-    properties: {},
+    properties: { value: {} },
     linkData: {
       leftEntityId: block.entity.metadata.recordId.entityId,
       rightEntityId: newBlockDataEntity.metadata.recordId.entityId,

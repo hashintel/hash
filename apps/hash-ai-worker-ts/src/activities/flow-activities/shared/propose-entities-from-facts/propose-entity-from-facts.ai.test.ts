@@ -8,7 +8,7 @@ import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
 import type { Fact } from "../infer-facts-from-text/types";
-import { proposeEntityFromFacts } from "./propose-entity-from-facts.js";
+import { proposeEntityFromFactsAgent } from "./propose-entity-from-facts-agent.js";
 
 const huntingPlcEntitySummary: LocalEntitySummary = {
   localId: "6916156b-e759-41ad-b1da-2cf7af05d223",
@@ -75,7 +75,7 @@ test.skip(
       }),
     );
 
-    const proposeEntityFromFactsStatus = await proposeEntityFromFacts({
+    const proposeEntityFromFactsStatus = await proposeEntityFromFactsAgent({
       entitySummary: huntingPlcEntitySummary,
       facts: huntingPlcEntityFactsWithSources,
       dereferencedEntityType,
@@ -212,7 +212,7 @@ test.skip(
     const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
       Object.values(dereferencedEntityTypes)[0]!;
 
-    const proposeEntityFromFactsStatus = await proposeEntityFromFacts({
+    const proposeEntityFromFactsStatus = await proposeEntityFromFactsAgent({
       entitySummary: graphicsCardEntitySummary,
       facts: factsAboutGraphicsCard,
       dereferencedEntityType,

@@ -1,10 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { LinkData, PropertyObject } from "@local/hash-graph-types/entity";
+import type {
+  EntityProperties,
+  LinkData,
+} from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";
@@ -45,23 +48,23 @@ export const getUser = async (requestContext: APIRequestContext) => {
   }).then(({ data }) => {
     return !data
       ? undefined
-      : (getRoots(
-          deserializeSubgraph(data.me.subgraph),
-        )[0] as Entity<UserProperties>);
+      : getRoots(
+          deserializeSubgraph<EntityRootType<User>>(data.me.subgraph),
+        )[0];
   });
 };
 
-export const createEntity = async (
+export const createEntity = async <T extends EntityProperties>(
   requestContext: APIRequestContext,
   params: {
     draft: boolean;
-    entityTypeId: VersionedUrl;
-    properties: PropertyObject;
+    entityTypeId: T["entityTypeId"];
+    properties: T["propertiesWithMetadata"];
     linkData?: LinkData;
     linkedEntities?: LinkedEntityDefinition[];
     ownedById: OwnedById;
   },
-): Promise<Entity> => {
+): Promise<Entity<T>> => {
   return callGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
     requestContext,
     {
@@ -79,6 +82,6 @@ export const createEntity = async (
     if (!data) {
       throw new Error("Entity not created");
     }
-    return new Entity(data.createEntity);
+    return new Entity<T>(data.createEntity);
   });
 };

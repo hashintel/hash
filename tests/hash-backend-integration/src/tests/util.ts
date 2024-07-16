@@ -47,6 +47,12 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<
 
   return {
     graphApi,
+    provenance: {
+      actorType: "machine",
+      origin: {
+        type: "api",
+      },
+    },
     uploadProvider: {
       getFileEntityStorageKey: (_params) => {
         throw new Error(

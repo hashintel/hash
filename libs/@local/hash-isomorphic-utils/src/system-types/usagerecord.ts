@@ -3,7 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   AppliesFromPropertyValue,
@@ -109,7 +109,14 @@ export type {
   TriggerPropertyValueWithMetadata,
 };
 
-export type Created = LinkEntity<CreatedProperties>;
+/**
+ * The thing that something created.
+ */
+export type Created = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/created/v/1";
+  properties: CreatedProperties;
+  propertiesWithMetadata: CreatedPropertiesWithMetadata;
+};
 
 export type CreatedOutgoingLinkAndTarget = never;
 
@@ -123,7 +130,11 @@ export type CreatedProperties1 = LinkProperties;
 
 export type CreatedProperties2 = {};
 
-export type CreatedPropertiesWithMetadata = {
+export type CreatedPropertiesWithMetadata = CreatedPropertiesWithMetadata1 &
+  CreatedPropertiesWithMetadata2;
+export type CreatedPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type CreatedPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -136,7 +147,14 @@ export type CustomMetadataPropertyValue = ObjectDataType;
 export type CustomMetadataPropertyValueWithMetadata =
   ObjectDataTypeWithMetadata;
 
-export type IncurredIn = LinkEntity<IncurredInProperties>;
+/**
+ * Something that was incurred in something else.
+ */
+export type IncurredIn = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/incurred-in/v/1";
+  properties: IncurredInProperties;
+  propertiesWithMetadata: IncurredInPropertiesWithMetadata;
+};
 
 export type IncurredInOutgoingLinkAndTarget = never;
 
@@ -151,7 +169,11 @@ export type IncurredInProperties1 = LinkProperties;
 
 export type IncurredInProperties2 = {};
 
-export type IncurredInPropertiesWithMetadata = {
+export type IncurredInPropertiesWithMetadata =
+  IncurredInPropertiesWithMetadata1 & IncurredInPropertiesWithMetadata2;
+export type IncurredInPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type IncurredInPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -172,7 +194,14 @@ export type OutputUnitCountPropertyValue = NumberDataType;
 export type OutputUnitCountPropertyValueWithMetadata =
   NumberDataTypeWithMetadata;
 
-export type RecordsUsageOf = LinkEntity<RecordsUsageOfProperties>;
+/**
+ * The thing that something records usage of.
+ */
+export type RecordsUsageOf = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1";
+  properties: RecordsUsageOfProperties;
+  propertiesWithMetadata: RecordsUsageOfPropertiesWithMetadata;
+};
 
 export type RecordsUsageOfOutgoingLinkAndTarget = never;
 
@@ -187,12 +216,23 @@ export type RecordsUsageOfProperties1 = LinkProperties;
 
 export type RecordsUsageOfProperties2 = {};
 
-export type RecordsUsageOfPropertiesWithMetadata = {
+export type RecordsUsageOfPropertiesWithMetadata =
+  RecordsUsageOfPropertiesWithMetadata1 & RecordsUsageOfPropertiesWithMetadata2;
+export type RecordsUsageOfPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type RecordsUsageOfPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
 
-export type Updated = LinkEntity<UpdatedProperties>;
+/**
+ * The thing that something created.
+ */
+export type Updated = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/updated/v/1";
+  properties: UpdatedProperties;
+  propertiesWithMetadata: UpdatedPropertiesWithMetadata;
+};
 
 export type UpdatedOutgoingLinkAndTarget = never;
 
@@ -206,12 +246,23 @@ export type UpdatedProperties1 = LinkProperties;
 
 export type UpdatedProperties2 = {};
 
-export type UpdatedPropertiesWithMetadata = {
+export type UpdatedPropertiesWithMetadata = UpdatedPropertiesWithMetadata1 &
+  UpdatedPropertiesWithMetadata2;
+export type UpdatedPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
+
+export type UpdatedPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
 
-export type UsageRecord = Entity<UsageRecordProperties>;
+/**
+ * A record of usage of a service
+ */
+export type UsageRecord = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/usage-record/v/2";
+  properties: UsageRecordProperties;
+  propertiesWithMetadata: UsageRecordPropertiesWithMetadata;
+};
 
 export type UsageRecordCreatedLink = {
   linkEntity: Created;

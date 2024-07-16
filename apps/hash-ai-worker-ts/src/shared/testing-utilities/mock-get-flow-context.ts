@@ -1,10 +1,12 @@
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
+import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { FlowRunProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { Context } from "@temporalio/activity";
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -26,17 +28,15 @@ type DeepPartial<T> = {
 const createDummyFlow = async (params: { actorId: AccountId }) => {
   const { actorId } = params;
 
-  const dummyFlowRunProperties: FlowRunProperties = {
-    "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-      "dummy-name",
-    "https://hash.ai/@hash/types/property-type/flow-definition-id/":
-      "dummy-def",
-    "https://hash.ai/@hash/types/property-type/step/": [{}],
-    "https://hash.ai/@hash/types/property-type/trigger/": {
-      "https://hash.ai/@hash/types/property-type/trigger-definition-id/":
-        "dummy-trigger",
+  const dummyFlowRunProperties = mapFlowRunToEntityProperties({
+    name: "dummy-name",
+    flowRunId: generateUuid() as EntityUuid,
+    trigger: {
+      triggerDefinitionId: "userTrigger",
     },
-  };
+    flowDefinitionId: generateUuid() as EntityUuid,
+    steps: [],
+  });
 
   const dummyFlowEntity = await Entity.create(
     graphApiClient,
@@ -45,6 +45,12 @@ const createDummyFlow = async (params: { actorId: AccountId }) => {
       ownedById: actorId as OwnedById,
       entityTypeId: systemEntityTypes.flowRun.entityTypeId,
       properties: dummyFlowRunProperties,
+      provenance: {
+        actorType: "machine",
+        origin: {
+          type: "flow",
+        },
+      },
       draft: false,
       relationships: createDefaultAuthorizationRelationships({ actorId }),
     },

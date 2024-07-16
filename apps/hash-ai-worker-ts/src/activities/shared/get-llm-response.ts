@@ -1,16 +1,20 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
-import type { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { IncurredIn } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import { StatusCode } from "@local/status";
+import { backOff } from "exponential-backoff";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
 import { logger } from "./activity-logger.js";
+import { getFlowContext } from "./get-flow-context.js";
 import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-service-usage-not-exceeded.js";
 import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response.js";
 import { getOpenAiResponse } from "./get-llm-response/get-openai-reponse.js";
@@ -60,11 +64,19 @@ export const getLlmResponse = async <T extends LlmParams>(
     };
   }
 
-  const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
-    authentication: { actorId: userAccountId },
-    grantCreatePermissionForWeb: webId,
-    graphApiClient,
-  });
+  const aiAssistantAccountId = await backOff(
+    () =>
+      getAiAssistantAccountIdActivity({
+        authentication: { actorId: userAccountId },
+        grantCreatePermissionForWeb: webId,
+        graphApiClient,
+      }),
+    {
+      jitter: "full",
+      numOfAttempts: 3,
+      startingDelay: 1_000,
+    },
+  );
 
   if (!aiAssistantAccountId) {
     return {
@@ -75,14 +87,15 @@ export const getLlmResponse = async <T extends LlmParams>(
 
   const timeBeforeApiCall = Date.now();
 
-  const { taskName, stepId } = customMetadata ?? {};
+  const { flowEntityId, stepId } = await getFlowContext();
+
+  const { taskName } = customMetadata ?? {};
   let debugMessage = `Getting LLM response for model ${llmParams.model}`;
   if (taskName) {
     debugMessage += ` for task ${taskName}`;
   }
-  if (stepId) {
-    debugMessage += ` in step ${stepId}`;
-  }
+
+  debugMessage += ` in step ${stepId}`;
 
   logger.debug(debugMessage);
 
@@ -110,19 +123,27 @@ export const getLlmResponse = async <T extends LlmParams>(
     let usageRecordEntity: Entity;
 
     try {
-      usageRecordEntity = await createUsageRecord(
-        { graphApi: graphApiClient },
+      usageRecordEntity = await backOff(
+        () =>
+          createUsageRecord(
+            { graphApi: graphApiClient },
+            {
+              additionalViewers: [aiAssistantAccountId],
+              assignUsageToWebId: webId,
+              customMetadata,
+              serviceName: isLlmParamsAnthropicLlmParams(llmParams)
+                ? "Anthropic"
+                : "OpenAI",
+              featureName: llmParams.model,
+              inputUnitCount: usage.inputTokens,
+              outputUnitCount: usage.outputTokens,
+              userAccountId,
+            },
+          ),
         {
-          additionalViewers: [aiAssistantAccountId],
-          assignUsageToWebId: webId,
-          customMetadata,
-          serviceName: isLlmParamsAnthropicLlmParams(llmParams)
-            ? "Anthropic"
-            : "OpenAI",
-          featureName: llmParams.model,
-          inputUnitCount: usage.inputTokens,
-          outputUnitCount: usage.outputTokens,
-          userAccountId,
+          jitter: "full",
+          numOfAttempts: 3,
+          startingDelay: 1_000,
         },
       );
     } catch (error) {
@@ -140,15 +161,25 @@ export const getLlmResponse = async <T extends LlmParams>(
         { actorId: aiAssistantAccountId },
       );
 
+      const provenance: EnforcedEntityEditionProvenance = {
+        actorType: "ai",
+        origin: {
+          type: "flow",
+          id: flowEntityId,
+          stepIds: [stepId],
+        } satisfies OriginProvenance,
+      };
+
       const errors = await Promise.all(
         incurredInEntities.map(async ({ entityId }) => {
           try {
-            await Entity.create(
+            await Entity.create<IncurredIn>(
               graphApiClient,
               { actorId: aiAssistantAccountId },
               {
                 draft: false,
-                properties: {},
+                properties: { value: {} },
+                provenance,
                 ownedById: webId,
                 entityTypeId: systemLinkEntityTypes.incurredIn.linkEntityTypeId,
                 linkData: {

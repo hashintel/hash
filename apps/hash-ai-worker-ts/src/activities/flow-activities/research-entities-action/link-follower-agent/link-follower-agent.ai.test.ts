@@ -24,6 +24,7 @@ test.skip(
       entityTypes: Object.values(dereferencedEntityTypes).map(
         ({ schema }) => schema,
       ),
+      existingEntitiesOfInterest: [],
       initialResource: {
         url: "https://churchlab.hms.harvard.edu/index.php/lab-members#current",
         exampleOfExpectedContent: "Current Members: ...",
@@ -60,6 +61,7 @@ test.skip(
       entityTypes: Object.values(dereferencedEntityTypes).map(
         ({ schema }) => schema,
       ),
+      existingEntitiesOfInterest: [],
       initialResource: {
         url: "https://openai.com/index/video-generation-models-as-world-simulators/",
         exampleOfExpectedContent: "Authors: ...",
@@ -98,6 +100,7 @@ test.skip(
       entityTypes: Object.values(dereferencedEntityTypes).map(
         ({ schema }) => schema,
       ),
+      existingEntitiesOfInterest: [],
       initialResource: {
         url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
         exampleOfExpectedContent: "Constituents: ...",
@@ -136,6 +139,7 @@ test.skip(
       entityTypes: Object.values(dereferencedEntityTypes).map(
         ({ schema }) => schema,
       ),
+      existingEntitiesOfInterest: [],
       initialResource: {
         url: "https://www.gpu-mart.com/blog/best-gpus-for-deep-learning-2023",
         exampleOfExpectedContent: "Graphics Cards: ...",
@@ -175,6 +179,7 @@ test.skip(
       entityTypes: Object.values(dereferencedEntityTypes).map(
         ({ schema }) => schema,
       ),
+      existingEntitiesOfInterest: [],
       initialResource: {
         url: "https://corporate.marksandspencer.com/investors",
         exampleOfExpectedContent: "Investors: ...",

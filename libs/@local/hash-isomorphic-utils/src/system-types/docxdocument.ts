@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   BooleanDataType,
@@ -123,7 +122,14 @@ export type {
   UploadCompletedAtPropertyValueWithMetadata,
 };
 
-export type DOCXDocument = Entity<DOCXDocumentProperties>;
+/**
+ * A Microsoft Word document.
+ */
+export type DOCXDocument = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/docx-document/v/1";
+  properties: DOCXDocumentProperties;
+  propertiesWithMetadata: DOCXDocumentPropertiesWithMetadata;
+};
 
 export type DOCXDocumentOutgoingLinkAndTarget = never;
 
@@ -138,7 +144,12 @@ export type DOCXDocumentProperties1 = DocumentFileProperties;
 
 export type DOCXDocumentProperties2 = {};
 
-export type DOCXDocumentPropertiesWithMetadata = {
+export type DOCXDocumentPropertiesWithMetadata =
+  DOCXDocumentPropertiesWithMetadata1 & DOCXDocumentPropertiesWithMetadata2;
+export type DOCXDocumentPropertiesWithMetadata1 =
+  DocumentFilePropertiesWithMetadata;
+
+export type DOCXDocumentPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

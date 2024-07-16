@@ -148,7 +148,9 @@ export const getEntitySummariesFromText = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    throw new Error(`Failed to get LLM response: ${llmResponse.status}`);
+    return {
+      entitySummaries: [],
+    };
   }
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({

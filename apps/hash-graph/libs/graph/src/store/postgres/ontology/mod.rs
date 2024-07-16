@@ -10,15 +10,15 @@ use core::convert::identity;
 use error_stack::{Report, ResultExt};
 use graph_types::{
     ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyType,
-        OntologyTypeClassificationMetadata, PropertyTypeWithMetadata,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeClassificationMetadata,
+        PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
 };
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
-use type_system::{url::BaseUrl, DataType, EntityType, PropertyType};
+use type_system::url::BaseUrl;
 
 pub use self::ontology_id::OntologyId;
 use crate::{
@@ -35,32 +35,6 @@ use crate::{
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
-
-/// Provides an abstraction over elements of the Type System stored in the Database.
-///
-/// [`PostgresDatabase`]: crate::store::PostgresDatabase
-pub trait OntologyDatabaseType: OntologyType {
-    /// Returns the name of the table where this type is stored.
-    fn table() -> &'static str;
-}
-
-impl OntologyDatabaseType for DataType {
-    fn table() -> &'static str {
-        "data_types"
-    }
-}
-
-impl OntologyDatabaseType for PropertyType {
-    fn table() -> &'static str {
-        "property_types"
-    }
-}
-
-impl OntologyDatabaseType for EntityType {
-    fn table() -> &'static str {
-        "entity_types"
-    }
-}
 
 impl<A> PostgresStore<Transaction<'_>, A>
 where

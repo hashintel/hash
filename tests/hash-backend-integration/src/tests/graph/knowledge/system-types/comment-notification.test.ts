@@ -16,7 +16,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Text } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -91,16 +91,18 @@ describe("Comment Notification", () => {
       {
         ownedById: testOrg.accountGroupId as OwnedById,
         componentId: "text",
-        blockData: await createEntity(
+        blockData: await createEntity<Text>(
           graphContext,
           { actorId: recipientUser.accountId },
           {
             ownedById: testOrg.accountGroupId as OwnedById,
             entityTypeId: systemEntityTypes.text.entityTypeId,
             properties: {
-              "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-                [],
-            } as TextProperties,
+              value: {
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+                  { value: [] },
+              },
+            },
             relationships: createDefaultAuthorizationRelationships({
               actorId: recipientUser.accountId,
             }),
@@ -176,16 +178,18 @@ describe("Comment Notification", () => {
       {
         ownedById: testOrg.accountGroupId as OwnedById,
         componentId: "text",
-        blockData: await createEntity(
+        blockData: await createEntity<Text>(
           graphContext,
           { actorId: triggerUser.accountId },
           {
             ownedById: testOrg.accountGroupId as OwnedById,
             entityTypeId: systemEntityTypes.text.entityTypeId,
             properties: {
-              "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-                [],
-            } as TextProperties,
+              value: {
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+                  { value: [] },
+              },
+            },
             relationships: createDefaultAuthorizationRelationships({
               actorId: triggerUser.accountId,
             }),

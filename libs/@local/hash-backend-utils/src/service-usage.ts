@@ -1,5 +1,8 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  type EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -24,13 +27,17 @@ import {
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
+import type {
+  RecordsUsageOf,
+  UsageRecord,
+} from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type {
   EntityRelationAndSubject,
   EntityRootType,
 } from "@local/hash-subgraph";
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { backOff } from "exponential-backoff";
 
 import { getHashInstanceAdminAccountGroupId } from "./hash-instance.js";
 
@@ -49,50 +56,58 @@ export const getWebServiceUsage = async (
     webId: OwnedById;
   },
 ): Promise<AggregatedUsageRecord[]> => {
-  const serviceUsageRecordSubgraph = await context.graphApi
-    .getEntitySubgraph(userAccountId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.usageRecord.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
+  const serviceUsageRecordSubgraph = await backOff(
+    () =>
+      context.graphApi
+        .getEntitySubgraph(userAccountId, {
+          filter: {
+            all: [
+              generateVersionedUrlMatchingFilter(
+                systemEntityTypes.usageRecord.entityTypeId,
+                { ignoreParents: true },
+              ),
               {
-                path: ["ownedById"],
+                equal: [
+                  {
+                    path: ["ownedById"],
+                  },
+                  { parameter: webId },
+                ],
               },
-              { parameter: webId },
             ],
           },
-        ],
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        // Depths required to retrieve the service the usage record relates to
-        hasLeftEntity: { incoming: 1, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 1 },
-      },
-      temporalAxes: decisionTimeInterval
-        ? {
-            pinned: {
-              axis: "transactionTime",
-              timestamp: null,
-            },
-            variable: {
-              axis: "decisionTime",
-              interval: decisionTimeInterval,
-            },
-          }
-        : currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data }) => {
-      return mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        userAccountId,
-      );
-    });
+          graphResolveDepths: {
+            ...zeroedGraphResolveDepths,
+            // Depths required to retrieve the service the usage record relates to
+            hasLeftEntity: { incoming: 1, outgoing: 0 },
+            hasRightEntity: { incoming: 0, outgoing: 1 },
+          },
+          temporalAxes: decisionTimeInterval
+            ? {
+                pinned: {
+                  axis: "transactionTime",
+                  timestamp: null,
+                },
+                variable: {
+                  axis: "decisionTime",
+                  interval: decisionTimeInterval,
+                },
+              }
+            : currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+        })
+        .then(({ data }) => {
+          return mapGraphApiSubgraphToSubgraph<EntityRootType<UsageRecord>>(
+            data.subgraph,
+            userAccountId,
+          );
+        }),
+    {
+      numOfAttempts: 3,
+      startingDelay: 500,
+      timeMultiple: 2,
+    },
+  );
 
   const serviceUsageRecords = getRoots(serviceUsageRecordSubgraph);
 
@@ -140,17 +155,43 @@ export const createUsageRecord = async (
     userAccountId: AccountId;
   },
 ) => {
-  const properties: UsageRecordProperties = {
-    "https://hash.ai/@hash/types/property-type/input-unit-count/":
-      inputUnitCount,
-    "https://hash.ai/@hash/types/property-type/output-unit-count/":
-      outputUnitCount,
+  const properties: UsageRecord["propertiesWithMetadata"] = {
+    value: {
+      ...(inputUnitCount !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/input-unit-count/": {
+              value: inputUnitCount,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+              },
+            },
+          }
+        : {}),
+      ...(outputUnitCount !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/output-unit-count/": {
+              value: outputUnitCount,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+              },
+            },
+          }
+        : {}),
+      ...(customMetadata !== undefined && customMetadata !== null
+        ? {
+            "https://hash.ai/@hash/types/property-type/custom-metadata/": {
+              value: customMetadata,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+              },
+            },
+          }
+        : {}),
+    },
   };
-
-  if (customMetadata) {
-    properties["https://hash.ai/@hash/types/property-type/custom-metadata/"] =
-      customMetadata;
-  }
 
   /**
    * We want to assign usage to the web, which may be an org, but be able to identify which users
@@ -260,41 +301,38 @@ export const createUsageRecord = async (
     usageRecordEntityUuid,
   );
 
-  const createdEntities = await Entity.createMultiple(
-    context.graphApi,
-    authentication,
-    [
-      {
-        ownedById: assignUsageToWebId,
-        draft: false,
-        entityUuid: usageRecordEntityUuid,
-        properties,
-        entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
-        relationships: entityRelationships,
+  const provenance: EnforcedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "api",
+    },
+  };
+
+  const [usageRecord] = await Entity.createMultiple<
+    [UsageRecord, RecordsUsageOf]
+  >(context.graphApi, authentication, [
+    {
+      ownedById: assignUsageToWebId,
+      draft: false,
+      entityUuid: usageRecordEntityUuid,
+      properties,
+      provenance,
+      entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
+      relationships: entityRelationships,
+    },
+    {
+      ownedById: assignUsageToWebId,
+      draft: false,
+      properties: { value: {} },
+      provenance,
+      linkData: {
+        leftEntityId: usageRecordEntityId,
+        rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
       },
-      {
-        ownedById: assignUsageToWebId,
-        draft: false,
-        properties: {},
-        linkData: {
-          leftEntityId: usageRecordEntityId,
-          rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
-        },
-        entityTypeId: systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
-        relationships: entityRelationships,
-      },
-    ],
-  );
+      entityTypeId: systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+      relationships: entityRelationships,
+    },
+  ]);
 
-  const usageRecordEntity = createdEntities.find(
-    (entity) => entity.metadata.recordId.entityId === usageRecordEntityId,
-  );
-
-  if (!usageRecordEntity) {
-    throw new Error(
-      `Failed to create usage record entity for webId ${assignUsageToWebId}.`,
-    );
-  }
-
-  return usageRecordEntity;
+  return usageRecord;
 };

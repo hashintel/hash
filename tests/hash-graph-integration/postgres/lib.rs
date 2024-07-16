@@ -74,12 +74,12 @@ use graph_types::{
 use hash_tracing::logging::env_filter;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{DataType, EntityType, PropertyType};
+use type_system::schema::{DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper<A: AuthorizationApi> {
-    _pool: PostgresStorePool<NoTls>,
-    connection: <PostgresStorePool<NoTls> as StorePool>::Store<'static, A>,
+    _pool: PostgresStorePool,
+    connection: <PostgresStorePool as StorePool>::Store<'static, A>,
 }
 
 pub struct DatabaseApi<'pool, A: AuthorizationApi> {

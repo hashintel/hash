@@ -3,7 +3,6 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import type {
   Actor,
@@ -29,7 +28,14 @@ export type {
   TextDataTypeWithMetadata,
 };
 
-export type Machine = Entity<MachineProperties>;
+/**
+ * A machine that can perform actions in the system
+ */
+export type Machine = {
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/machine/v/2";
+  properties: MachineProperties;
+  propertiesWithMetadata: MachinePropertiesWithMetadata;
+};
 
 /**
  * A unique identifier for a machine
@@ -54,7 +60,11 @@ export type MachineProperties2 = {
   "https://hash.ai/@hash/types/property-type/machine-identifier/": MachineIdentifierPropertyValue;
 };
 
-export type MachinePropertiesWithMetadata = {
+export type MachinePropertiesWithMetadata = MachinePropertiesWithMetadata1 &
+  MachinePropertiesWithMetadata2;
+export type MachinePropertiesWithMetadata1 = ActorPropertiesWithMetadata;
+
+export type MachinePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValueWithMetadata;

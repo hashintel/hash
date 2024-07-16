@@ -5,7 +5,7 @@ export const createEntityMutation = gql`
   mutation createEntity(
     $entityTypeId: VersionedUrl!
     $ownedById: OwnedById
-    $properties: PropertyObject!
+    $properties: PropertyObjectWithMetadata!
     $linkData: LinkData
     $draft: Boolean
     $relationships: [EntityRelationAndSubject!]
@@ -184,19 +184,5 @@ export const getEntityDiffsQuery = gql`
       input
       diff
     }
-  }
-`;
-
-export const startFlowMutation = gql`
-  mutation startFlow(
-    $flowTrigger: FlowTrigger!
-    $flowDefinition: FlowDefinition!
-    $webId: OwnedById!
-  ) {
-    startFlow(
-      flowTrigger: $flowTrigger
-      flowDefinition: $flowDefinition
-      webId: $webId
-    )
   }
 `;

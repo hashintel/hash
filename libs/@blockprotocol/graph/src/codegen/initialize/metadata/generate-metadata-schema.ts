@@ -20,14 +20,14 @@ import {
 
 const generateMetadataSchemaTitles = ({
   title,
-}: Pick<PropertyType | DataType, "title">) => ({
+}: Pick<EntityType | PropertyType | DataType, "title">) => ({
   valueWithMetadataTitle: `${title} With Metadata`,
   metadataTitle: `${title} Metadata`,
 });
 
-const generateMetadataSchemaIdentifiers = ({
+export const generateMetadataSchemaIdentifiers = ({
   $id,
-}: Pick<PropertyType | DataType, "$id">) => ({
+}: Pick<EntityType | PropertyType | DataType, "$id">) => ({
   valueWithMetadata$id: $id.replace(
     /(\/types\/(?:entity-type|property-type|data-type)\/)/,
     /**
@@ -89,12 +89,14 @@ type EntityParentIdentifiers = {
 };
 
 type ObjectWithMetadataParams = {
+  allOf?: EntityType["allOf"];
   properties: EntityType["properties"];
   required: string[];
   entityParentIdentifiers: EntityParentIdentifiers | null;
 };
 
 export function generatePropertiesObjectWithMetadataSchema({
+  allOf,
   properties,
   required,
   entityParentIdentifiers,
@@ -102,6 +104,7 @@ export function generatePropertiesObjectWithMetadataSchema({
   entityParentIdentifiers: null;
 }): PartialJsonSchema;
 export function generatePropertiesObjectWithMetadataSchema({
+  allOf,
   properties,
   required,
   entityParentIdentifiers,
@@ -116,6 +119,7 @@ export function generatePropertiesObjectWithMetadataSchema({
  * – do not use this for properties objects defined within a property type, which may include multiple properties objects.
  */
 export function generatePropertiesObjectWithMetadataSchema({
+  allOf,
   properties,
   required,
   entityParentIdentifiers,
@@ -166,7 +170,7 @@ export function generatePropertiesObjectWithMetadataSchema({
     {},
   );
 
-  return {
+  const schema: JsonSchema | PartialJsonSchema = {
     type: "object",
     title,
     $id,
@@ -181,6 +185,12 @@ export function generatePropertiesObjectWithMetadataSchema({
     },
     required: ["value"],
   };
+
+  if (allOf) {
+    schema.allOf = allOf;
+  }
+
+  return schema;
 }
 
 const generatePropertyValueWithMetadataTree = (

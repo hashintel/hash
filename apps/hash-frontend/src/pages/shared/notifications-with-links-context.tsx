@@ -3,7 +3,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type { Filter } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { TextProperties } from "@local/hash-isomorphic-utils/entity";
+import type { TextWithTokens } from "@local/hash-isomorphic-utils/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -17,16 +17,16 @@ import {
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
-  BlockProperties,
-  CommentNotificationProperties,
-  CommentProperties,
-  NotificationProperties,
-  OccurredInEntityProperties,
-  PageProperties,
+  Block as BlockProperties,
+  Comment as CommentProperties,
+  CommentNotification as CommentNotificationProperties,
+  Notification as NotificationProperties,
+  OccurredInEntity as OccurredInEntityProperties,
+  Page as PageProperties,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-import type { GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
-import type { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { GraphChangeNotification as GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
+import type { MentionNotification as MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
+import type { User as UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
   EntityRootType,
   EntityVertex,
@@ -51,9 +51,9 @@ export type PageMentionNotification = {
   entity: Entity<MentionNotificationProperties>;
   occurredInEntity: Entity<PageProperties>;
   occurredInBlock: Entity<BlockProperties>;
-  occurredInText: Entity<TextProperties>;
+  occurredInText: Entity<TextWithTokens>;
   triggeredByUser: MinimalUser;
-} & SimpleProperties<MentionNotificationProperties>;
+} & SimpleProperties<MentionNotificationProperties["properties"]>;
 
 export type CommentMentionNotification = {
   kind: "comment-mention";
@@ -67,7 +67,7 @@ export type NewCommentNotification = {
   occurredInBlock: Entity<BlockProperties>;
   triggeredByComment: Entity<CommentProperties>;
   triggeredByUser: MinimalUser;
-} & SimpleProperties<CommentNotificationProperties>;
+} & SimpleProperties<CommentNotificationProperties["properties"]>;
 
 export type CommentReplyNotification = {
   kind: "comment-reply";
@@ -87,7 +87,7 @@ export type GraphChangeNotification = {
   occurredInEntityLabel: string;
   occurredInEntity: Entity;
   operation: string;
-} & SimpleProperties<NotificationProperties>;
+} & SimpleProperties<NotificationProperties["properties"]>;
 
 export type Notification = PageRelatedNotification | GraphChangeNotification;
 
@@ -249,10 +249,10 @@ export const useNotificationsWithLinksContextValue =
               return {
                 kind: "comment-mention",
                 readAt,
-                entity,
+                entity: entity as Entity<MentionNotificationProperties>,
                 occurredInEntity: occurredInEntity as Entity<PageProperties>,
                 occurredInBlock: occurredInBlock as Entity<BlockProperties>,
-                occurredInText: occurredInText as Entity<TextProperties>,
+                occurredInText: occurredInText as Entity<TextWithTokens>,
                 triggeredByUser,
                 occurredInComment:
                   occurredInComment as Entity<CommentProperties>,
@@ -262,10 +262,10 @@ export const useNotificationsWithLinksContextValue =
             return {
               kind: "page-mention",
               readAt,
-              entity,
+              entity: entity as Entity<MentionNotificationProperties>,
               occurredInEntity: occurredInEntity as Entity<PageProperties>,
               occurredInBlock: occurredInBlock as Entity<BlockProperties>,
-              occurredInText: occurredInText as Entity<TextProperties>,
+              occurredInText: occurredInText as Entity<TextWithTokens>,
               triggeredByUser,
             } satisfies PageMentionNotification;
           } else if (
@@ -320,11 +320,12 @@ export const useNotificationsWithLinksContextValue =
               return {
                 kind: "comment-reply",
                 readAt,
-                entity,
+                entity: entity as Entity<CommentNotificationProperties>,
                 occurredInEntity: occurredInEntity as Entity<PageProperties>,
                 occurredInBlock: occurredInBlock as Entity<BlockProperties>,
-                triggeredByComment,
-                repliedToComment,
+                triggeredByComment:
+                  triggeredByComment as Entity<CommentProperties>,
+                repliedToComment: repliedToComment as Entity<CommentProperties>,
                 triggeredByUser,
               } satisfies CommentReplyNotification;
             }
@@ -332,10 +333,11 @@ export const useNotificationsWithLinksContextValue =
             return {
               kind: "new-comment",
               readAt,
-              entity,
+              entity: entity as Entity<CommentNotificationProperties>,
               occurredInEntity: occurredInEntity as Entity<PageProperties>,
               occurredInBlock: occurredInBlock as Entity<BlockProperties>,
-              triggeredByComment,
+              triggeredByComment:
+                triggeredByComment as Entity<CommentProperties>,
               triggeredByUser,
             } satisfies NewCommentNotification;
           } else if (

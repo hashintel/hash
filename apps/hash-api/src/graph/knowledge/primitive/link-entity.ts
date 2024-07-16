@@ -1,10 +1,13 @@
-import type { ProvidedEntityEditionProvenance } from "@local/hash-graph-client";
 import type {
   CreateEntityParameters,
   Entity,
 } from "@local/hash-graph-sdk/entity";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
-import type { LinkData, PropertyObject } from "@local/hash-graph-types/entity";
+import type {
+  EntityProperties,
+  LinkData,
+  PropertyPatchOperation,
+} from "@local/hash-graph-types/entity";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import {
@@ -17,30 +20,28 @@ import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
   !!entity.linkData;
 
+type CreateLinkEntityFunction<Properties extends EntityProperties> =
+  ImpureGraphFunction<
+    Omit<CreateEntityParameters<Properties>, "provenance"> & {
+      linkData: LinkData;
+    },
+    Promise<LinkEntity<Properties>>
+  >;
+
 /**
- * Create a link entity between a left and a right entity.
- *
- * @param params.ownedById - the id of the account who owns the new link entity
- * @param params.linkEntityTypeId - the link entity type ID of the link entity
- * @param params.leftEntityId - the ID of the left entity
- * @param params.rightEntityId - the ID of the right entity
- * @param params.actorId - the id of the account that is creating the link
+ * Create an entity.
  */
-export const createLinkEntity: ImpureGraphFunction<
-  CreateEntityParameters & {
-    linkData: LinkData;
-  },
-  Promise<LinkEntity>
-> = async (context, authentication, params) => {
+export const createLinkEntity = async <Properties extends EntityProperties>(
+  ...args: Parameters<CreateLinkEntityFunction<Properties>>
+): ReturnType<CreateLinkEntityFunction<Properties>> => {
+  const [context, authentication, params] = args;
   const {
     ownedById,
     linkData,
-    properties = {},
+    properties = { value: {} },
     draft = false,
     relationships,
     confidence,
-    propertyMetadata,
-    provenance,
   } = params;
 
   const linkEntityType = await getEntityTypeById(context, authentication, {
@@ -63,17 +64,20 @@ export const createLinkEntity: ImpureGraphFunction<
     );
   }
 
-  const linkEntity = await LinkEntity.create(context.graphApi, authentication, {
-    ownedById,
-    linkData,
-    entityTypeId: linkEntityType.schema.$id,
-    properties,
-    draft,
-    relationships,
-    confidence,
-    propertyMetadata,
-    provenance,
-  });
+  const linkEntity = await LinkEntity.create<Properties>(
+    context.graphApi,
+    authentication,
+    {
+      ownedById,
+      linkData,
+      entityTypeId: linkEntityType.schema.$id,
+      properties,
+      draft,
+      relationships,
+      confidence,
+      provenance: context.provenance,
+    },
+  );
 
   for (const afterCreateHook of afterCreateEntityHooks) {
     if (afterCreateHook.entityTypeId === linkEntity.metadata.entityTypeId) {
@@ -98,29 +102,20 @@ export const createLinkEntity: ImpureGraphFunction<
 export const updateLinkEntity: ImpureGraphFunction<
   {
     linkEntity: LinkEntity;
-    properties?: PropertyObject;
+    propertyPatches?: PropertyPatchOperation[];
     draft?: boolean;
-    provenance?: ProvidedEntityEditionProvenance;
   },
   Promise<LinkEntity>
-> = async ({ graphApi }, { actorId }, params) => {
-  const { linkEntity } = params;
+> = async ({ graphApi, provenance }, { actorId }, params) => {
+  const { linkEntity, propertyPatches } = params;
 
   return await linkEntity.patch(
     graphApi,
     { actorId },
     {
-      properties: params.properties
-        ? [
-            {
-              op: "replace",
-              path: [],
-              value: params.properties,
-            },
-          ]
-        : undefined,
+      propertyPatches,
       draft: params.draft,
-      provenance: params.provenance,
+      provenance,
     },
   );
 };

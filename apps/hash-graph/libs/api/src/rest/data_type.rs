@@ -36,6 +36,7 @@ use graph::{
     subgraph::identifier::DataTypeVertexId,
 };
 use graph_types::{
+    knowledge::ValueWithMetadata,
     ontology::{
         DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
@@ -48,8 +49,8 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
+    schema::DataType,
     url::{OntologyTypeVersion, VersionedUrl},
-    DataType,
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -98,6 +99,8 @@ use crate::rest::{
             GetDataTypeSubgraphResponse,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
+
+            ValueWithMetadata,
         )
     ),
     tags(
