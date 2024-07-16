@@ -95,7 +95,9 @@ data "aws_ecs_cluster" "ecs" {
   cluster_name = "${var.prefix}-ecs"
 }
 
-provider cloudflare {}
+provider "cloudflare" {
+  api_token = "TODO"
+}
 
 data "cloudflare_ip_ranges" "cloudflare" {}
 
