@@ -36,10 +36,10 @@ where
     type Error = E;
 
     fn poll_frame(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context,
     ) -> Poll<Option<super::BodyFrameResult<Self>>> {
-        let mut this = self.as_mut().project();
+        let mut this = self.project();
 
         let Some(stream) = this.stream.as_mut().as_pin_mut() else {
             return Poll::Ready(None);
