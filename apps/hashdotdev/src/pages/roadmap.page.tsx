@@ -235,19 +235,17 @@ const GetInvolved: FunctionComponent = () => (
       </Link>{" "}
       .
     </Typography>
-    <Button
-      variant="primarySquare"
-      size="medium"
-      color="blue"
-      href="https://app.hash.ai"
-      startIcon={<ArrowRightToBracketRegularIcon />}
-      sx={{ width: { xs: "100%", sm: "auto" } }}
-    >
-      <Typography>
-        Use at <strong>app.hash.ai</strong>
-      </Typography>
-    </Button>
     <Box marginTop={5} display="flex" gap={2} flexWrap="wrap">
+      <Button
+        variant="primarySquare"
+        size="medium"
+        color="blue"
+        href="https://app.hash.ai/signup"
+        startIcon={<ArrowRightToBracketRegularIcon />}
+        sx={{ width: { xs: "100%", sm: "auto" } }}
+      >
+        <Typography>Create a HASH account</Typography>
+      </Button>
       <Button
         variant="primarySquare"
         size="medium"
