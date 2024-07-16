@@ -9,12 +9,11 @@ import {
   type GoalFlowTriggerInput,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Collapse, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useMemo, useState } from "react";
 
 import type { FlowRun } from "../../../../graphql/api-types.gen";
-import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../shared/ui/link";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { useFlowRunsUsage } from "../../../shared/use-flow-runs-usage";
