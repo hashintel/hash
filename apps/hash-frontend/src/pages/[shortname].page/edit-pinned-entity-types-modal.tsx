@@ -1,5 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
+import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -147,7 +148,10 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
               path: [
                 systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeBaseUrl,
               ],
-              value: updatedPinnedEntityTypeBaseUrls,
+              property: mergePropertiesAndMetadata(
+                updatedPinnedEntityTypeBaseUrls,
+                undefined,
+              ),
             },
           ],
         },

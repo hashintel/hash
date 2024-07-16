@@ -52,9 +52,9 @@ const generateCommonParameters = async (
   }
 
   if (fileEntityUpdateInput) {
-    const existingEntity = await getLatestEntityById(ctx, authentication, {
+    const existingEntity = (await getLatestEntityById(ctx, authentication, {
       entityId: fileEntityUpdateInput.existingFileEntityId,
-    });
+    })) as Entity<File>;
 
     return {
       existingEntity,
@@ -140,33 +140,91 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   const { entityTypeId, existingEntity, mimeType, ownedById } =
     await generateCommonParameters(ctx, authentication, params, name);
 
-  const initialProperties: File["properties"] = {
-    "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-      description ?? undefined,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-      "https://placehold.co/600x400?text=PLACEHOLDER",
-    "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
-      name,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-      displayName ?? undefined,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
-      mimeType,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
-      name,
-    "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
-      "Upload",
-    "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/":
-      size,
+  const initialProperties: File["propertiesWithMetadata"] = {
+    value: {
+      ...(description !== undefined && description !== null
+        ? {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+              {
+                value: description,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              },
+          }
+        : {}),
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+        {
+          value: "https://placehold.co/600x400?text=PLACEHOLDER",
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
+        {
+          value: name,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+      ...(displayName !== undefined && displayName !== null
+        ? {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+              {
+                value: displayName,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              },
+          }
+        : {}),
+      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
+        {
+          value: mimeType,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
+        {
+          value: name,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
+        {
+          value: "Upload",
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/":
+        {
+          value: size,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+          },
+        },
+    },
   };
 
   let fileEntity = existingEntity;
   if (!fileEntity) {
-    fileEntity = (await createEntity(ctx, authentication, {
+    fileEntity = await createEntity<File>(ctx, authentication, {
       ownedById,
       properties: initialProperties,
-      entityTypeId,
+      entityTypeId: entityTypeId as File["entityTypeId"],
       relationships: createDefaultAuthorizationRelationships(authentication),
-    })) as Entity<File>;
+    });
   }
 
   const editionIdentifier = generateUuid();
@@ -188,23 +246,32 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
       });
 
-    const additionalProperties: File["properties"] = {
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-        formatFileUrl(key),
+    const updatedProperties: File["propertiesWithMetadata"] = {
       ...fileStorageProperties,
+      value: {
+        ...fileStorageProperties.value,
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+          {
+            value: formatFileUrl(key),
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+      },
     };
 
-    const entity = (await updateEntity(ctx, authentication, {
+    const entity = await updateEntity<File>(ctx, authentication, {
       entity: fileEntity,
       entityTypeId,
-      propertyPatches: typedEntries(additionalProperties).map(
-        ([baseUrl, value]) => ({
+      propertyPatches: typedEntries(updatedProperties.value).map(
+        ([baseUrl, property]) => ({
           op: "add",
           path: [baseUrl as BaseUrl],
-          value,
+          property,
         }),
       ),
-    })) as Entity<File>;
+    });
 
     return {
       presignedPut,
@@ -229,49 +296,105 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
     await generateCommonParameters(ctx, authentication, params, filename);
 
   try {
-    const properties: File["properties"] = {
-      "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-        description ?? undefined,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
-        filename,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-        displayName ?? undefined,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-        url,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
-        mimeType,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
-        filename,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
-        "URL",
-      "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/":
-        url,
+    const properties: File["propertiesWithMetadata"] = {
+      value: {
+        ...(description !== undefined && description !== null
+          ? {
+              "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+                {
+                  value: description,
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                },
+            }
+          : {}),
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
+          {
+            value: filename,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        ...(displayName !== undefined && displayName !== null
+          ? {
+              "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+                {
+                  value: displayName,
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                },
+            }
+          : {}),
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+          {
+            value: url,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
+          {
+            value: mimeType,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
+          {
+            value: filename,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
+          {
+            value: "URL",
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/":
+          {
+            value: url,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+      },
     };
 
     return existingEntity
-      ? ((await updateEntity(ctx, authentication, {
+      ? await updateEntity<File>(ctx, authentication, {
           entity: existingEntity,
           entityTypeId,
-          propertyPatches: typedEntries(properties)
+          propertyPatches: typedEntries(properties.value)
             .filter(
-              ([baseUrl, value]) =>
-                existingEntity.properties[baseUrl as BaseUrl] !== value,
+              ([baseUrl, property]) =>
+                existingEntity.properties[baseUrl] !== property.value,
             )
-            .map(([baseUrl, value]) => ({
-              op: existingEntity.properties[baseUrl as BaseUrl]
-                ? "replace"
-                : "add",
+            .map(([baseUrl, property]) => ({
+              op: existingEntity.properties[baseUrl] ? "replace" : "add",
               path: [baseUrl as BaseUrl],
-              value,
+              property,
             })),
-        })) as Entity<File>)
-      : ((await createEntity(ctx, authentication, {
+        })
+      : await createEntity(ctx, authentication, {
           ownedById,
           properties,
-          entityTypeId,
+          entityTypeId: entityTypeId as File["entityTypeId"],
           relationships:
             createDefaultAuthorizationRelationships(authentication),
-        })) as Entity<File>);
+        });
   } catch (error) {
     throw new Error(
       `There was an error creating the file entity from a link: ${error}`,

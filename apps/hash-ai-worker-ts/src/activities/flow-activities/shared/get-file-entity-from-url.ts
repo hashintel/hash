@@ -24,6 +24,7 @@ import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import {
   type EnforcedEntityEditionProvenance,
   Entity,
+  mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
 import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
@@ -244,8 +245,10 @@ export const getFileEntityFromUrl = async (params: {
     {
       draft: false,
       ownedById: webId,
-      propertyMetadata,
-      properties: initialProperties,
+      properties: mergePropertyObjectAndMetadata<File>(
+        initialProperties,
+        propertyMetadata,
+      ),
       entityTypeId: entityTypeId as typeof systemEntityTypes.file.entityTypeId,
       relationships:
         createDefaultAuthorizationRelationships(userAuthentication),
@@ -275,10 +278,19 @@ export const getFileEntityFromUrl = async (params: {
       key,
     });
 
-  const updatedProperties: FileProperties = {
-    "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-      formatFileUrl(key),
+  const updatedProperties: File["propertiesWithMetadata"] = {
     ...fileStorageProperties,
+    value: {
+      ...fileStorageProperties.value,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+        {
+          value: formatFileUrl(key),
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+    },
   };
 
   const updatedEntity = await incompleteFileEntity.patch(

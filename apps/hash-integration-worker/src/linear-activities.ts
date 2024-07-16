@@ -9,7 +9,11 @@ import type {
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import { Entity, propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  mergePropertyObjectAndMetadata,
+  propertyObjectToPatches,
+} from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -72,9 +76,11 @@ const createHashEntity = async (params: {
         subject: { kind: "setting", subjectId: "viewFromWeb" },
       },
     ],
-    properties:
+    properties: mergePropertyObjectAndMetadata(
       (params.partialEntity.properties as Entity["properties"] | undefined) ??
-      {},
+        {},
+      undefined,
+    ),
     provenance,
     entityTypeId: params.partialEntity.entityTypeId,
   });
@@ -89,7 +95,7 @@ const createHashEntity = async (params: {
         rightEntityId: destinationEntityId,
       },
       entityTypeId: linkEntityTypeId,
-      properties: {},
+      properties: { value: {} },
       provenance,
       draft: false,
       relationships: [
@@ -187,7 +193,7 @@ const createOrUpdateHashEntity = async (params: {
             leftEntityId: existingEntity.metadata.recordId.entityId,
             rightEntityId: destinationEntityId,
           },
-          properties: {},
+          properties: { value: {} },
           provenance,
           ownedById: params.ownedById,
           draft: false,
@@ -233,7 +239,9 @@ const createOrUpdateHashEntity = async (params: {
     };
 
     await existingEntity.patch(graphApiClient, params.authentication, {
-      propertyPatches: propertyObjectToPatches(updatedProperties),
+      propertyPatches: propertyObjectToPatches(
+        mergePropertyObjectAndMetadata(updatedProperties, undefined),
+      ),
       provenance,
     });
   }

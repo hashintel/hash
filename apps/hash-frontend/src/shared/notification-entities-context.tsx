@@ -11,8 +11,10 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
+  ArchivedPropertyValueWithMetadata,
   CommentNotification,
   Notification,
+  ReadAtPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import type { GraphChangeNotification } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { MentionNotification } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
@@ -166,7 +168,13 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
                 path: [
                   "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
                 ],
-                value: now.toISOString(),
+                property: {
+                  value: now.toISOString(),
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                } satisfies ReadAtPropertyValueWithMetadata,
               },
             ],
           },
@@ -199,7 +207,13 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
                   path: [
                     "https://hash.ai/@hash/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
                   ],
-                  value: now.toISOString(),
+                  property: {
+                    value: now.toISOString(),
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  } satisfies ReadAtPropertyValueWithMetadata,
                 },
               ],
             }),
@@ -227,7 +241,13 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
                 path: [
                   "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof Notification["properties"] as BaseUrl,
                 ],
-                value: true,
+                property: {
+                  value: true,
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+                  },
+                } satisfies ArchivedPropertyValueWithMetadata,
               },
             ],
           },
@@ -255,7 +275,13 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
                   path: [
                     "https://hash.ai/@hash/types/property-type/archived/" satisfies keyof Notification["properties"] as BaseUrl,
                   ],
-                  value: true,
+                  property: {
+                    value: true,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+                    },
+                  } satisfies ArchivedPropertyValueWithMetadata,
                 },
               ],
             }),

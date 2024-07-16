@@ -38,25 +38,31 @@ export type Text = {
   entity: Entity<TextEntity>;
 };
 
-export const isEntityTextEntity = (
+function assertTextEntity(
   entity: Entity,
-): entity is Entity<TextEntity> =>
-  entity.metadata.entityTypeId === systemEntityTypes.text.entityTypeId;
-
-export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
-  entity,
-}) => {
-  if (!isEntityTextEntity(entity)) {
+): asserts entity is Entity<TextEntity> {
+  if (entity.metadata.entityTypeId !== systemEntityTypes.text.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.text.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
+}
+
+export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
+  entity,
+}) => {
+  assertTextEntity(entity);
 
   const { textualContent } = simplifyProperties(entity.properties);
 
-  return { entity, textualContent: textualContent as TextToken[] };
+  return {
+    entity,
+    textualContent: Array.isArray(textualContent)
+      ? (textualContent as TextToken[])
+      : [{ tokenType: "text", text: textualContent } satisfies TextToken],
+  };
 };
 
 /**

@@ -1,6 +1,9 @@
 import { useMutation } from "@apollo/client";
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
-import { patchesFromPropertyObjects } from "@local/hash-graph-sdk/entity";
+import {
+  mergePropertyObjectAndMetadata,
+  patchesFromPropertyObjects,
+} from "@local/hash-graph-sdk/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -129,7 +132,10 @@ export const EditEntitySlideOver = ({
             entityId: draftEntity.metadata.recordId.entityId,
             propertyPatches: patchesFromPropertyObjects({
               oldProperties: oldEntity.properties,
-              newProperties: draftEntity.properties,
+              newProperties: mergePropertyObjectAndMetadata(
+                draftEntity.properties,
+                undefined,
+              ),
             }),
             entityTypeId: draftEntity.metadata.entityTypeId,
           },

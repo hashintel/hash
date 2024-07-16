@@ -50,7 +50,13 @@ export type FacebookAccountProperties1 = ServiceAccountProperties;
 
 export type FacebookAccountProperties2 = {};
 
-export type FacebookAccountPropertiesWithMetadata = {
+export type FacebookAccountPropertiesWithMetadata =
+  FacebookAccountPropertiesWithMetadata1 &
+    FacebookAccountPropertiesWithMetadata2;
+export type FacebookAccountPropertiesWithMetadata1 =
+  ServiceAccountPropertiesWithMetadata;
+
+export type FacebookAccountPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

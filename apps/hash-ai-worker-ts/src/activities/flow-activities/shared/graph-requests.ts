@@ -4,7 +4,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   EntityId,
-  PropertyObject,
+  PropertyObjectWithMetadata,
   PropertyPatchOperation,
 } from "@local/hash-graph-types/entity";
 import {
@@ -80,7 +80,7 @@ export const getLatestEntityById = async (params: {
   return entity;
 };
 
-export const getEntityUpdate = <T extends PropertyObject>({
+export const getEntityUpdate = <T extends PropertyObjectWithMetadata>({
   existingEntity,
   newProperties,
 }: {
@@ -92,13 +92,13 @@ export const getEntityUpdate = <T extends PropertyObject>({
   const isExactMatch = isMatch(existingEntity.properties, newProperties);
 
   if (!isExactMatch) {
-    for (const [key, value] of typedEntries(newProperties)) {
+    for (const [key, property] of typedEntries(newProperties.value)) {
       // @todo better handle property objects, will currently overwrite the entire object if there are any differences
-      if (!isEqual(existingEntity.properties[key], value)) {
+      if (!isEqual(existingEntity.properties[key], property)) {
         patchOperations.push({
           op: existingEntity.properties[key] ? "replace" : "add",
           path: [key],
-          value,
+          property,
         });
       }
     }

@@ -7,7 +7,11 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/page";
+import type {
+  FractionalIndexPropertyValueWithMetadata,
+  PageProperties,
+  TitlePropertyValueWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/page";
 import type { ModalProps } from "@mui/material";
 import {
   autocompleteClasses,
@@ -104,14 +108,26 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
                 "https://hash.ai/@hash/types/property-type/title/" satisfies keyof PageProperties as BaseUrl,
               ],
               op: "add",
-              value: title,
+              property: {
+                value: title,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              } satisfies TitlePropertyValueWithMetadata,
             },
             {
               path: [
                 "https://hash.ai/@hash/types/property-type/fractional-index/" satisfies keyof PageProperties as BaseUrl,
               ],
               op: "add",
-              value: fractionalIndex,
+              property: {
+                value: fractionalIndex,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              } satisfies FractionalIndexPropertyValueWithMetadata,
             },
           ],
         },

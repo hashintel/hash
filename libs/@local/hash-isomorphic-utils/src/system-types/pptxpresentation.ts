@@ -144,7 +144,13 @@ export type PPTXPresentationProperties1 = PresentationFileProperties;
 
 export type PPTXPresentationProperties2 = {};
 
-export type PPTXPresentationPropertiesWithMetadata = {
+export type PPTXPresentationPropertiesWithMetadata =
+  PPTXPresentationPropertiesWithMetadata1 &
+    PPTXPresentationPropertiesWithMetadata2;
+export type PPTXPresentationPropertiesWithMetadata1 =
+  PresentationFilePropertiesWithMetadata;
+
+export type PPTXPresentationPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

@@ -255,8 +255,7 @@ export type EntityEditionProvenance = {
 export type AddPropertyPatchOperation = {
   op: "add";
   path: PropertyPath;
-  value: PropertyValue;
-  metadata?: PropertyMetadata;
+  property: PropertyWithMetadata;
 };
 
 export type RemovePropertyPatchOperation = {
@@ -267,8 +266,7 @@ export type RemovePropertyPatchOperation = {
 export type ReplacePropertyPatchOperation = {
   op: "replace";
   path: PropertyPath;
-  value: PropertyValue;
-  metadata?: PropertyMetadata;
+  property: PropertyWithMetadata;
 };
 
 export type PropertyPatchOperation =

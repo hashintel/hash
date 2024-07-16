@@ -56,11 +56,24 @@ describe("File", () => {
       presignUpload: vi.fn(() =>
         Promise.resolve({
           fileStorageProperties: {
-            "https://hash.ai/@hash/types/property-type/file-storage-key/":
-              fileKey,
-            "https://hash.ai/@hash/types/property-type/file-storage-provider/":
-              "LOCAL_FILE_SYSTEM" as const,
-          },
+            value: {
+              "https://hash.ai/@hash/types/property-type/file-storage-key/": {
+                value: fileKey,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              },
+              "https://hash.ai/@hash/types/property-type/file-storage-provider/":
+                {
+                  value: "LOCAL_FILE_SYSTEM",
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                },
+            },
+          } as const,
           presignedPut: { url: uploadUrl },
         }),
       ),

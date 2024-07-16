@@ -1,10 +1,17 @@
 import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  LinkEntity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  File as FileEntity,
+  UploadCompletedAtPropertyValueWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import type { PropsWithChildren } from "react";
 import {
   createContext,
@@ -392,7 +399,13 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
                     path: [
                       "https://hash.ai/@hash/types/property-type/upload-completed-at/" satisfies keyof FileEntity["properties"] as BaseUrl,
                     ],
-                    value: uploadCompletedAt.toISOString(),
+                    property: {
+                      value: uploadCompletedAt.toISOString(),
+                      metadata: {
+                        dataTypeId:
+                          "https://hash.ai/@hash/types/data-type/datetime/v/1",
+                      },
+                    } satisfies UploadCompletedAtPropertyValueWithMetadata,
                   },
                 ],
               },
@@ -501,7 +514,9 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
               leftEntityId: linkedEntityId,
               rightEntityId: fileEntity.metadata.recordId.entityId,
             },
-            properties: linkProperties ?? {},
+            properties: linkProperties
+              ? mergePropertyObjectAndMetadata(linkProperties, undefined)
+              : { value: {} },
           },
         });
 

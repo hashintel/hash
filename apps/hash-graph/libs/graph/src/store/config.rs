@@ -179,63 +179,7 @@ pub struct DatabasePoolConfig {
             global = true
         )
     )]
-    pub max_connections: NonZero<u32>,
-
-    /// Sets the minimum idle connection count maintained by the pool.
-    ///
-    /// If set, the pool will try to maintain at least this many idle connections at all times,
-    /// while respecting the value of `max_connections`.
-    #[cfg_attr(
-        feature = "clap",
-        clap(long, env = "HASH_GRAPH_PG_MIN_IDLE_CONNECTIONS", global = true)
-    )]
-    pub min_idle_connections: Option<NonZero<u32>>,
-
-    /// Sets the maximum lifetime of connections in the pool in seconds.
-    ///
-    /// If set, connections will be closed at the next reaping after surviving past this duration.
-    ///
-    /// If a connection reaches its maximum lifetime while checked out it will be closed when it is
-    /// returned to the pool.
-    #[cfg_attr(
-        feature = "clap",
-        clap(
-            long,
-            default_value_t = Self::default().max_connection_lifetime,
-            env = "HASH_GRAPH_PG_MAX_CONNECTION_LIFETIME",
-            global = true
-        )
-    )]
-    pub max_connection_lifetime: NonZero<u64>,
-
-    /// Sets the connection timeout used by the pool in seconds.
-    ///
-    /// Acquiring a connection will wait this long before giving up and returning an error.
-    #[cfg_attr(
-        feature = "clap",
-        clap(
-            long,
-            default_value_t = Self::default().connection_timeout,
-            env = "HASH_GRAPH_PG_CONNECTION_TIMEOUT",
-            global = true
-        )
-    )]
-    pub connection_timeout: NonZero<u64>,
-
-    /// Sets the idle timeout used by the pool in seconds.
-    ///
-    /// If set, idle connections in excess of `min_idle_connections` will be closed at the next
-    /// reaping after remaining idle past this duration.
-    #[cfg_attr(
-        feature = "clap",
-        clap(
-            long,
-            default_value_t = Self::default().connection_idle_timeout,
-            env = "HASH_GRAPH_PG_CONNECTION_IDLE_TIMEOUT",
-            global = true
-        )
-    )]
-    pub connection_idle_timeout: NonZero<u64>,
+    pub max_connections: NonZero<usize>,
 }
 
 impl Default for DatabasePoolConfig {
@@ -243,10 +187,6 @@ impl Default for DatabasePoolConfig {
     fn default() -> Self {
         Self {
             max_connections: NonZero::new(10).unwrap(),
-            min_idle_connections: None,
-            max_connection_lifetime: NonZero::new(30 * 60).unwrap(),
-            connection_timeout: NonZero::new(30).unwrap(),
-            connection_idle_timeout: NonZero::new(10 * 60).unwrap(),
         }
     }
 }

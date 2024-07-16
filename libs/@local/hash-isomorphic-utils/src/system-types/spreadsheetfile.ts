@@ -126,7 +126,12 @@ export type SpreadsheetFileProperties1 = FileProperties;
 
 export type SpreadsheetFileProperties2 = {};
 
-export type SpreadsheetFilePropertiesWithMetadata = {
+export type SpreadsheetFilePropertiesWithMetadata =
+  SpreadsheetFilePropertiesWithMetadata1 &
+    SpreadsheetFilePropertiesWithMetadata2;
+export type SpreadsheetFilePropertiesWithMetadata1 = FilePropertiesWithMetadata;
+
+export type SpreadsheetFilePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };

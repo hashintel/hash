@@ -66,7 +66,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
                 componentId: blockMeta.componentId,
                 entity: {
                   entityTypeId: blockEntityTypeId,
-                  entityProperties: {},
+                  entityProperties: { value: {} },
                 },
                 ownedById: accountId as OwnedById,
                 position: {

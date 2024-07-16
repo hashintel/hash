@@ -121,7 +121,13 @@ export type AssociatedWithAccountProperties1 = LinkProperties;
 
 export type AssociatedWithAccountProperties2 = {};
 
-export type AssociatedWithAccountPropertiesWithMetadata = {
+export type AssociatedWithAccountPropertiesWithMetadata =
+  AssociatedWithAccountPropertiesWithMetadata1 &
+    AssociatedWithAccountPropertiesWithMetadata2;
+export type AssociatedWithAccountPropertiesWithMetadata1 =
+  LinkPropertiesWithMetadata;
+
+export type AssociatedWithAccountPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
 };
@@ -345,13 +351,19 @@ export type GoogleSheetsFileProperties2 = {
   "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValue;
 };
 
-export type GoogleSheetsFilePropertiesWithMetadata = {
+export type GoogleSheetsFilePropertiesWithMetadata =
+  GoogleSheetsFilePropertiesWithMetadata1 &
+    GoogleSheetsFilePropertiesWithMetadata2;
+export type GoogleSheetsFilePropertiesWithMetadata1 =
+  SpreadsheetFilePropertiesWithMetadata;
+
+export type GoogleSheetsFilePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
   };
-};
+} & SpreadsheetFilePropertiesWithMetadata;
 
 /**
  * A MIME (Multipurpose Internet Mail Extensions) type.
@@ -421,10 +433,15 @@ export type SpreadsheetFileProperties1 = FileProperties;
 
 export type SpreadsheetFileProperties2 = {};
 
-export type SpreadsheetFilePropertiesWithMetadata = {
+export type SpreadsheetFilePropertiesWithMetadata =
+  SpreadsheetFilePropertiesWithMetadata1 &
+    SpreadsheetFilePropertiesWithMetadata2;
+export type SpreadsheetFilePropertiesWithMetadata1 = FilePropertiesWithMetadata;
+
+export type SpreadsheetFilePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
-};
+} & FilePropertiesWithMetadata;
 
 /**
  * The timestamp when the upload of something has completed
