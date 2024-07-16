@@ -13,16 +13,15 @@ pin_project_lite::pin_project! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct StreamBody<S> {
         #[pin]
-        stream: S,
-        is_complete: bool,
+        stream: Option<S>,
+
     }
 }
 
 impl<S> StreamBody<S> {
     pub fn new(stream: S) -> Self {
         Self {
-            stream,
-            is_complete: false,
+            stream: Some(stream),
         }
     }
 }
@@ -37,22 +36,26 @@ where
     type Error = E;
 
     fn poll_frame(
-        self: Pin<&mut Self>,
+        mut self: Pin<&mut Self>,
         cx: &mut Context,
     ) -> Poll<Option<super::BodyFrameResult<Self>>> {
-        let this = self.project();
+        let mut this = self.as_mut().project();
 
-        let value = ready!(this.stream.poll_next(cx));
+        let Some(stream) = this.stream.as_mut().as_pin_mut() else {
+            return Poll::Ready(None);
+        };
+
+        let value = ready!(stream.poll_next(cx));
 
         if value.is_none() {
-            *this.is_complete = true;
+            this.stream.as_mut().set(None);
         }
 
         Poll::Ready(value)
     }
 
     fn state(&self) -> Option<BodyState> {
-        self.is_complete.then_some(BodyState::Complete)
+        self.stream.is_none().then_some(BodyState::Complete)
     }
 }
 
