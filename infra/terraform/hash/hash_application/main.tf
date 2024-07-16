@@ -95,6 +95,8 @@ data "aws_ecs_cluster" "ecs" {
   cluster_name = "${var.prefix}-ecs"
 }
 
+provider cloudflare {}
+
 data "cloudflare_ip_ranges" "cloudflare" {}
 
 resource "aws_security_group" "alb_sg" {
