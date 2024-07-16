@@ -1,4 +1,4 @@
-//! Adapted and vendored from `http-body` crate (https://docs.rs/http-body/latest/src/http_body/size_hint.rs.html)
+//! Adapted and vendored from `http-body` crate (<https://docs.rs/http-body/latest/src/http_body/size_hint.rs.html>)
 
 /// A `Body` size hint
 ///

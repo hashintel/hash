@@ -10,10 +10,12 @@ use super::{empty::Empty, Body, BodyState, Frame};
 
 /// Boxed Body
 ///
-/// This is a wrapper around a `Body` that erases the type of the body.
+/// This is a wrapper around a `Body` that erases the type of the body using a trait object.
 ///
 /// This is a helper struct that can be used instead of using trait objects directly, to keep the
 /// type signature of functions and methods more readable.
+///
+/// # Implementation Note
 ///
 /// This isn't a type alias to enable future changes to the underlying type without breaking
 /// compatibility.
@@ -74,12 +76,14 @@ where
 
 /// Boxed Body that is not Sync
 ///
-/// This is a wrapper around a `Body` that erases the type of the body.
+/// This is a wrapper around a `Body` that erases the type of the body using a trait object.
 ///
 /// This is a helper struct that can be used instead of using trait objects directly, to keep the
 /// type signature of functions and methods more readable.
 ///
-/// This is useful when the body is not Sync, and the `BoxBody` cannot be used.
+/// This is useful when the body is not Sync, and `BoxBody` cannot be used.
+///
+/// # Implementation Note
 ///
 /// This isn't a type alias to enable future changes to the underlying type without breaking
 /// compatibility.

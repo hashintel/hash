@@ -2546,7 +2546,7 @@ name = "harpc-tower"
 version = "0.1.0"
 dependencies = [
  "bytes",
- "error-stack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures",
  "harpc-net",
  "harpc-types",

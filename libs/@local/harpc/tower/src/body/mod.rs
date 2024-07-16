@@ -105,21 +105,50 @@ pub enum BodyState {
     Incomplete,
 }
 
+/// Streaming body of a message.
+///
+/// Individual frames are streamed using [`Self::poll_frame`], which asynchronously yields
+/// instances of [`Frame<D, C>`], where `D` is the data type and `C` is the control type.
+///
+/// Frames can contain a data buffer of type [`Self::Data`] or control information of type
+/// [`Self::Control`]. Control information is used to indicate special events or commands,
+/// such as change of the response kind (from ok to error).
+///
+/// The [`Self::size_hint`] method can be used to provide an estimate of the number of bytes of data
+/// that will be transmitted.
+///
+/// The [`Self::state`] method can be used to determine the state of the body after it has been
+/// fully transmitted.
 pub trait Body {
     type Control;
     type Data: Buf;
 
     type Error;
 
+    /// Polls the next frame of the body.
+    ///
+    /// If the body is complete, returns `None`. If polling results in an error,
+    /// it indicates a failure in transmission.
     fn poll_frame(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<BodyFrameResult<Self>>>;
 
-    /// Signal if the body has been is complete.
+    /// State of the body.
     ///
-    /// `Some` indicates that the body is complete, and no more items are to be expected, the
-    /// boolean indicates if the stream is either incomplete or complete, meaning it might have been
-    /// interrupted or truncated during transmission.
+    /// This is guaranteed to be `Some` once `poll_frame` has returned `None`.
+    ///
+    /// On completion a body can be in several states, either [`BodyState::Complete`] or
+    /// [`BodyState::Incomplete`].
+    ///
+    /// An incomplete body indicates that during transmission the body has been interrupted,
+    /// this might be due to the underlying connection being closed or a combinator prematurely
+    /// stopping the body.
+    ///
+    /// This is especially useful for non self-describing formats, which may rely on additional
+    /// information if the byte stream is incomplete.
     fn state(&self) -> Option<BodyState>;
 
+    /// Provide an estimate of the number of bytes of data that will be transmitted.
+    ///
+    /// If the **exact** size is known, the upper bound will be equal to the lower bound.
     fn size_hint(&self) -> SizeHint {
         SizeHint::default()
     }
