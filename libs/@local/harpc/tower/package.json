@@ -1,7 +1,7 @@
 {
   "name": "@rust/harpc-tower",
   "version": "0.1.0",
-  "private": false,
+  "private": true,
   "dependencies": {
     "@rust/harpc-net": "0.0.0-private",
     "@rust/harpc-types": "0.0.0-private",
