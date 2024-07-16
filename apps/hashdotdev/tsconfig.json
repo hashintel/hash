@@ -5,6 +5,7 @@
     "incremental": true,
     "isolatedModules": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "paths": {},
     "sourceMap": true,
     "target": "ES2020",
     "noEmit": true,

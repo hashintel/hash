@@ -8,7 +8,6 @@ import {
   getOrgMembershipUser,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -35,7 +34,6 @@ describe("OrgMembership", () => {
   let authentication: AuthenticationContext;
 
   beforeAll(async () => {
-    await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "orgMembershipTest", logger);
