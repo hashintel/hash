@@ -17,7 +17,8 @@ export const CalculationBlock: FunctionComponent = () => (
       <MockBlockDock
         blockDefinition={{ ReactComponent: CalcBlock }}
         blockEntity={{
-          // @ts-expect-error –– mismatch between mock-block-dock types and in-repo @blockprotocol/graph
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore -- mismatch between in-repo @blockprotocol/graph and one referred to by mock-block-dock
           entityId: "calculation-block-1",
           entityTypeId: "calculation-block",
           properties: {
