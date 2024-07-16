@@ -8,6 +8,15 @@ use bytes::Buf;
 
 use super::{empty::Empty, Body, BodyState, Frame};
 
+/// Boxed Body
+///
+/// This is a wrapper around a `Body` that erases the type of the body.
+///
+/// This is a helper struct that can be used instead of using trait objects directly, to keep the
+/// type signature of functions and methods more readable.
+///
+/// This isn't a type alias to enable future changes to the underlying type without breaking
+/// compatibility.
 pub struct BoxBody<D, C, E> {
     inner: Pin<Box<dyn Body<Data = D, Control = C, Error = E> + Send + Sync + 'static>>,
 }
@@ -26,7 +35,7 @@ impl<D, C, E> BoxBody<D, C, E> {
 
 impl<D, C, E> Debug for BoxBody<D, C, E> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("BoxBody").finish()
+        f.debug_struct("BoxBody").finish_non_exhaustive()
     }
 }
 
@@ -63,6 +72,17 @@ where
     }
 }
 
+/// Boxed Body that is not Sync
+///
+/// This is a wrapper around a `Body` that erases the type of the body.
+///
+/// This is a helper struct that can be used instead of using trait objects directly, to keep the
+/// type signature of functions and methods more readable.
+///
+/// This is useful when the body is not Sync, and the `BoxBody` cannot be used.
+///
+/// This isn't a type alias to enable future changes to the underlying type without breaking
+/// compatibility.
 pub struct UnsyncBoxBody<D, C, E> {
     inner: Pin<Box<dyn Body<Data = D, Control = C, Error = E> + Send + 'static>>,
 }
@@ -81,7 +101,7 @@ impl<D, C, E> UnsyncBoxBody<D, C, E> {
 
 impl<D, C, E> Debug for UnsyncBoxBody<D, C, E> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("UnsyncBoxBody").finish()
+        f.debug_struct("UnsyncBoxBody").finish_non_exhaustive()
     }
 }
 
