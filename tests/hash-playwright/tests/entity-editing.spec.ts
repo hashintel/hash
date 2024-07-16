@@ -116,7 +116,7 @@ test("user can update values on property table", async ({ page }) => {
     userPassword: "password",
   });
 
-  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
+  await expect(page.locator("text=Get support")).toBeVisible();
 
   await page.goto(`/new/entity`);
 
@@ -161,7 +161,7 @@ test("both the link and properties tables renders some content", async ({
     userPassword: "password",
   });
 
-  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
+  await expect(page.locator("text=Get support")).toBeVisible();
 
   await page.goto(`/new/entity`);
 
