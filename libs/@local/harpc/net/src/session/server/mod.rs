@@ -1,6 +1,6 @@
 mod config;
 mod connection;
-mod session_id;
+pub(crate) mod session_id;
 mod task;
 #[cfg(test)]
 pub(crate) mod test;

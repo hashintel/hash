@@ -19,11 +19,11 @@ impl SessionIdProducer {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SessionId(usize);
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 pub(crate) mod test_utils {
     use super::SessionId;
 
-    pub(crate) const fn mock_session_id(id: usize) -> SessionId {
+    pub const fn mock_session_id(id: usize) -> SessionId {
         SessionId(id)
     }
 }
