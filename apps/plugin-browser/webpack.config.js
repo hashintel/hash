@@ -10,6 +10,7 @@ import fileSystem from "fs-extra";
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import ReactRefreshTypeScript from "react-refresh-typescript";
 import TerserPlugin from "terser-webpack-plugin";
+import TsConfigPathsPlugin from "tsconfig-paths-webpack-plugin";
 import webpack from "webpack";
 
 dotenv.config();
@@ -163,6 +164,7 @@ const options = {
     extensions: fileExtensions
       .map((extension) => `.${extension}`)
       .concat([".js", ".jsx", ".ts", ".tsx", ".css"]),
+    plugins: [new TsConfigPathsPlugin()],
   },
   plugins: [
     isDevelopment && new ReactRefreshWebpackPlugin(),
