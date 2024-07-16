@@ -48,7 +48,7 @@ where
         let value = ready!(stream.poll_next(cx));
 
         if value.is_none() {
-            this.stream.as_mut().set(None);
+            this.stream.set(None);
         }
 
         Poll::Ready(value)
