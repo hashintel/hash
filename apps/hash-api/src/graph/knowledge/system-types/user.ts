@@ -17,7 +17,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
 import type { AccountEntityId } from "@local/hash-subgraph";
 import {
   extractAccountId,
@@ -60,12 +60,12 @@ export type User = {
   shortname?: string;
   displayName?: string;
   isAccountSignupComplete: boolean;
-  entity: Entity;
+  entity: Entity<UserEntity>;
 };
 
-export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
-  entity,
-}) => {
+function assertUserEntity(
+  entity: Entity,
+): asserts entity is Entity<UserEntity> {
   if (entity.metadata.entityTypeId !== systemEntityTypes.user.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -73,13 +73,19 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
       entity.metadata.entityTypeId,
     );
   }
+}
+
+export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
+  entity,
+}) => {
+  assertUserEntity(entity);
 
   const {
     kratosIdentityId,
     shortname,
     displayName,
     email: emails,
-  } = simplifyProperties(entity.properties as UserProperties);
+  } = simplifyProperties(entity.properties);
 
   const isAccountSignupComplete = !!shortname && !!displayName;
 
@@ -316,30 +322,62 @@ export const createUser: ImpureGraphFunction<
     },
   );
 
-  const properties: UserProperties = {
-    "https://hash.ai/@hash/types/property-type/email/": emails as [
-      string,
-      ...string[],
-    ],
-    "https://hash.ai/@hash/types/property-type/kratos-identity-id/":
-      kratosIdentityId,
-    ...(shortname
-      ? {
-          "https://hash.ai/@hash/types/property-type/shortname/": shortname,
-        }
-      : {}),
-    ...(displayName
-      ? {
-          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-            displayName,
-        }
-      : {}),
-    ...(enabledFeatureFlags
-      ? {
-          "https://hash.ai/@hash/types/property-type/enabled-feature-flags/":
-            enabledFeatureFlags,
-        }
-      : {}),
+  const properties: UserEntity["propertiesWithMetadata"] = {
+    value: {
+      "https://hash.ai/@hash/types/property-type/email/": {
+        value: emails.map((email) => ({
+          value: email,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        })),
+      },
+      "https://hash.ai/@hash/types/property-type/kratos-identity-id/": {
+        value: kratosIdentityId,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      ...(shortname !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/shortname/": {
+              value: shortname,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          }
+        : {}),
+      ...(displayName !== undefined
+        ? {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+              {
+                value: displayName,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              },
+          }
+        : {}),
+      ...(enabledFeatureFlags !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/enabled-feature-flags/":
+              {
+                value: enabledFeatureFlags.map((flag) => ({
+                  value: flag,
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                })),
+              },
+          }
+        : {}),
+    },
   };
 
   /** Grant permissions to the web machine actor to create a user entity */
@@ -363,7 +401,7 @@ export const createUser: ImpureGraphFunction<
   const hashInstanceAdminsAccountGroupId =
     await getHashInstanceAdminAccountGroupId(ctx, authentication);
 
-  const entity = await createEntity(
+  const entity = await createEntity<UserEntity>(
     ctx,
     { actorId: userWebMachineActorId },
     {

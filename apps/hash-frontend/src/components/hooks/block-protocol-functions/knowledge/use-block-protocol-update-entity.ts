@@ -1,5 +1,9 @@
 import { useMutation } from "@apollo/client";
-import { Entity, propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  mergePropertyObjectAndMetadata,
+  propertyObjectToPatches,
+} from "@local/hash-graph-sdk/entity";
 import { useCallback } from "react";
 
 import type {
@@ -50,7 +54,9 @@ export const useBlockProtocolUpdateEntity = (
           entityUpdate: {
             entityId, // @todo-0.3 consider validating that this matches the id format,
             entityTypeId,
-            propertyPatches: propertyObjectToPatches(properties),
+            propertyPatches: propertyObjectToPatches(
+              mergePropertyObjectAndMetadata(properties, undefined),
+            ),
           },
         },
       });

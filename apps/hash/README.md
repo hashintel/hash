@@ -62,7 +62,7 @@ To run HASH locally, please follow these steps:
    ## ≥ 1.16
    
    rustc --version
-   ## ≥ 2024-07-08 (If installed through rustup, this will automatically install the required toolchain)
+   ## ≥ 2024-07-15 (If installed through rustup, this will automatically install the required toolchain)
    
    cargo --version
    ## Version matching the above rustc version

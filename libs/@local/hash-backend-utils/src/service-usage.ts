@@ -145,17 +145,43 @@ export const createUsageRecord = async (
     userAccountId: AccountId;
   },
 ) => {
-  const properties: UsageRecord["properties"] = {
-    "https://hash.ai/@hash/types/property-type/input-unit-count/":
-      inputUnitCount,
-    "https://hash.ai/@hash/types/property-type/output-unit-count/":
-      outputUnitCount,
+  const properties: UsageRecord["propertiesWithMetadata"] = {
+    value: {
+      ...(inputUnitCount !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/input-unit-count/": {
+              value: inputUnitCount,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+              },
+            },
+          }
+        : {}),
+      ...(outputUnitCount !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/output-unit-count/": {
+              value: outputUnitCount,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+              },
+            },
+          }
+        : {}),
+      ...(customMetadata !== undefined && customMetadata !== null
+        ? {
+            "https://hash.ai/@hash/types/property-type/custom-metadata/": {
+              value: customMetadata,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+              },
+            },
+          }
+        : {}),
+    },
   };
-
-  if (customMetadata) {
-    properties["https://hash.ai/@hash/types/property-type/custom-metadata/"] =
-      customMetadata;
-  }
 
   /**
    * We want to assign usage to the web, which may be an org, but be able to identify which users
@@ -287,7 +313,7 @@ export const createUsageRecord = async (
     {
       ownedById: assignUsageToWebId,
       draft: false,
-      properties: {},
+      properties: { value: {} },
       provenance,
       linkData: {
         leftEntityId: usageRecordEntityId,

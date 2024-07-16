@@ -66,6 +66,8 @@ const createTestEntity = (): GraphApiEntity => ({
                 [base_url_aaa]: {
                   metadata: {
                     confidence: 0.1,
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                   },
                 },
               },
@@ -82,6 +84,8 @@ const createTestEntity = (): GraphApiEntity => ({
                 [base_url_b10b]: {
                   metadata: {
                     confidence: 0.3,
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                   },
                 },
               },
@@ -96,6 +100,8 @@ const createTestEntity = (): GraphApiEntity => ({
             {
               metadata: {
                 confidence: 0.5,
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
               },
             },
           ],
@@ -126,7 +132,11 @@ test("propertyMetadata access", () => {
 
   expect(
     entityInstance.propertyMetadata([base_url_a, base_url_aa, base_url_aaa]),
-  ).toEqual({ confidence: 0.1 });
+  ).toEqual({
+    confidence: 0.1,
+    dataTypeId:
+      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+  });
 
   expect(
     entityInstance.propertyMetadata([
@@ -151,7 +161,11 @@ test("propertyMetadata access", () => {
 
   expect(
     entityInstance.propertyMetadata([base_url_b, 0, base_url_b10b]),
-  ).toEqual({ confidence: 0.3 });
+  ).toEqual({
+    confidence: 0.3,
+    dataTypeId:
+      "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+  });
 
   expect(
     entityInstance.propertyMetadata([
@@ -172,6 +186,8 @@ test("propertyMetadata access", () => {
 
   expect(entityInstance.propertyMetadata([base_url_c, 0])).toEqual({
     confidence: 0.5,
+    dataTypeId:
+      "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
   });
 });
 
@@ -181,11 +197,29 @@ test("flattened properties", () => {
   expect(entityInstance.flattenedPropertiesMetadata()).toStrictEqual([
     {
       path: [base_url_a, base_url_aa, base_url_aaa],
-      metadata: { confidence: 0.1 },
+      metadata: {
+        confidence: 0.1,
+        dataTypeId:
+          "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+      },
     },
     { path: [base_url_a], metadata: { confidence: 0.2 } },
-    { path: [base_url_b, 0, base_url_b10b], metadata: { confidence: 0.3 } },
+    {
+      path: [base_url_b, 0, base_url_b10b],
+      metadata: {
+        confidence: 0.3,
+        dataTypeId:
+          "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+      },
+    },
     { path: [base_url_b], metadata: { confidence: 0.4 } },
-    { path: [base_url_c, 0], metadata: { confidence: 0.5 } },
+    {
+      path: [base_url_c, 0],
+      metadata: {
+        confidence: 0.5,
+        dataTypeId:
+          "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+      },
+    },
   ]);
 });

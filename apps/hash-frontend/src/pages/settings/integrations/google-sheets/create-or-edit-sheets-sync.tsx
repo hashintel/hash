@@ -4,7 +4,7 @@ import { CheckIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
+import type { Query } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useMemo, useState } from "react";
@@ -161,9 +161,16 @@ export const CreateOrEditSheetsSync = ({
           entityTypeId: blockProtocolEntityTypes.query.entityTypeId,
           ownedById: authenticatedUser.accountId as OwnedById,
           properties: {
-            "https://blockprotocol.org/@hash/types/property-type/query/":
-              integrationData.query,
-          } as QueryProperties,
+            value: {
+              "https://blockprotocol.org/@hash/types/property-type/query/": {
+                value: integrationData.query,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                },
+              },
+            } as Query["propertiesWithMetadata"]["value"],
+          },
         },
       });
 

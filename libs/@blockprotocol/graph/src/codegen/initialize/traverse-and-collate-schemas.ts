@@ -1,3 +1,4 @@
+import { atLeastOne } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   getReferencedIdsFromEntityType,
@@ -8,6 +9,7 @@ import { typedValues } from "../../util/typed-object-iter";
 import type { InitializeContext } from "../context";
 import {
   generateDataTypeWithMetadataSchema,
+  generateMetadataSchemaIdentifiers,
   generatePropertiesObjectWithMetadataSchema,
   generatePropertyTypeWithMetadataSchema,
 } from "./metadata/generate-metadata-schema";
@@ -197,7 +199,19 @@ export const traverseAndCollateSchemas = async (
 
           const { properties, required, $id, title } = type;
 
+          const parentsWithMetadataIdentifiers = type.allOf?.map((parent) => ({
+            $ref: generateMetadataSchemaIdentifiers({
+              $id: parent.$ref,
+            }).valueWithMetadata$id.replace(
+              "/with-metadata/",
+              "/properties-with-metadata/",
+            ) as VersionedUrl,
+          }));
+
           const withMetadata = generatePropertiesObjectWithMetadataSchema({
+            allOf: parentsWithMetadataIdentifiers
+              ? atLeastOne(parentsWithMetadataIdentifiers)
+              : undefined,
             properties,
             required: required ?? [],
             entityParentIdentifiers: {

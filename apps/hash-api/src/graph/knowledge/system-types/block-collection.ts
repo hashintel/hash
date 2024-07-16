@@ -1,6 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  LinkEntity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -96,10 +99,14 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     position: { canvasPosition, indexPosition },
   } = params;
 
-  const linkEntity: LinkEntity = await createLinkEntity(ctx, authentication, {
+  const linkEntity: LinkEntity = await createLinkEntity<
+    HasSpatiallyPositionedContent | HasIndexedContent
+  >(ctx, authentication, {
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
-    properties: canvasPosition || indexPosition,
+    properties: mergePropertyObjectAndMetadata<
+      HasSpatiallyPositionedContent | HasIndexedContent
+    >(canvasPosition || indexPosition, undefined),
     linkData: {
       leftEntityId: blockCollectionEntityId,
       rightEntityId: block.entity.metadata.recordId.entityId,
@@ -144,7 +151,9 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
       {
         op: "replace",
         path: [],
-        value: indexPosition || canvasPosition,
+        property: mergePropertyObjectAndMetadata(
+          indexPosition || canvasPosition,
+        ),
       },
     ],
     linkEntity: new LinkEntity(linkEntity),

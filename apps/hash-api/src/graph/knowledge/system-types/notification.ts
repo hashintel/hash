@@ -20,8 +20,18 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { CommentNotification as CommentNotificationEntity } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-import type { MentionNotification as MentionNotificationEntity } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
+import type {
+  ArchivedPropertyValueWithMetadata,
+  CommentNotification as CommentNotificationEntity,
+  OccurredInBlock,
+  OccurredInEntity,
+  TriggeredByUser,
+} from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import type {
+  MentionNotification as MentionNotificationEntity,
+  OccurredInComment,
+  OccurredInText,
+} from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { Notification as NotificationEntity } from "@local/hash-isomorphic-utils/system-types/notification";
 import {
   getOutgoingLinksForEntity,
@@ -55,13 +65,21 @@ export const archiveNotification: ImpureGraphFunction<
   false,
   true
 > = async (context, authentication, params) => {
-  await updateEntity(context, authentication, {
+  await updateEntity<
+    MentionNotificationEntity | CommentNotificationEntity | NotificationEntity
+  >(context, authentication, {
     entity: params.notification.entity,
     propertyPatches: [
       {
         op: "add",
         path: [systemPropertyTypes.archived.propertyTypeBaseUrl],
-        value: true,
+        property: {
+          value: true,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+          },
+        } satisfies ArchivedPropertyValueWithMetadata,
       },
     ],
   });
@@ -125,12 +143,16 @@ export const createMentionNotification: ImpureGraphFunction<
       machineActorId: webMachineActorId,
     });
 
-  const entity = (await createEntity(context, botAuthentication, {
-    ownedById,
-    properties: {},
-    entityTypeId: systemEntityTypes.mentionNotification.entityTypeId,
-    relationships: notificationEntityRelationships,
-  })) as Entity<MentionNotificationEntity>;
+  const entity = await createEntity<MentionNotificationEntity>(
+    context,
+    botAuthentication,
+    {
+      ownedById,
+      properties: { value: {} },
+      entityTypeId: systemEntityTypes.mentionNotification.entityTypeId,
+      relationships: notificationEntityRelationships,
+    },
+  );
 
   await Promise.all(
     [
@@ -141,9 +163,9 @@ export const createMentionNotification: ImpureGraphFunction<
        *
        * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
        */
-      createLinkEntity(context, userAuthentication, {
+      createLinkEntity<TriggeredByUser>(context, userAuthentication, {
         ownedById,
-        properties: {},
+        properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
           rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
@@ -151,9 +173,9 @@ export const createMentionNotification: ImpureGraphFunction<
         entityTypeId: systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
         relationships: linkEntityRelationships,
       }),
-      createLinkEntity(context, userAuthentication, {
+      createLinkEntity<OccurredInEntity>(context, userAuthentication, {
         ownedById,
-        properties: {},
+        properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
           rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
@@ -161,9 +183,9 @@ export const createMentionNotification: ImpureGraphFunction<
         entityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
         relationships: linkEntityRelationships,
       }),
-      createLinkEntity(context, userAuthentication, {
+      createLinkEntity<OccurredInBlock>(context, userAuthentication, {
         ownedById,
-        properties: {},
+        properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
           rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
@@ -172,9 +194,9 @@ export const createMentionNotification: ImpureGraphFunction<
         relationships: linkEntityRelationships,
       }),
       occurredInComment
-        ? createLinkEntity(context, userAuthentication, {
+        ? createLinkEntity<OccurredInComment>(context, userAuthentication, {
             ownedById,
-            properties: {},
+            properties: { value: {} },
             linkData: {
               leftEntityId: entity.metadata.recordId.entityId,
               rightEntityId:
@@ -185,9 +207,9 @@ export const createMentionNotification: ImpureGraphFunction<
             relationships: linkEntityRelationships,
           })
         : [],
-      createLinkEntity(context, userAuthentication, {
+      createLinkEntity<OccurredInText>(context, userAuthentication, {
         ownedById,
-        properties: {},
+        properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
           rightEntityId: occurredInText.entity.metadata.recordId.entityId,
@@ -381,12 +403,16 @@ export const createCommentNotification: ImpureGraphFunction<
       machineActorId: webMachineActorId,
     });
 
-  const notificationEntity = await createEntity(context, authentication, {
-    ownedById,
-    properties: {},
-    entityTypeId: systemEntityTypes.commentNotification.entityTypeId,
-    relationships: notificationEntityRelationships,
-  });
+  const notificationEntity = await createEntity<CommentNotificationEntity>(
+    context,
+    authentication,
+    {
+      ownedById,
+      properties: { value: {} },
+      entityTypeId: systemEntityTypes.commentNotification.entityTypeId,
+      relationships: notificationEntityRelationships,
+    },
+  );
 
   const leftEntityId = notificationEntity.metadata.recordId.entityId;
 
@@ -431,7 +457,7 @@ export const createCommentNotification: ImpureGraphFunction<
        */
       createLinkEntity(context, userAuthentication, {
         ownedById,
-        properties: {},
+        properties: { value: {} },
         linkData: {
           leftEntityId,
           rightEntityId,
