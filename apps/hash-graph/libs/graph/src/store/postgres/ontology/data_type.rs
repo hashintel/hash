@@ -340,7 +340,10 @@ where
                     .await
                     .change_context(InsertionError)?;
                 let closed_schema = data_type_validator
-                    .validate(ClosedDataType::new(schema.clone().into_inner()))
+                    .validate(
+                        ClosedDataType::new(schema.clone().into_inner())
+                            .change_context(InsertionError)?,
+                    )
                     .await
                     .change_context(InsertionError)?;
                 transaction
@@ -582,7 +585,7 @@ where
             .await
             .change_context(UpdateError)?;
         let closed_schema = data_type_validator
-            .validate(ClosedDataType::new(schema.clone().into_inner()))
+            .validate(ClosedDataType::new(schema.clone().into_inner()).change_context(UpdateError)?)
             .await
             .change_context(UpdateError)?;
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
