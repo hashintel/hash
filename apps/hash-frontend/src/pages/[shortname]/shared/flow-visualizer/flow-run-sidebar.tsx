@@ -57,6 +57,7 @@ export const FlowRunSidebar = ({
     flowRunIds: [flowRunId],
   });
   const [showUsageBreakdown, setShowUsageBreakdown] = useState(false);
+  const [showResearchPrompt, setShowResearchPrompt] = useState(false);
 
   const { selectedFlowRun } = useFlowRunsContext();
 
@@ -108,29 +109,52 @@ export const FlowRunSidebar = ({
                   part.text
                 )}
                 {index === nameParts.length - 1 && researchPrompt && (
-                  <Tooltip title={researchPrompt}>
-                    <Box
-                      component="span"
+                  <Box
+                    aria-label="Show research prompt"
+                    component="button"
+                    onClick={() => setShowResearchPrompt(!showResearchPrompt)}
+                    sx={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "inline-block",
+                      height: 12,
+                      ml: 0.4,
+                      p: 0,
+                      top: 3,
+                      position: "relative",
+                      "&:hover svg": {
+                        color: ({ palette }) => palette.common.black,
+                      },
+                    }}
+                  >
+                    <CaretDownSolidIcon
                       sx={{
-                        display: "inline-block",
-                        height: 12,
-                        top: 1,
-                        position: "relative",
+                        color: ({ palette }) => palette.gray[50],
+                        fontSize: 14,
+                        transform: !showResearchPrompt
+                          ? "rotate(-90deg)"
+                          : "translateY(-1px)",
+                        transition: ({ transitions }) =>
+                          transitions.create("transform"),
                       }}
-                    >
-                      <CircleInfoIcon
-                        sx={{
-                          fontSize: 12,
-                          fill: ({ palette }) => palette.gray[40],
-                          ml: 0.8,
-                        }}
-                      />
-                    </Box>
-                  </Tooltip>
+                    />
+                  </Box>
                 )}
               </Box>
             ))}
           </Typography>
+          {researchPrompt && (
+            <Collapse in={showResearchPrompt}>
+              <Typography
+                component="p"
+                variant="smallTextParagraphs"
+                sx={{ fontWeight: 300, lineHeight: 1.3, mt: 1 }}
+              >
+                “{researchPrompt}”
+              </Typography>
+            </Collapse>
+          )}
         </SidebarSection>
       </Box>
       <Box>
