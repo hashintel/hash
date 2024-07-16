@@ -273,10 +273,12 @@ export const VirtualizedTable = <
     [EmptyPlaceholder],
   );
 
+  const context = useMemo(() => ({ columns: columns ?? [] }), [columns]);
+
   return (
     <Box style={{ borderRadius, height, width: "100%" }}>
       <TableVirtuoso
-        context={{ columns: columns ?? [] }}
+        context={context}
         data={rows}
         components={components}
         fixedHeaderContent={fixedHeaderContent}

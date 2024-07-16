@@ -67,7 +67,7 @@ export const Manager = () => {
 
   return (
     <>
-      {showQuestionModal && !!outstandingQuestionsRequest && flowIsClosed && (
+      {showQuestionModal && !!outstandingQuestionsRequest && !flowIsClosed && (
         <QuestionModal
           inputRequest={outstandingQuestionsRequest}
           open
