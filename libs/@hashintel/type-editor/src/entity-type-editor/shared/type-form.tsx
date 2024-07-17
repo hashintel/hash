@@ -305,7 +305,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
   }, [setValue, defaultDirtyValues]);
 
   const defaultField =
-    defaultDirtyValues?.name ?? defaultValues.name ? "description" : "name";
+    (defaultDirtyValues?.name ?? defaultValues.name) ? "description" : "name";
 
   useEffect(() => {
     setFocus(

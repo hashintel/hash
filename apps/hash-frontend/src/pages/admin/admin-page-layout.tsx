@@ -77,7 +77,7 @@ const AdminLayout = ({ children }: PropsWithChildren) => {
       <Box sx={({ palette }) => ({ background: palette.common.white, py: 3 })}>
         <Typography variant="h4" sx={{ ...containerSx }}>
           {currentMenuItem
-            ? currentMenuItem.pageTitle ?? currentMenuItem.label
+            ? (currentMenuItem.pageTitle ?? currentMenuItem.label)
             : "Instance Administration"}
         </Typography>
       </Box>

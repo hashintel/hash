@@ -474,7 +474,9 @@ export type ExternalInputResponseWithoutUser = DistributiveOmit<
   "resolvedBy"
 >;
 
-export type ExternalInputRequest = ExternalInputRequestSignal & {
+export type ExternalInputRequest<
+  RequestType extends ExternalInputRequestType = ExternalInputRequestType,
+> = ExternalInputRequestSignal<RequestType> & {
   /** The answers given by the human, if it was a request for human input */
   answers?: string[];
   /** The time at which the request was resolved */

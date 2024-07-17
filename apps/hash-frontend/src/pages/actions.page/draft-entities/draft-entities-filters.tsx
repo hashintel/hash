@@ -443,7 +443,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
               const label =
                 authenticatedUser.accountId === source.accountId
                   ? "Me"
-                  : source.displayName ?? "Unknown";
+                  : (source.displayName ?? "Unknown");
               return { label, source };
             })
             .sort(

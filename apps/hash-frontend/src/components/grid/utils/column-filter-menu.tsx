@@ -97,9 +97,9 @@ export const ColumnFilterMenu: FunctionComponent<
                       onClick={() =>
                         setSelectedFilterItemIds?.(
                           checked
-                            ? selectedFilterItemIds?.filter(
+                            ? (selectedFilterItemIds?.filter(
                                 (selectedId) => selectedId !== id,
-                              ) ?? []
+                              ) ?? [])
                             : [...(selectedFilterItemIds ?? []), id],
                         )
                       }

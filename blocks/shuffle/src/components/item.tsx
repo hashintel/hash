@@ -90,7 +90,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
               <SIconButton
                 onClick={() => onDelete?.()}
                 sx={({ palette }) => ({
-                  opacity: dragOverlay ?? isHovered ? 1 : 0,
+                  opacity: (dragOverlay ?? isHovered) ? 1 : 0,
                   transition: ({ transitions }) =>
                     transitions.create("opacity"),
                   "&:focus-visible, :hover": {
