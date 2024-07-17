@@ -104,7 +104,7 @@ jobs:
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "At least one deployment job failed for a Pull Request in the Merge Queue failed <@U0143NL4GMP> <@U027NPY8Y3X> <@U02NLJY0FGX>"
+          SLACK_MESSAGE: "At least one deployment job failed for a Pull Request in the Merge Queue failed <@U0143NL4GMP> <@U02NLJY0FGX>" # Notifies C & T
           SLACK_TITLE: Deployment failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
