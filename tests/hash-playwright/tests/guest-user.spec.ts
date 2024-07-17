@@ -61,7 +61,7 @@ testTolerateConsoleErrors(
   async ({ page }) => {
     await page.goto("/");
 
-    await page.locator("text=Sign In").nth(1).click();
+    await page.locator("text=Sign In").nth(0).click();
 
     await page.waitForURL("**/signin");
 
