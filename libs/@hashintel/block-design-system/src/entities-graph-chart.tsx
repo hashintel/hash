@@ -81,7 +81,6 @@ export const EntitiesGraphChart = <T extends Entity>({
         ) {
           if (params.dataType === "node" || params.dataType === "edge") {
             /** @todo: improve typing */
-
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
             const entityId = (params.data as any).id as EntityId;
 

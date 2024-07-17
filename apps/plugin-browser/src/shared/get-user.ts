@@ -132,6 +132,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
           setInLocalStorage(
             "popupTab",
             browserPluginTab as LocalStorage["popupTab"],
+            true,
           ),
         ]);
 
