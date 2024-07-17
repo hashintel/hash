@@ -14,7 +14,7 @@ import type {
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type { APIResource } from "openai/resource";
+import type { OpenAI } from "openai";
 
 import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity.js";
 import { getDereferencedEntityTypesActivity } from "./activities/get-dereferenced-entity-types-activity.js";
@@ -29,7 +29,6 @@ import {
   createEntityTypeEmbeddings,
   createPropertyTypeEmbeddings,
 } from "./activities/shared/embeddings.js";
-import { OpenAI } from "openai";
 
 export { createGraphActivities } from "./activities/graph.js";
 

@@ -1,8 +1,8 @@
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
+import type { OpenAI } from "openai";
 import type { Headers } from "openai/core";
 import { APIError, RateLimitError } from "openai/error";
-import type { OpenAI } from "openai";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
 import { logger } from "../activity-logger.js";

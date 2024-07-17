@@ -1,4 +1,4 @@
-import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
+import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
 import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { expect, test } from "vitest";

@@ -1,5 +1,5 @@
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
-import type { Entity as GraphApiEntity } from "@local/hash-graph-client/api";
+import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";

@@ -2,7 +2,6 @@
   "$schema": "http://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "allowJs": true,
-    "allowSyntheticDefaultImports": true,
     "checkJs": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
