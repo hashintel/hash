@@ -738,3 +738,10 @@ impl<Context> Extend<Self> for Report<Context> {
         }
     }
 }
+
+impl<C> AsRef<C> for Report<C> {
+    #[inline(always)]
+    fn as_ref(&self) -> &C {
+        self.current_context()
+    }
+}
