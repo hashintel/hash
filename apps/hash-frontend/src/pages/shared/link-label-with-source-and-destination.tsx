@@ -119,7 +119,7 @@ const LeftOrRightEntity: FunctionComponent<{
         }}
       >
         {entityType ? (
-          entityType.metadata.icon ?? <AsteriskRegularIcon />
+          (entityType.metadata.icon ?? <AsteriskRegularIcon />)
         ) : (
           <EyeSlashIconRegular />
         )}

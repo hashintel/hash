@@ -128,7 +128,7 @@ export const Breadcrumbs = ({
               }}
               size="xs"
               startIcon={
-                item.icon === null ? undefined : item.icon ?? defaultIcon
+                item.icon === null ? undefined : (item.icon ?? defaultIcon)
               }
               sx={{
                 background: "transparent",

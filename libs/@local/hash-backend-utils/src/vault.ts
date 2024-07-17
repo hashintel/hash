@@ -32,7 +32,7 @@ export class VaultClient {
         const vaultErrorMessages =
           error.response?.status.toString() === "404"
             ? ["Secret not found"]
-            : error.response?.data.errors ?? [error.message];
+            : (error.response?.data.errors ?? [error.message]);
 
         return Promise.reject(
           new Error(`Vault API Error: ${vaultErrorMessages.join(", ")}`),

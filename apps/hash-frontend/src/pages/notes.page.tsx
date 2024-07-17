@@ -164,7 +164,7 @@ const NotesPage: NextPageWithLayout = () => {
   const quickNotesEntitiesCreatedToday = useMemo(
     () =>
       latestQuickNoteEntitiesByDay
-        ? latestQuickNoteEntitiesByDay[todayTimestamp] ?? []
+        ? (latestQuickNoteEntitiesByDay[todayTimestamp] ?? [])
         : undefined,
     [latestQuickNoteEntitiesByDay, todayTimestamp],
   );
