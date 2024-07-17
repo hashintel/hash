@@ -239,7 +239,7 @@ export const EntityTypeSelector = ({
           />
         ))
       }
-      value={multiple ? selectedEntityTypes : selectedEntityTypes[0] ?? null}
+      value={multiple ? selectedEntityTypes : (selectedEntityTypes[0] ?? null)}
     />
   );
 };

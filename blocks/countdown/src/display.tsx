@@ -70,8 +70,8 @@ export const Display: FunctionComponent<DisplayProps> = ({
           <div key={item} className="countdown-block__display-grid__item">
             <p>
               {["minutes"].includes(item)
-                ? duration[item]?.toString().padStart(2, "0") ?? "00"
-                : duration[item] ?? "0"}
+                ? (duration[item]?.toString().padStart(2, "0") ?? "00")
+                : (duration[item] ?? "0")}
             </p>
             <p>{`${item} ${targetDate && isPast(targetDate) ? "ago" : ""}`}</p>
           </div>

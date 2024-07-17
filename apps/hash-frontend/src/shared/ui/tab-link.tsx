@@ -77,7 +77,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
           )}
         </Box>
       ) : (
-        icon ?? undefined
+        (icon ?? undefined)
       )
     }
     iconPosition="end"

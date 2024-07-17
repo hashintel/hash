@@ -44,7 +44,7 @@ const BlockHandle: ForwardRefRenderFunction<
    * This lag will be eliminated when all updates are sent via collab, rather than some via the API.
    * @todo remove this comment when all updates are sent via collab
    */
-  const blockEntity = draftId ? entityStore.draft[draftId] ?? null : null;
+  const blockEntity = draftId ? (entityStore.draft[draftId] ?? null) : null;
 
   if (blockEntity && !isBlockEntity(blockEntity)) {
     throw new Error(`Non-block entity ${draftId} loaded into BlockView.`);

@@ -69,7 +69,7 @@ export const initializeActionStep = (params: {
 
             const sourceStepOutputs =
               sourceStep?.kind === "action"
-                ? sourceStep.outputs ?? []
+                ? (sourceStep.outputs ?? [])
                 : sourceStep?.aggregateOutput
                   ? [sourceStep.aggregateOutput]
                   : [];
