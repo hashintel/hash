@@ -55,31 +55,31 @@ To run HASH locally, please follow these steps:
    ```sh
    git --version
    ## ≥ 2.17
-
+   
    node --version
    ## ≥ 20.12
-
+   
    yarn --version
    ## ≥ 1.16
-
+   
    rustc --version
    ## ≥ 2024-07-15 (If installed through rustup, this will automatically install the required toolchain)
-
+   
    cargo --version
    ## Version matching the above rustc version
-
+   
    docker --version
    ## ≥ 20.10
-
+   
    docker compose version
    ## ≥ 2.17.2
-
+   
    docker buildx version
    ## ≥ 0.10.4
-
+   
    protoc --version
    ## ≥ 25
-
+   
    java --version
    ## ≥ 8
    ```
