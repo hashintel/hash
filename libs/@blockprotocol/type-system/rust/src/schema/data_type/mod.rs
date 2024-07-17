@@ -18,6 +18,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value as JsonValue;
 
+use self::raw::RawDataType;
 use crate::{
     schema::data_type::constraint::{extend_report, ConstraintError, StringFormat},
     url::VersionedUrl,
@@ -81,26 +82,28 @@ impl From<&JsonValue> for JsonSchemaValueType {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(from = "raw::DataType")]
+#[serde(from = "RawDataType::<DataTypeReference>")]
 pub struct DataType {
     pub id: VersionedUrl,
     pub title: String,
     pub description: Option<String>,
     pub label: DataTypeLabel,
 
-    // constraints for any types
+    pub all_of: Vec<DataTypeReference>,
+
+    // constraints for any type
     pub json_type: JsonSchemaValueType,
     pub const_value: Option<JsonValue>,
     pub enum_values: Vec<JsonValue>,
 
-    // constraints for number types
+    // constraints for numbers
     pub multiple_of: Option<f64>,
     pub maximum: Option<f64>,
     pub exclusive_maximum: bool,
     pub minimum: Option<f64>,
     pub exclusive_minimum: bool,
 
-    // constraints for string types
+    // constraints for strings
     pub min_length: Option<usize>,
     pub max_length: Option<usize>,
     pub pattern: Option<Regex>,
@@ -178,7 +181,7 @@ impl Serialize for DataType {
     where
         S: Serializer,
     {
-        raw::DataType::from(self).serialize(serializer)
+        raw::RawDataType::from(self).serialize(serializer)
     }
 }
 
