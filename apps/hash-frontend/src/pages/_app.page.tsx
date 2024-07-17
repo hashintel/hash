@@ -271,7 +271,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   if (!userEntity) {
     // If the user is logged out and not on a page that should be publicly accessible...
     if (!publiclyAccessiblePagePathnames.includes(pathname)) {
-      // ...redirect them to the login page
+      // ...redirect them to the sign in page
       redirectInGetInitialProps({
         appContext,
         location: `/signin${

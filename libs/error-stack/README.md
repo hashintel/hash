@@ -4,14 +4,12 @@
 [rust-version]: https://www.rust-lang.org
 [documentation]: https://docs.rs/error-stack
 [license]: https://github.com/hashintel/hash/blob/main/libs/error-stack/LICENSE.md
-[discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_error-stack
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
 [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2024-07-15&color=blue)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
-[![discord](https://img.shields.io/discord/840573247803097118)][discord]
 
 [Open issues](https://github.com/hashintel/hash/issues?q=is%3Aissue+is%3Aopen+label%3AA-error-stack) / [Discussions](https://github.com/hashintel/hash/discussions?discussions_q=label%3AA-error-stack)
 
@@ -144,7 +142,7 @@ For more examples of `error-stack` in use, please check out the [examples](https
 
 ## Contributors
 
-`error-stack` was created and is maintained by [HASH](https://hash.dev/). As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_libs-error-stack-readme).
+`error-stack` was created and is maintained by [HASH](https://hash.dev/). As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md) that outlines the process. If you have questions, please create a [GitHub discussion](https://github.com/orgs/hashintel/discussions).
 
 ## License
 

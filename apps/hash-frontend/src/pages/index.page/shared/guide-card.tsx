@@ -1,23 +1,23 @@
-import { DiscordIcon } from "@hashintel/design-system";
+import { MemoCircleCheckRegularIcon } from "@hashintel/design-system";
 
 import { Button } from "../../../shared/ui/button";
 import { HomepageCard } from "./homepage-card";
 import { HomepageBigText } from "./typography";
 
-export const DiscordCard = () => (
+export const GuideCard = () => (
   <HomepageCard wide>
-    <HomepageBigText sx={{ fontWeight: 400 }}>Join our user</HomepageBigText>
+    <HomepageBigText sx={{ fontWeight: 400 }}>Read the</HomepageBigText>
     <HomepageBigText sx={{ color: "rgba(88, 101, 242, 1)", fontWeight: 700 }}>
-      Discord forum
+      user guide
     </HomepageBigText>
     <Button
-      href="https://hash.ai/discord"
+      href="https://hash.ai/learn"
       size="small"
       variant="white_cta"
       target="_blank"
     >
-      Join the community
-      <DiscordIcon
+      Read the guide
+      <MemoCircleCheckRegularIcon
         sx={{ fontSize: 14, ml: 1.5, fill: "rgba(88, 101, 242, 1)" }}
       />
     </Button>

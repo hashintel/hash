@@ -20,7 +20,7 @@
     },
     "examples": [
       {
-        "initialHtml": "<blockquote class=\"twitter-tweet\" data-width=\"300\"><p lang=\"en\" dir=\"ltr\">1/ We&#39;ve been working a new protocol at <a href=\"https://twitter.com/hashintel?ref_src=twsrc%5Etfw\">@hashintel</a><br><br>It&#39;s called the block protocol (but NOT about blockchain or NFTs!)<br><br>It allows you to build reusable blocks (aka. components) that are interchangeable across website/apps<br><br>It takes a minute to explain, but I’ve drawn pictures… <a href=\"https://t.co/9uhsPdAPSh\">pic.twitter.com/9uhsPdAPSh</a></p>&mdash; Maggie Appleton 🧭 (@Mappletons) <a href=\"https://twitter.com/Mappletons/status/1488131234089873408?ref_src=twsrc%5Etfw\">January 31, 2022</a></blockquote>\n<script async src=\"https://platform.twitter.com/widgets.js\" charset=\"utf-8\"></script>\n",
+        "initialHtml": "<blockquote class=\"twitter-tweet\" data-width=\"300\"><p lang=\"en\" dir=\"ltr\">1/ We&#39;ve been working a new protocol at <a href=\"https://x.com/hashintel?ref_src=twsrc%5Etfw\">@hashintel</a><br><br>It&#39;s called the block protocol (but NOT about blockchain or NFTs!)<br><br>It allows you to build reusable blocks (aka. components) that are interchangeable across website/apps<br><br>It takes a minute to explain, but I’ve drawn pictures… <a href=\"https://t.co/9uhsPdAPSh\">pic.x.com/9uhsPdAPSh</a></p>&mdash; Maggie Appleton 🧭 (@Mappletons) <a href=\"https://x.com/Mappletons/status/1488131234089873408?ref_src=twsrc%5Etfw\">January 31, 2022</a></blockquote>\n<script async src=\"https://platform.twitter.com/widgets.js\" charset=\"utf-8\"></script>\n",
         "initialHeight": 340
       }
     ]
