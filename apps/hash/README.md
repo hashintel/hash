@@ -365,6 +365,9 @@ is being run directly, and modifying any dependent file in the repo will trigger
 For production builds, where they are created, a `tsconfig.build.json` in the package is used which overwrites the `paths` field in the root config,
 meaning that the imports will resolve to the transpiled JavaScript (usually in a git-ignored `dist/` folder).
 
+Creating a production build should be done by running `turbo run build`, so that `turbo` takes care of building its dependencies first.
+Running `yarn build` may not work as expected, as the built JavaScript for its dependencies may be (a) missing or (b) out of date.
+
 If a bundler is used rather than `tsc`, the `paths` override needs to be translated into the appropriate configuration for the bundler.
 For `webpack`, this is automated by adding the `TsconfigPathsPlugin` to the configuration's `resolve` field (search existing examples in repo).
 
