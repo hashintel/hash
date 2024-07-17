@@ -9,8 +9,8 @@ use tokio_util::sync::CancellationToken;
 use self::connection::ConnectionParts;
 pub use self::{
     config::SessionConfig,
-    connection::Connection,
-    transaction::stream::{ErrorStream, ValueStream},
+    connection::{Connection, ResponseStream},
+    transaction::stream::{ErrorStream, TransactionStream, ValueStream},
 };
 use super::error::SessionError;
 use crate::transport::{connection::OutgoingConnection, TransportLayer};

@@ -182,6 +182,12 @@ export const checkSubTasksAgent = async (params: {
 
     return { acceptedSubTasks, rejectedSubTasks };
   } else {
-    throw new Error("Failed to get LLM response");
+    return {
+      acceptedSubTasks: subTasks.map(({ subTaskId }) => ({
+        subTaskId,
+        reason: "Could not get response from sub task checker, accepting task",
+      })),
+      rejectedSubTasks: [],
+    };
   }
 };

@@ -46,6 +46,7 @@
     "apollo-datasource": "3.3.2",
     "axios": "1.6.0",
     "dotenv-flow": "3.2.0",
+    "exponential-backoff": "3.1.1",
     "googleapis": "133.0.0",
     "redis": "4.6.12",
     "slonik": "24.1.2",
@@ -58,9 +59,9 @@
     "@types/dotenv-flow": "3.2.0",
     "@types/node": "20.12.3",
     "@types/wait-on": "5.3.1",
-    "@vitest/coverage-istanbul": "2.0.2",
+    "@vitest/coverage-istanbul": "2.0.3",
     "eslint": "8.57.0",
     "typescript": "5.5.3",
-    "vitest": "2.0.2"
+    "vitest": "2.0.3"
   }
 }

@@ -66,6 +66,18 @@ impl From<u16> for ResponseKind {
     }
 }
 
+impl AsRef<Self> for ResponseKind {
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
+impl From<!> for ResponseKind {
+    fn from(never: !) -> Self {
+        never
+    }
+}
+
 impl From<ResponseKind> for u16 {
     fn from(kind: ResponseKind) -> Self {
         match kind {

@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use harpc_wire_protocol::response::kind::ErrorCode;
 
-use crate::codec::WriteError;
+use crate::codec::WireError;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[error("The session layer has encountered an error, the connection has been closed")]
@@ -22,7 +22,7 @@ pub struct ConnectionTransactionLimitReachedError {
     pub limit: usize,
 }
 
-impl WriteError for ConnectionTransactionLimitReachedError {
+impl WireError for ConnectionTransactionLimitReachedError {
     fn code(&self) -> ErrorCode {
         ErrorCode::CONNECTION_TRANSACTION_LIMIT_REACHED
     }
@@ -32,7 +32,7 @@ impl WriteError for ConnectionTransactionLimitReachedError {
 #[error("transaction has been dropped, because it is unable to receive more request packets")]
 pub struct TransactionLaggingError;
 
-impl WriteError for TransactionLaggingError {
+impl WireError for TransactionLaggingError {
     fn code(&self) -> ErrorCode {
         ErrorCode::TRANSACTION_LAGGING
     }
@@ -42,7 +42,7 @@ impl WriteError for TransactionLaggingError {
 #[error("transaction has been dropped, because the server is unable to process more transactions")]
 pub struct InstanceTransactionLimitReachedError;
 
-impl WriteError for InstanceTransactionLimitReachedError {
+impl WireError for InstanceTransactionLimitReachedError {
     fn code(&self) -> ErrorCode {
         ErrorCode::INSTANCE_TRANSACTION_LIMIT_REACHED
     }
@@ -52,7 +52,7 @@ impl WriteError for InstanceTransactionLimitReachedError {
 #[error("session has been clossed")]
 pub struct ConnectionClosedError;
 
-impl WriteError for ConnectionClosedError {
+impl WireError for ConnectionClosedError {
     fn code(&self) -> ErrorCode {
         ErrorCode::CONNECTION_CLOSED
     }
@@ -64,7 +64,7 @@ impl WriteError for ConnectionClosedError {
 )]
 pub struct ConnectionGracefulShutdownError;
 
-impl WriteError for ConnectionGracefulShutdownError {
+impl WireError for ConnectionGracefulShutdownError {
     fn code(&self) -> ErrorCode {
         ErrorCode::CONNECTION_SHUTDOWN
     }

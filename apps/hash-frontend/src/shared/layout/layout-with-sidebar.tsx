@@ -57,6 +57,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
             position: "relative",
             marginLeft: `-${SIDEBAR_WIDTH}px`,
             overflowX: "hidden",
+            overflowY: "hidden",
             transition: theme.transitions.create("margin", {
               easing: theme.transitions.easing.easeOut,
               duration: theme.transitions.duration.enteringScreen,
@@ -108,6 +109,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                 : palette.common.white,
               minHeight: "100%",
               flex: 1,
+              width: "100%",
             })}
           >
             <Main

@@ -18,7 +18,9 @@ pub trait ValueEncoder<T> {
     + Send;
 }
 
-pub trait WriteError: Error {
+// TODO: WireError is auto trait, using `request_ref` and `request_value`
+// ^ needs thiserror provide (snafu provides it, but snafu is big)
+pub trait WireError: Error {
     fn code(&self) -> ErrorCode;
 }
 
@@ -37,7 +39,7 @@ pub trait ErrorEncoder {
     /// This is only used in lower-level errors, in which a report cannot be utilized.
     fn encode_error<E>(&self, error: E) -> impl Future<Output = TransactionError> + Send
     where
-        E: WriteError;
+        E: WireError + Send;
 }
 
 impl<T> ErrorEncoder for Arc<T>
@@ -50,7 +52,7 @@ where
 
     fn encode_error<E>(&self, error: E) -> impl Future<Output = TransactionError> + Send
     where
-        E: WriteError,
+        E: WireError + Send,
     {
         self.as_ref().encode_error(error)
     }

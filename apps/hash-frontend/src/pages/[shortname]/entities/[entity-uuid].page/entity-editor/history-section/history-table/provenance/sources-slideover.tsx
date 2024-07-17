@@ -22,8 +22,8 @@ import {
 import { useUserOrOrgShortnameByOwnedById } from "../../../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { Link } from "../../../../../../../../shared/ui/link";
 import { Cell } from "../../../../../../../settings/organizations/shared/cell";
+import { ValueChip } from "../../../../../../../shared/value-chip";
 import type { HistoryEvent } from "../../shared/types";
-import { Chip } from "../shared/chip";
 import { EventDetail } from "../shared/event-detail";
 
 const boxPadding = {
@@ -52,7 +52,7 @@ const SourceRow = ({ source }: { source: SourceProvenance }) => {
   return (
     <TableRow>
       <TableCell>
-        <Chip type sx={{ py: 0.2 }}>
+        <ValueChip type sx={{ py: 0.2 }}>
           <FontAwesomeIcon
             icon={faFile}
             sx={(theme) => ({
@@ -70,7 +70,7 @@ const SourceRow = ({ source }: { source: SourceProvenance }) => {
           >
             {type}
           </Box>
-        </Chip>
+        </ValueChip>
       </TableCell>
       <TableCell
         sx={{

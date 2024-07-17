@@ -1,7 +1,7 @@
 /**
  * The maximum number of times to retry a request to the LLM API.
  */
-export const maxRetryCount = 3;
+export const maxRetryCount = 5;
 
 /**
  * The starting delay when a rate limit error is encountered.

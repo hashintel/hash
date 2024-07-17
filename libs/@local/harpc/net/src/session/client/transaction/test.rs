@@ -31,7 +31,7 @@ use super::{
     ClientTransactionPermit, ErrorStream, TransactionReceiveTask, TransactionSendTask, ValueStream,
 };
 use crate::session::{
-    client::{config::SessionConfig, transaction::StreamState},
+    client::{config::SessionConfig, transaction::StreamState, TransactionStream},
     test::Descriptor,
 };
 

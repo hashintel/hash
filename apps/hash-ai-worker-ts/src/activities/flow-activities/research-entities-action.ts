@@ -495,10 +495,15 @@ export const researchEntitiesAction: FlowActionActivity<{
                   prompt,
                   entityTypeIds,
                   linkEntityTypeIds,
+                  relevantEntityIds,
                   descriptionOfExpectedContent,
                   exampleOfExpectedContent,
                   reason,
                 }) => {
+                  const relevantEntities = state.entitySummaries.filter(
+                    ({ localId }) => relevantEntityIds?.includes(localId),
+                  );
+
                   const response = await linkFollowerAgent({
                     initialResource: {
                       url,
@@ -507,11 +512,20 @@ export const researchEntitiesAction: FlowActionActivity<{
                       reason,
                     },
                     task: prompt,
-                    entityTypes: input.entityTypes.filter(({ $id }) =>
-                      entityTypeIds.includes($id),
+                    existingEntitiesOfInterest: relevantEntities,
+                    entityTypes: input.entityTypes.filter(
+                      ({ $id }) =>
+                        entityTypeIds.includes($id) ||
+                        relevantEntities.some(
+                          (entity) => entity.entityTypeId === $id,
+                        ),
                     ),
                     linkEntityTypes: input.linkEntityTypes?.filter(
-                      ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
+                      ({ $id }) =>
+                        !!linkEntityTypeIds?.includes($id) ||
+                        relevantEntities.some(
+                          (entity) => entity.entityTypeId === $id,
+                        ),
                     ),
                   });
 
@@ -527,7 +541,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             for (const { response } of responsesWithUrl) {
               inferredFacts.push(...response.facts);
-              entitySummaries.push(...response.entitySummaries);
+              entitySummaries.push(...response.existingEntitiesOfInterest);
               suggestionsForNextStepsMade.push(response.suggestionForNextSteps);
               resourceUrlsVisited.push(
                 ...response.exploredResources.map(({ url }) => url),
@@ -580,16 +594,24 @@ export const researchEntitiesAction: FlowActionActivity<{
                     explanation,
                   } = subTask;
 
-                  const entityTypes = input.entityTypes.filter(({ $id }) =>
-                    entityTypeIds.includes($id),
+                  const relevantEntities = state.entitySummaries.filter(
+                    ({ localId }) => relevantEntityIds?.includes(localId),
+                  );
+
+                  const entityTypes = input.entityTypes.filter(
+                    ({ $id }) =>
+                      entityTypeIds.includes($id) ||
+                      relevantEntities.some(
+                        (entity) => entity.entityTypeId === $id,
+                      ),
                   );
 
                   const linkEntityTypes = input.linkEntityTypes?.filter(
-                    ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
-                  );
-
-                  const relevantEntities = state.entitySummaries.filter(
-                    ({ localId }) => relevantEntityIds?.includes(localId),
+                    ({ $id }) =>
+                      !!linkEntityTypeIds?.includes($id) ||
+                      relevantEntities.some(
+                        (entity) => entity.entityTypeId === $id,
+                      ),
                   );
 
                   const existingFactsAboutRelevantEntities =
@@ -857,13 +879,23 @@ export const researchEntitiesAction: FlowActionActivity<{
     toolCalls: initialToolCalls,
   });
 
-  const submittedEntities = getSubmittedEntities();
+  /**
+   * These are entities the coordinator has chosen to highlight as the result of research,
+   * but we want to output all entity proposals from the task.
+   * @todo do something with the highlighted entities, e.g.
+   * - mark them for the user's attention
+   * - pass them to future steps
+   */
+  const _submittedEntities = getSubmittedEntities();
+  logger.debug(`Submitted Entities: ${stringify(_submittedEntities)}`);
 
-  const filesUsedToProposeSubmittedEntities = submittedEntities
-    .flatMap((submittedEntity) => {
+  const allProposedEntities = state.proposedEntities;
+
+  const filesUsedToProposeEntities = allProposedEntities
+    .flatMap((proposedEntity) => {
       const sourcesUsedToProposeEntity = [
-        ...(submittedEntity.provenance.sources ?? []),
-        ...flattenPropertyMetadata(submittedEntity.propertyMetadata).flatMap(
+        ...(proposedEntity.provenance.sources ?? []),
+        ...flattenPropertyMetadata(proposedEntity.propertyMetadata).flatMap(
           ({ metadata }) => metadata.provenance?.sources ?? [],
         ),
       ];
@@ -913,8 +945,8 @@ export const researchEntitiesAction: FlowActionActivity<{
    *
    * Note that uploading the file is handled in the "Persist Entity" action.
    */
-  const fileEntityProposals: ProposedEntity[] =
-    filesUsedToProposeSubmittedEntities.map(({ url, entityTypeId }) => ({
+  const fileEntityProposals: ProposedEntity[] = filesUsedToProposeEntities.map(
+    ({ url, entityTypeId }) => ({
       /**
        * @todo: H-2728 set the web page this file was discovered in (if applicable) in the property provenance
        * for the `fileUrl`
@@ -927,7 +959,8 @@ export const researchEntitiesAction: FlowActionActivity<{
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
           url,
       } satisfies FileProperties,
-    }));
+    }),
+  );
 
   const now = new Date().toISOString();
 
@@ -940,7 +973,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     })),
   );
 
-  logger.debug(`Submitted Entities: ${stringify(submittedEntities)}`);
+  logger.debug(`Proposed Entities: ${stringify(allProposedEntities)}`);
   logger.debug(`File Entities Proposed: ${stringify(fileEntityProposals)}`);
 
   return {
@@ -953,7 +986,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
             payload: {
               kind: "ProposedEntity",
-              value: [...submittedEntities, ...fileEntityProposals],
+              value: [...allProposedEntities, ...fileEntityProposals],
             },
           },
         ],

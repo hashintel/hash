@@ -15,6 +15,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
+import { backOff } from "exponential-backoff";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details";
@@ -199,26 +200,42 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           };
         }
 
-        entity = await existingEntity.patch(
-          graphApiClient,
-          { actorId: webBotActorId },
+        entity = await backOff(
+          () =>
+            existingEntity.patch(
+              graphApiClient,
+              { actorId: webBotActorId },
+              {
+                ...entityValues,
+                draft: existingEntityIsDraft ? true : createEditionAsDraft,
+                propertyPatches: patchOperations,
+              },
+            ),
           {
-            ...entityValues,
-            draft: existingEntityIsDraft ? true : createEditionAsDraft,
-            propertyPatches: patchOperations,
+            jitter: "full",
+            numOfAttempts: 3,
+            startingDelay: 1_000,
           },
         );
       } else {
-        entity = await Entity.create(
-          graphApiClient,
-          { actorId: webBotActorId },
+        entity = await backOff(
+          () =>
+            Entity.create(
+              graphApiClient,
+              { actorId: webBotActorId },
+              {
+                ...entityValues,
+                draft: createEditionAsDraft,
+                ownedById,
+                relationships: createDefaultAuthorizationRelationships({
+                  actorId,
+                }),
+              },
+            ),
           {
-            ...entityValues,
-            draft: createEditionAsDraft,
-            ownedById,
-            relationships: createDefaultAuthorizationRelationships({
-              actorId,
-            }),
+            jitter: "full",
+            numOfAttempts: 3,
+            startingDelay: 1_000,
           },
         );
       }

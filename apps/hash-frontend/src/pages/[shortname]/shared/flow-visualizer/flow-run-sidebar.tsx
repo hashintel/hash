@@ -1,97 +1,24 @@
 import {
-  ArrowRightIconRegular,
+  ArrowUpRightRegularIcon,
   CaretDownSolidIcon,
-  CircleCheckRegularIcon,
-  CircleEllipsisRegularIcon,
-  CloseIcon,
+  IconButton,
 } from "@hashintel/design-system";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type {
-  FlowDefinition,
-  StepDefinition,
-} from "@local/hash-isomorphic-utils/flows/types";
-import {
-  Box,
-  CircularProgress,
-  Collapse,
-  Stack,
-  Typography,
-} from "@mui/material";
-import { differenceInMilliseconds, intervalToDuration } from "date-fns";
+import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 
 import type { FlowRun } from "../../../../graphql/api-types.gen";
-import { isNonNullable } from "../../../../lib/typeguards";
-import { EllipsisRegularIcon } from "../../../../shared/icons/ellipsis-regular-icon";
 import { Link } from "../../../../shared/ui/link";
-import {
-  statusToSimpleStatus,
-  useStatusForStep,
-  useStatusForSteps,
-} from "../../../shared/flow-runs-context";
+import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { useFlowRunsUsage } from "../../../shared/use-flow-runs-usage";
+import { GroupStatus } from "./flow-run-sidebar/group-status";
+import { Manager } from "./flow-run-sidebar/manager";
 import { SectionLabel } from "./section-label";
 import { flowSectionBorderRadius } from "./shared/styles";
-import type {
-  FlowMaybeGrouped,
-  GroupWithEdgesAndNodes,
-  UngroupedEdgesAndNodes,
-} from "./shared/types";
-
-type StatusFor = "group" | "step";
-
-const iconSx = {
-  group: {
-    fontSize: 18,
-  },
-  step: {
-    fontSize: 13,
-  },
-} as const;
-
-type IconProps = { statusFor: StatusFor };
-
-const SuccessIcon = ({ statusFor }: IconProps) => (
-  <CircleCheckRegularIcon
-    sx={{ fill: ({ palette }) => palette.success.main, ...iconSx[statusFor] }}
-  />
-);
-
-const WaitingIcon = ({ statusFor }: IconProps) =>
-  statusFor === "group" ? (
-    <CircleEllipsisRegularIcon
-      sx={{ fill: ({ palette }) => palette.gray[50], ...iconSx[statusFor] }}
-    />
-  ) : (
-    <EllipsisRegularIcon
-      sx={{ fill: ({ palette }) => palette.gray[50], ...iconSx[statusFor] }}
-    />
-  );
-
-const ErrorIcon = ({ statusFor }: IconProps) => (
-  <CloseIcon
-    sx={{
-      fill: ({ palette }) => palette.error.main,
-      fontSize: iconSx[statusFor].fontSize - 1,
-    }}
-  />
-);
-
-const InProgressIcon = ({ statusFor }: IconProps) =>
-  statusFor === "group" ? (
-    <CircularProgress
-      disableShrink
-      size={iconSx.group.fontSize}
-      sx={{ fill: ({ palette }) => palette.blue[70] }}
-      variant="indeterminate"
-    />
-  ) : (
-    <ArrowRightIconRegular
-      sx={{ fill: ({ palette }) => palette.blue[70], ...iconSx[statusFor] }}
-    />
-  );
+import type { FlowMaybeGrouped } from "./shared/types";
 
 const SidebarSection = ({ children }: PropsWithChildren) => (
   <Box
@@ -107,197 +34,12 @@ const SidebarSection = ({ children }: PropsWithChildren) => (
   </Box>
 );
 
-const GroupStepStatus = ({
-  kind,
-  label,
-  stepId,
-}: {
-  kind: StepDefinition["kind"];
-  label: string;
-  stepId: string;
-}) => {
-  const statusForStep = useStatusForStep(stepId);
-
-  if (kind === "parallel-group") {
-    return null;
-  }
-
-  const simpleStatus = statusForStep
-    ? statusToSimpleStatus(statusForStep.status)
-    : null;
-
-  return (
-    <Stack direction="row" ml={2} mb={1}>
-      <Box>
-        {!simpleStatus ||
-        simpleStatus === "Waiting" ||
-        simpleStatus === "Information Required" ? (
-          <WaitingIcon statusFor="step" />
-        ) : simpleStatus === "In Progress" ? (
-          <InProgressIcon statusFor="step" />
-        ) : simpleStatus === "Complete" ? (
-          <SuccessIcon statusFor="step" />
-        ) : (
-          <ErrorIcon statusFor="step" />
-        )}
-      </Box>
-      <Typography sx={{ fontSize: 14, ml: 1, mt: 0.2 }}>{label}</Typography>
-    </Stack>
-  );
-};
-
-const pad = (num: number) => String(num).padStart(2, "0");
-
-const formatTimeTaken = (scheduledAt: string, closedAt?: string) => {
-  const start = new Date(scheduledAt);
-
-  const elapsed = differenceInMilliseconds(
-    closedAt ? new Date(closedAt) : new Date(),
-    start,
-  );
-
-  const duration = intervalToDuration({ start: 0, end: elapsed });
-
-  return [duration.hours, duration.minutes, duration.seconds]
-    .filter(isNonNullable)
-    .map(pad)
-    .join(":");
-};
-
-const GroupStatus = ({
-  groupData,
-}: {
-  groupData: UngroupedEdgesAndNodes | GroupWithEdgesAndNodes;
-}) => {
-  const groupStepsWithIds = useMemo(
-    () => groupData.nodes.map((node) => ({ ...node, stepId: node.id })),
-    [groupData],
-  );
-
-  const {
-    closedAt,
-    scheduledAt,
-    overallStatus: groupStatus,
-  } = useStatusForSteps(groupStepsWithIds) ?? {};
-
-  const [showSteps, setShowSteps] = useState(groupStatus === "In Progress");
-
-  const [timeTaken, setTimeTaken] = useState("");
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    if (scheduledAt) {
-      setTimeTaken(formatTimeTaken(scheduledAt, closedAt));
-
-      interval = setInterval(() => {
-        setTimeTaken(formatTimeTaken(scheduledAt, closedAt));
-      }, 1000);
-    }
-
-    return () => clearInterval(interval);
-  }, [scheduledAt, closedAt]);
-
-  useEffect(() => {
-    if (groupStatus === "In Progress") {
-      setShowSteps(true);
-    } else {
-      setShowSteps(false);
-    }
-  }, [groupStatus]);
-
-  return (
-    <Box sx={{ "&:not(:first-of-type)": { mt: 1.5 } }}>
-      <Stack
-        alignItems="flex-start"
-        direction="row"
-        justifyContent="space-between"
-        gap={1}
-        sx={{ cursor: "pointer" }}
-        onClick={() => setShowSteps(!showSteps)}
-      >
-        <Stack direction="row">
-          <Box
-            sx={{
-              width: 18,
-              minWidth: 18,
-              mt: 0.1,
-              display: "flex",
-              alignItems: "flex-start",
-            }}
-          >
-            {!groupStatus || groupStatus === "Waiting" ? (
-              <WaitingIcon statusFor="group" />
-            ) : groupStatus === "In Progress" ? (
-              <InProgressIcon statusFor="group" />
-            ) : groupStatus === "Complete" ? (
-              <SuccessIcon statusFor="group" />
-            ) : (
-              <ErrorIcon statusFor="group" />
-            )}
-          </Box>
-          <Typography
-            variant="smallTextParagraphs"
-            sx={{ lineHeight: 1.2, ml: 1.5 }}
-          >
-            {groupData.group?.description ?? "Flow"}
-          </Typography>
-        </Stack>
-        <Stack direction="row" gap={1}>
-          <Typography
-            sx={{
-              fontSize: 12,
-              fontWeight: 600,
-              lineHeight: 1.3,
-              mt: 0.1,
-              color: ({ palette }) =>
-                groupStatus === "In Progress"
-                  ? palette.blue[70]
-                  : groupStatus === "Errored"
-                    ? palette.error.main
-                    : palette.common.black,
-            }}
-          >
-            {timeTaken}
-          </Typography>
-          <CaretDownSolidIcon
-            sx={{
-              color: ({ palette }) => palette.gray[50],
-              height: 14,
-              transform: !showSteps ? "rotate(-90deg)" : "translateY(-1px)",
-              transition: ({ transitions }) => transitions.create("transform"),
-            }}
-          />
-        </Stack>
-      </Stack>
-
-      <Collapse in={showSteps}>
-        <Box
-          sx={{
-            borderLeft: ({ palette }) => `1px solid ${palette.gray[30]}`,
-            ml: 1,
-            my: 1,
-          }}
-        >
-          {groupStepsWithIds.map((step) => (
-            <GroupStepStatus
-              key={step.stepId}
-              kind={step.data.kind}
-              label={step.data.label}
-              stepId={step.stepId}
-            />
-          ))}
-        </Box>
-      </Collapse>
-    </Box>
-  );
-};
-
 type FlowRunSidebarProps = {
   flowDefinition: FlowDefinition;
   flowRunId: EntityUuid;
   groups: FlowMaybeGrouped["groups"];
   name: FlowRun["name"];
+  showDag: () => void;
 };
 
 export const FlowRunSidebar = ({
@@ -305,11 +47,14 @@ export const FlowRunSidebar = ({
   flowRunId,
   groups,
   name,
+  showDag,
 }: FlowRunSidebarProps) => {
   const { isUsageAvailable, usageByFlowRun } = useFlowRunsUsage({
     flowRunIds: [flowRunId],
   });
   const [showUsageBreakdown, setShowUsageBreakdown] = useState(false);
+
+  const { selectedFlowRun } = useFlowRunsContext();
 
   const usage = usageByFlowRun[flowRunId];
 
@@ -324,7 +69,7 @@ export const FlowRunSidebar = ({
   }, [name]);
 
   return (
-    <Box sx={{ ml: 3, width: 320 }}>
+    <Box sx={{ ml: 3, minWidth: 320, width: 320 }}>
       <Box sx={{ mb: 2 }}>
         <SectionLabel
           text={
@@ -354,7 +99,32 @@ export const FlowRunSidebar = ({
         </SidebarSection>
       </Box>
       <Box>
-        <SectionLabel text="Flow" />
+        <Stack alignItems="center" direction="row">
+          <SectionLabel text="Plan" />
+          <IconButton
+            onClick={() => showDag()}
+            sx={{
+              px: 0.3,
+              py: 0,
+              ml: 0.5,
+              mb: 0.5,
+              "& svg": { fontSize: 12 },
+            }}
+          >
+            <Typography
+              variant="smallCaps"
+              sx={{ color: ({ palette }) => palette.blue[70] }}
+            >
+              View
+            </Typography>
+            <ArrowUpRightRegularIcon
+              sx={{
+                fill: ({ palette }) => palette.blue[70],
+                ml: 0.3,
+              }}
+            />
+          </IconButton>
+        </Stack>
         <SidebarSection>
           <Box>
             {groups.map((groupData) => (
@@ -366,6 +136,14 @@ export const FlowRunSidebar = ({
           </Box>
         </SidebarSection>
       </Box>
+      {!selectedFlowRun?.closedAt && (
+        <Box sx={{ mt: 2 }}>
+          <SectionLabel text="Manager" />
+          <SidebarSection>
+            <Manager />
+          </SidebarSection>
+        </Box>
+      )}
       {isUsageAvailable && usage ? (
         <Box sx={{ mt: 2 }}>
           <SectionLabel text="Cost" />
