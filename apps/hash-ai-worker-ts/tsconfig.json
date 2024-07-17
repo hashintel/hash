@@ -3,6 +3,7 @@
   "include": ["src", "scripts"],
   "compilerOptions": {
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true
   }
 }

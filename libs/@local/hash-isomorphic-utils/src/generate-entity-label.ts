@@ -35,8 +35,6 @@ const getFallbackLabel = ({
   entityType?: EntityTypeWithMetadata;
   entity: { properties: Entity["properties"]; metadata: EntityMetadata };
 }) => {
-  console.log({ entity });
-
   // fallback to the entity type and a few characters of the entityUuid
   const entityId = entity.metadata.recordId.entityId;
 
@@ -142,9 +140,9 @@ export const generateEntityLabel = (
     typeof simplifiedProperties.lastName === "string"
       ? simplifiedProperties.lastName
       : simplifiedProperties.familyName &&
-        typeof simplifiedProperties.familyName === "string"
-      ? simplifiedProperties.familyName
-      : undefined;
+          typeof simplifiedProperties.familyName === "string"
+        ? simplifiedProperties.familyName
+        : undefined;
 
   if (firstName && lastName) {
     return `${firstName} ${lastName}`;

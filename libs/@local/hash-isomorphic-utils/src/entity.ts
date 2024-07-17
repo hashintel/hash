@@ -77,10 +77,7 @@ export const getBlockChildEntity = (
 ): DraftEntity | null => {
   const blockEntity = entityStore.draft[draftBlockId];
 
-  console.log(JSON.stringify(entityStore, undefined, 2));
-
   if (!isDraftBlockEntity(blockEntity)) {
-    console.log(JSON.stringify(blockEntity, undefined, 2));
     throw new Error("Can only get child entity from block entity");
   }
 
