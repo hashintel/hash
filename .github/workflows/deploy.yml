@@ -30,6 +30,10 @@ jobs:
       - name: Install turbo
         uses: ./.github/actions/install-turbo
 
+      - name: Skip specified deployments
+        shell: bash
+        run: npx turbo-ignore @apps/hashdotdesign --fallback=HEAD^1
+
       - name: Determine changed packages
         id: packages
         run: |
