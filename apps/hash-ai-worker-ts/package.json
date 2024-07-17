@@ -81,7 +81,7 @@
     "puppeteer-extra-plugin-stealth": "2.11.2",
     "sanitize-html": "2.13.0",
     "tsconfig-paths-webpack-plugin": "4.1.0",
-    "tsx": "3.13.0",
+    "tsx": "4.16.2",
     "typescript": "5.5.3"
   },
   "devDependencies": {
