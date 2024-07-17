@@ -76,6 +76,11 @@ const workflowOptions =
           webpackConfig.resolve ??= {};
           webpackConfig.resolve.plugins ??= [];
           /* eslint-enable no-param-reassign */
+          /**
+           * Because we run TypeScript directly in development, we need to use the 'paths' in the base tsconfig.json
+           * This tells TypeScript where to resolve the imports from, overwriting the 'exports' in local dependencies' package.jsons,
+           * which refer to the transpiled JavaScript code.
+           */
           webpackConfig.resolve.plugins.push(new TsconfigPathsPlugin());
           return webpackConfig;
         },
