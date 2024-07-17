@@ -11,7 +11,7 @@ import type {
   EntityTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { OntologyTypeVertexId, Subgraph } from "../../../main";
+import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph

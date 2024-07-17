@@ -59,7 +59,7 @@ import type {
   TextualContentPropertyValueWithMetadata,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   BooleanDataType,

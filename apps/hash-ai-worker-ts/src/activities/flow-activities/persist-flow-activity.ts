@@ -10,8 +10,8 @@ import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FlowRun } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import { getFlowContext } from "../shared/get-flow-context";
-import { graphApiClient } from "../shared/graph-api-client";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
 
 type PersistFlowActivityParams = {
   flow: LocalFlowRun;

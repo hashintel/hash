@@ -4,15 +4,15 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
-import type { EntityRevisionId, Subgraph, Vertices } from "../../../main";
-import { isEntityVertex } from "../../../main";
-import { mustBeDefined } from "../../../shared/invariant";
+import type { EntityRevisionId, Subgraph, Vertices } from "../../../main.js";
+import { isEntityVertex } from "../../../main.js";
+import { mustBeDefined } from "../../../shared/invariant.js";
 import {
   intervalContainsTimestamp,
   intervalForTimestamp,
   intervalIsStrictlyAfterInterval,
   intervalOverlapsInterval,
-} from "../../interval";
+} from "../../interval.js";
 
 /**
  * Returns all {@link Entity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their

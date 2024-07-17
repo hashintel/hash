@@ -1,22 +1,22 @@
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
-import { answerQuestionAction } from "./flow-activities/answer-question-action";
-import { generateFlowRunName } from "./flow-activities/generate-flow-run-name-activity";
-import { generateWebQueriesAction } from "./flow-activities/generate-web-queries-action";
-import { getFileFromUrlAction } from "./flow-activities/get-file-from-url-action";
-import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action";
-import { getWebPageSummaryAction } from "./flow-activities/get-web-page-summary-action";
-import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action";
-import { persistEntitiesAction } from "./flow-activities/persist-entities-action";
-import { persistEntityAction } from "./flow-activities/persist-entity-action";
-import { persistFlowActivity } from "./flow-activities/persist-flow-activity";
-import { processAutomaticBrowsingSettingsAction } from "./flow-activities/process-automatic-browsing-settings-action";
-import { researchEntitiesAction } from "./flow-activities/research-entities-action";
-import type { FlowActionActivity } from "./flow-activities/types";
-import { userHasPermissionToRunFlowInWebActivity } from "./flow-activities/user-has-permission-to-run-flow-in-web-activity";
-import { webSearchAction } from "./flow-activities/web-search-action";
-import { writeGoogleSheetAction } from "./flow-activities/write-google-sheet-action";
+import { answerQuestionAction } from "./flow-activities/answer-question-action.js";
+import { generateFlowRunName } from "./flow-activities/generate-flow-run-name-activity.js";
+import { generateWebQueriesAction } from "./flow-activities/generate-web-queries-action.js";
+import { getFileFromUrlAction } from "./flow-activities/get-file-from-url-action.js";
+import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action.js";
+import { getWebPageSummaryAction } from "./flow-activities/get-web-page-summary-action.js";
+import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action.js";
+import { persistEntitiesAction } from "./flow-activities/persist-entities-action.js";
+import { persistEntityAction } from "./flow-activities/persist-entity-action.js";
+import { persistFlowActivity } from "./flow-activities/persist-flow-activity.js";
+import { processAutomaticBrowsingSettingsAction } from "./flow-activities/process-automatic-browsing-settings-action.js";
+import { researchEntitiesAction } from "./flow-activities/research-entities-action.js";
+import type { FlowActionActivity } from "./flow-activities/types.js";
+import { userHasPermissionToRunFlowInWebActivity } from "./flow-activities/user-has-permission-to-run-flow-in-web-activity.js";
+import { webSearchAction } from "./flow-activities/web-search-action.js";
+import { writeGoogleSheetAction } from "./flow-activities/write-google-sheet-action.js";
 
 export const createFlowActionActivities = ({
   vaultClient,

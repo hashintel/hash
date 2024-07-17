@@ -9,7 +9,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { EntityIdWithInterval, EntityIdWithTimestamp } from "./edges";
+import type { EntityIdWithInterval, EntityIdWithTimestamp } from "./edges.js";
 import type {
   DataTypeVertex,
   EntityTypeVertex,
@@ -17,7 +17,7 @@ import type {
   EntityVertexId,
   OntologyTypeVertexId,
   PropertyTypeVertex,
-} from "./vertices";
+} from "./vertices.js";
 
 /**
  * A utility type that maps various ways of identifying a single (or series of) element(s) of the graph to their

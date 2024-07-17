@@ -1,11 +1,11 @@
-import "../shared/testing-utilities/mock-get-flow-context";
+import "../shared/testing-utilities/mock-get-flow-context.js";
 
 import { expect, test } from "vitest";
 
 import {
   getWebPageActivity,
   sanitizeHtmlForLlmConsumption,
-} from "./get-web-page-activity";
+} from "./get-web-page-activity.js";
 
 test.skip(
   "Test getWebPageActivity with a Wikipedia page",

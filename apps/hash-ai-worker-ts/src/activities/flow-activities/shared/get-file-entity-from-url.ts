@@ -38,10 +38,10 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import mime from "mime-types";
 
-import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity";
-import { logger } from "../../shared/activity-logger";
-import { getFlowContext } from "../../shared/get-flow-context";
-import { graphApiClient } from "../../shared/graph-api-client";
+import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity.js";
+import { logger } from "../../shared/activity-logger.js";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

@@ -1,4 +1,7 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  EntityTypeReference,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
@@ -75,7 +78,6 @@ export const EntityTypeSelector = ({
         !selectedEntityTypes.some(
           (selectedType) => selectedType.schema.$id === type.schema.$id,
         ) &&
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive
         (!latestEntityTypesByBaseUrl[baseUrl] ||
           latestEntityTypesByBaseUrl[baseUrl].metadata.recordId.version <
             type.metadata.recordId.version)
@@ -113,7 +115,7 @@ export const EntityTypeSelector = ({
       )) {
         linkedEntityTypeIds.add(linkEntityTypeId);
 
-        const destinationEntityTypeRefs =
+        const destinationEntityTypeRefs: EntityTypeReference[] =
           "oneOf" in linkConstraints.items ? linkConstraints.items.oneOf : [];
 
         // Add the target entity types
@@ -239,7 +241,7 @@ export const EntityTypeSelector = ({
           />
         ))
       }
-      value={multiple ? selectedEntityTypes : (selectedEntityTypes[0] ?? null)}
+      value={multiple ? selectedEntityTypes : selectedEntityTypes[0]}
     />
   );
 };

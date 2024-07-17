@@ -1,4 +1,4 @@
-import type { Vertex } from "../../../types/subgraph/vertices";
+import type { Vertex } from "../../../types/subgraph/vertices.js";
 
 export type BaseIdToRevisions<GraphElementType extends Vertex["inner"]> =
   Record<

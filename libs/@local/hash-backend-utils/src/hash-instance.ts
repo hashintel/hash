@@ -1,8 +1,3 @@
-import {
-  EntityTypeMismatchError,
-  NotFoundError,
-} from "@local/hash-backend-utils/error";
-import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -23,6 +18,9 @@ import type {
   HASHInstanceProperties,
 } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import { backOff } from "exponential-backoff";
+
+import { EntityTypeMismatchError, NotFoundError } from "./error.js";
+import { getMachineActorId } from "./machine-actors.js";
 
 export type HashInstance = {
   entity: Entity<HASHInstance>;

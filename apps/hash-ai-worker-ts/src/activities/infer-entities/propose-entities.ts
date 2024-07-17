@@ -8,27 +8,27 @@ import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
-import { logger } from "../shared/activity-logger";
-import { getFlowContext } from "../shared/get-flow-context";
-import { getLlmResponse } from "../shared/get-llm-response";
+import { logger } from "../shared/activity-logger.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { getLlmResponse } from "../shared/get-llm-response.js";
 import type {
   LlmMessage,
   LlmUserMessage,
-} from "../shared/get-llm-response/llm-message";
-import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message";
-import { graphApiClient } from "../shared/graph-api-client";
-import { logProgress } from "../shared/log-progress";
-import { stringify } from "../shared/stringify";
-import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
+} from "../shared/get-llm-response/llm-message.js";
+import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import { logProgress } from "../shared/log-progress.js";
+import { stringify } from "../shared/stringify.js";
+import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt.js";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-} from "./inference-types";
-import { validateProposedEntitiesByType } from "./persist-entities/generate-persist-entities-tools";
-import { extractErrorMessage } from "./shared/extract-validation-failure-details";
-import type { ProposedEntityToolCreationsByType } from "./shared/generate-propose-entities-tools";
-import { generateProposeEntitiesTools } from "./shared/generate-propose-entities-tools";
-import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties";
+} from "./inference-types.js";
+import { validateProposedEntitiesByType } from "./persist-entities/generate-persist-entities-tools.js";
+import { extractErrorMessage } from "./shared/extract-validation-failure-details.js";
+import type { ProposedEntityToolCreationsByType } from "./shared/generate-propose-entities-tools.js";
+import { generateProposeEntitiesTools } from "./shared/generate-propose-entities-tools.js";
+import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties.js";
 
 /**
  * This method is based on the logic from the existing `persistEntities` method, which

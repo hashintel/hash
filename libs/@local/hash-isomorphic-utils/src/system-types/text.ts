@@ -14,7 +14,7 @@ import type {
   TextPropertiesWithMetadata,
   TextualContentPropertyValue,
   TextualContentPropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   ObjectDataType,

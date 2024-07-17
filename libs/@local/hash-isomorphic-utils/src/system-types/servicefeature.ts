@@ -28,7 +28,7 @@ import type {
   ServiceUnitCostPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   AppliesFromPropertyValue,

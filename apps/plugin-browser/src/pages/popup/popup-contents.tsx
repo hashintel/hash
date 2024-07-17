@@ -42,7 +42,7 @@ const Popup = () => {
   const { user, loading: userLoading } = useUserContext();
 
   useEffect(() => {
-    void getCurrentTab().then(setActiveBrowserTab);
+    void getCurrentTab().then((tab) => setActiveBrowserTab(tab ?? null));
 
     void clearError();
   }, []);

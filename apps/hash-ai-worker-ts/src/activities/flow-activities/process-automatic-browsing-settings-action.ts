@@ -9,10 +9,10 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { BrowserPluginSettings } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
 
-import { getEntityByFilter } from "../shared/get-entity-by-filter";
-import { getFlowContext } from "../shared/get-flow-context";
-import { graphApiClient } from "../shared/graph-api-client";
-import type { FlowActionActivity } from "./types";
+import { getEntityByFilter } from "../shared/get-entity-by-filter.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import type { FlowActionActivity } from "./types.js";
 
 export const processAutomaticBrowsingSettingsAction: FlowActionActivity =
   async ({ inputs }) => {

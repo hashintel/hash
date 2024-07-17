@@ -87,3 +87,10 @@ export const scalars = {
   StepRunOutput: "@local/hash-isomorphic-utils/flows/types#StepRunOutput",
   StepProgressLog: "@local/hash-isomorphic-utils/flows/types#StepProgressLog",
 };
+
+export const _localRelativeScalars = Object.fromEntries(
+  Object.entries(scalars).map(([key, value]) => [
+    key,
+    value.replace(/@local\/hash-isomorphic-utils\/([^#]+)(#.*)/g, "../$1.js$2"),
+  ]),
+);

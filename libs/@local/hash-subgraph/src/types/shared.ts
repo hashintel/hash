@@ -1,1 +1,1 @@
-export * from "./shared/branded";
+export * from "./shared/branded.js";

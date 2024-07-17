@@ -48,7 +48,7 @@ import type {
 } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
-import type { AuthenticationContext } from "./authentication-context";
+import type { AuthenticationContext } from "./authentication-context.js";
 
 export type EnforcedEntityEditionProvenance = Omit<
   ProvidedEntityEditionProvenance,

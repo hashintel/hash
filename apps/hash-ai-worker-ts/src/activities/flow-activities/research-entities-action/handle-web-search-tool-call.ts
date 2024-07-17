@@ -10,11 +10,11 @@ import type {
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
-import { logProgress } from "../../shared/log-progress";
-import { getWebPageSummaryAction } from "../get-web-page-summary-action";
-import { webSearchAction } from "../web-search-action";
-import type { CoordinatorToolCallArguments } from "./coordinator-tools";
-import type { ResourceSummary } from "./types";
+import { logProgress } from "../../shared/log-progress.js";
+import { getWebPageSummaryAction } from "../get-web-page-summary-action.js";
+import { webSearchAction } from "../web-search-action.js";
+import type { CoordinatorToolCallArguments } from "./coordinator-tools.js";
+import type { ResourceSummary } from "./types.js";
 
 export const handleWebSearchToolCall = async (params: {
   input: CoordinatorToolCallArguments["webSearch"];

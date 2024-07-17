@@ -11,7 +11,6 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
@@ -43,7 +42,6 @@ describe("Block", () => {
   let dummyEntityType: EntityTypeWithMetadata;
 
   beforeAll(async () => {
-    await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "blockTest", logger);

@@ -2,8 +2,8 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
-import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
-import type { CoordinatingAgentState } from "./coordinating-agent";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
+import type { CoordinatingAgentState } from "./coordinating-agent.js";
 
 export const coordinatorToolNames = [
   "requestHumanInput",

@@ -11,7 +11,7 @@ import type {
   TextDataTypeWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   EmailPropertyValue,

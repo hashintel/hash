@@ -9,14 +9,14 @@ import type {
   OntologyTypeRevisionId,
   OntologyTypeVertexId,
   Subgraph,
-} from "../../../types/subgraph";
+} from "../../../types/subgraph.js";
 import {
   isConstrainsLinkDestinationsOnEdge,
   isConstrainsLinksOnEdge,
   isConstrainsPropertiesOnEdge,
   isInheritsFromEdge,
-} from "../../../types/subgraph";
-import { getOntologyEndpointsForOntologyOutwardEdge } from "./shared";
+} from "../../../types/subgraph.js";
+import { getOntologyEndpointsForOntologyOutwardEdge } from "./shared.js";
 
 /**
  * Gets identifiers for all `PropertyType`s referenced within a given `EntityType` schema by searching for

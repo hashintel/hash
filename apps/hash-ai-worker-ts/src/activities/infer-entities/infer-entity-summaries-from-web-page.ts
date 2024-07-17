@@ -6,13 +6,13 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
-import type { PermittedOpenAiModel } from "../shared/openai-client";
-import { simplifyEntity } from "../shared/simplify-entity";
-import { inferEntitySummaries } from "./infer-entity-summaries";
+import type { PermittedOpenAiModel } from "../shared/openai-client.js";
+import { simplifyEntity } from "../shared/simplify-entity.js";
+import { inferEntitySummaries } from "./infer-entity-summaries.js";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-} from "./inference-types";
+} from "./inference-types.js";
 
 export const inferEntitySummariesFromWebPage = async (params: {
   webPage: WebPage | string;

@@ -1,5 +1,6 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-import { scalars } from "@local/hash-isomorphic-utils/graphql/scalar-mapping";
+
+import { _localRelativeScalars } from "./src/graphql/scalar-mapping.js";
 
 const config: CodegenConfig = {
   overwrite: true,
@@ -14,7 +15,7 @@ const config: CodegenConfig = {
       config: {
         skipTypename: true,
         // Use shared scalars
-        scalars,
+        scalars: _localRelativeScalars,
       },
     },
   },

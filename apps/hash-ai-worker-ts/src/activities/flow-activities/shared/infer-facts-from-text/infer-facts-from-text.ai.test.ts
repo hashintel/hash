@@ -1,4 +1,4 @@
-import "../../../../shared/testing-utilities/mock-get-flow-context";
+import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -7,15 +7,15 @@ import { fileURLToPath } from "node:url";
 import dedent from "dedent";
 import { expect, test } from "vitest";
 
-import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity";
+import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import {
   getWebPageActivity,
   sanitizeHtmlForLlmConsumption,
-} from "../../../get-web-page-activity";
-import { getFlowContext } from "../../../shared/get-flow-context";
-import { graphApiClient } from "../../../shared/graph-api-client";
-import { inferFactsFromText } from "../infer-facts-from-text";
-import type { LocalEntitySummary } from "./get-entity-summaries-from-text";
+} from "../../../get-web-page-activity.js";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { inferFactsFromText } from "../infer-facts-from-text.js";
+import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
 
 const microsoftWikipediaParagraph = `
 Microsoft Corporation is an American multinational corporation and technology company headquartered in Redmond, Washington.[2] Microsoft's best-known software products are the Windows line of operating systems, the Microsoft 365 suite of productivity applications, and the Edge web browser. Its flagship hardware products are the Xbox video game consoles and the Microsoft Surface lineup of touchscreen personal computers. Microsoft ranked No. 14 in the 2022 Fortune 500 rankings of the largest United States corporations by total revenue;[3] and it was the world's largest software maker by revenue in 2022 according to Forbes Global 2000. It is considered one of the Big Five American information technology companies, alongside Alphabet (parent company of Google), Amazon, Apple, and Meta (parent company of Facebook).

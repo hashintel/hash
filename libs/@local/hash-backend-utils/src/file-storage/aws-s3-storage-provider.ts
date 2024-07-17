@@ -5,15 +5,16 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
+
 import type {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
   PresignedStorageRequest,
   StorageType,
   UploadableStorageProvider,
-} from "@local/hash-backend-utils/file-storage";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
+} from "../file-storage.js";
 
 export interface AwsS3StorageProviderConstructorArgs {
   credentials: S3ClientConfig["credentials"];

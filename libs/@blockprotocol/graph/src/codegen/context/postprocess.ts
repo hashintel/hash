@@ -5,15 +5,15 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import type { ProcessedCodegenParameters } from "../parameters";
+import type { ProcessedCodegenParameters } from "../parameters.js";
 import type {
   CompiledTsType,
   IdentifierForExternalImport,
   JsonSchema,
   LogLevel,
-} from "../shared";
-import type { CompileContext } from "./compile";
-import type { TypeDependencyMap } from "./shared";
+} from "../shared.js";
+import type { CompileContext } from "./compile.js";
+import type { TypeDependencyMap } from "./shared.js";
 
 type IdentifierSource = { definingPath: string } & (
   | {

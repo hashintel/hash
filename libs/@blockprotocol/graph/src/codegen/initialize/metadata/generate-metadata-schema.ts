@@ -8,7 +8,7 @@ import type {
 import { isPropertyValuesArray } from "@blockprotocol/type-system/slim";
 import type { JSONSchema as PartialJsonSchema } from "json-schema-to-typescript";
 
-import type { JsonSchema } from "../../shared";
+import type { JsonSchema } from "../../shared.js";
 import {
   arrayMetadataSchema,
   confidenceMetadataSchema,
@@ -16,7 +16,7 @@ import {
   metadataSchemaKind as kind,
   objectMetadataSchema,
   propertyProvenanceSchema,
-} from "../../shared";
+} from "../../shared.js";
 
 const generateMetadataSchemaTitles = ({
   title,

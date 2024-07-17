@@ -103,7 +103,7 @@ const createQuickNote = async (text: string) => {
         properties: {
           value: {
             "https://hash.ai/@hash/types/property-type/fractional-index/": {
-              value: fractionalIndexes[index],
+              value: fractionalIndexes[index]!,
               metadata: {
                 dataTypeId:
                   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",

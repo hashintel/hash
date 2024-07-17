@@ -12,7 +12,7 @@
  * Do not edit the class manually.
  */
 
-import { Configuration } from "./configuration";
+import { Configuration } from "./configuration.js";
 // Some imports not used depending on template conditions
 // @ts-ignore
 import globalAxios, {

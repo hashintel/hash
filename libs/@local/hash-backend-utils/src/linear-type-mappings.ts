@@ -6,7 +6,7 @@ import type {
   IssueUpdateInput,
   UpdateOrganizationInput,
   UpdateUserInput,
-} from "@linear/sdk/dist/_generated_documents";
+} from "@linear/sdk/dist/_generated_documents.js";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Property } from "@local/hash-graph-types/entity";
 import {

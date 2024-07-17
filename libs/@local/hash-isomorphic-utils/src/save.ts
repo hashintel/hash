@@ -7,32 +7,32 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { generateNKeysBetween } from "fractional-indexing";
-import isEqual from "lodash/isEqual";
+import { isEqual } from "lodash-es";
 import type { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
 import {
   getBlockCollectionResolveDepth,
   sortBlockCollectionLinks,
-} from "./block-collection";
-import type { ComponentIdHashBlockMap } from "./blocks";
-import type { BlockEntity } from "./entity";
-import type { DraftEntity, EntityStore } from "./entity-store";
-import { getDraftEntityByEntityId, isDraftBlockEntity } from "./entity-store";
+} from "./block-collection.js";
+import type { ComponentIdHashBlockMap } from "./blocks.js";
+import type { BlockEntity } from "./entity.js";
+import type { DraftEntity, EntityStore } from "./entity-store.js";
+import {
+  getDraftEntityByEntityId,
+  isDraftBlockEntity,
+} from "./entity-store.js";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
-} from "./graph-queries";
+} from "./graph-queries.js";
 import type {
   Block as GqlBlock,
   GetEntityQuery,
@@ -41,10 +41,16 @@ import type {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
   UpdateBlockCollectionContentsResultPlaceholder,
-} from "./graphql/api-types.gen";
-import { systemEntityTypes, systemLinkEntityTypes } from "./ontology-type-ids";
-import { isEntityNode } from "./prosemirror";
-import type { Block, HasIndexedContent } from "./system-types/shared";
+} from "./graphql/api-types.gen.js";
+import { updateBlockCollectionContents } from "./graphql/queries/block-collection.queries.js";
+import { getEntityQuery } from "./graphql/queries/entity.queries.js";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "./ontology-type-ids.js";
+import { isEntityNode } from "./prosemirror.js";
+import type { HasSpatiallyPositionedContent } from "./system-types/canvas.js";
+import type { Block, HasIndexedContent } from "./system-types/shared.js";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
@@ -220,8 +226,9 @@ const calculateSaveActions = (
       ]);
     } else {
       /**
-       * This entity is in the API's block list but not locally, which means it may have been added by another user recently.
-       * Until we have a collaborative server the best we can do is ignore it in calculating save actions. H-1234
+       * This entity is in the API's block list but not locally, which means it may have been added by another user
+       * recently. Until we have a collaborative server the best we can do is ignore it in calculating save actions.
+       * H-1234
        */
     }
   }

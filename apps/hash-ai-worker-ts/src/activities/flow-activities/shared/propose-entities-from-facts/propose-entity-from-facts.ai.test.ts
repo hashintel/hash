@@ -1,14 +1,14 @@
-import "../../../../shared/testing-utilities/mock-get-flow-context";
+import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { expect, test } from "vitest";
 
-import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity";
-import { getFlowContext } from "../../../shared/get-flow-context";
-import { graphApiClient } from "../../../shared/graph-api-client";
-import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "../infer-facts-from-text/types";
-import { proposeEntityFromFactsAgent } from "./propose-entity-from-facts-agent";
+import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { Fact } from "../infer-facts-from-text/types.js";
+import { proposeEntityFromFactsAgent } from "./propose-entity-from-facts-agent.js";
 
 const huntingPlcEntitySummary: LocalEntitySummary = {
   localId: "6916156b-e759-41ad-b1da-2cf7af05d223",

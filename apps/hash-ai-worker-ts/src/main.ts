@@ -19,12 +19,14 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
+import type { BundleOptions } from "@temporalio/worker";
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
+import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
 
-import { createAiActivities, createGraphActivities } from "./activities";
-import { createFlowActivities } from "./activities/flow-activities";
-import { logToConsole } from "./shared/logger";
+import { createAiActivities, createGraphActivities } from "./activities.js";
+import { createFlowActivities } from "./activities/flow-activities.js";
+import { logToConsole } from "./shared/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,14 +63,29 @@ const createHealthCheckServer = () => {
   return server;
 };
 
-const workflowOption = () =>
+const workflowOptions =
   process.env.NODE_ENV === "production"
     ? {
         workflowBundle: {
           codePath: require.resolve("../dist/workflow-bundle.js"),
         },
       }
-    : { workflowsPath: require.resolve("./workflows") };
+    : ({
+        webpackConfigHook: (webpackConfig) => {
+          /* eslint-disable no-param-reassign */
+          webpackConfig.resolve ??= {};
+          webpackConfig.resolve.plugins ??= [];
+          /* eslint-enable no-param-reassign */
+          /**
+           * Because we run TypeScript directly in development, we need to use the 'paths' in the base tsconfig.json
+           * This tells TypeScript where to resolve the imports from, overwriting the 'exports' in local dependencies' package.jsons,
+           * which refer to the transpiled JavaScript code.
+           */
+          webpackConfig.resolve.plugins.push(new TsconfigPathsPlugin());
+          return webpackConfig;
+        },
+        workflowsPath: require.resolve("./workflows"),
+      } satisfies BundleOptions);
 
 async function run() {
   logToConsole.info("Starting AI worker...");
@@ -93,7 +110,7 @@ async function run() {
   logToConsole.info("Created Temporal connection");
 
   const worker = await Worker.create({
-    ...workflowOption(),
+    ...workflowOptions,
     activities: {
       ...createAiActivities({
         graphApiClient,

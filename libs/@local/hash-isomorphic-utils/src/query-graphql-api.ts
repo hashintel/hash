@@ -1,5 +1,7 @@
-import { hashClientHeaderKey } from "@local/hash-isomorphic-utils/http-requests";
-import type { GraphQLError } from "graphql/index";
+import type { GraphQLError } from "graphql/index.js";
+
+import type { HashClientType } from "./http-requests.js";
+import { hashClientHeaderKey } from "./http-requests.js";
 
 export const queryGraphQlApi = <
   ReturnData,
@@ -8,10 +10,12 @@ export const queryGraphQlApi = <
   query,
   variables,
   apiOrigin,
+  client,
 }: {
   query: string;
   variables?: Variables;
   apiOrigin: string;
+  client: HashClientType;
 }): Promise<{ data: ReturnData }> =>
   fetch(`${apiOrigin}/graphql`, {
     method: "POST",
@@ -21,7 +25,7 @@ export const queryGraphQlApi = <
     }),
     headers: {
       "content-type": "application/json",
-      [hashClientHeaderKey]: "browser-plugin",
+      [hashClientHeaderKey]: client,
     },
     credentials: "include",
   })

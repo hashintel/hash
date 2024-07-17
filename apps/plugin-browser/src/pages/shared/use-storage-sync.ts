@@ -56,6 +56,7 @@ export const useStorageSync = <Key extends keyof LocalStorage>(
       if (
         areaName === "local" &&
         key in changes &&
+        changes[key] &&
         changes[key].newValue !== stateValue
       ) {
         setStateValue(changes[key].newValue as LocalStorage[Key]);
