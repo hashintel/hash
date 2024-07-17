@@ -230,7 +230,7 @@ export const getDefinedPropertyFromPatchesGetter = <
       return;
     }
 
-    return foundPatch.property as Properties[Key];
+    return foundPatch.property.value as Properties[Key];
   };
 };
 
