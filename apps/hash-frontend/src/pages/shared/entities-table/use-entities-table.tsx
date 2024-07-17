@@ -96,9 +96,9 @@ export const useEntitiesTable = (params: {
     const columns: SizedGridColumn[] = [
       {
         title: entitiesHaveSameType
-          ? entityTypes?.find(
+          ? (entityTypes?.find(
               ({ $id }) => $id === entities?.[0]?.metadata.entityTypeId,
-            )?.title ?? "Entity"
+            )?.title ?? "Entity")
           : "Entity",
         id: "entityLabel",
         width: 252,

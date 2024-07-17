@@ -4,11 +4,14 @@ import {
   IconButton,
 } from "@hashintel/design-system";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import {
+  goalFlowDefinitionIds,
+  type GoalFlowTriggerInput,
+} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { FlowRun } from "../../../../graphql/api-types.gen";
 import { Link } from "../../../../shared/ui/link";
@@ -53,6 +56,7 @@ export const FlowRunSidebar = ({
     flowRunIds: [flowRunId],
   });
   const [showUsageBreakdown, setShowUsageBreakdown] = useState(false);
+  const [showResearchPrompt, setShowResearchPrompt] = useState(false);
 
   const { selectedFlowRun } = useFlowRunsContext();
 
@@ -68,6 +72,11 @@ export const FlowRunSidebar = ({
     }));
   }, [name]);
 
+  const researchPrompt = selectedFlowRun?.inputs[0].flowTrigger.outputs?.find(
+    (input) =>
+      input.outputName === ("Research guidance" satisfies GoalFlowTriggerInput),
+  )?.payload.value as string | undefined;
+
   return (
     <Box sx={{ ml: 3, minWidth: 320, width: 320 }}>
       <Box sx={{ mb: 2 }}>
@@ -82,20 +91,69 @@ export const FlowRunSidebar = ({
           <Typography
             component="p"
             variant="smallTextParagraphs"
-            sx={{ lineHeight: 1.2, mb: 0.7, wordBreak: "break-word" }}
+            sx={{ lineHeight: 1.2, wordBreak: "break-word" }}
           >
-            {nameParts.map((part, index) =>
-              part.url ? (
+            {nameParts.map((part, index) => (
+              <Box
+                component="span"
                 // eslint-disable-next-line react/no-array-index-key
-                <Link href={part.text} key={index} target="_blank">
-                  {part.text}
-                </Link>
-              ) : (
-                // eslint-disable-next-line react/no-array-index-key
-                <Fragment key={index}>{part.text}</Fragment>
-              ),
-            )}
+                key={index}
+                sx={{ display: "inline-block", marginRight: "2px" }}
+              >
+                {part.url ? (
+                  <Link href={part.text} target="_blank">
+                    {part.text}
+                  </Link>
+                ) : (
+                  part.text
+                )}
+                {index === nameParts.length - 1 && researchPrompt && (
+                  <Box
+                    aria-label="Show research prompt"
+                    component="button"
+                    onClick={() => setShowResearchPrompt(!showResearchPrompt)}
+                    sx={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "inline-block",
+                      height: 12,
+                      ml: 0.4,
+                      p: 0,
+                      top: 3,
+                      position: "relative",
+                      "&:hover svg": {
+                        color: ({ palette }) => palette.common.black,
+                      },
+                    }}
+                  >
+                    <CaretDownSolidIcon
+                      sx={{
+                        color: ({ palette }) => palette.gray[50],
+                        fontSize: 14,
+                        transform: !showResearchPrompt
+                          ? "rotate(-90deg)"
+                          : "translateY(-1px)",
+                        transition: ({ transitions }) =>
+                          transitions.create("transform"),
+                      }}
+                    />
+                  </Box>
+                )}
+              </Box>
+            ))}
           </Typography>
+          {researchPrompt && (
+            <Collapse in={showResearchPrompt}>
+              <Typography
+                component="p"
+                variant="smallTextParagraphs"
+                sx={{ fontWeight: 300, lineHeight: 1.3, mt: 1 }}
+              >
+                “{researchPrompt}”
+              </Typography>
+            </Collapse>
+          )}
         </SidebarSection>
       </Box>
       <Box>
@@ -136,14 +194,13 @@ export const FlowRunSidebar = ({
           </Box>
         </SidebarSection>
       </Box>
-      {!selectedFlowRun?.closedAt && (
-        <Box sx={{ mt: 2 }}>
-          <SectionLabel text="Manager" />
-          <SidebarSection>
-            <Manager />
-          </SidebarSection>
-        </Box>
-      )}
+
+      <Box sx={{ mt: 2 }}>
+        <SectionLabel text="Manager" />
+        <SidebarSection>
+          <Manager />
+        </SidebarSection>
+      </Box>
       {isUsageAvailable && usage ? (
         <Box sx={{ mt: 2 }}>
           <SectionLabel text="Cost" />

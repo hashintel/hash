@@ -234,6 +234,9 @@ const createColumns = (rowCount: number): VirtualizedTableColumn<FieldId>[] => [
 
 const TableRow = memo(
   ({ index, log }: { index: number; log: LocalProgressLog }) => {
+    const todaysDate = format(new Date(), "yyyy-MM-dd");
+    const logDate = format(new Date(log.recordedAt), "yyyy-MM-dd");
+
     return (
       <>
         <TableCell sx={{ ...defaultCellSx, fontSize: 13 }}>
@@ -246,9 +249,21 @@ const TableRow = memo(
             fontFamily: "monospace",
           }}
         >
-          {format(new Date(log.recordedAt), "yyyy-MM-dd")}
-          <br />
-          <strong>{format(new Date(log.recordedAt), "h:mm:ss a")}</strong>
+          {todaysDate !== logDate && (
+            <>
+              {format(new Date(log.recordedAt), "yyyy-MM-dd")}
+              <br />
+            </>
+          )}
+          <Tooltip
+            title={
+              todaysDate === logDate
+                ? format(new Date(log.recordedAt), "yyyy-MM-dd h:mm:ss a")
+                : ""
+            }
+          >
+            <strong>{format(new Date(log.recordedAt), "h:mm:ss a")}</strong>
+          </Tooltip>
         </TableCell>
         <TableCell sx={{ ...defaultCellSx, fontSize: 13, lineHeight: 1.4 }}>
           <Box sx={{ position: "relative", pr: 3, maxWidth: "auto" }}>

@@ -216,8 +216,8 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
 
     const createdAtTimestamp =
       notification.kind === "graph-change"
-        ? notification.occurredInEntityEditionTimestamp ??
-          notification.entity.metadata.provenance.createdAtDecisionTime
+        ? (notification.occurredInEntityEditionTimestamp ??
+          notification.entity.metadata.provenance.createdAtDecisionTime)
         : notification.entity.metadata.provenance.createdAtDecisionTime;
 
     const createdAt = new Date(createdAtTimestamp);

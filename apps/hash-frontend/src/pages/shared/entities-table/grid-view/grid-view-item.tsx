@@ -86,7 +86,7 @@ export const GridViewItem: FunctionComponent<{
       return {
         fileName: fullFileName,
         fileNameWithoutExtension: parsedFileExtension
-          ? fullFileName?.split(".").slice(0, -1).join(".") ?? fullFileName
+          ? (fullFileName?.split(".").slice(0, -1).join(".") ?? fullFileName)
           : fullFileName,
         fileExtension: parsedFileExtension,
       };

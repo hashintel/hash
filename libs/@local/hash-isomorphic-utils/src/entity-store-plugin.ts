@@ -691,7 +691,7 @@ class ProsemirrorStateChangeHandler {
          *   new blocks – this is potentially insecure and needs
          *   considering
          */
-        node.attrs.draftId ?? generateDraftIdForEntity(null);
+        (node.attrs.draftId ?? generateDraftIdForEntity(null));
 
     if (!draftEntityStore[draftId]) {
       addEntityStoreAction(this.state, this.tr, {

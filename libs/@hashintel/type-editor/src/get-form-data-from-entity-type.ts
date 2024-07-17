@@ -20,8 +20,8 @@ export const getFormDataFromEntityType = ({
       $id: isArray ? ref.items.$ref : ref.$ref,
       required: !!schema.required?.includes(propertyId),
       array: isArray,
-      maxValue: isArray ? ref.maxItems ?? 1 : 1,
-      minValue: isArray ? ref.minItems ?? 0 : 0,
+      maxValue: isArray ? (ref.maxItems ?? 1) : 1,
+      minValue: isArray ? (ref.minItems ?? 0) : 0,
       infinity: isArray && typeof ref.maxItems !== "number",
     };
   }),
