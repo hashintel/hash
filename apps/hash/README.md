@@ -55,31 +55,31 @@ To run HASH locally, please follow these steps:
    ```sh
    git --version
    ## ≥ 2.17
-   
+
    node --version
    ## ≥ 20.12
-   
+
    yarn --version
    ## ≥ 1.16
-   
+
    rustc --version
    ## ≥ 2024-07-15 (If installed through rustup, this will automatically install the required toolchain)
-   
+
    cargo --version
    ## Version matching the above rustc version
-   
+
    docker --version
    ## ≥ 20.10
-   
+
    docker compose version
    ## ≥ 2.17.2
-   
+
    docker buildx version
    ## ≥ 0.10.4
-   
+
    protoc --version
    ## ≥ 25
-   
+
    java --version
    ## ≥ 8
    ```
@@ -331,6 +331,52 @@ First-time contributors need to wait for a maintainer to manually launch the che
 
 We use [Yarn Workspaces](https://classic.yarnpkg.com/en/docs/workspaces) to work with multiple packages in a single repository.
 [Turborepo](https://turborepo.com) is used to cache script results and thus speed up their execution.
+
+### New packages
+
+New local packages should follow these rules:
+
+1. Anything which is imported or consumed by something else belongs in `libs/` and have a `package.json` `"name"`:
+   - beginning with `@local/` for non-published JavaScript dependencies
+   - identical to their `npm` name for published JavaScript dependencies
+   - begin with `@rust/` for Rust dependencies
+1. Things which are executed belong in `apps/`, and are named `@apps/app-name
+1. Packages which aren't published to `npm` should have `"private": true` in their `package.json`
+1. All TypeScript packages should be `"type": "module"`
+1. ESLint and TypeScript configuration should all extend the base configs (see existing examples in other packages). Don't modify or override anything unless necessary.
+
+Read the next section to understand how to configure compilation for packages.
+
+### TypeScript package resolution / compilation
+
+The package resolution setup is designed to meet two goals:
+
+1. Enable the local dependency graph for any application to be executed directly as TypeScript code during development, whilst
+1. Enabling it to be run as transpiled JavaScript in production.
+
+This is achieved by maintaining two parallel exports definitions for each package:
+
+1. The `exports` field in `package.json` should point to the transpiled JavaScript (and `typesVersions` to the type definition files)
+1. The `paths` map in the base TSConfig should map the same import paths to their TypeScript source
+
+During development (e.g. running `yarn dev` for an application), the `paths` override will be in effect, meaning that the source TypeScript
+is being run directly, and modifying any dependent file in the repo will trigger a reload of the application (assuming `tsx watch` or equivalent is used).
+
+For production builds, where they are created, a `tsconfig.build.json` in the package is used which overwrites the `paths` field in the root config,
+meaning that the imports will resolve to the transpiled JavaScript (usually in a git-ignored `dist/` folder).
+
+If a bundler is used rather than `tsc`, the `paths` override needs to be translated into the appropriate configuration for the bundler.
+For `webpack`, this is automated by adding the `TsconfigPathsPlugin` to the configuration's `resolve` field (search existing examples in repo).
+
+New packages which are to be built as JavaScript, whether as an app or dependency, must follow these rules:
+
+1. They must have a `tsconfig.json` which extends the base config and sets `"module": "NodeNext"` and `"moduleResolution": "NodeNext"`
+1. Imports within a package must use relative imports and not the package's name (they will not be resolved when built otherwise)
+1. Relative imports within a package must have a `.js` file extension (`tsc` will enforce this)
+1. They must have a `tsconfig.build.json` which overrides the `paths` field (`"paths": {}`)
+1. They must have a `build` command which uses this file (typically `rimraf ./dist/ && tsc -p tsconfig.build.json`)
+1. They must specify the paths exposed to consumers in `exports` and `typesVersions` in `package.json`, and `paths` in the base TSConfig
+1. They must have a `turbo.json` which extends the root and specifies the `outputs` for caching (see existing examples)
 
 ## Troubleshooting
 
