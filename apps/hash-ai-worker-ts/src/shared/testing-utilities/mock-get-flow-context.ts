@@ -4,6 +4,7 @@ import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
+import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -14,7 +15,6 @@ import { vi } from "vitest";
 
 import { graphApiClient } from "../../activities/shared/graph-api-client.js";
 import { getAliceUserAccountId } from "./get-alice-user-account-id.js";
-import { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends Array<infer U>
