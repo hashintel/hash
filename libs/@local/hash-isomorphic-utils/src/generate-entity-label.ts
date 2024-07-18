@@ -9,6 +9,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { simplifyProperties } from "./simplify-properties.js";
+import { isEntity } from "@local/hash-isomorphic-utils/entity-store";
 
 const getLabelPropertyValue = (
   entityToLabel: {
@@ -46,19 +47,45 @@ const getFallbackLabel = ({
   )}`;
 };
 
+export function generateEntityLabel(
+  entitySubgraph: Subgraph<EntityRootType>,
+  entity?: {
+    properties: Entity["properties"];
+    metadata: Pick<EntityMetadata, "recordId">;
+  },
+): string;
+export function generateEntityLabel(
+  entitySubgraph: Subgraph | null,
+  entity: {
+    properties: Entity["properties"];
+    metadata: Pick<EntityMetadata, "recordId">;
+  },
+): string;
 /**
  * Generate a display label for an entity
  * Prefers the BP-specified labelProperty if it exists.
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
+ *
+ * If 'entity' is not provided, the Subgraph must be entity-rooted, and the first root is taken as the entity.
+ * Otherwise, the subgraph need only contain the types for the entity.
  */
-export const generateEntityLabel = (
-  entitySubgraph: Subgraph<EntityRootType> | null,
-  entity?: { properties: Entity["properties"]; metadata: EntityMetadata },
-): string => {
+export function generateEntityLabel(
+  entitySubgraph: Subgraph | null,
+  entity?: {
+    properties: Entity["properties"];
+    metadata: Pick<EntityMetadata, "recordId">;
+  },
+): string {
   if (!entitySubgraph && !entity) {
     throw new Error(`One of entitySubgraph or entity must be provided`);
   }
   const entityToLabel = entity ?? getRoots(entitySubgraph!)[0]!;
+
+  if (!isEntity(entityToLabel)) {
+    throw new Error(
+      `Either one of 'entity' or an entity rooted subgraph must be provided`,
+    );
+  }
 
   let entityType: EntityTypeWithMetadata | undefined;
   if (entitySubgraph) {
@@ -153,4 +180,4 @@ export const generateEntityLabel = (
   }
 
   return getFallbackLabel({ entityType, entity: entityToLabel });
-};
+}

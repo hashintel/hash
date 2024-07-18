@@ -1,8 +1,10 @@
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -35,8 +37,8 @@ import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
 import { EditEntitySlideOver } from "../../entities/[entity-uuid].page/edit-entity-slide-over";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
+import { EntityResultGraph } from "./outputs/entity-result-graph";
 import { EntityResultTable } from "./outputs/entity-result-table";
-import { PersistedEntityGraph } from "./outputs/persisted-entity-graph";
 import { outputIcons } from "./outputs/shared/icons";
 import { flowSectionBorderRadius } from "./shared/styles";
 import type { ProposedEntityOutput } from "./shared/types";
@@ -158,7 +160,7 @@ const SectionTabButton = ({
 type ResultSlideOver =
   | {
       type: "entity";
-      entity: Entity;
+      entityId: EntityId;
     }
   | {
       type: "entityType";
@@ -288,18 +290,71 @@ export const Outputs = ({
       ? new Entity(persistedEntities[0].entity)
       : undefined;
 
-    const selectedEntity =
-      slideOver?.type === "entity" ? slideOver.entity : defaultEntity;
+    const selectedEntityId =
+      slideOver?.type === "entity"
+        ? slideOver.entityId
+        : defaultEntity?.metadata.recordId.entityId;
 
-    if (!persistedEntitiesSubgraph || !selectedEntity) {
+    if (!persistedEntitiesSubgraph || !selectedEntityId) {
       return undefined;
     }
 
     return generateEntityRootedSubgraph(
-      selectedEntity,
+      selectedEntityId,
       persistedEntitiesSubgraph,
     );
   }, [persistedEntities, persistedEntitiesSubgraph, slideOver]);
+
+  const entitiesForGraph = useMemo<EntityForGraphChart[]>(() => {
+    const entities: EntityForGraphChart[] = [];
+
+    if (persistedEntities.length > 0) {
+      for (const { entity } of persistedEntities) {
+        if (!entity) {
+          continue;
+        }
+        entities.push(new Entity(entity));
+      }
+      return entities;
+    }
+
+    for (const entity of proposedEntities) {
+      const {
+        entityTypeId,
+        localEntityId,
+        properties,
+        sourceEntityId,
+        targetEntityId,
+      } = entity;
+
+      const editionId = new Date().toISOString();
+
+      entities.push({
+        linkData:
+          sourceEntityId && targetEntityId
+            ? {
+                leftEntityId:
+                  "localId" in sourceEntityId
+                    ? (sourceEntityId.localId as EntityId)
+                    : sourceEntityId.entityId,
+                rightEntityId:
+                  "localId" in targetEntityId
+                    ? (targetEntityId.localId as EntityId)
+                    : targetEntityId.entityId,
+              }
+            : undefined,
+        metadata: {
+          recordId: {
+            editionId,
+            entityId: `ownedById~${localEntityId}` as EntityId,
+          },
+          entityTypeId,
+        },
+        properties,
+      });
+    }
+    return entities;
+  }, [persistedEntities, proposedEntities]);
 
   return (
     <>
@@ -373,7 +428,7 @@ export const Outputs = ({
           (entityDisplay === "table" ? (
             <EntityResultTable
               onEntityClick={(entity) =>
-                setSlideOver({ type: "entity", entity })
+                setSlideOver({ type: "entity", entityId: entity.entityId })
               }
               onEntityTypeClick={(entityTypeId) =>
                 setSlideOver({ type: "entityType", entityTypeId })
@@ -384,12 +439,15 @@ export const Outputs = ({
               proposedEntitiesTypesSubgraph={proposedEntitiesTypesSubgraph}
             />
           ) : (
-            <PersistedEntityGraph
+            <EntityResultGraph
               onEntityClick={(entity) =>
-                setSlideOver({ type: "entity", entity })
+                setSlideOver({
+                  type: "entity",
+                  entityId: entity.metadata.recordId.entityId,
+                })
               }
-              persistedEntities={persistedEntities}
-              persistedEntitiesSubgraph={persistedEntitiesSubgraph}
+              entities={entitiesForGraph}
+              subgraphWithTypes={persistedEntitiesSubgraph}
             />
           ))}
 

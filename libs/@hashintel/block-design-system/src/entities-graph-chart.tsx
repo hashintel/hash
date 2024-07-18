@@ -1,31 +1,39 @@
-import type {
-  Entity,
-  EntityId,
-  EntityRootType,
-  Subgraph,
-} from "@blockprotocol/graph";
-import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
 import type { Chart, ECOption } from "@hashintel/design-system";
 import { EChart } from "@hashintel/design-system";
-// eslint-disable-next-line no-restricted-imports
+/* eslint-disable no-restricted-imports */
+import type {
+  EntityId,
+  EntityMetadata,
+  LinkData,
+  PropertyObject,
+} from "@local/hash-graph-types/entity";
 import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import type { Subgraph } from "@local/hash-subgraph";
+import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
+/* eslint-enable no-restricted-imports */
 import type { BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
-const generateEntityLabel = (
-  subgraph: Subgraph<EntityRootType>,
-  entity: Entity,
-) => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-  return hashGenerateEntityLabel(subgraph as any, entity as any);
+export type EntityForGraphChart = {
+  linkData?: LinkData;
+  metadata: Pick<EntityMetadata, "recordId" | "entityTypeId"> &
+    Partial<Pick<EntityMetadata, "temporalVersioning">>;
+  properties: PropertyObject;
 };
 
-export const EntitiesGraphChart = <T extends Entity>({
+const generateEntityLabel = (
+  subgraph: Subgraph,
+  entity: EntityForGraphChart,
+) => {
+  return hashGenerateEntityLabel(subgraph, entity);
+};
+
+export const EntitiesGraphChart = <T extends EntityForGraphChart>({
   entities,
   filterEntity,
   isPrimaryEntity,
-  subgraph,
+  subgraphWithTypes,
   sx,
   onEntityClick,
 }: {
@@ -33,7 +41,7 @@ export const EntitiesGraphChart = <T extends Entity>({
   filterEntity?: (entity: T) => boolean;
   onEntityClick?: (entity: T) => void;
   isPrimaryEntity?: (entity: T) => boolean;
-  subgraph?: Subgraph<EntityRootType>;
+  subgraphWithTypes?: Subgraph;
   sx?: BoxProps["sx"];
 }) => {
   const [chart, setChart] = useState<Chart>();
@@ -121,7 +129,7 @@ export const EntitiesGraphChart = <T extends Entity>({
               ({ metadata }) => metadata.recordId.entityId === id,
             );
 
-            if (linkEntity && subgraph) {
+            if (linkEntity && subgraphWithTypes) {
               const leftEntity = entities?.find(
                 ({ metadata }) =>
                   metadata.recordId.entityId ===
@@ -135,18 +143,18 @@ export const EntitiesGraphChart = <T extends Entity>({
               );
 
               const linkEntityTypeTitle = getEntityTypeById(
-                subgraph,
+                subgraphWithTypes,
                 linkEntity.metadata.entityTypeId,
               )?.schema.title;
 
               return [
                 `<strong>${generateEntityLabel(
-                  subgraph,
+                  subgraphWithTypes,
                   leftEntity!,
                 )}</strong>`,
                 linkEntityTypeTitle?.toLowerCase(),
                 `<strong>${generateEntityLabel(
-                  subgraph,
+                  subgraphWithTypes,
                   rightEntity!,
                 )}</strong>`,
               ].join(" ");
@@ -156,9 +164,9 @@ export const EntitiesGraphChart = <T extends Entity>({
               ({ metadata }) => metadata.recordId.entityId === id,
             );
 
-            if (entity && subgraph) {
+            if (entity && subgraphWithTypes) {
               const entityType = getEntityTypeById(
-                subgraph,
+                subgraphWithTypes,
                 entity.metadata.entityTypeId,
               );
 
@@ -176,7 +184,7 @@ export const EntitiesGraphChart = <T extends Entity>({
           layoutAnimation: chartInitialized,
         },
         data: nonLinkEntities?.map((entity) => ({
-          name: generateEntityLabel(subgraph!, entity),
+          name: generateEntityLabel(subgraphWithTypes!, entity),
           id: entity.metadata.recordId.entityId,
           label: {
             show: true,
@@ -200,8 +208,10 @@ export const EntitiesGraphChart = <T extends Entity>({
           label: {
             show: true,
             formatter: () =>
-              getEntityTypeById(subgraph!, linkEntity.metadata.entityTypeId)
-                ?.schema.title ?? "Unknown",
+              getEntityTypeById(
+                subgraphWithTypes!,
+                linkEntity.metadata.entityTypeId,
+              )?.schema.title ?? "Unknown",
           },
           symbol: ["none", "arrow"],
           name: linkEntity.metadata.entityTypeId,
@@ -213,7 +223,7 @@ export const EntitiesGraphChart = <T extends Entity>({
       },
     };
   }, [
-    subgraph,
+    subgraphWithTypes,
     entities,
     linkEntities,
     nonLinkEntities,

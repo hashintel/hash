@@ -637,7 +637,9 @@ export const EntitiesTable: FunctionComponent<{
             borderBottomRightRadius: 6,
             borderBottomLeftRadius: 6,
           }}
-          subgraph={subgraph as unknown as BpSubgraph<BpEntityRootType>}
+          subgraphWithTypes={
+            subgraph as unknown as BpSubgraph<BpEntityRootType>
+          }
         />
       ) : view === "Grid" ? (
         <GridView entities={entities} />

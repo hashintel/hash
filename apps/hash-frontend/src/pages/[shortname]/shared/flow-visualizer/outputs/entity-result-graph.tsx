@@ -1,60 +1,63 @@
-import type {
-  EntityRootType as BpEntityRootType,
-  Subgraph as BpSubgraph,
-} from "@blockprotocol/graph";
+import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
-import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Subgraph } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 
-type PersistedEntityGraphProps = {
-  onEntityClick: (entity: Entity) => void;
-  persistedEntities: PersistedEntity[];
-  persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
+type EntityResultGraphProps = {
+  onEntityClick: (entity: EntityForGraphChart) => void;
+  entities: EntityForGraphChart[];
+  subgraphWithTypes?: Subgraph;
 };
 
-export const PersistedEntityGraph = ({
+export const EntityResultGraph = ({
   onEntityClick,
-  persistedEntities,
-  persistedEntitiesSubgraph,
-}: PersistedEntityGraphProps) => {
+  entities,
+  subgraphWithTypes,
+}: EntityResultGraphProps) => {
   /**
    * If a Flow updates the same entity as non-draft multiple times, it will have a record of persisting
    * an entity with the same id multiple times. Duplicates crash the chart.
    * We could also deduplicate in the entities table, but having duplicates be visible there
    * will help to detect where update / deduplication logic can be improved in the inference process.
    */
-  const deduplicatedPersistedEntities = useMemo(() => {
-    const deduplicatedLatestEntitiesByEntityId: Record<EntityId, Entity> = {};
-    for (const { entity } of persistedEntities) {
+  const deduplicatedEntities = useMemo(() => {
+    const deduplicatedLatestEntitiesByEntityId: Record<
+      EntityId,
+      EntityForGraphChart
+    > = {};
+    for (const entity of entities) {
       if (!entity) {
         continue;
       }
-      const persistedEntity = new Entity(entity);
 
-      const entityId = persistedEntity.metadata.recordId.entityId;
+      const entityId = entity.metadata.recordId.entityId;
 
       const existing = deduplicatedLatestEntitiesByEntityId[entityId];
 
       if (
         !existing ||
-        existing.metadata.temporalVersioning.decisionTime.start.limit <
-          persistedEntity.metadata.temporalVersioning.decisionTime.start.limit
+        /**
+         * If these are persisted entities, they will have temporal versions, and we can take the latest.
+         * If they are proposed entities, they won't have temporal versioning (nor should they be duplicated)
+         */
+        (existing.metadata.temporalVersioning &&
+          entity.metadata.temporalVersioning &&
+          existing.metadata.temporalVersioning.decisionTime.start.limit <
+            entity.metadata.temporalVersioning.decisionTime.start.limit)
       ) {
-        deduplicatedLatestEntitiesByEntityId[entityId] = persistedEntity;
+        deduplicatedLatestEntitiesByEntityId[entityId] = entity;
       }
     }
 
     return Object.values(deduplicatedLatestEntitiesByEntityId);
-  }, [persistedEntities]);
+  }, [entities]);
 
-  if (!persistedEntitiesSubgraph && !persistedEntities.length) {
+  if (!subgraphWithTypes && !entities.length) {
     return (
       <OutputContainer sx={{ flex: 1.5 }}>
         <EmptyOutputBox
@@ -68,11 +71,9 @@ export const PersistedEntityGraph = ({
   return (
     <OutputContainer sx={{ flex: 1.5 }}>
       <EntitiesGraphChart
-        entities={deduplicatedPersistedEntities}
+        entities={deduplicatedEntities}
         onEntityClick={(entity) => onEntityClick(entity)}
-        subgraph={
-          persistedEntitiesSubgraph as unknown as BpSubgraph<BpEntityRootType>
-        } // @todo sort out this param to EntitiesGraphChart
+        subgraphWithTypes={subgraphWithTypes}
         sx={{ maxHeight: "100%" }}
       />
     </OutputContainer>
