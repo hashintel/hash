@@ -2,7 +2,6 @@
 import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { loadEnv } from "vite";
-// eslint-disable-next-line import/no-extraneous-dependencies
 import tsconfigPaths from "vite-tsconfig-paths";
 import { defineConfig } from "vitest/config";
 
