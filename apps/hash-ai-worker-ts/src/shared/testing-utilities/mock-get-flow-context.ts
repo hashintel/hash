@@ -14,6 +14,7 @@ import { vi } from "vitest";
 
 import { graphApiClient } from "../../activities/shared/graph-api-client.js";
 import { getAliceUserAccountId } from "./get-alice-user-account-id.js";
+import { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends Array<infer U>
@@ -118,7 +119,21 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
           signal: async () => {},
           // eslint-disable-next-line @typescript-eslint/require-await
           fetchHistory: async () => {
-            const mockedFlorWorkflowParams: Partial<RunFlowWorkflowParams> = {
+            const mockedFlorWorkflowParams: RunFlowWorkflowParams = {
+              dataSources: {
+                files: { fileEntityIds: [] },
+                internetAccess: {
+                  enabled: false,
+                  browserPlugin: {
+                    enabled: false,
+                    domains: [],
+                  },
+                },
+              },
+              flowDefinition: {} as FlowDefinition,
+              flowTrigger: {
+                triggerDefinitionId: "userTrigger",
+              },
               webId: aliceUserAccountId as OwnedById,
               userAuthentication: {
                 actorId: aliceUserAccountId,

@@ -103,6 +103,7 @@
     "@vitest/coverage-istanbul": "2.0.3",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
+    "vite-tsconfig-paths": "4.3.2",
     "vitest": "2.0.3"
   }
 }

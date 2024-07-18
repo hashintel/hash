@@ -19,8 +19,8 @@ import { inferFactsFromText } from "../shared/infer-facts-from-text.js";
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
 import type { Fact } from "../shared/infer-facts-from-text/types.js";
 import { deduplicateEntities } from "./deduplicate-entities.js";
-import type { Link } from "./link-follower-agent/extract-links-from-content.js";
-import { extractLinksFromContent } from "./link-follower-agent/extract-links-from-content.js";
+import type { Link } from "./link-follower-agent/choose-relevant-links-from-content.js";
+import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
 import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.js";
@@ -295,8 +295,9 @@ const exploreResource = async (params: {
   const { task, existingEntitiesOfInterest, entityTypes, linkEntityTypes } =
     input;
 
-  const relevantLinksFromContent = await extractLinksFromContent({
+  const relevantLinksFromContent = await chooseRelevantLinksFromContent({
     contentUrl: resource.url,
+    contentType: isResourcePdfFile ? "text" : "html",
     content,
     prompt: task,
   }).then((response) => {

@@ -13,7 +13,7 @@ import { graphApiClient } from "../../../shared/graph-api-client.js";
 import type { LocalEntitySummary } from "../../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
 import type { Fact } from "../../shared/infer-facts-from-text/types.js";
 import { simplifyFactForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
-import type { Link } from "./extract-links-from-content.js";
+import type { Link } from "./choose-relevant-links-from-content.js";
 
 const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
