@@ -80,7 +80,12 @@ export const builtIn =
             },
           ],
           // Clashes with `@typescript-eslint/no-floating-promises`
-          "no-void": "off",
+          "no-void": [
+            "error",
+            {
+              allowAsStatement: true,
+            },
+          ],
         },
       },
       ...noRestrictedImports(config, options.noRestrictedImports ?? (() => [])),
