@@ -90,6 +90,18 @@ export const inferFactsFromText = async (params: {
             const { facts: factsForSingleEntity } =
               await inferEntityFactsFromTextAgent({
                 subjectEntities: [entity],
+                linkEntityTypesById: Object.fromEntries(
+                  Object.entries(dereferencedEntityTypes)
+                    .filter(([linkEntityTypeId]) =>
+                      Object.keys(dereferencedEntityType.links ?? {}).includes(
+                        linkEntityTypeId,
+                      ),
+                    )
+                    .map(([linkEntityTypeId, linkEntity]) => [
+                      linkEntityTypeId,
+                      linkEntity.schema,
+                    ]),
+                ),
                 potentialObjectEntities: [
                   ...newEntitySummaries,
                   ...existingEntitiesOfInterest,
