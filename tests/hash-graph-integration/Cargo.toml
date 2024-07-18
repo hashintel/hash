@@ -1,7 +1,9 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "graph-integration"
 version = "0.0.0"
-edition = "2021"
+edition.workspace = true
 publish = false
 
 [dev-dependencies]
@@ -10,6 +12,7 @@ graph-test-data = { workspace = true }
 graph-types = { workspace = true }
 temporal-versioning = { workspace = true }
 authorization = { workspace = true }
+hash-tracing = { workspace = true }
 
 error-stack = { workspace = true, features = ["spantrace"] }
 type-system = { workspace = true }
@@ -17,13 +20,17 @@ type-system = { workspace = true }
 futures = { version = "0.3.30", default-features = false }
 pretty_assertions = "1.4.0"
 rand = "0.8.5"
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
-time = "0.3.34"
-tokio = { version = "1.36.0", default-features = false, features = ["macros"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+time = "0.3.36"
+tokio = { version = "1.38.0", default-features = false, features = ["macros"] }
 tokio-postgres = { version = "0.7.10", default-features = false }
-json-patch = { version = "1.2.0", default-features = false }
-uuid = { version = "1.8.0", features = ["v4", "serde"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
+[lints]
+workspace = true
 
 [[test]]
 name = "postgres"

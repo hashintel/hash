@@ -1,5 +1,6 @@
 import type { EntityType, PropertyType } from "@blockprotocol/type-system/slim";
-import type { BaseUrl, EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export type TextToken =
   | {
@@ -53,4 +54,8 @@ export type UserPermissionsOnEntityType = {
 
 export type UserPermissionsOnEntities = {
   [key: EntityId]: UserPermissions | undefined;
+};
+
+export const isNotNullish = <T>(value: T): value is NonNullable<T> => {
+  return value !== null && value !== undefined;
 };

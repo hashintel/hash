@@ -12,7 +12,7 @@ mod record;
 mod validation;
 
 mod fetcher;
-mod postgres;
+pub(crate) mod postgres;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -21,7 +21,7 @@ use utoipa::ToSchema;
 
 pub use self::{
     account::AccountStore,
-    config::{DatabaseConnectionInfo, DatabaseType},
+    config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
     error::{
         BaseUrlAlreadyExists, InsertionError, OntologyVersionDoesNotExist, QueryError, StoreError,
         UpdateError,

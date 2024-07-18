@@ -9,7 +9,8 @@ import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
+import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { isExternalOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
@@ -20,7 +21,6 @@ import {
   Grid,
   gridHeaderHeightWithBorder,
   gridHorizontalScrollbarHeight,
-  gridRowHeight,
 } from "../../../components/grid/grid";
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";

@@ -3,7 +3,8 @@ import {
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { AccountId, OwnedById } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { OwnedById } from "@local/hash-graph-types/web";
 
 export const getAiAssistantAccountIdActivity = async (params: {
   authentication: { actorId: AccountId };

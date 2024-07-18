@@ -1,4 +1,17 @@
-import { useLazyQuery } from "@apollo/client";
+import { useLazyQuery, useMutation } from "@apollo/client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  mergePropertyObjectAndMetadata,
+  patchesFromPropertyObjects,
+} from "@local/hash-graph-sdk/entity";
+import type {
+  DraftId,
+  EntityId,
+  EntityUuid,
+  PropertyObject,
+} from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
@@ -8,28 +21,26 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  EntityId,
-  EntityPropertiesObject,
-  EntityRootType,
-  EntityUuid,
-  OwnedById,
-  Subgraph,
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  entityIdFromComponents,
+  extractDraftIdFromEntityId,
 } from "@local/hash-subgraph";
-import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import NextErrorComponent from "next/error";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 
-import { useBlockProtocolUpdateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { PageErrorState } from "../../../components/page-error-state";
 import type {
   GetEntityQuery,
   GetEntityQueryVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { EditBar } from "../shared/edit-bar";
@@ -43,6 +54,8 @@ import { useDraftLinkState } from "./[entity-uuid].page/shared/use-draft-link-st
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const entityUuid = router.query["entity-uuid"] as EntityUuid;
+  const draftId = router.query.draftId as DraftId | undefined;
+
   const { routeNamespace } = useRouteNamespace();
 
   const [lazyGetEntity] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
@@ -50,7 +63,11 @@ const Page: NextPageWithLayout = () => {
     { fetchPolicy: "cache-and-network" },
   );
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
@@ -100,10 +117,10 @@ const Page: NextPageWithLayout = () => {
           isOfType: { outgoing: 1 },
           hasLeftEntity: { outgoing: 1, incoming: 1 },
           hasRightEntity: { outgoing: 1, incoming: 1 },
-          includeDrafts: true,
+          includeDrafts: !!draftId,
         },
       }),
-    [lazyGetEntity],
+    [draftId, lazyGetEntity],
   );
 
   const [
@@ -117,9 +134,10 @@ const Page: NextPageWithLayout = () => {
     if (routeNamespace) {
       const init = async () => {
         try {
-          const entityId = entityIdFromOwnedByIdAndEntityUuid(
+          const entityId = entityIdFromComponents(
             routeNamespace.accountId as OwnedById,
             entityUuid,
+            draftId,
           );
 
           const { data } = await getEntity(entityId);
@@ -150,16 +168,17 @@ const Page: NextPageWithLayout = () => {
 
       void init();
     }
-  }, [entityUuid, getEntity, getEntityType, routeNamespace]);
+  }, [draftId, entityUuid, getEntity, getEntityType, routeNamespace]);
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     if (!routeNamespace || !draftEntitySubgraph) {
       return;
     }
 
-    const entityId = entityIdFromOwnedByIdAndEntityUuid(
+    const entityId = entityIdFromComponents(
       routeNamespace.accountId as OwnedById,
       entityUuid,
+      draftId,
     );
 
     const { data } = await getEntity(entityId);
@@ -172,7 +191,7 @@ const Page: NextPageWithLayout = () => {
 
     setEntitySubgraphFromDb(subgraph);
     setDraftEntitySubgraph(subgraph);
-  };
+  }, [draftEntitySubgraph, draftId, entityUuid, getEntity, routeNamespace]);
 
   const resetDraftState = () => {
     setIsDirty(false);
@@ -186,9 +205,7 @@ const Page: NextPageWithLayout = () => {
   };
 
   const [savingChanges, setSavingChanges] = useState(false);
-  const handleSaveChanges = async (
-    overrideProperties?: EntityPropertiesObject,
-  ) => {
+  const handleSaveChanges = async (overrideProperties?: PropertyObject) => {
     if (!entitySubgraphFromDb || !draftEntitySubgraph) {
       return;
     }
@@ -202,7 +219,10 @@ const Page: NextPageWithLayout = () => {
     try {
       setSavingChanges(true);
 
-      const entity = getRoots(entitySubgraphFromDb)[0]!;
+      const entity = getRoots(entitySubgraphFromDb)[0];
+      if (!entity) {
+        throw new Error(`entity not found in subgraph`);
+      }
 
       await applyDraftLinkEntityChanges(
         entity,
@@ -210,12 +230,19 @@ const Page: NextPageWithLayout = () => {
         draftLinksToArchive,
       );
 
-      /** @todo add validation here */
       await updateEntity({
-        data: {
-          entityId: draftEntity.metadata.recordId.entityId,
-          entityTypeId: draftEntity.metadata.entityTypeId,
-          properties: overrideProperties ?? draftEntity.properties,
+        variables: {
+          entityUpdate: {
+            entityId: draftEntity.metadata.recordId.entityId,
+            entityTypeId: draftEntity.metadata.entityTypeId,
+            propertyPatches: patchesFromPropertyObjects({
+              oldProperties: entityFromDb?.properties ?? {},
+              newProperties: mergePropertyObjectAndMetadata(
+                overrideProperties ?? draftEntity.properties,
+                undefined,
+              ),
+            }),
+          },
         },
       });
 
@@ -226,6 +253,38 @@ const Page: NextPageWithLayout = () => {
 
     resetDraftState();
   };
+
+  const onEntityUpdated = useCallback(
+    (entity: Entity) => {
+      if (!routeNamespace?.shortname) {
+        return;
+      }
+
+      const { entityId } = entity.metadata.recordId;
+      const latestDraftId = extractDraftIdFromEntityId(entityId);
+
+      if (latestDraftId !== draftId) {
+        /**
+         * If the entity either no longer has a draftId when it did before,
+         * or has a draftId when it didn't before,
+         * we need to update the router params. This will trigger the effect which fetches the entity.
+         */
+        const entityHref = generateEntityPath({
+          shortname: routeNamespace.shortname,
+          entityId,
+          includeDraftId: !!latestDraftId,
+        });
+        void router.replace(entityHref);
+        return;
+      }
+
+      /**
+       * If the entityId hasn't changed we can just refetch
+       */
+      void refetch();
+    },
+    [draftId, refetch, router, routeNamespace],
+  );
 
   if (loading) {
     return <EntityPageLoadingState />;
@@ -277,7 +336,7 @@ const Page: NextPageWithLayout = () => {
       setDraftLinksToArchive={setDraftLinksToArchive}
       entitySubgraph={draftEntitySubgraph}
       readonly={isReadOnly}
-      replaceWithLatestDbVersion={refetch}
+      onEntityUpdated={(entity) => onEntityUpdated(entity)}
       setEntity={(changedEntity) => {
         setIsDirty(true);
         updateEntitySubgraphStateByEntity(

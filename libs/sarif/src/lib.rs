@@ -1,12 +1,19 @@
 #![doc = include_str!("../README.md")]
 #![no_std]
-#![feature(lint_reasons)]
+#![feature(coverage_attribute)]
 #![cfg_attr(
     doc,
     feature(doc_auto_cfg),
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
 )]
-#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+#![warn(
+    missing_docs,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::unreachable,
+    clippy::unimplemented
+)]
+#![forbid(unsafe_code)]
 
 extern crate alloc;
 #[cfg(test)]

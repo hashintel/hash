@@ -1,5 +1,4 @@
-#![allow(unused_attributes, unreachable_pub)] // This file is used as module in other tests
-#![feature(associated_type_bounds)]
+#![allow(dead_code, reason = "Only used in a few tests")]
 
 use authorization::backend::{SpiceDbOpenApi, ZanzibarBackend};
 
@@ -15,7 +14,7 @@ use authorization::backend::{SpiceDbOpenApi, ZanzibarBackend};
 ///
 /// - If the connection to the authorization API fails.
 #[must_use]
-pub fn connect() -> impl ZanzibarBackend {
+pub(crate) fn connect() -> impl ZanzibarBackend {
     let host = std::env::var("HASH_SPICEDB_HOST").unwrap_or_else(|_| "http://localhost".to_owned());
     let http_port = std::env::var("HASH_SPICEDB_HTTP_PORT").unwrap_or_else(|_| "8443".to_owned());
     let key =

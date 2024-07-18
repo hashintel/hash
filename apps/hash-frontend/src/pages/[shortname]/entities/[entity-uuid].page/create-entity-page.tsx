@@ -1,8 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
+import type { PropertyObject } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityPropertiesObject } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Typography } from "@mui/material";
@@ -55,9 +55,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
    * I tried calling handleCreateEntity after setting the draftEntity state, but state was not updating
    * @todo find a better way to do this
    */
-  const handleCreateEntity = async (
-    overrideProperties?: EntityPropertiesObject,
-  ) => {
+  const handleCreateEntity = async (overrideProperties?: PropertyObject) => {
     if (!draftEntitySubgraph || !activeWorkspace) {
       return;
     }
@@ -159,7 +157,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         setDraftLinksToArchive={setDraftLinksToArchive}
         entitySubgraph={draftEntitySubgraph}
         readonly={false}
-        replaceWithLatestDbVersion={async () => {}}
+        onEntityUpdated={null}
       />
     </>
   );

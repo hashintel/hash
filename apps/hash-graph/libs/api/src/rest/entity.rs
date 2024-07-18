@@ -1,8 +1,6 @@
 //! Web routes for CRU operations on entities.
 
-#![expect(clippy::str_to_string)]
-
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -27,34 +25,37 @@ use graph::{
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
-            CreateEntityRequest, GetEntityParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
-            ValidateEntityParams,
+            CountEntitiesParams, CreateEntityRequest, DiffEntityParams, DiffEntityResult,
+            GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, PatchEntityParams,
+            UpdateEntityEmbeddingsParams, ValidateEntityParams,
         },
+        query::Filter,
         AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
         EntityValidationType, NullOrdering, Ordering, StorePool,
     },
-    subgraph::{query::EntityStructuralQuery, temporal_axes::QueryTemporalAxesUnresolved},
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use graph_types::{
     knowledge::{
         entity::{
-            Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding, EntityId,
-            EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid,
+            ActorType, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
+            EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
+            InferredEntityProvenance, Location, OriginProvenance, ProvidedEntityEditionProvenance,
+            SourceProvenance, SourceType,
         },
         link::LinkData,
+        ArrayMetadata, Confidence, EntityTypeIdDiff, ObjectMetadata, Property, PropertyDiff,
+        PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPatchOperation,
+        PropertyPath, PropertyPathElement, PropertyProvenance, PropertyWithMetadata,
+        PropertyWithMetadataObject, ValueMetadata,
     },
     owned_by_id::OwnedById,
     Embedding,
 };
-use json_patch::{
-    AddOperation, CopyOperation, MoveOperation, PatchOperation, RemoveOperation, ReplaceOperation,
-    TestOperation,
-};
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use utoipa::{OpenApi, ToSchema};
-use validation::ValidationProfile;
+use validation::ValidateEntityComponents;
 
 use crate::rest::{
     api_resource::RoutedResource, json::Json, status::report_to_response,
@@ -65,11 +66,15 @@ use crate::rest::{
 #[openapi(
     paths(
         create_entity,
+        create_entities,
         validate_entity,
         check_entity_permission,
-        get_entities_by_query,
+        get_entities,
+        get_entity_subgraph,
+        count_entities,
         patch_entity,
         update_entity_embeddings,
+        diff_entity,
 
         get_entity_authorization_relationships,
         modify_entity_authorization_relationships,
@@ -82,26 +87,23 @@ use crate::rest::{
     components(
         schemas(
             CreateEntityRequest,
+            PropertyWithMetadata,
+            PropertyWithMetadataObject,
             ValidateEntityParams,
+            CountEntitiesParams,
             EntityValidationType,
-            ValidationProfile,
+            ValidateEntityComponents,
             Embedding,
             UpdateEntityEmbeddingsParams,
             EntityEmbedding,
             EntityQueryToken,
-            EntityStructuralQuery,
 
             PatchEntityParams,
-            PatchOperation,
-            AddOperation,
-            ReplaceOperation,
-            RemoveOperation,
-            CopyOperation,
-            MoveOperation,
-            TestOperation,
+            PropertyPatchOperation,
 
             EntityRelationAndSubject,
             EntityPermission,
+            EntitySubjectSet,
             EntitySettingSubject,
             EntityOwnerSubject,
             EntityAdministratorSubject,
@@ -111,26 +113,50 @@ use crate::rest::{
             ModifyRelationshipOperation,
             EntitySetting,
 
-            GetEntityByQueryRequest,
+            GetEntitiesRequest,
+            GetEntitySubgraphRequest,
             EntityQueryCursor,
             Ordering,
             NullOrdering,
             EntityQuerySortingRecord,
             EntityQuerySortingToken,
-            GetEntityByQueryResponse,
+            GetEntitiesResponse,
+            GetEntitySubgraphResponse,
 
             Entity,
+            Property,
+            PropertyProvenance,
+            PropertyObject,
+            ArrayMetadata,
+            ObjectMetadata,
+            ValueMetadata,
+            PropertyMetadataObject,
+            PropertyMetadata,
             EntityUuid,
             EntityId,
             EntityEditionId,
             EntityMetadata,
-            EntityProvenanceMetadata,
-            EntityEditionProvenanceMetadata,
-            EntityProperties,
+            EntityProvenance,
+            EntityEditionProvenance,
+            InferredEntityProvenance,
+            ProvidedEntityEditionProvenance,
+            ActorType,
+            OriginProvenance,
+            SourceType,
+            SourceProvenance,
+            Location,
             EntityRecordId,
             EntityTemporalMetadata,
             EntityQueryToken,
             LinkData,
+
+            DiffEntityParams,
+            DiffEntityResult,
+            EntityTypeIdDiff,
+            PropertyDiff,
+            PropertyPath,
+            PropertyPathElement,
+            Confidence,
         )
     ),
     tags(
@@ -151,10 +177,12 @@ impl RoutedResource for EntityResource {
             "/entities",
             Router::new()
                 .route("/", post(create_entity::<S, A>).patch(patch_entity::<S, A>))
+                .route("/bulk", post(create_entities::<S, A>))
                 .route(
                     "/relationships",
                     post(modify_entity_authorization_relationships::<A>),
                 )
+                .route("/diff", post(diff_entity::<S, A>))
                 .route("/validate", post(validate_entity::<S, A>))
                 .route("/embeddings", post(update_entity_embeddings::<S, A>))
                 .nest(
@@ -178,7 +206,13 @@ impl RoutedResource for EntityResource {
                             get(check_entity_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_entities_by_query::<S, A>)),
+                .nest(
+                    "/query",
+                    Router::new()
+                        .route("/", post(get_entities::<S, A>))
+                        .route("/subgraph", post(get_entity_subgraph::<S, A>))
+                        .route("/count", post(count_entities::<S, A>)),
+                ),
         )
     }
 }
@@ -192,7 +226,7 @@ impl RoutedResource for EntityResource {
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the created entity", body = EntityMetadata),
+        (status = 200, content_type = "application/json", description = "The created entity", body = Entity),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity Type URL was not found"),
@@ -209,26 +243,75 @@ async fn create_entity<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<EntityMetadata>, Response>
+) -> Result<Json<Entity>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
     let params = CreateEntityRequest::deserialize(&body).map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .create_entity(
-            actor_id,
-            &mut authorization_api,
-            temporal_client.as_deref(),
-            params,
-        )
+        .create_entity(actor_id, params)
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/bulk",
+    request_body = [CreateEntityRequest],
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The created entities", body = [Entity]),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Entity Type URL was not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn create_entities<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<Vec<Entity>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let params = Vec::<CreateEntityRequest>::deserialize(&body).map_err(report_to_response)?;
+
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .create_entities(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -250,11 +333,15 @@ where
         (status = 500, description = "Store error occurred"),
     ),
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn validate_entity<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<StatusCode, Response>
 where
@@ -263,19 +350,18 @@ where
 {
     let params = ValidateEntityParams::deserialize(&body).map_err(report_to_response)?;
 
-    let store = store_pool.acquire().await.map_err(report_to_response)?;
     let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .validate_entity(
-            actor_id,
-            &authorization_api,
-            Consistency::FullyConsistent,
-            params,
-        )
+        .validate_entity(actor_id, Consistency::FullyConsistent, params)
         .await
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
@@ -324,31 +410,91 @@ where
     }))
 }
 
+fn generate_sorting_paths(
+    paths: Option<Vec<EntityQuerySortingRecord<'_>>>,
+    limit: Option<usize>,
+    cursor: Option<EntityQueryCursor<'_>>,
+    temporal_axes: &QueryTemporalAxesUnresolved,
+) -> EntityQuerySorting<'static> {
+    let temporal_axes_sorting_path = match temporal_axes {
+        QueryTemporalAxesUnresolved::TransactionTime { .. } => &EntityQueryPath::TransactionTime,
+        QueryTemporalAxesUnresolved::DecisionTime { .. } => &EntityQueryPath::DecisionTime,
+    };
+
+    let sorting = paths
+        .map_or_else(
+            || {
+                if limit.is_some() || cursor.is_some() {
+                    vec![
+                        EntityQuerySortingRecord {
+                            path: temporal_axes_sorting_path.clone(),
+                            ordering: Ordering::Descending,
+                            nulls: None,
+                        },
+                        EntityQuerySortingRecord {
+                            path: EntityQueryPath::Uuid,
+                            ordering: Ordering::Ascending,
+                            nulls: None,
+                        },
+                        EntityQuerySortingRecord {
+                            path: EntityQueryPath::OwnedById,
+                            ordering: Ordering::Ascending,
+                            nulls: None,
+                        },
+                    ]
+                } else {
+                    Vec::new()
+                }
+            },
+            |mut paths| {
+                paths.push(EntityQuerySortingRecord {
+                    path: temporal_axes_sorting_path.clone(),
+                    ordering: Ordering::Descending,
+                    nulls: None,
+                });
+                paths.push(EntityQuerySortingRecord {
+                    path: EntityQueryPath::Uuid,
+                    ordering: Ordering::Ascending,
+                    nulls: None,
+                });
+                paths.push(EntityQuerySortingRecord {
+                    path: EntityQueryPath::OwnedById,
+                    ordering: Ordering::Ascending,
+                    nulls: None,
+                });
+                paths
+            },
+        )
+        .into_iter()
+        .map(EntityQuerySortingRecord::into_owned)
+        .collect();
+
+    EntityQuerySorting {
+        paths: sorting,
+        cursor: cursor.map(EntityQueryCursor::into_owned),
+    }
+}
+
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct GetEntityByQueryRequest<'q, 's, 'p> {
+struct GetEntitiesRequest<'q, 's, 'p> {
     #[serde(borrow)]
-    #[schema(format = "EntityStructuralQuery")]
-    query: EntityStructuralQuery<'q>,
+    filter: Filter<'q, Entity>,
+    temporal_axes: QueryTemporalAxesUnresolved,
+    include_drafts: bool,
     limit: Option<usize>,
     #[serde(borrow)]
     sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'s>>,
-}
-
-#[derive(Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct GetEntityByQueryResponse<'r> {
-    subgraph: Subgraph,
-    #[serde(borrow)]
-    cursor: Option<EntityQueryCursor<'r>>,
+    #[serde(default)]
+    include_count: bool,
 }
 
 #[utoipa::path(
     post,
     path = "/entities/query",
-    request_body = GetEntityByQueryRequest,
+    request_body = GetEntitiesRequest,
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -359,110 +505,235 @@ struct GetEntityByQueryResponse<'r> {
         (
             status = 200,
             content_type = "application/json",
-            body = GetEntityByQueryResponse,
+            body = GetEntitiesResponse,
+            description = "A list of entities that satisfy the given query.",
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn get_entities<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<GetEntitiesResponse<'static>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    let mut request = GetEntitiesRequest::deserialize(&request).map_err(report_to_response)?;
+    request
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+
+    store
+        .get_entities(
+            actor_id,
+            GetEntitiesParams {
+                filter: request.filter,
+                sorting: generate_sorting_paths(
+                    request.sorting_paths,
+                    request.limit,
+                    request.cursor,
+                    &request.temporal_axes,
+                ),
+                limit: request.limit,
+                include_drafts: request.include_drafts,
+                include_count: request.include_count,
+                temporal_axes: request.temporal_axes,
+            },
+        )
+        .await
+        .map(|response| {
+            Json(GetEntitiesResponse {
+                entities: response.entities,
+                cursor: response.cursor.map(EntityQueryCursor::into_owned),
+                count: response.count,
+            })
+        })
+        .map_err(report_to_response)
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GetEntitySubgraphRequest<'q, 's, 'p> {
+    #[serde(borrow)]
+    filter: Filter<'q, Entity>,
+    graph_resolve_depths: GraphResolveDepths,
+    temporal_axes: QueryTemporalAxesUnresolved,
+    include_drafts: bool,
+    limit: Option<usize>,
+    #[serde(borrow)]
+    sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
+    #[serde(borrow)]
+    cursor: Option<EntityQueryCursor<'s>>,
+    #[serde(default)]
+    include_count: bool,
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct GetEntitySubgraphResponse<'r> {
+    subgraph: Subgraph,
+    #[serde(borrow)]
+    cursor: Option<EntityQueryCursor<'r>>,
+    count: Option<usize>,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/query/subgraph",
+    request_body = GetEntitySubgraphRequest,
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("after" = Option<String>, Query, description = "The cursor to start reading from"),
+        ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = GetEntitySubgraphResponse,
             description = "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth.",
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
-async fn get_entities_by_query<S, A>(
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn get_entity_subgraph<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetEntityByQueryResponse<'static>>, Response>
+) -> Result<Json<GetEntitySubgraphResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let store = store_pool.acquire().await.map_err(report_to_response)?;
-
     let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
-    let mut request = GetEntityByQueryRequest::deserialize(&request).map_err(report_to_response)?;
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    let mut request =
+        GetEntitySubgraphRequest::deserialize(&request).map_err(report_to_response)?;
     request
-        .query
         .filter
         .convert_parameters()
         .map_err(report_to_response)?;
 
-    let temporal_axes_sorting_path = match request.query.temporal_axes {
-        QueryTemporalAxesUnresolved::TransactionTime { .. } => &EntityQueryPath::TransactionTime,
-        QueryTemporalAxesUnresolved::DecisionTime { .. } => &EntityQueryPath::DecisionTime,
-    };
-
-    let sorting = request.sorting_paths.map_or_else(
-        || {
-            if request.limit.is_some() || request.cursor.is_some() {
-                vec![
-                    EntityQuerySortingRecord {
-                        path: temporal_axes_sorting_path.clone(),
-                        ordering: Ordering::Descending,
-                        nulls: None,
-                    },
-                    EntityQuerySortingRecord {
-                        path: EntityQueryPath::Uuid,
-                        ordering: Ordering::Ascending,
-                        nulls: None,
-                    },
-                    EntityQuerySortingRecord {
-                        path: EntityQueryPath::OwnedById,
-                        ordering: Ordering::Ascending,
-                        nulls: None,
-                    },
-                ]
-            } else {
-                Vec::new()
-            }
-        },
-        |mut paths| {
-            paths.push(EntityQuerySortingRecord {
-                path: temporal_axes_sorting_path.clone(),
-                ordering: Ordering::Descending,
-                nulls: None,
-            });
-            paths.push(EntityQuerySortingRecord {
-                path: EntityQueryPath::Uuid,
-                ordering: Ordering::Ascending,
-                nulls: None,
-            });
-            paths.push(EntityQuerySortingRecord {
-                path: EntityQueryPath::OwnedById,
-                ordering: Ordering::Ascending,
-                nulls: None,
-            });
-            paths
-        },
-    );
-
-    let (subgraph, cursor) = store
-        .get_entity(
+    store
+        .get_entity_subgraph(
             actor_id,
-            &authorization_api,
-            GetEntityParams {
-                query: request.query,
-                sorting: EntityQuerySorting {
-                    paths: sorting
-                        .into_iter()
-                        .map(EntityQuerySortingRecord::into_owned)
-                        .collect(),
-                    cursor: request.cursor.map(EntityQueryCursor::into_owned),
-                },
+            GetEntitySubgraphParams {
+                filter: request.filter,
+                sorting: generate_sorting_paths(
+                    request.sorting_paths,
+                    request.limit,
+                    request.cursor,
+                    &request.temporal_axes,
+                ),
                 limit: request.limit,
+                graph_resolve_depths: request.graph_resolve_depths,
+                include_drafts: request.include_drafts,
+                include_count: request.include_count,
+                temporal_axes: request.temporal_axes,
             },
         )
         .await
+        .map(|response| {
+            Json(GetEntitySubgraphResponse {
+                subgraph: response.subgraph.into(),
+                cursor: response.cursor.map(EntityQueryCursor::into_owned),
+                count: response.count,
+            })
+        })
+        .map_err(report_to_response)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/query/count",
+    request_body = CountEntitiesParams,
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = usize,
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn count_entities<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<usize>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
         .map_err(report_to_response)?;
 
-    Ok(Json(GetEntityByQueryResponse {
-        subgraph: subgraph.into(),
-        cursor: cursor.map(EntityQueryCursor::into_owned),
-    }))
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    let mut query = CountEntitiesParams::deserialize(&request).map_err(report_to_response)?;
+    query
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+
+    store
+        .count_entities(actor_id, query)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(
@@ -473,7 +744,7 @@ where
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = EntityMetadata),
+        (status = 200, content_type = "application/json", description = "The updated entity", body = Entity),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
         (status = 423, content_type = "text/plain", description = "The entity that should be updated was unexpectedly updated at the same time"),
 
@@ -492,24 +763,23 @@ async fn patch_entity<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(params): Json<PatchEntityParams>,
-) -> Result<Json<EntityMetadata>, Response>
+) -> Result<Json<Entity>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .patch_entity(
-            actor_id,
-            &mut authorization_api,
-            temporal_client.as_deref(),
-            params,
-        )
+        .patch_entity(actor_id, params)
         .await
         .map_err(|report| {
             if report.contains::<EntityDoesNotExist>() {
@@ -539,11 +809,15 @@ where
     ),
     request_body = UpdateEntityEmbeddingsParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, body)
+)]
 async fn update_entity_embeddings<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<(), Response>
 where
@@ -556,16 +830,75 @@ where
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .update_entity_embeddings(actor_id, &mut authorization_api, params)
+        .update_entity_embeddings(actor_id, params)
         .await
         .map_err(report_to_response)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/diff",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The difference between the two entities", body = DiffEntityResult),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Entity ID was not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = DiffEntityParams,
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn diff_entity<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(params): Json<DiffEntityParams>,
+) -> Result<Json<DiffEntityResult<'static>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .diff_entity(actor_id, params)
+        .await
+        .map_err(|report| {
+            if report.contains::<EntityDoesNotExist>() {
+                report.attach(hash_status::StatusCode::NotFound)
+            } else {
+                report
+            }
+        })
+        .map_err(report_to_response)
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -706,12 +1039,16 @@ where
         (status = 403, description = "Permission denied"),
 )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn add_entity_administrator<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<StatusCode, StatusCode>
 where
     S: StorePool + Send + Sync,
@@ -743,11 +1080,13 @@ where
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    let administrator_id = store
+    let administrator_id = store_pool
+        .acquire(&mut authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
         .identify_owned_by_id(owned_by_id)
         .await
         .map_err(|report| {
@@ -796,12 +1135,16 @@ where
         (status = 403, description = "Permission denied"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn remove_entity_administrator<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<StatusCode, StatusCode>
 where
     S: StorePool + Send + Sync,
@@ -833,11 +1176,13 @@ where
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    let administrator_id = store
+    let administrator_id = store_pool
+        .acquire(&mut authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
         .identify_owned_by_id(owned_by_id)
         .await
         .map_err(|report| {
@@ -886,12 +1231,16 @@ where
         (status = 403, description = "Permission denied"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn add_entity_editor<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((entity_id, editor)): Path<(EntityId, OwnedById)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<StatusCode, StatusCode>
 where
     S: StorePool + Send + Sync,
@@ -920,14 +1269,19 @@ where
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    let editor_id = store.identify_owned_by_id(editor).await.map_err(|report| {
-        tracing::error!(error=?report, "Could not identify account or account group");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let editor_id = store_pool
+        .acquire(&mut authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .identify_owned_by_id(editor)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not identify account or account group");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     let subject = match editor_id {
         WebOwnerSubject::Account { id } => EntityEditorSubject::Account { id },
@@ -967,12 +1321,16 @@ where
         (status = 403, description = "Permission denied"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn remove_entity_editor<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((entity_id, editor)): Path<(EntityId, OwnedById)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<StatusCode, StatusCode>
 where
     S: StorePool + Send + Sync,
@@ -1004,14 +1362,19 @@ where
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    let editor_id = store.identify_owned_by_id(editor).await.map_err(|report| {
-        tracing::error!(error=?report, "Could not identify account or account group");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let editor_id = store_pool
+        .acquire(&mut authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .identify_owned_by_id(editor)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not identify account or account group");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     let subject = match editor_id {
         WebOwnerSubject::Account { id } => EntityEditorSubject::Account { id },

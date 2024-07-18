@@ -1,11 +1,11 @@
-use std::error::Error;
+use core::error::Error;
 
 use graph_types::{
     account::{AccountGroupId, AccountId},
+    ontology::EntityTypeId,
     owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize};
-use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
 use crate::{
@@ -23,35 +23,6 @@ use crate::{
 pub enum EntityTypeNamespace {
     #[serde(rename = "graph/entity_type")]
     EntityType,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[repr(transparent)]
-pub struct EntityTypeId(Uuid);
-
-impl EntityTypeId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-
-    #[must_use]
-    pub fn from_url(url: &VersionedUrl) -> Self {
-        Self(Uuid::new_v5(
-            &Uuid::NAMESPACE_URL,
-            url.to_string().as_bytes(),
-        ))
-    }
-
-    #[must_use]
-    pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
-    }
-
-    #[must_use]
-    pub const fn into_uuid(self) -> Uuid {
-        self.0
-    }
 }
 
 impl Resource for EntityTypeId {

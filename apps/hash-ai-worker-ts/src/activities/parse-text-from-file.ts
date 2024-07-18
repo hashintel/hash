@@ -1,39 +1,17 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
-import isDocker from "is-docker";
+import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import officeParser from "officeparser";
 
-const fetchFileFromUrl = async (url: string): Promise<Buffer> => {
-  const urlObject = new URL(url);
-
-  let rewrittenUrl: string | undefined = undefined;
-
-  if (["localhost", "127.0.0.1"].includes(urlObject.hostname) && isDocker()) {
-    /**
-     * When the file host is `localhost` or `127.0.0.1` (i.e. the file is
-     * hosted in a locally running machine), and the activity is running in a
-     * docker container, we need to replace the host in the download URL with
-     * `host.docker.internal` so that the docker container accesses the correct
-     * host.
-     */
-    const rewrittenUrlObject = new URL(url);
-    rewrittenUrlObject.hostname = "host.docker.internal";
-    rewrittenUrl = rewrittenUrlObject.toString();
-  }
-
-  const response = await fetch(rewrittenUrl ?? url);
-
-  if (!response.ok) {
-    throw new Error(`Failed to download file: ${response.statusText}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-
-  return Buffer.from(arrayBuffer);
-};
+import { fetchFileFromUrl } from "./shared/fetch-file-from-url";
+import { getFlowContext } from "./shared/get-flow-context";
 
 type TextParsingFunction = (fileBuffer: Buffer) => Promise<string>;
 
@@ -62,7 +40,8 @@ export const parseTextFromFile = async (
 ) => {
   const { graphApiClient } = context;
 
-  const { presignedFileDownloadUrl, fileEntity, webMachineActorId } = params;
+  const { presignedFileDownloadUrl, webMachineActorId } = params;
+  const fileEntity = new Entity(params.fileEntity);
 
   const fileBuffer = await fetchFileFromUrl(presignedFileDownloadUrl);
 
@@ -72,24 +51,38 @@ export const parseTextFromFile = async (
   if (textParsingFunction) {
     const textualContent = await textParsingFunction(fileBuffer);
 
-    /** @todo: refetch these to prevent potential data loss */
-    const previousProperties = fileEntity.properties as DOCXDocumentProperties;
+    const { flowEntityId, stepId } = await getFlowContext();
 
-    const updatedProperties = {
-      ...previousProperties,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-        textualContent,
-    } as DOCXDocumentProperties;
+    const provenance: EnforcedEntityEditionProvenance = {
+      actorType: "machine",
+      origin: {
+        type: "flow",
+        id: flowEntityId,
+        stepIds: [stepId],
+      } satisfies OriginProvenance,
+    };
 
-    await graphApiClient.patchEntity(webMachineActorId, {
-      entityId: fileEntity.metadata.recordId.entityId,
-      properties: [
-        {
-          op: "replace",
-          path: "",
-          value: updatedProperties,
-        },
-      ],
-    });
+    await fileEntity.patch(
+      graphApiClient,
+      { actorId: webMachineActorId },
+      {
+        propertyPatches: [
+          {
+            op: "add",
+            path: [
+              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
+            ],
+            property: {
+              value: textualContent,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            } satisfies TextualContentPropertyValueWithMetadata,
+          },
+        ],
+        provenance,
+      },
+    );
   }
 };

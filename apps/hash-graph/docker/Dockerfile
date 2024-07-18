@@ -16,10 +16,10 @@ RUN turbo prune --scope='@apps/hash-graph' --docker && \
         echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
         echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
       )' _ {} \; && \
-    cp Cargo.toml /app/out/full/
+    cp Cargo.toml Cargo.lock /app/out/full/
 
 
-FROM node:18.15-alpine AS rust
+FROM node:20.13-alpine AS rust
 
 WORKDIR /usr/local/
 

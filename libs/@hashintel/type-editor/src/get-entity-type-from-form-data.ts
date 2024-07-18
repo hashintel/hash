@@ -1,3 +1,4 @@
+import { atLeastOne } from "@blockprotocol/type-system";
 import type {
   EntityType,
   EntityTypeReference,
@@ -13,14 +14,12 @@ export const getEntityTypeFromFormData = (
 ): {
   icon: string | null;
   labelProperty: string | null;
-  schema: Required<
-    Pick<
-      EntityType,
-      "allOf" | "description" | "links" | "properties" | "required"
-    >
-  >;
+  schema: Required<Pick<EntityType, "description" | "links" | "properties">> &
+    Pick<EntityType, "allOf" | "required">;
 } => {
-  const allOf = data.allOf.map((versionedUrl) => ({ $ref: versionedUrl }));
+  const allOf = atLeastOne<EntityTypeReference>(
+    data.allOf.map((versionedUrl) => ({ $ref: versionedUrl })),
+  );
 
   const properties = data.properties;
 
@@ -66,19 +65,12 @@ export const getEntityTypeFromFormData = (
       throw new Error("Invalid property constraint");
     }
 
+    const oneOf = atLeastOne(link.entityTypes.map((id) => ({ $ref: id })));
     links[link.$id] = {
       type: "array",
       minItems: link.minValue,
       ...(link.infinity ? {} : { maxItems: link.maxValue }),
-      ordered: false,
-      items: link.entityTypes.length
-        ? {
-            oneOf: link.entityTypes.map((id) => ({ $ref: id })) as [
-              EntityTypeReference,
-              ...EntityTypeReference[],
-            ], // assert that there is at least one item in the array
-          }
-        : {},
+      items: oneOf ? { oneOf } : {},
     };
   }
 
@@ -90,7 +82,7 @@ export const getEntityTypeFromFormData = (
       description: data.description,
       properties: schemaProperties,
       links,
-      required,
+      required: atLeastOne(required),
     },
   };
 };

@@ -2,21 +2,18 @@ import crypto from "node:crypto";
 
 import { LinearClient } from "@linear/sdk";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { Uuid } from "@local/hash-graph-types/branded";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   apiOrigin,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type {
-  AccountId,
-  Entity,
-  EntityId,
-  EntityUuid,
-  OwnedById,
-  Uuid,
-} from "@local/hash-subgraph";
+import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
 
@@ -221,9 +218,18 @@ export const oAuthLinearCallback: RequestHandler<
     if (existingLinearIntegration) {
       linearIntegration = existingLinearIntegration;
     } else {
-      const linearIntegrationProperties: LinearIntegrationProperties = {
-        "https://hash.ai/@hash/types/property-type/linear-org-id/": linearOrgId,
-      };
+      const linearIntegrationProperties: LinearIntegrationPropertiesWithMetadata =
+        {
+          value: {
+            "https://hash.ai/@hash/types/property-type/linear-org-id/": {
+              value: linearOrgId,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          },
+        };
 
       // Create the Linear integration entity, which any web member can view and edit
       const linearIntegrationEntity = await createEntity(
@@ -260,6 +266,7 @@ export const oAuthLinearCallback: RequestHandler<
       expiresAt: expiredAt.toISOString(),
       graphApi: req.context.graphApi,
       managingBotAccountId: linearBotAccountId,
+      provenance: req.context.provenance,
       restOfPath: `workspace/${linearOrgId}`,
       secretData: { value: access_token },
       service: "linear",

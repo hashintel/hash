@@ -5,7 +5,7 @@ export const blockTypedef = gql`
     """
     The block's linked child entity.
     """
-    blockChildEntity: Entity!
+    blockChildEntity: SerializedEntity!
     """
     The component id of the block.
     """
@@ -17,7 +17,7 @@ export const blockTypedef = gql`
     """
     Properties of entity.
     """
-    properties: EntityPropertiesObject!
+    properties: PropertyObject!
   }
 
   extend type Query {

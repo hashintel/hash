@@ -1,4 +1,5 @@
 import type { BlockVariant } from "@blockprotocol/core";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import {
@@ -10,7 +11,6 @@ import {
   isEntityNode,
 } from "@local/hash-isomorphic-utils/prosemirror";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import type { EntityId } from "@local/hash-subgraph";
 import type { Node } from "prosemirror-model";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import type { EditorView, NodeView } from "prosemirror-view";

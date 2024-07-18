@@ -1,11 +1,14 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -13,25 +16,13 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type {
-  AccountEntityId,
-  AccountId,
-  Entity,
-  EntityId,
-  EntityRootType,
-  EntityUuid,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
+import type { AccountEntityId } from "@local/hash-subgraph";
 import {
   extractAccountId,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type {
   KratosUserIdentity,
@@ -69,12 +60,12 @@ export type User = {
   shortname?: string;
   displayName?: string;
   isAccountSignupComplete: boolean;
-  entity: Entity;
+  entity: Entity<UserEntity>;
 };
 
-export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
-  entity,
-}) => {
+function assertUserEntity(
+  entity: Entity,
+): asserts entity is Entity<UserEntity> {
   if (entity.metadata.entityTypeId !== systemEntityTypes.user.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -82,13 +73,19 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
       entity.metadata.entityTypeId,
     );
   }
+}
+
+export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
+  entity,
+}) => {
+  assertUserEntity(entity);
 
   const {
     kratosIdentityId,
     shortname,
     displayName,
     email: emails,
-  } = simplifyProperties(entity.properties as UserProperties);
+  } = simplifyProperties(entity.properties);
 
   const isAccountSignupComplete = !!shortname && !!displayName;
 
@@ -129,45 +126,38 @@ export const getUserByShortname: ImpureGraphFunction<
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery(actorId, {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.user.entityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    extractBaseUrl(
-                      systemPropertyTypes.shortname.propertyTypeId,
-                    ),
-                  ],
-                },
-                { parameter: params.shortname },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        // TODO: Should this be an all-time query? What happens if the user is
-        //       archived/deleted, do we want to allow users to replace their
-        //       shortname?
-        //   see https://linear.app/hash/issue/H-757
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: params.includeDrafts ?? false,
+    .getEntities(actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.user.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.shortname.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: params.shortname },
+            ],
+          },
+        ],
       },
+      // TODO: Should this be an all-time query? What happens if the user is
+      //       archived/deleted, do we want to allow users to replace their
+      //       shortname?
+      //   see https://linear.app/hash/issue/H-757
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, actorId),
+      ),
+    );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -179,50 +169,49 @@ export const getUserByShortname: ImpureGraphFunction<
 };
 
 /**
- * Get a system user entity by their kratos identity id.
+ * Get a system user entity by their kratos identity id – only to be used for resolving the requesting user,
+ * or checking for conflicts with an existing kratosIdentityId.
  *
  * @param params.kratosIdentityId - the kratos identity id
  */
 export const getUserByKratosIdentityId: ImpureGraphFunction<
   { kratosIdentityId: string; includeDrafts?: boolean },
   Promise<User | null>
-> = async ({ graphApi }, { actorId }, params) => {
-  const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery(actorId, {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.user.entityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    extractBaseUrl(
-                      systemPropertyTypes.kratosIdentityId.propertyTypeId,
-                    ),
-                  ],
-                },
-                { parameter: params.kratosIdentityId },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: params.includeDrafts ?? false,
+> = async (context, authentication, params) => {
+  const [userEntity, ...unexpectedEntities] = await context.graphApi
+    .getEntities(authentication.actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.user.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.kratosIdentityId.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: params.kratosIdentityId },
+            ],
+          },
+        ],
       },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        /**
+         * We don't have the user's actorId yet, so the mapping function can't match the requesting user
+         * to the entity being sought – we pass 'true' to preserve their properties so that private properties aren't omitted.
+         * This function should only be used to return the user entity to a user who is authenticated with the correct kratosIdentityId.
+         */
+        mapGraphApiEntityToEntity(entity, null, true),
+      ),
+    );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -333,30 +322,62 @@ export const createUser: ImpureGraphFunction<
     },
   );
 
-  const properties: UserProperties = {
-    "https://hash.ai/@hash/types/property-type/email/": emails as [
-      string,
-      ...string[],
-    ],
-    "https://hash.ai/@hash/types/property-type/kratos-identity-id/":
-      kratosIdentityId,
-    ...(shortname
-      ? {
-          "https://hash.ai/@hash/types/property-type/shortname/": shortname,
-        }
-      : {}),
-    ...(displayName
-      ? {
-          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-            displayName,
-        }
-      : {}),
-    ...(enabledFeatureFlags
-      ? {
-          "https://hash.ai/@hash/types/property-type/enabled-feature-flags/":
-            enabledFeatureFlags,
-        }
-      : {}),
+  const properties: UserEntity["propertiesWithMetadata"] = {
+    value: {
+      "https://hash.ai/@hash/types/property-type/email/": {
+        value: emails.map((email) => ({
+          value: email,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        })),
+      },
+      "https://hash.ai/@hash/types/property-type/kratos-identity-id/": {
+        value: kratosIdentityId,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      ...(shortname !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/shortname/": {
+              value: shortname,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          }
+        : {}),
+      ...(displayName !== undefined
+        ? {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+              {
+                value: displayName,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              },
+          }
+        : {}),
+      ...(enabledFeatureFlags !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/enabled-feature-flags/":
+              {
+                value: enabledFeatureFlags.map((flag) => ({
+                  value: flag,
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                })),
+              },
+          }
+        : {}),
+    },
   };
 
   /** Grant permissions to the web machine actor to create a user entity */
@@ -380,7 +401,7 @@ export const createUser: ImpureGraphFunction<
   const hashInstanceAdminsAccountGroupId =
     await getHashInstanceAdminAccountGroupId(ctx, authentication);
 
-  const entity = await createEntity(
+  const entity = await createEntity<UserEntity>(
     ctx,
     { actorId: userWebMachineActorId },
     {
@@ -394,6 +415,7 @@ export const createUser: ImpureGraphFunction<
           subject: {
             kind: "accountGroup",
             subjectId: hashInstanceAdminsAccountGroupId,
+            subjectSet: "member",
           },
         },
         {

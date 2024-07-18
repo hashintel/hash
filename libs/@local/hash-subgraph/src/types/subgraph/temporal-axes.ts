@@ -2,15 +2,14 @@ import {
   type QueryTemporalAxes as QueryTemporalAxesBp,
   type QueryTemporalAxesUnresolved as QueryTemporalAxesUnresolvedBp,
   type SubgraphTemporalAxes as SubgraphTemporalAxesBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
-
 import type {
   PinnedTemporalAxis,
   PinnedTemporalAxisUnresolved,
   VariableTemporalAxis,
   VariableTemporalAxisUnresolved,
-} from "../shared";
+} from "@local/hash-graph-types/temporal-versioning";
 
 /**
  * Defines the two possible combinations of pinned/variable temporal axes that are used in queries that return

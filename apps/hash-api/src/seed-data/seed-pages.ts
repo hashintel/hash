@@ -1,5 +1,6 @@
 import type { Logger } from "@local/hash-backend-utils/logger";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { Page } from "../graph/knowledge/system-types/page";
@@ -7,7 +8,6 @@ import {
   createPage,
   setPageParentPage,
 } from "../graph/knowledge/system-types/page";
-import type { AuthenticationContext } from "../graphql/authentication-context";
 
 export type PageDefinition = {
   title: string;

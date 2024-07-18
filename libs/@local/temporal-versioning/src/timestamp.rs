@@ -1,11 +1,10 @@
-use core::fmt;
 #[cfg(feature = "postgres")]
-use std::error::Error;
-use std::{cmp::Ordering, marker::PhantomData, str::FromStr};
+use core::error::Error;
+use core::{fmt, marker::PhantomData, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-use derivative::Derivative;
+use derive_where::derive_where;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
@@ -22,32 +21,14 @@ use crate::TemporalTagged;
 // A generic parameter is used here to avoid implementing the same struct multiple times or using
 // macros. It's reused in other time-related structs as well. This implies that trait bounds are
 // not required for trait implementations.
-#[derive(Derivative, Serialize, Deserialize)]
-#[derivative(
-    Copy(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    Hash(bound = ""),
-    Ord(bound = "")
-)]
+#[derive(Serialize, Deserialize)]
+#[derive_where(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(transparent, bound = "")]
 pub struct Timestamp<A> {
     #[serde(skip)]
     axis: PhantomData<A>,
-    #[serde(with = "crate::serde::time")]
+    #[serde(with = "codec::serde::time")]
     time: OffsetDateTime,
-}
-
-impl<A> PartialOrd for Timestamp<A> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<A> Clone for Timestamp<A> {
-    fn clone(&self) -> Self {
-        *self
-    }
 }
 
 impl<A> fmt::Debug for Timestamp<A> {
@@ -79,6 +60,21 @@ impl<A> Timestamp<A> {
         axis: PhantomData,
         time: OffsetDateTime::UNIX_EPOCH,
     };
+
+    /// Removes the nanosecond part of the timestamp.
+    ///
+    /// This is useful when inserting timestamps into databases that do not support nanosecond.
+    #[expect(clippy::missing_panics_doc, clippy::unwrap_used)]
+    #[must_use = "This method does not mutate the original `Timestamp`."]
+    pub fn remove_nanosecond(self) -> Self {
+        Self {
+            axis: PhantomData,
+            time: self
+                .time
+                .replace_microsecond(self.time.microsecond())
+                .unwrap(),
+        }
+    }
 
     #[must_use]
     pub fn now() -> Self {

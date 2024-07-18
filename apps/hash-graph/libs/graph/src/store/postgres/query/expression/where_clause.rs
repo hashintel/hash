@@ -1,11 +1,11 @@
-use std::fmt;
+use core::fmt;
 
 use crate::store::{
     postgres::query::{expression::conditional::Transpiler, Condition, Expression, Transpile},
     NullOrdering, Ordering,
 };
 
-#[derive(Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct WhereExpression {
     conditions: Vec<Condition>,
     cursor: Vec<(
@@ -120,7 +120,7 @@ impl Transpile for WhereExpression {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
+    use alloc::borrow::Cow;
 
     use graph_types::ontology::DataTypeWithMetadata;
 

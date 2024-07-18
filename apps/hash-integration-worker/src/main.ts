@@ -1,3 +1,13 @@
+/* eslint-disable import/first */
+
+import * as Sentry from "@sentry/node";
+
+Sentry.init({
+  dsn: process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
+  enabled: !!process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
+  tracesSampleRate: 1.0,
+});
+
 import * as http from "node:http";
 import { createRequire } from "node:module";
 import * as path from "node:path";
@@ -7,13 +17,12 @@ import { fileURLToPath } from "node:url";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
+import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import { createVaultClient } from "@local/hash-backend-utils/vault";
-import { NativeConnection, Worker } from "@temporalio/worker";
+import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
-import * as googleActivities from "./google-activities";
-import * as graphActivities from "./graph-activities";
 import * as linearActivities from "./linear-activities";
 import * as workflows from "./workflows";
 
@@ -33,7 +42,7 @@ config({ silent: true, path: monorepoRootDir });
 
 export const logger = new Logger({
   mode: process.env.NODE_ENV === "production" ? "prod" : "dev",
-  serviceName: "api",
+  serviceName: "integration-worker",
 });
 
 const TEMPORAL_HOST = new URL(
@@ -72,26 +81,16 @@ const workflowOption = () =>
     : { workflowsPath: require.resolve("./workflows") };
 
 async function run() {
+  // eslint-disable-next-line no-console
+  console.info("Starting integration worker...");
   const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
   });
 
-  const vaultClient = createVaultClient();
-  if (!vaultClient) {
-    throw new Error("Vault client not created");
-  }
-
   const worker = await Worker.create({
     ...workflowOption(),
     activities: {
-      ...googleActivities.createGoogleActivities({
-        graphApiClient,
-        vaultClient,
-      }),
-      ...graphActivities.createGraphActivities({
-        graphApiClient,
-      }),
       ...linearActivities.createLinearIntegrationActivities({
         graphApiClient,
       }),
@@ -101,6 +100,15 @@ async function run() {
     }),
     namespace: "HASH",
     taskQueue: "integration",
+    sinks: { ...defaultSinks(), ...sentrySinks() },
+    interceptors: {
+      workflowModules: [
+        require.resolve(
+          "@local/hash-backend-utils/temporal/interceptors/workflows/sentry",
+        ),
+      ],
+      activityInbound: [(ctx) => new SentryActivityInboundInterceptor(ctx)],
+    },
   });
 
   const httpServer = createHealthCheckServer();
@@ -112,8 +120,16 @@ async function run() {
   await worker.run();
 }
 
-process.on("SIGINT", () => process.exit(1));
-process.on("SIGTERM", () => process.exit(1));
+process.on("SIGINT", () => {
+  // eslint-disable-next-line no-console
+  console.info("Received SIGINT, exiting...");
+  process.exit(1);
+});
+process.on("SIGTERM", () => {
+  // eslint-disable-next-line no-console
+  console.info("Received SIGTERM, exiting...");
+  process.exit(1);
+});
 
 run().catch((err) => {
   // eslint-disable-next-line no-console

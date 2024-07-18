@@ -1,6 +1,13 @@
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -16,14 +23,7 @@ import {
   isPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type {
-  BaseUrl,
-  Entity,
-  EntityId,
-  EntityRootType,
-  EntityTypeWithMetadata,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
@@ -44,10 +44,10 @@ import {
 import { useKey } from "rooks";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { isPageArchived } from "../../../../shared/is-archived";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
@@ -138,12 +138,12 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   );
 
   const { data, loading: loadingEntities } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
       includePermissions: false,
-      query: {
+      request: {
         filter: {
           all: [
             {
@@ -193,7 +193,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
   const entitiesSubgraph = data
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.structuralQueryEntities.subgraph,
+        data.getEntitySubgraph.subgraph,
       )
     : undefined;
 

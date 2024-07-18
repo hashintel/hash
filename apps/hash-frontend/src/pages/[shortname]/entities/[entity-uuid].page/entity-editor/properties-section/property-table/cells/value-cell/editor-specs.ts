@@ -14,7 +14,7 @@ import {
   faSquareCheck,
   faText,
 } from "@hashintel/design-system";
-import type { CustomDataType } from "@local/hash-subgraph";
+import type { CustomDataType } from "@local/hash-graph-types/ontology";
 
 import type { CustomIcon } from "../../../../../../../../../components/grid/utils/custom-grid-icons";
 import type { EditorType } from "./types";

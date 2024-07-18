@@ -1,5 +1,8 @@
 import { Autocomplete, Avatar } from "@hashintel/design-system";
-import type { AccountGroupId, AccountId } from "@local/hash-subgraph";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
 import {
   autocompleteClasses,
   Box,
@@ -20,7 +23,7 @@ import type {
   User,
 } from "../../../../lib/user-and-org";
 import { Button } from "../../../../shared/ui";
-import { getImageUrlFromEntityProperties } from "../../get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../get-file-properties";
 
 export const InviteAccountForm: FunctionComponent<{
   excludeAccountIds?: (AccountId | AccountGroupId)[];

@@ -1,33 +1,43 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type {
-  DataTypeStructuralQuery,
   EntityQueryCursor,
-  EntityStructuralQuery,
-  EntityTypeStructuralQuery,
+  GetDataTypeSubgraphParams,
+  GetEntitySubgraphRequest,
+  GetEntityTypeSubgraphParams,
+  GetPropertyTypeSubgraphParams,
   GraphApi,
-  PropertyTypeStructuralQuery,
   UpdateDataTypeEmbeddingParams,
   UpdateEntityEmbeddingsParams,
   UpdateEntityTypeEmbeddingParams,
   UpdatePropertyTypeEmbeddingParams,
 } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type {
-  AccountId,
-  DataTypeRootType,
+  CreateEntityParameters,
+  SerializedEntity,
+} from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { Uuid } from "@local/hash-graph-types/branded";
+import type {
   DataTypeWithMetadata,
-  Entity,
-  EntityRootType,
-  EntityTypeRootType,
   EntityTypeWithMetadata,
-  PropertyTypeRootType,
   PropertyTypeWithMetadata,
-  Subgraph,
-  Uuid,
+} from "@local/hash-graph-types/ontology";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  deserializeSubgraph,
+  mapGraphApiEntityToEntity,
+  mapGraphApiSubgraphToSubgraph,
+  serializeSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type {
+  DataTypeRootType,
+  EntityTypeRootType,
+  PropertyTypeRootType,
+  SerializedEntityRootType,
+  SerializedSubgraph,
 } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
@@ -35,11 +45,10 @@ import {
   getEntities,
   getEntityTypes,
   getPropertyTypes,
-  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
 export type EntityQueryResponse = {
-  subgraph: Subgraph<EntityRootType>;
+  subgraph: SerializedSubgraph<SerializedEntityRootType>;
   cursor?: EntityQueryCursor | null;
 };
 
@@ -50,83 +59,104 @@ export const createGraphActivities = ({
 }) => ({
   async getUserAccountIds(): Promise<AccountId[]> {
     return graphApiClient
-      .getEntitiesByQuery("00000000-0000-0000-0000-000000000000", {
-        query: {
-          filter: {
-            all: [
-              {
-                equal: [
-                  { path: ["type", "baseUrl"] },
-                  { parameter: systemEntityTypes.user.entityTypeBaseUrl },
-                ],
-              },
-            ],
-          },
-          graphResolveDepths: zeroedGraphResolveDepths,
-          includeDrafts: true,
-          temporalAxes: currentTimeInstantTemporalAxes,
+      .getEntities("00000000-0000-0000-0000-000000000000", {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+              ],
+            },
+          ],
         },
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
       })
-      .then((response) => {
-        const subgraph: Subgraph<EntityRootType> =
-          mapGraphApiSubgraphToSubgraph(response.data.subgraph);
-        return subgraph.roots.map(
-          (root) =>
-            extractEntityUuidFromEntityId(root.baseId) as Uuid as AccountId,
-        );
-      });
+      .then(({ data: response }) =>
+        response.entities.map((entity) => {
+          const mappedEntity = mapGraphApiEntityToEntity(entity, null, true);
+          const entity_uuid = extractEntityUuidFromEntityId(
+            mappedEntity.metadata.recordId.entityId,
+          );
+          return entity_uuid as Uuid as AccountId;
+        }),
+      );
   },
 
-  async getDataTypesByQuery(params: {
+  async getDataTypesSubgraph(params: {
     authentication: {
       actorId: AccountId;
     };
-    query: DataTypeStructuralQuery;
-  }): Promise<Subgraph<DataTypeRootType>> {
+    request: GetDataTypeSubgraphParams;
+  }): Promise<SerializedSubgraph<DataTypeRootType>> {
     return graphApiClient
-      .getDataTypesByQuery(params.authentication.actorId, params.query)
-      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
+      .getDataTypeSubgraph(params.authentication.actorId, params.request)
+      .then(
+        ({ data: response }) =>
+          serializeSubgraph(
+            mapGraphApiSubgraphToSubgraph(
+              response.subgraph,
+              params.authentication.actorId,
+            ),
+          ) as SerializedSubgraph<DataTypeRootType>,
+      );
   },
 
-  async getPropertyTypesByQuery(params: {
+  async getPropertyTypesSubgraph(params: {
     authentication: {
       actorId: AccountId;
     };
-    query: PropertyTypeStructuralQuery;
-  }): Promise<Subgraph<PropertyTypeRootType>> {
+    request: GetPropertyTypeSubgraphParams;
+  }): Promise<SerializedSubgraph<PropertyTypeRootType>> {
     return graphApiClient
-      .getPropertyTypesByQuery(params.authentication.actorId, params.query)
-      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
+      .getPropertyTypeSubgraph(params.authentication.actorId, params.request)
+      .then(
+        ({ data: response }) =>
+          serializeSubgraph(
+            mapGraphApiSubgraphToSubgraph(
+              response.subgraph,
+              params.authentication.actorId,
+            ),
+          ) as SerializedSubgraph<PropertyTypeRootType>,
+      );
   },
 
-  async getEntityTypesByQuery(params: {
+  async getEntityTypesSubgraph(params: {
     authentication: {
       actorId: AccountId;
     };
-    query: EntityTypeStructuralQuery;
-  }): Promise<Subgraph<EntityTypeRootType>> {
+    request: GetEntityTypeSubgraphParams;
+  }): Promise<SerializedSubgraph<EntityTypeRootType>> {
     return graphApiClient
-      .getEntityTypesByQuery(params.authentication.actorId, params.query)
-      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
+      .getEntityTypeSubgraph(params.authentication.actorId, params.request)
+      .then(
+        ({ data: response }) =>
+          serializeSubgraph(
+            mapGraphApiSubgraphToSubgraph(
+              response.subgraph,
+              params.authentication.actorId,
+            ),
+          ) as SerializedSubgraph<EntityTypeRootType>,
+      );
   },
 
-  async getEntitiesByQuery(params: {
+  async getEntitySubgraph(params: {
     authentication: {
       actorId: AccountId;
     };
-    query: EntityStructuralQuery;
-    limit?: number;
-    cursor?: EntityQueryCursor;
+    request: GetEntitySubgraphRequest;
   }): Promise<EntityQueryResponse> {
     return graphApiClient
-      .getEntitiesByQuery(params.authentication.actorId, {
-        query: params.query,
-        limit: params.limit,
-        cursor: params.cursor,
-      })
-      .then((response) => ({
-        subgraph: mapGraphApiSubgraphToSubgraph(response.data.subgraph),
-        cursor: response.data.cursor,
+      .getEntitySubgraph(params.authentication.actorId, params.request)
+      .then(({ data: response }) => ({
+        subgraph: serializeSubgraph(
+          mapGraphApiSubgraphToSubgraph(
+            response.subgraph,
+            params.authentication.actorId,
+          ),
+        ) as SerializedSubgraph<SerializedEntityRootType>,
+        cursor: response.cursor,
       }));
   },
 
@@ -201,34 +231,39 @@ export const createGraphActivities = ({
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async getSubgraphDataTypes(params: {
-    subgraph: Subgraph;
+    subgraph: SerializedSubgraph;
   }): Promise<DataTypeWithMetadata[]> {
-    return getDataTypes(params.subgraph);
+    return getDataTypes(deserializeSubgraph(params.subgraph));
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async getSubgraphPropertyTypes(params: {
-    subgraph: Subgraph;
+    subgraph: SerializedSubgraph;
   }): Promise<PropertyTypeWithMetadata[]> {
-    return getPropertyTypes(params.subgraph);
+    return getPropertyTypes(deserializeSubgraph(params.subgraph));
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async getSubgraphEntityTypes(params: {
-    subgraph: Subgraph;
+    subgraph: SerializedSubgraph;
   }): Promise<EntityTypeWithMetadata[]> {
-    return getEntityTypes(params.subgraph);
+    return getEntityTypes(deserializeSubgraph(params.subgraph));
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async getSubgraphEntities(params: { subgraph: Subgraph }): Promise<Entity[]> {
-    return getEntities(params.subgraph);
+  async getSubgraphEntities(params: {
+    subgraph: SerializedSubgraph;
+  }): Promise<SerializedEntity[]> {
+    return getEntities(deserializeSubgraph(params.subgraph)).map((entity) =>
+      entity.toJSON(),
+    );
   },
 
   async createEntity(
-    ...params: Parameters<typeof graphApiClient.createEntity>
+    authentication: AuthenticationContext,
+    params: CreateEntityParameters,
   ) {
-    return graphApiClient.createEntity(...params).then((result) => result.data);
+    return Entity.create(graphApiClient, authentication, params);
   },
 
   async getHashInstanceAdminAccountGroupId(authentication: {

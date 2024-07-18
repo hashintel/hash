@@ -1,26 +1,23 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import {
+  LinkEntity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  HasSpatiallyPositionedContent,
-  HasSpatiallyPositionedContentProperties,
-} from "@local/hash-isomorphic-utils/system-types/canvas";
-import type {
-  HasDataProperties,
-  HasIndexedContentProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityId } from "@local/hash-subgraph";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import type { PositionInput } from "../../../graphql/api-types.gen";
 import type { ImpureGraphFunction } from "../../context-types";
 import {
-  archiveEntity,
   getEntityOutgoingLinks,
   getLatestEntityById,
 } from "../primitive/entity";
@@ -42,7 +39,12 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
     blockCollectionEntityId: EntityId;
     blockCollectionEntityTypeId: VersionedUrl;
   },
-  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>
+  Promise<
+    {
+      linkEntity: LinkEntity<HasSpatiallyPositionedContent | HasIndexedContent>;
+      rightEntity: Block;
+    }[]
+  >
 > = async (
   ctx,
   authentication,
@@ -61,8 +63,8 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
         : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     },
   )) as
-    | LinkEntity<HasSpatiallyPositionedContentProperties>[]
-    | LinkEntity<HasIndexedContentProperties>[];
+    | LinkEntity<HasSpatiallyPositionedContent>[]
+    | LinkEntity<HasIndexedContent>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
@@ -89,7 +91,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     block: Block;
     position: PositionInput;
   },
-  Promise<HasSpatiallyPositionedContent | HasIndexedContentProperties>
+  Promise<Entity<HasSpatiallyPositionedContent | HasIndexedContent>>
 > = async (ctx, authentication, params) => {
   const {
     blockCollectionEntityId,
@@ -97,25 +99,27 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     position: { canvasPosition, indexPosition },
   } = params;
 
-  if (!canvasPosition && !indexPosition) {
-    throw new Error(`One of indexPosition or canvasPosition must be defined`);
-  }
-
-  const linkEntity: LinkEntity = await createLinkEntity(ctx, authentication, {
-    leftEntityId: blockCollectionEntityId,
-    rightEntityId: block.entity.metadata.recordId.entityId,
-    linkEntityTypeId: canvasPosition
-      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
-      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+  const linkEntity: LinkEntity = await createLinkEntity<
+    HasSpatiallyPositionedContent | HasIndexedContent
+  >(ctx, authentication, {
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
-    properties: canvasPosition || indexPosition,
+    properties: mergePropertyObjectAndMetadata<
+      HasSpatiallyPositionedContent | HasIndexedContent
+    >(canvasPosition || indexPosition, undefined),
+    linkData: {
+      leftEntityId: blockCollectionEntityId,
+      rightEntityId: block.entity.metadata.recordId.entityId,
+    },
+    entityTypeId: canvasPosition
+      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
+      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
-  return linkEntity as unknown as
-    | HasSpatiallyPositionedContent
-    | HasIndexedContentProperties;
+  return linkEntity as
+    | Entity<HasSpatiallyPositionedContent>
+    | Entity<HasIndexedContent>;
 };
 
 /**
@@ -138,21 +142,21 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
     linkEntityId,
   } = params;
 
-  if (!canvasPosition && !indexPosition) {
-    throw new Error(`One of fractionalIndex or canvasPosition must be defined`);
-  }
-
   const linkEntity = await getLatestEntityById(ctx, authentication, {
     entityId: linkEntityId,
   });
 
-  if (!linkEntity.linkData) {
-    throw new Error(`Entity with id ${linkEntityId} is not a link entity`);
-  }
-
   await updateLinkEntity(ctx, authentication, {
-    properties: canvasPosition || indexPosition,
-    linkEntity: linkEntity as LinkEntity,
+    propertyPatches: [
+      {
+        op: "replace",
+        path: [],
+        property: mergePropertyObjectAndMetadata(
+          indexPosition || canvasPosition,
+        ),
+      },
+    ],
+    linkEntity: new LinkEntity(linkEntity),
   });
 };
 
@@ -173,5 +177,5 @@ export const removeBlockFromBlockCollection: ImpureGraphFunction<
     entityId: linkEntityId,
   });
 
-  await archiveEntity(ctx, authentication, { entity: linkEntity });
+  await linkEntity.archive(ctx.graphApi, authentication);
 };

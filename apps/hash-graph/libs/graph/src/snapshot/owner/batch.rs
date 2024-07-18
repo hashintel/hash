@@ -19,19 +19,23 @@ pub enum AccountRowBatch {
 }
 
 #[async_trait]
-impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
-    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+impl<C, A> WriteBatch<C, A> for AccountRowBatch
+where
+    C: AsClient,
+    A: ZanzibarBackend + Send + Sync,
+{
+    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         postgres_client
             .as_client()
             .client()
             .simple_query(
                 "
-                    CREATE TEMPORARY TABLE accounts_tmp
-                        (LIKE accounts INCLUDING ALL)
-                        ON COMMIT DROP;
-                    CREATE TEMPORARY TABLE account_groups_tmp
-                        (LIKE account_groups INCLUDING ALL)
-                        ON COMMIT DROP;
+                    CREATE TEMPORARY TABLE accounts_tmp (
+                        LIKE accounts INCLUDING ALL
+                    ) ON COMMIT DROP;
+                    CREATE TEMPORARY TABLE account_groups_tmp (
+                        LIKE account_groups INCLUDING ALL
+                    ) ON COMMIT DROP;
                 ",
             )
             .await
@@ -40,11 +44,7 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
         Ok(())
     }
 
-    async fn write(
-        self,
-        postgres_client: &PostgresStore<C>,
-        authorization_api: &mut (impl ZanzibarBackend + Send),
-    ) -> Result<(), InsertionError> {
+    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Accounts(accounts) => {
@@ -82,7 +82,8 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
                 }
             }
             Self::AccountGroupAccountRelations(relations) => {
-                authorization_api
+                postgres_client
+                    .authorization_api
                     .touch_relationships(relations)
                     .await
                     .change_context(InsertionError)?;
@@ -92,7 +93,7 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
     }
 
     async fn commit(
-        postgres_client: &PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, A>,
         _validation: bool,
     ) -> Result<(), InsertionError> {
         postgres_client

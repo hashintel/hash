@@ -1,3 +1,4 @@
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   extractDraftIdFromEntityId,
@@ -191,9 +192,11 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
     }
 
     if (notification.kind === "graph-change") {
-      return `/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
-        notification.occurredInEntity.metadata.recordId.entityId,
-      )}`;
+      return generateEntityPath({
+        entityId: notification.occurredInEntity.metadata.recordId.entityId,
+        includeDraftId: true,
+        shortname: entityOwningShortname,
+      });
     }
 
     const { occurredInBlock } = notification;

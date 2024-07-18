@@ -1,28 +1,28 @@
 //! The entity-graph query-layer for the HASH datastore
 
 // Not required, reason: code quality
-#![feature(lint_reasons)]
 // Not required, reason: Simpler than using blanket implementations
 #![feature(trait_alias)]
 // Not required, reason: much more simple bounds
-#![feature(associated_type_bounds, impl_trait_in_assoc_type)]
+#![feature(impl_trait_in_assoc_type)]
 #![feature(try_find)]
 #![feature(type_alias_impl_trait)]
 #![feature(hash_raw_entry)]
 #![feature(let_chains)]
 #![feature(never_type)]
 #![feature(extend_one)]
-#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
+#![feature(doc_auto_cfg)]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![expect(
     unreachable_pub,
+    clippy::significant_drop_tightening,
     reason = "This should be enabled but it's currently too noisy"
 )]
 
-use std::{
-    fmt,
-    path::{Path, PathBuf},
-};
+extern crate alloc;
+
+use core::fmt;
+use std::path::{Path, PathBuf};
 
 pub mod knowledge;
 pub mod ontology;

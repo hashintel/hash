@@ -13,7 +13,7 @@ import { SITE_DESCRIPTION } from "../config";
 import { DiscordIcon } from "./icons/discord-icon";
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
 import { GithubIcon } from "./icons/github-icon";
-import { TwitterIcon } from "./icons/twitter-icon";
+import { XTwitterIcon } from "./icons/x-twitter-icon";
 import { Link } from "./link";
 import { Logo } from "./logo";
 import { Spacer } from "./spacer";
@@ -154,8 +154,8 @@ export const Footer: FunctionComponent = () => (
               <Link href="https://github.com/hashintel/hash">
                 <GithubIcon fontSize="inherit" />
               </Link>
-              <Link href="https://twitter.com/hashintel">
-                <TwitterIcon fontSize="inherit" />
+              <Link href="https://x.com/hashintel">
+                <XTwitterIcon fontSize="inherit" />
               </Link>
               <Link href="https://hash.ai/discord">
                 <DiscordIcon fontSize="inherit" />
@@ -172,9 +172,9 @@ export const Footer: FunctionComponent = () => (
         >
           <Grid item lg={4} md={6}>
             <FooterSection label="Resources">
-              <FooterLink href="/blog">Developer Blog</FooterLink>
-              <FooterLink href="/docs">Developer Docs</FooterLink>
-              <FooterLink href="/roadmap">Roadmap</FooterLink>
+              <FooterLink href="/blog">Dev Blog</FooterLink>
+              <FooterLink href="/docs">Dev Docs</FooterLink>
+              <FooterLink href="/roadmap">Dev Roadmap</FooterLink>
               {/* @todo: add tutorials pages */}
               {/* <FooterLink href="/tutorials">Tutorials</FooterLink> */}
             </FooterSection>
@@ -207,8 +207,7 @@ export const Footer: FunctionComponent = () => (
                 </Box>
                 HASH
               </FooterLink>
-              {/* @todo: add docs page */}
-              {/* <FooterLink href="/docs/getting-started">
+              {/* <FooterLink href="/docs/utils">
                 <Box component="span" sx={{ marginRight: 1 }}>
                   <FaIcon
                     name="chevron-right"
@@ -241,8 +240,7 @@ export const Footer: FunctionComponent = () => (
                   {"<5 minutes"}
                 </Box>
               </FooterLink>
-              {/* @todo: fix href */}
-              {/* <FooterLink href="/">Contribute</FooterLink> */}
+              <FooterLink href="/docs/contributing">Contribute</FooterLink>
               <FooterLink href="https://hash.ai/contact">Contact Us</FooterLink>
             </FooterSection>
           </Grid>

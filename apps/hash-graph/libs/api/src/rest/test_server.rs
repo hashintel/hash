@@ -1,4 +1,5 @@
-use std::{collections::HashMap, sync::Arc};
+use alloc::sync::Arc;
+use std::collections::HashMap;
 
 use authorization::{
     backend::ZanzibarBackend,
@@ -7,7 +8,7 @@ use authorization::{
         PropertyTypeNamespace, WebNamespace,
     },
     zanzibar::types::{RelationshipFilter, ResourceFilter},
-    NoAuthorization,
+    AuthorizationApi,
 };
 use axum::{
     body::Body,
@@ -24,7 +25,6 @@ use graph::{
 use graph_types::account::AccountId;
 use hash_status::{Status, StatusCode};
 use tokio::io;
-use tokio_postgres::NoTls;
 use tokio_util::{codec::FramedRead, io::StreamReader};
 use uuid::Uuid;
 
@@ -34,9 +34,9 @@ use crate::{
 };
 
 /// Create routes for interacting with entities.
-pub fn routes<A>(store_pool: PostgresStorePool<NoTls>, authorization_api: A) -> Router
+pub fn routes<A>(store_pool: PostgresStorePool, authorization_api: A) -> Router
 where
-    A: ZanzibarBackend + Clone + Send + Sync + 'static,
+    A: AuthorizationApi + ZanzibarBackend + Clone + Send + Sync + 'static,
 {
     Router::new()
         .route("/snapshot", post(restore_snapshot::<A>))
@@ -64,11 +64,11 @@ fn store_acquisition_error(report: Report<impl Context>) -> Response {
         )),
         vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
             // TODO: add information from the report here
-            //   https://app.asana.com/0/1203363157432094/1203639884730779/f
+            //   see https://linear.app/hash/issue/H-3009
             HashMap::new(),
             // TODO: We should encapsulate these Reasons within the type system, perhaps
-            //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
-            //  or perhaps as a big enum, or as an attachment
+            //       requiring top level contexts to implement a trait `ErrorReason::to_reason`
+            //       or perhaps as a big enum, or as an attachment
             "STORE_ACQUISITION_FAILURE".to_owned(),
         ))],
     ))
@@ -90,18 +90,17 @@ fn report_to_response<C>(report: &Report<C>, code: impl Into<String>) -> Respons
 }
 
 async fn restore_snapshot<A>(
-    store_pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    store_pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
     snapshot: Body,
 ) -> Result<Response, Response>
 where
-    A: ZanzibarBackend + Send + Sync + Clone,
+    A: AuthorizationApi + ZanzibarBackend + Send + Sync + Clone,
 {
     let store = store_pool
-        .acquire()
+        .acquire((**authorization_api).clone(), None)
         .await
         .map_err(store_acquisition_error)?;
-    let mut authorization_api = (**authorization_api).clone();
 
     SnapshotStore::new(store)
         .restore_snapshot(
@@ -113,7 +112,6 @@ where
                 ),
                 codec::bytes::JsonLinesDecoder::default(),
             ),
-            &mut authorization_api,
             10_000,
             true,
         )
@@ -131,22 +129,13 @@ where
 }
 
 async fn delete_accounts<A>(
-    pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
 ) -> Result<Response, Response>
 where
-    A: ZanzibarBackend + Send + Sync + Clone,
+    A: AuthorizationApi + ZanzibarBackend + Clone,
 {
-    let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
     let mut authorization_api = (**authorization_api).clone();
-
-    store
-        .delete_accounts(AccountId::new(Uuid::nil()), &NoAuthorization)
-        .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not delete accounts");
-            report_to_response(&report, "ACCOUNT_DELETION_FAILURE")
-        })?;
 
     authorization_api
         .delete_relations(RelationshipFilter::from_resource(
@@ -168,6 +157,16 @@ where
             report_to_response(&report, "ACCOUNT_DELETION_FAILURE")
         })?;
 
+    pool.acquire(authorization_api, None)
+        .await
+        .map_err(store_acquisition_error)?
+        .delete_accounts(AccountId::new(Uuid::nil()))
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not delete accounts");
+            report_to_response(&report, "ACCOUNT_DELETION_FAILURE")
+        })?;
+
     Ok(status_to_response(Status::<()>::new(
         StatusCode::Ok,
         Some("Accounts deleted successfully".to_owned()),
@@ -176,30 +175,13 @@ where
 }
 
 async fn delete_data_types<A>(
-    pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
 ) -> Result<Response, Response>
 where
-    A: ZanzibarBackend + Send + Sync + Clone,
+    A: AuthorizationApi + ZanzibarBackend + Clone,
 {
-    let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
     let mut authorization_api = (**authorization_api).clone();
-
-    store.delete_data_types().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not delete data types");
-        status_to_response(Status::new(
-            report
-                .request_ref::<StatusCode>()
-                .copied()
-                .next()
-                .unwrap_or(StatusCode::Unknown),
-            Some(report.to_string()),
-            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                HashMap::new(),
-                "DATA_TYPE_DELETION_FAILURE".to_owned(),
-            ))],
-        ))
-    })?;
 
     authorization_api
         .delete_relations(RelationshipFilter::from_resource(
@@ -211,6 +193,27 @@ where
             report_to_response(&report, "DATA_TYPE_DELETION_FAILURE")
         })?;
 
+    pool.acquire(authorization_api, None)
+        .await
+        .map_err(store_acquisition_error)?
+        .delete_data_types()
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not delete data types");
+            status_to_response(Status::new(
+                report
+                    .request_ref::<StatusCode>()
+                    .copied()
+                    .next()
+                    .unwrap_or(StatusCode::Unknown),
+                Some(report.to_string()),
+                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                    HashMap::new(),
+                    "DATA_TYPE_DELETION_FAILURE".to_owned(),
+                ))],
+            ))
+        })?;
+
     Ok(status_to_response(Status::<()>::new(
         StatusCode::Ok,
         Some("Data types deleted successfully".to_owned()),
@@ -219,19 +222,13 @@ where
 }
 
 async fn delete_property_types<A>(
-    pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
 ) -> Result<Response, Response>
 where
-    A: ZanzibarBackend + Send + Sync + Clone,
+    A: AuthorizationApi + ZanzibarBackend + Clone,
 {
-    let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
     let mut authorization_api = (**authorization_api).clone();
-
-    store.delete_property_types().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not delete property types");
-        report_to_response(&report, "PROPERTY_TYPE_DELETION_FAILURE")
-    })?;
 
     authorization_api
         .delete_relations(RelationshipFilter::from_resource(
@@ -243,6 +240,16 @@ where
             report_to_response(&report, "PROPERTY_TYPE_DELETION_FAILURE")
         })?;
 
+    pool.acquire(authorization_api, None)
+        .await
+        .map_err(store_acquisition_error)?
+        .delete_property_types()
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not delete property types");
+            report_to_response(&report, "PROPERTY_TYPE_DELETION_FAILURE")
+        })?;
+
     Ok(status_to_response(Status::<()>::new(
         StatusCode::Ok,
         Some("Property types deleted successfully".to_owned()),
@@ -251,19 +258,13 @@ where
 }
 
 async fn delete_entity_types<A>(
-    pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
 ) -> Result<Response, Response>
 where
-    A: ZanzibarBackend + Send + Sync + Clone,
+    A: AuthorizationApi + ZanzibarBackend + Clone,
 {
-    let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
     let mut authorization_api = (**authorization_api).clone();
-
-    store.delete_entity_types().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not delete entity types");
-        report_to_response(&report, "ENTITY_TYPE_DELETION_FAILURE")
-    })?;
 
     authorization_api
         .delete_relations(RelationshipFilter::from_resource(
@@ -275,6 +276,16 @@ where
             report_to_response(&report, "ENTITY_TYPE_DELETION_FAILURE")
         })?;
 
+    pool.acquire(authorization_api, None)
+        .await
+        .map_err(store_acquisition_error)?
+        .delete_entity_types()
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not delete entity types");
+            report_to_response(&report, "ENTITY_TYPE_DELETION_FAILURE")
+        })?;
+
     Ok(status_to_response(Status::<()>::new(
         StatusCode::Ok,
         Some("Entity types deleted successfully".to_owned()),
@@ -283,19 +294,13 @@ where
 }
 
 async fn delete_entities<A>(
-    pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    pool: Extension<Arc<PostgresStorePool>>,
     authorization_api: Extension<Arc<A>>,
 ) -> Result<Response, Response>
 where
-    A: ZanzibarBackend + Send + Sync + Clone,
+    A: AuthorizationApi + ZanzibarBackend + Clone,
 {
-    let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
     let mut authorization_api = (**authorization_api).clone();
-
-    store.delete_entities().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not delete entities");
-        report_to_response(&report, "ENTITY_DELETION_FAILURE")
-    })?;
 
     authorization_api
         .delete_relations(RelationshipFilter::from_resource(
@@ -304,6 +309,16 @@ where
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not delete entity relationships");
+            report_to_response(&report, "ENTITY_DELETION_FAILURE")
+        })?;
+
+    pool.acquire(authorization_api, None)
+        .await
+        .map_err(store_acquisition_error)?
+        .delete_entities()
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not delete entities");
             report_to_response(&report, "ENTITY_DELETION_FAILURE")
         })?;
 

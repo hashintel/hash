@@ -1,13 +1,12 @@
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 
-use authorization::schema::EntityTypeId;
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt};
-use graph_types::ontology::EntityTypeWithMetadata;
+use graph_types::ontology::{EntityTypeId, EntityTypeWithMetadata};
 use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient;
-use type_system::{url::VersionedUrl, ClosedEntityType};
+use type_system::{schema::ClosedEntityType, url::VersionedUrl};
 
 use crate::{
     ontology::EntityTypeQueryPath,
@@ -56,7 +55,7 @@ pub struct OntologyEdgeTraversal<L, R> {
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
-impl<C: AsClient> PostgresStore<C> {
+impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
     #[tracing::instrument(level = "trace", skip(self, filter))]
     pub(crate) async fn read_closed_schemas<'f>(
         &self,
@@ -102,13 +101,13 @@ impl<C: AsClient> PostgresStore<C> {
         let table = Table::Reference(reference_table).transpile_to_string();
         let source =
             if let ForeignKeyReference::Single { join, .. } = reference_table.source_relation() {
-                join.transpile_to_string()
+                join.to_expression(None).transpile_to_string()
             } else {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
         let target =
             if let ForeignKeyReference::Single { on, .. } = reference_table.target_relation() {
-                on.transpile_to_string()
+                on.to_expression(None).transpile_to_string()
             } else {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };

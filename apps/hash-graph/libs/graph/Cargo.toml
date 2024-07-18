@@ -7,6 +7,11 @@ edition.workspace = true
 publish = false
 description = "HASH Graph API"
 
+[package.metadata.sync.turborepo]
+extra-dependencies = [
+    { name = "@apps/hash-graph-migrations", version = "0.0.0-private" },
+]
+
 [dependencies]
 graph-types = { workspace = true, features = ["postgres"] }
 validation = { workspace = true }
@@ -20,31 +25,37 @@ error-stack = { workspace = true, features = ["std", "serde"] }
 hash-status = { workspace = true }
 type-system = { workspace = true, features = ["postgres"] }
 
-postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"] }
+postgres-types = { workspace = true, features = [
+    "derive",
+    "with-serde_json-1",
+] }
 serde = { workspace = true, features = ["derive"] }
 utoipa = { workspace = true, features = ["uuid"], optional = true }
 tracing = { workspace = true }
 
-async-trait = "0.1.78"
+async-trait = "0.1.81"
 async-scoped = { version = "0.9.0", features = ["use-tokio"] }
-bb8-postgres = "0.8.1"
+deadpool-postgres = { version = "0.14.0", default-features = false }
 bytes = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"], optional = true }
-derivative = "2.2.0"
+derive-where = { workspace = true }
 dotenv-flow = "0.16.2"
-json-patch = { version = "1.2.0", default-features = false }
 futures = { workspace = true }
 mime = "0.3.17"
-refinery = { version = "0.8", features = ["tokio-postgres"] }
-regex = "1.10.3"
-semver = { version = "1.0.22", default-features = false, features = ["serde"] }
-sentry = { version = "0.32.2", features = ["tracing", "tower", "tower-http"], default-features = false }
+refinery = { version = "0.8.14", features = ["tokio-postgres"] }
+regex = "1.10.5"
+semver = { version = "1.0.23", default-features = false, features = ["serde"] }
+sentry = { version = "0.34.0", features = [
+    "tracing",
+    "tower",
+    "tower-http",
+], default-features = false }
 serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
 time = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
 tokio-postgres = { version = "0.7.10", default-features = false }
-tokio-serde = { version = "0.8", features = ["json"] }
+tokio-serde = { version = "0.8.0", features = ["json"] }
 tokio-util = { workspace = true, features = ["io"] }
 uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 
@@ -56,4 +67,12 @@ tokio = { workspace = true, features = ["macros"] }
 
 [features]
 clap = ["dep:clap"]
-utoipa = ["dep:utoipa", "graph-types/utoipa", "temporal-versioning/utoipa", "authorization/utoipa", "json-patch/utoipa"]
+utoipa = [
+    "dep:utoipa",
+    "graph-types/utoipa",
+    "temporal-versioning/utoipa",
+    "authorization/utoipa",
+]
+
+[lints]
+workspace = true

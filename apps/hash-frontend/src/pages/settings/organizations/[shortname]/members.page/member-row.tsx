@@ -1,5 +1,6 @@
 import { useMutation } from "@apollo/client";
-import type { AccountEntityId, AccountGroupId } from "@local/hash-subgraph";
+import type { AccountGroupId } from "@local/hash-graph-types/account";
+import type { AccountEntityId } from "@local/hash-subgraph";
 import { extractAccountId } from "@local/hash-subgraph";
 import { TableCell, TableRow, Typography } from "@mui/material";
 

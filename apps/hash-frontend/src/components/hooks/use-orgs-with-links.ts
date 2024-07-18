@@ -1,20 +1,21 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import type { AccountGroupId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountGroupId, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { Org } from "../../lib/user-and-org";
 import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 
@@ -28,15 +29,15 @@ export const useOrgsWithLinks = ({
 }): {
   loading: boolean;
   orgs?: Org[];
-  refetch: () => Promise<ApolloQueryResult<StructuralQueryEntitiesQuery>>;
+  refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
 } => {
   const { data, loading, refetch } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
       includePermissions: false,
-      query: {
+      request: {
         filter: {
           all: [
             ...(orgAccountGroupIds
@@ -80,7 +81,7 @@ export const useOrgsWithLinks = ({
     skip: !orgAccountGroupIds || !orgAccountGroupIds.length,
   });
 
-  const { structuralQueryEntities: subgraphAndPermissions } = data ?? {};
+  const { getEntitySubgraph: subgraphAndPermissions } = data ?? {};
 
   const orgs = useMemo(() => {
     if (!subgraphAndPermissions) {

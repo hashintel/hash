@@ -27,7 +27,6 @@ export const RESTRICTED_SHORTNAMES = [
   "dashboard",
   "deploy.html",
   "dw",
-  "example",
   "explore",
   "favicon.ico",
   "favicon.png",
@@ -63,7 +62,7 @@ export const RESTRICTED_SHORTNAMES = [
 /**
  * @todo revisit (simple) shortname validation to make use of data type
  *   constraints.
- *   https://app.asana.com/0/0/1202900021005257/f
+ *   https://linear.app/hash/issue/H-2987
  */
 export const shortnameMinimumLength = 4;
 export const shortnameMaximumLength = 24;
@@ -95,7 +94,7 @@ export const shortnameIsTaken: ImpureGraphFunction<
    * @todo this creates a circular dependencies between `org.ts` and `user.ts`
    * and this file.
    *
-   * @see https://app.asana.com/0/1203363157432084/1203568198115111/f
+   * @see https://linear.app/hash/issue/H-2989
    */
   return (
     (await getUserByShortname(ctx, authentication, params)) !== null ||

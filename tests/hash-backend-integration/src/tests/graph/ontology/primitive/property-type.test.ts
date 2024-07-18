@@ -1,5 +1,4 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
@@ -12,12 +11,14 @@ import {
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
-import type { OwnedById, PropertyTypeWithMetadata } from "@local/hash-subgraph";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -55,7 +56,6 @@ beforeAll(async () => {
     graphContext,
     authentication,
     "propertytestorg",
-    logger,
   );
   await joinOrg(graphContext, authentication, {
     userEntityId: testUser2.entity.metadata.recordId.entityId,

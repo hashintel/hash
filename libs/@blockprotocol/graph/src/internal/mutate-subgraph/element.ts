@@ -1,4 +1,4 @@
-import type { Entity } from "../../shared/types/entity.js";
+import type { Entity } from "../../types/entity";
 import type {
   DataTypeVertex,
   DataTypeWithMetadata,
@@ -11,8 +11,7 @@ import type {
   PropertyTypeVertex,
   PropertyTypeWithMetadata,
   Subgraph,
-} from "../../shared/types/subgraph.js";
-import { isTemporalSubgraph } from "../../shared/types/subgraph.js";
+} from "../../types/subgraph";
 
 /**
  * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`
@@ -25,7 +24,7 @@ import { isTemporalSubgraph } from "../../shared/types/subgraph.js";
  * @returns {OntologyTypeVertexId[]} – the vertex IDs of the data type vertices that were added
  */
 export const addDataTypeVerticesToSubgraphByMutation = (
-  subgraph: Subgraph<boolean>,
+  subgraph: Subgraph,
   dataTypes: DataTypeWithMetadata[],
 ): OntologyTypeVertexId[] => {
   const vertexIds: OntologyTypeVertexId[] = [];
@@ -39,7 +38,7 @@ export const addDataTypeVerticesToSubgraphByMutation = (
     };
 
     subgraph.vertices[baseUrl] ??= {};
-    subgraph.vertices[baseUrl]![version] = dataTypeVertex;
+    subgraph.vertices[baseUrl][version] = dataTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version.toString() });
   }
@@ -58,7 +57,7 @@ export const addDataTypeVerticesToSubgraphByMutation = (
  * @returns {OntologyTypeVertexId[]} – the vertex IDs of the property type vertices that were added
  */
 export const addPropertyTypeVerticesToSubgraphByMutation = (
-  subgraph: Subgraph<boolean>,
+  subgraph: Subgraph,
   propertyTypes: PropertyTypeWithMetadata[],
 ): OntologyTypeVertexId[] => {
   const vertexIds: OntologyTypeVertexId[] = [];
@@ -72,7 +71,7 @@ export const addPropertyTypeVerticesToSubgraphByMutation = (
     };
 
     subgraph.vertices[baseUrl] ??= {};
-    subgraph.vertices[baseUrl]![version] = propertyTypeVertex;
+    subgraph.vertices[baseUrl][version] = propertyTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version.toString() });
   }
@@ -91,7 +90,7 @@ export const addPropertyTypeVerticesToSubgraphByMutation = (
  * @returns {OntologyTypeVertexId[]} – the vertex IDs of the entity type vertices that were added
  */
 export const addEntityTypeVerticesToSubgraphByMutation = (
-  subgraph: Subgraph<boolean>,
+  subgraph: Subgraph,
   entityTypes: EntityTypeWithMetadata[],
 ): OntologyTypeVertexId[] => {
   const vertexIds: OntologyTypeVertexId[] = [];
@@ -105,7 +104,7 @@ export const addEntityTypeVerticesToSubgraphByMutation = (
     };
 
     subgraph.vertices[baseUrl] ??= {};
-    subgraph.vertices[baseUrl]![version] = entityTypeVertex;
+    subgraph.vertices[baseUrl][version] = entityTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version.toString() });
   }
@@ -123,80 +122,41 @@ export const addEntityTypeVerticesToSubgraphByMutation = (
  * @param {Entity[]} entities – the entities to add to the provided subgraph
  * @returns {EntityVertexId[]} – the vertex IDs of the added entities
  */
-export const addEntityVerticesToSubgraphByMutation = <Temporal extends boolean>(
-  subgraph: Subgraph<Temporal>,
-  entities: Entity<Temporal>[],
+export const addEntityVerticesToSubgraphByMutation = (
+  subgraph: Subgraph,
+  entities: Entity[],
 ): EntityVertexId[] => {
   const vertexIds: EntityVertexId[] = [];
-  if (isTemporalSubgraph(subgraph)) {
-    /* eslint-disable no-param-reassign -- We want to mutate the input here */
-    for (const entity of entities) {
-      const entityId = entity.metadata.recordId.entityId;
+  /* eslint-disable no-param-reassign -- We want to mutate the input here */
+  for (const entity of entities) {
+    const entityId = entity.metadata.recordId.entityId;
 
-      /*
+    /*
         this cast should be safe as we have just checked if the Subgraph has temporal information, in which case the
         entities should too
       */
-      const entityTemporal = entity as Entity<true>;
-      const entityInterval: EntityIdWithInterval["interval"] =
-        entityTemporal.metadata.temporalVersioning[
-          subgraph.temporalAxes.resolved.variable.axis
-        ];
+    const entityInterval: EntityIdWithInterval["interval"] =
+      entity.metadata.temporalVersioning[
+        subgraph.temporalAxes.resolved.variable.axis
+      ];
 
-      const entityVertex: EntityVertex<true> = {
-        kind: "entity",
-        inner: entityTemporal,
+    const entityVertex: EntityVertex = {
+      kind: "entity",
+      inner: entity,
+    };
+
+    if (!subgraph.vertices[entityId]) {
+      subgraph.vertices[entityId] = {
+        [entityInterval.start.limit]: entityVertex,
       };
-
-      if (!subgraph.vertices[entityId]) {
-        // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
-        subgraph.vertices[entityId] = {
-          [entityInterval.start.limit]: entityVertex,
-        };
-      } else {
-        // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
-        subgraph.vertices[entityId]![entityInterval.start.limit] = entityVertex;
-      }
-
-      vertexIds.push({
-        baseId: entityId,
-        revisionId: entityInterval.start.limit,
-      });
+    } else {
+      subgraph.vertices[entityId][entityInterval.start.limit] = entityVertex;
     }
-  } else {
-    // unsure why this cast is needed
-    const subgraphNonTemporal = subgraph as Subgraph<false>;
 
-    for (const entity of entities) {
-      const entityId = entity.metadata.recordId.entityId;
-
-      /*
-        this cast should be safe as we have just checked if the Subgraph has temporal information, in which case the
-        entities should too
-      */
-      const entityNonTemporal = entity as Entity<false>;
-
-      const entityVertex: EntityVertex<false> = {
-        kind: "entity",
-        inner: entityNonTemporal,
-      };
-
-      const timestamp = new Date(0).toISOString();
-
-      if (!subgraphNonTemporal.vertices[entityId]) {
-        subgraphNonTemporal.vertices[entityId] = {
-          [timestamp]: entityVertex,
-        };
-      } else {
-        throw new Error(
-          `Encountered multiple entities with entityId ${entityId}`,
-        );
-      }
-      vertexIds.push({
-        baseId: entityId,
-        revisionId: timestamp,
-      });
-    }
+    vertexIds.push({
+      baseId: entityId,
+      revisionId: entityInterval.start.limit,
+    });
   }
   /* eslint-enable no-param-reassign */
   return vertexIds;

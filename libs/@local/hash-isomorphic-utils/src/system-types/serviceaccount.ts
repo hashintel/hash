@@ -4,18 +4,24 @@
 
 import type {
   ProfileURLPropertyValue,
+  ProfileURLPropertyValueWithMetadata,
   ServiceAccount,
   ServiceAccountOutgoingLinkAndTarget,
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
+  ServiceAccountPropertiesWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 } from "./shared";
 
 export type {
   ProfileURLPropertyValue,
+  ProfileURLPropertyValueWithMetadata,
   ServiceAccount,
   ServiceAccountOutgoingLinkAndTarget,
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
+  ServiceAccountPropertiesWithMetadata,
   TextDataType,
+  TextDataTypeWithMetadata,
 };

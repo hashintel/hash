@@ -1,12 +1,9 @@
 import { Skeleton } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type {
-  BaseUrl,
-  Entity,
-  EntityId,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
@@ -79,7 +76,8 @@ export const DraftEntities: FunctionComponent<{
 
     const derived = draftEntities.map((entity) => {
       const creator = actors.find(
-        (actor) => actor.accountId === entity.metadata.provenance.createdById,
+        (actor) =>
+          actor.accountId === entity.metadata.provenance.edition.createdById,
       );
 
       if (!creator) {
@@ -197,10 +195,10 @@ export const DraftEntities: FunctionComponent<{
             filterState,
           }).sort((a, b) => {
             const aCreatedAt = new Date(
-              a.entity.metadata.provenance.createdAtDecisionTime,
+              a.entity.metadata.temporalVersioning.decisionTime.start.limit,
             );
             const bCreatedAt = new Date(
-              b.entity.metadata.provenance.createdAtDecisionTime,
+              b.entity.metadata.temporalVersioning.decisionTime.start.limit,
             );
 
             return aCreatedAt.getTime() === bCreatedAt.getTime()
@@ -306,8 +304,8 @@ export const DraftEntities: FunctionComponent<{
         filteredAndSortedDraftEntitiesWithCreatedAt.length === 0 ? (
           <Typography textAlign="center">
             {draftEntitiesWithCreators?.length === 0
-              ? "You have no drafts currently awaiting review."
-              : "No draft entities match the selected filters."}
+              ? "You have no actions currently awaiting review."
+              : "No items entities match the selected filters."}
           </Typography>
         ) : (
           <>

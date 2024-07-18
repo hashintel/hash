@@ -1,5 +1,7 @@
+import { useMutation } from "@apollo/client";
 import { extractVersion } from "@blockprotocol/type-system";
 import { TypeCard } from "@hashintel/design-system";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import {
   extractBaseUrl,
@@ -8,22 +10,29 @@ import {
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
-import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolQueryEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../../../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { Link } from "../../../../../shared/ui/link";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
 import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
 
 export const TypesSection = () => {
-  const { entitySubgraph, replaceWithLatestDbVersion, readonly } =
-    useEntityEditor();
+  const { entitySubgraph, onEntityUpdated, readonly } = useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
+
   const {
     metadata: { recordId, entityTypeId },
-    properties,
   } = entity;
 
   const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
@@ -82,18 +91,20 @@ export const TypesSection = () => {
       setUpdatingVersion(true);
 
       const res = await updateEntity({
-        data: {
-          entityTypeId: versionedUrlFromComponents(
-            entityTypeBaseUrl,
-            newVersion,
-          ),
-          entityId: recordId.entityId,
-          properties,
+        variables: {
+          entityUpdate: {
+            entityTypeId: versionedUrlFromComponents(
+              entityTypeBaseUrl,
+              newVersion,
+            ),
+            entityId: recordId.entityId,
+            propertyPatches: [],
+          },
         },
       });
 
       if (res.data) {
-        await replaceWithLatestDbVersion();
+        onEntityUpdated?.(new Entity(res.data.updateEntity));
         setNewVersion(undefined);
       }
     } finally {

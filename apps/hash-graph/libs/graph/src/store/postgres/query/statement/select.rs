@@ -1,17 +1,44 @@
-use std::fmt::{self, Write};
+use core::fmt::{self, Write};
 
 use crate::store::postgres::query::{
     expression::{GroupByExpression, OrderByExpression},
-    AliasedColumn, AliasedTable, JoinExpression, SelectExpression, Transpile, WhereExpression,
-    WithExpression,
+    Alias, AliasedTable, Expression, Function, JoinExpression, SelectExpression, Table, Transpile,
+    WhereExpression, WithExpression,
 };
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum FromItem {
+    Table { table: Table, alias: Option<Alias> },
+    Function(Function),
+}
+
+impl Transpile for FromItem {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Table { table, alias } => {
+                table.transpile(fmt)?;
+                if let Some(alias) = *alias {
+                    fmt.write_str(" AS ")?;
+                    AliasedTable {
+                        table: *table,
+                        alias,
+                    }
+                    .transpile(fmt)
+                } else {
+                    Ok(())
+                }
+            }
+            Self::Function(function) => function.transpile(fmt),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SelectStatement {
     pub with: WithExpression,
-    pub distinct: Vec<AliasedColumn>,
+    pub distinct: Vec<Expression>,
     pub selects: Vec<SelectExpression>,
-    pub from: AliasedTable,
+    pub from: FromItem,
     pub joins: Vec<JoinExpression>,
     pub where_expression: WhereExpression,
     pub order_by_expression: OrderByExpression,
@@ -53,8 +80,6 @@ impl Transpile for SelectStatement {
             condition.transpile(fmt)?;
         }
         fmt.write_str("\nFROM ")?;
-        self.from.table.transpile(fmt)?;
-        fmt.write_str(" AS ")?;
         self.from.transpile(fmt)?;
 
         for join in &self.joins {
@@ -72,7 +97,7 @@ impl Transpile for SelectStatement {
             self.order_by_expression.transpile(fmt)?;
         }
 
-        if !self.group_by_expression.columns.is_empty() {
+        if !self.group_by_expression.expressions.is_empty() {
             fmt.write_char('\n')?;
             self.group_by_expression.transpile(fmt)?;
         }
@@ -88,7 +113,7 @@ impl Transpile for SelectStatement {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
+    use alloc::borrow::Cow;
 
     use graph_types::{
         knowledge::entity::Entity,
@@ -640,7 +665,7 @@ mod tests {
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::EditionCreatedById)),
+            Some(FilterExpression::Path(EntityQueryPath::DraftId)),
             Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
         );
         compiler.add_filter(&filter);
@@ -658,7 +683,7 @@ mod tests {
               ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND "entity_editions_0_1_0"."edition_created_by_id" = $3
+              AND "entity_temporal_metadata_0_0_0"."draft_id" = $3
             ORDER BY "entity_temporal_metadata_0_0_0"."entity_uuid" ASC,
                      "entity_temporal_metadata_0_0_0"."decision_time" DESC NULLS LAST
             "#,
@@ -699,7 +724,7 @@ mod tests {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
-              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) = $4
+              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", (($1::text)::jsonpath)) = $4
             "#,
             &[
                 &json_path,
@@ -737,7 +762,7 @@ mod tests {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
-              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) IS NULL
+              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", (($1::text)::jsonpath)) IS NULL
             "#,
             &[
                 &json_path,

@@ -1,26 +1,19 @@
-import type { Entity, EntityId } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 
-export const generateEntityHref = (params: {
-  entityId: EntityId;
-  shortname: string;
-}) =>
-  `/@${params.shortname}/entities/${extractEntityUuidFromEntityId(
-    params.entityId,
-  )}`;
-
-export const useEntityHref = (entity: Entity) => {
+export const useEntityHref = (entity: Entity, includeDraftId: boolean) => {
   const getOwnerForEntity = useGetOwnerForEntity();
 
   return useMemo(() => {
-    const { shortname } = getOwnerForEntity(entity);
+    const { shortname } = getOwnerForEntity({ entity });
 
-    return generateEntityHref({
+    return generateEntityPath({
       shortname,
+      includeDraftId,
       entityId: entity.metadata.recordId.entityId,
     });
-  }, [getOwnerForEntity, entity]);
+  }, [getOwnerForEntity, entity, includeDraftId]);
 };

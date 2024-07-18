@@ -1,25 +1,25 @@
-import "@local/hash-backend-utils/environment";
-
 import { writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import type {
+  DataType,
+  EntityType,
+  PropertyType,
+} from "@local/hash-graph-client";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+} from "@local/hash-graph-types/ontology";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { publicUserAccountId } from "./auth/public-user-account-id";
 import type {
   ImpureGraphContext,
   ImpureGraphFunction,
@@ -32,7 +32,6 @@ import {
   isEntityTypeLinkEntityType,
 } from "./graph/ontology/primitive/entity-type";
 import { getPropertyTypes } from "./graph/ontology/primitive/property-type";
-import { getRequiredEnv } from "./util";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -82,7 +81,7 @@ const serializeTypeIds = (
         }),
         {},
       ),
-  );
+  ).replaceAll('/"', '/" as BaseUrl');
 
 const getLatestTypesInOrganizationQuery = (params: { organization: Org }) => ({
   filter: {
@@ -100,7 +99,6 @@ const getLatestTypesInOrganizationQuery = (params: { organization: Org }) => ({
       },
     ],
   },
-  graphResolveDepths: zeroedGraphResolveDepths,
   temporalAxes: currentTimeInstantTemporalAxes,
 });
 
@@ -118,9 +116,13 @@ const getLatestBlockprotocolTypesQuery = {
       },
     ],
   },
-  graphResolveDepths: zeroedGraphResolveDepths,
   temporalAxes: currentTimeInstantTemporalAxes,
 };
+
+const generateRecordTypeString = (
+  kind: (DataType | EntityType | PropertyType)["kind"] | "linkEntityType",
+) =>
+  `Record<string, { ${kind}Id: VersionedUrl; ${kind}BaseUrl: BaseUrl; ${kind === "dataType" ? "title: string; description: string;" : ""} }>`;
 
 const serializeTypes: ImpureGraphFunction<
   {
@@ -157,18 +159,18 @@ const serializeTypes: ImpureGraphFunction<
   return [
     `export const ${prefix}EntityTypes = ${serializeTypeIds(
       entityTypes,
-    )} as const;`,
+    )} as const satisfies ${generateRecordTypeString("entityType")};`,
     `export const ${prefix}LinkEntityTypes = ${serializeTypeIds(
       linkEntityTypes,
       true,
-    )} as const;`,
+    )} as const satisfies ${generateRecordTypeString("linkEntityType")};`,
     `export const ${prefix}PropertyTypes = ${serializeTypeIds(
       propertyTypes,
-    )} as const;`,
+    )} as const satisfies ${generateRecordTypeString("propertyType")};`,
     dataTypes
       ? `export const ${prefix}DataTypes = ${serializeTypeIds(
           dataTypes,
-        )} as const;`
+        )} as const satisfies ${generateRecordTypeString("dataType")};`
       : [],
   ]
     .flat()
@@ -190,7 +192,16 @@ const generateOntologyIds = async () => {
     port: graphApiPort,
   });
 
-  const graphContext: ImpureGraphContext = { graphApi, temporalClient: null };
+  const graphContext: ImpureGraphContext = {
+    provenance: {
+      actorType: "machine",
+      origin: {
+        type: "migration",
+      },
+    },
+    graphApi,
+    temporalClient: null,
+  };
 
   const [hashOrg, googleOrg, linearOrg] = await Promise.all([
     getOrgByShortname(
@@ -237,39 +248,59 @@ const generateOntologyIds = async () => {
     blockProtocolDataTypes,
   ] = await Promise.all([
     // HASH types
-    getEntityTypes(graphContext, authentication, {
-      query: getLatestTypesInOrganizationQuery({ organization: hashOrg }),
-    }).then((subgraph) => getRoots(subgraph)),
-    getPropertyTypes(graphContext, authentication, {
-      query: getLatestTypesInOrganizationQuery({ organization: hashOrg }),
-    }).then((subgraph) => getRoots(subgraph)),
-    getDataTypes(graphContext, authentication, {
-      query: getLatestTypesInOrganizationQuery({ organization: hashOrg }),
-    }).then((subgraph) => getRoots(subgraph)),
+    getEntityTypes(
+      graphContext,
+      authentication,
+      getLatestTypesInOrganizationQuery({ organization: hashOrg }),
+    ),
+    getPropertyTypes(
+      graphContext,
+      authentication,
+      getLatestTypesInOrganizationQuery({ organization: hashOrg }),
+    ),
+    getDataTypes(
+      graphContext,
+      authentication,
+      getLatestTypesInOrganizationQuery({ organization: hashOrg }),
+    ),
     // Google types
-    getEntityTypes(graphContext, authentication, {
-      query: getLatestTypesInOrganizationQuery({ organization: googleOrg }),
-    }).then((subgraph) => getRoots(subgraph)),
-    getPropertyTypes(graphContext, authentication, {
-      query: getLatestTypesInOrganizationQuery({ organization: googleOrg }),
-    }).then((subgraph) => getRoots(subgraph)),
+    getEntityTypes(
+      graphContext,
+      authentication,
+      getLatestTypesInOrganizationQuery({ organization: googleOrg }),
+    ),
+    getPropertyTypes(
+      graphContext,
+      authentication,
+      getLatestTypesInOrganizationQuery({ organization: googleOrg }),
+    ),
     // Linear types
-    getEntityTypes(graphContext, authentication, {
-      query: getLatestTypesInOrganizationQuery({ organization: linearOrg }),
-    }).then((subgraph) => getRoots(subgraph)),
-    getPropertyTypes(graphContext, authentication, {
-      query: getLatestTypesInOrganizationQuery({ organization: linearOrg }),
-    }).then((subgraph) => getRoots(subgraph)),
+    getEntityTypes(
+      graphContext,
+      authentication,
+      getLatestTypesInOrganizationQuery({ organization: linearOrg }),
+    ),
+    getPropertyTypes(
+      graphContext,
+      authentication,
+      getLatestTypesInOrganizationQuery({ organization: linearOrg }),
+    ),
     // BlockProtocol types
-    getEntityTypes(graphContext, authentication, {
-      query: getLatestBlockprotocolTypesQuery,
-    }).then((subgraph) => getRoots(subgraph)),
-    getPropertyTypes(graphContext, authentication, {
-      query: getLatestBlockprotocolTypesQuery,
-    }).then((subgraph) => getRoots(subgraph)),
-    getDataTypes(graphContext, authentication, {
-      query: getLatestBlockprotocolTypesQuery,
-    }).then((subgraph) => getRoots(subgraph)),
+    getEntityTypes(
+      graphContext,
+      authentication,
+      getLatestBlockprotocolTypesQuery,
+    ),
+    getPropertyTypes(
+      graphContext,
+      authentication,
+      getLatestBlockprotocolTypesQuery,
+    ),
+    getDataTypes(
+      graphContext,
+      authentication,
+      getLatestBlockprotocolTypesQuery,
+    ),
   ]);
 
   const outputPath = path.join(
@@ -277,9 +308,12 @@ const generateOntologyIds = async () => {
     `../../../libs/@local/hash-isomorphic-utils/src/${outputFileName}`,
   );
 
-  await writeFile(
-    outputPath,
-    await Promise.all([
+  const importStatement = `import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";\n\n`;
+
+  const fileText =
+    importStatement +
+    (await Promise.all([
       serializeTypes(graphContext, authentication, {
         entityTypes: hashEntityTypes,
         propertyTypes: hashPropertyTypes,
@@ -303,8 +337,9 @@ const generateOntologyIds = async () => {
         dataTypes: blockProtocolDataTypes,
         prefix: "blockProtocol",
       }),
-    ]).then((serializations) => serializations.join("\n\n")),
-  );
+    ]).then((serializations) => serializations.join("\n\n")));
+
+  await writeFile(outputPath, fileText);
 };
 
 void generateOntologyIds();

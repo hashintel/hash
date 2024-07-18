@@ -18,6 +18,7 @@ const env = {
   API_ORIGIN: process.env.API_ORIGIN || "https://app-api.hash.ai",
   BROWSER: process.env.BROWSER || "chrome",
   FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN || "https://app.hash.ai",
+  ITERO_TEST_BED: process.env.ITERO_TEST_BED || "",
   NODE_ENV: process.env.NODE_ENV || "development",
   SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
   SENTRY_DSN: process.env.SENTRY_DSN,
@@ -51,6 +52,12 @@ if (fileSystem.existsSync(secretsPath)) {
 
 const isProduction = process.env.NODE_ENV === "production";
 const isDevelopment = process.env.NODE_ENV === "development";
+const isTestBedBuild = !!process.env.ITERO_TEST_BED;
+
+if (isDevelopment) {
+  process.env.BABEL_ENV = "development";
+  process.env.ASSET_PATH = "/";
+}
 
 if (isProduction && (!env.SENTRY_DSN || !env.SENTRY_AUTH_TOKEN)) {
   throw new Error(
@@ -66,6 +73,7 @@ const options = {
     content: path.join(__dirname, "src", "scripts", "content.ts"),
     options: path.join(__dirname, "src", "pages", "options.tsx"),
     popup: path.join(__dirname, "src", "pages", "popup.tsx"),
+    working: path.join(__dirname, "src", "pages", "working.tsx"),
   },
   output: {
     filename: "[name].bundle.js",
@@ -169,6 +177,7 @@ const options = {
       API_ORIGIN: `"${env.API_ORIGIN}"`,
       ENVIRONMENT: `"${env.NODE_ENV}"`,
       FRONTEND_ORIGIN: `"${env.FRONTEND_ORIGIN}"`,
+      ITERO_TEST_BED: `"${env.ITERO_TEST_BED}"`,
       SENTRY_DSN: `"${env.SENTRY_DSN}"`,
     }),
     new CopyWebpackPlugin({
@@ -184,6 +193,20 @@ const options = {
               // @see https://bugzilla.mozilla.org/show_bug.cgi?id=1573659
               json.background.scripts = [json.background.service_worker];
               delete json.background.service_worker;
+            }
+
+            if (isTestBedBuild) {
+              for (const [size, iconPath] of Object.entries(json.icons)) {
+                json.icons[size] = iconPath.replace(".png", "-dev.png");
+              }
+              json.action.default_icon = json.action.default_icon.replace(
+                ".png",
+                "-dev.png",
+              );
+            }
+
+            if (isDevelopment) {
+              json.name = "HASH AI (local)";
             }
 
             // generates the manifest file using the package.json informations
@@ -213,7 +236,7 @@ const options = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: "src/assets/img",
+          from: "src/assets/icons",
           to: path.join(__dirname, "build", "[name][ext]"),
           force: true,
         },
@@ -229,6 +252,12 @@ const options = {
       template: path.join(__dirname, "src", "pages", "popup.html"),
       filename: "popup.html",
       chunks: ["popup"],
+      cache: false,
+    }),
+    new HtmlWebpackPlugin({
+      template: path.join(__dirname, "src", "pages", "working.html"),
+      filename: "working.html",
+      chunks: ["working"],
       cache: false,
     }),
     env.SENTRY_AUTH_TOKEN && env.SENTRY_DSN && isProduction

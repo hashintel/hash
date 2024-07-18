@@ -1,0 +1,28 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "harpc-wire-protocol"
+version = "0.0.0"
+license = "AGPL-3.0"
+edition.workspace = true
+publish = false
+
+[dependencies]
+bytes = "1.6.0"
+enumflags2 = { version = "0.7.10", features = ["std"] }
+error-stack.workspace = true
+harpc-types.workspace = true
+thiserror = "1.0.61"
+
+[dev-dependencies]
+proptest = "1.5.0"
+test-strategy = "0.4.0"
+harpc-types = { workspace = true, features = ["proptest"] }
+expect-test = "1.5.0"
+similar-asserts = "1.5.0"
+
+[features]
+test-utils = []
+
+[lints]
+workspace = true

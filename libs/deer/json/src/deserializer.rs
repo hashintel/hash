@@ -68,6 +68,7 @@ impl Stack {
     }
 }
 
+#[expect(clippy::field_scoped_visibility_modifiers)]
 pub struct Deserializer<'a, 'de> {
     pub(crate) tokenizer: Tokenizer<'de, false>,
 

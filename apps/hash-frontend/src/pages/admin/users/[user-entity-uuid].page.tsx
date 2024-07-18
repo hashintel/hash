@@ -1,5 +1,6 @@
+import type { AccountId } from "@local/hash-graph-types/account";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import type { AccountId, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
@@ -38,7 +39,7 @@ const AdminUserPage: NextPageWithLayout = () => {
   const refetchUser = useCallback(async () => {
     const {
       data: {
-        structuralQueryEntities: { subgraph: refetchedSubgraph },
+        getEntitySubgraph: { subgraph: refetchedSubgraph },
       },
     } = await refetch();
 

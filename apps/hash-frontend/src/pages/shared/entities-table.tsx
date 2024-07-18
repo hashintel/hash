@@ -2,17 +2,19 @@ import type {
   Entity as BpEntity,
   EntityRootType as BpEntityRootType,
   Subgraph as BpSubgraph,
-  VersionedUrl,
 } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { BaseUrl, Entity, EntityId } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -34,7 +36,6 @@ import {
   Grid,
   gridHeaderHeightWithBorder,
   gridHorizontalScrollbarHeight,
-  gridRowHeight,
 } from "../../components/grid/grid";
 import type { BlankCell } from "../../components/grid/utils";
 import { blankCell } from "../../components/grid/utils";
@@ -80,7 +81,7 @@ const allFileEntityTypeIds = allFileEntityTypeOntologyIds.map(
 
 const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
   ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
-) as BaseUrl[];
+);
 
 const entitiesTableViews = ["Table", "Graph", "Grid"] as const;
 
@@ -363,9 +364,9 @@ export const EntitiesTable: FunctionComponent<{
 
   const handleEntityClick = useCallback(
     (entity: BpEntity) => {
-      const { shortname: entityNamespace } = getOwnerForEntity(
-        entity as unknown as Entity,
-      );
+      const { shortname: entityNamespace } = getOwnerForEntity({
+        entity: entity as Entity,
+      });
 
       if (entityNamespace === "") {
         return;
@@ -609,6 +610,7 @@ export const EntitiesTable: FunctionComponent<{
       />
       {view === "Graph" ? (
         <EntitiesGraphChart
+          entities={entities}
           isPrimaryEntity={(entity) =>
             entityTypeBaseUrl
               ? extractBaseUrl(entity.metadata.entityTypeId) ===
@@ -622,7 +624,7 @@ export const EntitiesTable: FunctionComponent<{
               ? true
               : internalWebIds.includes(
                   extractOwnedByIdFromEntityId(
-                    entity.metadata.recordId.entityId as EntityId,
+                    entity.metadata.recordId.entityId,
                   ),
                 )
           }

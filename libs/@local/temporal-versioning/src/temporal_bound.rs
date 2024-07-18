@@ -1,6 +1,6 @@
-use std::ops::Bound;
+use core::ops::Bound;
 
-use derivative::Derivative;
+use derive_where::derive_where;
 use serde::{Deserialize, Serialize};
 
 use crate::{IntervalBound, TemporalTagged, Timestamp};
@@ -8,15 +8,9 @@ use crate::{IntervalBound, TemporalTagged, Timestamp};
 // We cannot use `Clone(bound = "")` as the implementation with `Copy(bound = "")` is wrong
 // https://rust-lang.github.io/rust-clippy/master/index.html#/incorrect_clone_impl_on_copy_type
 // The implementation must simply be `*self` and no clone should occur.
-#[derive(Derivative, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
+#[derive_where(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[derivative(
-    Debug(bound = ""),
-    Copy(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    Hash(bound = "")
-)]
 #[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
 pub enum TemporalBound<A> {
     #[cfg_attr(feature = "utoipa", schema(title = "UnboundedBound"))]
@@ -25,12 +19,6 @@ pub enum TemporalBound<A> {
     Inclusive(Timestamp<A>),
     #[cfg_attr(feature = "utoipa", schema(title = "ExclusiveBound"))]
     Exclusive(Timestamp<A>),
-}
-
-impl<A> Clone for TemporalBound<A> {
-    fn clone(&self) -> Self {
-        *self
-    }
 }
 
 impl<A> TemporalTagged for TemporalBound<A> {
@@ -72,27 +60,15 @@ impl<A> IntervalBound<Timestamp<A>> for TemporalBound<A> {
     }
 }
 
-#[derive(Derivative, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[derivative(
-    Debug(bound = ""),
-    Copy(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    Hash(bound = "")
-)]
+#[derive_where(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
 pub enum LimitedTemporalBound<A> {
     #[cfg_attr(feature = "utoipa", schema(title = "InclusiveBound"))]
     Inclusive(Timestamp<A>),
     #[cfg_attr(feature = "utoipa", schema(title = "ExclusiveBound"))]
     Exclusive(Timestamp<A>),
-}
-
-impl<A> Clone for LimitedTemporalBound<A> {
-    fn clone(&self) -> Self {
-        *self
-    }
 }
 
 impl<A> TemporalTagged for LimitedTemporalBound<A> {
@@ -133,15 +109,9 @@ impl<A> IntervalBound<Timestamp<A>> for LimitedTemporalBound<A> {
     }
 }
 
-#[derive(Derivative, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[derivative(
-    Debug(bound = ""),
-    Copy(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    Hash(bound = "")
-)]
+#[derive_where(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
 pub enum ClosedTemporalBound<A> {
     #[cfg_attr(feature = "utoipa", schema(title = "InclusiveBound"))]
@@ -153,12 +123,6 @@ impl<A> From<ClosedTemporalBound<A>> for Timestamp<A> {
         match bound {
             ClosedTemporalBound::Inclusive(limit) => limit,
         }
-    }
-}
-
-impl<A> Clone for ClosedTemporalBound<A> {
-    fn clone(&self) -> Self {
-        *self
     }
 }
 
@@ -199,27 +163,15 @@ impl<A> IntervalBound<Timestamp<A>> for ClosedTemporalBound<A> {
     }
 }
 
-#[derive(Derivative, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[derivative(
-    Debug(bound = ""),
-    Copy(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = ""),
-    Hash(bound = "")
-)]
+#[derive_where(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
 pub enum OpenTemporalBound<A> {
     #[cfg_attr(feature = "utoipa", schema(title = "ExclusiveBound"))]
     Exclusive(Timestamp<A>),
     #[cfg_attr(feature = "utoipa", schema(title = "UnboundedBound"))]
     Unbounded,
-}
-
-impl<A> Clone for OpenTemporalBound<A> {
-    fn clone(&self) -> Self {
-        *self
-    }
 }
 
 impl<A> TemporalTagged for OpenTemporalBound<A> {

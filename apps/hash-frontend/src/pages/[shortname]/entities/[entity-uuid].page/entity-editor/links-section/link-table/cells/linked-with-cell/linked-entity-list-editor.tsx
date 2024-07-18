@@ -1,33 +1,34 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  CreatedById,
+  EditionCreatedById,
+} from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
-  CreatedById,
-  EditionCreatedById,
-  Entity,
-  EntityId,
-  EntityRootType,
-  Subgraph,
   Timestamp,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/temporal-versioning";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
 
-import { getImageUrlFromEntityProperties } from "../../../../../../../../shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../../../../../../../shared/get-file-properties";
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import type { LinkedWithCell } from "../linked-with-cell";
 import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
-import { EntitySelector } from "./entity-selector";
 import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
 import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
+import { LinkedEntitySelector } from "./linked-entity-selector";
 
 /**
  * @todo - This is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
@@ -43,14 +44,14 @@ export const createDraftLinkEntity = ({
   rightEntityId: EntityId;
   leftEntityId: EntityId;
   linkEntityTypeId: VersionedUrl;
-}): Entity => {
-  return {
+}): Entity =>
+  new Entity({
     properties: {},
     linkData: { rightEntityId, leftEntityId },
     metadata: {
       archived: false,
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
-      entityTypeId: linkEntityTypeId,
+      entityTypeIds: [linkEntityTypeId],
       provenance: {
         createdById: "" as CreatedById,
         createdAtTransactionTime: "" as CreatedAtTransactionTime,
@@ -78,8 +79,7 @@ export const createDraftLinkEntity = ({
         },
       },
     },
-  };
-};
+  });
 
 export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
@@ -194,7 +194,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       {!canAddMore && <MaxItemsReached limit={maxItems} />}
       {canAddMore &&
         (addingLink ? (
-          <EntitySelector
+          <LinkedEntitySelector
             includeDrafts={
               !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
             }

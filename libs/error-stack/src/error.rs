@@ -1,7 +1,11 @@
+#![cfg(any(feature = "std", rust_1_81))]
+
+#[cfg(rust_1_81)]
+use core::error::Error;
 #[cfg(nightly)]
-use core::error::{Error, Request};
+use core::error::Request;
 use core::fmt;
-#[cfg(not(nightly))]
+#[cfg(all(feature = "std", not(rust_1_81)))]
 use std::error::Error;
 
 use crate::Report;
@@ -32,6 +36,7 @@ impl<C> fmt::Display for ReportError<C> {
     }
 }
 
+#[cfg(any(feature = "std", rust_1_81))]
 impl<C> Error for ReportError<C> {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {

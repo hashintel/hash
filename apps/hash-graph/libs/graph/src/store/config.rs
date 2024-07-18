@@ -1,4 +1,6 @@
-use core::fmt;
+use core::{fmt, num::NonZero};
+
+use derive_where::derive_where;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
@@ -7,7 +9,8 @@ pub enum DatabaseType {
     Postgres,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
+#[derive_where(Debug)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct DatabaseConnectionInfo {
     /// The database type to connect to.
@@ -39,6 +42,7 @@ pub struct DatabaseConnectionInfo {
             global = true
         )
     )]
+    #[derive_where(skip)]
     password: String,
 
     /// The host to connect to.
@@ -159,5 +163,30 @@ impl fmt::Display for DatabaseConnectionInfo {
             "{}://{}:***@{}:{}/{}",
             db_type, self.user, self.host, self.port, self.database
         )
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
+pub struct DatabasePoolConfig {
+    /// Sets the maximum number of connections managed by the pool.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            long,
+            default_value_t = Self::default().max_connections,
+            env = "HASH_GRAPH_PG_MAX_CONNECTIONS",
+            global = true
+        )
+    )]
+    pub max_connections: NonZero<usize>,
+}
+
+impl Default for DatabasePoolConfig {
+    #[expect(clippy::unwrap_used)]
+    fn default() -> Self {
+        Self {
+            max_connections: NonZero::new(10).unwrap(),
+        }
     }
 }

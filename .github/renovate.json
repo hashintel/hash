@@ -8,6 +8,12 @@
     "**/dist/**"
   ],
   "extends": ["config:base"],
+  "hostRules": [
+    {
+      "matchHost": "api.github.com",
+      "maxRetryAfter": 30
+    }
+  ],
 
   "automerge": true,
   "branchPrefix": "deps/",
@@ -17,30 +23,27 @@
   "dependencyDashboardOSVVulnerabilitySummary": "none",
   "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],
-  "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
   "schedule": ["before 4am every weekday", "every weekend"],
+  "assigneesFromCodeOwners": true,
+  "prConcurrentLimit": 15,
+  "branchConcurrentLimit": 0,
 
   "packageRules": [
     {
       "extends": ["packages:linters", "packages:test"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchManagers": ["github-actions"],
       "commitMessageTopic": "GitHub Action `{{depName}}`",
       "additionalBranchPrefix": "gha/",
       "pinDigests": true,
-      "dependencyDashboardApproval": false
-    },
-    {
-      "packageRules": [
-        {
-          "matchPackageNames": ["taiki-e/install-action"],
-          "schedule": ["after 9pm on sunday"]
-        }
-      ]
+      "dependencyDashboardApproval": false,
+      "assignees": ["TimDiekmann"],
+      "schedule": ["before 2am on saturday"]
     },
     {
       "packageRules": [
@@ -56,19 +59,22 @@
     {
       "matchManagers": ["docker-compose", "dockerfile"],
       "commitMessageTopic": "Docker tag `{{depName}}`",
-      "additionalBranchPrefix": "docker/"
+      "additionalBranchPrefix": "docker/",
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchManagers": ["npm"],
       "commitMessageTopic": "npm package `{{depName}}`",
-      "additionalBranchPrefix": "js/"
+      "additionalBranchPrefix": "js/",
+      "assignees": ["CiaranMn"]
     },
     {
       "matchManagers": ["cargo"],
       "commitMessageTopic": "Rust crate `{{depName}}`",
       "additionalBranchPrefix": "rs/",
       "reviewers": ["team:Rust"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchDepTypes": ["devDependencies"],
@@ -87,7 +93,17 @@
         "@redocly/cli"
       ],
       "excludePackageNames": ["prettier-plugin-sql"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "assignees": ["TimDiekmann"]
+    },
+    {
+      "groupName": "LLM provider SDK npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@openai/", "^@anthropic/", "groq-sdk"],
+      "automerge": false,
+      "dependencyDashboardApproval": false,
+      "minimumReleaseAge": "0 days",
+      "schedule": ["after 1am"]
     },
     {
       "groupName": "Block Protocol npm packages",
@@ -117,6 +133,13 @@
       "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
     },
     {
+      "automerge": false,
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["typescript"],
+      "dependencyDashboardApproval": false,
+      "assignees": ["CiaranMn"]
+    },
+    {
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["httpyac"],
       "dependencyDashboardApproval": false
@@ -124,19 +147,21 @@
     {
       "groupName": "Vitest npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@vitest-", "^vite-", "vitest$"],
+      "matchPackagePatterns": ["^@vitest/", "^vitest", "^vite-", "vitest$"],
       "dependencyDashboardApproval": false
     },
     {
       "groupName": "OpenTelemetry npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@opentelemetry/"]
+      "matchPackagePatterns": ["^@opentelemetry/"],
+      "assignees": ["TimDiekmann"]
     },
     {
       "groupName": "Playwright npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"],
-      "dependencyDashboardApproval": false
+      "matchPackagePatterns": ["^@playwright/", "^playwright", "playwright$"],
+      "dependencyDashboardApproval": false,
+      "assignees": ["CiaranMn"]
     },
     {
       "groupName": "Prettier npm packages",
@@ -153,7 +178,8 @@
     {
       "groupName": "Sentry npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@sentry/"]
+      "matchPackagePatterns": ["^@sentry/"],
+      "assignees": ["TimDiekmann"]
     },
     {
       "groupName": "Signia npm packages",
@@ -171,7 +197,9 @@
       "groupName": "Rust toolchains",
       "commitMessageTopic": "Rust toolchains",
       "reviewers": ["team:Rust"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "schedule": ["before 11am"],
+      "assignees": ["TimDiekmann"]
     },
     {
       "matchManagers": ["cargo"],

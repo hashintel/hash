@@ -1,4 +1,4 @@
-use std::fmt::{self, Write};
+use core::fmt::{self, Write};
 
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
@@ -19,9 +19,9 @@ use crate::{
 /// single field. This means, that the path currently will always be a sequence with only one
 /// element.
 ///
-/// [`DataType`]: type_system::DataType
+/// [`DataType`]: type_system::schema::DataType
 // TODO: Adjust enum and docs when adding non-primitive data types
-//   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+//   see https://linear.app/hash/issue/BP-104
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DataTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`DataType`].
@@ -35,7 +35,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType`]: type_system::DataType
+    /// [`DataType`]: type_system::schema::DataType
     /// [`BaseUrl`]: type_system::url::BaseUrl
     BaseUrl,
     /// The version of the [`DataType`].
@@ -69,7 +69,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType`]: type_system::DataType
+    /// [`DataType`]: type_system::schema::DataType
     Version,
     /// The [`VersionedUrl`] of the [`DataType`].
     ///
@@ -83,15 +83,14 @@ pub enum DataTypeQueryPath<'p> {
     /// ```
     ///
     /// [`VersionedUrl`]: type_system::url::VersionedUrl
-    /// [`DataType`]: type_system::DataType
+    /// [`DataType`]: type_system::schema::DataType
     VersionedUrl,
     /// The transaction time of the [`DataType`].
     ///
     /// It's not possible to query for the temporal axis directly, this has to be done via the
-    /// `temporalAxes` parameter on [`StructuralQuery`].
+    /// `temporalAxes` parameter on the request.
     ///
-    /// [`DataType`]: type_system::DataType
-    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
+    /// [`DataType`]: type_system::schema::DataType
     TransactionTime,
     /// The [`OwnedById`] of the [`DataTypeMetadata`] belonging to the [`DataType`].
     ///
@@ -104,40 +103,10 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType`]: type_system::DataType
+    /// [`DataType`]: type_system::schema::DataType
     /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
     /// [`DataTypeMetadata`]: graph_types::ontology::DataTypeMetadata
     OwnedById,
-    /// The [`CreatedById`] of the [`OntologyProvenanceMetadata`] belonging to the [`DataType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["editionCreatedById"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::EditionCreatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`DataType`]: type_system::DataType
-    /// [`CreatedById`]: graph_types::account::CreatedById
-    /// [`OntologyProvenanceMetadata`]: graph_types::ontology::OntologyProvenanceMetadata
-    EditionCreatedById,
-    /// The [`ArchivedById`] of the [`OntologyProvenanceMetadata`] belonging to the [`DataType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["editionArchivedById"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::EditionArchivedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`DataType`]: type_system::DataType
-    /// [`ArchivedById`]: graph_types::account::EditionArchivedById
-    /// [`OntologyProvenanceMetadata`]: graph_types::ontology::OntologyProvenanceMetadata
-    EditionArchivedById,
     /// Corresponds to [`DataType::title()`].
     ///
     /// ```rust
@@ -149,7 +118,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType::title()`]: type_system::DataType::title
+    /// [`DataType::title()`]: type_system::schema::DataType::title
     Title,
     /// Corresponds to [`DataType::description()`]
     ///
@@ -162,7 +131,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType::description()`]: type_system::DataType::description
+    /// [`DataType::description()`]: type_system::schema::DataType::description
     Description,
     /// Corresponds to [`DataType::json_type()`].
     ///
@@ -175,7 +144,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType::json_type()`]: type_system::DataType::json_type
+    /// [`DataType::json_type()`]: type_system::schema::DataType::json_type
     Type,
     /// Only used internally and not available for deserialization.
     OntologyId,
@@ -191,8 +160,8 @@ pub enum DataTypeQueryPath<'p> {
     /// Only used internally and not available for deserialization.
     ///
     /// [`ConstrainsValuesOn`]: OntologyEdgeKind::ConstrainsValuesOn
-    /// [`DataType`]: type_system::DataType
-    /// [`PropertyType`]: type_system::PropertyType
+    /// [`DataType`]: type_system::schema::DataType
+    /// [`PropertyType`]: type_system::schema::PropertyType
     PropertyTypeEdge {
         edge_kind: OntologyEdgeKind,
         path: Box<PropertyTypeQueryPath<'p>>,
@@ -212,6 +181,22 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Embedding,
+    /// Corresponds to the provenance data of the [`DataType`].
+    ///
+    /// Deserializes from `["editionProvenance", ...]` where `...` is a path to a provenance entry
+    /// of an [`DataType`].
+    ///
+    /// [`DataType`]: type_system::schema::DataType
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["editionProvenance", "createdById"]))?;
+    /// assert_eq!(path.to_string(), r#"editionProvenance.$."createdById""#);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    EditionProvenance(Option<JsonPath<'p>>),
 }
 
 impl OntologyQueryPath for DataTypeQueryPath<'_> {
@@ -227,10 +212,7 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
 impl QueryPath for DataTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId
-            | Self::OwnedById
-            | Self::EditionCreatedById
-            | Self::EditionArchivedById => ParameterType::Uuid,
+            Self::OntologyId | Self::OwnedById => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
@@ -238,6 +220,7 @@ impl QueryPath for DataTypeQueryPath<'_> {
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::Description | Self::Title | Self::Type => ParameterType::Text,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::EditionProvenance(_) => ParameterType::Any,
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
         }
     }
@@ -252,14 +235,14 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::EditionCreatedById => fmt.write_str("editionCreatedById"),
-            Self::EditionArchivedById => fmt.write_str("editionArchivedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Type => fmt.write_str("type"),
             Self::AdditionalMetadata => fmt.write_str("additionalMetadata"),
+            Self::EditionProvenance(Some(path)) => write!(fmt, "editionProvenance.{path}"),
+            Self::EditionProvenance(None) => fmt.write_str("editionProvenance"),
             Self::Embedding => fmt.write_str("embedding"),
             Self::PropertyTypeEdge {
                 edge_kind, path, ..
@@ -281,11 +264,10 @@ pub enum DataTypeQueryToken {
     Version,
     VersionedUrl,
     OwnedById,
-    EditionCreatedById,
-    EditionArchivedById,
     Title,
     Description,
     Type,
+    EditionProvenance,
     Embedding,
     #[serde(skip)]
     Schema,
@@ -298,9 +280,9 @@ pub struct DataTypeQueryPathVisitor {
 }
 
 impl DataTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str =
-        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `editionCreatedById`, \
-         `editionArchivedById`, `title`, `description`, `type`, `embedding`";
+    pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
+                                         `ownedById`, `title`, `description`, `type`, \
+                                         `editionProvenance`, `embedding`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -326,8 +308,6 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
 
         Ok(match token {
             DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
-            DataTypeQueryToken::EditionCreatedById => DataTypeQueryPath::EditionCreatedById,
-            DataTypeQueryToken::EditionArchivedById => DataTypeQueryPath::EditionArchivedById,
             DataTypeQueryToken::BaseUrl => DataTypeQueryPath::BaseUrl,
             DataTypeQueryToken::VersionedUrl => DataTypeQueryPath::VersionedUrl,
             DataTypeQueryToken::Version => DataTypeQueryPath::Version,
@@ -346,6 +326,21 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
                     DataTypeQueryPath::Schema(None)
                 } else {
                     DataTypeQueryPath::Schema(Some(JsonPath::from_path_tokens(path_tokens)))
+                }
+            }
+            DataTypeQueryToken::EditionProvenance => {
+                let mut path_tokens = Vec::new();
+                while let Some(property) = seq.next_element::<PathToken<'de>>()? {
+                    path_tokens.push(property);
+                    self.position += 1;
+                }
+
+                if path_tokens.is_empty() {
+                    DataTypeQueryPath::EditionProvenance(None)
+                } else {
+                    DataTypeQueryPath::EditionProvenance(Some(JsonPath::from_path_tokens(
+                        path_tokens,
+                    )))
                 }
             }
         })
@@ -370,8 +365,6 @@ impl DataTypeQueryPath<'_> {
             Self::VersionedUrl => DataTypeQueryPath::VersionedUrl,
             Self::TransactionTime => DataTypeQueryPath::TransactionTime,
             Self::OwnedById => DataTypeQueryPath::OwnedById,
-            Self::EditionCreatedById => DataTypeQueryPath::EditionCreatedById,
-            Self::EditionArchivedById => DataTypeQueryPath::EditionArchivedById,
             Self::Title => DataTypeQueryPath::Title,
             Self::Description => DataTypeQueryPath::Description,
             Self::OntologyId => DataTypeQueryPath::OntologyId,
@@ -379,6 +372,9 @@ impl DataTypeQueryPath<'_> {
             Self::AdditionalMetadata => DataTypeQueryPath::AdditionalMetadata,
             Self::Type => DataTypeQueryPath::Type,
             Self::Embedding => DataTypeQueryPath::Embedding,
+            Self::EditionProvenance(path) => {
+                DataTypeQueryPath::EditionProvenance(path.map(JsonPath::into_owned))
+            }
             Self::PropertyTypeEdge { path, edge_kind } => DataTypeQueryPath::PropertyTypeEdge {
                 path: Box::new(path.into_owned()),
                 edge_kind,
@@ -389,7 +385,7 @@ impl DataTypeQueryPath<'_> {
 
 #[cfg(test)]
 mod tests {
-    use std::iter::once;
+    use core::iter::once;
 
     use super::*;
 

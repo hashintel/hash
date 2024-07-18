@@ -3,6 +3,40 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
 
+  minio:
+    image: quay.io/minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${AWS_S3_UPLOADS_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${AWS_S3_UPLOADS_SECRET_ACCESS_KEY}
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - ../../var/uploads/s3:/data
+
+  minio-ensure-bucket-exists:
+    image: minio/mc
+    depends_on:
+      - minio
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      MINIO_ROOT_USER: ${AWS_S3_UPLOADS_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${AWS_S3_UPLOADS_SECRET_ACCESS_KEY}
+      AWS_S3_UPLOADS_BUCKET: ${AWS_S3_UPLOADS_BUCKET}
+    entrypoint: >
+      /bin/sh -c "
+      # Wait until MinIO is accessible
+      until (mc config host add myminio http://minio:9000 \$MINIO_ROOT_USER \$MINIO_ROOT_PASSWORD) do echo 'Waiting for MinIO...' && sleep 1; done;
+
+      # Add a fixed delay to ensure MinIO server is fully ready
+      sleep 5;
+
+      echo 'Creating bucket if not exists...';
+      mc mb myminio/\$AWS_S3_UPLOADS_BUCKET --ignore-existing;
+      "
+
   kratos:
     ports:
       - "4433:4433" # public
@@ -43,7 +77,7 @@ services:
       HASH_GRAPH_PG_HOST: "postgres"
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-full}"
+      HASH_GRAPH_LOG_CONSOLE_FORMAT: "${HASH_GRAPH_LOG_CONSOLE_FORMAT:-full}"
       HASH_GRAPH_LOG_FOLDER: "/logs/graph-test-service"
       HASH_GRAPH_API_HOST: "0.0.0.0"
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_TEST_API_PORT}"

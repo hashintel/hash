@@ -1,17 +1,16 @@
 use async_trait::async_trait;
-use authorization::backend::ZanzibarBackend;
 use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    snapshot::{
-        ontology::{
-            table::OntologyTemporalMetadataRow, OntologyExternalMetadataRow, OntologyIdRow,
-            OntologyOwnedMetadataRow,
+    snapshot::WriteBatch,
+    store::{
+        postgres::query::rows::{
+            OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
+            OntologyTemporalMetadataRow,
         },
-        WriteBatch,
+        AsClient, InsertionError, PostgresStore,
     },
-    store::{AsClient, InsertionError, PostgresStore},
 };
 
 pub enum OntologyTypeMetadataRowBatch {
@@ -22,8 +21,12 @@ pub enum OntologyTypeMetadataRowBatch {
 }
 
 #[async_trait]
-impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
-    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+impl<C, A> WriteBatch<C, A> for OntologyTypeMetadataRowBatch
+where
+    C: AsClient,
+    A: Send + Sync,
+{
+    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         postgres_client
             .as_client()
             .client()
@@ -36,9 +39,6 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                     CREATE TEMPORARY TABLE ontology_temporal_metadata_tmp
                         (LIKE ontology_temporal_metadata INCLUDING ALL)
                         ON COMMIT DROP;
-                    ALTER TABLE ontology_temporal_metadata_tmp
-                        ALTER COLUMN transaction_time
-                        SET DEFAULT TSTZRANGE(now(), NULL, '[)');
 
                     CREATE TEMPORARY TABLE ontology_owned_metadata_tmp
                         (LIKE ontology_owned_metadata INCLUDING ALL)
@@ -55,11 +55,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
         Ok(())
     }
 
-    async fn write(
-        self,
-        postgres_client: &PostgresStore<C>,
-        _authorization_api: &mut (impl ZanzibarBackend + Send),
-    ) -> Result<(), InsertionError> {
+    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Ids(ontology_ids) => {
@@ -134,7 +130,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
     }
 
     async fn commit(
-        postgres_client: &PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, A>,
         _validation: bool,
     ) -> Result<(), InsertionError> {
         postgres_client
@@ -142,15 +138,16 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
             .client()
             .simple_query(
                 "
-                    INSERT INTO base_urls                  SELECT DISTINCT base_url FROM \
-                 ontology_ids_tmp;
-                    INSERT INTO ontology_ids               SELECT * FROM ontology_ids_tmp;
-                    INSERT INTO ontology_temporal_metadata SELECT * FROM \
-                 ontology_temporal_metadata_tmp;
-                    INSERT INTO ontology_owned_metadata    SELECT * FROM \
-                 ontology_owned_metadata_tmp;
-                    INSERT INTO ontology_external_metadata SELECT * FROM \
-                 ontology_external_metadata_tmp;
+                    INSERT INTO base_urls
+                        SELECT DISTINCT base_url FROM ontology_ids_tmp;
+                    INSERT INTO ontology_ids
+                        SELECT * FROM ontology_ids_tmp;
+                    INSERT INTO ontology_temporal_metadata
+                        SELECT * FROM ontology_temporal_metadata_tmp;
+                    INSERT INTO ontology_owned_metadata
+                        SELECT * FROM ontology_owned_metadata_tmp;
+                    INSERT INTO ontology_external_metadata
+                        SELECT * FROM ontology_external_metadata_tmp;
                 ",
             )
             .await

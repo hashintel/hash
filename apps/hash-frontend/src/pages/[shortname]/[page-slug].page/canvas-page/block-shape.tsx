@@ -1,10 +1,10 @@
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
 import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
-import type { EntityId } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { toDomPrecision } from "@tldraw/primitives";
 import type { TLBaseShape, TLOpacityType } from "@tldraw/tldraw";
@@ -16,7 +16,7 @@ import {
 } from "@tldraw/tldraw";
 
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
-import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../../../lib/apollo-client";
 import { BlockContextProvider } from "../../../shared/block-collection/block-context";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../shared/block-collection-contents";
@@ -64,7 +64,7 @@ const persistBlockPosition = ({
     refetchQueries: [
       // Refetch the page
       {
-        query: structuralQueryEntitiesQuery,
+        query: getEntitySubgraphQuery,
         variables: getBlockCollectionContentsStructuralQueryVariables(
           extractEntityUuidFromEntityId(pageEntityId),
         ),

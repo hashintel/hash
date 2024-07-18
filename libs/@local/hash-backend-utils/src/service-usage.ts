@@ -1,6 +1,18 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
+  type EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -11,209 +23,173 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
+import { getAggregateUsageRecordsByServiceFeature } from "@local/hash-isomorphic-utils/service-usage";
+import {
+  mapGraphApiEntityToEntity,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
-  AccountId,
-  BoundedTimeInterval,
-  Entity,
+  RecordsUsageOf,
+  UsageRecord,
+} from "@local/hash-isomorphic-utils/system-types/usagerecord";
+import type {
   EntityRelationAndSubject,
   EntityRootType,
 } from "@local/hash-subgraph";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
-
-const generateAggregateUsageKey = ({
-  serviceName,
-  featureName,
-}: {
-  serviceName: string;
-  featureName: string;
-}) => `${serviceName}:${featureName}`;
+import { entityIdFromComponents } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 /**
- * Retrieve a user's service usage
+ * Retrieve a web's service usage
  */
-export const getUserServiceUsage = async (
+export const getWebServiceUsage = async (
   context: { graphApi: GraphApi },
-  authentication: { actorId: AccountId },
   {
-    userAccountId,
     decisionTimeInterval,
-  }: { userAccountId: AccountId; decisionTimeInterval?: BoundedTimeInterval },
+    userAccountId,
+    webId,
+  }: {
+    userAccountId: AccountId;
+    decisionTimeInterval?: BoundedTimeInterval;
+    webId: OwnedById;
+  },
 ): Promise<AggregatedUsageRecord[]> => {
   const serviceUsageRecordSubgraph = await context.graphApi
-    .getEntitiesByQuery(authentication.actorId, {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.usageRecord.entityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                {
-                  path: ["ownedById"],
-                },
-                { parameter: userAccountId },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          // Depths required to retrieve the service the usage record relates to
-          hasLeftEntity: { incoming: 1, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 1 },
-        },
-        temporalAxes: decisionTimeInterval
-          ? {
-              pinned: {
-                axis: "transactionTime",
-                timestamp: null,
+    .getEntitySubgraph(userAccountId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.usageRecord.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: ["ownedById"],
               },
-              variable: {
-                axis: "decisionTime",
-                interval: decisionTimeInterval,
-              },
-            }
-          : currentTimeInstantTemporalAxes,
-        includeDrafts: false,
+              { parameter: webId },
+            ],
+          },
+        ],
       },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        // Depths required to retrieve the service the usage record relates to
+        hasLeftEntity: { incoming: 1, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 1 },
+      },
+      temporalAxes: decisionTimeInterval
+        ? {
+            pinned: {
+              axis: "transactionTime",
+              timestamp: null,
+            },
+            variable: {
+              axis: "decisionTime",
+              interval: decisionTimeInterval,
+            },
+          }
+        : currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     })
     .then(({ data }) => {
-      return mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph);
+      return mapGraphApiSubgraphToSubgraph<EntityRootType<UsageRecord>>(
+        data.subgraph,
+        userAccountId,
+      );
     });
 
   const serviceUsageRecords = getRoots(serviceUsageRecordSubgraph);
 
-  const aggregateUsageByServiceFeature: Record<string, AggregatedUsageRecord> =
-    {};
+  const aggregateUsageRecords = getAggregateUsageRecordsByServiceFeature({
+    decisionTimeInterval,
+    serviceUsageRecords,
+    serviceUsageRecordSubgraph,
+  });
 
-  for (const record of serviceUsageRecords) {
-    const linkedEntities = getOutgoingLinkAndTargetEntities(
-      serviceUsageRecordSubgraph,
-      record.metadata.recordId.entityId,
-    );
-
-    const serviceFeatureLinkAndEntities = linkedEntities.filter(
-      ({ linkEntity }) =>
-        linkEntity[0]!.metadata.entityTypeId ===
-        systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
-    );
-    if (serviceFeatureLinkAndEntities.length !== 1) {
-      throw new Error(
-        `Expected exactly one service feature link for service usage record ${record.metadata.recordId.entityId}, got ${serviceFeatureLinkAndEntities.length}.`,
-      );
-    }
-
-    const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
-      .rightEntity[0]! as Entity<ServiceFeatureProperties>;
-
-    const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
-      serviceFeatureEntity.properties,
-    );
-    if (!serviceUnitCost) {
-      throw new Error("Cannot calculate usage cost without service unit cost.");
-    }
-
-    const serviceFeatureKey = generateAggregateUsageKey({
-      serviceName,
-      featureName,
-    });
-
-    const { inputUnitCount, outputUnitCount } = simplifyProperties(
-      record.properties as UsageRecordProperties,
-    );
-
-    aggregateUsageByServiceFeature[serviceFeatureKey] ??= {
-      serviceName,
-      featureName,
-      limitedToPeriod: decisionTimeInterval ?? null,
-      totalInputUnitCount: 0,
-      totalOutputUnitCount: 0,
-      totalCostInUsd: 0,
-      last24hoursTotalCostInUsd: 0,
-    };
-    const aggregateUsage = aggregateUsageByServiceFeature[serviceFeatureKey]!;
-
-    aggregateUsage.totalInputUnitCount +=
-      inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;
-    aggregateUsage.totalOutputUnitCount +=
-      outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0;
-
-    const applicablePrice = serviceUnitCost.find((entry) => {
-      const { appliesUntil, appliesFrom } = simplifyProperties(entry);
-      if (
-        appliesUntil &&
-        appliesUntil <= record.metadata.provenance.createdAtTransactionTime
-      ) {
-        return false;
-      }
-      if (!appliesFrom) {
-        return false;
-      }
-      return appliesFrom <= record.metadata.provenance.createdAtTransactionTime;
-    });
-
-    if (!applicablePrice) {
-      throw new Error(
-        `No applicable price found for service feature ${serviceFeatureKey}.`,
-      );
-    }
-
-    const { inputUnitCost, outputUnitCost } =
-      simplifyProperties(applicablePrice);
-
-    const inputCost =
-      (inputUnitCount ?? 0) *
-      (inputUnitCost && inputUnitCost >= 0 ? inputUnitCost : 0);
-    const outputCost =
-      (outputUnitCount ?? 0) *
-      (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
-    const totalCost = inputCost + outputCost;
-
-    aggregateUsage.totalCostInUsd += totalCost;
-
-    const oneDayEarlier = new Date(
-      new Date().valueOf() - 24 * 60 * 60 * 1000,
-    ).toISOString();
-    if (record.metadata.provenance.createdAtTransactionTime > oneDayEarlier) {
-      aggregateUsage.last24hoursTotalCostInUsd += totalCost;
-    }
-  }
-
-  return Object.values(aggregateUsageByServiceFeature);
+  return aggregateUsageRecords;
 };
 
 export const createUsageRecord = async (
   context: { graphApi: GraphApi },
-  authentication: { actorId: AccountId },
   {
-    userAccountId,
+    additionalViewers,
+    assignUsageToWebId,
+    customMetadata,
     serviceName,
     featureName,
     inputUnitCount,
     outputUnitCount,
+    userAccountId,
   }: {
-    userAccountId: AccountId;
+    /**
+     * Grant view access on the usage record to these additional accounts
+     */
+    additionalViewers?: AccountId[];
+    /**
+     * The web the usage will be assigned to (user or org)
+     */
+    assignUsageToWebId: OwnedById;
+    /**
+     * Additional arbitrary metadata to store on the usage record.
+     */
+    customMetadata?: Record<string, unknown> | null;
     serviceName: string;
     featureName: string;
     inputUnitCount?: number;
     outputUnitCount?: number;
+    /**
+     * The user that is incurring the usage (e.g. the user that triggered the flow)
+     * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
+     */
+    userAccountId: AccountId;
   },
 ) => {
-  const properties: UsageRecordProperties = {
-    "https://hash.ai/@hash/types/property-type/input-unit-count/":
-      inputUnitCount,
-    "https://hash.ai/@hash/types/property-type/output-unit-count/":
-      outputUnitCount,
+  const properties: UsageRecord["propertiesWithMetadata"] = {
+    value: {
+      ...(inputUnitCount !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/input-unit-count/": {
+              value: inputUnitCount,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+              },
+            },
+          }
+        : {}),
+      ...(outputUnitCount !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/output-unit-count/": {
+              value: outputUnitCount,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+              },
+            },
+          }
+        : {}),
+      ...(customMetadata !== undefined && customMetadata !== null
+        ? {
+            "https://hash.ai/@hash/types/property-type/custom-metadata/": {
+              value: customMetadata,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+              },
+            },
+          }
+        : {}),
+    },
   };
+
+  /**
+   * We want to assign usage to the web, which may be an org, but be able to identify which users
+   * incurred which usage in an org – so we create the usage record using the user that incurred it.
+   * For manually-triggered flows, this is the user that triggered the flow.
+   * For automatically triggered (scheduled, reactive), this is the user that created the trigger/schedule.
+   */
+  const authentication = { actorId: userAccountId };
 
   const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
     context,
@@ -221,50 +197,45 @@ export const createUsageRecord = async (
   );
 
   const serviceFeatureEntities = await context.graphApi
-    .getEntitiesByQuery(authentication.actorId, {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.serviceFeature.entityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    systemPropertyTypes.serviceName.propertyTypeBaseUrl,
-                  ],
-                },
-                { parameter: serviceName },
-              ],
-            },
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    systemPropertyTypes.featureName.propertyTypeBaseUrl,
-                  ],
-                },
-                { parameter: featureName },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
+    .getEntities(authentication.actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.serviceFeature.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.serviceName.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: serviceName },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.featureName.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: featureName },
+            ],
+          },
+        ],
       },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     })
-    .then((data) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.data.subgraph,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, authentication.actorId),
+      ),
+    );
 
   if (serviceFeatureEntities.length !== 1) {
     throw new Error(
@@ -277,44 +248,81 @@ export const createUsageRecord = async (
     {
       relation: "administrator",
       subject: {
-        kind: "account",
-        subjectId: authentication.actorId,
-      },
-    },
-    {
-      relation: "viewer",
-      subject: { kind: "account", subjectId: userAccountId },
-    },
-    {
-      relation: "viewer",
-      subject: {
         kind: "accountGroup",
         subjectId: hashInstanceAdminGroupId,
+        subjectSet: "member",
       },
     },
   ];
 
-  const usageRecordEntityMetadata = await context.graphApi
-    .createEntity(authentication.actorId, {
-      draft: false,
-      ownedById: userAccountId,
-      properties,
-      entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
-      relationships: entityRelationships,
-    })
-    .then(({ data }) => data);
+  if (assignUsageToWebId === userAccountId) {
+    entityRelationships.push({
+      relation: "viewer",
+      subject: {
+        kind: "account",
+        subjectId: userAccountId,
+      },
+    });
+  } else {
+    entityRelationships.push({
+      relation: "viewer",
+      subject: {
+        kind: "accountGroup",
+        subjectId: assignUsageToWebId as AccountGroupId,
+        subjectSet: "administrator",
+      },
+    });
+  }
 
-  await context.graphApi.createEntity(authentication.actorId, {
-    draft: false,
-    ownedById: userAccountId,
-    properties: {},
-    linkData: {
-      leftEntityId: usageRecordEntityMetadata.recordId.entityId,
-      rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
+  for (const additionalViewer of additionalViewers ?? []) {
+    entityRelationships.push({
+      relation: "viewer",
+      subject: {
+        kind: "account",
+        subjectId: additionalViewer,
+      },
+    });
+  }
+
+  const usageRecordEntityUuid = generateUuid() as EntityUuid;
+
+  const usageRecordEntityId = entityIdFromComponents(
+    assignUsageToWebId,
+    usageRecordEntityUuid,
+  );
+
+  const provenance: EnforcedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "api",
     },
-    entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
-    relationships: entityRelationships,
-  });
+  };
 
-  return usageRecordEntityMetadata;
+  const [usageRecord] = await Entity.createMultiple<
+    [UsageRecord, RecordsUsageOf]
+  >(context.graphApi, authentication, [
+    {
+      ownedById: assignUsageToWebId,
+      draft: false,
+      entityUuid: usageRecordEntityUuid,
+      properties,
+      provenance,
+      entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
+      relationships: entityRelationships,
+    },
+    {
+      ownedById: assignUsageToWebId,
+      draft: false,
+      properties: { value: {} },
+      provenance,
+      linkData: {
+        leftEntityId: usageRecordEntityId,
+        rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
+      },
+      entityTypeId: systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+      relationships: entityRelationships,
+    },
+  ]);
+
+  return usageRecord;
 };

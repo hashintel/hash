@@ -7,7 +7,9 @@ import {
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { EntityId, OwnedById, Timestamp } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -54,9 +56,24 @@ describe("File", () => {
       presignUpload: vi.fn(() =>
         Promise.resolve({
           fileStorageProperties: {
-            key: fileKey,
-            provider: "LOCAL_FILE_SYSTEM" as const,
-          },
+            value: {
+              "https://hash.ai/@hash/types/property-type/file-storage-key/": {
+                value: fileKey,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              },
+              "https://hash.ai/@hash/types/property-type/file-storage-provider/":
+                {
+                  value: "LOCAL_FILE_SYSTEM",
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                },
+            },
+          } as const,
           presignedPut: { url: uploadUrl },
         }),
       ),

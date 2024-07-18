@@ -1,9 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {
   getBlockChildEntity,
-  isRichTextContainingEntity,
+  isRichTextProperties,
 } from "@local/hash-isomorphic-utils/entity";
 import type {
   DraftEntity,
@@ -22,7 +23,6 @@ import {
 } from "@local/hash-isomorphic-utils/prosemirror";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { textBlockNodeToEntityProperties } from "@local/hash-isomorphic-utils/text";
-import type { EntityId } from "@local/hash-subgraph";
 import * as Sentry from "@sentry/nextjs";
 import type { Node } from "prosemirror-model";
 import type { Transaction } from "prosemirror-state";
@@ -45,7 +45,9 @@ const getChildEntity = (
       throw new Error("Cannot prepare non-block entity for ProseMirror");
     }
 
-    return entity.blockChildEntity as DraftEntity;
+    return entity.blockChildEntity as DraftEntity<
+      BlockEntity["blockChildEntity"]
+    >;
   }
 
   return null;
@@ -308,7 +310,7 @@ export class ComponentView implements NodeView {
         throw new Error("Block not ready to become editable");
       }
 
-      if (!isRichTextContainingEntity(childEntity)) {
+      if (!isRichTextProperties(childEntity.properties)) {
         tr ??= state.tr;
 
         addEntityStoreAction(state, tr, {

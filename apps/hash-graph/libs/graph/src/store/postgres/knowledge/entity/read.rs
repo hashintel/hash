@@ -1,4 +1,5 @@
-use std::{borrow::Cow, mem::swap};
+use alloc::borrow::Cow;
+use core::mem::swap;
 
 use error_stack::{Result, ResultExt};
 use graph_types::{
@@ -9,6 +10,7 @@ use temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
 };
 use tokio_postgres::GenericClient;
+use tracing::Instrument;
 use type_system::url::BaseUrl;
 
 use crate::{
@@ -82,7 +84,11 @@ pub struct KnowledgeEdgeTraversal {
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
-impl<C: AsClient> PostgresStore<C> {
+impl<C, A> PostgresStore<C, A>
+where
+    C: AsClient,
+    A: Send + Sync,
+{
     #[tracing::instrument(level = "trace", skip(self))]
     pub(crate) async fn read_shared_edges<'t>(
         &self,
@@ -146,6 +152,7 @@ impl<C: AsClient> PostgresStore<C> {
                     &traversal_data.pinned_timestamp,
                 ],
             )
+            .instrument(tracing::trace_span!("query"))
             .await
             .change_context(QueryError)?
             .into_iter()
@@ -190,13 +197,19 @@ impl<C: AsClient> PostgresStore<C> {
         let table = Table::Reference(reference_table).transpile_to_string();
         let [mut source_1, mut source_2] =
             if let ForeignKeyReference::Double { join, .. } = reference_table.source_relation() {
-                [join[0].transpile_to_string(), join[1].transpile_to_string()]
+                [
+                    join[0].to_expression(None).transpile_to_string(),
+                    join[1].to_expression(None).transpile_to_string(),
+                ]
             } else {
                 unreachable!("entity reference tables don't have single conditions")
             };
         let [mut target_1, mut target_2] =
             if let ForeignKeyReference::Double { on, .. } = reference_table.target_relation() {
-                [on[0].transpile_to_string(), on[1].transpile_to_string()]
+                [
+                    on[0].to_expression(None).transpile_to_string(),
+                    on[1].to_expression(None).transpile_to_string(),
+                ]
             } else {
                 unreachable!("entity reference tables don't have single conditions")
             };
@@ -250,6 +263,7 @@ impl<C: AsClient> PostgresStore<C> {
                     &traversal_data.pinned_timestamp,
                 ],
             )
+            .instrument(tracing::trace_span!("query"))
             .await
             .change_context(QueryError)?
             .into_iter()

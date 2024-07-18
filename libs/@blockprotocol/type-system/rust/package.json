@@ -4,15 +4,15 @@
   "private": true,
   "exports": {
     ".": "./pkg/type-system.js",
-    "./type-system.wasm": "./pkg/type-system_bg.wasm"
+    "./wasm": "./pkg/type-system_bg.wasm"
   },
   "typesVersions": {
     "*": {
       "*": [
         "./pkg/type-system.d.ts"
       ],
-      "./type-system.wasm": [
-        "./pkg/type-system_bg.d.ts"
+      "./wasm": [
+        "./pkg/type-system_bg.wasm.d.ts"
       ]
     }
   },
@@ -21,9 +21,12 @@
     "fix:clippy": "just clippy --fix",
     "postinstall": "wasm-pack --version | grep -q '0.12.1' || cargo install 'wasm-pack' --version '0.12.1' --locked --force",
     "lint:clippy": "just clippy && just clippy --target wasm32-unknown-unknown",
-    "test:unit": "cargo nextest run --all-features --all-targets && cargo test --all-features --doc"
+    "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
+  },
+  "dependencies": {
+    "@rust/codec": "0.0.0-private"
   },
   "devDependencies": {
-    "@tests/hash-graph-test-data-rs": "0.0.0-private"
+    "@rust/graph-test-data": "0.0.0-private"
   }
 }

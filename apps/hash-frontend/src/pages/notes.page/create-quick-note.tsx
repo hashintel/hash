@@ -1,10 +1,7 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
-import type {
-  Entity,
-  EntityRootType,
-  OwnedById,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Skeleton } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";

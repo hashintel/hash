@@ -15,15 +15,25 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-error-stack = { git = "https://github.com/hashintel/hash", rev = "0829935", default-features = false }
+error-stack = { workspace = true, default-features = false }
 
 deer = { path = "..", default-features = false }
 
 justjson = { version = "0.3.0", default-features = false, features = ['alloc'] }
-lexical = { version = "6.1.1", default-features = false, features = ['parse-floats', 'parse-integers', 'format'] }
-memchr = "2.7.1"
+lexical = { version = "6.1.1", default-features = false, features = [
+    'parse-floats',
+    'parse-integers',
+    'format',
+] }
+memchr = "2.7.4"
+
+[build-dependencies]
+rustc_version = "0.4.0"
 
 [features]
 default = ['std']
 std = ["justjson/std", "deer/std"]
 arbitrary-precision = ['deer/arbitrary-precision']
+
+[lints]
+workspace = true

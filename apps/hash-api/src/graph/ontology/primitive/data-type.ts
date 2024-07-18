@@ -4,32 +4,33 @@ import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   ArchiveDataTypeParams,
   DataTypePermission,
-  DataTypeStructuralQuery,
+  GetDataTypesParams,
+  GetDataTypeSubgraphParams,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  ProvidedOntologyEditionProvenance,
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import type {
   ConstructDataTypeParams,
-  DataTypeAuthorizationRelationship,
   DataTypeMetadata,
-  DataTypeRelationAndSubject,
-  DataTypeRootType,
   DataTypeWithMetadata,
   OntologyTypeRecordId,
-  OwnedById,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  mapGraphApiDataTypeToDataType,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type {
+  DataTypeAuthorizationRelationship,
+  DataTypeRelationAndSubject,
+  DataTypeRootType,
   Subgraph,
 } from "@local/hash-subgraph";
 import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
@@ -41,7 +42,7 @@ import { getWebShortname, isExternalTypeId } from "./util";
  *   User defined data types are not specified yet, which means this `create`
  *   operation should not be exposed to users yet.
  *   Depends on the RFC captured by:
- *   https://app.asana.com/0/1200211978612931/1202464168422955/f
+ *   https://linear.app/hash/issue/BP-104
  *
  * @param params.ownedById - the id of the account who owns the data type
  * @param [params.webShortname] – the shortname of the web that owns the data type, if the web entity does not yet exist.
@@ -55,10 +56,11 @@ export const createDataType: ImpureGraphFunction<
     schema: ConstructDataTypeParams;
     webShortname?: string;
     relationships: DataTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname } = params;
+  const { ownedById, webShortname, provenance } = params;
 
   const shortname =
     webShortname ??
@@ -87,27 +89,39 @@ export const createDataType: ImpureGraphFunction<
       schema,
       ownedById,
       relationships: params.relationships,
+      provenance,
     },
   );
 
   return { schema, metadata: metadata as DataTypeMetadata };
 };
 
+export const getDataTypes: ImpureGraphFunction<
+  Omit<GetDataTypesParams, "includeDrafts">,
+  Promise<DataTypeWithMetadata[]>
+> = async ({ graphApi }, { actorId }, request) =>
+  graphApi
+    .getDataTypes(actorId, { includeDrafts: false, ...request })
+    .then(({ data: response }) =>
+      mapGraphApiDataTypeToDataType(response.dataTypes),
+    );
+
 /**
  * Get data types by a structural query.
  *
  * @param params.query the structural query to filter data types by.
  */
-export const getDataTypes: ImpureGraphFunction<
-  {
-    query: Omit<DataTypeStructuralQuery, "includeDrafts">;
-  },
+export const getDataTypeSubgraph: ImpureGraphFunction<
+  Omit<GetDataTypeSubgraphParams, "includeDrafts">,
   Promise<Subgraph<DataTypeRootType>>
-> = async ({ graphApi }, { actorId }, { query }) => {
+> = async ({ graphApi }, { actorId }, request) => {
   return await graphApi
-    .getDataTypesByQuery(actorId, { includeDrafts: false, ...query })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(data);
+    .getDataTypeSubgraph(actorId, { includeDrafts: false, ...request })
+    .then(({ data: response }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(
+        response.subgraph,
+        actorId,
+      );
 
       return subgraph;
     });
@@ -127,14 +141,11 @@ export const getDataTypeById: ImpureGraphFunction<
   const { dataTypeId } = params;
 
   const [dataType] = await getDataTypes(context, authentication, {
-    query: {
-      filter: {
-        equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
+    filter: {
+      equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
     },
-  }).then(getRoots);
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   if (!dataType) {
     throw new NotFoundError(`Could not find data type with ID "${dataTypeId}"`);
@@ -149,14 +160,14 @@ export const getDataTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getDataTypeSubgraphById: ImpureGraphFunction<
-  Omit<DataTypeStructuralQuery, "filter" | "includeDrafts"> & {
+  Omit<GetDataTypeSubgraphParams, "filter" | "includeDrafts"> & {
     dataTypeId: VersionedUrl;
   },
   Promise<Subgraph<DataTypeRootType>>
 > = async (context, authentication, params) => {
   const { graphResolveDepths, temporalAxes, dataTypeId } = params;
 
-  const query: Omit<DataTypeStructuralQuery, "includeDrafts"> = {
+  const request: Omit<GetDataTypeSubgraphParams, "includeDrafts"> = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
     },
@@ -164,18 +175,14 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
     temporalAxes,
   };
 
-  let subgraph = await getDataTypes(context, authentication, {
-    query,
-  });
+  let subgraph = await getDataTypeSubgraph(context, authentication, request);
 
   if (subgraph.roots.length === 0 && isExternalTypeId(dataTypeId)) {
     await context.graphApi.loadExternalDataType(authentication.actorId, {
       dataTypeId,
     });
 
-    subgraph = await getDataTypes(context, authentication, {
-      query,
-    });
+    subgraph = await getDataTypeSubgraph(context, authentication, request);
   }
 
   return subgraph;
@@ -188,7 +195,7 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
  *   As with data type `create`, this `update` operation is not currently relevant to users
  *   because user defined data types are not fully specified.
  *   Depends on the RFC captured by:
- *   https://app.asana.com/0/1200211978612931/1202464168422955/f
+ *   https://linear.app/hash/issue/BP-104
  *
  * @param params.dataTypeId - the id of the data type that's being updated
  * @param params.schema - the updated `DataType`
@@ -199,10 +206,11 @@ export const updateDataType: ImpureGraphFunction<
     dataTypeId: VersionedUrl;
     schema: ConstructDataTypeParams;
     relationships: DataTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<DataTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { dataTypeId, schema } = params;
+  const { dataTypeId, schema, provenance } = params;
 
   const { data: metadata } = await graphApi.updateDataType(actorId, {
     typeToUpdate: dataTypeId,
@@ -212,6 +220,7 @@ export const updateDataType: ImpureGraphFunction<
       ...schema,
     },
     relationships: params.relationships,
+    provenance,
   });
 
   const { recordId } = metadata;

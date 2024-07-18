@@ -1,31 +1,31 @@
-use std::{collections::HashSet, iter::once};
+use core::iter::once;
+use std::collections::HashSet;
 
 use authorization::{
     backend::ModifyRelationshipOperation,
-    schema::{
-        DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        WebPermission,
-    },
+    schema::{DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
 use error_stack::{Result, ResultExt};
+use futures::FutureExt;
 use graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenanceMetadata,
-        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+        DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
+        OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
         OntologyTypeRecordId,
     },
     Embedding,
 };
 use postgres_types::{Json, ToSql};
-use temporal_client::TemporalClient;
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient, Row};
+use tracing::instrument;
 use type_system::{
+    schema::{ClosedDataType, DataTypeValidator},
     url::{OntologyTypeVersion, VersionedUrl},
-    DataType,
+    Validator,
 };
 
 use crate::{
@@ -34,8 +34,10 @@ use crate::{
         crud::{QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         ontology::{
-            ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypesParams,
-            UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+            ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,
+            GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
+            GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+            UpdateDataTypesParams,
         },
         postgres::{
             crud::QueryRecordDecode,
@@ -47,13 +49,20 @@ use crate::{
         UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,
+        edges::GraphResolveDepths,
+        identifier::GraphElementVertexId,
+        temporal_axes::{QueryTemporalAxes, VariableAxis},
+        Subgraph,
     },
 };
 
-impl<C: AsClient> PostgresStore<C> {
+impl<C, A> PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi,
+{
     #[tracing::instrument(level = "trace", skip(data_types, authorization_api, zookie))]
-    pub(crate) async fn filter_data_types_by_permission<I, T, A>(
+    pub(crate) async fn filter_data_types_by_permission<I, T>(
         data_types: impl IntoIterator<Item = (I, T)> + Send,
         actor_id: AccountId,
         authorization_api: &A,
@@ -62,7 +71,6 @@ impl<C: AsClient> PostgresStore<C> {
     where
         I: Into<DataTypeId> + Send,
         T: Send,
-        A: AuthorizationApi + Sync,
     {
         let (ids, data_types): (Vec<_>, Vec<_>) = data_types
             .into_iter()
@@ -92,11 +100,108 @@ impl<C: AsClient> PostgresStore<C> {
             }))
     }
 
+    #[expect(clippy::manual_async_fn, reason = "This method is recursive")]
+    fn get_data_types_impl(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypesParams<'_>,
+        temporal_axes: &QueryTemporalAxes,
+    ) -> impl Future<Output = Result<(GetDataTypesResponse, Zookie<'static>), QueryError>> + Send
+    {
+        async move {
+            #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
+            let count = if params.include_count {
+                Some(
+                    self.count_data_types(
+                        actor_id,
+                        CountDataTypesParams {
+                            filter: params.filter.clone(),
+                            temporal_axes: params.temporal_axes.clone(),
+                            include_drafts: params.include_drafts,
+                        },
+                    )
+                    .boxed()
+                    .await?,
+                )
+            } else {
+                None
+            };
+
+            // TODO: Remove again when subgraph logic was revisited
+            //   see https://linear.app/hash/issue/H-297
+            let mut visited_ontology_ids = HashSet::new();
+            let time_axis = temporal_axes.variable_time_axis();
+
+            let (data, artifacts) = ReadPaginated::<DataTypeWithMetadata>::read_paginated_vec(
+                self,
+                &params.filter,
+                Some(temporal_axes),
+                &VertexIdSorting {
+                    cursor: params.after,
+                },
+                params.limit,
+                params.include_drafts,
+            )
+            .await?;
+            let data_types = data
+                .into_iter()
+                .filter_map(|row| {
+                    let data_type = row.decode_record(&artifacts);
+                    let id = DataTypeId::from_url(&data_type.schema.id);
+                    // The records are already sorted by time, so we can just take the first one
+                    visited_ontology_ids.insert(id).then_some((id, data_type))
+                })
+                .collect::<Vec<_>>();
+
+            let filtered_ids = data_types
+                .iter()
+                .map(|(data_type_id, _)| *data_type_id)
+                .collect::<Vec<_>>();
+
+            let (permissions, zookie) = self
+                .authorization_api
+                .check_data_types_permission(
+                    actor_id,
+                    DataTypePermission::View,
+                    filtered_ids,
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let data_types = data_types
+                .into_iter()
+                .filter_map(|(id, data_type)| {
+                    permissions
+                        .get(&id)
+                        .copied()
+                        .unwrap_or(false)
+                        .then_some(data_type)
+                })
+                .collect::<Vec<_>>();
+
+            Ok((
+                GetDataTypesResponse {
+                    cursor: if params.limit.is_some() {
+                        data_types
+                            .last()
+                            .map(|data_type| data_type.vertex_id(time_axis))
+                    } else {
+                        None
+                    },
+                    data_types,
+                    count,
+                },
+                zookie,
+            ))
+        }
+    }
+
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "info", skip(self))]
-    pub(crate) async fn traverse_data_types<A: AuthorizationApi + Sync>(
+    pub(crate) async fn traverse_data_types(
         &self,
         queue: Vec<(
             OntologyId,
@@ -105,13 +210,12 @@ impl<C: AsClient> PostgresStore<C> {
         )>,
         _: &mut TraversalContext,
         actor_id: AccountId,
-        _: &A,
         _: &Zookie<'static>,
         _: &mut Subgraph,
     ) -> Result<(), QueryError> {
         // TODO: data types currently have no references to other types, so we don't need to do
         //       anything here
-        //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+        //   see https://linear.app/hash/issue/H-3075/allow-traversing-data-type-edges
 
         Ok(())
     }
@@ -125,6 +229,8 @@ impl<C: AsClient> PostgresStore<C> {
             .simple_query(
                 "
                     DELETE FROM data_type_embeddings;
+                    DELETE FROM data_type_inherits_from;
+                    DELETE FROM data_type_constrains_values_on;
                 ",
             )
             .await
@@ -153,13 +259,15 @@ impl<C: AsClient> PostgresStore<C> {
     }
 }
 
-impl<C: AsClient> DataTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, authorization_api, params))]
-    async fn create_data_types<A: AuthorizationApi + Send + Sync, P, R>(
+impl<C, A> DataTypeStore for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi,
+{
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn create_data_types<P, R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, InsertionError>
     where
@@ -168,25 +276,29 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let provenance = OntologyProvenanceMetadata {
-            edition: OntologyEditionProvenanceMetadata {
-                created_by_id: EditionCreatedById::new(actor_id),
-                archived_by_id: None,
-            },
-        };
-
         let mut relationships = HashSet::new();
 
         let mut inserted_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
 
+        let data_type_validator = DataTypeValidator;
+
         for parameters in params {
-            let record_id = OntologyTypeRecordId::from(parameters.schema.id().clone());
-            let data_type_id = DataTypeId::from_url(parameters.schema.id());
+            let provenance = OntologyProvenance {
+                edition: OntologyEditionProvenance {
+                    created_by_id: EditionCreatedById::new(actor_id),
+                    archived_by_id: None,
+                    user_defined: parameters.provenance,
+                },
+            };
+
+            let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
+            let data_type_id = DataTypeId::from_url(&parameters.schema.id);
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
                 &parameters.classification
             {
-                authorization_api
+                transaction
+                    .authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreateDataType,
@@ -216,15 +328,23 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
             if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    provenance.edition.created_by_id,
                     &record_id,
                     &parameters.classification,
                     parameters.conflict_behavior,
+                    &provenance,
                 )
                 .await?
             {
+                let schema = data_type_validator
+                    .validate_ref(&parameters.schema)
+                    .await
+                    .change_context(InsertionError)?;
+                let closed_schema = data_type_validator
+                    .validate(ClosedDataType::new(schema.clone().into_inner()))
+                    .await
+                    .change_context(InsertionError)?;
                 transaction
-                    .insert_with_id(ontology_id, &parameters.schema)
+                    .insert_data_type_with_id(ontology_id, schema, &closed_schema)
                     .await?;
                 let metadata = DataTypeMetadata {
                     record_id,
@@ -232,7 +352,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     temporal_versioning,
                     provenance,
                 };
-                if temporal_client.is_some() {
+                if transaction.temporal_client.is_some() {
                     inserted_data_types.push(DataTypeWithMetadata {
                         schema: parameters.schema,
                         metadata: metadata.clone(),
@@ -243,7 +363,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         }
 
         #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
-        authorization_api
+        transaction
+            .authorization_api
             .modify_data_type_relations(
                 relationships
                     .iter()
@@ -260,7 +381,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
-            if let Err(auth_error) = authorization_api
+            if let Err(auth_error) = self
+                .authorization_api
                 .modify_data_type_relations(relationships.into_iter().map(
                     |(resource, relation_and_subject)| {
                         (
@@ -280,7 +402,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            if let Some(temporal_client) = temporal_client {
+            if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
                     .start_update_data_type_embeddings_workflow(actor_id, &inserted_data_types)
                     .await
@@ -291,83 +413,88 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         }
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api))]
-    async fn get_data_type<A: AuthorizationApi + Sync>(
+    async fn get_data_types(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         params: GetDataTypesParams<'_>,
-    ) -> Result<Subgraph, QueryError> {
-        let StructuralQuery {
-            ref filter,
-            graph_resolve_depths,
-            temporal_axes: ref unresolved_temporal_axes,
-            include_drafts,
-        } = params.query;
+    ) -> Result<GetDataTypesResponse, QueryError> {
+        let temporal_axes = params.temporal_axes.clone().resolve();
+        self.get_data_types_impl(actor_id, params, &temporal_axes)
+            .await
+            .map(|(response, _)| response)
+    }
 
-        let temporal_axes = unresolved_temporal_axes.clone().resolve();
+    async fn count_data_types(
+        &self,
+        actor_id: AccountId,
+        params: CountDataTypesParams<'_>,
+    ) -> Result<usize, QueryError> {
+        self.get_data_types(
+            actor_id,
+            GetDataTypesParams {
+                filter: params.filter,
+                temporal_axes: params.temporal_axes,
+                include_drafts: params.include_drafts,
+                after: None,
+                limit: None,
+                include_count: false,
+            },
+        )
+        .await
+        .map(|response| response.data_types.len())
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn get_data_type_subgraph(
+        &self,
+        actor_id: AccountId,
+        params: GetDataTypeSubgraphParams<'_>,
+    ) -> Result<GetDataTypeSubgraphResponse, QueryError> {
+        let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        // TODO: Remove again when subgraph logic was revisited
-        //   see https://linear.app/hash/issue/H-297
-        let mut visited_ontology_ids = HashSet::new();
-
-        let (data, artifacts) = ReadPaginated::<DataTypeWithMetadata>::read_paginated_vec(
-            self,
-            filter,
-            Some(&temporal_axes),
-            &VertexIdSorting {
-                cursor: params.after,
+        let (
+            GetDataTypesResponse {
+                data_types,
+                cursor,
+                count,
             },
-            params.limit,
-            include_drafts,
-        )
-        .await?;
-        let data_types = data
-            .into_iter()
-            .filter_map(|row| {
-                let data_type = row.decode_record(&artifacts);
-                let id = DataTypeId::from_url(data_type.schema.id());
-                let vertex_id = data_type.vertex_id(time_axis);
-                // The records are already sorted by time, so we can just take the first one
-                visited_ontology_ids
-                    .insert(id)
-                    .then_some((id, (vertex_id, data_type)))
-            })
-            .collect::<Vec<_>>();
-
-        let filtered_ids = data_types
-            .iter()
-            .map(|(data_type_id, _)| *data_type_id)
-            .collect::<Vec<_>>();
-
-        let (permissions, zookie) = authorization_api
-            .check_data_types_permission(
+            zookie,
+        ) = self
+            .get_data_types_impl(
                 actor_id,
-                DataTypePermission::View,
-                filtered_ids,
-                Consistency::FullyConsistent,
+                GetDataTypesParams {
+                    filter: params.filter,
+                    temporal_axes: params.temporal_axes.clone(),
+                    after: params.after,
+                    limit: params.limit,
+                    include_drafts: params.include_drafts,
+                    include_count: params.include_count,
+                },
+                &temporal_axes,
             )
-            .await
-            .change_context(QueryError)?;
+            .await?;
 
         let mut subgraph = Subgraph::new(
-            graph_resolve_depths,
-            unresolved_temporal_axes.clone(),
+            params.graph_resolve_depths,
+            params.temporal_axes,
             temporal_axes.clone(),
         );
 
-        let (data_type_ids, data_type_vertices): (Vec<_>, Vec<_>) = data_types
-            .into_iter()
-            .filter(|(id, _)| permissions.get(id).copied().unwrap_or(false))
+        let (data_type_ids, data_type_vertex_ids): (Vec<_>, Vec<_>) = data_types
+            .iter()
+            .map(|data_type| {
+                (
+                    DataTypeId::from_url(&data_type.schema.id),
+                    GraphElementVertexId::from(data_type.vertex_id(time_axis)),
+                )
+            })
             .unzip();
-
-        subgraph.roots.extend(
-            data_type_vertices
-                .iter()
-                .map(|(vertex_id, _)| vertex_id.clone().into()),
-        );
-        subgraph.vertices.data_types = data_type_vertices.into_iter().collect();
+        subgraph.roots.extend(data_type_vertex_ids);
+        subgraph.vertices.data_types = data_types
+            .into_iter()
+            .map(|data_type| (data_type.vertex_id(time_axis), data_type))
+            .collect();
 
         let mut traversal_context = TraversalContext::default();
 
@@ -386,36 +513,39 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .collect(),
             &mut traversal_context,
             actor_id,
-            authorization_api,
             &zookie,
             &mut subgraph,
         )
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
             .await?;
 
-        Ok(subgraph)
+        Ok(GetDataTypeSubgraphResponse {
+            subgraph,
+            cursor,
+            count,
+        })
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api, params))]
-    async fn update_data_type<A: AuthorizationApi + Send + Sync, R>(
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn update_data_type<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: UpdateDataTypesParams<R>,
     ) -> Result<DataTypeMetadata, UpdateError>
     where
         R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
+        let data_type_validator = DataTypeValidator;
+
         let old_ontology_id = DataTypeId::from_url(&VersionedUrl {
-            base_url: params.schema.id().base_url.clone(),
+            base_url: params.schema.id.base_url.clone(),
             version: OntologyTypeVersion::new(
                 params
                     .schema
-                    .id()
+                    .id
                     .version
                     .inner()
                     .checked_sub(1)
@@ -425,7 +555,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     )?,
             ),
         });
-        authorization_api
+        self.authorization_api
             .check_data_type_permission(
                 actor_id,
                 DataTypePermission::Update,
@@ -439,9 +569,30 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
+        let provenance = OntologyProvenance {
+            edition: OntologyEditionProvenance {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+                user_defined: params.provenance,
+            },
+        };
+
+        let schema = data_type_validator
+            .validate_ref(&params.schema)
+            .await
+            .change_context(UpdateError)?;
+        let closed_schema = data_type_validator
+            .validate(ClosedDataType::new(schema.clone().into_inner()))
+            .await
+            .change_context(UpdateError)?;
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update::<DataType>(&params.schema, EditionCreatedById::new(actor_id))
+            .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
+        transaction
+            .insert_data_type_with_id(ontology_id, schema, &closed_schema)
+            .await
+            .change_context(UpdateError)?;
+
         let data_type_id = DataTypeId::from(ontology_id);
 
         let relationships = params
@@ -453,7 +604,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             }))
             .collect::<Vec<_>>();
 
-        authorization_api
+        transaction
+            .authorization_api
             .modify_data_type_relations(relationships.clone().into_iter().map(
                 |relation_and_subject| {
                     (
@@ -467,7 +619,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             .change_context(UpdateError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
-            if let Err(auth_error) = authorization_api
+            if let Err(auth_error) = self
+                .authorization_api
                 .modify_data_type_relations(relationships.into_iter().map(|relation_and_subject| {
                     (
                         ModifyRelationshipOperation::Delete,
@@ -486,18 +639,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             Err(error)
         } else {
             let metadata = DataTypeMetadata {
-                record_id: OntologyTypeRecordId::from(params.schema.id().clone()),
+                record_id: OntologyTypeRecordId::from(params.schema.id.clone()),
                 classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
-                provenance: OntologyProvenanceMetadata {
-                    edition: OntologyEditionProvenanceMetadata {
-                        created_by_id: EditionCreatedById::new(actor_id),
-                        archived_by_id: None,
-                    },
-                },
+                provenance,
             };
 
-            if let Some(temporal_client) = temporal_client {
+            if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
                     .start_update_data_type_embeddings_workflow(
                         actor_id,
@@ -515,10 +663,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn archive_data_type<A: AuthorizationApi + Send + Sync>(
+    async fn archive_data_type(
         &mut self,
         actor_id: AccountId,
-        _: &mut A,
         params: ArchiveDataTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.archive_ontology_type(&params.data_type_id, EditionArchivedById::new(actor_id))
@@ -526,21 +673,26 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn unarchive_data_type<A: AuthorizationApi + Send + Sync>(
+    async fn unarchive_data_type(
         &mut self,
         actor_id: AccountId,
-        _: &mut A,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(&params.data_type_id, EditionCreatedById::new(actor_id))
-            .await
+        self.unarchive_ontology_type(
+            &params.data_type_id,
+            &OntologyEditionProvenance {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+                user_defined: params.provenance,
+            },
+        )
+        .await
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn update_data_type_embeddings<A: AuthorizationApi + Send + Sync>(
+    async fn update_data_type_embeddings(
         &mut self,
         _: AccountId,
-        _: &mut A,
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> Result<(), UpdateError> {
         #[derive(Debug, ToSql)]
@@ -590,7 +742,11 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                         WHERE (ontology_id) IN (SELECT ontology_id FROM embeddings_to_delete)
                     )
                 INSERT INTO data_type_embeddings
-                SELECT ontology_id, embedding, updated_at_transaction_time FROM provided_embeddings
+                SELECT
+                    ontology_id,
+                    embedding,
+                    updated_at_transaction_time
+                FROM provided_embeddings
                 ON CONFLICT (ontology_id) DO UPDATE SET
                     embedding = EXCLUDED.embedding,
                     updated_at_transaction_time = EXCLUDED.updated_at_transaction_time
@@ -614,16 +770,15 @@ pub struct DataTypeRowIndices {
 
     pub schema: usize,
 
-    pub edition_created_by_id: usize,
-    pub edition_archived_by_id: usize,
+    pub edition_provenance: usize,
     pub additional_metadata: usize,
 }
 
 impl QueryRecordDecode for DataTypeWithMetadata {
-    type CompilationArtifacts = DataTypeRowIndices;
+    type Indices = DataTypeRowIndices;
     type Output = Self;
 
-    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
+    fn decode(row: &Row, indices: &Self::Indices) -> Self {
         let record_id = OntologyTypeRecordId {
             base_url: row.get(indices.base_url),
             version: row.get(indices.version),
@@ -646,13 +801,8 @@ impl QueryRecordDecode for DataTypeWithMetadata {
                 temporal_versioning: OntologyTemporalMetadata {
                     transaction_time: row.get(indices.transaction_time),
                 },
-                provenance: OntologyProvenanceMetadata {
-                    edition: OntologyEditionProvenanceMetadata {
-                        created_by_id: EditionCreatedById::new(
-                            row.get(indices.edition_created_by_id),
-                        ),
-                        archived_by_id: row.get(indices.edition_archived_by_id),
-                    },
+                provenance: OntologyProvenance {
+                    edition: row.get(indices.edition_provenance),
                 },
             },
         }
@@ -668,10 +818,11 @@ impl PostgresRecord for DataTypeWithMetadata {
 
     fn parameters() -> Self::CompilationParameters {}
 
+    #[instrument(level = "info", skip(compiler, _paths))]
     fn compile<'p, 'q: 'p>(
         compiler: &mut SelectCompiler<'p, 'q, Self>,
         _paths: &Self::CompilationParameters,
-    ) -> Self::CompilationArtifacts {
+    ) -> Self::Indices {
         DataTypeRowIndices {
             base_url: compiler.add_distinct_selection_with_ordering(
                 &DataTypeQueryPath::BaseUrl,
@@ -689,10 +840,8 @@ impl PostgresRecord for DataTypeWithMetadata {
                 None,
             ),
             schema: compiler.add_selection_path(&DataTypeQueryPath::Schema(None)),
-            edition_created_by_id: compiler
-                .add_selection_path(&DataTypeQueryPath::EditionCreatedById),
-            edition_archived_by_id: compiler
-                .add_selection_path(&DataTypeQueryPath::EditionArchivedById),
+            edition_provenance: compiler
+                .add_selection_path(&DataTypeQueryPath::EditionProvenance(None)),
             additional_metadata: compiler
                 .add_selection_path(&DataTypeQueryPath::AdditionalMetadata),
         }

@@ -1,28 +1,37 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { AccountId } from "@local/hash-subgraph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
-import { dereferenceEntityType } from "./infer-entities/dereference-entity-type";
 import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types";
+import { dereferenceEntityType } from "./shared/dereference-entity-type";
 
+/**
+ * @todo: allow for specifying additional entity types which may be linked to
+ * when determining whether link types are "satisfiable".
+ *
+ * @see https://linear.app/hash/issue/H-2685/in-getdereferencedentitytypesactivity-allow-for-specifying-additional
+ */
 export const getDereferencedEntityTypesActivity = async (params: {
   entityTypeIds: VersionedUrl[];
   graphApiClient: GraphApi;
   actorId: AccountId;
+  simplifyPropertyKeys: boolean;
 }): Promise<DereferencedEntityTypesByTypeId> => {
-  const { graphApiClient, entityTypeIds, actorId } = params;
+  const { graphApiClient, entityTypeIds, actorId, simplifyPropertyKeys } =
+    params;
 
   /** Fetch the full schemas for the requested entity types */
   const entityTypes: DereferencedEntityTypesByTypeId = {};
 
-  const { data: entityTypesSubgraph } =
-    await graphApiClient.getEntityTypesByQuery(actorId, {
+  const { data: response } = await graphApiClient.getEntityTypeSubgraph(
+    actorId,
+    {
       filter: {
         any: entityTypeIds.map((entityTypeId) => ({
           equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
@@ -36,13 +45,15 @@ export const getDereferencedEntityTypesActivity = async (params: {
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
-    });
+    },
+  );
 
   for (const entityTypeId of entityTypeIds) {
-    entityTypes[entityTypeId] = dereferenceEntityType(
+    entityTypes[entityTypeId] = dereferenceEntityType({
       entityTypeId,
-      mapGraphApiSubgraphToSubgraph(entityTypesSubgraph),
-    );
+      subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph, actorId),
+      simplifyPropertyKeys,
+    });
   }
 
   const unusableTypeIds = entityTypeIds.filter((entityTypeId) => {

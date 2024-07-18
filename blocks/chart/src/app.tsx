@@ -67,7 +67,7 @@ export const App: BlockComponent<BlockEntity> = ({
       )
       .map(
         ({ rightEntity: rightEntityRevisions }) =>
-          rightEntityRevisions as unknown as Query,
+          rightEntityRevisions as Query,
       );
 
     return linkedQueryEntities[0];
@@ -367,6 +367,7 @@ export const App: BlockComponent<BlockEntity> = ({
           ) : (
             /** @todo: account for multiple query results */
             <EntitiesGraphChart
+              // @ts-expect-error -- The chart requires a temporal subgraph: BP-103
               subgraph={queryResult}
               isPrimaryEntity={(entity) =>
                 !!queryResult &&

@@ -1,30 +1,32 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use authorization::{
-    backend::ZanzibarBackend,
-    schema::{DataTypeId, DataTypeRelationAndSubject},
-};
+use authorization::{backend::ZanzibarBackend, schema::DataTypeRelationAndSubject};
 use error_stack::{Result, ResultExt};
+use graph_types::ontology::DataTypeId;
 use tokio_postgres::GenericClient;
 
 use crate::{
-    snapshot::{
-        ontology::{table::DataTypeRow, DataTypeEmbeddingRow},
-        WriteBatch,
+    snapshot::WriteBatch,
+    store::{
+        postgres::query::rows::{DataTypeEmbeddingRow, DataTypeRow},
+        AsClient, InsertionError, PostgresStore,
     },
-    store::{AsClient, InsertionError, PostgresStore},
 };
 
 pub enum DataTypeRowBatch {
     Schema(Vec<DataTypeRow>),
     Relations(HashMap<DataTypeId, Vec<DataTypeRelationAndSubject>>),
-    Embeddings(Vec<DataTypeEmbeddingRow>),
+    Embeddings(Vec<DataTypeEmbeddingRow<'static>>),
 }
 
 #[async_trait]
-impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
-    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+impl<C, A> WriteBatch<C, A> for DataTypeRowBatch
+where
+    C: AsClient,
+    A: ZanzibarBackend + Send + Sync,
+{
+    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         postgres_client
             .as_client()
             .client()
@@ -45,11 +47,7 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
         Ok(())
     }
 
-    async fn write(
-        self,
-        postgres_client: &PostgresStore<C>,
-        authorization_api: &mut (impl ZanzibarBackend + Send),
-    ) -> Result<(), InsertionError> {
+    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Schema(data_types) => {
@@ -73,7 +71,8 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
                 reason = "Lifetime error, probably the signatures are wrong"
             )]
             Self::Relations(relations) => {
-                authorization_api
+                postgres_client
+                    .authorization_api
                     .touch_relationships(
                         relations
                             .into_iter()
@@ -90,7 +89,7 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
                     .query(
                         "
                             INSERT INTO data_type_embeddings_tmp
-                            SELECT * FROM UNNEST($1::data_type_embeddings_tmp[])
+                            SELECT * FROM UNNEST($1::data_type_embeddings[])
                             RETURNING 1;
                         ",
                         &[&embeddings],
@@ -106,7 +105,7 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
     }
 
     async fn commit(
-        postgres_client: &PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, A>,
         _validation: bool,
     ) -> Result<(), InsertionError> {
         postgres_client
@@ -114,7 +113,8 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
             .client()
             .simple_query(
                 "
-                    INSERT INTO data_types SELECT * FROM data_types_tmp;
+                    INSERT INTO data_types
+                        SELECT * FROM data_types_tmp;
 
                     INSERT INTO data_type_embeddings
                         SELECT * FROM data_type_embeddings_tmp;

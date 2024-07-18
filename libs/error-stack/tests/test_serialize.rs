@@ -4,8 +4,7 @@
 // can be considered safe, because we only check the output, which in itself does not use **any**
 // unsafe code.
 #![cfg(not(miri))]
-#![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
-#![allow(clippy::std_instead_of_core)]
+#![cfg_attr(nightly, feature(error_generic_member_access))]
 
 use insta::assert_ron_snapshot;
 

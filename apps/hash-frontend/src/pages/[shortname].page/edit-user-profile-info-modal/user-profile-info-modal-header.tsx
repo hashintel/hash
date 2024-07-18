@@ -5,11 +5,11 @@ import {
   IconButton,
   RotateIconRegular,
 } from "@hashintel/design-system";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { OwnedById } from "@local/hash-subgraph";
 import { Box, buttonClasses, styled } from "@mui/material";
 import Image from "next/image";
 import type { ChangeEventHandler, FunctionComponent } from "react";
@@ -24,7 +24,7 @@ import type { ButtonProps } from "../../../shared/ui";
 import { Button } from "../../../shared/ui";
 import { useUpdateProfileAvatar } from "../../[shortname]/shared/use-update-profile-avatar";
 import { useAuthInfo } from "../../shared/auth-info-context";
-import { getImageUrlFromEntityProperties } from "../../shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../shared/get-file-properties";
 import { leftColumnWidth } from "../util";
 
 const AvatarButton = styled((props: ButtonProps) => (

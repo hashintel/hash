@@ -1,11 +1,11 @@
 import { useQuery } from "@apollo/client";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
-import type { EntityId, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -28,10 +28,10 @@ import { PageIcon } from "../../components/page-icon";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import type { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
 import { iconVariantSizes } from "../../shared/edit-emoji-icon-button";
@@ -59,6 +59,13 @@ import {
 import { useEnabledFeatureFlags } from "../shared/use-enabled-feature-flags";
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
 import { ArchiveMenuItem } from "./shared/archive-menu-item";
+
+/**
+ * Use to check if current browser is Safari or not
+ */
+export const isSafariBrowser = () =>
+  navigator.userAgent.indexOf("Safari") > -1 &&
+  navigator.userAgent.indexOf("Chrome") <= -1;
 
 export const pageContentWidth = 696;
 export const commentsWidth = 320;
@@ -195,9 +202,9 @@ const Page: NextPageWithLayout<PageProps> = () => {
   const { workspaceShortname, pageEntityUuid } = parsePageUrlQueryParams(query);
 
   const { data, error, loading } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables:
       getBlockCollectionContentsStructuralQueryVariables(pageEntityUuid),
     fetchPolicy: "cache-and-network",
@@ -231,8 +238,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
-  const { subgraph, userPermissionsOnEntities } =
-    data?.structuralQueryEntities ?? {};
+  const { subgraph, userPermissionsOnEntities } = data?.getEntitySubgraph ?? {};
 
   const pageSubgraph = subgraph
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(subgraph)

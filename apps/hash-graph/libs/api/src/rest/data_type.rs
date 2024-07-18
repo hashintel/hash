@@ -1,21 +1,18 @@
 //! Web routes for CRU operations on Data Types.
 
-#![expect(clippy::str_to_string)]
-
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        DataTypeViewerSubject,
+        DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, DataTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
-    extract::{OriginalUri, Path, Query},
-    http::{header::LINK, HeaderMap, StatusCode},
+    extract::Path,
+    http::StatusCode,
     response::Response,
     routing::{get, post, put},
     Extension, Router,
@@ -29,21 +26,21 @@ use graph::{
     store::{
         error::VersionedUrlAlreadyExists,
         ontology::{
-            ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypesParams,
-            UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+            ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypeSubgraphParams,
+            GetDataTypesParams, GetDataTypesResponse, UnarchiveDataTypeParams,
+            UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
         },
         BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, OntologyVersionDoesNotExist,
         StorePool,
     },
-    subgraph::{
-        identifier::DataTypeVertexId,
-        query::{DataTypeStructuralQuery, StructuralQuery},
-    },
+    subgraph::identifier::DataTypeVertexId,
 };
 use graph_types::{
+    knowledge::ValueWithMetadata,
     ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
+        DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -52,8 +49,8 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
+    schema::DataType,
     url::{OntologyTypeVersion, VersionedUrl},
-    DataType,
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -62,7 +59,7 @@ use crate::rest::{
     json::Json,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfDataType},
-    AuthenticatedUserHeader, Cursor, Pagination, PermissionResponse, RestApiStore,
+    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
 };
 
 #[derive(OpenApi)]
@@ -74,7 +71,8 @@ use crate::rest::{
 
         create_data_type,
         load_external_data_type,
-        get_data_types_by_query,
+        get_data_types,
+        get_data_type_subgraph,
         update_data_type,
         update_data_type_embeddings,
         archive_data_type,
@@ -95,9 +93,14 @@ use crate::rest::{
             UpdateDataTypeRequest,
             UpdateDataTypeEmbeddingParams,
             DataTypeQueryToken,
-            DataTypeStructuralQuery,
+            GetDataTypesParams,
+            GetDataTypesResponse,
+            GetDataTypeSubgraphParams,
+            GetDataTypeSubgraphResponse,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
+
+            ValueWithMetadata,
         )
     ),
     tags(
@@ -112,7 +115,7 @@ impl RoutedResource for DataTypeResource {
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
-        for<'pool> S::Store<'pool>: RestApiStore,
+        for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
@@ -138,7 +141,12 @@ impl RoutedResource for DataTypeResource {
                             get(check_data_type_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_data_types_by_query::<S, A>))
+                .nest(
+                    "/query",
+                    Router::new()
+                        .route("/", post(get_data_types::<S, A>))
+                        .route("/subgraph", post(get_data_type_subgraph::<S, A>)),
+                )
                 .route("/load", post(load_external_data_type::<S, A>))
                 .route("/archive", put(archive_data_type::<S, A>))
                 .route("/unarchive", put(unarchive_data_type::<S, A>))
@@ -154,6 +162,11 @@ struct CreateDataTypeRequest {
     schema: MaybeListOfDataType,
     owned_by_id: OwnedById,
     relationships: Vec<DataTypeRelationAndSubject>,
+    #[serde(
+        default,
+        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
+    )]
+    provenance: ProvidedOntologyEditionProvenance,
 }
 
 #[utoipa::path(
@@ -174,7 +187,7 @@ struct CreateDataTypeRequest {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, domain_validator)
+    skip(store_pool, authorization_api_pool, temporal_client, domain_validator)
 )]
 async fn create_data_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -186,23 +199,27 @@ async fn create_data_type<S, A>(
 ) -> Result<Json<ListOrValue<DataTypeMetadata>>, StatusCode>
 where
     S: StorePool + Send + Sync,
-    for<'pool> S::Store<'pool>: RestApiStore,
+    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     let Json(CreateDataTypeRequest {
         schema,
         owned_by_id,
         relationships,
+        provenance,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -210,11 +227,9 @@ where
     let mut metadata = store
         .create_data_types(
             actor_id,
-            &mut authorization_api,
-            temporal_client.as_deref(),
             schema.into_iter().map(|schema| {
                 domain_validator.validate(&schema).map_err(|report| {
-                    tracing::error!(error=?report, id=schema.id().to_string(), "Data Type ID failed to validate");
+                    tracing::error!(error=?report, id=%schema.id, "Data Type ID failed to validate");
                     StatusCode::UNPROCESSABLE_ENTITY
                 })?;
 
@@ -223,6 +238,7 @@ where
                     classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                     relationships: relationships.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
+                    provenance: provenance.clone()
                 })
             }).collect::<Result<Vec<_>, StatusCode>>()?
         )
@@ -252,14 +268,20 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(untagged)]
+#[serde(deny_unknown_fields, untagged)]
 enum LoadExternalDataTypeRequest {
     #[serde(rename_all = "camelCase")]
     Fetch { data_type_id: VersionedUrl },
+    #[serde(rename_all = "camelCase")]
     Create {
         #[schema(value_type = VAR_DATA_TYPE)]
         schema: DataType,
         relationships: Vec<DataTypeRelationAndSubject>,
+        #[serde(
+            default,
+            skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
+        )]
+        provenance: Box<ProvidedOntologyEditionProvenance>,
     },
 }
 
@@ -281,7 +303,7 @@ enum LoadExternalDataTypeRequest {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, domain_validator)
+    skip(store_pool, authorization_api_pool, temporal_client, domain_validator)
 )]
 async fn load_external_data_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -293,12 +315,16 @@ async fn load_external_data_type<S, A>(
 ) -> Result<Json<DataTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
-    for<'pool> S::Store<'pool>: RestApiStore,
+    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
         .await
         .map_err(report_to_response)?;
 
@@ -307,8 +333,6 @@ where
             let OntologyTypeMetadata::DataType(metadata) = store
                 .load_external_type(
                     actor_id,
-                    &mut authorization_api,
-                    temporal_client.as_deref(),
                     &domain_validator,
                     OntologyTypeReference::DataTypeReference((&data_type_id).into()),
                 )
@@ -322,10 +346,11 @@ where
         LoadExternalDataTypeRequest::Create {
             schema,
             relationships,
+            provenance,
         } => {
-            if domain_validator.validate_url(schema.id().base_url.as_str()) {
+            if domain_validator.validate_url(schema.id.base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
-                tracing::error!(id=%schema.id(), error);
+                tracing::error!(id=%schema.id, error);
                 return Err(status_to_response(Status::<()>::new(
                     hash_status::StatusCode::InvalidArgument,
                     Some(error),
@@ -337,8 +362,6 @@ where
                 store
                     .create_data_type(
                         actor_id,
-                        &mut authorization_api,
-                        temporal_client.as_deref(),
                         CreateDataTypeParams {
                             schema,
                             classification: OntologyTypeClassificationMetadata::External {
@@ -346,6 +369,7 @@ where
                             },
                             relationships,
                             conflict_behavior: ConflictBehavior::Fail,
+                            provenance: *provenance,
                         },
                     )
                     .await
@@ -358,7 +382,7 @@ where
 #[utoipa::path(
     post,
     path = "/data-types/query",
-    request_body = DataTypeStructuralQuery,
+    request_body = GetDataTypesParams,
     tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -367,63 +391,123 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = Subgraph,
-            description = "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth.",
-            headers(
-                ("Link" = String, description = "The link to be used to query the next page of data types"),
-            ),
+            body = GetDataTypesResponse,
+            description = "Gets a a list of data types that satisfy the given query.",
         ),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, query))]
-async fn get_data_types_by_query<S, A>(
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn get_data_types<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    Query(pagination): Query<Pagination<DataTypeVertexId>>,
-    OriginalUri(uri): OriginalUri,
-    Json(query): Json<serde_json::Value>,
-) -> Result<(HeaderMap, Json<Subgraph>), Response>
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<GetDataTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let store = store_pool.acquire().await.map_err(report_to_response)?;
-
     let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
-    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
-    // error reporting.
-    let mut query = StructuralQuery::deserialize(&query).map_err(report_to_response)?;
-    query
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
-    let subgraph = store
-        .get_data_type(
-            actor_id,
-            &authorization_api,
-            GetDataTypesParams {
-                query,
-                after: pagination.after.map(|cursor| cursor.0),
-                limit: pagination.limit,
-            },
-        )
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
         .await
         .map_err(report_to_response)?;
 
-    let cursor = subgraph.roots.iter().last().map(Cursor);
-    let mut headers = HeaderMap::new();
-    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
-        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
-    }
-    Ok((headers, Json(Subgraph::from(subgraph))))
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
+    // error reporting.
+    let mut request = GetDataTypesParams::deserialize(&request).map_err(report_to_response)?;
+    request
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+    store
+        .get_data_types(actor_id, request)
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct GetDataTypeSubgraphResponse {
+    subgraph: Subgraph,
+    cursor: Option<DataTypeVertexId>,
+}
+
+#[utoipa::path(
+    post,
+    path = "/data-types/query/subgraph",
+    request_body = GetDataTypeSubgraphParams,
+    tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = GetDataTypeSubgraphResponse,
+            description = "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth.",
+        ),
+
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn get_data_type_subgraph<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<GetDataTypeSubgraphResponse>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
+    // error reporting.
+    let mut request =
+        GetDataTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?;
+    request
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+    store
+        .get_data_type_subgraph(actor_id, request)
+        .await
+        .map_err(report_to_response)
+        .map(|response| {
+            Json(GetDataTypeSubgraphResponse {
+                subgraph: Subgraph::from(response.subgraph),
+                cursor: response.cursor,
+            })
+        })
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -433,6 +517,11 @@ struct UpdateDataTypeRequest {
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
     relationships: Vec<DataTypeRelationAndSubject>,
+    #[serde(
+        default,
+        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
+    )]
+    provenance: ProvidedOntologyEditionProvenance,
 }
 
 #[utoipa::path(
@@ -453,7 +542,10 @@ struct UpdateDataTypeRequest {
     ),
     request_body = UpdateDataTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn update_data_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -469,6 +561,7 @@ where
         schema,
         mut type_to_update,
         relationships,
+        provenance,
     }) = body;
 
     type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
@@ -476,28 +569,30 @@ where
     let data_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't patch schema and convert to Data Type");
         StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
-        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        // TODO: We should probably return more information to the client
+        //   see https://linear.app/hash/issue/H-3009
     })?;
 
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
     store
         .update_data_type(
             actor_id,
-            &mut authorization_api,
-            temporal_client.as_deref(),
             UpdateDataTypesParams {
                 schema: data_type,
                 relationships,
+                provenance,
             },
         )
         .await
@@ -532,11 +627,15 @@ where
     ),
     request_body = UpdateDataTypeEmbeddingParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, body)
+)]
 async fn update_data_type_embeddings<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<(), Response>
 where
@@ -549,14 +648,18 @@ where
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .update_data_type_embeddings(actor_id, &mut authorization_api, params)
+        .update_data_type_embeddings(actor_id, params)
         .await
         .map_err(report_to_response)
 }
@@ -578,11 +681,15 @@ where
     ),
     request_body = ArchiveDataTypeParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn archive_data_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
@@ -595,14 +702,18 @@ where
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .archive_data_type(actor_id, &mut authorization_api, params)
+        .archive_data_type(actor_id, params)
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
@@ -633,11 +744,15 @@ where
     ),
     request_body = UnarchiveDataTypeParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn unarchive_data_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
@@ -650,14 +765,18 @@ where
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .unarchive_data_type(actor_id, &mut authorization_api, params)
+        .unarchive_data_type(actor_id, params)
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {

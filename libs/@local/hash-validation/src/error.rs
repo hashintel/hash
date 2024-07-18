@@ -1,13 +1,21 @@
 use std::collections::HashSet;
 
 use error_stack::Report;
-use graph_types::knowledge::entity::EntityProperties;
+use graph_types::knowledge::{PropertyWithMetadata, PropertyWithMetadataObject};
 use serde_json::Value as JsonValue;
-use type_system::{url::VersionedUrl, ClosedEntityType, DataType, PropertyType};
+use type_system::{
+    schema::{ClosedEntityType, DataType, PropertyType},
+    url::VersionedUrl,
+};
 
 pub fn install_error_stack_hooks() {
     Report::install_debug_hook::<Actual>(|actual, context| match actual {
         Actual::Json(json) => context.push_body(format!("actual: {json:#}")),
+        Actual::Property(json) => {
+            if let Ok(json) = serde_json::to_value(json) {
+                context.push_body(format!("actual: {json:#}"));
+            }
+        }
         Actual::Properties(properties) => {
             if let Ok(json) = serde_json::to_value(properties) {
                 context.push_body(format!("actual: {json:#}"));
@@ -21,8 +29,8 @@ pub fn install_error_stack_hooks() {
             Expected::EntityType(entity_type) => {
                 entity_type.schemas.keys().cloned().collect::<Vec<_>>()
             }
-            Expected::PropertyType(property_type) => vec![property_type.id().clone()],
-            Expected::DataType(data_type) => vec![data_type.id().clone()],
+            Expected::PropertyType(property_type) => vec![property_type.id.clone()],
+            Expected::DataType(data_type) => vec![data_type.id.clone()],
         };
         let stringified_ids = ids
             .iter()
@@ -59,12 +67,13 @@ pub fn install_error_stack_hooks() {
 #[derive(Debug)]
 pub enum Actual {
     Json(JsonValue),
-    Properties(EntityProperties),
+    Property(PropertyWithMetadata),
+    Properties(PropertyWithMetadataObject),
 }
 
 #[derive(Debug)]
 pub enum Expected {
-    EntityType(ClosedEntityType),
+    EntityType(Box<ClosedEntityType>),
     PropertyType(PropertyType),
     DataType(DataType),
 }

@@ -1,10 +1,10 @@
 import type { EntityType } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { BaseUrl } from "@local/hash-subgraph/.";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import type { MigrationFunction } from "../types";
@@ -195,18 +195,19 @@ const migrate: MigrationFunction = async ({
     entityTypeBaseUrls: baseUrls,
     migrationState,
     migrateProperties: {
-      [systemEntityTypes.user.entityTypeBaseUrl as BaseUrl]: (
-        previousUserProperties,
-      ) => {
+      [systemEntityTypes.user.entityTypeBaseUrl]: (previousUserProperties) => {
         const {
-          [systemPropertyTypes.preferredName.propertyTypeBaseUrl as BaseUrl]:
+          [systemPropertyTypes.preferredName.propertyTypeBaseUrl]:
             previousPreferredName,
           ...remainingProperties
-        } = previousUserProperties;
+        } = previousUserProperties.value;
 
         return {
-          ...remainingProperties,
-          [displayNameBaseUrl]: previousPreferredName,
+          value: {
+            ...remainingProperties,
+            [displayNameBaseUrl]: previousPreferredName,
+          },
+          metadata: previousUserProperties.metadata,
         };
       },
     },

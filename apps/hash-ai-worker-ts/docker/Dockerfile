@@ -1,4 +1,4 @@
-FROM node:18-alpine3.19 AS base
+FROM node:20.13-alpine AS base
 
 WORKDIR /app
 
@@ -14,14 +14,14 @@ RUN turbo prune --scope='@apps/hash-ai-worker-ts' --docker && \
         echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
         echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
       )' _ {} \; && \
-    cp Cargo.toml /app/out/full/
+    cp Cargo.toml Cargo.lock /app/out/full/
 
 # Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
 # Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
 COPY patches /app/out/full/patches
 
 
-FROM node:18.15-slim AS rust
+FROM node:20.13-slim AS rust
 
 WORKDIR /usr/local/
 
@@ -52,10 +52,10 @@ RUN yarn install --frozen-lockfile --prefer-offline && \
 
 COPY --from=base /app/out/full/ .
 
-RUN yarn turbo build --filter '@apps/hash-ai-worker-ts'
+RUN yarn turbo build --filter '@apps/hash-ai-worker-ts' --env-mode=loose && rm -rf target/
 
 
-FROM node:18.15-slim AS runner
+FROM node:20.13-slim AS runner
 
 COPY --from=installer /usr/local/src /usr/local/src
 WORKDIR /usr/local/src/apps/hash-ai-worker-ts

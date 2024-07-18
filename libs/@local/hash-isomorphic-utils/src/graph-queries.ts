@@ -8,18 +8,19 @@ import type {
   PropertyTypeQueryToken,
   Selector,
 } from "@local/hash-graph-client";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
-  AccountId,
   EntityRelationAndSubject,
+  EntityTypeRelationAndSubject,
+  PropertyTypeRelationAndSubject,
   QueryTemporalAxesUnresolved,
-  Subgraph,
   SubgraphRootType,
-  Timestamp,
 } from "@local/hash-subgraph";
-import {
-  componentsFromVersionedUrl,
-  extractBaseUrl,
-} from "@local/hash-subgraph/type-system-patch";
+import { splitEntityId } from "@local/hash-subgraph";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen";
 import { systemPropertyTypes } from "./ontology-type-ids";
@@ -33,6 +34,18 @@ export const zeroedGraphResolveDepths: GraphResolveDepths = {
   isOfType: { outgoing: 0 },
   hasLeftEntity: { incoming: 0, outgoing: 0 },
   hasRightEntity: { incoming: 0, outgoing: 0 },
+};
+
+export const fullOntologyResolveDepths: Omit<
+  GraphResolveDepths,
+  "hasLeftEntity" | "hasRightEntity"
+> = {
+  constrainsValuesOn: { outgoing: 255 },
+  constrainsPropertiesOn: { outgoing: 255 },
+  constrainsLinksOn: { outgoing: 1 },
+  constrainsLinkDestinationsOn: { outgoing: 1 },
+  inheritsFrom: { outgoing: 255 },
+  isOfType: { outgoing: 1 },
 };
 
 /**
@@ -166,11 +179,70 @@ export const generateVersionedUrlMatchingFilter = (
   };
 };
 
-const archivedBaseUrl = extractBaseUrl(
-  systemPropertyTypes.archived.propertyTypeId,
-);
+/**
+ * Generate a filter to match an entity by its ID.
+ *
+ * If the entityId includes a draftId, only that draft will be queried.
+ * Pass includeArchived: true to include archived entities in the query.
+ *
+ * N.B. Some entities (notifications, pages, quick notes) handle archived via a property type instead of a boolean.
+ * You must additionally use {@link pageOrNotificationNotArchivedFilter} to exclude entities of those types where the property is falsy:
+ * {
+ *   all: [generateEntityIdFilter({ entityId }), notArchivedFilter]
+ * }
+ */
+export const generateEntityIdFilter = ({
+  entityId,
+  includeArchived = false,
+}: {
+  entityId: EntityId;
+  includeArchived: boolean;
+}): Filter => {
+  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
 
-export const notArchivedFilter: Filter = {
+  const conditions: Filter[] = [
+    {
+      equal: [
+        { path: ["uuid"] },
+        {
+          parameter: entityUuid,
+        },
+      ],
+    },
+    {
+      equal: [
+        { path: ["ownedById"] },
+        {
+          parameter: ownedById,
+        },
+      ],
+    },
+  ];
+
+  if (draftId) {
+    conditions.push({
+      equal: [
+        { path: ["draftId"] },
+        {
+          parameter: draftId,
+        },
+      ],
+    });
+  }
+
+  if (!includeArchived) {
+    conditions.push({ equal: [{ path: ["archived"] }, { parameter: false }] });
+  }
+
+  return { all: conditions };
+};
+
+const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
+/**
+ * A filter for entities which record 'archived' state as a property rather than via an 'archived' boolean
+ * @todo H-611 implement entity archival properly via temporal versioning, and migrate these other approaches
+ */
+export const pageOrNotificationNotArchivedFilter: Filter = {
   any: [
     {
       equal: [
@@ -195,7 +267,7 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
   RootType extends SubgraphRootType,
 >(
   subgraph: SubgraphFieldsFragment,
-) => subgraph as Subgraph<RootType>;
+) => deserializeSubgraph<RootType>(subgraph);
 
 export const createDefaultAuthorizationRelationships = (params: {
   actorId: AccountId;
@@ -256,3 +328,43 @@ export const createOrgMembershipAuthorizationRelationships = ({
     },
   },
 ];
+
+export const defaultPropertyTypeAuthorizationRelationships: PropertyTypeRelationAndSubject[] =
+  [
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "updateFromWeb",
+      },
+    },
+    {
+      relation: "viewer",
+      subject: {
+        kind: "public",
+      },
+    },
+  ];
+
+export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndSubject[] =
+  [
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "updateFromWeb",
+      },
+    },
+    {
+      relation: "viewer",
+      subject: {
+        kind: "public",
+      },
+    },
+    {
+      relation: "instantiator",
+      subject: {
+        kind: "public",
+      },
+    },
+  ];

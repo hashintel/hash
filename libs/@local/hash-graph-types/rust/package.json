@@ -1,5 +1,5 @@
 {
-  "name": "@local/hash-graph-types-rs",
+  "name": "@rust/graph-types",
   "version": "0.0.0-private",
   "private": true,
   "scripts": {
@@ -9,9 +9,10 @@
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@local/temporal-versioning-rs": "0.0.0-private"
+    "@rust/codec": "0.0.0-private",
+    "@rust/temporal-versioning": "0.0.0-private"
   },
   "devDependencies": {
-    "@tests/hash-graph-test-data-rs": "0.0.0-private"
+    "@rust/graph-test-data": "0.0.0-private"
   }
 }

@@ -1,5 +1,6 @@
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import type { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -7,11 +8,11 @@ import { useMemo } from "react";
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import type { LinkedWithCell } from "../linked-with-cell";
-import { EntitySelector } from "./entity-selector";
 import {
   createDraftLinkEntity,
   LinkedEntityListEditor,
 } from "./linked-entity-list-editor";
+import { LinkedEntitySelector } from "./linked-entity-selector";
 
 export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
@@ -78,7 +79,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
       linkAndTargetEntities[0]?.rightEntity.metadata.recordId.entityId;
 
     return (
-      <EntitySelector
+      <LinkedEntitySelector
         includeDrafts={
           !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
         }

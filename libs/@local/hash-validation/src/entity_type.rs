@@ -1,21 +1,23 @@
-use std::{borrow::Borrow, collections::HashMap};
+use core::borrow::Borrow;
+use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 use graph_types::knowledge::{
-    entity::{Entity, EntityId, EntityProperties},
+    entity::{Entity, EntityId},
     link::LinkData,
+    PropertyPath, PropertyWithMetadataObject,
 };
-use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
+    schema::{ClosedEntityType, DataType, ObjectSchema, PropertyType},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    ClosedEntityType, DataType, Object, PropertyType,
 };
 
 use crate::{
     error::{Actual, Expected},
-    EntityProvider, EntityTypeProvider, OntologyTypeProvider, Schema, Validate, ValidationProfile,
+    EntityProvider, EntityTypeProvider, OntologyTypeProvider, Schema, Validate,
+    ValidateEntityComponents,
 };
 
 macro_rules! extend_report {
@@ -39,16 +41,18 @@ pub enum EntityValidationError {
     #[error("Entities without a type are not allowed")]
     EmptyEntityTypes,
     #[error("the validator was unable to read the entity type `{ids:?}`")]
-    EntityTypeRetrieval { ids: Vec<VersionedUrl> },
+    EntityTypeRetrieval { ids: HashSet<VersionedUrl> },
     #[error("the validator was unable to read the entity `{id}`")]
     EntityRetrieval { id: EntityId },
     #[error("The link type `{link_types:?}` is not allowed")]
     InvalidLinkTypeId { link_types: Vec<VersionedUrl> },
     #[error("The link target `{target_types:?}` is not allowed")]
     InvalidLinkTargetId { target_types: Vec<VersionedUrl> },
+    #[error("The property path is invalid: `{path:?}`")]
+    InvalidPropertyPath { path: PropertyPath<'static> },
 }
 
-impl<P> Schema<HashMap<BaseUrl, JsonValue>, P> for ClosedEntityType
+impl<P> Schema<PropertyWithMetadataObject, P> for ClosedEntityType
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -56,24 +60,26 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a HashMap<BaseUrl, serde_json::Value>,
-        profile: ValidationProfile,
+        value: &'a PropertyWithMetadataObject,
+        components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
-        Object::<_, 0>::new(self.properties.clone(), self.required.clone())
-            .expect("`Object` was already validated")
-            .validate_value(value, profile, provider)
-            .await
-            .change_context(EntityValidationError::InvalidProperties)
-            .attach_lazy(|| Expected::EntityType(self.clone()))
-            .attach_lazy(|| Actual::Properties(EntityProperties::new(value.clone())))
+        ObjectSchema::<_> {
+            properties: self.properties.clone(),
+            required: self.required.clone(),
+        }
+        .validate_value(&value.value, components, provider)
+        .await
+        .change_context(EntityValidationError::InvalidProperties)
+        .attach_lazy(|| Expected::EntityType(Box::new(self.clone())))
+        .attach_lazy(|| Actual::Properties(value.clone()))
     }
 }
 
-impl<P> Validate<ClosedEntityType, P> for EntityProperties
+impl<P> Validate<ClosedEntityType, P> for PropertyWithMetadataObject
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
@@ -82,12 +88,10 @@ where
     async fn validate(
         &self,
         schema: &ClosedEntityType,
-        profile: ValidationProfile,
-        provider: &P,
+        components: ValidateEntityComponents,
+        context: &P,
     ) -> Result<(), Report<Self::Error>> {
-        schema
-            .validate_value(self.properties(), profile, provider)
-            .await
+        schema.validate_value(self, components, context).await
     }
 }
 
@@ -104,9 +108,13 @@ where
     async fn validate(
         &self,
         schema: &ClosedEntityType,
-        profile: ValidationProfile,
-        provider: &P,
+        components: ValidateEntityComponents,
+        context: &P,
     ) -> Result<(), Report<Self::Error>> {
+        if !components.link_data {
+            return Ok(());
+        }
+
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
         // TODO: The link type should be a const but the type system crate does not allow
@@ -126,7 +134,7 @@ where
                 extend_report!(status, EntityValidationError::UnexpectedLinkData);
             }
 
-            if let Err(error) = schema.validate_value(*link_data, profile, provider).await {
+            if let Err(error) = schema.validate_value(*link_data, components, context).await {
                 extend_report!(status, error);
             }
         } else if is_link {
@@ -150,21 +158,44 @@ where
     async fn validate(
         &self,
         schema: &ClosedEntityType,
-        profile: ValidationProfile,
-        provider: &P,
+        components: ValidateEntityComponents,
+        context: &P,
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
         if self.metadata.entity_type_ids.is_empty() {
             extend_report!(status, EntityValidationError::EmptyEntityTypes);
         }
-        if let Err(error) = self.properties.validate(schema, profile, provider).await {
-            extend_report!(status, error);
+
+        match PropertyWithMetadataObject::from_parts(
+            self.properties.clone(),
+            Some(self.metadata.properties.clone()),
+        ) {
+            Ok(properties) => {
+                if let Err(error) = properties.validate(schema, components, context).await {
+                    extend_report!(status, error);
+                }
+            }
+            Err(error) => {
+                extend_report!(
+                    status,
+                    error.change_context(EntityValidationError::InvalidProperties)
+                );
+            }
         }
+
         if let Err(error) = self
             .link_data
             .as_ref()
-            .validate(schema, profile, provider)
+            .validate(schema, components, context)
+            .await
+        {
+            extend_report!(status, error);
+        }
+        if let Err(error) = self
+            .metadata
+            .properties
+            .validate(&self.properties, components, context)
             .await
         {
             extend_report!(status, error);
@@ -184,17 +215,17 @@ where
     //   see https://linear.app/hash/issue/H-972
     async fn validate_value<'a>(
         &'a self,
-        link_data: &'a LinkData,
-        _: ValidationProfile,
+        value: &'a LinkData,
+        _: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
         let left_entity = provider
-            .provide_entity(link_data.left_entity_id, true)
+            .provide_entity(value.left_entity_id)
             .await
             .change_context_lazy(|| EntityValidationError::EntityRetrieval {
-                id: link_data.left_entity_id,
+                id: value.left_entity_id,
             })?;
 
         let left_entity_type = stream::iter(&left_entity.borrow().metadata.entity_type_ids)
@@ -214,10 +245,10 @@ where
             .await?;
 
         let right_entity = provider
-            .provide_entity(link_data.right_entity_id, true)
+            .provide_entity(value.right_entity_id)
             .await
             .change_context_lazy(|| EntityValidationError::EntityRetrieval {
-                id: link_data.right_entity_id,
+                id: value.right_entity_id,
             })?;
 
         let right_entity_type = stream::iter(&right_entity.borrow().metadata.entity_type_ids)
@@ -240,25 +271,24 @@ where
         // link type was found.
         let mut found_link_target = false;
         for link_type_id in self.schemas.keys() {
-            let Some(maybe_allowed_targets) = left_entity_type.links.links().get(link_type_id)
-            else {
+            let Some(maybe_allowed_targets) = left_entity_type.links.get(link_type_id) else {
                 continue;
             };
 
             // At least one link type was found
             found_link_target = true;
 
-            let Some(allowed_targets) = maybe_allowed_targets.array().items() else {
+            let Some(allowed_targets) = &maybe_allowed_targets.items else {
                 continue;
             };
 
             // Link destinations are constrained, search for the right entity's type
             let mut found_match = false;
-            for allowed_target in allowed_targets.one_of() {
+            for allowed_target in &allowed_targets.possibilities {
                 if right_entity_type
                     .schemas
                     .keys()
-                    .any(|right_type| right_type.base_url == allowed_target.url().base_url)
+                    .any(|right_type| right_type.base_url == allowed_target.url.base_url)
                 {
                     found_match = true;
                     break;
@@ -290,7 +320,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{tests::validate_entity, ValidationProfile};
+    use crate::{tests::validate_entity, ValidateEntityComponents};
 
     #[tokio::test]
     async fn address() {
@@ -310,7 +340,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -330,7 +360,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -354,7 +384,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -374,7 +404,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -394,7 +424,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -414,7 +444,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -426,7 +456,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -452,7 +482,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -464,7 +494,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -476,7 +506,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -496,7 +526,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -516,7 +546,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");

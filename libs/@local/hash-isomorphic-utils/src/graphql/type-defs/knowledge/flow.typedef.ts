@@ -40,13 +40,20 @@ export const flowTypedef = gql`
     SCHEDULED
     STARTED
     COMPLETED
+    INFORMATION_REQUIRED
     FAILED
     TIMED_OUT
     CANCEL_REQUESTED
-    CANCELED
+    CANCELLED
   }
 
   scalar ArbitraryJsonData
+  scalar EntityUuid
+  scalar ExternalInputRequest
+  scalar FlowInputs
+  scalar StepInput
+  scalar StepRunOutput
+  scalar StepProgressLog
 
   type StepRun {
     """
@@ -94,24 +101,47 @@ export const flowTypedef = gql`
     """
     status: FlowStepStatus!
     """
+    Logs from the step, reporting on progress as it executes
+    """
+    logs: [StepProgressLog!]!
+    """
     Inputs to the step
     """
-    inputs: ArbitraryJsonData
+    inputs: [StepInput!]
     """
     Outputs of the step
     """
-    outputs: ArbitraryJsonData
+    outputs: [StepRunOutput!]
   }
 
   type FlowRun {
     """
-    The identifier for this specific run of a Flow definition
+    The uuid of the flow run
+    This corresponds to:
+    - the EntityUuid of the Flow entity
+    - the workflowId of the Temporal workflow, which is unique among all currently-executing Temporal workflow executions
+
+    There may be multiple runs with the same workflowId if a flow is 'continued as new' (see Temporal docs), OR fails and is retried.
+    – the same workflowId/flowRunId is the mechanism by which consecutive runs which continue from/retry a previous can be identified.
+
+    While Temporal allows for re-use of workflowId across arbitrary flows, our business logic does not re-use them, and they are only re-used:
+    1. in the 'continue as new' case, in which case we will need to combine the history of those runs to form a complete picture of the flow's execution.
+    2. in the retry case, in which case the failed runs are only important if we want to expose past failures to the user.
     """
-    runId: String!
+    flowRunId: EntityUuid!
     """
-    The id for the definition of the Flow this run is executing
+    The id for the definition of the flow this run is executing (the template for the flow)
     """
     flowDefinitionId: String!
+    """
+    A user-facing name for the flow run to distinguish it from other runs of its kind,
+    which might include a key input or a summary of its key inputs.
+    """
+    name: String!
+    """
+    The web this flow run is associated with
+    """
+    webId: OwnedById!
     """
     Details of the run's status, inputs, outputs etc
     """
@@ -121,7 +151,7 @@ export const flowTypedef = gql`
     """
     startedAt: String!
     """
-    When the run began executing
+    When the run began executing (which may be after it was started if it has a delay before execution)
     """
     executedAt: String
     """
@@ -131,11 +161,15 @@ export const flowTypedef = gql`
     """
     Inputs to the flow run
     """
-    inputs: ArbitraryJsonData
+    inputs: FlowInputs!
     """
     Outputs of the flow run
     """
-    outputs: ArbitraryJsonData
+    outputs: [StepRunOutput!]
+    """
+    Any requests for external input made by steps within the Flow
+    """
+    inputRequests: [ExternalInputRequest!]!
     """
     The steps in the flow
     """
@@ -143,6 +177,42 @@ export const flowTypedef = gql`
   }
 
   extend type Query {
-    getFlowRuns(flowTypes: [String!]): [FlowRun!]!
+    getFlowRuns(
+      """
+      Return only flow runs that are based off specific definitions
+      """
+      flowDefinitionIds: [String!]
+      """
+      Return only flows that match the given status
+      """
+      executionStatus: FlowRunStatus
+    ): [FlowRun!]!
+
+    getFlowRunById(flowRunId: String!): FlowRun!
+  }
+
+  scalar FlowDefinition
+  scalar FlowDataSources
+  scalar FlowTrigger
+  scalar ExternalInputResponseWithoutUser
+
+  extend type Mutation {
+    """
+    Start a new flow run, and return its flowRunId to allow for identifying it later.
+    """
+    startFlow(
+      dataSources: FlowDataSources!
+      flowDefinition: FlowDefinition!
+      flowTrigger: FlowTrigger!
+      webId: OwnedById!
+    ): EntityUuid!
+
+    """
+    Submit a response to a request from a flow step for external input
+    """
+    submitExternalInputResponse(
+      response: ExternalInputResponseWithoutUser!
+      flowUuid: ID!
+    ): Boolean!
   }
 `;

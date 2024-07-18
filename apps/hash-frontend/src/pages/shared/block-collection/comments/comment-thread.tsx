@@ -1,7 +1,8 @@
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { AccountEntityId, EntityId } from "@local/hash-subgraph";
+import type { AccountEntityId } from "@local/hash-subgraph";
 import { extractAccountId } from "@local/hash-subgraph";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -56,7 +57,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   };
 
   const [collapsedReplies, uncollapsibleReplies] = useMemo(() => {
-    const replies = [...comment.replies].sort((replyA, replyB) =>
+    const replies = comment.replies.toSorted((replyA, replyB) =>
       replyA.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
         replyB.metadata.temporalVersioning.decisionTime.start.limit,
       ),
@@ -103,8 +104,10 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         pageId={pageId}
         comment={comment}
         resolvable={
-          // TODO: The provenance fields shouldn't be used for this
-          //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
+          /**
+           * @todo The provenance fields shouldn't be used for this
+           * @see https://linear.app/hash/issue/H-3003
+           */
           authenticatedUser.accountId === authorId ||
           authenticatedUser.accountId ===
             comment.parent.metadata.provenance.edition.createdById

@@ -7,7 +7,7 @@ use clap::Parser;
 use error_stack::{Result, ResultExt};
 use graph::{
     snapshot::{SnapshotEntry, SnapshotStore},
-    store::{DatabaseConnectionInfo, PostgresStorePool, StorePool},
+    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool},
 };
 use tokio::io;
 use tokio_postgres::NoTls;
@@ -40,6 +40,9 @@ pub struct SnapshotArgs {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
+    #[clap(flatten)]
+    pub pool_config: DatabasePoolConfig,
+
     /// The host the Spice DB server is listening at.
     #[clap(long, env = "HASH_SPICEDB_HOST")]
     pub spicedb_host: String,
@@ -56,7 +59,7 @@ pub struct SnapshotArgs {
 pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
     SnapshotEntry::install_error_stack_hook();
 
-    let pool = PostgresStorePool::new(&args.db_info, NoTls)
+    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
         .await
         .change_context(GraphError)
         .map_err(|report| {
@@ -78,7 +81,6 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
 
     let mut zanzibar_client = ZanzibarClient::new(spicedb_client);
     zanzibar_client.seed().await.change_context(GraphError)?;
-    let mut authorization_api = zanzibar_client.into_backend();
 
     match args.command {
         SnapshotCommand::Dump(_) => {
@@ -87,7 +89,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
                     io::BufWriter::new(io::stdout()),
                     codec::bytes::JsonLinesEncoder::default(),
                 ),
-                &authorization_api,
+                &zanzibar_client,
                 10_000,
             )
             .change_context(GraphError)
@@ -96,18 +98,20 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(args) => {
-            SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
-                |report| {
-                    tracing::error!(error = ?report, "Failed to acquire database connection");
-                    report
-                },
-            )?)
+            SnapshotStore::new(
+                pool.acquire(zanzibar_client, None)
+                    .await
+                    .change_context(GraphError)
+                    .map_err(|report| {
+                        tracing::error!(error = ?report, "Failed to acquire database connection");
+                        report
+                    })?,
+            )
             .restore_snapshot(
                 FramedRead::new(
                     io::BufReader::new(io::stdin()),
                     codec::bytes::JsonLinesDecoder::default(),
                 ),
-                &mut authorization_api,
                 10_000,
                 !args.skip_validation,
             )

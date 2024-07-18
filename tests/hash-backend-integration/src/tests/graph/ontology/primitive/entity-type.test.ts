@@ -1,5 +1,4 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
@@ -13,6 +12,12 @@ import {
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -21,11 +26,6 @@ import type {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
 } from "@local/hash-isomorphic-utils/types";
-import type {
-  EntityTypeWithMetadata,
-  OwnedById,
-  PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
 import {
   isOwnedOntologyElementMetadata,
   linkEntityTypeUrl,
@@ -72,7 +72,6 @@ beforeAll(async () => {
     graphContext,
     authentication,
     "entitytypetestorg",
-    logger,
   );
   await joinOrg(graphContext, authentication, {
     userEntityId: testUser2.entity.metadata.recordId.entityId,
@@ -210,14 +209,12 @@ beforeAll(async () => {
         items: {
           oneOf: [{ $ref: workerEntityType.schema.$id }],
         },
-        ordered: false,
       },
       [previousAddressLinkEntityType.schema.$id]: {
         type: "array",
         items: {
           oneOf: [{ $ref: addressEntityType.schema.$id }],
         },
-        ordered: true,
       },
     },
   };

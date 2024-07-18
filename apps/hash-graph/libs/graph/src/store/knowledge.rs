@@ -1,43 +1,47 @@
-use std::{borrow::Cow, error::Error, fmt};
+use alloc::borrow::Cow;
+use core::{error::Error, fmt};
+use std::collections::HashSet;
 
-use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency, AuthorizationApi};
+use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
+use futures::TryFutureExt;
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        entity::{Entity, EntityEmbedding, EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
+        Confidence, EntityTypeIdDiff, PropertyDiff, PropertyPatchOperation, PropertyPath,
+        PropertyWithMetadataObject,
     },
     owned_by_id::OwnedById,
 };
-use json_patch::PatchOperation;
 use serde::{Deserialize, Serialize};
-use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use type_system::{url::VersionedUrl, ClosedEntityType, EntityType};
+use type_system::{
+    schema::{ClosedEntityType, EntityType},
+    url::VersionedUrl,
+};
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi,
-    openapi::{schema, Ref, RefOr, Schema},
+    openapi::{self, schema, Ref, RefOr, Schema},
     ToSchema,
 };
-use validation::ValidationProfile;
+use validation::ValidateEntityComponents;
 
 use crate::{
     knowledge::EntityQueryPath,
     store::{
-        crud, crud::Sorting, postgres::CursorField, InsertionError, NullOrdering, Ordering,
-        QueryError, UpdateError,
+        crud::Sorting, postgres::CursorField, query::Filter, InsertionError, NullOrdering,
+        Ordering, QueryError, UpdateError,
     },
-    subgraph::{query::EntityStructuralQuery, Subgraph},
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved, Subgraph},
 };
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-#[expect(clippy::large_enum_variant)]
 pub enum EntityValidationType<'a> {
     Schema(Vec<EntityType>),
-    Id(Cow<'a, [VersionedUrl]>),
+    Id(Cow<'a, HashSet<VersionedUrl>>),
     #[serde(skip)]
     ClosedSchema(Cow<'a, ClosedEntityType>),
 }
@@ -160,7 +164,7 @@ impl<'s> Sorting for EntityQuerySorting<'s> {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(
 feature = "utoipa",
 derive(utoipa::ToSchema),
@@ -179,13 +183,19 @@ pub struct CreateEntityParams<R> {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
-    pub entity_type_ids: Vec<VersionedUrl>,
-    pub properties: EntityProperties,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
+    pub entity_type_ids: HashSet<VersionedUrl>,
+    pub properties: PropertyWithMetadataObject,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<Confidence>,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
     pub draft: bool,
     pub relationships: R,
+    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
+    pub provenance: ProvidedEntityEditionProvenance,
 }
 
 #[derive(Debug, Deserialize)]
@@ -195,25 +205,73 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub entity_types: EntityValidationType<'a>,
     #[serde(borrow)]
-    pub properties: Cow<'a, EntityProperties>,
+    pub properties: Cow<'a, PropertyWithMetadataObject>,
     #[serde(borrow, default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<Cow<'a, LinkData>>,
-    pub profile: ValidationProfile,
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub components: ValidateEntityComponents,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetEntityParams<'a> {
+pub struct GetEntitiesParams<'a> {
     #[serde(borrow)]
-    pub query: EntityStructuralQuery<'a>,
+    pub filter: Filter<'a, Entity>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
     #[serde(borrow)]
     pub sorting: EntityQuerySorting<'static>,
     pub limit: Option<usize>,
+    pub include_drafts: bool,
+    #[serde(default)]
+    pub include_count: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct GetEntitiesResponse<'r> {
+    pub entities: Vec<Entity>,
+    pub cursor: Option<EntityQueryCursor<'r>>,
+    pub count: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetEntitySubgraphParams<'a> {
+    #[serde(borrow)]
+    pub filter: Filter<'a, Entity>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub graph_resolve_depths: GraphResolveDepths,
+    #[serde(borrow)]
+    pub sorting: EntityQuerySorting<'static>,
+    pub limit: Option<usize>,
+    pub include_drafts: bool,
+    #[serde(default)]
+    pub include_count: bool,
+}
+
+#[derive(Debug)]
+pub struct GetEntitySubgraphResponse<'r> {
+    pub subgraph: Subgraph,
+    pub cursor: Option<EntityQueryCursor<'r>>,
+    pub count: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CountEntitiesParams<'a> {
+    #[serde(borrow)]
+    pub filter: Filter<'a, Entity>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
+}
+
+#[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PatchEntityParams {
@@ -222,17 +280,21 @@ pub struct PatchEntityParams {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub entity_type_ids: Vec<VersionedUrl>,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<VersionedUrl>))]
+    pub entity_type_ids: HashSet<VersionedUrl>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub properties: Vec<PatchOperation>,
+    pub properties: Vec<PropertyPatchOperation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub draft: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub archived: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub confidence: Option<Confidence>,
+    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
+    pub provenance: ProvidedEntityEditionProvenance,
 }
 
 #[derive(Debug, Deserialize)]
@@ -246,27 +308,74 @@ pub struct UpdateEntityEmbeddingsParams<'e> {
     pub reset: bool,
 }
 
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DiffEntityParams {
+    pub first_entity_id: EntityId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(required = true))]
+    pub first_decision_time: Option<Timestamp<DecisionTime>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(required = true))]
+    pub first_transaction_time: Option<Timestamp<TransactionTime>>,
+    pub second_entity_id: EntityId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(required = true))]
+    pub second_decision_time: Option<Timestamp<DecisionTime>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(required = true))]
+    pub second_transaction_time: Option<Timestamp<TransactionTime>>,
+}
+
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DiffEntityResult<'e> {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub properties: Vec<PropertyDiff<'e>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub entity_type_ids: Vec<EntityTypeIdDiff<'e>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub draft_state: Option<bool>,
+}
+
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: Entity
-pub trait EntityStore: crud::ReadPaginated<Entity> {
+pub trait EntityStore {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
     ///
     /// - if the [`EntityType`] doesn't exist
-    /// - if the [`EntityProperties`] is not valid with respect to the specified [`EntityType`]
+    /// - if the [`PropertyWithMetadataObject`] is not valid with respect to the specified
+    ///   [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
-    ///
-    /// [`EntityType`]: type_system::EntityType
-    fn create_entity<A: AuthorizationApi + Send + Sync, R>(
+    fn create_entity<R>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: CreateEntityParams<R>,
-    ) -> impl Future<Output = Result<EntityMetadata, Report<InsertionError>>> + Send
+    ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send
+    where
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send,
+    {
+        self.create_entities(actor_id, vec![params])
+            .map_ok(|mut entities| {
+                let entity = entities.pop().expect("Expected a single entity");
+                assert!(entities.is_empty(), "Expected a single entity");
+                entity
+            })
+    }
+
+    /// Creates new [`Entities`][Entity].
+    fn create_entities<R>(
+        &mut self,
+        actor_id: AccountId,
+        params: Vec<CreateEntityParams<R>>,
+    ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send;
 
@@ -275,76 +384,144 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// # Errors:
     ///
     /// - if the validation failed
-    fn validate_entity<A: AuthorizationApi + Sync>(
+    fn validate_entity(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
-    ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send;
+    ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send {
+        self.validate_entities(actor_id, consistency, vec![params])
+    }
 
-    /// Inserts the entities with the specified [`EntityType`] into the `Store`.
+    /// Validates [`Entities`][Entity].
     ///
-    /// This is only supporting a single [`EntityType`], not one [`EntityType`] per entity.
-    /// [`EntityType`]s is stored in a different table and would need to be queried for each,
-    /// this would be a lot less efficient.
+    /// # Errors:
     ///
-    /// This is not supposed to be used outside of benchmarking as in the long term we need to
-    /// figure out how to deal with batch inserting.
-    ///
-    /// # Errors
-    ///
-    /// - if the [`EntityType`] doesn't exist
-    /// - if on of the [`Entity`] is not valid with respect to the specified [`EntityType`]
-    /// - if the account referred to by `owned_by_id` does not exist
-    /// - if an [`EntityUuid`] was supplied and already exists in the store
-    ///
-    /// [`EntityType`]: type_system::EntityType
-    fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
-        &mut self,
-        actor_id: AccountId,
-        authorization_api: &mut A,
-        entities: impl IntoIterator<
-            Item = (
-                OwnedById,
-                Option<EntityUuid>,
-                EntityProperties,
-                Option<LinkData>,
-                Option<Timestamp<DecisionTime>>,
-            ),
-            IntoIter: Send,
-        > + Send,
-        entity_type_id: &VersionedUrl,
-    ) -> impl Future<Output = Result<Vec<EntityMetadata>, Report<InsertionError>>> + Send;
-
-    /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
-    ///
-    /// # Errors
-    ///
-    /// - if the requested [`Entity`] doesn't exist
-    ///
-    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    fn get_entity<A: AuthorizationApi + Sync>(
+    /// - if the validation failed
+    fn validate_entities(
         &self,
         actor_id: AccountId,
-        authorization_api: &A,
-        params: GetEntityParams<'_>,
-    ) -> impl Future<
-        Output = Result<(Subgraph, Option<EntityQueryCursor<'static>>), Report<QueryError>>,
-    > + Send;
+        consistency: Consistency<'_>,
+        params: Vec<ValidateEntityParams<'_>>,
+    ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send;
 
-    fn patch_entity<A: AuthorizationApi + Send + Sync>(
+    /// Get a list of entities specified by the [`GetEntitiesParams`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entities`][Entity] cannot be retrieved
+    fn get_entities(
+        &self,
+        actor_id: AccountId,
+        params: GetEntitiesParams<'_>,
+    ) -> impl Future<Output = Result<GetEntitiesResponse<'static>, Report<QueryError>>> + Send;
+
+    /// Get the [`Subgraph`]s specified by the [`GetEntitySubgraphParams`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entities`][Entity] cannot be retrieved
+    fn get_entity_subgraph(
+        &self,
+        actor_id: AccountId,
+        params: GetEntitySubgraphParams<'_>,
+    ) -> impl Future<Output = Result<GetEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
+
+    /// Count the number of entities that would be returned in [`get_entity`].
+    ///
+    /// # Errors
+    ///
+    /// - if the request to the database fails
+    ///
+    /// [`get_entity`]: Self::get_entity_subgraph
+    fn count_entities(
+        &self,
+        actor_id: AccountId,
+        params: CountEntitiesParams<'_>,
+    ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
+
+    fn get_entity_by_id(
+        &self,
+        actor_id: AccountId,
+        entity_id: EntityId,
+        transaction_time: Option<Timestamp<TransactionTime>>,
+        decision_time: Option<Timestamp<DecisionTime>>,
+    ) -> impl Future<Output = Result<Entity, Report<QueryError>>> + Send;
+
+    fn patch_entity(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
-        temporal_client: Option<&TemporalClient>,
         params: PatchEntityParams,
-    ) -> impl Future<Output = Result<EntityMetadata, Report<UpdateError>>> + Send;
+    ) -> impl Future<Output = Result<Entity, Report<UpdateError>>> + Send;
 
-    fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
+    fn diff_entity(
+        &self,
+        actor_id: AccountId,
+        params: DiffEntityParams,
+    ) -> impl Future<Output = Result<DiffEntityResult<'static>, Report<QueryError>>> + Send
+    where
+        Self: Sync,
+    {
+        async move {
+            let first_entity = self
+                .get_entity_by_id(
+                    actor_id,
+                    params.first_entity_id,
+                    params.first_transaction_time,
+                    params.first_decision_time,
+                )
+                .await?;
+            let second_entity = self
+                .get_entity_by_id(
+                    actor_id,
+                    params.second_entity_id,
+                    params.second_transaction_time,
+                    params.second_decision_time,
+                )
+                .await?;
+
+            let property_diff = first_entity
+                .properties
+                .diff(&second_entity.properties, &mut PropertyPath::default())
+                .map(PropertyDiff::into_owned)
+                .collect();
+
+            let removed_types = first_entity
+                .metadata
+                .entity_type_ids
+                .difference(&second_entity.metadata.entity_type_ids)
+                .map(|removed| EntityTypeIdDiff::Removed {
+                    removed: Cow::Borrowed(removed),
+                });
+            let added_types = second_entity
+                .metadata
+                .entity_type_ids
+                .difference(&first_entity.metadata.entity_type_ids)
+                .map(|added| EntityTypeIdDiff::Added {
+                    added: Cow::Borrowed(added),
+                });
+            let first_is_draft = first_entity.metadata.record_id.entity_id.draft_id.is_some();
+            let second_is_draft = second_entity
+                .metadata
+                .record_id
+                .entity_id
+                .draft_id
+                .is_some();
+
+            Ok(DiffEntityResult {
+                properties: property_diff,
+                entity_type_ids: removed_types
+                    .chain(added_types)
+                    .map(EntityTypeIdDiff::into_owned)
+                    .collect(),
+                draft_state: (first_is_draft != second_is_draft).then_some(second_is_draft),
+            })
+        }
+    }
+
+    fn update_entity_embeddings(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 }

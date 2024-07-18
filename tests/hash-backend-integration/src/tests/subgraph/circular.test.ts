@@ -1,21 +1,21 @@
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import type { EntityStructuralQuery } from "@local/hash-graph-client";
+import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import type { GetEntitySubgraphRequest } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
-  AccountId,
-  Entity,
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphEdgeKind,
   Subgraph,
 } from "@local/hash-subgraph";
-import { ENTITY_ID_DELIMITER } from "@local/hash-subgraph";
 import {
   getEntities as getEntitiesSubgraph,
   getRoots,
@@ -25,10 +25,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { resetGraph, restoreSnapshot } from "../test-server";
 import { createTestImpureGraphContext } from "../util";
 
-const createQuery = (
+const createRequest = (
   resolveDepths: Partial<GraphResolveDepths> = zeroedGraphResolveDepths,
   timestamp: string = "2010-01-01T00:00:00.000Z",
-): EntityStructuralQuery => {
+): GetEntitySubgraphRequest => {
   return {
     filter: {
       equal: [
@@ -90,15 +90,13 @@ beforeAll(async () => {
 
   graphContext = createTestImpureGraphContext();
 
-  const entities = await getEntities(graphContext, authentication, {
-    query: {
-      filter: {
-        all: [],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
+  const entities = await getEntitySubgraph(graphContext, authentication, {
+    filter: {
+      all: [],
     },
+    graphResolveDepths: zeroedGraphResolveDepths,
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
   }).then(getRoots);
 
   expect(entities.length).toBe(12);
@@ -202,8 +200,10 @@ describe("Single linked list", () => {
   // │ Entity D │◄────┤ Link CD │◄──┤ Entity C │
   // └──────────┘     └─────────┘   └──────────┘
   it("finds AB", async () => {
-    const subgraph = await getEntities(graphContext, authentication, {
-      query: createQuery(
+    const subgraph = await getEntitySubgraph(
+      graphContext,
+      authentication,
+      createRequest(
         {
           hasLeftEntity: {
             incoming: 1,
@@ -212,7 +212,7 @@ describe("Single linked list", () => {
         },
         "2002-05-01T00:00:00.000Z",
       ),
-    });
+    );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
     expect(verticesEquals(subgraph, [entity_a, link_ab])).toBe(true);
@@ -229,8 +229,10 @@ describe("Single linked list", () => {
   });
 
   it("finds AB and travels back", async () => {
-    const subgraph = await getEntities(graphContext, authentication, {
-      query: createQuery(
+    const subgraph = await getEntitySubgraph(
+      graphContext,
+      authentication,
+      createRequest(
         {
           hasLeftEntity: {
             incoming: 1,
@@ -239,7 +241,7 @@ describe("Single linked list", () => {
         },
         "2002-05-01T00:00:00.000Z",
       ),
-    });
+    );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
     expect(verticesEquals(subgraph, [entity_a, link_ab])).toBe(true);
@@ -266,8 +268,10 @@ describe("Single linked list", () => {
   });
 
   it("finds B", async () => {
-    const subgraph = await getEntities(graphContext, authentication, {
-      query: createQuery(
+    const subgraph = await getEntitySubgraph(
+      graphContext,
+      authentication,
+      createRequest(
         {
           hasLeftEntity: {
             incoming: 1,
@@ -280,7 +284,7 @@ describe("Single linked list", () => {
         },
         "2002-05-01T00:00:00.000Z",
       ),
-    });
+    );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
     expect(verticesEquals(subgraph, [entity_a, link_ab, entity_b])).toBe(true);
@@ -307,8 +311,10 @@ describe("Single linked list", () => {
   });
 
   it("finds B and travels back", async () => {
-    const subgraph = await getEntities(graphContext, authentication, {
-      query: createQuery(
+    const subgraph = await getEntitySubgraph(
+      graphContext,
+      authentication,
+      createRequest(
         {
           hasLeftEntity: {
             incoming: 1,
@@ -321,7 +327,7 @@ describe("Single linked list", () => {
         },
         "2002-05-01T00:00:00.000Z",
       ),
-    });
+    );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
     expect(
@@ -405,8 +411,10 @@ describe("Single linked list", () => {
   });
 
   it("finds D", async () => {
-    const subgraph = await getEntities(graphContext, authentication, {
-      query: createQuery(
+    const subgraph = await getEntitySubgraph(
+      graphContext,
+      authentication,
+      createRequest(
         {
           hasLeftEntity: {
             incoming: 3,
@@ -419,7 +427,7 @@ describe("Single linked list", () => {
         },
         "2002-05-01T00:00:00.000Z",
       ),
-    });
+    );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
     expect(
@@ -523,14 +531,16 @@ describe("Double linked list", () => {
   //                └────►│ Link DC ├────┘
   //                      └─────────┘
   it("finds AB/AD", async () => {
-    const subgraph = await getEntities(graphContext, authentication, {
-      query: createQuery({
+    const subgraph = await getEntitySubgraph(
+      graphContext,
+      authentication,
+      createRequest({
         hasLeftEntity: {
           incoming: 1,
           outgoing: 0,
         },
       }),
-    });
+    );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
     expect(verticesEquals(subgraph, [entity_a, link_ab, link_ad])).toBe(true);
@@ -548,14 +558,16 @@ describe("Double linked list", () => {
   });
 
   it("finds AD/DA and travels back", async () => {
-    const subgraph = await getEntities(graphContext, authentication, {
-      query: createQuery({
+    const subgraph = await getEntitySubgraph(
+      graphContext,
+      authentication,
+      createRequest({
         hasLeftEntity: {
           incoming: 1,
           outgoing: 1,
         },
       }),
-    });
+    );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
     expect(verticesEquals(subgraph, [entity_a, link_ab, link_ad])).toBe(true);
@@ -593,8 +605,10 @@ describe("Double linked list", () => {
   });
 
   it("finds B/D", async () => {
-    const subgraph = await getEntities(graphContext, authentication, {
-      query: createQuery({
+    const subgraph = await getEntitySubgraph(
+      graphContext,
+      authentication,
+      createRequest({
         hasLeftEntity: {
           incoming: 1,
           outgoing: 0,
@@ -604,7 +618,7 @@ describe("Double linked list", () => {
           outgoing: 1,
         },
       }),
-    });
+    );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
     expect(
@@ -650,8 +664,10 @@ describe("Double linked list", () => {
   });
 
   it("finds B/D and travels back", async () => {
-    const subgraph = await getEntities(graphContext, authentication, {
-      query: createQuery({
+    const subgraph = await getEntitySubgraph(
+      graphContext,
+      authentication,
+      createRequest({
         hasLeftEntity: {
           incoming: 1,
           outgoing: 1,
@@ -661,7 +677,7 @@ describe("Double linked list", () => {
           outgoing: 1,
         },
       }),
-    });
+    );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
     expect(
@@ -863,8 +879,10 @@ describe("Double linked list", () => {
   });
 
   it("finds D/A", async () => {
-    const subgraph = await getEntities(graphContext, authentication, {
-      query: createQuery({
+    const subgraph = await getEntitySubgraph(
+      graphContext,
+      authentication,
+      createRequest({
         hasLeftEntity: {
           incoming: 3,
           outgoing: 0,
@@ -874,7 +892,7 @@ describe("Double linked list", () => {
           outgoing: 3,
         },
       }),
-    });
+    );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
     expect(

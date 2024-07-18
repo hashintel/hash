@@ -1,28 +1,18 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { GraphApi } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
-import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
-import type {
-  AccountId,
-  EntityMetadata,
-  EntityRootType,
-  OwnedById,
-} from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiEntityMetadataToMetadata,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
 
 export type WebMachineActorIdentifier = `system-${OwnedById}`;
 
@@ -47,47 +37,40 @@ export const getMachineActorId = async (
   { identifier }: { identifier: MachineActorIdentifier },
 ): Promise<AccountId> => {
   const [machineEntity, ...unexpectedEntities] = await context.graphApi
-    .getEntitiesByQuery(authentication.actorId, {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [
-                {
-                  path: ["type(inheritanceDepth = 0)", "baseUrl"],
-                },
-                {
-                  parameter: systemEntityTypes.machine.entityTypeBaseUrl,
-                },
-              ],
-            },
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    extractBaseUrl(
-                      systemPropertyTypes.machineIdentifier.propertyTypeId,
-                    ),
-                  ],
-                },
-                { parameter: identifier },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
+    .getEntities(authentication.actorId, {
+      filter: {
+        all: [
+          {
+            equal: [
+              {
+                path: ["type(inheritanceDepth = 0)", "baseUrl"],
+              },
+              {
+                parameter: systemEntityTypes.machine.entityTypeBaseUrl,
+              },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: identifier },
+            ],
+          },
+        ],
       },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-      );
-
-      return getRoots(subgraph);
-    });
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, authentication.actorId),
+      ),
+    );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -132,7 +115,7 @@ export const createMachineActorEntity = async (
     systemAccountId: AccountId;
     machineEntityTypeId?: VersionedUrl;
   },
-): Promise<EntityMetadata> => {
+): Promise<void> => {
   // Give the machine actor permissions to instantiate its own entity (entities of type Machine)
   await context.graphApi.modifyEntityTypeAuthorizationRelationships(
     systemAccountId,
@@ -151,19 +134,42 @@ export const createMachineActorEntity = async (
     ],
   );
 
-  const metadata = await context.graphApi
-    .createEntity(machineAccountId, {
+  const provenance: EnforcedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "api",
+    },
+  };
+
+  await Entity.create<Machine>(
+    context.graphApi,
+    { actorId: machineAccountId },
+    {
       draft: false,
-      entityTypeIds: [
-        machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
-      ],
+      entityTypeId:
+        (machineEntityTypeId as Machine["entityTypeId"] | undefined) ??
+        systemEntityTypes.machine.entityTypeId,
       ownedById,
       properties: {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          displayName,
-        "https://hash.ai/@hash/types/property-type/machine-identifier/":
-          identifier,
-      } as MachineProperties,
+        value: {
+          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+            {
+              value: displayName,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          "https://hash.ai/@hash/types/property-type/machine-identifier/": {
+            value: identifier,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
+      },
+      provenance,
       relationships: [
         {
           relation: "administrator",
@@ -179,8 +185,8 @@ export const createMachineActorEntity = async (
           },
         },
       ],
-    })
-    .then((resp) => mapGraphApiEntityMetadataToMetadata(resp.data));
+    },
+  );
 
   if (!shouldBeAbleToCreateMoreMachineEntities) {
     await context.graphApi.modifyEntityTypeAuthorizationRelationships(
@@ -201,8 +207,6 @@ export const createMachineActorEntity = async (
       ],
     );
   }
-
-  return metadata;
 };
 
 /**

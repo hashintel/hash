@@ -1,16 +1,16 @@
-use std::fmt;
+use core::fmt;
 
-use crate::store::postgres::query::{AliasedColumn, Expression, Transpile};
+use crate::store::postgres::query::{Expression, Transpile};
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WindowStatement {
     partition: Vec<Expression>,
 }
 
 impl WindowStatement {
-    pub fn partition_by(column: AliasedColumn) -> Self {
+    pub fn partition_by(expression: Expression) -> Self {
         Self {
-            partition: vec![Expression::Column(column)],
+            partition: vec![expression],
         }
     }
 }

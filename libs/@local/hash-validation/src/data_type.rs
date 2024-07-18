@@ -1,73 +1,30 @@
-use core::{borrow::Borrow, fmt};
-use std::{
-    net::{Ipv4Addr, Ipv6Addr},
-    str::FromStr,
-    sync::OnceLock,
-};
+use core::borrow::Borrow;
 
-use email_address::EmailAddress;
-use error_stack::{bail, ensure, Report, ResultExt};
-use iso8601_duration::Duration;
+use error_stack::{ensure, Report, ResultExt};
+use graph_types::knowledge::{Property, ValueWithMetadata};
 use regex::Regex;
-use serde_json::Value as JsonValue;
+use serde_json::{Number as JsonNumber, Value as JsonValue};
 use thiserror::Error;
-use type_system::{url::VersionedUrl, DataType, DataTypeReference};
-use url::Url;
-use uuid::Uuid;
+use type_system::{
+    schema::{DataType, DataTypeReference, JsonSchemaValueType},
+    url::VersionedUrl,
+};
 
 use crate::{
     error::{Actual, Expected},
-    OntologyTypeProvider, Schema, Validate, ValidationProfile,
+    OntologyTypeProvider, Schema, Validate, ValidateEntityComponents,
 };
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum JsonSchemaValueType {
-    Null,
-    Boolean,
-    Number,
-    Integer,
-    String,
-    Array,
-    Object,
-}
-
-impl fmt::Display for JsonSchemaValueType {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Null => fmt.write_str("null"),
-            Self::Boolean => fmt.write_str("boolean"),
-            Self::Number => fmt.write_str("number"),
-            Self::Integer => fmt.write_str("integer"),
-            Self::String => fmt.write_str("string"),
-            Self::Array => fmt.write_str("array"),
-            Self::Object => fmt.write_str("object"),
-        }
-    }
-}
-
-impl From<&JsonValue> for JsonSchemaValueType {
-    fn from(value: &JsonValue) -> Self {
-        match value {
-            JsonValue::Null => Self::Null,
-            JsonValue::Bool(_) => Self::Boolean,
-            JsonValue::Number(_) => Self::Number,
-            JsonValue::String(_) => Self::String,
-            JsonValue::Array(_) => Self::Array,
-            JsonValue::Object(_) => Self::Object,
-        }
-    }
-}
 
 #[derive(Debug, Error)]
 pub enum DataTypeConstraint {
     #[error("the provided value is not equal to the expected value")]
     Const {
-        actual: JsonValue,
+        actual: Property,
         expected: JsonValue,
     },
     #[error("the provided value is not one of the expected values")]
     Enum {
-        actual: JsonValue,
+        actual: Property,
         expected: JsonValue,
     },
     #[error(
@@ -75,40 +32,40 @@ pub enum DataTypeConstraint {
          expected `{expected}`"
     )]
     Minimum {
-        actual: JsonValue,
-        expected: JsonValue,
+        actual: JsonNumber,
+        expected: JsonNumber,
     },
     #[error(
         "the provided value is not less than or equal to the maximum value, got `{actual}`, \
          expected `{expected}`"
     )]
     Maximum {
-        actual: JsonValue,
-        expected: JsonValue,
+        actual: JsonNumber,
+        expected: JsonNumber,
     },
     #[error(
         "the provided value is not greater than the minimum value, got `{actual}`, expected \
          `{expected}`"
     )]
     ExclusiveMinimum {
-        actual: JsonValue,
-        expected: JsonValue,
+        actual: JsonNumber,
+        expected: JsonNumber,
     },
     #[error(
         "the provided value is not less than the maximum value, got `{actual}`, expected \
          `{expected}`"
     )]
     ExclusiveMaximum {
-        actual: JsonValue,
-        expected: JsonValue,
+        actual: JsonNumber,
+        expected: JsonNumber,
     },
     #[error(
         "the provided value is not a multiple of the expected value, got `{actual}`, expected \
          `{expected}`"
     )]
     MultipleOf {
-        actual: JsonValue,
-        expected: JsonValue,
+        actual: JsonNumber,
+        expected: JsonNumber,
     },
     #[error(
         "the provided value is shorter than the minimum length, got `{actual}`, expected a string \
@@ -146,445 +103,58 @@ pub enum DataValidationError {
         actual: JsonSchemaValueType,
         expected: JsonSchemaValueType,
     },
-    #[error("a constraint was not fulfilled")]
+    #[error(
+        "the value provided does not match the data type in the metadata, expected `{expected}`, \
+         got `{actual}`"
+    )]
+    InvalidDataType {
+        actual: VersionedUrl,
+        expected: VersionedUrl,
+    },
+    #[error("the value provided does not match the constraints of the data type")]
     ConstraintUnfulfilled,
-    #[error("the schema contains an unknown data type: `{schema}`")]
-    UnknownType { schema: String },
 }
 
-fn as_usize(number: &JsonValue) -> Result<usize, Report<DataValidationError>> {
-    usize::try_from(number.as_u64().ok_or_else(|| {
-        Report::new(DataValidationError::InvalidType {
-            actual: JsonSchemaValueType::from(number),
-            expected: JsonSchemaValueType::Integer,
-        })
-    })?)
-    .change_context(DataValidationError::ConstraintUnfulfilled)
-}
-
-fn check_numeric_additional_property<'a, T>(
-    value: &JsonValue,
-    additional_properties: impl IntoIterator<Item = (impl AsRef<str>, &'a JsonValue)>,
-    expected_type: JsonSchemaValueType,
-    from_json_value: impl Fn(&JsonValue) -> Option<T>,
-    multiple_of: impl Fn(&T, &T) -> bool,
-) -> Result<(), Report<DataValidationError>>
-where
-    T: PartialOrd,
-{
-    let number = from_json_value(value).ok_or_else(|| {
-        Report::new(DataValidationError::InvalidType {
-            actual: JsonSchemaValueType::from(value),
-            expected: expected_type,
-        })
-    })?;
-    for (additional_key, additional_property) in additional_properties {
-        match (
-            additional_key.as_ref(),
-            from_json_value(additional_property),
-        ) {
-            ("minimum", Some(minimum)) => {
-                ensure!(
-                    number >= minimum,
-                    Report::new(DataTypeConstraint::Minimum {
-                        actual: value.to_owned(),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("maximum", Some(maximum)) => {
-                ensure!(
-                    number <= maximum,
-                    Report::new(DataTypeConstraint::Maximum {
-                        actual: value.to_owned(),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("exclusiveMinimum", Some(minimum)) => {
-                ensure!(
-                    number > minimum,
-                    Report::new(DataTypeConstraint::ExclusiveMinimum {
-                        actual: value.clone(),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("exclusiveMaximum", Some(maximum)) => {
-                ensure!(
-                    number < maximum,
-                    Report::new(DataTypeConstraint::ExclusiveMaximum {
-                        actual: value.clone(),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("multipleOf", Some(multiple)) => {
-                ensure!(
-                    multiple_of(&number, &multiple),
-                    Report::new(DataTypeConstraint::MultipleOf {
-                        actual: value.clone(),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            (
-                "minimum" | "maximum" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf",
-                None,
-            ) => {
-                bail!(Report::new(DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: expected_type,
-                }));
-            }
-            _ => {}
-        }
-    }
-    Ok(())
-}
-
-#[expect(clippy::too_many_lines)]
-fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationError>> {
-    // Only the simplest date format are supported in all three, RFC-3339, ISO-8601 and HTML
-    const DATE_REGEX_STRING: &str = r"(?P<Y>\d{4})-(?P<M>\d{2})-(?P<D>\d{2})";
-    static DATE_REGEX: OnceLock<Regex> = OnceLock::new();
-
-    // Only the simplest time format are supported in all three, RFC-3339, ISO-8601 and HTML
-    const TIME_REGEX_STRING: &str =
-        r"(?P<h>\d{2}):(?P<m>\d{2}):(?P<s>\d{2}(?:\.\d+)?)(?:(?P<Z>[+-]\d{2}):(?P<z>\d{2})|Z)";
-    static TIME_REGEX: OnceLock<Regex> = OnceLock::new();
-
-    static DATE_TIME_REGEX: OnceLock<Regex> = OnceLock::new();
-
-    match format {
-        "uri" => {
-            Url::parse(value)
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "uri",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "uuid" => {
-            Uuid::parse_str(value)
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "uuid",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "regex" => {
-            Regex::new(value)
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "regex",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "email" => {
-            EmailAddress::from_str(value)
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "email",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "ipv4" => {
-            value
-                .parse::<Ipv4Addr>()
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "ipv4",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "ipv6" => {
-            value
-                .parse::<Ipv6Addr>()
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "ipv6",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "hostname" => {
-            url::Host::parse(value)
-                .change_context_lazy(|| DataTypeConstraint::Format {
-                    actual: value.to_owned(),
-                    format: "hostname",
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        "date-time" => {
-            DATE_TIME_REGEX
-                .get_or_init(|| {
-                    Regex::new(&format!("^{DATE_REGEX_STRING}T{TIME_REGEX_STRING}$"))
-                        .expect("failed to compile date-time regex")
-                })
-                .is_match(value)
-                .then_some(())
-                .ok_or_else(|| {
-                    Report::new(DataTypeConstraint::Format {
-                        actual: value.to_owned(),
-                        format: "date-time",
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                })?;
-        }
-        "date" => {
-            DATE_REGEX
-                .get_or_init(|| {
-                    Regex::new(&format!("^{DATE_REGEX_STRING}$"))
-                        .expect("failed to compile date regex")
-                })
-                .is_match(value)
-                .then_some(())
-                .ok_or_else(|| {
-                    Report::new(DataTypeConstraint::Format {
-                        actual: value.to_owned(),
-                        format: "date",
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                })?;
-        }
-        "time" => {
-            TIME_REGEX
-                .get_or_init(|| {
-                    Regex::new(&format!("^{TIME_REGEX_STRING}$"))
-                        .expect("failed to compile time regex")
-                })
-                .is_match(value)
-                .then_some(())
-                .ok_or_else(|| {
-                    Report::new(DataTypeConstraint::Format {
-                        actual: value.to_owned(),
-                        format: "time",
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                })?;
-        }
-        "duration" => {
-            value
-                .parse::<Duration>()
-                .map_err(|error| {
-                    Report::new(DataTypeConstraint::Format {
-                        actual: value.to_owned(),
-                        format: "duration",
-                    })
-                    .attach_printable(format!("{error:?}"))
-                })
-                .change_context(DataValidationError::ConstraintUnfulfilled)?;
-        }
-        _ => bail!(
-            Report::new(DataTypeConstraint::UnknownFormat {
-                key: format.to_owned(),
-            })
-            .change_context(DataValidationError::ConstraintUnfulfilled)
-        ),
-    }
-    Ok(())
-}
-
-fn check_string_additional_property<'a>(
-    value: &JsonValue,
-    additional_properties: impl IntoIterator<Item = (impl AsRef<str>, &'a JsonValue)>,
-    expected_type: JsonSchemaValueType,
-    from_json_value: impl Fn(&JsonValue) -> Option<&str>,
-) -> Result<(), Report<DataValidationError>> {
-    let string = from_json_value(value).ok_or_else(|| {
-        Report::new(DataValidationError::InvalidType {
-            actual: JsonSchemaValueType::from(value),
-            expected: expected_type,
-        })
-    })?;
-    for (additional_key, additional_property) in additional_properties {
-        match (additional_key.as_ref(), additional_property) {
-            ("format", JsonValue::String(additional_property)) => {
-                check_format(string, additional_property)?;
-            }
-            ("minLength", minimum) => {
-                let minimum = as_usize(minimum)?;
-                ensure!(
-                    string.len() >= minimum,
-                    Report::new(DataTypeConstraint::MinLength {
-                        actual: string.to_owned(),
-                        expected: minimum,
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("maxLength", maximum) => {
-                let maximum = as_usize(maximum)?;
-                ensure!(
-                    string.len() <= maximum,
-                    Report::new(DataTypeConstraint::MaxLength {
-                        actual: string.to_owned(),
-                        expected: maximum,
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("pattern", JsonValue::String(pattern)) => {
-                let regex = Regex::new(pattern)
-                    .change_context_lazy(|| DataTypeConstraint::InvalidPattern {
-                        pattern: pattern.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)?;
-                ensure!(
-                    regex.is_match(string),
-                    Report::new(DataTypeConstraint::Pattern {
-                        actual: string.to_owned(),
-                        pattern: regex,
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                );
-            }
-            ("format" | "pattern", _) => {
-                bail!(Report::new(DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::String,
-                }));
-            }
-            _ => {}
-        }
-    }
-    Ok(())
-}
-
-impl<P: Sync> Schema<JsonValue, P> for DataType {
+impl<P: Sync> Schema<ValueWithMetadata, P> for DataType {
     type Error = DataValidationError;
 
-    #[expect(clippy::too_many_lines)]
     async fn validate_value<'a>(
         &'a self,
-        value: &'a JsonValue,
-        _: ValidationProfile,
+        value: &'a ValueWithMetadata,
+        _: ValidateEntityComponents,
         _: &'a P,
     ) -> Result<(), Report<DataValidationError>> {
-        match self.json_type() {
-            "null" => ensure!(
-                value.is_null(),
-                DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::Null,
+        if let Some(data_type_id) = &value.metadata.data_type_id {
+            ensure!(
+                *data_type_id == self.id,
+                DataValidationError::InvalidDataType {
+                    actual: self.id.clone(),
+                    expected: data_type_id.clone(),
                 }
-            ),
-            "boolean" => ensure!(
-                value.is_boolean(),
-                DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::Boolean,
-                }
-            ),
-            "number" => {
-                #[expect(clippy::float_arithmetic)]
-                check_numeric_additional_property(
-                    value,
-                    self.additional_properties(),
-                    JsonSchemaValueType::Number,
-                    JsonValue::as_f64,
-                    |number, multiple| number % multiple < f64::EPSILON,
-                )?;
-            }
-            "integer" => {
-                check_numeric_additional_property(
-                    value,
-                    self.additional_properties(),
-                    JsonSchemaValueType::Integer,
-                    JsonValue::as_i64,
-                    |number, multiple| number % multiple == 0,
-                )?;
-            }
-            "string" => {
-                check_string_additional_property(
-                    value,
-                    self.additional_properties(),
-                    JsonSchemaValueType::String,
-                    JsonValue::as_str,
-                )?;
-            }
-            "array" => ensure!(
-                value.is_array(),
-                DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::Array,
-                }
-            ),
-            "object" => ensure!(
-                value.is_object(),
-                DataValidationError::InvalidType {
-                    actual: JsonSchemaValueType::from(value),
-                    expected: JsonSchemaValueType::Object,
-                }
-            ),
-            _ => {
-                bail!(DataValidationError::UnknownType {
-                    schema: self.json_type().to_owned()
-                });
-            }
+            );
         }
 
-        for (additional_key, additional_property) in self.additional_properties() {
-            match additional_key.as_str() {
-                "const" => ensure!(
-                    value == additional_property,
-                    Report::new(DataTypeConstraint::Const {
-                        actual: value.clone(),
-                        expected: additional_property.clone(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                ),
-                "enum" => {
-                    ensure!(
-                        additional_property
-                            .as_array()
-                            .is_some_and(|array| array.contains(value)),
-                        Report::new(DataTypeConstraint::Enum {
-                            actual: value.clone(),
-                            expected: additional_property.clone(),
-                        })
-                        .change_context(DataValidationError::ConstraintUnfulfilled)
-                    );
-                }
-                "minimum" | "maximum" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf"
-                    if self.json_type() == "integer" || self.json_type() == "number" => {}
-                "format" | "minLength" | "maxLength" | "pattern"
-                    if self.json_type() == "string" => {}
-                "label" => {
-                    // Label does not have to be validated
-                }
-                _ => bail!(
-                    Report::new(DataTypeConstraint::UnknownConstraint {
-                        key: additional_key.to_owned(),
-                    })
-                    .change_context(DataValidationError::ConstraintUnfulfilled)
-                ),
-            }
-        }
+        self.validate_constraints(&value.value)
+            .change_context(DataValidationError::ConstraintUnfulfilled)?;
 
         Ok(())
     }
 }
 
-impl Validate<DataType, ()> for JsonValue {
+impl Validate<DataType, ()> for ValueWithMetadata {
     type Error = DataValidationError;
 
     async fn validate(
         &self,
         schema: &DataType,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         (): &(),
     ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, profile, &()).await
+        schema.validate_value(self, components, &()).await
     }
 }
 
-impl<P> Schema<JsonValue, P> for DataTypeReference
+impl<P> Schema<ValueWithMetadata, P> for DataTypeReference
 where
     P: OntologyTypeProvider<DataType> + Sync,
 {
@@ -592,26 +162,26 @@ where
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a JsonValue,
-        profile: ValidationProfile,
+        value: &'a ValueWithMetadata,
+        components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
         let data_type = provider
-            .provide_type(self.url())
+            .provide_type(&self.url)
             .await
             .change_context_lazy(|| DataValidationError::DataTypeRetrieval {
-                id: self.url().clone(),
+                id: self.url.clone(),
             })?;
         data_type
             .borrow()
-            .validate_value(value, profile, provider)
+            .validate_value(value, components, provider)
             .await
             .attach_lazy(|| Expected::DataType(data_type.borrow().clone()))
-            .attach_lazy(|| Actual::Json(value.clone()))
+            .attach_lazy(|| Actual::Json(value.value.clone()))
     }
 }
 
-impl<P> Validate<DataTypeReference, P> for JsonValue
+impl<P> Validate<DataTypeReference, P> for ValueWithMetadata
 where
     P: OntologyTypeProvider<DataType> + Sync,
 {
@@ -620,10 +190,10 @@ where
     async fn validate(
         &self,
         schema: &DataTypeReference,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         context: &P,
     ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, profile, context).await
+        schema.validate_value(self, components, context).await
     }
 }
 
@@ -632,14 +202,14 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    use crate::{tests::validate_data, ValidationProfile};
+    use crate::{tests::validate_data, ValidateEntityComponents};
 
     #[tokio::test]
     async fn null() {
         validate_data(
             json!(null),
             graph_test_data::data_type::NULL_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -650,7 +220,7 @@ mod tests {
         validate_data(
             json!(true),
             graph_test_data::data_type::BOOLEAN_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -661,7 +231,7 @@ mod tests {
         validate_data(
             json!(42),
             graph_test_data::data_type::NUMBER_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -678,29 +248,33 @@ mod tests {
         }))
         .expect("failed to serialize temperature unit type");
 
-        validate_data(json!(10), &integer_type, ValidationProfile::Full)
+        validate_data(json!(10), &integer_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        validate_data(json!(-10), &integer_type, ValidationProfile::Full)
+        validate_data(json!(-10), &integer_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        _ = validate_data(json!(1.0), &integer_type, ValidationProfile::Full)
+        validate_data(json!(1.0), &integer_type, ValidateEntityComponents::full())
             .await
-            .expect_err("validation succeeded");
+            .expect("validation failed");
 
         _ = validate_data(
-            json!(std::f64::consts::PI),
+            json!(core::f64::consts::PI),
             &integer_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect_err("validation succeeded");
 
-        _ = validate_data(json!("foo"), &integer_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("foo"),
+            &integer_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -708,7 +282,7 @@ mod tests {
         validate_data(
             json!("foo"),
             graph_test_data::data_type::TEXT_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -719,7 +293,7 @@ mod tests {
         validate_data(
             json!([]),
             graph_test_data::data_type::EMPTY_LIST_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -727,7 +301,7 @@ mod tests {
         _ = validate_data(
             json!(["foo", "bar"]),
             graph_test_data::data_type::EMPTY_LIST_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect_err("validation succeeded");
@@ -741,7 +315,7 @@ mod tests {
                 "baz": "qux"
             }),
             graph_test_data::data_type::OBJECT_V1,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -759,15 +333,23 @@ mod tests {
         }))
         .expect("failed to serialize temperature unit type");
 
-        validate_data(json!("Celsius"), &meter_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("Celsius"),
+            &meter_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        validate_data(json!("Fahrenheit"), &meter_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("Fahrenheit"),
+            &meter_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        _ = validate_data(json!("foo"), &meter_type, ValidationProfile::Full)
+        _ = validate_data(json!("foo"), &meter_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -784,15 +366,15 @@ mod tests {
         }))
         .expect("failed to serialize meter type");
 
-        validate_data(json!(10), &meter_type, ValidationProfile::Full)
+        validate_data(json!(10), &meter_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        validate_data(json!(0.0), &meter_type, ValidationProfile::Full)
+        validate_data(json!(0.0), &meter_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        _ = validate_data(json!(-1.0), &meter_type, ValidationProfile::Full)
+        _ = validate_data(json!(-1.0), &meter_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -809,19 +391,23 @@ mod tests {
         }))
         .expect("failed to serialize uri type");
 
-        validate_data(json!("localhost:3000"), &url_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
-
         validate_data(
-            json!("https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"),
+            json!("localhost:3000"),
             &url_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
 
-        _ = validate_data(json!("10"), &url_type, ValidationProfile::Full)
+        validate_data(
+            json!("https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"),
+            &url_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
+
+        _ = validate_data(json!("10"), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -838,14 +424,18 @@ mod tests {
         }))
         .expect("failed to serialize uuid type");
 
-        validate_data(json!(Uuid::nil()), &uuid_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!(Uuid::nil()),
+            &uuid_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
         validate_data(
             json!("00000000-0000-0000-0000-000000000000"),
             &uuid_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -853,7 +443,7 @@ mod tests {
         validate_data(
             json!("AC8E0011-84C3-4A7E-872D-1B9F86DB0479"),
             &uuid_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -861,7 +451,7 @@ mod tests {
         validate_data(
             json!("urn:uuid:cc2c0477-2fe7-4eb4-af7b-45bfe7d7bb26"),
             &uuid_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -869,12 +459,12 @@ mod tests {
         validate_data(
             json!("9544f491598e4c238f6bbb8c1f7d05c9"),
             &uuid_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
 
-        _ = validate_data(json!("10"), &uuid_type, ValidationProfile::Full)
+        _ = validate_data(json!("10"), &uuid_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -894,7 +484,7 @@ mod tests {
         validate_data(
             json!("bob@example.com"),
             &mail_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -902,14 +492,18 @@ mod tests {
         validate_data(
             json!("user.name+tag+sorting@example.com"),
             &mail_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
 
-        _ = validate_data(json!("job!done"), &mail_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("job!done"),
+            &mail_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -924,15 +518,19 @@ mod tests {
         }))
         .expect("failed to serialize zip code type");
 
-        validate_data(json!("12345"), &zip_code, ValidationProfile::Full)
+        validate_data(json!("12345"), &zip_code, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        validate_data(json!("12345-6789"), &zip_code, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("12345-6789"),
+            &zip_code,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        _ = validate_data(json!("1234"), &zip_code, ValidationProfile::Full)
+        _ = validate_data(json!("1234"), &zip_code, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -949,18 +547,26 @@ mod tests {
         }))
         .expect("failed to serialize ipv4 type");
 
-        validate_data(json!("127.0.0.1"), &ipv4_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("127.0.0.1"),
+            &ipv4_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        validate_data(json!("0.0.0.0"), &ipv4_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("0.0.0.0"),
+            &ipv4_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
         validate_data(
             json!("255.255.255.255"),
             &ipv4_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -968,14 +574,18 @@ mod tests {
         _ = validate_data(
             json!("255.255.255.256"),
             &ipv4_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect_err("validation succeeded");
 
-        _ = validate_data(json!("localhost"), &ipv4_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("localhost"),
+            &ipv4_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -990,18 +600,18 @@ mod tests {
         }))
         .expect("failed to serialize ipv6 type");
 
-        validate_data(json!("::1"), &ipv6_type, ValidationProfile::Full)
+        validate_data(json!("::1"), &ipv6_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        validate_data(json!("::"), &ipv6_type, ValidationProfile::Full)
+        validate_data(json!("::"), &ipv6_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
         validate_data(
             json!("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
             &ipv6_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -1009,14 +619,18 @@ mod tests {
         _ = validate_data(
             json!("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
             &ipv6_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect_err("validation succeeded");
 
-        _ = validate_data(json!("localhost"), &ipv6_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("localhost"),
+            &ipv6_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -1031,22 +645,34 @@ mod tests {
         }))
         .expect("failed to serialize hostname type");
 
-        validate_data(json!("localhost"), &hostname_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("localhost"),
+            &hostname_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        validate_data(json!("[::1]"), &hostname_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("[::1]"),
+            &hostname_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
-        validate_data(json!("127.0.0.1"), &hostname_type, ValidationProfile::Full)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("127.0.0.1"),
+            &hostname_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect("validation failed");
 
         validate_data(
             json!("example.com"),
             &hostname_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -1054,7 +680,7 @@ mod tests {
         validate_data(
             json!("subdomain.example.com"),
             &hostname_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -1062,7 +688,7 @@ mod tests {
         validate_data(
             json!("subdomain.example.com."),
             &hostname_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect("validation failed");
@@ -1070,14 +696,18 @@ mod tests {
         _ = validate_data(
             json!("localhost:3000"),
             &hostname_type,
-            ValidationProfile::Full,
+            ValidateEntityComponents::full(),
         )
         .await
         .expect_err("validation succeeded");
 
-        _ = validate_data(json!("::1"), &hostname_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("::1"),
+            &hostname_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -1092,15 +722,15 @@ mod tests {
         }))
         .expect("failed to serialize regex type");
 
-        validate_data(json!("^a*$"), &regex_type, ValidationProfile::Full)
+        validate_data(json!("^a*$"), &regex_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        validate_data(json!("^a+$"), &regex_type, ValidationProfile::Full)
+        validate_data(json!("^a+$"), &regex_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        _ = validate_data(json!("("), &regex_type, ValidationProfile::Full)
+        _ = validate_data(json!("("), &regex_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
     }
@@ -1118,17 +748,21 @@ mod tests {
         }))
         .expect("failed to serialize short string type");
 
-        validate_data(json!("foo"), &url_type, ValidationProfile::Full)
+        validate_data(json!("foo"), &url_type, ValidateEntityComponents::full())
             .await
             .expect("validation failed");
 
-        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+        _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
 
-        _ = validate_data(json!("foo bar baz"), &url_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!("foo bar baz"),
+            &url_type,
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -1517,7 +1151,7 @@ mod tests {
 
         let mut failed_formats = Vec::new();
         for format in VALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_err()
             {
@@ -1529,13 +1163,13 @@ mod tests {
             "failed to validate formats: {failed_formats:#?}"
         );
 
-        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+        _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
 
         let mut passed_formats = Vec::new();
         for format in INVALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_ok()
             {
@@ -1582,7 +1216,7 @@ mod tests {
 
         let mut failed_formats = Vec::new();
         for format in VALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_err()
             {
@@ -1594,13 +1228,13 @@ mod tests {
             "failed to validate formats: {failed_formats:#?}"
         );
 
-        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+        _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
 
         let mut passed_formats = Vec::new();
         for format in INVALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_ok()
             {
@@ -1832,7 +1466,7 @@ mod tests {
 
         let mut failed_formats = Vec::new();
         for format in VALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_err()
             {
@@ -1844,13 +1478,13 @@ mod tests {
             "failed to validate formats: {failed_formats:#?}"
         );
 
-        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+        _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
 
         let mut passed_formats = Vec::new();
         for format in INVALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_ok()
             {
@@ -1916,7 +1550,7 @@ mod tests {
 
         let mut failed_formats = Vec::new();
         for format in VALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_err()
             {
@@ -1928,13 +1562,13 @@ mod tests {
             "failed to validate formats: {failed_formats:#?}"
         );
 
-        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+        _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
             .await
             .expect_err("validation succeeded");
 
         let mut passed_formats = Vec::new();
         for format in INVALID_FORMATS {
-            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+            if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
                 .await
                 .is_ok()
             {

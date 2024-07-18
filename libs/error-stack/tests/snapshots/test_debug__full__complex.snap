@@ -1,19 +1,19 @@
 ---
-source: tests/test_debug.rs
+source: libs/error-stack/tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 context A
-├╴at tests/test_debug.rs:433:14
+├╴at libs/error-stack/tests/test_debug.rs:429:14
 ├╴printable A
 │
 ╰┬▶ root error
- │  ├╴at tests/common.rs:9:5
+ │  ├╴at libs/error-stack/tests/common.rs:9:5
  │  ├╴backtrace (1)
  │  ├╴span trace with 2 frames (1)
  │  ╰╴printable A
  │
  ├▶ root error
- │  ├╴at tests/common.rs:9:5
+ │  ├╴at libs/error-stack/tests/common.rs:9:5
  │  ├╴backtrace (2)
  │  ├╴span trace with 2 frames (2)
  │  ├╴printable B
@@ -21,7 +21,7 @@ context A
  │  ╰╴1 additional opaque attachment
  │
  ╰▶ root error
-    ├╴at tests/common.rs:9:5
+    ├╴at libs/error-stack/tests/common.rs:9:5
     ├╴backtrace (3)
     ├╴span trace with 2 frames (3)
     ├╴printable B

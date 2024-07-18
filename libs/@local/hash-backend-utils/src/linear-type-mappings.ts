@@ -1,4 +1,5 @@
 /* eslint-disable no-param-reassign */
+
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Issue, Organization, User } from "@linear/sdk";
 import type {
@@ -6,6 +7,8 @@ import type {
   UpdateOrganizationInput,
   UpdateUserInput,
 } from "@linear/sdk/dist/_generated_documents";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Property } from "@local/hash-graph-types/entity";
 import {
   blockProtocolPropertyTypes,
   linearEntityTypes,
@@ -13,12 +16,6 @@ import {
   linearPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  BaseUrl,
-  Entity,
-  EntityPropertyValue,
-} from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 const mapLinearDateToIsoString = (date: string | Date): string => {
   if (typeof date === "string") {
@@ -43,7 +40,7 @@ export type SupportedLinearTypeNames = keyof SupportedLinearTypes;
 
 const getLinearIdFromEntity = (entity: Entity): string => {
   const linearId =
-    entity.properties[linearPropertyTypes.id.propertyTypeBaseUrl as BaseUrl];
+    entity.properties[linearPropertyTypes.id.propertyTypeBaseUrl];
 
   if (!linearId) {
     throw new Error(
@@ -61,7 +58,7 @@ const getLinearIdFromEntity = (entity: Entity): string => {
 type PropertyMapping<
   LinearType extends SupportedLinearTypeNames,
   Key extends keyof SupportedLinearTypes[LinearType],
-  HashPropertyValue extends EntityPropertyValue = EntityPropertyValue,
+  HashPropertyValue extends Property = Property,
 > = {
   linearPropertyKey: Key;
   hashPropertyTypeId: VersionedUrl;
@@ -82,7 +79,10 @@ type OutgoingLinkMapping<
   ) => Promise<{ destinationLinearIds: string[] }>;
   addToLinearUpdateInput?: (
     updateInput: SupportedLinearUpdateInput[LinearType],
-    matchingOutgoingLinks: { linkEntity: LinkEntity; rightEntity: Entity }[],
+    matchingOutgoingLinks: {
+      linkEntity: LinkEntity;
+      rightEntity: Entity;
+    }[],
   ) => SupportedLinearUpdateInput[LinearType];
   linkEntityTypeId: VersionedUrl;
 };

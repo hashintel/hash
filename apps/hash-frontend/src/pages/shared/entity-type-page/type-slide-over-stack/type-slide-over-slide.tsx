@@ -1,6 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   ArrowLeftIcon,
+  ArrowRightIconRegular,
+  ArrowUpRightFromSquareRegularIcon,
   CloseIcon,
   IconButton,
   LoadingSpinner,
@@ -14,15 +16,13 @@ import {
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, ButtonBase, Slide, Tooltip } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { ArrowRightIcon } from "../../../../shared/icons/arrow-right";
-import { ArrowUpRightRegularFromSquareIcon } from "../../../../shared/icons/arrow-up-right-from-square-regular-icon";
 import { Link } from "../../../../shared/ui";
 import { useRouteNamespace } from "../../../[shortname]/shared/use-route-namespace";
 import { useDataTypesContext } from "../../data-types-context";
@@ -93,7 +93,7 @@ const CopyableOntologyChip: FunctionComponent<{
             },
           }}
         >
-          <ArrowUpRightRegularFromSquareIcon />
+          <ArrowUpRightFromSquareRegularIcon />
         </IconButton>
       </Link>
     </Box>
@@ -218,7 +218,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
             {onForward ? (
               <Tooltip title="Forward" placement="bottom">
                 <IconButton onClick={onForward}>
-                  <ArrowRightIcon />
+                  <ArrowRightIconRegular />
                 </IconButton>
               </Tooltip>
             ) : null}

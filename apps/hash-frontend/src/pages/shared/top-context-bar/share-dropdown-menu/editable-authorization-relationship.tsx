@@ -1,7 +1,7 @@
 import type { MutationHookOptions } from "@apollo/client";
 import { useMutation } from "@apollo/client";
 import { Avatar } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   Box,
   buttonClasses,
@@ -54,7 +54,7 @@ import { GlobeLightIcon } from "../../../../shared/icons/globe-light-icon";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../auth-info-context";
-import { getImageUrlFromEntityProperties } from "../../get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../get-file-properties";
 import { PrivacyStatusMenuItem } from "./privacy-menu-item";
 import type { AuthorizationRelationship } from "./types";
 

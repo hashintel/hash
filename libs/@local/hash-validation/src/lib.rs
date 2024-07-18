@@ -1,30 +1,26 @@
-#![feature(lint_reasons)]
 #![feature(extend_one)]
-#![expect(
-    clippy::missing_errors_doc,
-    reason = "It's obvious that validation may error on invalid data."
-)]
 
 pub mod error;
 
 pub use self::{
-    data_type::{DataTypeConstraint, DataValidationError, JsonSchemaValueType},
+    data_type::{DataTypeConstraint, DataValidationError},
     entity_type::EntityValidationError,
     property_type::PropertyValidationError,
 };
 
 mod data_type;
 mod entity_type;
+mod property;
 mod property_type;
 
-use std::borrow::Borrow;
+use core::borrow::Borrow;
 
 use error_stack::{Context, Report};
 use graph_types::knowledge::entity::{Entity, EntityId};
 use serde::Deserialize;
 use type_system::{
+    schema::ClosedEntityType,
     url::{BaseUrl, VersionedUrl},
-    ClosedEntityType,
 };
 
 trait Schema<V: ?Sized, P: Sync> {
@@ -33,55 +29,53 @@ trait Schema<V: ?Sized, P: Sync> {
     fn validate_value<'a>(
         &'a self,
         value: &'a V,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         provider: &'a P,
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + 'a;
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(transparent)]
-pub struct Valid<T> {
-    value: T,
+const fn default_true() -> bool {
+    true
 }
 
-impl<T> Valid<T> {
-    pub async fn new<S, C>(
-        value: T,
-        schema: S,
-        profile: ValidationProfile,
-        context: C,
-    ) -> Result<Self, Report<T::Error>>
-    where
-        T: Validate<S, C> + Send,
-        S: Send,
-        C: Send,
-    {
-        value.validate(&schema, profile, &context).await?;
-        Ok(Self { value })
-    }
-
-    pub fn into_unvalidated(self) -> T {
-        self.value
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Copy, Clone, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub enum ValidationProfile {
-    Full,
-    Draft,
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ValidateEntityComponents {
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default = "default_true")]
+    pub link_data: bool,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default = "default_true")]
+    pub required_properties: bool,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default = "default_true")]
+    pub num_items: bool,
 }
 
-impl<T> AsRef<T> for Valid<T> {
-    fn as_ref(&self) -> &T {
-        &self.value
+impl ValidateEntityComponents {
+    #[must_use]
+    pub const fn full() -> Self {
+        Self {
+            link_data: true,
+            required_properties: true,
+            num_items: true,
+        }
+    }
+
+    #[must_use]
+    pub const fn draft() -> Self {
+        Self {
+            num_items: false,
+            required_properties: false,
+            ..Self::full()
+        }
     }
 }
 
-impl<T> Borrow<T> for Valid<T> {
-    fn borrow(&self) -> &T {
-        &self.value
+impl Default for ValidateEntityComponents {
+    fn default() -> Self {
+        Self::full()
     }
 }
 
@@ -91,7 +85,7 @@ pub trait Validate<S, C> {
     fn validate(
         &self,
         schema: &S,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
         context: &C,
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send;
 }
@@ -115,7 +109,6 @@ pub trait EntityProvider {
     fn provide_entity(
         &self,
         entity_id: EntityId,
-        include_drafts: bool,
     ) -> impl Future<Output = Result<impl Borrow<Entity> + Send + Sync, Report<impl Context>>> + Send;
 }
 
@@ -123,10 +116,13 @@ pub trait EntityProvider {
 mod tests {
     use std::collections::HashMap;
 
-    use graph_types::knowledge::entity::EntityProperties;
+    use graph_types::knowledge::{
+        Property, PropertyObject, PropertyProvenance, PropertyWithMetadata,
+        PropertyWithMetadataObject, ValueMetadata, ValueWithMetadata,
+    };
     use serde_json::Value as JsonValue;
     use thiserror::Error;
-    use type_system::{DataType, EntityType, PropertyType};
+    use type_system::schema::{DataType, EntityType, PropertyType};
 
     use super::*;
     use crate::error::install_error_stack_hooks;
@@ -152,11 +148,11 @@ mod tests {
                 entity_types: entity_types.into_iter().collect(),
                 property_types: property_types
                     .into_iter()
-                    .map(|schema| (schema.id().clone(), schema))
+                    .map(|schema| (schema.id.clone(), schema))
                     .collect(),
                 data_types: data_types
                     .into_iter()
-                    .map(|schema| (schema.id().clone(), schema))
+                    .map(|schema| (schema.id.clone(), schema))
                     .collect(),
             }
         }
@@ -190,7 +186,6 @@ mod tests {
         async fn provide_entity(
             &self,
             entity_id: EntityId,
-            _: bool,
         ) -> Result<&Entity, Report<InvalidEntity>> {
             self.entities
                 .get(&entity_id)
@@ -208,9 +203,9 @@ mod tests {
             Ok(
                 OntologyTypeProvider::<ClosedEntityType>::provide_type(self, child)
                     .await?
-                    .inherits_from
+                    .all_of
                     .iter()
-                    .any(|id| id.url().base_url == *parent),
+                    .any(|id| id.url.base_url == *parent),
             )
         }
     }
@@ -264,7 +259,7 @@ mod tests {
         entity_types: impl IntoIterator<Item = &'static str> + Send,
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
     ) -> Result<(), Report<EntityValidationError>> {
         install_error_stack_hooks();
 
@@ -285,10 +280,13 @@ mod tests {
             serde_json::from_str::<EntityType>(entity_type).expect("failed to parse entity type"),
         );
 
-        let entity =
-            serde_json::from_str::<EntityProperties>(entity).expect("failed to read entity string");
+        let properties =
+            serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string");
 
-        entity.validate(&entity_type, profile, &provider).await
+        PropertyWithMetadataObject::from_parts(properties, None)
+            .expect("failed to create property with metadata")
+            .validate(&entity_type, components, &provider)
+            .await
     }
 
     pub(crate) async fn validate_property(
@@ -296,9 +294,10 @@ mod tests {
         property_type: &'static str,
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
     ) -> Result<(), Report<PropertyValidationError>> {
         install_error_stack_hooks();
+        let property = Property::deserialize(property).expect("failed to deserialize property");
 
         let provider = Provider::new(
             [],
@@ -314,19 +313,31 @@ mod tests {
         let property_type: PropertyType =
             serde_json::from_str(property_type).expect("failed to parse property type");
 
-        property.validate(&property_type, profile, &provider).await
+        PropertyWithMetadata::from_parts(property, None)
+            .expect("failed to create property with metadata")
+            .validate(&property_type, components, &provider)
+            .await
     }
 
     pub(crate) async fn validate_data(
-        data: JsonValue,
+        value: JsonValue,
         data_type: &str,
-        profile: ValidationProfile,
+        components: ValidateEntityComponents,
     ) -> Result<(), Report<DataValidationError>> {
         install_error_stack_hooks();
 
         let data_type: DataType =
             serde_json::from_str(data_type).expect("failed to parse data type");
 
-        data.validate(&data_type, profile, &()).await
+        ValueWithMetadata {
+            value,
+            metadata: ValueMetadata {
+                data_type_id: None,
+                provenance: PropertyProvenance::default(),
+                confidence: None,
+            },
+        }
+        .validate(&data_type, components, &())
+        .await
     }
 }

@@ -1,4 +1,4 @@
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { UserInputError } from "apollo-server-errors";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
@@ -30,7 +30,7 @@ import {
  *   updates or none. currently there is no guarantee that a failure rolls back
  *   all changes, which could leave the database in an undesired state.
  *   When we have a transaction primitive in the Graph API, we should use it here.
- *   See https://app.asana.com/0/1200211978612931/1202573572594586/f
+ *   See https://linear.app/hash/issue/H-2992
  */
 export const updateBlockCollectionContents: ResolverFn<
   Promise<

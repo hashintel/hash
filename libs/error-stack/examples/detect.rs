@@ -1,12 +1,4 @@
-#![allow(
-    clippy::print_stdout,
-    clippy::print_stderr,
-    unreachable_pub,
-    clippy::use_debug,
-    clippy::alloc_instead_of_core,
-    clippy::std_instead_of_alloc,
-    clippy::std_instead_of_core
-)]
+#![expect(clippy::print_stdout, clippy::use_debug)]
 // This example shows how you can use the `supports-color` and `supports-unicode` crates to
 // automatically enable or disable the color mode and set the appropriate charset.
 // Your default terminal should automatically show colored unicode output, to emulate a terminal
@@ -14,10 +6,8 @@
 // env-variable `NO_COLOR=1`. To emulate no-unicode support set your `$TERM` variable
 // **temporarily** to `linux`.
 
-use std::{
-    fmt::{Display, Formatter},
-    path::Path,
-};
+use core::fmt::{Display, Formatter};
+use std::path::Path;
 
 use error_stack::{
     fmt::{Charset, ColorMode},
@@ -35,7 +25,7 @@ impl Display for ParseConfigError {
     }
 }
 
-impl std::error::Error for ParseConfigError {}
+impl core::error::Error for ParseConfigError {}
 
 fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
     _ = path.as_ref();

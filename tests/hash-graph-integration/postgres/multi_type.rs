@@ -1,14 +1,33 @@
-use std::str::FromStr;
+use core::str::FromStr;
+use std::collections::HashSet;
 
-use graph::store::knowledge::PatchEntityParams;
+use authorization::AuthorizationApi;
+use graph::{
+    store::{
+        knowledge::{CreateEntityParams, GetEntitiesParams, PatchEntityParams},
+        query::Filter,
+        EntityQuerySorting, EntityStore,
+    },
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
+};
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::{Entity, EntityProperties};
+use graph_types::{
+    knowledge::{
+        entity::{Entity, ProvidedEntityEditionProvenance},
+        PropertyObject, PropertyWithMetadataObject,
+    },
+    owned_by_id::OwnedById,
+};
 use pretty_assertions::assert_eq;
 use type_system::url::VersionedUrl;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+async fn seed<A: AuthorizationApi>(
+    database: &mut DatabaseTestWrapper<A>,
+) -> DatabaseApi<'_, &mut A> {
     database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
@@ -44,7 +63,7 @@ fn org_entity_type_id() -> VersionedUrl {
         .expect("couldn't construct entity type id")
 }
 
-fn alice() -> EntityProperties {
+fn alice() -> PropertyObject {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
 
@@ -54,64 +73,162 @@ async fn empty_entity() {
     let mut api = seed(&mut database).await;
 
     let _ = api
-        .create_entity(EntityProperties::empty(), vec![], None, false)
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::new(),
+                properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect_err("created entity with no types");
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn initial_person() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
-    let entity_metadata = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+    let entity = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
-    assert_eq!(entity_metadata.entity_type_ids, [person_entity_type_id()]);
+    assert!(
+        entity
+            .metadata
+            .entity_type_ids
+            .contains(&person_entity_type_id())
+    );
+
     let entities = api
-        .get_entities_by_type(&person_entity_type_id())
+        .get_entities(
+            api.account_id,
+            GetEntitiesParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+                include_drafts: false,
+            },
+        )
         .await
-        .expect("could not get entities");
-    assert_eq!(
-        entities,
-        [Entity {
-            metadata: entity_metadata.clone(),
-            properties: alice(),
-            link_data: None
-        }]
-    );
+        .expect("could not get entities")
+        .entities;
 
-    let updated_entity_metadata = api
-        .patch_entity(PatchEntityParams {
-            entity_id: entity_metadata.record_id.entity_id,
-            decision_time: None,
-            entity_type_ids: vec![person_entity_type_id(), org_entity_type_id()],
-            properties: vec![],
-            draft: None,
-            archived: None,
-        })
+    assert_eq!(entities[0], entity);
+
+    let updated_entity = api
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_entity_type_id(), org_entity_type_id()]),
+                properties: vec![],
+                draft: None,
+                archived: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
-    assert_eq!(
-        updated_entity_metadata.entity_type_ids,
-        [person_entity_type_id(), org_entity_type_id()]
+    assert!(
+        updated_entity
+            .metadata
+            .entity_type_ids
+            .contains(&person_entity_type_id()),
     );
+    assert!(
+        updated_entity
+            .metadata
+            .entity_type_ids
+            .contains(&org_entity_type_id()),
+    );
+
     let updated_person_entities = api
-        .get_entities_by_type(&person_entity_type_id())
+        .get_entities(
+            api.account_id,
+            GetEntitiesParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+                include_drafts: false,
+            },
+        )
         .await
-        .expect("could not get entities");
+        .expect("could not get entities")
+        .entities;
+
     let updated_org_entities = api
-        .get_entities_by_type(&org_entity_type_id())
+        .get_entities(
+            api.account_id,
+            GetEntitiesParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+                include_drafts: false,
+            },
+        )
         .await
-        .expect("could not get entities");
+        .expect("could not get entities")
+        .entities;
+
     assert_eq!(updated_person_entities, updated_org_entities);
     assert_eq!(
         updated_person_entities,
         [Entity {
-            metadata: updated_entity_metadata,
+            metadata: updated_entity.metadata,
             properties: alice(),
             link_data: None
         }]
@@ -119,66 +236,141 @@ async fn initial_person() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn create_multi() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
-    let entity_metadata = api
+    let entity = api
         .create_entity(
-            alice(),
-            vec![person_entity_type_id(), org_entity_type_id()],
-            None,
-            false,
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_entity_type_id(), org_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
 
-    assert_eq!(
-        entity_metadata.entity_type_ids,
-        [person_entity_type_id(), org_entity_type_id()]
+    assert!(
+        entity
+            .metadata
+            .entity_type_ids
+            .contains(&person_entity_type_id()),
     );
-    let person_entities = api
-        .get_entities_by_type(&person_entity_type_id())
-        .await
-        .expect("could not get entities");
-    let org_entities = api
-        .get_entities_by_type(&org_entity_type_id())
-        .await
-        .expect("could not get entities");
-    assert_eq!(person_entities, org_entities);
-    assert_eq!(
-        person_entities,
-        [Entity {
-            metadata: entity_metadata.clone(),
-            properties: alice(),
-            link_data: None
-        }]
+    assert!(
+        entity
+            .metadata
+            .entity_type_ids
+            .contains(&org_entity_type_id()),
     );
 
-    let updated_entity_metadata = api
-        .patch_entity(PatchEntityParams {
-            entity_id: entity_metadata.record_id.entity_id,
-            decision_time: None,
-            entity_type_ids: vec![person_entity_type_id()],
-            properties: vec![],
-            draft: None,
-            archived: None,
-        })
+    let person_entities = api
+        .get_entities(
+            api.account_id,
+            GetEntitiesParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+                include_drafts: false,
+            },
+        )
+        .await
+        .expect("could not get entities")
+        .entities;
+
+    let org_entities = api
+        .get_entities(
+            api.account_id,
+            GetEntitiesParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+                include_drafts: false,
+            },
+        )
+        .await
+        .expect("could not get entities")
+        .entities;
+
+    assert_eq!(person_entities, org_entities);
+    assert_eq!(person_entities[0], entity);
+
+    let updated_entity = api
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: vec![],
+                draft: None,
+                archived: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
-    assert_eq!(
-        updated_entity_metadata.entity_type_ids,
-        [person_entity_type_id()]
+    assert!(
+        updated_entity
+            .metadata
+            .entity_type_ids
+            .contains(&person_entity_type_id())
     );
+
     let updated_person_entities = api
-        .get_entities_by_type(&person_entity_type_id())
+        .get_entities(
+            api.account_id,
+            GetEntitiesParams {
+                filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+                include_drafts: false,
+            },
+        )
         .await
-        .expect("could not get entities");
+        .expect("could not get entities")
+        .entities;
+
     assert_eq!(
         updated_person_entities,
         [Entity {
-            metadata: updated_entity_metadata,
+            metadata: updated_entity.metadata,
             properties: alice(),
             link_data: None
         }]

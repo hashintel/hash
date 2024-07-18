@@ -1,21 +1,6 @@
-import type { EntityId } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
 
 type ErrorResponse = { error: string };
-
-export type CreateOrUpdateSheetsIntegrationRequest = {
-  audience: "human" | "machine";
-  existingIntegrationEntityId?: EntityId;
-  googleAccountId: string;
-  queryEntityId: EntityId;
-  spreadsheetId?: string;
-  newFileName?: string;
-};
-
-export type CreateOrUpdateSheetsIntegrationResponse =
-  | {
-      integrationEntityId: EntityId;
-    }
-  | ErrorResponse;
 
 export type GoogleOAuth2CallbackRequest = {
   code: string;

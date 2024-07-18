@@ -27,13 +27,13 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.4",
-    "@blockprotocol/type-system": "0.1.1",
+    "@blockprotocol/graph": "0.4.0-canary.0",
+    "@blockprotocol/type-system": "0.1.2-canary.0",
     "@hashintel/design-system": "0.0.8",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "lowlight": "2.8.1",
     "react-syntax-highlighter": "15.5.0",
-    "react-type-animation": "3.0.1"
+    "react-type-animation": "3.2.0"
   },
   "devDependencies": {
     "@emotion/react": "11.11.1",
@@ -42,14 +42,14 @@
     "@local/tsconfig": "0.0.0-private",
     "@mui/material": "5.14.11",
     "@mui/system": "5.14.11",
-    "@types/react": "18.0.26",
-    "@types/react-dom": "18.0.10",
+    "@types/react": "18.2.68",
+    "@types/react-dom": "18.2.25",
     "@types/react-syntax-highlighter": "15.5.6",
     "eslint": "8.57.0",
     "eslint-plugin-storybook": "0.8.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "typescript": "5.1.6"
+    "typescript": "5.5.3"
   },
   "peerDependencies": {
     "@emotion/react": "11.9.0",

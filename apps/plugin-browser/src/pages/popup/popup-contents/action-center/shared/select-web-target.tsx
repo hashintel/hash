@@ -1,4 +1,4 @@
-import type { OwnedById } from "@local/hash-subgraph";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { SxProps, Theme } from "@mui/material";
 import { FormControlLabel, Radio, RadioGroup, Stack } from "@mui/material";
 
@@ -32,7 +32,6 @@ export const SelectWebTarget = ({
 }: SelectWebTargetProps) => {
   return (
     <RadioGroup
-      aria-labelledby="demo-radio-buttons-group-label"
       name="radio-buttons-group"
       onChange={(event) => setCreateAs(event.target.value as "draft" | "live")}
       value={createAs}

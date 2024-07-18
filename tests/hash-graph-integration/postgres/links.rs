@@ -1,14 +1,43 @@
+use alloc::borrow::Cow;
+use std::collections::HashSet;
+
+use graph::{
+    knowledge::EntityQueryPath,
+    ontology::EntityTypeQueryPath,
+    store::{
+        knowledge::{
+            CountEntitiesParams, CreateEntityParams, GetEntitiesParams, PatchEntityParams,
+        },
+        query::{Filter, FilterExpression, Parameter},
+        EntityQuerySorting, EntityStore,
+    },
+    subgraph::{
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
+};
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::EntityProperties;
+use graph_types::{
+    knowledge::{
+        entity::ProvidedEntityEditionProvenance, link::LinkData, PropertyObject,
+        PropertyProvenance, PropertyWithMetadataObject,
+    },
+    owned_by_id::OwnedById,
+};
+use temporal_versioning::TemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::DatabaseTestWrapper;
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn insert() {
     let alice = serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
     let bob = serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity");
-    let friend_of = EntityProperties::empty();
+    let friend_of = PropertyObject::empty();
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -40,13 +69,43 @@ async fn insert() {
         version: OntologyTypeVersion::new(1),
     };
 
-    let alice_metadata = api
-        .create_entity(alice, vec![person_type_id.clone()], None, false)
+    let alice_entity = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
+                properties: PropertyWithMetadataObject::from_parts(alice, None)
+                    .expect("could not create property with metadata object"),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
-    let bob_metadata = api
-        .create_entity(bob, vec![person_type_id.clone()], None, false)
+    let bob_entity = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
+                properties: PropertyWithMetadataObject::from_parts(bob, None)
+                    .expect("could not create property with metadata object"),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
@@ -58,24 +117,123 @@ async fn insert() {
         version: OntologyTypeVersion::new(1),
     };
 
-    api.create_link_entity(
-        friend_of,
-        vec![friend_of_type_id.clone()],
-        None,
-        alice_metadata.record_id.entity_id,
-        bob_metadata.record_id.entity_id,
+    api.create_entity(
+        api.account_id,
+        CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([friend_of_type_id.clone()]),
+            properties: PropertyWithMetadataObject::from_parts(friend_of, None)
+                .expect("could not create property with metadata object"),
+            link_data: Some(LinkData {
+                left_entity_id: alice_entity.metadata.record_id.entity_id,
+                right_entity_id: bob_entity.metadata.record_id.entity_id,
+                left_entity_confidence: None,
+                left_entity_provenance: PropertyProvenance::default(),
+                right_entity_confidence: None,
+                right_entity_provenance: PropertyProvenance::default(),
+            }),
+            draft: false,
+            relationships: [],
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
     )
     .await
     .expect("could not create link");
 
-    let link_entity = api
-        .get_link_entity_target(alice_metadata.record_id.entity_id, friend_of_type_id)
+    let entities = api
+        .get_entities(
+            api.account_id,
+            GetEntitiesParams {
+                filter: Filter::All(vec![
+                    Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                            path: Box::new(EntityQueryPath::Uuid),
+                            direction: EdgeDirection::Outgoing,
+                        })),
+                        Some(FilterExpression::Parameter(Parameter::Uuid(
+                            alice_entity
+                                .metadata
+                                .record_id
+                                .entity_id
+                                .entity_uuid
+                                .into_uuid(),
+                        ))),
+                    ),
+                    Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                            path: Box::new(EntityQueryPath::OwnedById),
+                            direction: EdgeDirection::Outgoing,
+                        })),
+                        Some(FilterExpression::Parameter(Parameter::Uuid(
+                            alice_entity
+                                .metadata
+                                .record_id
+                                .entity_id
+                                .owned_by_id
+                                .into_uuid(),
+                        ))),
+                    ),
+                    Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::BaseUrl,
+                            inheritance_depth: Some(0),
+                        })),
+                        Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                            friend_of_type_id.base_url.as_str(),
+                        )))),
+                    ),
+                    Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::Version,
+                            inheritance_depth: Some(0),
+                        })),
+                        Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                            friend_of_type_id.version,
+                        ))),
+                    ),
+                ]),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: true,
+                include_drafts: false,
+            },
+        )
         .await
-        .expect("could not fetch entity");
+        .expect("could not get entity")
+        .entities;
+
+    let link_entity = match entities.len() {
+        1 => entities.into_iter().next().unwrap(),
+        len => panic!("unexpected number of entities found, expected 1 but received {len}"),
+    };
+
     let link_data = link_entity.link_data.expect("entity is not a link");
 
-    assert_eq!(link_data.left_entity_id, alice_metadata.record_id.entity_id);
-    assert_eq!(link_data.right_entity_id, bob_metadata.record_id.entity_id);
+    assert_eq!(
+        link_data.left_entity_id,
+        alice_entity.metadata.record_id.entity_id
+    );
+    assert_eq!(
+        link_data.right_entity_id,
+        bob_entity.metadata.record_id.entity_id
+    );
 }
 
 #[tokio::test]
@@ -131,80 +289,188 @@ async fn get_entity_links() {
         version: OntologyTypeVersion::new(1),
     };
 
-    let alice_metadata = api
-        .create_entity(alice, vec![person_type_id.clone()], None, false)
+    let alice_entity = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
+                properties: PropertyWithMetadataObject::from_parts(alice, None)
+                    .expect("could not create property with metadata object"),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
-    let bob_metadata = api
-        .create_entity(bob, vec![person_type_id.clone()], None, false)
+    let bob_entity = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
+                properties: PropertyWithMetadataObject::from_parts(bob, None)
+                    .expect("could not create property with metadata object"),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
     let charles_metadata = api
-        .create_entity(charles, vec![person_type_id.clone()], None, false)
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
+                properties: PropertyWithMetadataObject::from_parts(charles, None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
-    api.create_link_entity(
-        EntityProperties::empty(),
-        vec![friend_link_type_id.clone()],
-        None,
-        alice_metadata.record_id.entity_id,
-        bob_metadata.record_id.entity_id,
+    api.create_entity(
+        api.account_id,
+        CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([friend_link_type_id.clone()]),
+            properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+                .expect("could not create property with metadata object"),
+            link_data: Some(LinkData {
+                left_entity_id: alice_entity.metadata.record_id.entity_id,
+                right_entity_id: bob_entity.metadata.record_id.entity_id,
+                left_entity_confidence: None,
+                left_entity_provenance: PropertyProvenance::default(),
+                right_entity_confidence: None,
+                right_entity_provenance: PropertyProvenance::default(),
+            }),
+            draft: false,
+            relationships: [],
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
     )
     .await
     .expect("could not create link");
 
-    api.create_link_entity(
-        EntityProperties::empty(),
-        vec![acquaintance_entity_link_type_id.clone()],
-        None,
-        alice_metadata.record_id.entity_id,
-        charles_metadata.record_id.entity_id,
+    api.create_entity(
+        api.account_id,
+        CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([acquaintance_entity_link_type_id.clone()]),
+            properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+                .expect("could not create property with metadata object"),
+            link_data: Some(LinkData {
+                left_entity_id: alice_entity.metadata.record_id.entity_id,
+                right_entity_id: charles_metadata.metadata.record_id.entity_id,
+                left_entity_confidence: None,
+                left_entity_provenance: PropertyProvenance::default(),
+                right_entity_confidence: None,
+                right_entity_provenance: PropertyProvenance::default(),
+            }),
+            draft: false,
+            relationships: [],
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
     )
     .await
     .expect("could not create link");
 
     let links_from_source = api
-        .get_latest_entity_links(alice_metadata.record_id.entity_id)
+        .get_entities(
+            api.account_id,
+            GetEntitiesParams {
+                filter: Filter::Equal(
+                    Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                        path: Box::new(EntityQueryPath::Uuid),
+                        direction: EdgeDirection::Outgoing,
+                    })),
+                    Some(FilterExpression::Parameter(Parameter::Uuid(
+                        alice_entity
+                            .metadata
+                            .record_id
+                            .entity_id
+                            .entity_uuid
+                            .into_uuid(),
+                    ))),
+                ),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                include_count: false,
+                include_drafts: false,
+            },
+        )
         .await
-        .expect("could not fetch link");
+        .expect("could not get entities")
+        .entities;
 
-    assert!(
-        links_from_source
-            .iter()
-            .any(|link_entity| link_entity.metadata.entity_type_ids[0] == friend_link_type_id)
-    );
-    assert!(
-        links_from_source
-            .iter()
-            .any(|link_entity| link_entity.metadata.entity_type_ids[0]
-                == acquaintance_entity_link_type_id)
-    );
+    assert!(links_from_source.iter().any(|link_entity| {
+        link_entity
+            .metadata
+            .entity_type_ids
+            .contains(&friend_link_type_id)
+    }));
+    assert!(links_from_source.iter().any(|link_entity| {
+        link_entity
+            .metadata
+            .entity_type_ids
+            .contains(&acquaintance_entity_link_type_id)
+    }));
 
     let link_datas = links_from_source
         .iter()
-        .map(|entity| entity.link_data.expect("entity is not a link"))
+        .map(|entity| entity.link_data.as_ref().expect("entity is not a link"))
         .collect::<Vec<_>>();
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.left_entity_id == alice_metadata.record_id.entity_id)
+            .any(|link_data| link_data.left_entity_id == alice_entity.metadata.record_id.entity_id)
     );
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.right_entity_id == bob_metadata.record_id.entity_id)
+            .any(|link_data| link_data.right_entity_id == bob_entity.metadata.record_id.entity_id)
     );
-    assert!(
-        link_datas
-            .iter()
-            .any(|link_data| link_data.right_entity_id == charles_metadata.record_id.entity_id)
-    );
+    assert!(link_datas.iter().any(
+        |link_data| link_data.right_entity_id == charles_metadata.metadata.record_id.entity_id
+    ));
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn remove_link() {
     let alice = serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
     let bob = serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity");
@@ -247,42 +513,160 @@ async fn remove_link() {
         version: OntologyTypeVersion::new(1),
     };
 
-    let alice_metadata = api
-        .create_entity(alice, vec![person_type_id.clone()], None, false)
+    let alice_entity = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
+                properties: PropertyWithMetadataObject::from_parts(alice, None)
+                    .expect("could not create property with metadata object"),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
-    let bob_metadata = api
-        .create_entity(bob, vec![person_type_id.clone()], None, false)
+    let bob_entity = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_type_id.clone()]),
+                properties: PropertyWithMetadataObject::from_parts(bob, None)
+                    .expect("could not create property with metadata object"),
+                link_data: None,
+                draft: false,
+                relationships: [],
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
 
     let link_entity_metadata = api
-        .create_link_entity(
-            EntityProperties::empty(),
-            vec![friend_link_type_id.clone()],
-            None,
-            alice_metadata.record_id.entity_id,
-            bob_metadata.record_id.entity_id,
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([friend_link_type_id.clone()]),
+                properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+                    .expect("could not create property with metadata object"),
+                link_data: Some(LinkData {
+                    left_entity_id: alice_entity.metadata.record_id.entity_id,
+                    right_entity_id: bob_entity.metadata.record_id.entity_id,
+                    left_entity_confidence: None,
+                    left_entity_provenance: PropertyProvenance::default(),
+                    right_entity_confidence: None,
+                    right_entity_provenance: PropertyProvenance::default(),
+                }),
+                draft: false,
+                relationships: [],
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create link");
 
-    assert!(
-        !api.get_latest_entity_links(alice_metadata.record_id.entity_id)
-            .await
-            .expect("could not fetch links")
-            .is_empty()
-    );
-
-    api.archive_entity(link_entity_metadata.record_id.entity_id)
+    let has_link = api
+        .count_entities(
+            api.account_id,
+            CountEntitiesParams {
+                filter: Filter::All(vec![
+                    Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                            path: Box::new(EntityQueryPath::Uuid),
+                            direction: EdgeDirection::Outgoing,
+                        })),
+                        Some(FilterExpression::Parameter(Parameter::Uuid(
+                            alice_entity
+                                .metadata
+                                .record_id
+                                .entity_id
+                                .entity_uuid
+                                .into_uuid(),
+                        ))),
+                    ),
+                    Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::Archived)),
+                        Some(FilterExpression::Parameter(Parameter::Boolean(false))),
+                    ),
+                ]),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                include_drafts: false,
+            },
+        )
         .await
-        .expect("could not remove link");
+        .expect("could not count entities")
+        > 0;
+    assert!(has_link);
 
-    assert!(
-        api.get_latest_entity_links(alice_metadata.record_id.entity_id)
-            .await
-            .expect("could not fetch links")
-            .is_empty()
-    );
+    api.patch_entity(
+        api.account_id,
+        PatchEntityParams {
+            entity_id: link_entity_metadata.metadata.record_id.entity_id,
+            decision_time: None,
+            archived: Some(true),
+            draft: None,
+            entity_type_ids: HashSet::new(),
+            properties: vec![],
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not remove link");
+
+    let has_link = api
+        .count_entities(
+            api.account_id,
+            CountEntitiesParams {
+                filter: Filter::All(vec![
+                    Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                            path: Box::new(EntityQueryPath::Uuid),
+                            direction: EdgeDirection::Outgoing,
+                        })),
+                        Some(FilterExpression::Parameter(Parameter::Uuid(
+                            alice_entity
+                                .metadata
+                                .record_id
+                                .entity_id
+                                .entity_uuid
+                                .into_uuid(),
+                        ))),
+                    ),
+                    Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::Archived)),
+                        Some(FilterExpression::Parameter(Parameter::Boolean(false))),
+                    ),
+                ]),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                include_drafts: false,
+            },
+        )
+        .await
+        .expect("could not count entities")
+        > 0;
+    assert!(!has_link);
 }

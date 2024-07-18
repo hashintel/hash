@@ -1,24 +1,27 @@
-use std::{
+use core::{
     pin::Pin,
     task::{ready, Context, Poll},
 };
 
-use authorization::schema::{DataTypeId, DataTypeRelationAndSubject};
+use authorization::schema::DataTypeRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use postgres_types::Json;
-use uuid::Uuid;
+use graph_types::ontology::DataTypeId;
+use type_system::{schema::ClosedDataType, Valid};
 
-use crate::snapshot::{
-    ontology::{
-        data_type::batch::DataTypeRowBatch, table::DataTypeRow, DataTypeEmbeddingRow,
-        DataTypeSnapshotRecord, OntologyTypeMetadataSender,
+use crate::{
+    snapshot::{
+        ontology::{
+            data_type::batch::DataTypeRowBatch, metadata::OntologyTypeMetadata,
+            DataTypeSnapshotRecord, OntologyTypeMetadataSender,
+        },
+        SnapshotRestoreError,
     },
-    SnapshotRestoreError,
+    store::postgres::query::rows::{DataTypeEmbeddingRow, DataTypeRow},
 };
 
 /// A sink to insert [`DataTypeSnapshotRecord`]s.
@@ -54,28 +57,32 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         mut self: Pin<&mut Self>,
         data_type: DataTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let record_id = data_type.metadata.record_id.to_string();
-        let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
+        let ontology_id = DataTypeId::from_record_id(&data_type.metadata.record_id);
 
         self.metadata
-            .start_send_unpin((
-                ontology_id,
-                data_type.metadata.record_id,
-                data_type.metadata.classification,
-                data_type.metadata.temporal_versioning,
-                data_type.metadata.provenance,
-            ))
+            .start_send_unpin(OntologyTypeMetadata {
+                ontology_id: ontology_id.into(),
+                record_id: data_type.metadata.record_id,
+                classification: data_type.metadata.classification,
+                temporal_versioning: data_type.metadata.temporal_versioning,
+                provenance: data_type.metadata.provenance,
+            })
             .attach_printable("could not send metadata")?;
         self.schema
             .start_send_unpin(DataTypeRow {
                 ontology_id,
-                schema: Json(data_type.schema),
+                // TODO: Validate ontology types in snapshots
+                //   see https://linear.app/hash/issue/H-3038
+                schema: Valid::new_unchecked(data_type.schema.clone()),
+                // TODO: Validate ontology types in snapshots
+                //   see https://linear.app/hash/issue/H-3038
+                closed_schema: Valid::new_unchecked(ClosedDataType::new(data_type.schema)),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
         self.relations
-            .start_send_unpin((DataTypeId::new(ontology_id), data_type.relations))
+            .start_send_unpin((ontology_id, data_type.relations))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send data relations")?;
 
@@ -133,7 +140,7 @@ impl Stream for DataTypeReceiver {
 pub fn data_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
-    embedding_rx: Receiver<DataTypeEmbeddingRow>,
+    embedding_rx: Receiver<DataTypeEmbeddingRow<'static>>,
 ) -> (DataTypeSender, DataTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
     let (relations_tx, relations_rx) = mpsc::channel(chunk_size);

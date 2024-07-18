@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -7,7 +8,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import type { BaseUrl, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import {
   getEntityTypeAndDescendantsById,
   getRoots,
@@ -18,10 +19,10 @@ import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import {
   constructOrg,
   constructUser,
@@ -87,7 +88,7 @@ const ProfilePage: NextPageWithLayout = () => {
     () =>
       [
         enabledFeatureFlags.pages
-          ? (systemEntityTypes.page.entityTypeBaseUrl as BaseUrl)
+          ? systemEntityTypes.page.entityTypeBaseUrl
           : [],
         ...(profile?.pinnedEntityTypeBaseUrls ?? []),
       ].flat(),
@@ -123,12 +124,12 @@ const ProfilePage: NextPageWithLayout = () => {
   );
 
   const { data: pinnedEntityTypesData } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
       includePermissions: false,
-      query: {
+      request: {
         filter: {
           all: [
             {
@@ -171,7 +172,7 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const entitiesSubgraph = pinnedEntityTypesData
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        pinnedEntityTypesData.structuralQueryEntities.subgraph,
+        pinnedEntityTypesData.getEntitySubgraph.subgraph,
       )
     : undefined;
 

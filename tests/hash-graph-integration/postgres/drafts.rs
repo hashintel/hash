@@ -1,14 +1,28 @@
-use graph::store::knowledge::PatchEntityParams;
+use std::collections::HashSet;
+
+use authorization::AuthorizationApi;
+use graph::store::{
+    knowledge::{CreateEntityParams, PatchEntityParams},
+    EntityStore,
+};
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::{EntityId, EntityProperties};
-use json_patch::{PatchOperation, ReplaceOperation};
+use graph_types::{
+    knowledge::{
+        entity::{EntityId, ProvidedEntityEditionProvenance},
+        Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
+        PropertyWithMetadataObject,
+    },
+    owned_by_id::OwnedById,
+};
 use pretty_assertions::assert_eq;
 use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+async fn seed<A: AuthorizationApi>(
+    database: &mut DatabaseTestWrapper<A>,
+) -> DatabaseApi<'_, &mut A> {
     database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
@@ -43,229 +57,355 @@ fn person_entity_type_id() -> VersionedUrl {
     }
 }
 
-fn alice() -> EntityProperties {
+fn alice() -> PropertyObject {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
-fn bob() -> EntityProperties {
+
+fn bob() -> PropertyObject {
     serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity")
 }
-fn charles() -> EntityProperties {
+
+fn charles() -> PropertyObject {
     serde_json::from_str(entity::PERSON_CHARLES_V1).expect("could not parse entity")
 }
 
 #[must_use]
-async fn check_entity_exists(api: &DatabaseApi<'_>, id: EntityId) -> bool {
-    api.get_latest_entity(id).await.is_ok()
+async fn check_entity_exists<A: AuthorizationApi>(api: &DatabaseApi<'_, A>, id: EntityId) -> bool {
+    api.get_entity_by_id(api.account_id, id, None, None)
+        .await
+        .is_ok()
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn initial_draft() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, true)
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: true,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
-    assert!(entity.record_id.entity_id.draft_id.is_some());
-    assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
-    assert!(entity.record_id.entity_id.draft_id.is_some());
+    assert!(entity.metadata.record_id.entity_id.draft_id.is_some());
+    assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
+    assert!(entity.metadata.record_id.entity_id.draft_id.is_some());
     assert!(
         entity
+            .metadata
             .provenance
+            .inferred
             .first_non_draft_created_at_decision_time
             .is_none()
     );
     assert!(
         entity
+            .metadata
             .provenance
+            .inferred
             .first_non_draft_created_at_transaction_time
             .is_none()
     );
 
     let updated_entity = api
-        .patch_entity(PatchEntityParams {
-            entity_id: entity.record_id.entity_id,
-            properties: vec![PatchOperation::Replace(ReplaceOperation {
-                path: String::new(),
-                value: serde_json::to_value(bob()).expect("could not serialize entity"),
-            })],
-            entity_type_ids: vec![],
-            archived: None,
-            draft: Some(true),
-            decision_time: None,
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
+                        .expect("could not create property with metadata"),
+                }],
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: Some(true),
+                decision_time: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not update entity");
 
     assert_eq!(
-        updated_entity.record_id.entity_id,
-        entity.record_id.entity_id
+        updated_entity.metadata.record_id.entity_id,
+        entity.metadata.record_id.entity_id
     );
-    assert!(check_entity_exists(&api, updated_entity.record_id.entity_id).await);
-    assert!(updated_entity.record_id.entity_id.draft_id.is_some());
+    assert!(check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
     assert!(
         updated_entity
+            .metadata
+            .record_id
+            .entity_id
+            .draft_id
+            .is_some()
+    );
+    assert!(
+        updated_entity
+            .metadata
             .provenance
+            .inferred
             .first_non_draft_created_at_decision_time
             .is_none()
     );
     assert!(
         updated_entity
+            .metadata
             .provenance
+            .inferred
             .first_non_draft_created_at_transaction_time
             .is_none()
     );
 
     let updated_live_entity = api
-        .patch_entity(PatchEntityParams {
-            entity_id: updated_entity.record_id.entity_id,
-            properties: vec![PatchOperation::Replace(ReplaceOperation {
-                path: String::new(),
-                value: serde_json::to_value(charles()).expect("could not serialize entity"),
-            })],
-            entity_type_ids: vec![],
-            archived: None,
-            draft: Some(false),
-            decision_time: None,
-        })
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: updated_entity.metadata.record_id.entity_id,
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    property: PropertyWithMetadata::from_parts(Property::Object(charles()), None)
+                        .expect("could not create property with metadata"),
+                }],
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: Some(false),
+                decision_time: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not update entity");
 
     assert_eq!(
-        updated_entity.record_id.entity_id.owned_by_id,
-        updated_live_entity.record_id.entity_id.owned_by_id
+        updated_entity.metadata.record_id.entity_id.owned_by_id,
+        updated_live_entity.metadata.record_id.entity_id.owned_by_id
     );
     assert_eq!(
-        updated_entity.record_id.entity_id.entity_uuid,
-        updated_live_entity.record_id.entity_id.entity_uuid
+        updated_entity.metadata.record_id.entity_id.entity_uuid,
+        updated_live_entity.metadata.record_id.entity_id.entity_uuid
     );
-    assert!(updated_live_entity.record_id.entity_id.draft_id.is_none());
+    assert!(
+        updated_live_entity
+            .metadata
+            .record_id
+            .entity_id
+            .draft_id
+            .is_none()
+    );
 
-    assert!(!check_entity_exists(&api, updated_entity.record_id.entity_id).await);
-    assert!(check_entity_exists(&api, updated_live_entity.record_id.entity_id).await);
-    assert!(updated_live_entity.record_id.entity_id.draft_id.is_none());
+    assert!(!check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
+    assert!(check_entity_exists(&api, updated_live_entity.metadata.record_id.entity_id).await);
+    assert!(
+        updated_live_entity
+            .metadata
+            .record_id
+            .entity_id
+            .draft_id
+            .is_none()
+    );
 
     let ClosedTemporalBound::Inclusive(undraft_transaction_time) = updated_live_entity
+        .metadata
         .temporal_versioning
         .transaction_time
         .start();
     let ClosedTemporalBound::Inclusive(undraft_decision_time) = updated_live_entity
+        .metadata
         .temporal_versioning
         .decision_time
         .start();
     assert_eq!(
         updated_live_entity
+            .metadata
             .provenance
+            .inferred
             .first_non_draft_created_at_transaction_time,
         Some(*undraft_transaction_time)
     );
     assert_eq!(
         updated_live_entity
+            .metadata
             .provenance
+            .inferred
             .first_non_draft_created_at_decision_time,
         Some(*undraft_decision_time)
     );
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn no_initial_draft() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
-    assert!(entity.record_id.entity_id.draft_id.is_none());
-    assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
+    assert!(entity.metadata.record_id.entity_id.draft_id.is_none());
+    assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
 
     let ClosedTemporalBound::Inclusive(undraft_transaction_time) =
-        entity.temporal_versioning.transaction_time.start();
+        entity.metadata.temporal_versioning.transaction_time.start();
     let ClosedTemporalBound::Inclusive(undraft_decision_time) =
-        entity.temporal_versioning.decision_time.start();
+        entity.metadata.temporal_versioning.decision_time.start();
     assert_eq!(
         entity
+            .metadata
             .provenance
+            .inferred
             .first_non_draft_created_at_transaction_time,
         Some(*undraft_transaction_time)
     );
     assert_eq!(
-        entity.provenance.first_non_draft_created_at_decision_time,
+        entity
+            .metadata
+            .provenance
+            .inferred
+            .first_non_draft_created_at_decision_time,
         Some(*undraft_decision_time)
     );
 
     for _ in 0..5 {
         let updated_entity = api
-            .patch_entity(PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(bob()).expect("could not serialize entity"),
-                })],
-                entity_type_ids: vec![],
-                archived: None,
-                draft: Some(true),
-                decision_time: None,
-            })
+            .patch_entity(
+                api.account_id,
+                PatchEntityParams {
+                    entity_id: entity.metadata.record_id.entity_id,
+                    properties: vec![PropertyPatchOperation::Replace {
+                        path: PropertyPath::default(),
+                        property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
+                            .expect("could not create property with metadata"),
+                    }],
+                    entity_type_ids: HashSet::new(),
+                    archived: None,
+                    draft: Some(true),
+                    decision_time: None,
+                    confidence: None,
+                    provenance: ProvidedEntityEditionProvenance::default(),
+                },
+            )
             .await
             .expect("could not update entity");
 
         assert_eq!(
-            entity.record_id.entity_id.owned_by_id,
-            updated_entity.record_id.entity_id.owned_by_id
+            entity.metadata.record_id.entity_id.owned_by_id,
+            updated_entity.metadata.record_id.entity_id.owned_by_id
         );
         assert_eq!(
-            entity.record_id.entity_id.entity_uuid,
-            updated_entity.record_id.entity_id.entity_uuid
+            entity.metadata.record_id.entity_id.entity_uuid,
+            updated_entity.metadata.record_id.entity_id.entity_uuid
         );
-        assert!(updated_entity.record_id.entity_id.draft_id.is_some());
-        assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
-        assert!(check_entity_exists(&api, updated_entity.record_id.entity_id).await);
+        assert!(
+            updated_entity
+                .metadata
+                .record_id
+                .entity_id
+                .draft_id
+                .is_some()
+        );
+        assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
+        assert!(check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
         assert_eq!(
             updated_entity
+                .metadata
                 .provenance
+                .inferred
                 .first_non_draft_created_at_transaction_time,
             Some(*undraft_transaction_time)
         );
         assert_eq!(
             updated_entity
+                .metadata
                 .provenance
+                .inferred
                 .first_non_draft_created_at_decision_time,
             Some(*undraft_decision_time)
         );
 
         let updated_live_entity = api
-            .patch_entity(PatchEntityParams {
-                entity_id: updated_entity.record_id.entity_id,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(charles()).expect("could not serialize entity"),
-                })],
-                entity_type_ids: vec![],
-                archived: None,
-                draft: Some(false),
-                decision_time: None,
-            })
+            .patch_entity(
+                api.account_id,
+                PatchEntityParams {
+                    entity_id: updated_entity.metadata.record_id.entity_id,
+                    properties: vec![PropertyPatchOperation::Replace {
+                        path: PropertyPath::default(),
+                        property: PropertyWithMetadata::from_parts(
+                            Property::Object(charles()),
+                            None,
+                        )
+                        .expect("could not create property with metadata"),
+                    }],
+                    entity_type_ids: HashSet::new(),
+                    archived: None,
+                    draft: Some(false),
+                    decision_time: None,
+                    confidence: None,
+                    provenance: ProvidedEntityEditionProvenance::default(),
+                },
+            )
             .await
             .expect("could not update entity");
 
         assert_eq!(
-            entity.record_id.entity_id,
-            updated_live_entity.record_id.entity_id
+            entity.metadata.record_id.entity_id,
+            updated_live_entity.metadata.record_id.entity_id
         );
-        assert!(updated_live_entity.record_id.entity_id.draft_id.is_none());
-        assert!(!check_entity_exists(&api, updated_entity.record_id.entity_id).await);
-        assert!(check_entity_exists(&api, updated_live_entity.record_id.entity_id).await);
+        assert!(
+            updated_live_entity
+                .metadata
+                .record_id
+                .entity_id
+                .draft_id
+                .is_none()
+        );
+        assert!(!check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
+        assert!(check_entity_exists(&api, updated_live_entity.metadata.record_id.entity_id).await);
         assert_eq!(
             updated_live_entity
+                .metadata
                 .provenance
+                .inferred
                 .first_non_draft_created_at_transaction_time,
             Some(*undraft_transaction_time)
         );
         assert_eq!(
             updated_live_entity
+                .metadata
                 .provenance
+                .inferred
                 .first_non_draft_created_at_decision_time,
             Some(*undraft_decision_time)
         );
@@ -273,105 +413,158 @@ async fn no_initial_draft() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn multiple_drafts() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(alice(), vec![person_entity_type_id()], None, false)
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([person_entity_type_id()]),
+                properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
         .await
         .expect("could not create entity");
-    assert!(entity.record_id.entity_id.draft_id.is_none());
-    assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
+    assert!(entity.metadata.record_id.entity_id.draft_id.is_none());
+    assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
     let ClosedTemporalBound::Inclusive(undraft_transaction_time) =
-        entity.temporal_versioning.transaction_time.start();
+        entity.metadata.temporal_versioning.transaction_time.start();
     let ClosedTemporalBound::Inclusive(undraft_decision_time) =
-        entity.temporal_versioning.decision_time.start();
+        entity.metadata.temporal_versioning.decision_time.start();
     assert_eq!(
         entity
+            .metadata
             .provenance
+            .inferred
             .first_non_draft_created_at_transaction_time,
         Some(*undraft_transaction_time)
     );
     assert_eq!(
-        entity.provenance.first_non_draft_created_at_decision_time,
+        entity
+            .metadata
+            .provenance
+            .inferred
+            .first_non_draft_created_at_decision_time,
         Some(*undraft_decision_time)
     );
 
     let mut drafts = Vec::new();
     for _ in 0..5 {
         let updated_entity = api
-            .patch_entity(PatchEntityParams {
-                entity_id: entity.record_id.entity_id,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(bob()).expect("could not serialize entity"),
-                })],
-                entity_type_ids: vec![],
-                archived: None,
-                draft: Some(true),
-                decision_time: None,
-            })
+            .patch_entity(
+                api.account_id,
+                PatchEntityParams {
+                    entity_id: entity.metadata.record_id.entity_id,
+                    properties: vec![PropertyPatchOperation::Replace {
+                        path: PropertyPath::default(),
+                        property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
+                            .expect("could not create property with metadata"),
+                    }],
+                    entity_type_ids: HashSet::new(),
+                    archived: None,
+                    draft: Some(true),
+                    decision_time: None,
+                    confidence: None,
+                    provenance: ProvidedEntityEditionProvenance::default(),
+                },
+            )
             .await
             .expect("could not update entity");
 
         assert_eq!(
-            entity.record_id.entity_id.owned_by_id,
-            updated_entity.record_id.entity_id.owned_by_id
+            entity.metadata.record_id.entity_id.owned_by_id,
+            updated_entity.metadata.record_id.entity_id.owned_by_id
         );
         assert_eq!(
-            entity.record_id.entity_id.entity_uuid,
-            updated_entity.record_id.entity_id.entity_uuid
+            entity.metadata.record_id.entity_id.entity_uuid,
+            updated_entity.metadata.record_id.entity_id.entity_uuid
         );
-        assert!(updated_entity.record_id.entity_id.draft_id.is_some());
-        assert!(check_entity_exists(&api, entity.record_id.entity_id).await);
-        assert!(check_entity_exists(&api, updated_entity.record_id.entity_id).await);
+        assert!(
+            updated_entity
+                .metadata
+                .record_id
+                .entity_id
+                .draft_id
+                .is_some()
+        );
+        assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
+        assert!(check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
         assert_eq!(
             updated_entity
+                .metadata
                 .provenance
+                .inferred
                 .first_non_draft_created_at_transaction_time,
             Some(*undraft_transaction_time)
         );
         assert_eq!(
             updated_entity
+                .metadata
                 .provenance
+                .inferred
                 .first_non_draft_created_at_decision_time,
             Some(*undraft_decision_time)
         );
-        drafts.push(updated_entity.record_id.entity_id);
+        drafts.push(updated_entity.metadata.record_id.entity_id);
     }
 
     for draft in drafts {
         let updated_live_entity = api
-            .patch_entity(PatchEntityParams {
-                entity_id: draft,
-                properties: vec![PatchOperation::Replace(ReplaceOperation {
-                    path: String::new(),
-                    value: serde_json::to_value(charles()).expect("could not serialize entity"),
-                })],
-                entity_type_ids: vec![],
-                archived: None,
-                draft: Some(false),
-                decision_time: None,
-            })
+            .patch_entity(
+                api.account_id,
+                PatchEntityParams {
+                    entity_id: draft,
+                    properties: vec![PropertyPatchOperation::Replace {
+                        path: PropertyPath::default(),
+                        property: PropertyWithMetadata::from_parts(
+                            Property::Object(charles()),
+                            None,
+                        )
+                        .expect("could not create property with metadata"),
+                    }],
+                    entity_type_ids: HashSet::new(),
+                    archived: None,
+                    draft: Some(false),
+                    decision_time: None,
+                    confidence: None,
+                    provenance: ProvidedEntityEditionProvenance::default(),
+                },
+            )
             .await
             .expect("could not update entity");
 
         assert_eq!(
-            entity.record_id.entity_id,
-            updated_live_entity.record_id.entity_id
+            entity.metadata.record_id.entity_id,
+            updated_live_entity.metadata.record_id.entity_id
         );
         assert!(!check_entity_exists(&api, draft).await);
-        assert!(check_entity_exists(&api, updated_live_entity.record_id.entity_id).await);
+        assert!(check_entity_exists(&api, updated_live_entity.metadata.record_id.entity_id).await);
+
         assert_eq!(
             updated_live_entity
+                .metadata
                 .provenance
+                .inferred
                 .first_non_draft_created_at_transaction_time,
             Some(*undraft_transaction_time)
         );
         assert_eq!(
             updated_live_entity
+                .metadata
                 .provenance
+                .inferred
                 .first_non_draft_created_at_decision_time,
             Some(*undraft_decision_time)
         );

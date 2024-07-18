@@ -1,9 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import { mustBeDefined } from "../../shared/util/must-be-defined.js";
-import { typedEntries } from "../../shared/util/typed-object-iter.js";
-import type { PostprocessContext } from "../context/postprocess.js";
-import { sharedTypeFileName } from "../shared.js";
+import { mustBeDefined } from "../../util/must-be-defined";
+import { typedEntries } from "../../util/typed-object-iter";
+import type { PostprocessContext } from "../context/postprocess";
+import { sharedTypeFileName } from "../shared";
 
 /**
  * Allocates types to files. If a type is defined in multiple files, it is hoisted to a shared file.
@@ -20,14 +20,14 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
       for (const typeId of sourceTypeIds) {
         // eslint-disable-next-line no-param-reassign -- this is a reduce function..
         mapObject[typeId] ??= new Set();
-        mapObject[typeId]!.add(file);
+        mapObject[typeId].add(file);
 
         for (const dependencyUrl of context.typeDependencyMap.getDependenciesForType(
           typeId,
         )) {
           // eslint-disable-next-line no-param-reassign -- this is a reduce function..
           mapObject[dependencyUrl] ??= new Set();
-          mapObject[dependencyUrl]!.add(file);
+          mapObject[dependencyUrl].add(file);
         }
       }
 
@@ -38,7 +38,10 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
 
   for (const [typeId, fileSet] of typedEntries(typesToFiles)) {
     const files = [...fileSet];
-    const type = mustBeDefined(context.allTypes[typeId]);
+    const type = mustBeDefined(
+      context.allTypes[typeId],
+      `Could not find ${typeId} in all types`,
+    );
 
     let definingFile;
     if (files.length > 1) {
@@ -50,7 +53,7 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
       for (const file of files) {
         // These files will need to import from the shared file
         context.filesToDependentIdentifiers[file] ??= new Set();
-        context.filesToDependentIdentifiers[file]!.add(type.title);
+        context.filesToDependentIdentifiers[file].add(type.title);
       }
       definingFile = sharedTypeFileName;
     } else {

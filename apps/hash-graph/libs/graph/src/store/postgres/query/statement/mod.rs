@@ -1,15 +1,17 @@
+mod insert;
 mod select;
 mod window;
 
-use std::fmt;
+use core::fmt;
 
 pub use self::{
-    select::{Distinctness, SelectStatement},
+    insert::InsertStatementBuilder,
+    select::{Distinctness, FromItem, SelectStatement},
     window::WindowStatement,
 };
 use crate::store::postgres::query::Transpile;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Statement {
     Select(SelectStatement),
 }

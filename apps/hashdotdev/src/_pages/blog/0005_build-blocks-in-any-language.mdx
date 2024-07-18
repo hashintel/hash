@@ -6,7 +6,8 @@ authors:
 postPhoto: blog/0005_build-blocks-in-any-language/0005_cross-language.webp
 title: "Build blocks using any language"
 subtitle: "Ship a spreadsheet block by transpiling from F# to JavaScript"
-date: "2022-06-14"
+dateFirstPublished: "2022-06-14"
+dateLastUpdated: "2022-06-14"
 categories:
   - Block Protocol
 ---
@@ -35,13 +36,13 @@ The is possible because of the Block Protocol [Graph module](https://blockprotoc
 
 To implement the Block Protocol in a language other than JavaScript or TypeScript:
 
-1.  translate the types in the Block Protocol Core specification to types your chosen language (F# in this case)
-1.  translate any types from modules that the block requires e.g. types for requests and responses in the Graph module
-1.  Implement the Block Protocol's message handling
+1. translate the types in the Block Protocol Core specification to types your chosen language (F# in this case)
+1. translate any types from modules that the block requires e.g. types for requests and responses in the Graph module
+1. Implement the Block Protocol's message handling
 
-    - the implementation details can be hidden behind easy-to-use abstractions
+   - the implementation details can be hidden behind easy-to-use abstractions
 
-1.  send the messages your block needs to update or retrieve data, as specified in the [Graph module specification](https://blockprotocol.org/spec/graph)
+1. send the messages your block needs to update or retrieve data, as specified in the [Graph module specification](https://blockprotocol.org/spec/graph)
 
 ### Block Protocol Core types
 
@@ -488,8 +489,8 @@ Inputting an expression in a cell, such as:
   height={123}
   alt="The calculation block with `Person` selected in row one, `Company`in row two, containing `=count()/A2` in cell A1 and `=count()` in cell A2."
 />
-will parse and evaluate the cell, returning an optional float which can be displayed
-if all goes well. Otherwise, the raw value of the cell is shown.
+will parse and evaluate the cell, returning an optional float which can be
+displayed if all goes well. Otherwise, the raw value of the cell is shown.
 
 ## Conclusion
 

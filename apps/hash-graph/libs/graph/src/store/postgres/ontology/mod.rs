@@ -4,20 +4,21 @@ mod ontology_id;
 mod property_type;
 mod read;
 
-use std::{borrow::Cow, convert::identity};
+use alloc::borrow::Cow;
+use core::convert::identity;
 
 use error_stack::{Report, ResultExt};
 use graph_types::{
     ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyType,
-        OntologyTypeClassificationMetadata, PropertyTypeWithMetadata,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeClassificationMetadata,
+        PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
 };
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
-use type_system::{url::BaseUrl, DataType, EntityType, PropertyType};
+use type_system::url::BaseUrl;
 
 pub use self::ontology_id::OntologyId;
 use crate::{
@@ -35,33 +36,10 @@ use crate::{
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 
-/// Provides an abstraction over elements of the Type System stored in the Database.
-///
-/// [`PostgresDatabase`]: crate::store::PostgresDatabase
-pub trait OntologyDatabaseType: OntologyType {
-    /// Returns the name of the table where this type is stored.
-    fn table() -> &'static str;
-}
-
-impl OntologyDatabaseType for DataType {
-    fn table() -> &'static str {
-        "data_types"
-    }
-}
-
-impl OntologyDatabaseType for PropertyType {
-    fn table() -> &'static str {
-        "property_types"
-    }
-}
-
-impl OntologyDatabaseType for EntityType {
-    fn table() -> &'static str {
-        "entity_types"
-    }
-}
-
-impl PostgresStore<Transaction<'_>> {
+impl<A> PostgresStore<Transaction<'_>, A>
+where
+    A: Send + Sync,
+{
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_ontology_ids(
         &self,
@@ -145,10 +123,10 @@ pub struct VersionedUrlIndices {
 macro_rules! impl_ontology_cursor {
     ($ty:ty, $query_path:ty) => {
         impl QueryRecordDecode for VertexIdSorting<$ty> {
-            type CompilationArtifacts = VersionedUrlIndices;
+            type Indices = VersionedUrlIndices;
             type Output = <$ty as SubgraphRecord>::VertexId;
 
-            fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self::Output {
+            fn decode(row: &Row, indices: &Self::Indices) -> Self::Output {
                 Self::Output {
                     base_id: BaseUrl::new(row.get(indices.base_url))
                         .expect("invalid base URL returned from Postgres"),
@@ -173,7 +151,7 @@ macro_rules! impl_ontology_cursor {
                 compiler: &mut SelectCompiler<'p, 'q, $ty>,
                 parameters: Option<&'p Self::CompilationParameters>,
                 _: &QueryTemporalAxes,
-            ) -> Self::CompilationArtifacts {
+            ) -> Self::Indices {
                 if let Some(parameters) = parameters {
                     let base_url_expression = compiler.compile_parameter(&parameters.base_url).0;
                     let version_expression = compiler.compile_parameter(&parameters.version).0;
@@ -224,7 +202,7 @@ enum PostgresOntologyTypeClassificationMetadata {
         web_id: OwnedById,
     },
     External {
-        #[serde(with = "temporal_versioning::serde::time")]
+        #[serde(with = "codec::serde::time")]
         fetched_at: OffsetDateTime,
     },
 }

@@ -23,7 +23,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: hashicorp/setup-terraform@a1502cd9e758c50496cc9ac5308c4843bcd56d36 # v3.0.0
+    - uses: hashicorp/setup-terraform@651471c36a6092792c552e8b1bef71e592b462d8 # v3.1.1
       with:
         # pin until https://github.com/cyrilgdn/terraform-provider-postgresql/issues/357 is fixed
         terraform_version: 1.5.7

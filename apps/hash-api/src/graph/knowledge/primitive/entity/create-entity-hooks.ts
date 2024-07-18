@@ -1,14 +1,15 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-subgraph";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity";
 
-import type { AuthenticationContext } from "../../../../graphql/authentication-context";
 import type { ImpureGraphContext } from "../../../context-types";
 
 export type BeforeCreateEntityHookCallback = (params: {
   context: ImpureGraphContext;
   authentication: AuthenticationContext;
-  properties: Entity["properties"];
-}) => Promise<{ properties: Entity["properties"] }>;
+  properties: PropertyObjectWithMetadata;
+}) => Promise<{ properties: PropertyObjectWithMetadata }>;
 
 export type BeforeCreateEntityHook = {
   entityTypeId: VersionedUrl;

@@ -14,11 +14,13 @@
 
 # HASH
 
-HASH is an open-source, data-centric, all-in-one workspace. HASH combines a rich frontend editor with a powerful entity graph that makes it easy to capture and work with structured data. HASH is built atop the open [Block Protocol](https://github.com/blockprotocol/blockprotocol) allowing users to easily add new block types and functionality to their workspaces.
+HASH is an open-source, self-building database. You can [read more about it](https://hash.ai/blog/self-building-database) on our blog.
 
-**This app is not yet ready for production use.** For now it is intended to be used as a [test-harness for developers building Block Protocol-compliant blocks](#integration-with-the-block-protocol). It is currently not secure, not optimized, and missing key features.
+HASH provides a powerful graph datastore with its own GUI, for creating and using types and entities, and managing the database's growth. Intelligent, autonomous agents can be deployed to grow, check, and maintain the database, integrating and structuring information from the public internet as well as your own connected private sources.
 
-We will be developing HASH into a production-grade application which can be self-hosted. The current design and architecture, while not fully realized, paves the way for further features, scale, and performance. You can read about the long-term vision for HASH [here](https://hash.ai/platform/hash).
+In the future, we envisage HASH serving as an all-in-one workspace, or complete operating system.
+
+**We currently recommend using the hosted version of HASH.** We haven't yet written up an official guide to self-hosting HASH, although you can find the code powering the application here in this (rather large) GitHub repository.
 
 > **Warning:**
 > The repository is currently in a state of flux while some large improvements are being implemented.
@@ -42,7 +44,7 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
 <details>
   <summary>Running HASH locally</summary>
-  
+
 ### Running HASH locally
 
 To run HASH locally, please follow these steps:
@@ -55,13 +57,13 @@ To run HASH locally, please follow these steps:
    ## ≥ 2.17
    
    node --version
-   ## ≥ 18.15
+   ## ≥ 20.12
    
    yarn --version
    ## ≥ 1.16
    
    rustc --version
-   ## ≥ 2024-03-18 (If installed through rustup, this will automatically install the required toolchain)
+   ## ≥ 2024-07-15 (If installed through rustup, this will automatically install the required toolchain)
    
    cargo --version
    ## Version matching the above rustc version
@@ -102,17 +104,31 @@ To run HASH locally, please follow these steps:
    docker run hello-world
    ```
 
+1. If you need to test or develop AI-related features, you will need to create an `.env.local` file in the repository root with the following values:
+
+   ```sh
+   OPENAI_API_KEY=your-open-ai-api-key                                      # required for most AI features
+   ANTHROPIC_API_KEY=your-anthropic-api-key                                 # required for most AI features
+   HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=your-aws-access-key-id         # required for most AI features
+   HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key # required for most AI features
+   E2B_API_KEY=your-e2b-api-key                                             # only required for the question-answering flow action
+   ```
+
+   **Note on environment files:** `.env.local` is not committed to the repo – **put any secrets that should remain secret here.** The default environment variables are taken from `.env`, extended by `.env.development`, and finally by `.env.local`. If you want to overwrite values specified in `.env` or `.env.development`, you can add them to `.env.local`. Do **not** change any other `.env` files unless you intend to change the defaults for development or testing.
+
 1. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
 
    ```sh
-   yarn external-services up
+   yarn external-services up --wait
    ```
 
-   1. You can optionally force a rebuild of the docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
+   1. You can optionally force a rebuild of the Docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
 
    1. You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
 
    1. When using `yarn external-services:offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
+
+   1. You can also run the Graph API and AI Temporal worker outside of Docker – this is useful if they are changing frequently and you want to avoid rebuilding the Docker containers. To do so, _stop them_ in Docker and then run `yarn dev:graph` and `yarn workspace @apps/hash-ai-worker-ts dev` respectively in separate terminals.
 
 1. Launch app services:
 
@@ -120,7 +136,8 @@ To run HASH locally, please follow these steps:
    yarn dev
    ```
 
-   This will start backend and frontend in a single terminal.
+   This will start backend and frontend in a single terminal. Once you see http://localhost:3000, the frontend end is ready to visit there.
+   The API is online once you see `localhost:5001` in the terminal. Both must be online for the frontend to function.
 
    You can also launch parts of the app in separate terminals, e.g.:
 
@@ -130,6 +147,31 @@ To run HASH locally, please follow these steps:
    ```
 
    See `package.json` → `scripts` for details and more options.
+
+1. Log in
+
+   There are three users seeded automatically for development. Their passwords are all `password`.
+
+   - `alice@example.com`, `bob@example.com` – regular users
+   - `admin@example.com` – an admin
+
+If you need to run the browser plugin locally, see the `README.md` in the `apps/plugin-browser` directory.
+
+#### Resetting the local database
+
+If you need to reset the local database, to clear out test data or because it has become corrupted during development, you have two options:
+
+1. The slow option – rebuild in Docker
+
+   1. In the Docker UI (or via CLI at your preference), stop and delete the `hash-external-services` container
+   1. In 'Volumes', search 'hash-external-services' and delete the volumes shown
+   1. Run `yarn external-services up --wait` to rebuild the services
+
+1. The fast option – reset the database via the Graph API
+
+   1. Run the Graph API in test mode by running `yarn dev:graph:test-server`
+   1. Run `yarn graph:reset-database` to reset the database
+   1. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or login will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
 
 #### External services test mode
 
@@ -146,7 +188,7 @@ yarn external-services:test up
 
 <details>
   <summary>Deploying HASH to the cloud</summary>
-  
+
 ### Deploying HASH to the cloud
 
 To deploy HASH in the cloud, follow the instructions contained in the root [`/infra` directory](https://github.com/hashintel/hash/tree/main/infra).
@@ -448,15 +490,6 @@ If the service should report metrics to a StatsD server, the following variables
 
 ## Contributors
 
-HASH's development is being led by various employees of _[HASH](https://hash.dev/)_ (the company). The current core team includes:
-
-- Ahmad Sattar
-- Alfie Mountfield
-- Ben Werner
-- Ciaran Morinan
-- Luís Bettencourt
-- Nate Higgins
-- Tim Diekmann
-- Yusuf Kınataş
+The HASH application's development is overseen by _[HASH](https://hash.ai/about)_ (the company).
 
 As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).

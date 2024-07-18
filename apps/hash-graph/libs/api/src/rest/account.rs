@@ -1,8 +1,6 @@
 //! Web routes for CRU operations on accounts.
 
-#![expect(clippy::str_to_string)]
-
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use authorization::{
     backend::ModifyRelationshipOperation,
@@ -28,6 +26,7 @@ use graph_types::{
     account::{AccountGroupId, AccountId},
     owned_by_id::OwnedById,
 };
+use temporal_client::TemporalClient;
 use utoipa::OpenApi;
 
 use super::api_resource::RoutedResource;
@@ -106,10 +105,14 @@ impl RoutedResource for AccountResource {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn create_account<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<InsertAccountIdParams>,
 ) -> Result<Json<AccountId>, Response>
@@ -117,16 +120,19 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
         .await
         .map_err(report_to_response)?;
 
     let account_id = params.account_id;
     store
-        .insert_account_id(actor_id, &mut authorization_api, params)
+        .insert_account_id(actor_id, params)
         .await
         .map_err(report_to_response)?;
 
@@ -147,10 +153,14 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn create_account_group<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<InsertAccountGroupIdParams>,
 ) -> Result<Json<AccountGroupId>, StatusCode>
@@ -158,10 +168,18 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
+    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     let account = store
         .identify_owned_by_id(OwnedById::from(actor_id))
@@ -175,14 +193,9 @@ where
         return Err(StatusCode::NOT_FOUND);
     }
 
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
     let account_group_id = params.account_group_id;
     store
-        .insert_account_group_id(actor_id, &mut authorization_api, params)
+        .insert_account_group_id(actor_id, params)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create account id");

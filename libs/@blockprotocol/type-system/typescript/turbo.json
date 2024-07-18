@@ -1,6 +1,6 @@
 {
   "extends": ["//"],
-  "pipeline": {
+  "tasks": {
     "codegen": {
       "dependsOn": ["@blockprotocol/type-system-rs#build:wasm"]
     },

@@ -1,15 +1,20 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Entity } from "@local/hash-subgraph";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { getPageBlocks } from "../../../../graph/knowledge/system-types/page";
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedBlockGQL, UnresolvedPageGQL } from "../graphql-mapping";
-import { mapBlockToGQL, mapEntityToGQL } from "../graphql-mapping";
+import { mapBlockToGQL } from "../graphql-mapping";
 
 export const pageContents: ResolverFn<
-  { linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[],
+  {
+    linkEntity: Entity<HasIndexedContent | HasSpatiallyPositionedContent>;
+    rightEntity: UnresolvedBlockGQL;
+  }[],
   UnresolvedPageGQL,
   LoggedInGraphQLContext,
   Record<string, never>
@@ -26,7 +31,7 @@ export const pageContents: ResolverFn<
   });
 
   return contentItems.map(({ linkEntity, rightEntity }) => ({
-    linkEntity: mapEntityToGQL(linkEntity),
+    linkEntity,
     rightEntity: mapBlockToGQL(rightEntity),
   }));
 };

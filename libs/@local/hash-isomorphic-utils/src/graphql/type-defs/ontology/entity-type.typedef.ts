@@ -4,6 +4,7 @@ export const entityTypeTypedef = gql`
   scalar ConstructEntityTypeParams
   scalar EntityTypeWithMetadata
   scalar BaseUrl
+  scalar Filter
   scalar UserPermissionsOnEntityType
 
   extend type Query {
@@ -15,6 +16,7 @@ export const entityTypeTypedef = gql`
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+      filter: Filter
       inheritsFrom: OutgoingEdgeResolveDepthInput!
       latestOnly: Boolean = true
       includeArchived: Boolean = false

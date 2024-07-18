@@ -1,17 +1,14 @@
 import { useMutation } from "@apollo/client";
-import {
-  AsteriskRegularIcon,
-  IconButton,
-  Modal,
-} from "@hashintel/design-system";
+import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
+import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityTypeWithMetadata, OwnedById } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { ModalProps } from "@mui/material";
-import { Box, Divider, Typography, typographyClasses } from "@mui/material";
+import { Box, Typography, typographyClasses } from "@mui/material";
 import type { FunctionComponent, ReactElement } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
@@ -38,7 +35,7 @@ import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { GripDotsVerticalRegularIcon } from "../../shared/icons/grip-dots-vertical-regular-icon";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { XMarkRegularIcon } from "../../shared/icons/x-mark-regular-icon";
-import { Button, Link } from "../../shared/ui";
+import { Button, Link, Modal } from "../../shared/ui";
 import { entityTypeIcons } from "../../shared/use-entity-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
@@ -145,12 +142,18 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
         entityUpdate: {
           entityId: profile.entity.metadata.recordId.entityId,
           entityTypeId: profile.entity.metadata.entityTypeId,
-          updatedProperties: {
-            ...profile.entity.properties,
-            [extractBaseUrl(
-              systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeId,
-            )]: updatedPinnedEntityTypeBaseUrls,
-          },
+          propertyPatches: [
+            {
+              op: "add",
+              path: [
+                systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeBaseUrl,
+              ],
+              property: mergePropertiesAndMetadata(
+                updatedPinnedEntityTypeBaseUrls,
+                undefined,
+              ),
+            },
+          ],
         },
       },
     });
@@ -231,43 +234,14 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
           padding: 0,
         },
       }}
+      header={{
+        title: "Pinned types",
+        subtitle:
+          "Choose up to 5 types to appear in the top-bar of your profile",
+      }}
       onClose={onClose}
     >
       <Box>
-        <Box
-          paddingX={3}
-          paddingBottom={1.5}
-          paddingTop={2}
-          display="flex"
-          justifyContent="space-between"
-        >
-          <Box>
-            <Typography
-              gutterBottom
-              sx={{
-                fontSize: 16,
-                fontWeight: 500,
-                color: ({ palette }) => palette.gray[80],
-              }}
-            >
-              Pinned types
-            </Typography>
-            <Typography
-              sx={{ fontSize: 14, color: ({ palette }) => palette.gray[80] }}
-            >
-              Choose up to 5 types to appear in the top-bar of your profile
-            </Typography>
-          </Box>
-          <Box>
-            <IconButton
-              onClick={onClose}
-              sx={{ marginRight: -2, marginTop: -1 }}
-            >
-              <XMarkRegularIcon />
-            </IconButton>
-          </Box>
-        </Box>
-        <Divider />
         <Box
           id="test-pinned-entity-types"
           component="form"

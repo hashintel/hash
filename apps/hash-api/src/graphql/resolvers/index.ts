@@ -12,7 +12,10 @@ import type {
 } from "../api-types.gen";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
-import { getFlowRuns } from "./flows/runs";
+import { getFlowRunByIdResolver } from "./flows/get-flow-run-by-id";
+import { getFlowRunsResolver } from "./flows/get-flow-runs";
+import { startFlow } from "./flows/start-flow";
+import { submitExternalInputResponse } from "./flows/submit-external-input-response";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
 import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
 import { blocksResolver } from "./knowledge/block/block";
@@ -37,18 +40,19 @@ import {
   createEntityResolver,
   getEntityAuthorizationRelationshipsResolver,
   getEntityResolver,
+  getEntitySubgraphResolver,
   isEntityPublicResolver,
   queryEntitiesResolver,
   removeEntityEditorResolver,
   removeEntityOwnerResolver,
   removeEntityViewerResolver,
-  structuralQueryEntitiesResolver,
   updateEntitiesResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
+import { getEntityDiffsResolver } from "./knowledge/entity/get-entity-diffs";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
 import { requestFileUpload } from "./knowledge/file/request-file-upload";
-import { hashInstanceEntityResolver } from "./knowledge/hash-instance/hash-instance";
+import { hashInstanceSettingsResolver } from "./knowledge/hash-instance/hash-instance";
 import { createOrgResolver } from "./knowledge/org/create-org";
 import { pageContents } from "./knowledge/page";
 import {
@@ -61,11 +65,12 @@ import {
   canUserEdit,
   checkUserPermissionsOnEntity,
 } from "./knowledge/shared/check-permissions";
-import { startResearchTaskResolver } from "./knowledge/start-research-task";
 import { getUsageRecordsResolver } from "./knowledge/user/get-usage-records";
+import { getWaitlistPositionResolver } from "./knowledge/user/get-waitlist-position";
 import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
+import { submitEarlyAccessFormResolver } from "./knowledge/user/submit-early-access-form";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
 import { getDataType, queryDataTypes } from "./ontology/data-type";
@@ -96,6 +101,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
     // Logged in users only
     me: loggedInMiddleware(meResolver),
+    getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
     // Admins
     getUsageRecords: loggedInMiddleware(getUsageRecordsResolver),
     // Any user
@@ -112,14 +118,16 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
     getEntity: getEntityResolver,
-    getFlowRuns,
+    getEntityDiffs: getEntityDiffsResolver,
+    getFlowRuns: loggedInAndSignedUpMiddleware(getFlowRunsResolver),
+    getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
     queryEntities: queryEntitiesResolver,
     isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
     getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(
       getEntityAuthorizationRelationshipsResolver,
     ),
-    structuralQueryEntities: structuralQueryEntitiesResolver,
-    hashInstanceEntity: hashInstanceEntityResolver,
+    getEntitySubgraph: getEntitySubgraphResolver,
+    hashInstanceSettings: hashInstanceSettingsResolver,
     // Integration
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,
@@ -172,6 +180,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
 
     createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
 
+    submitEarlyAccessForm: loggedInMiddleware(submitEarlyAccessFormResolver),
+
     addEntityOwner: loggedInAndSignedUpMiddleware(addEntityOwnerResolver),
     removeEntityOwner: loggedInAndSignedUpMiddleware(removeEntityOwnerResolver),
     addEntityEditor: loggedInAndSignedUpMiddleware(addEntityEditorResolver),
@@ -181,6 +191,11 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     addEntityViewer: loggedInAndSignedUpMiddleware(addEntityViewerResolver),
     removeEntityViewer: loggedInAndSignedUpMiddleware(
       removeEntityViewerResolver,
+    ),
+
+    startFlow: loggedInAndSignedUpMiddleware(startFlow),
+    submitExternalInputResponse: loggedInAndSignedUpMiddleware(
+      submitExternalInputResponse,
     ),
 
     addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
@@ -198,8 +213,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
       syncLinearIntegrationWithWorkspacesMutation,
     ),
-
-    startResearchTask: loggedInAndSignedUpMiddleware(startResearchTaskResolver),
   },
 
   JSONObject: JSONObjectResolver,
@@ -214,7 +227,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
     contents: blockCollectionContents,
   },
-
   Comment: {
     canUserEdit,
     hasText: commentHasTextResolver,

@@ -15,7 +15,10 @@ temporal-io-client = { package = "temporal-client", git = "https://github.com/te
 temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
 
 uuid = { workspace = true, features = ["v4"] }
-url = { version = "2.5.0", default-features = false }
+url = { version = "2.5.2", default-features = false }
 serde = { workspace = true }
 serde_json = { workspace = true }
-thiserror = "1.0.58"
+thiserror = "1.0.61"
+
+[lints]
+workspace = true

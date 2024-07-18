@@ -1,4 +1,5 @@
-use std::{borrow::Cow, net::SocketAddr, time::Duration};
+use alloc::borrow::Cow;
+use core::{net::SocketAddr, time::Duration};
 
 use axum::{
     body::Body,

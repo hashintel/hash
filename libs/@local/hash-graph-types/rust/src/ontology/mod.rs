@@ -1,6 +1,7 @@
 mod data_type;
 mod entity_type;
 mod property_type;
+mod provenance;
 
 use core::fmt;
 
@@ -8,24 +9,25 @@ use serde::{Deserialize, Serialize};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
+    schema::{DataTypeReference, EntityTypeReference, PropertyTypeReference},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    DataTypeReference, EntityTypeReference, PropertyTypeReference,
 };
 
 pub use self::{
-    data_type::{DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
+    data_type::{DataTypeId, DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
     entity_type::{
-        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata,
+        EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
+        PartialEntityTypeMetadata,
     },
     property_type::{
-        PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeMetadata,
+        PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeId, PropertyTypeMetadata,
         PropertyTypeWithMetadata,
     },
+    provenance::{
+        OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
+    },
 };
-use crate::{
-    account::{EditionArchivedById, EditionCreatedById},
-    owned_by_id::OwnedById,
-};
+use crate::owned_by_id::OwnedById;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -68,22 +70,6 @@ pub struct OntologyTemporalMetadata {
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct OntologyProvenanceMetadata {
-    pub edition: OntologyEditionProvenanceMetadata,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct OntologyEditionProvenanceMetadata {
-    pub created_by_id: EditionCreatedById,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub archived_by_id: Option<EditionArchivedById>,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
@@ -92,13 +78,13 @@ pub enum OntologyTypeClassificationMetadata {
     Owned { owned_by_id: OwnedById },
     #[serde(rename_all = "camelCase")]
     External {
-        #[serde(with = "temporal_versioning::serde::time")]
+        #[serde(with = "codec::serde::time")]
         fetched_at: OffsetDateTime,
     },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[allow(clippy::enum_variant_names)]
+#[expect(clippy::enum_variant_names)]
 pub enum OntologyTypeReference<'a> {
     EntityTypeReference(&'a EntityTypeReference),
     PropertyTypeReference(&'a PropertyTypeReference),
@@ -109,15 +95,15 @@ impl OntologyTypeReference<'_> {
     #[must_use]
     pub const fn url(&self) -> &VersionedUrl {
         match self {
-            Self::EntityTypeReference(entity_type_ref) => entity_type_ref.url(),
-            Self::PropertyTypeReference(property_type_ref) => property_type_ref.url(),
-            Self::DataTypeReference(data_type_ref) => data_type_ref.url(),
+            Self::EntityTypeReference(entity_type_ref) => &entity_type_ref.url,
+            Self::PropertyTypeReference(property_type_ref) => &property_type_ref.url,
+            Self::DataTypeReference(data_type_ref) => &data_type_ref.url,
         }
     }
 }
 
 #[derive(Debug)]
-#[allow(clippy::enum_variant_names)]
+#[expect(clippy::enum_variant_names)]
 pub enum OntologyTypeMetadata {
     DataType(DataTypeMetadata),
     PropertyType(PropertyTypeMetadata),
@@ -153,7 +139,7 @@ impl OntologyTypeMetadata {
     }
 
     #[must_use]
-    pub const fn provenance(&self) -> &OntologyProvenanceMetadata {
+    pub const fn provenance(&self) -> &OntologyProvenance {
         match self {
             Self::DataType(metadata) => &metadata.provenance,
             Self::PropertyType(metadata) => &metadata.provenance,

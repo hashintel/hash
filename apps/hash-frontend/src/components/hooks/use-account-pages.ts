@@ -1,5 +1,7 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import type { EntityMetadata } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -7,12 +9,9 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  EntityMetadata,
-  EntityRootType,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -20,10 +19,10 @@ import {
 import { useMemo } from "react";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 import { useHashInstance } from "./use-hash-instance";
 
@@ -37,30 +36,28 @@ export type AccountPagesInfo = {
   data: SimplePage[];
   lastRootPageIndex: string | null;
   loading: boolean;
-  refetch: () => Promise<ApolloQueryResult<StructuralQueryEntitiesQuery>>;
+  refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
 };
 
 export const useAccountPages = (
   ownedById?: OwnedById,
   includeArchived?: boolean,
-  includeDrafts?: boolean,
 ): AccountPagesInfo => {
   const { hashInstance } = useHashInstance();
 
   const { data, loading, refetch } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: getAccountPagesVariables({
       ownedById,
       includeArchived,
-      includeDrafts,
     }),
     skip: !ownedById || !hashInstance?.properties.pagesAreEnabled,
   });
 
   const pages = useMemo<SimplePage[]>(() => {
-    const subgraph = data?.structuralQueryEntities.subgraph;
+    const subgraph = data?.getEntitySubgraph.subgraph;
 
     if (!subgraph) {
       return [];
@@ -71,7 +68,7 @@ export const useAccountPages = (
 
     return getRoots(typedSubgraph).map((latestPage) => {
       const pageOutgoingLinks = getOutgoingLinkAndTargetEntities(
-        subgraph,
+        deserializeSubgraph(subgraph),
         latestPage.metadata.recordId.entityId,
       );
 

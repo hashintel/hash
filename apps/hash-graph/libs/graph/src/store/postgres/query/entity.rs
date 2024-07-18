@@ -1,4 +1,4 @@
-use std::iter::once;
+use core::iter::once;
 
 use crate::{
     knowledge::EntityQueryPath,
@@ -22,15 +22,19 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::DecisionTime
             | Self::TransactionTime
             | Self::DraftId => vec![],
-            Self::CreatedById
-            | Self::CreatedAtTransactionTime
-            | Self::CreatedAtDecisionTime
-            | Self::FirstNonDraftCreatedAtTransactionTime
-            | Self::FirstNonDraftCreatedAtDecisionTime => {
+            Self::Provenance(_) => {
                 vec![Relation::EntityIds]
             }
             Self::Embedding => vec![Relation::EntityEmbeddings],
-            Self::Properties(_) | Self::EditionCreatedById | Self::Archived => {
+            Self::LeftEntityConfidence | Self::LeftEntityProvenance => vec![Relation::LeftEntity],
+            Self::RightEntityConfidence | Self::RightEntityProvenance => {
+                vec![Relation::RightEntity]
+            }
+            Self::Properties(_)
+            | Self::EditionProvenance(_)
+            | Self::Archived
+            | Self::EntityConfidence
+            | Self::PropertyMetadata(_) => {
                 vec![Relation::EntityEditions]
             }
             Self::TypeBaseUrls | Self::TypeVersions => vec![Relation::EntityIsOfTypes],
@@ -83,71 +87,102 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
         }
     }
 
-    fn terminating_column(&self) -> Column {
+    fn terminating_column(&self) -> (Column, Option<JsonField<'_>>) {
         match self {
-            Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
-            Self::Uuid => Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
-            Self::DraftId => Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId),
-            Self::EditionId => Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
-            Self::DecisionTime => {
-                Column::EntityTemporalMetadata(EntityTemporalMetadata::DecisionTime)
-            }
-            Self::TransactionTime => {
-                Column::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime)
-            }
-            Self::Archived => Column::EntityEditions(EntityEditions::Archived),
-            Self::EditionCreatedById => Column::EntityEditions(EntityEditions::EditionCreatedById),
-            Self::Embedding => Column::EntityEmbeddings(EntityEmbeddings::Embedding),
-            Self::CreatedById => Column::EntityIds(EntityIds::CreatedById),
-            Self::TypeBaseUrls => Column::EntityIsOfTypeIds(EntityIsOfTypeIds::BaseUrls),
-            Self::TypeVersions => Column::EntityIsOfTypeIds(EntityIsOfTypeIds::Versions),
-            Self::CreatedAtDecisionTime => Column::EntityIds(EntityIds::CreatedAtDecisionTime),
-            Self::CreatedAtTransactionTime => {
-                Column::EntityIds(EntityIds::CreatedAtTransactionTime)
-            }
-            Self::FirstNonDraftCreatedAtDecisionTime => {
-                Column::EntityIds(EntityIds::FirstNonDraftCreatedAtDecisionTime)
-            }
-            Self::FirstNonDraftCreatedAtTransactionTime => {
-                Column::EntityIds(EntityIds::FirstNonDraftCreatedAtTransactionTime)
-            }
+            Self::OwnedById => (
+                Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
+                None,
+            ),
+            Self::Uuid => (
+                Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
+                None,
+            ),
+            Self::DraftId => (
+                Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId),
+                None,
+            ),
+            Self::EditionId => (
+                Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                None,
+            ),
+            Self::DecisionTime => (
+                Column::EntityTemporalMetadata(EntityTemporalMetadata::DecisionTime),
+                None,
+            ),
+            Self::TransactionTime => (
+                Column::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime),
+                None,
+            ),
+            Self::Archived => (Column::EntityEditions(EntityEditions::Archived), None),
+            Self::Embedding => (Column::EntityEmbeddings(EntityEmbeddings::Embedding), None),
+            Self::TypeBaseUrls => (Column::EntityIsOfTypeIds(EntityIsOfTypeIds::BaseUrls), None),
+            Self::TypeVersions => (Column::EntityIsOfTypeIds(EntityIsOfTypeIds::Versions), None),
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path,
                 direction: EdgeDirection::Outgoing,
-            } if **path == EntityQueryPath::Uuid => {
-                Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityUuid)
-            }
+            } if **path == EntityQueryPath::Uuid => (
+                Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityUuid),
+                None,
+            ),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                 path,
                 direction: EdgeDirection::Outgoing,
-            } if **path == EntityQueryPath::OwnedById => {
-                Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityWebId)
-            }
+            } if **path == EntityQueryPath::OwnedById => (
+                Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityWebId),
+                None,
+            ),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path,
                 direction: EdgeDirection::Outgoing,
-            } if **path == EntityQueryPath::Uuid => {
-                Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityUuid)
-            }
+            } if **path == EntityQueryPath::Uuid => (
+                Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityUuid),
+                None,
+            ),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path,
                 direction: EdgeDirection::Outgoing,
-            } if **path == EntityQueryPath::OwnedById => {
-                Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityWebId)
-            }
+            } if **path == EntityQueryPath::OwnedById => (
+                Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityWebId),
+                None,
+            ),
             Self::EntityEdge { path, .. } => path.terminating_column(),
-            Self::Properties(path) => path.as_ref().map_or(
-                Column::EntityEditions(EntityEditions::Properties(None)),
-                |path| {
-                    Column::EntityEditions(EntityEditions::Properties(Some(JsonField::JsonPath(
-                        path,
-                    ))))
-                },
+            Self::Properties(path) => (
+                Column::EntityEditions(EntityEditions::Properties),
+                path.as_ref().map(JsonField::JsonPath),
+            ),
+            Self::Provenance(path) => (
+                Column::EntityIds(EntityIds::Provenance),
+                path.as_ref().map(JsonField::JsonPath),
+            ),
+            Self::EditionProvenance(path) => (
+                Column::EntityEditions(EntityEditions::Provenance),
+                path.as_ref().map(JsonField::JsonPath),
+            ),
+            Self::PropertyMetadata(path) => (
+                Column::EntityEditions(EntityEditions::PropertyMetadata),
+                path.as_ref().map(JsonField::JsonPath),
+            ),
+            Self::EntityConfidence => (Column::EntityEditions(EntityEditions::Confidence), None),
+            Self::LeftEntityConfidence => (
+                Column::EntityHasLeftEntity(EntityHasLeftEntity::Confidence),
+                None,
+            ),
+            Self::LeftEntityProvenance => (
+                Column::EntityHasLeftEntity(EntityHasLeftEntity::Provenance),
+                None,
+            ),
+            Self::RightEntityConfidence => (
+                Column::EntityHasRightEntity(EntityHasRightEntity::Confidence),
+                None,
+            ),
+            Self::RightEntityProvenance => (
+                Column::EntityHasRightEntity(EntityHasRightEntity::Provenance),
+                None,
             ),
         }
     }

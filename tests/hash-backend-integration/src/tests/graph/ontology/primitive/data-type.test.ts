@@ -14,8 +14,8 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import type {
   ConstructDataTypeParams,
   DataTypeWithMetadata,
-  OwnedById,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -57,7 +57,6 @@ beforeAll(async () => {
     graphContext,
     authentication,
     "propertytestorg",
-    logger,
   );
   await joinOrg(graphContext, authentication, {
     userEntityId: testUser2.entity.metadata.recordId.entityId,

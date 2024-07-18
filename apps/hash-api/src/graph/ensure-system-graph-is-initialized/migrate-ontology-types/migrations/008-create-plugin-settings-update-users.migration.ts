@@ -1,6 +1,6 @@
 import type { EntityType } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { BaseUrl } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
@@ -139,7 +139,6 @@ const migrate: MigrationFunction = async ({
     links: {
       ...userEntityTypeSchema.links,
       [hasLinkEntityType.schema.$id]: {
-        ordered: false,
         type: "array",
         items: {
           oneOf: [{ $ref: browserPluginSettingsEntityType.schema.$id }],

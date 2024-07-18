@@ -1,3 +1,13 @@
+/* eslint-disable import/first */
+
+import * as Sentry from "@sentry/node";
+
+Sentry.init({
+  dsn: process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
+  enabled: !!process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
+  tracesSampleRate: 1.0,
+});
+
 import * as http from "node:http";
 import { createRequire } from "node:module";
 import * as path from "node:path";
@@ -6,11 +16,15 @@ import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import { Logger } from "@local/hash-backend-utils/logger";
-import { NativeConnection, Worker } from "@temporalio/worker";
+import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
+import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
+import { createVaultClient } from "@local/hash-backend-utils/vault";
+import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import { createAiActivities, createGraphActivities } from "./activities";
+import { createFlowActivities } from "./activities/flow-activities";
+import { logToConsole } from "./shared/logger";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -56,16 +70,27 @@ const workflowOption = () =>
       }
     : { workflowsPath: require.resolve("./workflows") };
 
-const logger = new Logger({
-  mode: process.env.NODE_ENV === "production" ? "prod" : "dev",
-  serviceName: "hash-ai-worker-ts",
-});
-
 async function run() {
-  const graphApiClient = createGraphClient(logger, {
+  logToConsole.info("Starting AI worker...");
+
+  const graphApiClient = createGraphClient(logToConsole, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
   });
+
+  logToConsole.info("Created Graph client");
+
+  const vaultClient = createVaultClient();
+  if (!vaultClient) {
+    throw new Error("Vault client not created");
+  }
+
+  logToConsole.info("Created Vault client");
+
+  const connection = await NativeConnection.connect({
+    address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
+  });
+  logToConsole.info("Created Temporal connection");
 
   const worker = await Worker.create({
     ...workflowOption(),
@@ -76,28 +101,41 @@ async function run() {
       ...createGraphActivities({
         graphApiClient,
       }),
+      ...createFlowActivities({ vaultClient }),
     },
-    connection: await NativeConnection.connect({
-      address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
-    }),
+    connection,
     namespace: "HASH",
     taskQueue: "ai",
+    sinks: { ...defaultSinks(), ...sentrySinks() },
+    interceptors: {
+      workflowModules: [
+        require.resolve(
+          "@local/hash-backend-utils/temporal/interceptors/workflows/sentry",
+        ),
+      ],
+      activityInbound: [(ctx) => new SentryActivityInboundInterceptor(ctx)],
+    },
   });
 
   const httpServer = createHealthCheckServer();
   const port = 4100;
   httpServer.listen({ host: "::", port });
-  // eslint-disable-next-line no-console
-  console.info(`HTTP server listening on port ${port}`);
+
+  logToConsole.info(`HTTP server listening on port ${port}`);
 
   await worker.run();
 }
 
-process.on("SIGINT", () => process.exit(1));
-process.on("SIGTERM", () => process.exit(1));
+process.on("SIGINT", () => {
+  logToConsole.info("Received SIGINT, exiting...");
+  process.exit(1);
+});
+process.on("SIGTERM", () => {
+  logToConsole.info("Received SIGTERM, exiting...");
+  process.exit(1);
+});
 
 run().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error(err);
+  logToConsole.error(`Error running worker: ${err}`);
   process.exit(1);
 });

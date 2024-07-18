@@ -1,11 +1,12 @@
 import { useQuery } from "@apollo/client";
 import { PenRegularIcon } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityId, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   Box,
@@ -19,10 +20,10 @@ import { NextSeo } from "next-seo";
 import { useMemo, useState } from "react";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../shared/draft-entities-context";
 import { BarsSortRegularIcon } from "../shared/icons/bars-sort-regular-icon";
 import type { NextPageWithLayout } from "../shared/layout";
@@ -69,14 +70,14 @@ const ActionsPage: NextPageWithLayout = () => {
   const [
     previouslyFetchedDraftEntitiesWithLinkedDataResponse,
     setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse,
-  ] = useState<StructuralQueryEntitiesQuery>();
+  ] = useState<GetEntitySubgraphQuery>();
 
   const { data: draftEntitiesWithLinkedDataResponse } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
-      query: {
+      request: {
         filter: getDraftEntitiesFilter,
         includeDrafts: true,
         temporalAxes: currentTimeInstantTemporalAxes,
@@ -106,7 +107,7 @@ const ActionsPage: NextPageWithLayout = () => {
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
             (draftEntitiesWithLinkedDataResponse ??
               previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
-              .structuralQueryEntities.subgraph,
+              .getEntitySubgraph.subgraph,
           )
         : undefined,
     [

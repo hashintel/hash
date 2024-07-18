@@ -1,27 +1,24 @@
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type {
-  BaseUrl,
-  EntityRootType,
-  GraphResolveDepths,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
   QueryEntitiesQueryVariables,
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import {
+  getEntitySubgraphQuery,
   queryEntitiesQuery,
-  structuralQueryEntitiesQuery,
 } from "../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../lib/apollo-client";
 import type { EntityTypeEntitiesContextValue } from "./entity-type-entities-context";
@@ -75,19 +72,13 @@ export const useEntityTypeEntities = (params: {
   entityTypeId?: VersionedUrl;
   ownedById?: OwnedById;
   graphResolveDepths?: Partial<GraphResolveDepths>;
-  includeDrafts?: boolean;
 }): EntityTypeEntitiesContextValue => {
-  const {
-    entityTypeBaseUrl,
-    entityTypeId,
-    ownedById,
-    graphResolveDepths,
-    includeDrafts = false,
-  } = params;
+  const { entityTypeBaseUrl, entityTypeId, ownedById, graphResolveDepths } =
+    params;
 
-  const variables = useMemo<StructuralQueryEntitiesQueryVariables>(
+  const variables = useMemo<GetEntitySubgraphQueryVariables>(
     () => ({
-      query: {
+      request: {
         filter: {
           all: [
             ...(ownedById
@@ -122,24 +113,18 @@ export const useEntityTypeEntities = (params: {
           ...zeroedGraphResolveDepths,
           ...graphResolveDepths,
         },
-        includeDrafts,
+        includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
       },
       includePermissions: false,
     }),
-    [
-      entityTypeBaseUrl,
-      graphResolveDepths,
-      entityTypeId,
-      ownedById,
-      includeDrafts,
-    ],
+    [entityTypeBaseUrl, graphResolveDepths, entityTypeId, ownedById],
   );
 
   const { data, loading, refetch } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     variables,
   });
@@ -149,11 +134,15 @@ export const useEntityTypeEntities = (params: {
     [variables],
   );
 
-  const subgraph = data?.structuralQueryEntities.subgraph
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.structuralQueryEntities.subgraph,
-      )
-    : undefined;
+  const subgraph = useMemo(
+    () =>
+      data?.getEntitySubgraph.subgraph
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+            data.getEntitySubgraph.subgraph,
+          )
+        : undefined,
+    [data?.getEntitySubgraph.subgraph],
+  );
 
   const entities = useMemo(
     () => (subgraph ? getRoots(subgraph) : undefined),

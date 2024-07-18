@@ -1,4 +1,3 @@
-import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   addHashInstanceAdmin,
@@ -6,7 +5,6 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/hash-instance";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import type { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
@@ -14,6 +12,8 @@ import {
   isUserHashInstanceAdmin,
 } from "@local/hash-backend-utils/hash-instance";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";

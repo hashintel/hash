@@ -1,7 +1,5 @@
-use std::{
-    io::{self, Write},
-    marker::PhantomData,
-};
+use core::marker::PhantomData;
+use std::io::{self, Write};
 
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt};
@@ -66,12 +64,11 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
     type Error = Report<io::Error>;
     type Item = T;
 
-    fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<T>, Self::Error> {
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<T>, Self::Error> {
         self.lines
-            .decode(buf)
-            .map(|line| {
+            .decode(src)
+            .inspect(|_| {
                 self.current_line += 1;
-                line
             })
             .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?
             .filter(|line| !line.is_empty())
@@ -87,9 +84,8 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
     fn decode_eof(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         self.lines
             .decode_eof(buf)
-            .map(|line| {
+            .inspect(|_| {
                 self.current_line += 1;
-                line
             })
             .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?
             .filter(|line| !line.is_empty())

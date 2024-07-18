@@ -8,8 +8,11 @@ import browser from "webextension-polyfill";
 
 import { clearError } from "../../shared/badge";
 import { useStorageSync } from "../shared/use-storage-sync";
-import { useUser } from "../shared/use-user";
 import { ActionCenter } from "./popup-contents/action-center";
+import {
+  PopupUserContextProvider,
+  useUserContext,
+} from "./popup-contents/shared/user-context";
 import { SignIn } from "./popup-contents/sign-in";
 
 const getCurrentTab = async () => {
@@ -26,7 +29,7 @@ const getCurrentTab = async () => {
  * You must inspect the popup window itself to see any logs, network events etc.
  * In Firefox this can be done via enabling and running the Browser Toolbox.
  */
-export const PopupContents = () => {
+const Popup = () => {
   const [activeBrowserTab, setActiveBrowserTab] = useState<Tabs.Tab | null>(
     null,
   );
@@ -36,7 +39,7 @@ export const PopupContents = () => {
     "one-off",
   );
 
-  const { user, loading: userLoading } = useUser();
+  const { user, loading: userLoading } = useUserContext();
 
   useEffect(() => {
     void getCurrentTab().then(setActiveBrowserTab);
@@ -85,3 +88,9 @@ export const PopupContents = () => {
     </ThemeProvider>
   );
 };
+
+export const PopupContents = () => (
+  <PopupUserContextProvider>
+    <Popup />
+  </PopupUserContextProvider>
+);

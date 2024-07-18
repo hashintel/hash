@@ -4,14 +4,13 @@ import type {
   EntityRootType,
   Subgraph,
 } from "@blockprotocol/graph";
-import { getEntities, getEntityTypeById } from "@blockprotocol/graph/stdlib";
+import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
 import type { Chart, ECOption } from "@hashintel/design-system";
 import { EChart } from "@hashintel/design-system";
 // eslint-disable-next-line no-restricted-imports
 import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 const generateEntityLabel = (
@@ -22,19 +21,22 @@ const generateEntityLabel = (
   return hashGenerateEntityLabel(subgraph as any, entity as any);
 };
 
-export const EntitiesGraphChart: FunctionComponent<{
-  filterEntity?: (entity: Entity) => boolean;
-  onEntityClick?: (entity: Entity) => void;
-  isPrimaryEntity?: (entity: Entity) => boolean;
+export const EntitiesGraphChart = <T extends Entity>({
+  entities,
+  filterEntity,
+  isPrimaryEntity,
+  subgraph,
+  sx,
+  onEntityClick,
+}: {
+  entities?: T[];
+  filterEntity?: (entity: T) => boolean;
+  onEntityClick?: (entity: T) => void;
+  isPrimaryEntity?: (entity: T) => boolean;
   subgraph?: Subgraph<EntityRootType>;
   sx?: BoxProps["sx"];
-}> = ({ filterEntity, isPrimaryEntity, subgraph, sx, onEntityClick }) => {
+}) => {
   const [chart, setChart] = useState<Chart>();
-
-  const entities = useMemo(
-    () => (subgraph ? getEntities(subgraph) : undefined),
-    [subgraph],
-  );
 
   const nonLinkEntities = useMemo(
     () =>
@@ -51,8 +53,8 @@ export const EntitiesGraphChart: FunctionComponent<{
         ? entities.filter(
             (
               entity,
-            ): entity is Entity & {
-              linkData: NonNullable<Entity["linkData"]>;
+            ): entity is T & {
+              linkData: NonNullable<T["linkData"]>;
             } =>
               !!entity.linkData &&
               nonLinkEntities.some(
@@ -119,7 +121,7 @@ export const EntitiesGraphChart: FunctionComponent<{
               ({ metadata }) => metadata.recordId.entityId === id,
             );
 
-            if (linkEntity) {
+            if (linkEntity && subgraph) {
               const leftEntity = entities?.find(
                 ({ metadata }) =>
                   metadata.recordId.entityId ===
@@ -133,18 +135,18 @@ export const EntitiesGraphChart: FunctionComponent<{
               );
 
               const linkEntityTypeTitle = getEntityTypeById(
-                subgraph!,
+                subgraph,
                 linkEntity.metadata.entityTypeId,
               )?.schema.title;
 
               return [
                 `<strong>${generateEntityLabel(
-                  subgraph!,
+                  subgraph,
                   leftEntity!,
                 )}</strong>`,
                 linkEntityTypeTitle?.toLowerCase(),
                 `<strong>${generateEntityLabel(
-                  subgraph!,
+                  subgraph,
                   rightEntity!,
                 )}</strong>`,
               ].join(" ");
@@ -154,9 +156,9 @@ export const EntitiesGraphChart: FunctionComponent<{
               ({ metadata }) => metadata.recordId.entityId === id,
             );
 
-            if (entity) {
+            if (entity && subgraph) {
               const entityType = getEntityTypeById(
-                subgraph!,
+                subgraph,
                 entity.metadata.entityTypeId,
               );
 

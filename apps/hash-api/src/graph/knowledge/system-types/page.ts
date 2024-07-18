@@ -1,9 +1,15 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type {
+  CreateEntityParameters,
+  Entity,
+  LinkEntity,
+} from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -16,24 +22,14 @@ import {
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type {
-  HasDataProperties,
-  HasIndexedContentProperties,
-  PageProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  Entity,
-  EntityId,
-  EntityRootType,
-  OwnedById,
-} from "@local/hash-subgraph";
-import {
-  getEntities as getEntitiesFromSubgraph,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+  Canvas,
+  FractionalIndexPropertyValueWithMetadata,
+  HasParent,
+  HasSpatiallyPositionedContent,
+} from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { Document } from "@local/hash-isomorphic-utils/system-types/document";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -41,13 +37,12 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import type { CreateEntityParams } from "../primitive/entity";
 import {
-  archiveEntity,
   createEntity,
+  getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  updateEntityProperty,
+  updateEntity,
 } from "../primitive/entity";
 import {
   createLinkEntity,
@@ -64,12 +59,12 @@ export type Page = {
   fractionalIndex?: string;
   icon?: string;
   archived?: boolean;
-  entity: Entity;
+  entity: Entity<Canvas | Document>;
 };
 
-export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
-  entity,
-}) => {
+function assertPageEntity(
+  entity: Entity,
+): asserts entity is Entity<Canvas | Document> {
   if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -77,9 +72,15 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
       entity.metadata.entityTypeId,
     );
   }
+}
+
+export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
+  entity,
+}) => {
+  assertPageEntity(entity);
 
   const { title, summary, fractionalIndex, icon, archived } =
-    simplifyProperties(entity.properties as PageProperties);
+    simplifyProperties(entity.properties);
 
   return {
     title,
@@ -119,7 +120,7 @@ export const getPageById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createPage: ImpureGraphFunction<
-  Pick<CreateEntityParams, "ownedById"> & {
+  Pick<CreateEntityParameters, "ownedById"> & {
     title: string;
     summary?: string;
     prevFractionalIndex?: string;
@@ -132,18 +133,37 @@ export const createPage: ImpureGraphFunction<
 
   const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
-  const properties: PageProperties = {
-    "https://hash.ai/@hash/types/property-type/title/": title,
-    "https://hash.ai/@hash/types/property-type/fractional-index/":
-      fractionalIndex,
-    ...(summary
-      ? {
-          "https://hash.ai/@hash/types/property-type/summary/": summary,
-        }
-      : {}),
+  const properties: (Canvas | Document)["propertiesWithMetadata"] = {
+    value: {
+      "https://hash.ai/@hash/types/property-type/title/": {
+        value: title,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      "https://hash.ai/@hash/types/property-type/fractional-index/": {
+        value: fractionalIndex,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+      ...(summary !== undefined
+        ? {
+            "https://hash.ai/@hash/types/property-type/summary/": {
+              value: summary,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          }
+        : {}),
+    },
   };
 
-  const entity = await createEntity(ctx, authentication, {
+  const entity = await createEntity<Canvas | Document>(ctx, authentication, {
     ownedById,
     properties,
     entityTypeId:
@@ -255,31 +275,19 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { graphApi } = ctx;
   const { ownedById, includeArchived = false, includeDrafts = false } = params;
-  const pageEntities = await graphApi
-    .getEntitiesByQuery(authentication.actorId, {
-      query: {
-        filter: {
-          all: [
-            pageEntityTypeFilter,
-            {
-              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-            },
-          ],
+  const pageEntities = await getEntities(ctx, authentication, {
+    filter: {
+      all: [
+        pageEntityTypeFilter,
+        {
+          equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts,
-      },
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-      );
-
-      return getEntitiesFromSubgraph(subgraph);
-    });
+      ],
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+  });
 
   const pages = pageEntities.map((entity) => getPageFromEntity({ entity }));
 
@@ -376,7 +384,7 @@ export const removeParentPage: ImpureGraphFunction<
     );
   }
 
-  await archiveEntity(ctx, authentication, { entity: parentPageLink });
+  await parentPageLink.archive(ctx.graphApi, authentication);
 };
 
 /**
@@ -426,22 +434,34 @@ export const setPageParentPage: ImpureGraphFunction<
       );
     }
 
-    await createLinkEntity(ctx, authentication, {
-      linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
-      leftEntityId: page.entity.metadata.recordId.entityId,
-      rightEntityId: parentPage.entity.metadata.recordId.entityId,
+    await createLinkEntity<HasParent>(ctx, authentication, {
       ownedById: authentication.actorId as OwnedById,
+      properties: { value: {} },
+      linkData: {
+        leftEntityId: page.entity.metadata.recordId.entityId,
+        rightEntityId: parentPage.entity.metadata.recordId.entityId,
+      },
+      entityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }
 
   if (page.fractionalIndex !== newIndex) {
-    const updatedPageEntity = await updateEntityProperty(ctx, authentication, {
+    const updatedPageEntity = await updateEntity(ctx, authentication, {
       entity: page.entity,
-      propertyTypeBaseUrl: extractBaseUrl(
-        systemPropertyTypes.fractionalIndex.propertyTypeId,
-      ),
-      value: newIndex,
+      propertyPatches: [
+        {
+          op: "replace",
+          path: [systemPropertyTypes.fractionalIndex.propertyTypeBaseUrl],
+          property: {
+            value: newIndex,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          } satisfies FractionalIndexPropertyValueWithMetadata,
+        },
+      ],
     });
 
     return getPageFromEntity({ entity: updatedPageEntity });
@@ -457,7 +477,12 @@ export const setPageParentPage: ImpureGraphFunction<
  */
 export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
-  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>,
+  Promise<
+    {
+      linkEntity: LinkEntity<HasIndexedContent | HasSpatiallyPositionedContent>;
+      rightEntity: Block;
+    }[]
+  >,
   false,
   true
 > = async (ctx, authentication, { pageEntityId, type }) => {
@@ -473,8 +498,8 @@ export const getPageBlocks: ImpureGraphFunction<
               .linkEntityTypeId,
     },
   )) as
-    | LinkEntity<HasIndexedContentProperties>[]
-    | LinkEntity<HasSpatiallyPositionedContentProperties>[];
+    | LinkEntity<HasIndexedContent>[]
+    | LinkEntity<HasSpatiallyPositionedContent>[];
 
   return await Promise.all(
     outgoingBlockDataLinks

@@ -6,10 +6,12 @@ import {
   LoadingSpinner,
   TextField,
 } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import type { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   Box,
@@ -96,10 +98,13 @@ export const LoadEntityMenuContent: FunctionComponent<
         return;
       }
 
-      /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
+      /**
+       * @todo properly type this part of the DraftEntity type
+       * @see https://linear.app/hash/issue/H-3000
+       */
       blockView.manager.replaceBlockChildEntity(
         blockEntityId,
-        targetEntity as unknown as EntityStoreType,
+        targetEntity as EntityStoreType,
       );
     },
     [blockView, blockEntityId],

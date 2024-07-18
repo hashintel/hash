@@ -3,17 +3,15 @@ import type {
   ModifyRelationshipOperation,
   WebPermission,
 } from "@local/hash-graph-client";
+import type { Uuid } from "@local/hash-graph-types/branded";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import type {
-  EntityUuid,
-  OwnedById,
-  Uuid,
-  WebAuthorizationRelationship,
-} from "@local/hash-subgraph";
-import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
+import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
+import type { WebAuthorizationRelationship } from "@local/hash-subgraph";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import { isSelfHostedInstance } from "../../ensure-system-graph-is-initialized/system-webs-and-entities";
 import { getOrgById } from "../../knowledge/system-types/org";
 import { getUserById } from "../../knowledge/system-types/user";
 
@@ -37,13 +35,13 @@ export const getWebShortname: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const namespace = (
     (await getUserById(ctx, authentication, {
-      entityId: entityIdFromOwnedByIdAndEntityUuid(
+      entityId: entityIdFromComponents(
         params.accountOrAccountGroupId as Uuid as OwnedById,
         params.accountOrAccountGroupId as Uuid as EntityUuid,
       ),
     }).catch(() => undefined)) ??
     (await getOrgById(ctx, authentication, {
-      entityId: entityIdFromOwnedByIdAndEntityUuid(
+      entityId: entityIdFromComponents(
         params.accountOrAccountGroupId as Uuid as OwnedById,
         params.accountOrAccountGroupId as Uuid as EntityUuid,
       ),

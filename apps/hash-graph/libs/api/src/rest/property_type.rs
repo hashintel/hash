@@ -1,22 +1,20 @@
 //! Web routes for CRU operations on Property types.
 
-#![expect(clippy::str_to_string)]
-
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        PropertyTypeEditorSubject, PropertyTypeId, PropertyTypeOwnerSubject,
-        PropertyTypePermission, PropertyTypeRelationAndSubject, PropertyTypeSetting,
-        PropertyTypeSettingSubject, PropertyTypeViewerSubject,
+        PropertyTypeEditorSubject, PropertyTypeOwnerSubject, PropertyTypePermission,
+        PropertyTypeRelationAndSubject, PropertyTypeSetting, PropertyTypeSettingSubject,
+        PropertyTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
-    extract::{OriginalUri, Path, Query},
-    http::{header::LINK, HeaderMap, StatusCode},
+    extract::Path,
+    http::StatusCode,
     response::Response,
     routing::{get, post, put},
     Extension, Router,
@@ -30,23 +28,20 @@ use graph::{
     store::{
         error::VersionedUrlAlreadyExists,
         ontology::{
-            ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypesParams,
-            UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
-            UpdatePropertyTypesParams,
+            ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,
+            GetPropertyTypesParams, GetPropertyTypesResponse, UnarchivePropertyTypeParams,
+            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
         BaseUrlAlreadyExists, ConflictBehavior, OntologyVersionDoesNotExist, PropertyTypeStore,
         StorePool,
     },
-    subgraph::{
-        identifier::PropertyTypeVertexId,
-        query::{PropertyTypeStructuralQuery, StructuralQuery},
-    },
+    subgraph::identifier::PropertyTypeVertexId,
 };
 use graph_types::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
-        OntologyTypeReference, PropertyTypeEmbedding, PropertyTypeMetadata,
-        PropertyTypeWithMetadata,
+        OntologyTypeReference, PropertyTypeEmbedding, PropertyTypeId, PropertyTypeMetadata,
+        PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -55,8 +50,8 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
+    schema::PropertyType,
     url::{OntologyTypeVersion, VersionedUrl},
-    PropertyType,
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -65,7 +60,7 @@ use crate::rest::{
     json::Json,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfPropertyType},
-    AuthenticatedUserHeader, Cursor, Pagination, PermissionResponse, RestApiStore,
+    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
 };
 
 #[derive(OpenApi)]
@@ -77,7 +72,8 @@ use crate::rest::{
 
         create_property_type,
         load_external_property_type,
-        get_property_types_by_query,
+        get_property_types,
+        get_property_type_subgraph,
         update_property_type,
         update_property_type_embeddings,
         archive_property_type,
@@ -102,7 +98,10 @@ use crate::rest::{
             UpdatePropertyTypeRequest,
             UpdatePropertyTypeEmbeddingParams,
             PropertyTypeQueryToken,
-            PropertyTypeStructuralQuery,
+            GetPropertyTypesParams,
+            GetPropertyTypesResponse,
+            GetPropertyTypeSubgraphParams,
+            GetPropertyTypeSubgraphResponse,
             ArchivePropertyTypeParams,
             UnarchivePropertyTypeParams,
         )
@@ -119,7 +118,7 @@ impl RoutedResource for PropertyTypeResource {
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
-        for<'pool> S::Store<'pool>: RestApiStore,
+        for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
@@ -145,7 +144,12 @@ impl RoutedResource for PropertyTypeResource {
                             get(check_property_type_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_property_types_by_query::<S, A>))
+                .nest(
+                    "/query",
+                    Router::new()
+                        .route("/", post(get_property_types::<S, A>))
+                        .route("/subgraph", post(get_property_type_subgraph::<S, A>)),
+                )
                 .route("/load", post(load_external_property_type::<S, A>))
                 .route("/archive", put(archive_property_type::<S, A>))
                 .route("/unarchive", put(unarchive_property_type::<S, A>))
@@ -161,6 +165,11 @@ struct CreatePropertyTypeRequest {
     schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
     relationships: Vec<PropertyTypeRelationAndSubject>,
+    #[serde(
+        default,
+        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
+    )]
+    provenance: ProvidedOntologyEditionProvenance,
 }
 
 #[utoipa::path(
@@ -181,7 +190,7 @@ struct CreatePropertyTypeRequest {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, domain_validator)
+    skip(store_pool, authorization_api_pool, domain_validator, temporal_client)
 )]
 async fn create_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -193,23 +202,27 @@ async fn create_property_type<S, A>(
 ) -> Result<Json<ListOrValue<PropertyTypeMetadata>>, StatusCode>
 where
     S: StorePool + Send + Sync,
-    for<'pool> S::Store<'pool>: RestApiStore,
+    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
         relationships,
+        provenance,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -217,11 +230,9 @@ where
     let mut metadata = store
         .create_property_types(
             actor_id,
-            &mut authorization_api,
-            temporal_client.as_deref(),
             schema.into_iter().map(|schema| {
                 domain_validator.validate(&schema).map_err(|report| {
-                    tracing::error!(error=?report, id=schema.id().to_string(), "Property Type ID failed to validate");
+                    tracing::error!(error=?report, id=%schema.id, "Property Type ID failed to validate");
                     StatusCode::UNPROCESSABLE_ENTITY
                 })?;
 
@@ -230,6 +241,7 @@ where
                     classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                     relationships: relationships.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
+                    provenance: provenance.clone()
                 })
             }).collect::<Result<Vec<_>, StatusCode>>()?
         )
@@ -259,14 +271,20 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(untagged)]
+#[serde(deny_unknown_fields, untagged)]
 enum LoadExternalPropertyTypeRequest {
     #[serde(rename_all = "camelCase")]
     Fetch { property_type_id: VersionedUrl },
+    #[serde(rename_all = "camelCase")]
     Create {
         #[schema(value_type = VAR_PROPERTY_TYPE)]
         schema: PropertyType,
         relationships: Vec<PropertyTypeRelationAndSubject>,
+        #[serde(
+            default,
+            skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
+        )]
+        provenance: Box<ProvidedOntologyEditionProvenance>,
     },
 }
 
@@ -288,7 +306,7 @@ enum LoadExternalPropertyTypeRequest {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, domain_validator)
+    skip(store_pool, authorization_api_pool, domain_validator, temporal_client)
 )]
 async fn load_external_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -300,12 +318,16 @@ async fn load_external_property_type<S, A>(
 ) -> Result<Json<PropertyTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
-    for<'pool> S::Store<'pool>: RestApiStore,
+    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
         .await
         .map_err(report_to_response)?;
 
@@ -314,8 +336,6 @@ where
             let OntologyTypeMetadata::PropertyType(metadata) = store
                 .load_external_type(
                     actor_id,
-                    &mut authorization_api,
-                    temporal_client.as_deref(),
                     &domain_validator,
                     OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
                 )
@@ -329,10 +349,11 @@ where
         LoadExternalPropertyTypeRequest::Create {
             schema,
             relationships,
+            provenance,
         } => {
-            if domain_validator.validate_url(schema.id().base_url.as_str()) {
+            if domain_validator.validate_url(schema.id.base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
-                tracing::error!(id=%schema.id(), error);
+                tracing::error!(id=%schema.id, error);
                 return Err(status_to_response(Status::<()>::new(
                     hash_status::StatusCode::InvalidArgument,
                     Some(error),
@@ -344,8 +365,6 @@ where
                 store
                     .create_property_type(
                         actor_id,
-                        &mut authorization_api,
-                        temporal_client.as_deref(),
                         CreatePropertyTypeParams {
                             schema,
                             classification: OntologyTypeClassificationMetadata::External {
@@ -353,6 +372,7 @@ where
                             },
                             relationships,
                             conflict_behavior: ConflictBehavior::Fail,
+                            provenance: *provenance,
                         },
                     )
                     .await
@@ -365,7 +385,7 @@ where
 #[utoipa::path(
     post,
     path = "/property-types/query",
-    request_body = PropertyTypeStructuralQuery,
+    request_body = GetPropertyTypesParams,
     tag = "PropertyType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -374,7 +394,72 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = Subgraph,
+            body = GetPropertyTypesResponse,
+            description = "Gets a a list of property types that satisfy the given query.",
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn get_property_types<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<GetPropertyTypesResponse>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
+    // error reporting.
+    let mut request = GetPropertyTypesParams::deserialize(&request).map_err(report_to_response)?;
+    request
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+    store
+        .get_property_types(actor_id, request)
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct GetPropertyTypeSubgraphResponse {
+    subgraph: Subgraph,
+    cursor: Option<PropertyTypeVertexId>,
+}
+
+#[utoipa::path(
+    post,
+    path = "/property-types/query/subgraph",
+    request_body = GetPropertyTypeSubgraphParams,
+    tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = GetPropertyTypeSubgraphResponse,
             description = "A subgraph rooted at property types that satisfy the given query, each resolved to the requested depth.",
             headers(
                 ("Link" = String, description = "The link to be used to query the next page of property types"),
@@ -386,50 +471,47 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, query))]
-async fn get_property_types_by_query<S, A>(
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn get_property_type_subgraph<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    Query(pagination): Query<Pagination<PropertyTypeVertexId>>,
-    OriginalUri(uri): OriginalUri,
-    Json(query): Json<serde_json::Value>,
-) -> Result<(HeaderMap, Json<Subgraph>), Response>
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<GetPropertyTypeSubgraphResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let store = store_pool.acquire().await.map_err(report_to_response)?;
-
     let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
-    let mut query = StructuralQuery::deserialize(&query).map_err(report_to_response)?;
-    query
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
-    let subgraph = store
-        .get_property_type(
-            actor_id,
-            &authorization_api,
-            GetPropertyTypesParams {
-                query,
-                after: pagination.after.map(|cursor| cursor.0),
-                limit: pagination.limit,
-            },
-        )
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
         .await
         .map_err(report_to_response)?;
 
-    let cursor = subgraph.roots.iter().last().map(Cursor);
-    let mut headers = HeaderMap::new();
-    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
-        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
-    }
-    Ok((headers, Json(Subgraph::from(subgraph))))
+    let mut request =
+        GetPropertyTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?;
+    request
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+    store
+        .get_property_type_subgraph(actor_id, request)
+        .await
+        .map_err(report_to_response)
+        .map(|response| {
+            Json(GetPropertyTypeSubgraphResponse {
+                subgraph: Subgraph::from(response.subgraph),
+                cursor: response.cursor,
+            })
+        })
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -439,6 +521,11 @@ struct UpdatePropertyTypeRequest {
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
     relationships: Vec<PropertyTypeRelationAndSubject>,
+    #[serde(
+        default,
+        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
+    )]
+    provenance: ProvidedOntologyEditionProvenance,
 }
 
 #[utoipa::path(
@@ -459,7 +546,10 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn update_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -475,6 +565,7 @@ where
         schema,
         mut type_to_update,
         relationships,
+        provenance,
     }) = body;
 
     type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
@@ -482,28 +573,30 @@ where
     let property_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't patch schema and convert to Property Type");
         StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
-        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        // TODO: We should probably return more information to the client
+        //   see https://linear.app/hash/issue/H-3009
     })?;
 
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
     store
         .update_property_type(
             actor_id,
-            &mut authorization_api,
-            temporal_client.as_deref(),
             UpdatePropertyTypesParams {
                 schema: property_type,
                 relationships,
+                provenance,
             },
         )
         .await
@@ -538,11 +631,15 @@ where
     ),
     request_body = UpdatePropertyTypeEmbeddingParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, body)
+)]
 async fn update_property_type_embeddings<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<(), Response>
 where
@@ -555,14 +652,18 @@ where
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .update_property_type_embeddings(actor_id, &mut authorization_api, params)
+        .update_property_type_embeddings(actor_id, params)
         .await
         .map_err(report_to_response)
 }
@@ -584,11 +685,15 @@ where
     ),
     request_body = ArchivePropertyTypeParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn archive_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
@@ -601,14 +706,18 @@ where
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .archive_property_type(actor_id, &mut authorization_api, params)
+        .archive_property_type(actor_id, params)
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
@@ -639,11 +748,15 @@ where
     ),
     request_body = UnarchivePropertyTypeParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn unarchive_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
@@ -656,14 +769,18 @@ where
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .unarchive_property_type(actor_id, &mut authorization_api, params)
+        .unarchive_property_type(actor_id, params)
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {

@@ -12,7 +12,7 @@
   "scripts": {
     "build": "yarn exe scripts/build.ts",
     "dev": "yarn exe scripts/dev.ts",
-    "exe": "node --unhandled-rejections=strict --experimental-loader ts-node/esm/transpile-only --es-module-specifier-resolution=node",
+    "exe": "tsx",
     "fix:eslint": "eslint --fix .",
     "postinstall": "yarn exe scripts/codegen.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
@@ -40,7 +40,7 @@
     "gray-matter": "4.0.3",
     "html-to-text": "9.0.5",
     "image-size": "1.0.1",
-    "katex": "0.16.9",
+    "katex": "0.16.10",
     "md5": "2.3.0",
     "mock-block-dock": "0.0.21",
     "next": "13.5.5",
@@ -59,7 +59,7 @@
     "remark-parse": "10.0.1",
     "sharp": "0.32.6",
     "slugify": "1.6.5",
-    "typescript": "5.1.6",
+    "typescript": "5.5.3",
     "unified": "10.1.2",
     "unist-util-visit": "4.1.2"
   },
@@ -72,19 +72,19 @@
     "@types/gtag.js": "0.0.12",
     "@types/html-to-text": "9.0.4",
     "@types/md5": "2.3.2",
-    "@types/node": "18.15.13",
+    "@types/node": "20.12.2",
     "@types/prismjs": "1.26.0",
-    "@types/react": "18.0.25",
-    "@types/react-dom": "18.0.9",
+    "@types/react": "18.2.68",
+    "@types/react-dom": "18.2.25",
     "@types/react-html-parser": "2.0.2",
     "@types/unist": "2.0.6",
     "babel-loader": "^9.1.0",
     "chalk": "5.3.0",
     "eslint": "8.57.0",
     "execa": "7.2.0",
-    "ts-node": "10.9.1"
+    "tsx": "3.13.0"
   },
   "engines": {
-    "node": ">=v18.15.0"
+    "node": ">= v20"
   }
 }

@@ -1,41 +1,35 @@
-import { extractBaseUrl } from "@blockprotocol/type-system";
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
+import type {
+  FileStorageProvider,
+  StorageType,
+  UploadableStorageProvider,
+} from "@local/hash-backend-utils/file-storage";
 import {
-  fullDecisionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+  isStorageType,
+  storageProviderLookup,
+} from "@local/hash-backend-utils/file-storage";
+import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isEntityId, splitEntityId } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
 import type { Express } from "express";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { CacheAdapter } from "../cache";
 import type { ImpureGraphContext } from "../graph/context-types";
-import type { AuthenticationContext } from "../graphql/authentication-context";
-import { getAwsS3Config } from "../lib/aws-config";
+import { getEntities } from "../graph/knowledge/primitive/entity";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
-import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
-import type {
-  StorageProvider,
-  StorageType,
-  UploadableStorageProvider,
-} from "./storage-provider";
-import { isStorageType, storageProviderLookup } from "./storage-provider";
-
-export * from "./aws-s3-storage-provider";
-export * from "./storage-provider";
 
 // S3-like APIs have a upper bound.
 // 7 days.
@@ -46,7 +40,7 @@ const DOWNLOAD_URL_CACHE_OFFSET_SECONDS = 60 * 60;
 
 type StorageProviderInitialiser = (
   app: Express,
-) => StorageProvider | UploadableStorageProvider;
+) => FileStorageProvider | UploadableStorageProvider;
 
 const storageProviderInitialiserLookup: Record<
   StorageType,
@@ -94,56 +88,43 @@ export const setupStorageProviders = (
   return getUploadStorageProvider();
 };
 
-const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
+const isFileEntity = (entity: Entity): entity is Entity<FileEntity> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
 const getFileEntity = async (
-  { graphApi }: ImpureGraphContext,
-  { actorId }: AuthenticationContext,
+  context: ImpureGraphContext,
+  authentication: AuthenticationContext,
   params: { entityId: EntityId; key: string; includeDrafts?: boolean },
 ) => {
   const { entityId, key, includeDrafts = false } = params;
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
-  const fileEntityRevisions = await graphApi
-    .getEntitiesByQuery(actorId, {
-      query: {
-        filter: {
-          all: [
+  const fileEntityRevisions = await getEntities(context, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+        },
+        {
+          equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+        },
+        {
+          equal: [
             {
-              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-            },
-            {
-              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-            },
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    extractBaseUrl(
-                      systemPropertyTypes.fileStorageKey.propertyTypeId,
-                    ),
-                  ],
-                },
-                { parameter: key },
+              path: [
+                "properties",
+                systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl,
               ],
             },
+            { parameter: key },
           ],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: fullDecisionTimeAxis,
-        includeDrafts,
-      },
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-      );
-
-      return getRoots(subgraph);
-    });
+      ],
+    },
+    temporalAxes: fullDecisionTimeAxis,
+    includeDrafts,
+  });
 
   const latestFileEntityRevision = fileEntityRevisions.reduce<
     Entity | undefined

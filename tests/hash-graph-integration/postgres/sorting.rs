@@ -1,35 +1,47 @@
-use std::{borrow::Cow, collections::HashSet};
+use alloc::borrow::Cow;
+use std::collections::HashSet;
 
+use authorization::AuthorizationApi;
 use graph::{
     knowledge::EntityQueryPath,
     store::{
-        query::{JsonPath, PathToken},
-        EntityQuerySorting, EntityQuerySortingRecord, NullOrdering, Ordering,
+        knowledge::{CreateEntityParams, GetEntitiesParams, GetEntitiesResponse},
+        query::{Filter, JsonPath, PathToken},
+        EntityQuerySorting, EntityQuerySortingRecord, EntityStore, NullOrdering, Ordering,
+    },
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::knowledge::entity::{EntityProperties, EntityUuid};
+use graph_types::{
+    knowledge::{
+        entity::{EntityUuid, ProvidedEntityEditionProvenance},
+        PropertyObject, PropertyWithMetadataObject,
+    },
+    owned_by_id::OwnedById,
+};
 use pretty_assertions::assert_eq;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn test_root_sorting_chunked<const N: usize, const M: usize>(
-    api: &DatabaseApi<'_>,
+async fn test_root_sorting_chunked<const N: usize, const M: usize, A: AuthorizationApi>(
+    api: &DatabaseApi<'_, A>,
     sort: [(EntityQueryPath<'static>, Ordering, NullOrdering); N],
-    expected_order: [EntityProperties; M],
+    expected_order: [PropertyObject; M],
 ) {
     for chunk_size in 0..expected_order.len() {
         test_root_sorting(api, chunk_size + 1, sort.clone(), &expected_order).await;
     }
 }
 
-async fn test_root_sorting(
-    api: &DatabaseApi<'_>,
+async fn test_root_sorting<A: AuthorizationApi>(
+    api: &DatabaseApi<'_, A>,
     chunk_size: usize,
     sort: impl IntoIterator<Item = (EntityQueryPath<'static>, Ordering, NullOrdering)> + Send,
-    expected_order: impl IntoIterator<Item = &EntityProperties> + Send,
+    expected_order: impl IntoIterator<Item = &PropertyObject> + Send,
 ) {
     let sorting_paths = sort
         .into_iter()
@@ -40,22 +52,39 @@ async fn test_root_sorting(
         })
         .collect::<Vec<_>>();
     let mut cursor = None;
+    let expected_order = expected_order.into_iter().collect::<Vec<_>>();
 
     let mut found_entities = HashSet::new();
     let mut entities = Vec::new();
 
     loop {
-        let (new_entities, new_cursor) = api
-            .get_all_entities(
-                chunk_size,
-                EntityQuerySorting {
-                    paths: sorting_paths.clone(),
-                    cursor: cursor.take(),
+        let GetEntitiesResponse {
+            entities: new_entities,
+            count,
+            cursor: new_cursor,
+        } = api
+            .get_entities(
+                api.account_id,
+                GetEntitiesParams {
+                    filter: Filter::All(Vec::new()),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    sorting: EntityQuerySorting {
+                        paths: sorting_paths.clone(),
+                        cursor: cursor.take(),
+                    },
+                    limit: Some(chunk_size),
+                    include_count: true,
+                    include_drafts: false,
                 },
             )
             .await
-            .expect("could not get entities");
+            .expect("could not get entity");
+        assert_eq!(count, Some(expected_order.len()));
         let num_entities = new_entities.len();
+
         for entity in new_entities {
             assert!(
                 found_entities.insert(entity.metadata.record_id.entity_id),
@@ -81,7 +110,9 @@ async fn test_root_sorting(
     );
 }
 
-async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+async fn insert<A: AuthorizationApi>(
+    database: &mut DatabaseTestWrapper<A>,
+) -> DatabaseApi<'_, &mut A> {
     let mut api = database
         .seed(
             [data_type::TEXT_V1, data_type::NUMBER_V1],
@@ -128,13 +159,23 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
     ];
 
     for (idx, (entity, type_id)) in entities_properties.into_iter().enumerate() {
-        let properties: EntityProperties =
+        let properties: PropertyObject =
             serde_json::from_str(entity).expect("could not parse entity");
         api.create_entity(
-            properties.clone(),
-            vec![type_id.clone()],
-            Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
-            false,
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
+                decision_time: None,
+                entity_type_ids: HashSet::from([type_id.clone()]),
+                properties: PropertyWithMetadataObject::from_parts(properties.clone(), None)
+                    .expect("could not create property with metadata object"),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
         )
         .await
         .expect("could not create entity");
@@ -154,19 +195,23 @@ fn name_property_path() -> EntityQueryPath<'static> {
     )])))
 }
 
-fn alice() -> EntityProperties {
+fn alice() -> PropertyObject {
     serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity")
 }
-fn bob() -> EntityProperties {
+
+fn bob() -> PropertyObject {
     serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity")
 }
-fn charles() -> EntityProperties {
+
+fn charles() -> PropertyObject {
     serde_json::from_str(entity::PERSON_CHARLES_V1).expect("could not parse entity")
 }
-fn page_v1() -> EntityProperties {
+
+fn page_v1() -> PropertyObject {
     serde_json::from_str(entity::PAGE_V1).expect("could not parse entity")
 }
-fn page_v2() -> EntityProperties {
+
+fn page_v2() -> PropertyObject {
     serde_json::from_str(entity::PAGE_V2).expect("could not parse entity")
 }
 

@@ -7,13 +7,13 @@ import type {
 import { getLinearMappingByLinearType } from "@local/hash-backend-utils/linear-type-mappings";
 import type { PartialEntity } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
 import type {
-  AccountId,
-  Entity,
   EntityId,
-  EntityPropertiesObject,
-  EntityPropertyValue,
-} from "@local/hash-subgraph";
+  Property,
+  PropertyObject,
+} from "@local/hash-graph-types/entity";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {
@@ -32,7 +32,7 @@ export const mapLinearDataToEntity = <
 
   const mapping = getLinearMappingByLinearType({ linearType });
 
-  const properties: EntityPropertiesObject = {};
+  const properties: PropertyObject = {};
 
   for (const {
     linearPropertyKey,
@@ -45,7 +45,7 @@ export const mapLinearDataToEntity = <
       typeof linearValue !== "undefined"
         ? mapLinearValueToHashValue
           ? mapLinearValueToHashValue(linearValue)
-          : (linearValue as EntityPropertyValue)
+          : (linearValue as Property)
         : undefined;
 
     if (typeof mappedValue === "undefined") {

@@ -1,22 +1,21 @@
 //! Web routes for CRU operations on Entity types.
 
-#![expect(clippy::str_to_string)]
-
-use std::{collections::hash_map, sync::Arc};
+use alloc::sync::Arc;
+use std::collections::hash_map;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        EntityTypeEditorSubject, EntityTypeId, EntityTypeInstantiatorSubject,
-        EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
-        EntityTypeSetting, EntityTypeSettingSubject, EntityTypeViewerSubject,
+        EntityTypeEditorSubject, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject,
+        EntityTypePermission, EntityTypeRelationAndSubject, EntityTypeSetting,
+        EntityTypeSettingSubject, EntityTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
-    extract::{OriginalUri, Path, Query},
-    http::{header::LINK, HeaderMap, StatusCode},
+    extract::Path,
+    http::StatusCode,
     response::Response,
     routing::{get, post, put},
     Extension, Router,
@@ -30,20 +29,19 @@ use graph::{
     store::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
-            ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypesParams,
-            UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+            ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypeSubgraphParams,
+            GetEntityTypesParams, GetEntityTypesResponse, UnarchiveEntityTypeParams,
+            UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
         },
         ConflictBehavior, EntityTypeStore, StorePool,
     },
-    subgraph::{
-        identifier::EntityTypeVertexId,
-        query::{EntityTypeStructuralQuery, StructuralQuery},
-    },
+    subgraph::identifier::EntityTypeVertexId,
 };
 use graph_types::{
     ontology::{
-        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
+        OntologyTypeReference, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -52,8 +50,8 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
+    schema::EntityType,
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    EntityType,
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -64,7 +62,7 @@ use crate::{
         json::Json,
         status::{report_to_response, status_to_response},
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
-        AuthenticatedUserHeader, Cursor, Pagination, PermissionResponse, RestApiStore,
+        AuthenticatedUserHeader, PermissionResponse, RestApiStore,
     },
 };
 
@@ -77,7 +75,8 @@ use crate::{
 
         create_entity_type,
         load_external_entity_type,
-        get_entity_types_by_query,
+        get_entity_types,
+        get_entity_type_subgraph,
         update_entity_type,
         update_entity_type_embeddings,
         archive_entity_type,
@@ -103,7 +102,10 @@ use crate::{
             UpdateEntityTypeRequest,
             UpdateEntityTypeEmbeddingParams,
             EntityTypeQueryToken,
-            EntityTypeStructuralQuery,
+            GetEntityTypesParams,
+            GetEntityTypesResponse,
+            GetEntityTypeSubgraphParams,
+            GetEntityTypeSubgraphResponse,
             ArchiveEntityTypeParams,
             UnarchiveEntityTypeParams,
         )
@@ -120,7 +122,7 @@ impl RoutedResource for EntityTypeResource {
     where
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
-        for<'pool> S::Store<'pool>: RestApiStore,
+        for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
@@ -146,7 +148,12 @@ impl RoutedResource for EntityTypeResource {
                             get(check_entity_type_permission::<A>),
                         ),
                 )
-                .route("/query", post(get_entity_types_by_query::<S, A>))
+                .nest(
+                    "/query",
+                    Router::new()
+                        .route("/", post(get_entity_types::<S, A>))
+                        .route("/subgraph", post(get_entity_type_subgraph::<S, A>)),
+                )
                 .route("/load", post(load_external_entity_type::<S, A>))
                 .route("/archive", put(archive_entity_type::<S, A>))
                 .route("/unarchive", put(unarchive_entity_type::<S, A>))
@@ -166,6 +173,11 @@ struct CreateEntityTypeRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
+    #[serde(
+        default,
+        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
+    )]
+    provenance: ProvidedOntologyEditionProvenance,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -348,7 +360,7 @@ where
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, domain_validator)
+    skip(store_pool, authorization_api_pool, domain_validator, temporal_client)
 )]
 async fn create_entity_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -358,36 +370,14 @@ async fn create_entity_type<S, A>(
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
-    //  call `status_to_response` for our routes that return Status
+    //       call `status_to_response` for our routes that return Status
 ) -> Result<Json<ListOrValue<EntityTypeMetadata>>, Response>
 where
     S: StorePool + Send + Sync,
-    for<'pool> S::Store<'pool>: RestApiStore,
+    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        status_to_response(Status::new(
-            hash_status::StatusCode::Internal,
-            Some(
-                "Could not acquire store. This is an internal error, please report to the \
-                 developers of the HASH Graph with whatever information you can provide including \
-                 request details and logs."
-                    .to_owned(),
-            ),
-            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                // TODO: add information from the report here
-                //   https://app.asana.com/0/1203363157432094/1203639884730779/f
-                HashMap::new(),
-                // TODO: We should encapsulate these Reasons within the type system, perhaps
-                //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
-                //  or perhaps as a big enum, or as an attachment
-                "STORE_ACQUISITION_FAILURE".to_owned(),
-            ))],
-        ))
-    })?;
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         status_to_response(Status::new(
             hash_status::StatusCode::Internal,
@@ -401,12 +391,39 @@ where
         ))
     })?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            status_to_response(Status::new(
+                hash_status::StatusCode::Internal,
+                Some(
+                    "Could not acquire store. This is an internal error, please report to the \
+                     developers of the HASH Graph with whatever information you can provide \
+                     including request details and logs."
+                        .to_owned(),
+                ),
+                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                    // TODO: add information from the report here
+                    //   see https://linear.app/hash/issue/H-3009
+                    HashMap::new(),
+                    // TODO: We should encapsulate these Reasons within the type system, perhaps
+                    //       requiring top level contexts to implement a trait
+                    //       `ErrorReason::to_reason` or perhaps as a big enum, or
+                    //       as an attachment
+                    "STORE_ACQUISITION_FAILURE".to_owned(),
+                ))],
+            ))
+        })?;
+
     let Json(CreateEntityTypeRequest {
         schema,
         owned_by_id,
         label_property,
         icon,
         relationships,
+        provenance,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -414,11 +431,9 @@ where
     let mut metadata = store
         .create_entity_types(
             actor_id,
-            &mut authorization_api,
-            temporal_client.as_deref(),
             schema.into_iter().map(|schema| {
                 domain_validator.validate(&schema).map_err(|report| {
-                    tracing::error!(error=?report, id=schema.id().to_string(), "Entity Type ID failed to validate");
+                    tracing::error!(error=?report, id=%schema.id, "Entity Type ID failed to validate");
                     status_to_response(Status::new(
                         hash_status::StatusCode::InvalidArgument,
                         Some("Entity Type ID failed to validate against the given domain regex. Are you sure the service is able to host a type under the domain you supplied?".to_owned()),
@@ -426,13 +441,13 @@ where
                             HashMap::from([
                                 (
                                     "entityTypeId".to_owned(),
-                                    serde_json::to_value(schema.id().to_string())
+                                    serde_json::to_value(&schema.id)
                                         .expect("Could not serialize entity type id"),
                                 ),
                             ]),
                             // TODO: We should encapsulate these Reasons within the type system, perhaps
-                            //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
-                            //  or perhaps as a big enum
+                            //       requiring top level contexts to implement a trait `ErrorReason::to_reason`
+                            //       or perhaps as a big enum
                             "INVALID_TYPE_ID".to_owned()
                         ))],
                     ))
@@ -445,6 +460,7 @@ where
                     icon: icon.clone(),
                     label_property: label_property.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
+                    provenance: provenance.clone()
                 })
             }).collect::<Result<Vec<_>, _>>()?
         )
@@ -483,8 +499,8 @@ where
                     vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
                         metadata,
                         // TODO: We should encapsulate these Reasons within the type system,
-                        //  perhaps requiring top level contexts to implement a trait
-                        //  `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
+                        //       perhaps requiring top level contexts to implement a trait
+                        //       `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
                         "BASE_URI_ALREADY_EXISTS".to_owned(),
                     ))],
                 ));
@@ -501,8 +517,8 @@ where
                 vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
                     HashMap::new(),
                     // TODO: We should encapsulate these Reasons within the type system, perhaps
-                    //  requiring top level contexts to implement a trait
-                    //  `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
+                    //       requiring top level contexts to implement a trait
+                    //       `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
                     "INTERNAL".to_owned(),
                 ))],
             ))
@@ -518,10 +534,11 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(untagged)]
+#[serde(deny_unknown_fields, untagged)]
 enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
     Fetch { entity_type_id: VersionedUrl },
+    #[serde(rename_all = "camelCase")]
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
         schema: EntityType,
@@ -530,6 +547,11 @@ enum LoadExternalEntityTypeRequest {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         icon: Option<String>,
         relationships: Vec<EntityTypeRelationAndSubject>,
+        #[serde(
+            default,
+            skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
+        )]
+        provenance: Box<ProvidedOntologyEditionProvenance>,
     },
 }
 
@@ -551,7 +573,7 @@ enum LoadExternalEntityTypeRequest {
 )]
 #[tracing::instrument(
     level = "info",
-    skip(store_pool, authorization_api_pool, domain_validator)
+    skip(store_pool, authorization_api_pool, domain_validator, temporal_client)
 )]
 async fn load_external_entity_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -561,36 +583,14 @@ async fn load_external_entity_type<S, A>(
     domain_validator: Extension<DomainValidator>,
     Json(request): Json<LoadExternalEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
-    //  call `status_to_response` for our routes that return Status
+    //       call `status_to_response` for our routes that return Status
 ) -> Result<Json<EntityTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
-    for<'pool> S::Store<'pool>: RestApiStore,
+    for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        status_to_response(Status::new(
-            hash_status::StatusCode::Internal,
-            Some(
-                "Could not acquire store. This is an internal error, please report to the \
-                 developers of the HASH Graph with whatever information you can provide including \
-                 request details and logs."
-                    .to_owned(),
-            ),
-            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                // TODO: add information from the report here
-                //   https://app.asana.com/0/1203363157432094/1203639884730779/f
-                HashMap::new(),
-                // TODO: We should encapsulate these Reasons within the type system, perhaps
-                //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
-                //  or perhaps as a big enum, or as an attachment
-                "STORE_ACQUISITION_FAILURE".to_owned(),
-            ))],
-        ))
-    })?;
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         status_to_response(Status::new(
             hash_status::StatusCode::Internal,
@@ -604,13 +604,37 @@ where
         ))
     })?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            status_to_response(Status::new(
+                hash_status::StatusCode::Internal,
+                Some(
+                    "Could not acquire store. This is an internal error, please report to the \
+                     developers of the HASH Graph with whatever information you can provide \
+                     including request details and logs."
+                        .to_owned(),
+                ),
+                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                    // TODO: add information from the report here
+                    //   see https://linear.app/hash/issue/H-3009
+                    HashMap::new(),
+                    // TODO: We should encapsulate these Reasons within the type system, perhaps
+                    //       requiring top level contexts to implement a trait
+                    //       `ErrorReason::to_reason` or perhaps as a big enum,
+                    //       or as an attachment
+                    "STORE_ACQUISITION_FAILURE".to_owned(),
+                ))],
+            ))
+        })?;
+
     match request {
         LoadExternalEntityTypeRequest::Fetch { entity_type_id } => {
             let OntologyTypeMetadata::EntityType(metadata) = store
                 .load_external_type(
                     actor_id,
-                    &mut authorization_api,
-                    temporal_client.as_deref(),
                     &domain_validator,
                     OntologyTypeReference::EntityTypeReference((&entity_type_id).into()),
                 )
@@ -626,10 +650,11 @@ where
             label_property,
             icon,
             relationships,
+            provenance,
         } => {
-            if domain_validator.validate_url(schema.id().base_url.as_str()) {
+            if domain_validator.validate_url(schema.id.base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
-                tracing::error!(id=%schema.id(), error);
+                tracing::error!(id=%schema.id, error);
                 return Err(status_to_response(Status::new(
                     hash_status::StatusCode::InvalidArgument,
                     Some(error),
@@ -641,8 +666,6 @@ where
                 store
                     .create_entity_type(
                         actor_id,
-                        &mut authorization_api,
-                        temporal_client.as_deref(),
                         CreateEntityTypeParams {
                             schema,
                             label_property,
@@ -652,6 +675,7 @@ where
                             },
                             relationships,
                             conflict_behavior: ConflictBehavior::Fail,
+                            provenance: *provenance,
                         },
                     )
                     .await
@@ -664,7 +688,7 @@ where
 #[utoipa::path(
     post,
     path = "/entity-types/query",
-    request_body = EntityTypeStructuralQuery,
+    request_body = GetEntityTypesParams,
     tag = "EntityType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -673,61 +697,120 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = Subgraph,
-            description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth.",
-            headers(
-                ("Link" = String, description = "The link to be used to query the next page of entity types"),
-            ),
+            body = GetEntityTypesResponse,
+            description = "Gets a a list of entity types that satisfy the given query.",
         ),
+
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, query))]
-async fn get_entity_types_by_query<S, A>(
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn get_entity_types<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    Query(pagination): Query<Pagination<EntityTypeVertexId>>,
-    OriginalUri(uri): OriginalUri,
-    Json(query): Json<serde_json::Value>,
-) -> Result<(HeaderMap, Json<Subgraph>), Response>
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<GetEntityTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let store = store_pool.acquire().await.map_err(report_to_response)?;
-
     let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
-    let mut query = StructuralQuery::deserialize(&query).map_err(report_to_response)?;
-    query
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
-
-    let subgraph = store
-        .get_entity_type(
-            actor_id,
-            &authorization_api,
-            GetEntityTypesParams {
-                query,
-                after: pagination.after.map(|cursor| cursor.0),
-                limit: pagination.limit,
-            },
-        )
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
         .await
         .map_err(report_to_response)?;
 
-    let cursor = subgraph.roots.iter().last().map(Cursor);
-    let mut headers = HeaderMap::new();
-    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
-        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
-    }
-    Ok((headers, Json(Subgraph::from(subgraph))))
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
+    // error reporting.
+    let mut request = GetEntityTypesParams::deserialize(&request).map_err(report_to_response)?;
+    request
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+    store
+        .get_entity_types(actor_id, request)
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct GetEntityTypeSubgraphResponse {
+    subgraph: Subgraph,
+    cursor: Option<EntityTypeVertexId>,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entity-types/query/subgraph",
+    request_body = GetEntityTypeSubgraphParams,
+    tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = GetEntityTypeSubgraphResponse,
+            description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth.",
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, request)
+)]
+async fn get_entity_type_subgraph<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<GetEntityTypeSubgraphResponse>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    let mut request =
+        GetEntityTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?;
+    request
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+    store
+        .get_entity_type_subgraph(actor_id, request)
+        .await
+        .map_err(report_to_response)
+        .map(|response| {
+            Json(GetEntityTypeSubgraphResponse {
+                subgraph: Subgraph::from(response.subgraph),
+                cursor: response.cursor,
+            })
+        })
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -741,6 +824,11 @@ struct UpdateEntityTypeRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
+    #[serde(
+        default,
+        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
+    )]
+    provenance: ProvidedOntologyEditionProvenance,
 }
 
 #[utoipa::path(
@@ -761,7 +849,10 @@ struct UpdateEntityTypeRequest {
     ),
     request_body = UpdateEntityTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn update_entity_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -779,38 +870,41 @@ where
         label_property,
         icon,
         relationships,
+        provenance,
     }) = body;
 
     type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
 
     let entity_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
-        // Shame there isn't an UNPROCESSABLE_ENTITY_TYPE code :D
+        // TODO: Consider an UNPROCESSABLE_ENTITY_TYPE code?
         StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
-        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        // TODO: We should probably return more information to the client
+        //   see https://linear.app/hash/issue/H-3009
     })?;
 
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
     store
         .update_entity_type(
             actor_id,
-            &mut authorization_api,
-            temporal_client.as_deref(),
             UpdateEntityTypesParams {
                 schema: entity_type,
                 label_property,
                 icon,
                 relationships,
+                provenance,
             },
         )
         .await
@@ -845,11 +939,15 @@ where
     ),
     request_body = UpdateEntityTypeEmbeddingParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client, body)
+)]
 async fn update_entity_type_embeddings<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<(), Response>
 where
@@ -862,14 +960,18 @@ where
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .update_entity_type_embeddings(actor_id, &mut authorization_api, params)
+        .update_entity_type_embeddings(actor_id, params)
         .await
         .map_err(report_to_response)
 }
@@ -891,11 +993,15 @@ where
     ),
     request_body = ArchiveEntityTypeParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn archive_entity_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
@@ -908,14 +1014,18 @@ where
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .archive_entity_type(actor_id, &mut authorization_api, params)
+        .archive_entity_type(actor_id, params)
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
@@ -946,11 +1056,15 @@ where
     ),
     request_body = UnarchiveEntityTypeParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
 async fn unarchive_entity_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
@@ -963,14 +1077,18 @@ where
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;
 
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
     store
-        .unarchive_entity_type(actor_id, &mut authorization_api, params)
+        .unarchive_entity_type(actor_id, params)
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {

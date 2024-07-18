@@ -1,18 +1,19 @@
 #![cfg_attr(
     nightly,
-    feature(
-        error_in_core,
-        error_generic_member_access,
-        sync_unsafe_cell,
-        exclusive_wrapper
-    )
+    feature(error_generic_member_access, sync_unsafe_cell, exclusive_wrapper)
 )]
 #![cfg_attr(all(nightly, target_has_atomic = "128"), feature(integer_atomics))]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::error_impl_error,
+    clippy::missing_errors_doc
+)]
 
 // TODO: note to implementors of `Deserialize` to allow for `visit_none` and to defer to
-//  `visit_none` on every `deserialize_*` call if appropriate. missing value (`visit_none`) will
-//  only be generated through `*Access` implementations.
+//       `visit_none` on every `deserialize_*` call if appropriate. missing value (`visit_none`)
+//       will only be generated through `*Access` implementations.
 
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{string::String, vec::Vec};
@@ -220,8 +221,8 @@ pub trait EnumVisitor<'de>: Sized {
     }
 
     // TODO: make clear in docs that the deserializer *must* be used (even if just
-    //  `deserialize_none` is called), otherwise the `Deserializer` might get into an
-    //  undefined state
+    //       `deserialize_none` is called), otherwise the `Deserializer` might get into an
+    //       undefined state
     fn visit_value<D>(
         self,
         discriminant: Self::Discriminant,
@@ -243,7 +244,7 @@ pub trait EnumVisitor<'de>: Sized {
 ///
 /// The `'de` bounds are here for future compatability and also to stay consistent with
 /// all other visitors.
-#[allow(unused_variables)]
+#[expect(unused_variables)]
 pub trait IdentifierVisitor<'de>: Sized {
     type Value;
 
@@ -278,7 +279,7 @@ pub trait IdentifierVisitor<'de>: Sized {
 
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
 // use the name to make autocomplete, therefore names for unused parameters are required.
-#[allow(unused_variables)]
+#[expect(unused_variables)]
 pub trait Visitor<'de>: Sized {
     type Value;
 
@@ -434,7 +435,7 @@ pub trait Visitor<'de>: Sized {
     }
 }
 
-#[allow(unused_variables)]
+#[expect(unused_variables)]
 pub trait OptionalVisitor<'de>: Sized {
     type Value;
 
@@ -464,7 +465,7 @@ pub trait OptionalVisitor<'de>: Sized {
     }
 }
 
-#[allow(unused_variables)]
+#[expect(unused_variables)]
 pub trait StructVisitor<'de>: Sized {
     type Value;
 

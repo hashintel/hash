@@ -57,8 +57,8 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 Self::Value::reflection()
             }
 
-            fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-                match v {
+            fn visit_str(self, value: &str) -> Result<Self::Value, VisitorError> {
+                match value {
                     "a" => Ok(ExampleFieldDiscriminator::A),
                     "b" => Ok(ExampleFieldDiscriminator::B),
                     "c" => Ok(ExampleFieldDiscriminator::C),
@@ -71,8 +71,8 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 }
             }
 
-            fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-                match v {
+            fn visit_bytes(self, value: &[u8]) -> Result<Self::Value, VisitorError> {
+                match value {
                     b"a" => Ok(ExampleFieldDiscriminator::A),
                     b"b" => Ok(ExampleFieldDiscriminator::B),
                     b"c" => Ok(ExampleFieldDiscriminator::C),
@@ -91,8 +91,8 @@ impl<'de> Deserialize<'de> for ExampleFieldDiscriminator {
                 }
             }
 
-            fn visit_u64(self, v: u64) -> Result<Self::Value, VisitorError> {
-                match v {
+            fn visit_u64(self, value: u64) -> Result<Self::Value, VisitorError> {
+                match value {
                     0 => Ok(ExampleFieldDiscriminator::A),
                     1 => Ok(ExampleFieldDiscriminator::B),
                     2 => Ok(ExampleFieldDiscriminator::C),
@@ -183,7 +183,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         // correct but doing `unwrap_or_else`.
         // TODO: we might be able to expose that through the type system?
         // TODO: instead of doing this we need to use `NoneDeserializer`,
-        //  this needs `.context()` on access rules to ensure proper ownership
+        //       this needs `.context()` on access rules to ensure proper ownership
         let a = array
             .next()
             .unwrap_or_else(|| {
@@ -281,8 +281,8 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
 impl Reflection for Example {
     fn schema(doc: &mut Document) -> Schema {
         // TODO: we cannot express or constraints right now
-        //  we would need to say: object if e.g. JSON-schema, other format might do both
-        //  blueprint must support "struct"
+        //       we would need to say: object if e.g. JSON-schema, other format might do both
+        //       blueprint must support "struct"
         Schema::new("object").with(
             "properties",
             Properties([
@@ -342,7 +342,7 @@ fn struct_object_out_of_order_ok() {
 }
 
 // TODO: key missing instead of value missing (or discriminant missing) ~> only possible with
-//  IdentifierVisitor?
+//       IdentifierVisitor?
 #[test]
 fn struct_object_missing_err() {
     assert_tokens_error::<Example>(

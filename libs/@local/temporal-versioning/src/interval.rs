@@ -1,3 +1,5 @@
+#[cfg(feature = "postgres")]
+use core::error::Error;
 use core::{
     cmp::Ordering,
     fmt,
@@ -6,8 +8,6 @@ use core::{
     marker::PhantomData,
     ops::{Bound, RangeBounds},
 };
-#[cfg(feature = "postgres")]
-use std::error::Error;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
@@ -539,7 +539,7 @@ where
     fn to_sql(
         &self,
         _: &Type,
-        buf: &mut BytesMut,
+        out: &mut BytesMut,
     ) -> Result<postgres_types::IsNull, Box<dyn Error + Sync + Send>> {
         fn bound_to_sql<A>(
             bound: Bound<&Timestamp<A>>,
@@ -561,7 +561,7 @@ where
         postgres_protocol::types::range_to_sql(
             |buf| bound_to_sql(self.start().as_bound(), buf),
             |buf| bound_to_sql(self.end().as_bound(), buf),
-            buf,
+            out,
         )?;
         Ok(postgres_types::IsNull::No)
     }
@@ -608,8 +608,8 @@ where
     S: IntervalBound<Timestamp<A>>,
     E: IntervalBound<Timestamp<A>>,
 {
-    fn from_sql(_: &Type, buf: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
-        match postgres_protocol::types::range_from_sql(buf)? {
+    fn from_sql(_: &Type, raw: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        match postgres_protocol::types::range_from_sql(raw)? {
             postgres_protocol::types::Range::Empty => {
                 unimplemented!("Empty ranges are not supported")
             }

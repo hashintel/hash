@@ -1,8 +1,5 @@
-import type {
-  EntityType,
-  GraphEmbedderMessageCallbacks,
-  PropertyType,
-} from "@blockprotocol/graph/temporal";
+import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
+import type { EntityType, PropertyType } from "@blockprotocol/type-system/slim";
 import { createContext, useContext } from "react";
 
 export type TitleValidationFunction = (proposal: {

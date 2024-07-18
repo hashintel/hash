@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import type { AccountId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -7,16 +8,16 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
-import type { AccountId, EntityRootType } from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import { useUsers } from "../components/hooks/use-users";
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../lib/user-and-org";
 
 type MachineActor = {
@@ -43,18 +44,18 @@ export const useActors = (params: {
   );
 
   const { data: machineActorsData, loading: machinesLoading } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
       includePermissions: false,
-      query: {
+      request: {
         filter: {
           any: (params.accountIds ?? []).map((accountId) => ({
             all: [
               {
                 equal: [
-                  { path: ["editionCreatedById"] },
+                  { path: ["editionProvenance", "createdById"] },
                   { parameter: accountId },
                 ],
               },
@@ -83,7 +84,7 @@ export const useActors = (params: {
     }
 
     const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-      machineActorsData.structuralQueryEntities.subgraph,
+      machineActorsData.getEntitySubgraph.subgraph,
     );
 
     const machineActors = getRoots(subgraph).map((entity) => {

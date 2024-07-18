@@ -1,6 +1,8 @@
-import type { OwnedById } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { ServiceFeature } from "@local/hash-isomorphic-utils/system-types/shared";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import { logger } from "../../../../logger";
 import { createEntity } from "../../../knowledge/primitive/entity";
@@ -10,7 +12,7 @@ import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
-  generateSystemTypeBaseUrl,
+  getCurrentHashDataTypeId,
   getEntitiesByType,
 } from "../util";
 
@@ -76,16 +78,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const dateDataTypeBaseUrl = generateSystemTypeBaseUrl({
-    kind: "data-type",
-    title: "DateTime",
-    shortname: "hash",
+  const datetimeDataTypeVersionedUrl = getCurrentHashDataTypeId({
+    dataTypeKey: "datetime",
+    migrationState,
   });
-  const dataTypeVersion = migrationState.dataTypeVersions[dateDataTypeBaseUrl]!;
-  const dataTypeVersionUrl = versionedUrlFromComponents(
-    dateDataTypeBaseUrl,
-    dataTypeVersion,
-  );
 
   const appliesFromPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -94,7 +90,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Applies From",
         description: "The point in time at which something begins to apply",
-        possibleValues: [{ dataTypeId: dataTypeVersionUrl }],
+        possibleValues: [{ dataTypeId: datetimeDataTypeVersionedUrl }],
       },
       webShortname: "hash",
       migrationState,
@@ -108,7 +104,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Applies Until",
         description: "The point at which something ceases to apply",
-        possibleValues: [{ dataTypeId: dataTypeVersionUrl }],
+        possibleValues: [{ dataTypeId: datetimeDataTypeVersionedUrl }],
       },
       webShortname: "hash",
       migrationState,
@@ -288,6 +284,7 @@ const migrate: MigrationFunction = async ({
    * Step 3: Create the initial Service Feature entities
    */
   const initialServices = [
+    /** @see https://openai.com/pricing */
     {
       serviceName: "OpenAI",
       featureName: "gpt-4-1106-preview",
@@ -306,6 +303,73 @@ const migrate: MigrationFunction = async ({
       inputUnitCost: 0.000001,
       outputUnitCost: 0.000002,
     },
+    {
+      serviceName: "OpenAI",
+      featureName: "gpt-4-0125-preview",
+      inputUnitCost: 0.00001,
+      outputUnitCost: 0.00003,
+    },
+    {
+      serviceName: "OpenAI",
+      featureName: "gpt-4-turbo",
+      inputUnitCost: 0.00001,
+      outputUnitCost: 0.00003,
+    },
+    {
+      serviceName: "OpenAI",
+      featureName: "gpt-4o",
+      inputUnitCost: 0.000005,
+      outputUnitCost: 0.000015,
+    },
+    {
+      serviceName: "OpenAI",
+      featureName: "gpt-4o-2024-05-13",
+      inputUnitCost: 0.000005,
+      outputUnitCost: 0.000015,
+    },
+    /** @see https://www.anthropic.com/api */
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-3-opus-20240229",
+      inputUnitCost: 0.000015,
+      outputUnitCost: 0.000075,
+    },
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-3-sonnet-20240229",
+      inputUnitCost: 0.000003,
+      outputUnitCost: 0.000015,
+    },
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-3-5-sonnet-20240620",
+      inputUnitCost: 0.000003,
+      outputUnitCost: 0.000015,
+    },
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-3-haiku-20240307",
+      inputUnitCost: 0.00000025,
+      outputUnitCost: 0.00000125,
+    },
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-2.1",
+      inputUnitCost: 0.000008,
+      outputUnitCost: 0.000024,
+    },
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-2.0",
+      inputUnitCost: 0.000008,
+      outputUnitCost: 0.000024,
+    },
+    {
+      serviceName: "Anthropic",
+      featureName: "claude-instant-1.2",
+      inputUnitCost: 0.0000008,
+      outputUnitCost: 0.0000024,
+    },
   ];
 
   const hashOrg = await getOrgByShortname(context, authentication, {
@@ -318,13 +382,13 @@ const migrate: MigrationFunction = async ({
   }
   const hashOwnedById = hashOrg.accountGroupId;
 
-  const existingServiceFeatureEntities = await getEntitiesByType(
+  const existingServiceFeatureEntities = (await getEntitiesByType(
     context,
     authentication,
     {
       entityTypeId: serviceFeatureEntityType.schema.$id,
     },
-  );
+  )) as Entity<ServiceFeature>[];
 
   for (const {
     serviceName,
@@ -332,18 +396,21 @@ const migrate: MigrationFunction = async ({
     inputUnitCost,
     outputUnitCost,
   } of initialServices) {
-    if (
-      existingServiceFeatureEntities.some((entity) => {
-        const serviceNameProperty =
-          entity.properties[serviceNamePropertyType.metadata.recordId.baseUrl];
-        const featureNameProperty =
-          entity.properties[featureNamePropertyType.metadata.recordId.baseUrl];
+    const existingServiceFeatureEntity = existingServiceFeatureEntities.find(
+      (entity) => {
+        const {
+          serviceName: serviceNameProperty,
+          featureName: featureNameProperty,
+        } = simplifyProperties(entity.properties);
+
         return (
           serviceNameProperty === serviceName &&
           featureNameProperty === featureName
         );
-      })
-    ) {
+      },
+    );
+
+    if (existingServiceFeatureEntity) {
       logger.debug(
         `Skipping creation of service feature entity for ${serviceName}:${featureName} as it already exists`,
       );
@@ -354,22 +421,57 @@ const migrate: MigrationFunction = async ({
       `Creating service feature entity for ${serviceName}:${featureName}`,
     );
 
-    await createEntity(context, authentication, {
-      entityTypeId: serviceFeatureEntityType.schema.$id,
+    await createEntity<ServiceFeature>(context, authentication, {
+      entityTypeId: serviceFeatureEntityType.schema
+        .$id as ServiceFeature["entityTypeId"],
       properties: {
-        [serviceNamePropertyType.metadata.recordId.baseUrl]: serviceName,
-        [featureNamePropertyType.metadata.recordId.baseUrl]: featureName,
-        [serviceUnitCost.metadata.recordId.baseUrl]: [
-          {
-            [inputUnitCostPropertyType.metadata.recordId.baseUrl]:
-              inputUnitCost,
-            [outputUnitCostPropertyType.metadata.recordId.baseUrl]:
-              outputUnitCost,
-            [appliesFromPropertyType.metadata.recordId.baseUrl]: new Date(
-              "2023-12-20",
-            ).toISOString(),
+        value: {
+          "https://hash.ai/@hash/types/property-type/service-name/": {
+            value: serviceName,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
           },
-        ],
+          "https://hash.ai/@hash/types/property-type/feature-name/": {
+            value: featureName,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+          "https://hash.ai/@hash/types/property-type/service-unit-cost/": {
+            value: [
+              {
+                value: {
+                  "https://hash.ai/@hash/types/property-type/input-unit-cost/":
+                    {
+                      value: inputUnitCost,
+                      metadata: {
+                        dataTypeId:
+                          "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+                      },
+                    },
+                  "https://hash.ai/@hash/types/property-type/output-unit-cost/":
+                    {
+                      value: outputUnitCost,
+                      metadata: {
+                        dataTypeId:
+                          "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+                      },
+                    },
+                  "https://hash.ai/@hash/types/property-type/applies-from/": {
+                    value: new Date("2023-12-20").toISOString(),
+                    metadata: {
+                      dataTypeId:
+                        "https://hash.ai/@hash/types/data-type/datetime/v/1",
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
       },
       ownedById: hashOwnedById as OwnedById,
       relationships: [

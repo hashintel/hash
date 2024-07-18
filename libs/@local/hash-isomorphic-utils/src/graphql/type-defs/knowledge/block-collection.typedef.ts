@@ -7,7 +7,7 @@ export const blockCollectionTypedef = gql`
   """
   type BlockCollectionContentItem {
     rightEntity: Block!
-    linkEntity: Entity!
+    linkEntity: SerializedEntity!
   }
 
   type BlockCollection {
@@ -22,7 +22,7 @@ export const blockCollectionTypedef = gql`
     """
     Properties of entity.
     """
-    properties: EntityPropertiesObject!
+    properties: PropertyObject!
   }
 
   scalar HasIndexedContentProperties
@@ -109,7 +109,7 @@ export const blockCollectionTypedef = gql`
     """
     The entity's new properties.
     """
-    properties: EntityPropertiesObject!
+    properties: PropertyObject!
   }
 
   """

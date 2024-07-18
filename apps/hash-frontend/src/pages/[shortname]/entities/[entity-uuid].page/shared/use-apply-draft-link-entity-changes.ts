@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   extractDraftIdFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -42,7 +42,7 @@ export const useApplyDraftLinkEntityChanges = () => {
             entityTypeId: linkEntity.metadata.entityTypeId,
             // The link should be in the same web as the source entity.
             ownedById: extractOwnedByIdFromEntityId(leftEntityId),
-            properties: {},
+            properties: { value: {} },
             linkData: {
               leftEntityId,
               rightEntityId: rightEntity.metadata.recordId.entityId,

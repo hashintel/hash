@@ -1,12 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
-  EntityMetadata,
-  EntityPropertiesObject,
   EntityTemporalVersioningMetadata,
   LinkData,
-} from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+  PropertyObject,
+} from "@local/hash-graph-types/entity";
 import type { Draft } from "immer";
 import { produce } from "immer";
 
@@ -14,26 +13,27 @@ import type { BlockEntity } from "./entity";
 import { generateDraftIdForEntity } from "./entity-store-plugin";
 import { blockProtocolPropertyTypes } from "./ontology-type-ids";
 
-export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
+export type EntityStoreType = BlockEntity | Entity;
 
-export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
-  blockProtocolPropertyTypes.textualContent.propertyTypeId,
-);
+export const textualContentPropertyTypeBaseUrl =
+  blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl;
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
-    archived: boolean;
     recordId: {
       entityId: EntityId | null;
       editionId: string;
     };
     entityTypeId?: VersionedUrl | null;
-    provenance?: EntityMetadata["provenance"];
     temporalVersioning: EntityTemporalVersioningMetadata;
   };
-  /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
+
+  /**
+   * @todo properly type this part of the DraftEntity type
+   * @see https://linear.app/hash/issue/H-3000
+   */
   blockChildEntity?: Type & { draftId?: string };
-  properties: EntityPropertiesObject;
+  properties: PropertyObject;
   linkData?: LinkData;
 
   componentId?: string;
@@ -43,7 +43,10 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   //  keep a dict of entity ids to draft ids, and vice versa
   draftId: string;
 
-  /** @todo use updated at from the Graph API https://app.asana.com/0/0/1203099452204542/f */
+  /**
+   * @todo use updated at from the Graph API
+   * @see https://linear.app/hash/issue/H-3000
+   */
   // updatedAt: string;
 };
 
@@ -173,7 +176,11 @@ export const createEntityStore = (
      * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
      */
     draft[draftId] = produce<DraftEntity>(
-      { ...entity, draftId },
+      {
+        properties: entity.properties,
+        metadata: entity.metadata,
+        draftId,
+      },
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
           /**
@@ -185,7 +192,7 @@ export const createEntityStore = (
             new Date(
               draftData[
                 draftId
-              ]!.metadata.temporalVersioning.decisionTime.start.limit,
+              ].metadata.temporalVersioning.decisionTime.start.limit,
             ).getTime() >
             new Date(
               draftEntity.metadata.temporalVersioning.decisionTime.start.limit,
@@ -198,7 +205,7 @@ export const createEntityStore = (
     );
 
     draft[draftId] = produce<DraftEntity>(
-      draft[draftId]!,
+      draft[draftId],
       (draftEntity: Draft<DraftEntity>) => {
         if (isDraftBlockEntity(draftEntity)) {
           const restoredDraftId = restoreDraftId(

@@ -1,4 +1,4 @@
-import type { AccountId } from "@local/hash-subgraph";
+import type { AccountId } from "@local/hash-graph-types/account";
 
 import type { ImpureGraphContext } from "../../../graph/context-types";
 import { getOrgMembershipOrg } from "../../../graph/knowledge/system-types/org-membership";

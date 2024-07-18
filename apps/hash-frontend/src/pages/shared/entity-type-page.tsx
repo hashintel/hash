@@ -1,5 +1,5 @@
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { extractVersion } from "@blockprotocol/type-system";
+import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   EntityTypeIcon,
@@ -13,8 +13,10 @@ import {
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateLinkMapWithConsistentSelfReferences } from "@local/hash-isomorphic-utils/ontology-types";
-import type { AccountId, BaseUrl, OwnedById } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import type { Theme } from "@mui/material";
 import { Box, Container, Typography } from "@mui/material";
@@ -99,7 +101,7 @@ export const EntityTypePage = ({
 
   const parentRefs = formMethods.watch("allOf");
   const { isLink, isFile, isImage } = useIsSpecialEntityType({
-    allOf: parentRefs.map((id) => ({ $ref: id })),
+    allOf: atLeastOne(parentRefs.map((id) => ({ $ref: id }))),
     $id: entityType?.schema.$id,
   });
 
@@ -231,14 +233,14 @@ export const EntityTypePage = ({
     : extractVersion(entityType.schema.$id);
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
-    const entityTypeSchema = getEntityTypeFromFormData(data);
+    const { icon, labelProperty, schema } = getEntityTypeFromFormData(data);
 
     const res = await updateEntityType(
       {
-        ...entityTypeSchema,
-        allOf: [{ $ref: linkEntityTypeUrl }],
+        ...schema,
+        allOf: [{ $ref: linkEntityTypeUrl }, ...(schema.allOf ?? [])],
       },
-      { icon: data.icon },
+      { icon, labelProperty: labelProperty as BaseUrl },
     );
 
     if (!res.errors?.length && res.data) {

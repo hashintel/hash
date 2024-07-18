@@ -1,11 +1,8 @@
-#![feature(
-    associated_type_bounds,
-    exhaustive_patterns,
-    impl_trait_in_assoc_type,
-    lint_reasons,
-    never_type
-)]
+#![feature(exhaustive_patterns, impl_trait_in_assoc_type, never_type)]
 #![feature(type_alias_impl_trait)]
+
+extern crate alloc;
+
 pub mod backend;
 pub mod schema;
 pub mod zanzibar;
@@ -14,9 +11,9 @@ use std::collections::HashMap;
 
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
 use crate::schema::{
-    AccountGroupRelationAndSubject, DataTypeId, DataTypePermission, DataTypeRelationAndSubject,
-    EntityRelationAndSubject, EntityTypeId, EntityTypePermission, EntityTypeRelationAndSubject,
-    PropertyTypeId, PropertyTypePermission, PropertyTypeRelationAndSubject, WebRelationAndSubject,
+    AccountGroupRelationAndSubject, DataTypePermission, DataTypeRelationAndSubject,
+    EntityRelationAndSubject, EntityTypePermission, EntityTypeRelationAndSubject,
+    PropertyTypePermission, PropertyTypeRelationAndSubject, WebRelationAndSubject,
 };
 
 mod api;
@@ -25,6 +22,7 @@ use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
+    ontology::{DataTypeId, EntityTypeId, PropertyTypeId},
     owned_by_id::OwnedById,
 };
 
@@ -316,7 +314,7 @@ where
     A: AuthorizationApi + Clone + Send + Sync,
 {
     type Api<'pool> = Self;
-    type Error = std::convert::Infallible;
+    type Error = core::convert::Infallible;
 
     async fn acquire(&self) -> Result<Self::Api<'_>, Self::Error> {
         Ok(self.clone())

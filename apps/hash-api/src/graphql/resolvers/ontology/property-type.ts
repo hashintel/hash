@@ -1,16 +1,20 @@
 import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
+import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
+  defaultPropertyTypeAuthorizationRelationships,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  mapGraphApiSubgraphToSubgraph,
+  serializeSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
-  OwnedById,
   PropertyTypeRootType,
-  PropertyTypeWithMetadata,
-  Subgraph,
+  SerializedSubgraph,
 } from "@local/hash-subgraph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archivePropertyType,
@@ -49,21 +53,7 @@ export const createPropertyTypeResolver: ResolverFn<
     {
       ownedById: (ownedById ?? user.accountId) as OwnedById,
       schema: propertyType,
-      relationships: [
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "updateFromWeb",
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
+      relationships: defaultPropertyTypeAuthorizationRelationships,
     },
   );
 
@@ -71,7 +61,7 @@ export const createPropertyTypeResolver: ResolverFn<
 };
 
 export const queryPropertyTypesResolver: ResolverFn<
-  Promise<Subgraph>,
+  Promise<SerializedSubgraph>,
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryQueryPropertyTypesArgs
@@ -92,9 +82,9 @@ export const queryPropertyTypesResolver: ResolverFn<
    * @todo: get all latest property types in specified account.
    *   This may mean implicitly filtering results by what an account is
    *   authorized to see.
-   *   https://app.asana.com/0/1202805690238892/1202890446280569/f
+   * @see https://linear.app/hash/issue/H-2995
    */
-  const { data } = await graphApi.getPropertyTypesByQuery(
+  const { data: response } = await graphApi.getPropertyTypeSubgraph(
     authentication.actorId,
     {
       filter: latestOnly
@@ -114,13 +104,16 @@ export const queryPropertyTypesResolver: ResolverFn<
     },
   );
 
-  const subgraph = mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(data);
-
-  return subgraph;
+  return serializeSubgraph(
+    mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(
+      response.subgraph,
+      authentication.actorId,
+    ),
+  );
 };
 
 export const getPropertyTypeResolver: ResolverFn<
-  Promise<Subgraph>,
+  Promise<SerializedSubgraph>,
   Record<string, never>,
   GraphQLContext,
   QueryGetPropertyTypeArgs
@@ -135,20 +128,22 @@ export const getPropertyTypeResolver: ResolverFn<
   graphQLContext,
   __,
 ) =>
-  getPropertyTypeSubgraphById(
-    graphQLContextToImpureGraphContext(graphQLContext),
-    graphQLContext.authentication,
-    {
-      propertyTypeId,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
+  serializeSubgraph(
+    await getPropertyTypeSubgraphById(
+      graphQLContextToImpureGraphContext(graphQLContext),
+      graphQLContext.authentication,
+      {
+        propertyTypeId,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn,
+          constrainsPropertiesOn,
+        },
+        temporalAxes: includeArchived
+          ? fullTransactionTimeAxis
+          : currentTimeInstantTemporalAxes,
       },
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
-    },
+    ),
   );
 
 export const updatePropertyTypeResolver: ResolverFn<

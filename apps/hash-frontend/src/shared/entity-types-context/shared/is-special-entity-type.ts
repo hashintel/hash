@@ -1,17 +1,18 @@
+import type { EntityTypeReference } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import type {
   EntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system/dist/cjs";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 export const getParentIds = (
   entityType: Pick<EntityType, "allOf">,
   allEntityTypes: Record<VersionedUrl, EntityTypeWithMetadata>,
 ): VersionedUrl[] => {
-  let parentRefObjects = entityType.allOf ?? [];
+  let parentRefObjects: EntityTypeReference[] = entityType.allOf ?? [];
   const parentIds = parentRefObjects.map(({ $ref }) => $ref);
   while (parentRefObjects.length) {
     parentRefObjects = parentRefObjects.flatMap(({ $ref }) => {

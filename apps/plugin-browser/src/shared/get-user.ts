@@ -1,3 +1,7 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -5,20 +9,14 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { ImageProperties } from "@local/hash-isomorphic-utils/system-types/image";
+import type { Image } from "@local/hash-isomorphic-utils/system-types/image";
 import type {
   BrowserPluginSettingsProperties,
+  BrowserPluginSettingsPropertiesWithMetadata,
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type {
-  Entity,
-  EntityId,
-  EntityRootType,
-  OwnedById,
-  Subgraph,
-  Timestamp,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -36,7 +34,7 @@ import { getFromLocalStorage, setInLocalStorage } from "./storage";
 const getAvatarForEntity = (
   subgraph: Subgraph<EntityRootType>,
   entityId: EntityId,
-): Entity<ImageProperties> | undefined => {
+): Entity<Image> | undefined => {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     entityId,
@@ -46,9 +44,7 @@ const getAvatarForEntity = (
       linkEntity[0]?.metadata.entityTypeId ===
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
   );
-  return avatarLinkAndEntities[0]?.rightEntity[0] as unknown as
-    | Entity<ImageProperties>
-    | undefined;
+  return avatarLinkAndEntities[0]?.rightEntity[0] as Entity<Image> | undefined;
 };
 
 /**
@@ -169,15 +165,43 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
         const draftQuickNote = await getFromLocalStorage("draftQuickNote");
 
-        const properties: BrowserPluginSettingsProperties = {
-          "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
-            automaticInferenceConfig,
-          "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
-            manualInferenceConfig,
-          "https://hash.ai/@hash/types/property-type/browser-plugin-tab/":
-            popupTab,
-          "https://hash.ai/@hash/types/property-type/draft-note/":
-            draftQuickNote,
+        const properties: BrowserPluginSettingsPropertiesWithMetadata = {
+          value: {
+            "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
+              {
+                value: automaticInferenceConfig,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                },
+              },
+            "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
+              {
+                value: manualInferenceConfig,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                },
+              },
+            "https://hash.ai/@hash/types/property-type/browser-plugin-tab/": {
+              value: popupTab,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+            ...(draftQuickNote
+              ? {
+                  "https://hash.ai/@hash/types/property-type/draft-note/": {
+                    value: draftQuickNote,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  },
+                }
+              : {}),
+          },
         };
 
         const settingsEntityMetadata = await createEntity({
@@ -189,7 +213,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
         await createEntity({
           entityTypeId: systemLinkEntityTypes.has.linkEntityTypeId,
-          properties: {},
+          properties: { value: {} },
           linkData: {
             leftEntityId: user.metadata.recordId.entityId,
             rightEntityId: settingsEntityId,
@@ -204,11 +228,11 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
           org.metadata.recordId.entityId,
         );
         return {
-          ...org,
-          avatar: orgAvatar,
+          metadata: org.metadata,
           properties: simplifyProperties(
             org.properties as OrganizationProperties,
           ),
+          avatar: orgAvatar,
           webOwnedById: getOwnedByIdFromEntityId(
             org.metadata.recordId.entityId,
           ),
@@ -220,7 +244,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         [];
 
       return {
-        ...user,
+        metadata: user.metadata,
         avatar: userAvatar,
         orgs,
         properties: {
@@ -231,7 +255,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         enabledFeatureFlags,
         settingsEntityId,
         webOwnedById: getOwnedByIdFromEntityId(user.metadata.recordId.entityId),
-      };
+      } as LocalStorage["user"];
     })
     .catch(() => null);
 };

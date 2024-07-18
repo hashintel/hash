@@ -78,8 +78,8 @@ const Hero: FunctionComponent = () => (
         <Typography mb={2} sx={{ lineHeight: 1.5 }}>
           We’re developing two open-source projects in parallel — the{" "}
           <strong>Block Protocol</strong> standard, and the{" "}
-          <strong>HASH</strong>
-          platform — to help everybody make better decisions.
+          <strong>HASH</strong> platform — to help everybody make better
+          decisions.
         </Typography>
         <Typography sx={{ lineHeight: 1.5 }}>
           Here you’ll find information about the technical architecture of each
@@ -586,12 +586,12 @@ export const getStaticProps: GetStaticProps<HomePageProps> = async () => {
     const posts = await Promise.all(
       getAllPages<BlogPost>("blog")
         .sort((pageA, pageB) => {
-          const timeA = pageB.data.date
-            ? new Date(pageB.data.date).getTime()
+          const timeA = pageB.data.dateFirstPublished
+            ? new Date(pageB.data.dateFirstPublished).getTime()
             : 0;
 
-          const timeB = pageA.data.date
-            ? new Date(pageA.data.date).getTime()
+          const timeB = pageA.data.dateFirstPublished
+            ? new Date(pageA.data.dateFirstPublished).getTime()
             : 0;
 
           return timeA - timeB;

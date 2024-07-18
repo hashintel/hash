@@ -3,6 +3,7 @@ description: Create a report to help us improve our blocks
 labels:
   - "area/blocks"
   - "category/bug"
+  - "lang/javascript"
 body:
   - type: markdown
     attributes:

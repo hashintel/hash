@@ -1,7 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import type { PopperProps } from "@mui/material";
 import { outlinedInputClasses, Typography } from "@mui/material";
 import { useMemo } from "react";

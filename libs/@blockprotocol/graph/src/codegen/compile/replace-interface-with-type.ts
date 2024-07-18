@@ -1,6 +1,6 @@
-import { typedEntries } from "../../shared/util/typed-object-iter.js";
-import type { CompileContext } from "../context/compile.js";
-import type { CompiledTsType } from "../shared.js";
+import { typedEntries } from "../../util/typed-object-iter";
+import type { CompileContext } from "../context/compile";
+import type { CompiledTsType } from "../shared";
 
 const replaceInterfaceWithTypeInCompiledTsType = (
   compiledTsType: CompiledTsType,
@@ -9,7 +9,7 @@ const replaceInterfaceWithTypeInCompiledTsType = (
   compiledTsType.replace(/interface ([a-zA-Z0-9]+)/gm, "type $1 =");
 
 /**
- * We want to be able to use generated types as generics within `Entity<Properties>` for example, so we make
+ * We want to be able to use generated types as generics within `Entity<User>` for example, so we make
  * everything consistently a `type` instead of an `interface`.
  *
  * This should be safe as:

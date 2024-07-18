@@ -1,15 +1,15 @@
 import type {
-  Array,
+  ArraySchema,
   BaseUrl,
-  Object as BpObject,
-  OneOf,
+  ObjectSchema,
+  OneOfSchema,
   PropertyType,
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system/slim";
 
 import type {
   ArrayExpectedValue,
@@ -25,7 +25,7 @@ const getPrimitiveSchema = ($ref: VersionedUrl): PropertyTypeReference => ({
 
 const getObjectSchema = (
   properties: Property[],
-): BpObject<ValueOrArray<PropertyTypeReference>> => {
+): ObjectSchema<ValueOrArray<PropertyTypeReference>> => {
   const propertyList: Record<BaseUrl, ValueOrArray<PropertyTypeReference>> = {};
   const requiredArray: BaseUrl[] = [];
 
@@ -51,20 +51,20 @@ const getObjectSchema = (
   return {
     type: "object",
     properties: propertyList,
-    required: requiredArray,
+    required: atLeastOne(requiredArray),
   };
 };
 
 const getArraySchema = (
   flattenedExpectedValues: Record<string, CustomExpectedValue>,
   { minItems, maxItems, infinity, itemIds }: ArrayExpectedValue,
-): Array<OneOf<PropertyValues>> => ({
+): ArraySchema<OneOfSchema<PropertyValues>> => ({
   type: "array",
   items: {
     oneOf: itemIds.map((itemId) =>
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       getExpectedValueSchemaById(itemId, flattenedExpectedValues),
-    ) as OneOf<PropertyValues>["oneOf"],
+    ) as OneOfSchema<PropertyValues>["oneOf"],
   },
   minItems,
   ...(!infinity ? { maxItems } : {}),
@@ -119,7 +119,7 @@ export const getPropertyTypeSchema = (
     }
 
     return getPrimitiveSchema(value);
-  }) as OneOf<PropertyValues>["oneOf"];
+  }) as OneOfSchema<PropertyValues>["oneOf"];
 
   return {
     oneOf,

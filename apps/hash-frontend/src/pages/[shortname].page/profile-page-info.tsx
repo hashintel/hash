@@ -5,8 +5,8 @@ import {
   IconButton,
   PenRegularIcon,
 } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
-import type { Entity } from "@local/hash-subgraph";
 import {
   Box,
   Divider,
@@ -25,7 +25,7 @@ import { CalendarDayRegularIcon } from "../../shared/icons/calendar-day-regular-
 import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { Link } from "../../shared/ui/link";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
-import { getImageUrlFromEntityProperties } from "../shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../shared/get-file-properties";
 import type { ProfilePageTab } from "./util";
 
 const InfoItem: FunctionComponent<{
@@ -44,6 +44,8 @@ const InfoItem: FunctionComponent<{
           sx={{
             color: ({ palette }) => (href ? palette.blue[70] : undefined),
             fontWeight: href ? 700 : undefined,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {title}

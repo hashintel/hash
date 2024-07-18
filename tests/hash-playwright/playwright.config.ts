@@ -10,8 +10,6 @@ const config: PlaywrightTestConfig = {
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     // We plan to add more browsers and also split Playwright tests into
     // system (integration) tests and end-to-end tests.
-    // Re-enabling multiple browsers is tracked in:
-    // https://app.asana.com/0/1201095311341924/1203280843875283/f (internal)
   ],
   reporter: [
     [ci ? "github" : "list"],

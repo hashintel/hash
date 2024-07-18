@@ -2,7 +2,7 @@ import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   getEntityOutgoingLinks,
-  updateEntityProperties,
+  updateEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import { getBlockData } from "@apps/hash-api/src/graph/knowledge/system-types/block";
@@ -27,15 +27,14 @@ import { getTextFromEntity } from "@apps/hash-api/src/graph/knowledge/system-typ
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { Entity, OwnedById } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -258,21 +257,30 @@ describe.skip("Page Mention Notification", () => {
     ];
 
     occurredInText.textualContent = updatedTextualContent;
-    occurredInText.entity = (await updateEntityProperties(
+    occurredInText.entity = await updateEntity(
       graphContext,
       { actorId: triggerUser.accountId },
       {
         entity: occurredInText.entity,
-        updatedProperties: [
+        propertyPatches: [
           {
-            propertyTypeBaseUrl: extractBaseUrl(
-              blockProtocolPropertyTypes.textualContent.propertyTypeId,
-            ),
-            value: updatedTextualContent,
+            op: "replace",
+            path: [
+              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
+            ],
+            property: {
+              value: updatedTextualContent.map((token) => ({
+                value: token,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                },
+              })),
+            } satisfies TextualContentPropertyValueWithMetadata,
           },
         ],
       },
-    )) as Entity<TextProperties>;
+    );
 
     /**
      * Notifications are created after the request is resolved, so we need to wait
@@ -317,21 +325,30 @@ describe.skip("Page Mention Notification", () => {
     const updatedTextualContent: TextToken[] = [];
 
     occurredInText.textualContent = updatedTextualContent;
-    occurredInText.entity = (await updateEntityProperties(
+    occurredInText.entity = await updateEntity(
       graphContext,
       { actorId: triggerUser.accountId },
       {
         entity: occurredInText.entity,
-        updatedProperties: [
+        propertyPatches: [
           {
-            propertyTypeBaseUrl: extractBaseUrl(
-              blockProtocolPropertyTypes.textualContent.propertyTypeId,
-            ),
-            value: updatedTextualContent,
+            op: "replace",
+            path: [
+              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
+            ],
+            property: {
+              value: updatedTextualContent.map((token) => ({
+                value: token,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                },
+              })),
+            } satisfies TextualContentPropertyValueWithMetadata,
           },
         ],
       },
-    )) as Entity<TextProperties>;
+    );
 
     /**
      * Notifications are created after the request is resolved, so we need to wait
@@ -430,21 +447,30 @@ describe.skip("Page Mention Notification", () => {
 
     const updatedCommentTextualContent: TextToken[] = [];
 
-    commentText.entity = (await updateEntityProperties(
+    commentText.entity = await updateEntity(
       graphContext,
       { actorId: triggerUser.accountId },
       {
         entity: commentText.entity,
-        updatedProperties: [
+        propertyPatches: [
           {
-            propertyTypeBaseUrl: extractBaseUrl(
-              blockProtocolPropertyTypes.textualContent.propertyTypeId,
-            ),
-            value: updatedCommentTextualContent,
+            op: "replace",
+            path: [
+              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
+            ],
+            property: {
+              value: updatedCommentTextualContent.map((token) => ({
+                value: token,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                },
+              })),
+            } satisfies TextualContentPropertyValueWithMetadata,
           },
         ],
       },
-    )) as Entity<TextProperties>;
+    );
     commentText.textualContent = updatedCommentTextualContent;
 
     /**

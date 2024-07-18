@@ -1,4 +1,4 @@
-#![allow(clippy::print_stderr)]
+#![expect(clippy::print_stderr)]
 
 use std::path::PathBuf;
 
@@ -37,7 +37,7 @@ fn main() {
 
     if !std::process::Command::new("yarn")
         .args([
-            "exe",
+            "tsx",
             &codegen_script_path.to_string_lossy(),
             &type_defs_path.to_string_lossy(),
             "--rust-out-dir",

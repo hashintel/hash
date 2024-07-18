@@ -1,32 +1,34 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type {
+  CreateEntityParameters,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type {
-  Entity,
-  EntityId,
-  EntityRelationAndSubject,
-} from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+  Comment as CommentEntity,
+  CommentPropertiesWithMetadata,
+  Text as TextEntity,
+  TextPropertiesWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import type { CreateEntityParams } from "../primitive/entity";
 import {
   createEntity,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  updateEntityProperties,
-  updateEntityProperty,
+  updateEntity,
 } from "../primitive/entity";
 import {
   getLinkEntityLeftEntity,
@@ -43,17 +45,16 @@ export type Comment = {
   /**
    * @todo - these should probably be changed to encapsulate multi-axis versioning information, or should be explicitly
    *   documented as pertaining to either transaction or decision time
-   *   - https://app.asana.com/0/1202805690238892/1203763454493756/f
+   *   - https://linear.app/hash/issue/H-2991
    */
   resolvedAt?: string;
   deletedAt?: string;
-  entity: Entity;
+  entity: Entity<CommentEntity>;
 };
 
-export const getCommentFromEntity: PureGraphFunction<
-  { entity: Entity },
-  Comment
-> = ({ entity }) => {
+function assertCommentEntity(
+  entity: Entity,
+): asserts entity is Entity<CommentEntity> {
   if (entity.metadata.entityTypeId !== systemEntityTypes.comment.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -61,14 +62,23 @@ export const getCommentFromEntity: PureGraphFunction<
       entity.metadata.entityTypeId,
     );
   }
+}
 
-  const { resolvedAt, deletedAt } = simplifyProperties(
-    entity.properties as CommentProperties,
-  );
+export const getCommentFromEntity: PureGraphFunction<
+  { entity: Entity },
+  Comment
+> = ({ entity }) => {
+  assertCommentEntity(entity);
 
   return {
-    resolvedAt,
-    deletedAt,
+    resolvedAt:
+      entity.properties[
+        "https://hash.ai/@hash/types/property-type/resolved-at/"
+      ],
+    deletedAt:
+      entity.properties[
+        "https://hash.ai/@hash/types/property-type/deleted-at/"
+      ],
     entity,
   };
 };
@@ -134,7 +144,7 @@ export const getCommentText: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createComment: ImpureGraphFunction<
-  Pick<CreateEntityParams, "ownedById"> & {
+  Pick<CreateEntityParameters, "ownedById"> & {
     author: User;
     parentEntityId: EntityId;
     textualContent: TextToken[];
@@ -168,34 +178,47 @@ export const createComment: ImpureGraphFunction<
     },
   ];
 
-  const textEntity = await createEntity(ctx, authentication, {
+  const textEntity = await createEntity<TextEntity>(ctx, authentication, {
     ownedById,
     properties: {
-      [extractBaseUrl(
-        blockProtocolPropertyTypes.textualContent.propertyTypeId,
-      )]: textualContent,
+      value: {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+          {
+            value: textualContent.map((text) => ({
+              value: text,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+              },
+            })),
+          },
+      },
     },
     entityTypeId: systemEntityTypes.text.entityTypeId,
     relationships,
   });
 
-  const commentEntity = await createEntity(ctx, authentication, {
+  const commentEntity = await createEntity<CommentEntity>(ctx, authentication, {
     ownedById,
-    properties: {},
+    properties: { value: {} },
     entityTypeId: systemEntityTypes.comment.entityTypeId,
     outgoingLinks: [
       {
-        linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
-        rightEntityId: parentEntityId,
         ownedById,
-        owner: author.accountId,
+        properties: { value: {} },
+        linkData: {
+          rightEntityId: parentEntityId,
+        },
+        entityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
         relationships,
       },
       {
-        linkEntityTypeId: systemLinkEntityTypes.authoredBy.linkEntityTypeId,
-        rightEntityId: author.entity.metadata.recordId.entityId,
         ownedById,
-        owner: author.accountId,
+        properties: { value: {} },
+        linkData: {
+          rightEntityId: author.entity.metadata.recordId.entityId,
+        },
+        entityTypeId: systemLinkEntityTypes.authoredBy.linkEntityTypeId,
         relationships,
       },
       /**
@@ -204,10 +227,12 @@ export const createComment: ImpureGraphFunction<
        * `parent` nad `author` link entities.
        */
       {
-        linkEntityTypeId: systemLinkEntityTypes.hasText.linkEntityTypeId,
-        rightEntityId: textEntity.metadata.recordId.entityId,
         ownedById,
-        owner: author.accountId,
+        properties: { value: {} },
+        linkData: {
+          rightEntityId: textEntity.metadata.recordId.entityId,
+        },
+        entityTypeId: systemLinkEntityTypes.hasText.linkEntityTypeId,
         relationships,
       },
     ],
@@ -239,12 +264,23 @@ export const updateCommentText: ImpureGraphFunction<
     commentEntityId,
   });
 
-  await updateEntityProperty(ctx, authentication, {
+  await updateEntity<TextEntity>(ctx, authentication, {
     entity: text.entity,
-    propertyTypeBaseUrl: extractBaseUrl(
-      blockProtocolPropertyTypes.textualContent.propertyTypeId,
-    ),
-    value: textualContent,
+    propertyPatches: [
+      {
+        op: "replace",
+        path: [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl],
+        property: {
+          value: textualContent.map((textToken) => ({
+            value: textToken,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+            },
+          })),
+        } satisfies TextPropertiesWithMetadata["value"]["https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"],
+      },
+    ],
   });
 };
 
@@ -264,21 +300,22 @@ export const deleteComment: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { comment } = params;
 
-  const updatedCommentEntity = await updateEntityProperties(
-    ctx,
-    authentication,
-    {
-      entity: comment.entity,
-      updatedProperties: [
-        {
-          propertyTypeBaseUrl: extractBaseUrl(
-            systemPropertyTypes.deletedAt.propertyTypeId,
-          ),
+  const updatedCommentEntity = await updateEntity(ctx, authentication, {
+    entity: comment.entity,
+    propertyPatches: [
+      {
+        op: "add",
+        path: [systemPropertyTypes.deletedAt.propertyTypeBaseUrl],
+        property: {
           value: new Date().toISOString(),
-        },
-      ],
-    },
-  );
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        } satisfies CommentPropertiesWithMetadata["value"]["https://hash.ai/@hash/types/property-type/deleted-at/"],
+      },
+    ],
+  });
 
   return getCommentFromEntity({ entity: updatedCommentEntity });
 };
@@ -394,14 +431,19 @@ export const resolveComment: ImpureGraphFunction<
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { comment } = params;
 
-  const updatedEntity = await updateEntityProperties(ctx, authentication, {
+  const updatedEntity = await updateEntity<CommentEntity>(ctx, authentication, {
     entity: comment.entity,
-    updatedProperties: [
+    propertyPatches: [
       {
-        propertyTypeBaseUrl: extractBaseUrl(
-          systemPropertyTypes.resolvedAt.propertyTypeId,
-        ),
-        value: new Date().toISOString(),
+        op: "add",
+        path: [systemPropertyTypes.resolvedAt.propertyTypeBaseUrl],
+        property: {
+          value: new Date().toISOString(),
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        } satisfies CommentPropertiesWithMetadata["value"]["https://hash.ai/@hash/types/property-type/resolved-at/"],
       },
     ],
   });
@@ -425,7 +467,8 @@ export const getCommentAncestorBlock: ImpureGraphFunction<
   if (
     parentEntity.metadata.entityTypeId === systemEntityTypes.block.entityTypeId
   ) {
-    return getBlockFromEntity({ entity: parentEntity });
+    // @todo - make sure the entity is really a block
+    return getBlockFromEntity({ entity: parentEntity as Block["entity"] });
   } else {
     return getCommentAncestorBlock(context, authentication, {
       commentEntityId: parentEntity.metadata.recordId.entityId,

@@ -1,10 +1,6 @@
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import {
   getEntities,
@@ -25,22 +21,19 @@ const migrate: MigrationFunction = async ({
     await getHashInstanceAdminAccountGroupId(context, authentication);
 
   const userEntities = await getEntities(context, authentication, {
-    query: {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
-              { parameter: systemEntityTypes.user.entityTypeBaseUrl },
-            ],
-          },
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      includeDrafts: true,
-      temporalAxes: currentTimeInstantTemporalAxes,
+    filter: {
+      all: [
+        {
+          equal: [
+            { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+            { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+          ],
+        },
+      ],
     },
-  }).then((subgraph) => getRoots(subgraph));
+    includeDrafts: true,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   for (const userEntity of userEntities) {
     await modifyEntityAuthorizationRelationships(context, authentication, [
@@ -55,6 +48,7 @@ const migrate: MigrationFunction = async ({
           subject: {
             kind: "accountGroup",
             subjectId: hashInstanceAdminsAccountGroupId,
+            subjectSet: "member",
           },
         },
       },

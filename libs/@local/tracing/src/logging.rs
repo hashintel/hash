@@ -1,34 +1,35 @@
 use std::{
-    fmt::{Display, Formatter},
     io,
-    io::{IsTerminal, Stderr},
+    io::IsTerminal,
     path::{Path, PathBuf},
 };
 
-#[cfg(feature = "clap")]
-use clap::Parser;
 use error_stack::{fmt::ColorMode, Report};
-use tracing::{Event, Level, Subscriber};
-use tracing_appender::non_blocking::NonBlocking;
+use tracing::{level_filters::LevelFilter, Level, Subscriber};
+use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{
     filter::Directive,
     fmt::{
         self,
-        format::{DefaultFields, Format, Json, JsonFields, Writer},
-        time::{FormatTime, SystemTime},
-        FmtContext, FormatEvent, FormatFields,
+        format::{DefaultFields, JsonFields},
+        time::SystemTime,
+        FormatFields, MakeWriter,
     },
     registry::LookupSpan,
+    EnvFilter, Layer,
 };
 
+use crate::{console::ConsoleMakeWriter, formatter::TracingFormatter};
+
 /// Output format emitted to the terminal
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 pub enum LogFormat {
     /// Human-readable, single-line logs for each event that occurs, with the current span context
     /// displayed before the formatted representation of the event.
     Full,
     /// excessively pretty, multi-line logs, optimized for human readability.
+    #[default]
     Pretty,
     /// Newline-delimited JSON logs.
     Json,
@@ -36,203 +37,417 @@ pub enum LogFormat {
     Compact,
 }
 
-impl Display for LogFormat {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+impl LogFormat {
+    fn formatter(self) -> TracingFormatter<SystemTime> {
+        let default = fmt::format();
+
         match self {
-            Self::Full => f.write_str("full"),
-            Self::Pretty => f.write_str("pretty"),
-            Self::Json => f.write_str("json"),
-            Self::Compact => f.write_str("compact"),
+            Self::Full => TracingFormatter::Full(default),
+            Self::Pretty => TracingFormatter::Pretty(default.pretty()),
+            Self::Json => TracingFormatter::Json(default.json()),
+            Self::Compact => TracingFormatter::Compact(default.compact()),
         }
     }
 }
 
-impl Default for LogFormat {
-    fn default() -> Self {
-        Self::Pretty
-    }
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+pub enum ConsoleStream {
+    Stdout,
+    #[default]
+    Stderr,
+    #[cfg_attr(feature = "clap", clap(skip))]
+    Test,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+pub enum ColorOption {
+    #[default]
+    Auto,
+    Always,
+    Never,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-pub enum LogLevel {
-    Trace,
-    Debug,
-    Info,
-    Warning,
-    Error,
+pub enum AnsiSupport {
+    Always,
+    Never,
 }
 
-impl Display for LogLevel {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+impl ConsoleStream {
+    const fn make_writer(self) -> ConsoleMakeWriter {
         match self {
-            Self::Trace => fmt.write_str("trace"),
-            Self::Debug => fmt.write_str("debug"),
-            Self::Info => fmt.write_str("info"),
-            Self::Warning => fmt.write_str("warning"),
-            Self::Error => fmt.write_str("error"),
+            Self::Stdout => ConsoleMakeWriter::Stdout,
+            Self::Stderr => ConsoleMakeWriter::Stderr,
+            Self::Test => ConsoleMakeWriter::Test,
         }
     }
 }
 
-impl From<LogLevel> for Directive {
-    fn from(level: LogLevel) -> Self {
-        match level {
-            LogLevel::Trace => Self::from(Level::TRACE),
-            LogLevel::Debug => Self::from(Level::DEBUG),
-            LogLevel::Info => Self::from(Level::INFO),
-            LogLevel::Warning => Self::from(Level::WARN),
-            LogLevel::Error => Self::from(Level::ERROR),
-        }
-    }
-}
-
-/// Arguments for configuring the logging setup
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "clap", derive(Parser))]
-#[expect(
-    clippy::struct_field_names,
-    reason = "The fields are used as CLI arguments"
-)]
-pub struct LoggingConfig {
-    /// Log format used for output to stderr.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "clap", derive(clap::Args), clap(next_help_heading = Some("Console logging")))]
+pub struct ConsoleConfig {
+    /// Whether to enable logging to stdout/stderr
     #[cfg_attr(
         feature = "clap",
         clap(
-            long,
-            default_value = "compact",
+            id = "logging-console-enabled",
+            long = "logging-console-enabled",
+            default_value_t = true,
+            env = "HASH_GRAPH_LOG_CONSOLE_ENABLED",
+            global = true
+        )
+    )]
+    pub enabled: bool,
+
+    /// Log format used for output
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-console-format",
+            long = "logging-console-format",
+            default_value_t = LogFormat::Pretty,
             value_enum,
-            env = "HASH_GRAPH_LOG_FORMAT",
+            env = "HASH_GRAPH_LOG_CONSOLE_FORMAT",
             global = true,
         )
     )]
-    pub log_format: LogFormat,
+    pub format: LogFormat,
 
-    /// Logging verbosity to use. If not set `HASH_GRAPH_LOG_LEVEL` will be used.
-    #[cfg_attr(feature = "clap", clap(long, value_enum, global = true))]
-    pub log_level: Option<LogLevel>,
+    /// Whether to use colors in the output.
+    ///
+    /// This will only be used if the format is not `Json`.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-console-color",
+            long = "logging-console-color",
+            default_value_t = ColorOption::default(),
+            value_enum,
+            env = "HASH_GRAPH_LOG_CONSOLE_COLOR",
+            global = true,
+        )
+    )]
+    pub color: ColorOption,
+
+    /// Logging verbosity to use.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-console-level",
+            long = "logging-console-level",
+            global = true
+        )
+    )]
+    pub level: Option<Level>,
+
+    /// Stream to write to
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-console-stream",
+            long = "logging-console-stream",
+            value_enum,
+            default_value_t=ConsoleStream::Stderr,
+            global = true
+        )
+    )]
+    pub stream: ConsoleStream,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+pub enum RotationInterval {
+    Minutely,
+    Hourly,
+    Daily,
+    #[default]
+    Never,
+}
+
+impl From<RotationInterval> for Rotation {
+    fn from(value: RotationInterval) -> Self {
+        match value {
+            RotationInterval::Minutely => Self::MINUTELY,
+            RotationInterval::Hourly => Self::HOURLY,
+            RotationInterval::Daily => Self::DAILY,
+            RotationInterval::Never => Self::NEVER,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
+pub struct FileRotation {
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-file-rotation",
+            long = "logging-file-rotation",
+            value_enum,
+            default_value_t = RotationInterval::Never,
+            global = true
+        )
+    )]
+    pub rotation: RotationInterval,
+
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-file-filename-prefix",
+            long = "logging-file-filename-prefix",
+            default_value = Some("out"),
+            global = true
+        )
+    )]
+    pub filename_prefix: Option<String>,
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-file-filename-suffix",
+            long = "logging-file-filename-suffix",
+            global = true
+        )
+    )]
+    pub filename_suffix: Option<String>,
+
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-file-max-log-files",
+            long = "logging-file-max-log-files",
+            global = true
+        )
+    )]
+    pub max_log_files: Option<usize>,
+}
+
+impl FileRotation {
+    fn appender(self, output: impl AsRef<Path>) -> RollingFileAppender {
+        let mut builder = tracing_appender::rolling::Builder::new().rotation(self.rotation.into());
+
+        if let Some(prefix) = self.filename_prefix {
+            builder = builder.filename_prefix(prefix);
+        }
+
+        if let Some(suffix) = self.filename_suffix {
+            builder = builder.filename_suffix(suffix);
+        }
+
+        if let Some(max_log_files) = self.max_log_files {
+            builder = builder.max_log_files(max_log_files);
+        }
+
+        builder
+            .build(output)
+            .expect("should be able to initialize rolling file appender")
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "clap", derive(clap::Args), clap(next_help_heading = Some("File logging")))]
+pub struct FileConfig {
+    /// Whether to enable logging to a file
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-file-enabled",
+            long = "logging-file-enabled",
+            default_value_t = false,
+            env = "HASH_GRAPH_LOG_FILE_ENABLED",
+            global = true
+        )
+    )]
+    pub enabled: bool,
+
+    /// Log format used for output
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-file-format",
+            long = "logging-file-format",
+            default_value_t = LogFormat::Json,
+            value_enum,
+            env = "HASH_GRAPH_LOG_FILE_FORMAT",
+            global = true,
+        )
+    )]
+    pub format: LogFormat,
+
+    /// Logging verbosity to use.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            id = "logging-file-level",
+            long = "logging-file-level",
+            value_enum,
+            global = true
+        )
+    )]
+    pub level: Option<Level>,
 
     /// Logging output folder. The folder is created if it doesn't exist.
     #[cfg_attr(
         feature = "clap",
         clap(
-            long,
+            id = "logging-file-output",
+            long = "logging-file-output",
+            value_hint = clap::ValueHint::DirPath,
             default_value = "./logs",
             env = "HASH_GRAPH_LOG_FOLDER",
             global = true
         )
     )]
-    pub log_folder: PathBuf,
+    pub output: PathBuf,
 
-    /// Logging output file prefix.
-    #[cfg_attr(
-        feature = "clap",
-        clap(short, long, default_value = "out", global = true)
-    )]
-    pub log_file_prefix: String,
+    /// Configuration for log file rotation
+    #[cfg_attr(feature = "clap", clap(flatten))]
+    pub rotation: FileRotation,
 }
 
-pub enum OutputFormatter<T> {
-    Full(Format<fmt::format::Full, T>),
-    Pretty(Format<fmt::format::Pretty, T>),
-    Json(Format<fmt::format::Json, T>),
-    Compact(Format<fmt::format::Compact, T>),
+/// Arguments for configuring the logging setup
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
+pub struct LoggingConfig {
+    /// Configuration for logging to the console
+    #[cfg_attr(feature = "clap", clap(flatten))]
+    pub console: ConsoleConfig,
+
+    /// Configuration for logging to a file
+    #[cfg_attr(feature = "clap", clap(flatten))]
+    pub file: FileConfig,
 }
 
-impl<S, N, T> FormatEvent<S, N> for OutputFormatter<T>
+#[must_use]
+pub fn env_filter(level: Option<Level>) -> EnvFilter {
+    level.map_or_else(
+        || {
+            // Both environment variables are supported but `HASH_GRAPH_LOG_LEVEL` takes precedence
+            // over `RUST_LOG`. If `RUST_LOG` is set we emit a warning at the end of this function.
+            std::env::var("HASH_GRAPH_LOG_LEVEL")
+                .or_else(|_| std::env::var("RUST_LOG"))
+                .map_or_else(
+                    |_| {
+                        if cfg!(debug_assertions) {
+                            EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG))
+                        } else {
+                            EnvFilter::default().add_directive(Directive::from(LevelFilter::INFO))
+                        }
+                    },
+                    EnvFilter::new,
+                )
+        },
+        |log_level| EnvFilter::default().add_directive(Directive::from(log_level)),
+    )
+}
+
+type ConcreteLayer<S, W, F>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
-    N: for<'a> FormatFields<'a> + 'static,
-    T: FormatTime,
+    W: for<'writer> MakeWriter<'writer> + 'static,
+    F: for<'write> FormatFields<'write> + 'static,
+= impl Layer<S>;
+
+fn layer<S, W, F>(
+    format: LogFormat,
+    level: Option<Level>,
+    writer: W,
+    fields: F,
+    ansi: AnsiSupport,
+) -> ConcreteLayer<S, W, F>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+    W: for<'writer> MakeWriter<'writer> + 'static,
+    F: for<'write> FormatFields<'write> + 'static,
 {
-    fn format_event(
-        &self,
-        ctx: &FmtContext<'_, S, N>,
-        writer: Writer<'_>,
-        event: &Event<'_>,
-    ) -> std::fmt::Result {
-        match self {
-            Self::Full(fmt) => fmt.format_event(ctx, writer, event),
-            Self::Pretty(fmt) => fmt.format_event(ctx, writer, event),
-            Self::Json(fmt) => fmt.format_event(ctx, writer, event),
-            Self::Compact(fmt) => fmt.format_event(ctx, writer, event),
-        }
+    let formatter = format.formatter();
+
+    fmt::layer()
+        .event_format(formatter)
+        .fmt_fields(fields)
+        .with_ansi(ansi == AnsiSupport::Always)
+        .with_writer(writer)
+        .with_filter(env_filter(level))
+}
+
+fn delegate_to_correct_layer<S, W>(
+    format: LogFormat,
+    level: Option<Level>,
+    writer: W,
+    ansi: AnsiSupport,
+) -> impl Layer<S>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+    W: for<'writer> MakeWriter<'writer> + 'static,
+{
+    type Left<S, W>
+    where
+        S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+        W: for<'writer> MakeWriter<'writer> + 'static,
+    = Option<impl Layer<S>>;
+    type Right<S, W>
+    where
+        S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+        W: for<'writer> MakeWriter<'writer> + 'static,
+    = Option<impl Layer<S>>;
+
+    match format {
+        LogFormat::Json => <Left<S, W> as Layer<S>>::and_then(
+            None,
+            Right::<S, W>::Some(layer(format, level, writer, JsonFields::new(), ansi)),
+        ),
+        _ => <Left<S, W> as Layer<S>>::and_then(
+            Some(layer(format, level, writer, DefaultFields::new(), ansi)),
+            Right::<S, W>::None,
+        ),
     }
 }
 
-type FileOutputLayer<S> = fmt::Layer<S, JsonFields, Format<Json>, NonBlocking>;
-
-pub type TracingDropGuard = impl Drop;
-
-pub fn file_logger<S>(
-    folder: impl AsRef<Path>,
-    file_prefix: &str,
-) -> (FileOutputLayer<S>, TracingDropGuard)
+#[must_use]
+pub(crate) fn file_layer<S>(config: FileConfig) -> (impl Layer<S>, impl Drop)
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    let (writer, guard) = tracing_appender::non_blocking(tracing_appender::rolling::never(
-        folder,
-        format!("{file_prefix}.jsonl"),
-    ));
+    let appender = config.rotation.appender(config.output);
+    let (writer, guard) = tracing_appender::non_blocking(appender);
 
-    let json_file_layer = fmt::layer()
-        .event_format(fmt::format().with_target(true).json())
-        .fmt_fields(JsonFields::new())
-        .with_writer(writer);
+    let layer = delegate_to_correct_layer(config.format, config.level, writer, AnsiSupport::Never);
 
-    (json_file_layer, guard)
+    (layer, guard)
 }
 
-type JsonOutputLayer<S> =
-    Option<fmt::Layer<S, JsonFields, OutputFormatter<SystemTime>, fn() -> Stderr>>;
-type OutputLayer<S> =
-    Option<fmt::Layer<S, DefaultFields, OutputFormatter<SystemTime>, fn() -> Stderr>>;
-
-pub fn console_logger<S1, S2>(log_format: LogFormat) -> (OutputLayer<S1>, JsonOutputLayer<S2>)
+pub type ConsoleLayer<S>
 where
-    S1: Subscriber + for<'a> LookupSpan<'a>,
-    S2: Subscriber + for<'a> LookupSpan<'a>,
+    S: Subscriber + for<'a> LookupSpan<'a>,
+= impl Layer<S>;
+
+#[must_use]
+pub fn console_layer<S>(config: &ConsoleConfig) -> ConsoleLayer<S>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    let formatter = fmt::format();
-
-    let output_format = match log_format {
-        LogFormat::Full => OutputFormatter::Full(formatter),
-        LogFormat::Pretty => OutputFormatter::Pretty(formatter.pretty()),
-        LogFormat::Json => OutputFormatter::Json(formatter.json()),
-        LogFormat::Compact => OutputFormatter::Compact(formatter.compact()),
-    };
-
-    let ansi_output = io::stderr().is_terminal() && log_format != LogFormat::Json;
+    let ansi_output = config.format != LogFormat::Json
+        && match config.color {
+            ColorOption::Auto => match config.stream {
+                ConsoleStream::Stdout | ConsoleStream::Test => io::stdout().is_terminal(),
+                ConsoleStream::Stderr => io::stderr().is_terminal(),
+            },
+            ColorOption::Always => true,
+            ColorOption::Never => false,
+        };
     if !ansi_output {
         Report::set_color_mode(ColorMode::None);
     }
 
-    // Because of how the Registry and Layer interface is designed, we can't just have one
-    // layer, as they have different types. We also can't box them as it requires Sized.
-    // However, Option<Layer> implements the Layer trait so we can just provide None for
-    // one and Some for the other.
-    // Alternatively we could also create an enum that implements Layer and use that instead, but
-    // that would require a lot of boilerplate.
-    match log_format {
-        LogFormat::Json => (
-            None,
-            Some(
-                fmt::layer()
-                    .event_format(output_format)
-                    .fmt_fields(JsonFields::new())
-                    .with_ansi(ansi_output)
-                    .with_writer(io::stderr),
-            ),
-        ),
-        _ => (
-            Some(
-                fmt::layer()
-                    .event_format(output_format)
-                    .with_ansi(ansi_output)
-                    .with_writer(io::stderr),
-            ),
-            None,
-        ),
-    }
+    delegate_to_correct_layer(
+        config.format,
+        config.level,
+        config.stream.make_writer(),
+        if ansi_output {
+            AnsiSupport::Always
+        } else {
+            AnsiSupport::Never
+        },
+    )
 }

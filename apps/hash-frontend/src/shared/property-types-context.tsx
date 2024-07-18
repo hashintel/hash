@@ -1,6 +1,6 @@
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { PropertyTypeWithMetadata } from "@local/hash-subgraph";
+import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 
@@ -56,7 +56,7 @@ export const usePropertyTypes = (params?: {
         filteredPropertyTypeVersionsByBaseUrl[baseUrl] = [propertyType];
       } else {
         filteredPropertyTypeVersionsByBaseUrl[baseUrl] ??= [];
-        filteredPropertyTypeVersionsByBaseUrl[baseUrl]!.push(propertyType);
+        filteredPropertyTypeVersionsByBaseUrl[baseUrl].push(propertyType);
       }
     }
 

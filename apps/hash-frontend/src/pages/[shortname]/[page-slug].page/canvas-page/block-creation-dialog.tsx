@@ -1,8 +1,12 @@
 import { useMutation } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { BlockCollection } from "@local/hash-isomorphic-utils/entity";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { useApp } from "@tldraw/editor";
 import type { DialogProps } from "@tldraw/tldraw";
@@ -12,7 +16,7 @@ import type {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { BlockSuggester } from "../../../shared/block-collection/create-suggester/block-suggester";
 import { usePageContext } from "../../../shared/block-collection/page-context";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../shared/block-collection-contents";
@@ -62,7 +66,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
                 componentId: blockMeta.componentId,
                 entity: {
                   entityTypeId: blockEntityTypeId,
-                  entityProperties: {},
+                  entityProperties: { value: {} },
                 },
                 ownedById: accountId as OwnedById,
                 position: {
@@ -84,7 +88,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         // temporary hack to keep page data consistent, in the absence of proper data subscriptions
         refetchQueries: [
           {
-            query: structuralQueryEntitiesQuery,
+            query: getEntitySubgraphQuery,
             variables: getBlockCollectionContentsStructuralQueryVariables(
               extractEntityUuidFromEntityId(pageEntityId),
             ),
@@ -96,7 +100,21 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         throw new Error("No data returned from updateBlockCollectionContents");
       }
 
-      const { blockCollection } = data.updateBlockCollectionContents;
+      const blockCollection = {
+        ...data.updateBlockCollectionContents.blockCollection,
+        contents:
+          data.updateBlockCollectionContents.blockCollection.contents.map(
+            (item) => ({
+              linkEntity: new LinkEntity(item.linkEntity) as
+                | LinkEntity<HasIndexedContent>
+                | LinkEntity<HasSpatiallyPositionedContent>,
+              rightEntity: {
+                ...item.rightEntity,
+                blockChildEntity: new Entity(item.rightEntity.blockChildEntity),
+              },
+            }),
+          ),
+      } satisfies BlockCollection;
 
       const newBlock = blockCollection.contents.sort((a, b) =>
         a.linkEntity.metadata.temporalVersioning.transactionTime.start.limit.localeCompare(

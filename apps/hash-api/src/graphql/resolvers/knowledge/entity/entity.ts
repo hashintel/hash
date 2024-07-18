@@ -1,43 +1,41 @@
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type {
-  AccountGroupId,
-  AccountId,
-  Entity,
-  EntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
 import { splitEntityId } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import {
   ApolloError,
   ForbiddenError,
   UserInputError,
 } from "apollo-server-express";
 
-import { publicUserAccountId } from "../../../../auth/public-user-account-id";
 import {
   addEntityAdministrator,
   addEntityEditor,
-  archiveEntity,
+  canUserReadEntity,
   checkEntityPermission,
   createEntityWithLinks,
-  getEntities,
   getEntityAuthorizationRelationships,
+  getEntitySubgraph,
   getLatestEntityById,
   modifyEntityAuthorizationRelationships,
   removeEntityAdministrator,
   removeEntityEditor,
-  unarchiveEntity,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import {
@@ -60,9 +58,9 @@ import type {
   MutationUpdateEntityArgs,
   Query,
   QueryGetEntityArgs,
+  QueryGetEntitySubgraphArgs,
   QueryIsEntityPublicArgs,
   QueryResolvers,
-  QueryStructuralQueryEntitiesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import {
@@ -72,7 +70,6 @@ import {
 } from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
 
 export const createEntityResolver: ResolverFn<
@@ -99,32 +96,33 @@ export const createEntityResolver: ResolverFn<
   /**
    * @todo: prevent callers of this mutation from being able to create restricted
    * system types (e.g. a `User` or an `Org`)
-   *
-   * @see https://app.asana.com/0/1202805690238892/1203084714149803/f
+   * @see https://linear.app/hash/issue/H-2993
    */
 
-  let entity: Entity | LinkEntity;
+  let entity: Entity;
 
   if (linkData) {
     const { leftEntityId, rightEntityId } = linkData;
 
-    const [leftEntity, rightEntity] = await Promise.all([
-      getLatestEntityById(context, authentication, {
+    await Promise.all([
+      canUserReadEntity(context, authentication, {
         entityId: leftEntityId,
         includeDrafts: draft ?? false,
       }),
-      getLatestEntityById(context, authentication, {
+      canUserReadEntity(context, authentication, {
         entityId: rightEntityId,
         includeDrafts: draft ?? false,
       }),
     ]);
 
     entity = await createLinkEntity(context, authentication, {
-      leftEntityId: leftEntity.metadata.recordId.entityId,
-      rightEntityId: rightEntity.metadata.recordId.entityId,
-      properties,
-      linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
+      properties,
+      linkData: {
+        leftEntityId,
+        rightEntityId,
+      },
+      entityTypeId,
       relationships:
         relationships ??
         createDefaultAuthorizationRelationships(authentication),
@@ -141,7 +139,7 @@ export const createEntityResolver: ResolverFn<
     });
   }
 
-  return mapEntityToGQL(entity);
+  return entity;
 };
 
 export const queryEntitiesResolver: NonNullable<
@@ -182,23 +180,21 @@ export const queryEntitiesResolver: NonNullable<
     );
   }
 
-  const entitySubgraph = await getEntities(context, authentication, {
-    query: {
-      filter,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        inheritsFrom,
-        isOfType,
-        hasLeftEntity,
-        hasRightEntity,
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: includeDrafts ?? false,
+  const entitySubgraph = await getEntitySubgraph(context, authentication, {
+    filter,
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn,
+      constrainsPropertiesOn,
+      constrainsLinksOn,
+      constrainsLinkDestinationsOn,
+      inheritsFrom,
+      isOfType,
+      hasLeftEntity,
+      hasRightEntity,
     },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: includeDrafts ?? false,
   });
 
   return createSubgraphAndPermissionsReturn(
@@ -208,20 +204,20 @@ export const queryEntitiesResolver: NonNullable<
   );
 };
 
-export const structuralQueryEntitiesResolver: ResolverFn<
-  Query["structuralQueryEntities"],
+export const getEntitySubgraphResolver: ResolverFn<
+  Query["getEntitySubgraph"],
   Record<string, never>,
   GraphQLContext,
-  QueryStructuralQueryEntitiesArgs
-> = async (_, { query }, graphQLContext, info) => {
+  QueryGetEntitySubgraphArgs
+> = async (_, { request }, graphQLContext, info) => {
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const subgraph = await getEntities(
+  const subgraph = await getEntitySubgraph(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     {
       temporalClient: context.temporalClient,
-      query,
+      ...request,
     },
   );
 
@@ -251,7 +247,7 @@ export const getEntityResolver: ResolverFn<
   graphQLContext,
   info,
 ) => {
-  const [ownedById, entityUuid] = splitEntityId(entityId);
+  const [ownedById, entityUuid, draftId] = splitEntityId(entityId);
 
   const filter: Filter = {
     all: [
@@ -263,6 +259,11 @@ export const getEntityResolver: ResolverFn<
       },
     ],
   };
+  if (draftId) {
+    filter.all.push({
+      equal: [{ path: ["draftId"] }, { parameter: draftId }],
+    });
+  }
 
   // If an entity version is specified, the result is constrained to that version.
   // This is done by providing a time interval with the same start and end as given by the version.
@@ -282,26 +283,24 @@ export const getEntityResolver: ResolverFn<
       }
     : currentTimeInstantTemporalAxes;
 
-  const entitySubgraph = await getEntities(
+  const entitySubgraph = await getEntitySubgraph(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     {
-      query: {
-        filter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn,
-          constrainsPropertiesOn,
-          constrainsLinksOn,
-          constrainsLinkDestinationsOn,
-          inheritsFrom,
-          isOfType,
-          hasLeftEntity,
-          hasRightEntity,
-        },
-        temporalAxes,
-        includeDrafts: includeDrafts ?? false,
+      filter,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
+        isOfType,
+        hasLeftEntity,
+        hasRightEntity,
       },
+      temporalAxes,
+      includeDrafts: includeDrafts ?? false,
     },
   );
 
@@ -319,7 +318,7 @@ export const updateEntityResolver: ResolverFn<
   MutationUpdateEntityArgs
 > = async (
   _,
-  { entityUpdate: { draft, entityId, updatedProperties, entityTypeId } },
+  { entityUpdate: { draft, entityId, propertyPatches, entityTypeId } },
   graphQLContext,
 ) => {
   const { authentication, user } = graphQLContext;
@@ -338,7 +337,6 @@ export const updateEntityResolver: ResolverFn<
 
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
-    includeDrafts: true,
   });
 
   let updatedEntity: Entity;
@@ -346,19 +344,19 @@ export const updateEntityResolver: ResolverFn<
   if (isEntityLinkEntity(entity)) {
     updatedEntity = await updateLinkEntity(context, authentication, {
       linkEntity: entity,
-      properties: updatedProperties,
+      propertyPatches,
       draft: draft ?? undefined,
     });
   } else {
     updatedEntity = await updateEntity(context, authentication, {
       entity,
       entityTypeId: entityTypeId ?? undefined,
-      properties: updatedProperties,
+      propertyPatches,
       draft: draft ?? undefined,
     });
   }
 
-  return mapEntityToGQL(updatedEntity);
+  return updatedEntity;
 };
 
 export const updateEntitiesResolver: ResolverFn<
@@ -391,10 +389,9 @@ export const archiveEntityResolver: ResolverFn<
 
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
-    includeDrafts: true,
   });
 
-  await archiveEntity(context, authentication, { entity });
+  await entity.archive(context.graphApi, authentication);
 
   return true;
 };
@@ -417,10 +414,9 @@ export const archiveEntitiesResolver: ResolverFn<
       try {
         const entity = await getLatestEntityById(context, authentication, {
           entityId,
-          includeDrafts: true,
         });
 
-        await archiveEntity(context, authentication, { entity });
+        await entity.archive(context.graphApi, authentication);
 
         archivedEntities.push(entity);
       } catch (error) {
@@ -432,7 +428,7 @@ export const archiveEntitiesResolver: ResolverFn<
   if (entitiesThatCouldNotBeArchived.length > 0) {
     await Promise.all(
       archivedEntities.map((entity) =>
-        unarchiveEntity(context, authentication, { entity }),
+        entity.unarchive(context.graphApi, authentication),
       ),
     );
 
@@ -525,6 +521,7 @@ const parseGqlAuthorizationViewerInput = ({
     return {
       kind: "accountGroup",
       subjectId: viewer as AccountGroupId,
+      subjectSet: "member",
     } as const;
   }
 };

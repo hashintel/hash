@@ -26,7 +26,10 @@ const OntologyChip: ForwardRefRenderFunction<
     return match
       ? {
           shortname: match[1],
-          between: match[2] ? `${match[2]}${match[3] ? "/" : ""}` : undefined,
+          between:
+            match[2] ?? match[3]
+              ? `${match[2] ?? ""}${match[3] ? "/" : ""}`
+              : undefined,
           slug: match[3],
           after: match[4],
         }

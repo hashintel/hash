@@ -6,4 +6,4 @@ echo "Changing dir to root"
 cd ../..
 
 echo "Building hash.design"
-turbo build --filter='@apps/hashdotdev'
+turbo build --filter='@apps/hashdotdev' --env-mode=loose

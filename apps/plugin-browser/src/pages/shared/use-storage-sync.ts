@@ -1,10 +1,9 @@
+import type { NonUndefined } from "@local/advanced-types/non-undefined";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import browser from "webextension-polyfill";
 
 import type { LocalStorage } from "../../shared/storage";
 import { getFromLocalStorage, setInLocalStorage } from "../../shared/storage";
-
-type NonUndefined<T> = T extends undefined ? never : T;
 
 /**
  * A hook to keep React state synced with local storage shared across the extension.
@@ -17,6 +16,8 @@ type NonUndefined<T> = T extends undefined ? never : T;
  *
  * @param initialValue the value to initialise the state with
  * @param key the key for the value in storage
+ *
+ * @return [value, setValue, storageHasBeenChecked]
  *
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage
  */

@@ -37,6 +37,11 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: "/docs/simulations/run/simulation/outputs/api-1",
+        destination: "/docs/simulations/api/access#hcloud-api",
+        permanent: true,
+      },
+      {
         source: "/docs/simulations/create/advanced/physics",
         destination: "/docs/simulations/create/libraries/physics",
         permanent: true,
@@ -184,12 +189,12 @@ const nextConfig = {
        */
       {
         source: "/license",
-        destination: "https://hash.ai/legal/developers/license",
+        destination: "https://hash.ai/legal/developers/license-open",
         permanent: true,
       },
       {
         source: "/licence",
-        destination: "https://hash.ai/legal/developers/license",
+        destination: "https://hash.ai/legal/developers/license-open",
         permanent: true,
       },
       /**

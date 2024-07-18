@@ -172,6 +172,7 @@ macro_rules! deserialize_identifier {
         where
             V: IdentifierVisitor<'de>,
         {
+            #[expect(clippy::as_underscore)]
             visitor
                 .$visit(self.value as _)
                 .change_context(DeserializerError)
@@ -414,11 +415,7 @@ impl_deserializer!(
     deserialize_identifier!(visit, as, visit_u64);
 );
 
-#[cfg(not(any(
-    target_pointer_width = "16",
-    target_pointer_width = "32",
-    target_pointer_width = "128"
-)))]
+#[cfg(target_pointer_width = "64")]
 impl_deserializer!(
     #[derive(Copy)] UsizeDeserializer(usize);
     deserialize_any!(as, u64, visit_u64);
@@ -426,16 +423,6 @@ impl_deserializer!(
     deserialize_optional!();
     deserialize_struct!(error);
     deserialize_identifier!(visit, as, visit_u64);
-);
-
-#[cfg(target_pointer_width = "128")]
-impl_deserializer!(
-    #[derive(Copy)] UsizeDeserializer(isize);
-    deserialize_any!(as, u128, visit_u128);
-    deserialize_enum!();
-    deserialize_optional!();
-    deserialize_struct!(error);
-    deserialize_identifier!(try_visit, visit_u64);
 );
 
 impl_deserializer!(
@@ -503,24 +490,10 @@ impl_deserializer!(
     deserialize_identifier!(try_visit, visit_u64);
 );
 
-#[cfg(not(any(
-    target_pointer_width = "16",
-    target_pointer_width = "32",
-    target_pointer_width = "128"
-)))]
+#[cfg(target_pointer_width = "64")]
 impl_deserializer!(
     #[derive(Copy)] IsizeDeserializer(isize);
     deserialize_any!(as, i64, visit_i64);
-    deserialize_enum!();
-    deserialize_optional!();
-    deserialize_struct!(error);
-    deserialize_identifier!(try_visit, visit_u64);
-);
-
-#[cfg(target_pointer_width = "128")]
-impl_deserializer!(
-    #[derive(Copy)] IsizeDeserializer(isize);
-    deserialize_any!(as, i128, visit_i128);
     deserialize_enum!();
     deserialize_optional!();
     deserialize_struct!(error);

@@ -2,7 +2,7 @@ mod api;
 mod model;
 pub(crate) mod serde;
 
-use std::fmt;
+use core::fmt;
 
 use error_stack::Result;
 

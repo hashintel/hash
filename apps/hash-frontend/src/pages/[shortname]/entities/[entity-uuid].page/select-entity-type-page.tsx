@@ -44,6 +44,7 @@ export const SelectEntityTypePage = () => {
               path={`@${activeWorkspace.shortname}/entities`}
             />
           }
+          onEntityUpdated={null}
         />
       }
     >

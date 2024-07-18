@@ -1,3 +1,4 @@
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   HasSpatiallyPositionedContent,
@@ -36,8 +37,8 @@ const isSpatiallyPositionedProperties = (
 };
 
 export const sortBlockCollectionLinks = <
-  Left extends HasSpatiallyPositionedContent | HasIndexedContent,
-  Right extends HasSpatiallyPositionedContent | HasIndexedContent,
+  Left extends Entity<HasSpatiallyPositionedContent | HasIndexedContent>,
+  Right extends Entity<HasSpatiallyPositionedContent | HasIndexedContent>,
 >(
   a: Left,
   b: Right,

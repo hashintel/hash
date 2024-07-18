@@ -1,4 +1,5 @@
-use std::{collections::HashMap, hash::Hash};
+use core::hash::Hash;
+use std::collections::HashMap;
 
 use error_stack::Result;
 use graph_types::{
@@ -19,7 +20,12 @@ use crate::{
     subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph},
 };
 
-impl<C: AsClient> PostgresStore<C> {
+impl<C, A> PostgresStore<C, A>
+where
+    C: AsClient,
+    A: Send + Sync,
+{
+    #[tracing::instrument(level = "info", skip(self, vertex_ids, subgraph))]
     async fn read_data_types_by_ids(
         &self,
         vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
@@ -50,6 +56,7 @@ impl<C: AsClient> PostgresStore<C> {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self, vertex_ids, subgraph))]
     async fn read_property_types_by_ids(
         &self,
         vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
@@ -80,6 +87,7 @@ impl<C: AsClient> PostgresStore<C> {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self, vertex_ids, subgraph))]
     async fn read_entity_types_by_ids(
         &self,
         vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
@@ -110,6 +118,7 @@ impl<C: AsClient> PostgresStore<C> {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip(self, edition_ids, subgraph))]
     async fn read_entities_by_ids(
         &self,
         edition_ids: impl IntoIterator<Item = EntityEditionId, IntoIter: Send> + Send,
@@ -121,7 +130,7 @@ impl<C: AsClient> PostgresStore<C> {
             .map(EntityEditionId::into_uuid)
             .collect::<Vec<_>>();
 
-        for entity in <Self as Read<Entity>>::read_vec(
+        let entities = <Self as Read<Entity>>::read_vec(
             self,
             &Filter::<Entity>::In(
                 FilterExpression::Path(EntityQueryPath::EditionId),
@@ -130,8 +139,12 @@ impl<C: AsClient> PostgresStore<C> {
             Some(&subgraph.temporal_axes.resolved),
             include_drafts,
         )
-        .await?
-        {
+        .await?;
+
+        let span = tracing::trace_span!("insert_into_subgraph", count = entities.len());
+        let _enter = span.enter();
+
+        for entity in entities {
             subgraph.insert_vertex(
                 entity.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis()),
                 entity,
@@ -204,7 +217,7 @@ impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
 
         // TODO: Further optimization could happen here. It's possible to return none, a single, or
         //       multiple entries depending on the existing depths and traversed interval.
-        //   See https://app.asana.com/0/0/1204117847656667/f
+        //   see https://linear.app/hash/issue/H-3017
         if values.iter().any(|&(existing_depths, traversed_interval)| {
             existing_depths.contains(graph_resolve_depths)
                 && traversed_interval.contains_interval(&interval)
@@ -226,9 +239,10 @@ pub struct TraversalContext {
 }
 
 impl TraversalContext {
-    pub async fn read_traversed_vertices<C: AsClient>(
+    #[tracing::instrument(level = "info", skip(self, store, subgraph))]
+    pub async fn read_traversed_vertices<C: AsClient, A: Send + Sync>(
         &self,
-        store: &PostgresStore<C>,
+        store: &PostgresStore<C, A>,
         subgraph: &mut Subgraph,
         include_drafts: bool,
     ) -> Result<(), QueryError> {

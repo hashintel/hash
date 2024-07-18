@@ -7,14 +7,17 @@ import type {
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import type { GraphApi } from "@local/hash-graph-client";
+import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import {
+  Entity,
+  mergePropertyObjectAndMetadata,
+  propertyObjectToPatches,
+} from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  AccountId,
-  BaseUrl,
-  EntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
 
 import {
   mapHashEntityToLinearUpdateInput,
@@ -22,10 +25,20 @@ import {
   mapLinearDataToEntityWithOutgoingLinks,
 } from "./linear-activities/mappings";
 import {
-  archiveEntity,
   getEntitiesByLinearId,
   getEntityOutgoingLinks,
 } from "./shared/graph-requests";
+
+const provenance: EnforcedEntityEditionProvenance = {
+  actorType: "machine",
+  origin: {
+    type: "flow",
+    /**
+     * @todo use correct EntityId for Flow when Linear integration migrated to Flows
+     */
+    id: "linear-integration",
+  } satisfies OriginProvenance,
+};
 
 const createHashEntity = async (params: {
   authentication: { actorId: AccountId };
@@ -38,10 +51,52 @@ const createHashEntity = async (params: {
   ownedById: OwnedById;
 }): Promise<void> => {
   const { graphApiClient, ownedById } = params;
-  const { data: entity } = await graphApiClient.createEntity(
-    params.authentication.actorId,
-    {
+
+  const entity = await Entity.create(graphApiClient, params.authentication, {
+    ownedById,
+    draft: false,
+    relationships: [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: params.authentication.actorId,
+        },
+      },
+      {
+        relation: "setting",
+        subject: { kind: "setting", subjectId: "administratorFromWeb" },
+      },
+      {
+        relation: "setting",
+        subject: { kind: "setting", subjectId: "updateFromWeb" },
+      },
+      {
+        relation: "setting",
+        subject: { kind: "setting", subjectId: "viewFromWeb" },
+      },
+    ],
+    properties: mergePropertyObjectAndMetadata(
+      (params.partialEntity.properties as Entity["properties"] | undefined) ??
+        {},
+      undefined,
+    ),
+    provenance,
+    entityTypeId: params.partialEntity.entityTypeId,
+  });
+
+  await Entity.createMultiple(
+    graphApiClient,
+    { actorId: params.authentication.actorId },
+    params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => ({
       ownedById,
+      linkData: {
+        leftEntityId: entity.metadata.recordId.entityId,
+        rightEntityId: destinationEntityId,
+      },
+      entityTypeId: linkEntityTypeId,
+      properties: { value: {} },
+      provenance,
       draft: false,
       relationships: [
         {
@@ -64,45 +119,7 @@ const createHashEntity = async (params: {
           subject: { kind: "setting", subjectId: "viewFromWeb" },
         },
       ],
-      ...params.partialEntity,
-      entityTypeIds: [params.partialEntity.entityTypeId],
-    },
-  );
-
-  await Promise.all(
-    params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
-      graphApiClient.createEntity(params.authentication.actorId, {
-        ownedById,
-        linkData: {
-          leftEntityId: entity.recordId.entityId,
-          rightEntityId: destinationEntityId,
-        },
-        entityTypeIds: [linkEntityTypeId],
-        properties: {},
-        draft: false,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: params.authentication.actorId,
-            },
-          },
-          {
-            relation: "setting",
-            subject: { kind: "setting", subjectId: "administratorFromWeb" },
-          },
-          {
-            relation: "setting",
-            subject: { kind: "setting", subjectId: "updateFromWeb" },
-          },
-          {
-            relation: "setting",
-            subject: { kind: "setting", subjectId: "viewFromWeb" },
-          },
-        ],
-      }),
-    ),
+    })),
   );
 };
 
@@ -118,12 +135,11 @@ const createOrUpdateHashEntity = async (params: {
 }): Promise<void> => {
   const { partialEntity, graphApiClient } = params;
 
-  const linearIdBaseUrl = linearPropertyTypes.id.propertyTypeBaseUrl as BaseUrl;
+  const linearIdBaseUrl = linearPropertyTypes.id.propertyTypeBaseUrl;
 
   const linearId = partialEntity.properties[linearIdBaseUrl];
 
-  const updatedAtBaseUrl = linearPropertyTypes.updatedAt
-    .propertyTypeBaseUrl as BaseUrl;
+  const updatedAtBaseUrl = linearPropertyTypes.updatedAt.propertyTypeBaseUrl;
 
   const updatedAt = partialEntity.properties[updatedAtBaseUrl];
 
@@ -168,16 +184,17 @@ const createOrUpdateHashEntity = async (params: {
 
     await Promise.all([
       ...removedOutgoingLinks.map((linkEntity) =>
-        archiveEntity({ ...params, entity: linkEntity }),
+        linkEntity.archive(params.graphApiClient, params.authentication),
       ),
       ...addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
-        graphApiClient.createEntity(params.authentication.actorId, {
-          entityTypeIds: [linkEntityTypeId],
+        Entity.create(graphApiClient, params.authentication, {
+          entityTypeId: linkEntityTypeId,
           linkData: {
             leftEntityId: existingEntity.metadata.recordId.entityId,
             rightEntityId: destinationEntityId,
           },
-          properties: {},
+          properties: { value: {} },
+          provenance,
           ownedById: params.ownedById,
           draft: false,
           relationships: [
@@ -201,16 +218,13 @@ const createOrUpdateHashEntity = async (params: {
     if (
       updatedAt &&
       existingEntity.properties[updatedAtBaseUrl] &&
-      existingEntity.properties[updatedAtBaseUrl]! >= updatedAt
+      existingEntity.properties[updatedAtBaseUrl] >= updatedAt
     ) {
       continue;
     }
 
     /** @todo: check which values have changed in a more sophisticated manor */
-    const mergedProperties = {
-      ...existingEntity.properties,
-      // Ensure we don't accidentally set required properties to `undefined` by disabling
-      // the ability to set properties to `undefined`
+    const updatedProperties: PropertyObject = {
       ...Object.entries(partialEntity.properties).reduce(
         (acc, [propertyTypeUrl, value]) => ({
           ...acc,
@@ -224,15 +238,11 @@ const createOrUpdateHashEntity = async (params: {
       ),
     };
 
-    await graphApiClient.patchEntity(params.authentication.actorId, {
-      entityId: existingEntity.metadata.recordId.entityId,
-      properties: [
-        {
-          op: "replace",
-          path: "",
-          value: mergedProperties,
-        },
-      ],
+    await existingEntity.patch(graphApiClient, params.authentication, {
+      propertyPatches: propertyObjectToPatches(
+        mergePropertyObjectAndMetadata(updatedProperties, undefined),
+      ),
+      provenance,
     });
   }
 
@@ -421,7 +431,7 @@ export const createLinearIntegrationActivities = ({
       graphApiClient,
       authentication,
       linearType: mapping.linearType,
-      entity,
+      entity: new Entity(entity),
     });
 
     if (Object.entries(linearUpdateInput).length > 0) {

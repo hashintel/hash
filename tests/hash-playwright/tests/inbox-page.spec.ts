@@ -1,12 +1,13 @@
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
-  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
-import type { GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
-import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { AccountId } from "@local/hash-subgraph";
+import type {
+  GraphChangeNotification,
+  OccurredInEntity,
+} from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
+import type { Page } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { createEntity, getUser } from "./shared/api-queries";
@@ -32,33 +33,70 @@ const createNotification = async ({
     user.metadata.recordId.entityId,
   );
 
-  const targetEntity = await createEntity(requestContext, {
+  const targetEntity = await createEntity<Page>(requestContext, {
     draft,
     entityTypeId: systemEntityTypes.page.entityTypeId,
     ownedById,
     properties: {
-      [systemPropertyTypes.title.propertyTypeBaseUrl]: targetEntityTitle,
-      [systemPropertyTypes.fractionalIndex.propertyTypeBaseUrl]: "a0",
-    } as PageProperties,
-  });
-
-  await createEntity(requestContext, {
-    draft: false,
-    entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
-    ownedById,
-    properties: {
-      "https://hash.ai/@hash/types/property-type/graph-change-type/": "create",
-    } as GraphChangeNotificationProperties,
-    linkedEntities: [
-      {
-        destinationAccountId: ownedById as AccountId,
-        linkEntityTypeId:
-          systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-        entity: {
-          existingEntityId: targetEntity.metadata.recordId.entityId,
+      value: {
+        "https://hash.ai/@hash/types/property-type/title/": {
+          value: targetEntityTitle,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+        "https://hash.ai/@hash/types/property-type/fractional-index/": {
+          value: "a0",
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
         },
       },
-    ],
+    },
+  });
+
+  const notificationEntity = await createEntity<GraphChangeNotification>(
+    requestContext,
+    {
+      draft: false,
+      entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
+      ownedById,
+      properties: {
+        value: {
+          "https://hash.ai/@hash/types/property-type/graph-change-type/": {
+            value: "create",
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
+      },
+    },
+  );
+
+  await createEntity<OccurredInEntity>(requestContext, {
+    draft,
+    entityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+    linkData: {
+      leftEntityId: notificationEntity.metadata.recordId.entityId,
+      rightEntityId: targetEntity.metadata.recordId.entityId,
+    },
+    ownedById,
+    properties: {
+      value: {
+        "https://hash.ai/@hash/types/property-type/entity-edition-id/": {
+          value:
+            targetEntity.metadata.temporalVersioning.decisionTime.start.limit,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          },
+        },
+      },
+    },
   });
 
   return targetEntityTitle;

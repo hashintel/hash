@@ -1,19 +1,21 @@
-import { createGoogleOAuth2Client } from "@local/hash-backend-utils/google";
+import {
+  createGoogleOAuth2Client,
+  getGoogleAccountById,
+} from "@local/hash-backend-utils/google";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
   GoogleOAuth2CallbackRequest,
   GoogleOAuth2CallbackResponse,
 } from "@local/hash-isomorphic-utils/google-integration";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountProperties as GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
 import type { RequestHandler } from "express";
 import { google } from "googleapis";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
 import { enabledIntegrations } from "../enabled-integrations";
-import { getGoogleAccountById } from "./shared/get-google-account";
 
 export const googleOAuthCallback: RequestHandler<
   Record<string, never>,
@@ -82,24 +84,39 @@ export const googleOAuthCallback: RequestHandler<
     /**
      * Create the Google Account entity if it doesn't exist
      */
-    const existingGoogleAccountEntity = await getGoogleAccountById(
-      req.context,
-      authentication,
-      {
-        userAccountId: req.user.accountId,
-        googleAccountId: googleUser.data.id,
-      },
-    );
+    const existingGoogleAccountEntity = await getGoogleAccountById({
+      graphApiClient: req.context.graphApi,
+      userAccountId: req.user.accountId,
+      googleAccountId: googleUser.data.id,
+    });
 
     let newGoogleAccountEntity;
     if (!existingGoogleAccountEntity) {
-      const googleAccountProperties: GoogleAccountProperties = {
-        "https://hash.ai/@hash/types/property-type/email/":
-          googleUser.data.email,
-        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          googleUser.data.name ?? googleUser.data.email,
-        "https://hash.ai/@google/types/property-type/account-id/":
-          googleUser.data.id,
+      const googleAccountProperties: GoogleAccount["propertiesWithMetadata"] = {
+        value: {
+          "https://hash.ai/@hash/types/property-type/email/": {
+            value: googleUser.data.email,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+            {
+              value: googleUser.data.name ?? googleUser.data.email,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          "https://hash.ai/@google/types/property-type/account-id/": {
+            value: googleUser.data.id,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
       };
 
       newGoogleAccountEntity = await createEntity(req.context, authentication, {
@@ -157,6 +174,7 @@ export const googleOAuthCallback: RequestHandler<
       expiresAt: "", // the secret data includes an refresh token that lasts indefinitely and will be used as needed
       graphApi: req.context.graphApi,
       managingBotAccountId: googleBotAccountId,
+      provenance: req.context.provenance,
       restOfPath: `account/${googleUser.data.id}`,
       secretData: tokens,
       service: "google",

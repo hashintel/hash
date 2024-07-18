@@ -1,28 +1,21 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { AccountId } from "@local/hash-graph-types/account";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  AccountId,
-  Entity,
-  EntityId,
-  EntityRootType,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 export const getEntitiesByLinearId = async (params: {
   graphApiClient: GraphApi;
@@ -31,54 +24,47 @@ export const getEntitiesByLinearId = async (params: {
   entityTypeId?: VersionedUrl;
   webOwnedById?: OwnedById;
   includeDrafts?: boolean;
-}): Promise<Entity[]> => {
-  const entities = await params.graphApiClient
-    .getEntitiesByQuery(params.authentication.actorId, {
-      query: {
-        filter: {
-          all: [
-            params.entityTypeId
-              ? generateVersionedUrlMatchingFilter(params.entityTypeId, {
-                  ignoreParents: true,
-                })
-              : [],
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    linearPropertyTypes.id.propertyTypeBaseUrl,
-                  ],
-                },
-                { parameter: params.linearId },
-              ],
-            },
-            params.webOwnedById
-              ? {
-                  equal: [
-                    {
-                      path: ["ownedById"],
-                    },
-                    { parameter: params.webOwnedById },
-                  ],
-                }
-              : [],
-          ].flat(),
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: params.includeDrafts ?? false,
+}): Promise<Entity[]> =>
+  params.graphApiClient
+    .getEntities(params.authentication.actorId, {
+      filter: {
+        all: [
+          params.entityTypeId
+            ? generateVersionedUrlMatchingFilter(params.entityTypeId, {
+                ignoreParents: true,
+              })
+            : [],
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  linearPropertyTypes.id.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: params.linearId },
+            ],
+          },
+          params.webOwnedById
+            ? {
+                equal: [
+                  {
+                    path: ["ownedById"],
+                  },
+                  { parameter: params.webOwnedById },
+                ],
+              }
+            : [],
+        ].flat(),
       },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-      );
-      return getRoots(subgraph);
-    });
-
-  return entities;
-};
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, params.authentication.actorId),
+      ),
+    );
 
 export const getEntityOutgoingLinks = async (params: {
   graphApiClient: GraphApi;
@@ -88,46 +74,41 @@ export const getEntityOutgoingLinks = async (params: {
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
-  const response = await graphApiClient.getEntitiesByQuery(
+  const { data: response } = await graphApiClient.getEntities(
     authentication.actorId,
     {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [
-                { path: ["leftEntity", "uuid"] },
-                {
-                  parameter: extractEntityUuidFromEntityId(entityId),
-                },
-              ],
-            },
-            {
-              equal: [
-                { path: ["leftEntity", "ownedById"] },
-                {
-                  parameter: extractOwnedByIdFromEntityId(entityId),
-                },
-              ],
-            },
-            {
-              equal: [{ path: ["archived"] }, { parameter: false }],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: params.includeDrafts ?? false,
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["leftEntity", "uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(entityId),
+              },
+            ],
+          },
+          {
+            equal: [
+              { path: ["leftEntity", "ownedById"] },
+              {
+                parameter: extractOwnedByIdFromEntityId(entityId),
+              },
+            ],
+          },
+          {
+            equal: [{ path: ["archived"] }, { parameter: false }],
+          },
+        ],
       },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     },
   );
 
-  const outgoingLinkEntitiesSubgraph =
-    mapGraphApiSubgraphToSubgraph<EntityRootType>(response.data.subgraph);
-
-  const outgoingLinkEntities = getRoots(
-    outgoingLinkEntitiesSubgraph,
-  ) as LinkEntity[];
+  const outgoingLinkEntities = response.entities.map(
+    (entity) =>
+      new LinkEntity(mapGraphApiEntityToEntity(entity, authentication.actorId)),
+  );
 
   return outgoingLinkEntities;
 };
@@ -149,33 +130,28 @@ export const getLatestEntityById = async (params: {
 
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
-  const response = await graphApiClient.getEntitiesByQuery(
+  const { data: response } = await graphApiClient.getEntities(
     authentication.actorId,
     {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-            },
-            {
-              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-            },
-            { equal: [{ path: ["archived"] }, { parameter: false }] },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: params.includeDrafts ?? false,
+      filter: {
+        all: [
+          {
+            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+          },
+          {
+            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
       },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     },
   );
 
-  const entitiesSubgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-    response.data.subgraph,
+  const [entity, ...unexpectedEntities] = response.entities.map((graphEntity) =>
+    mapGraphApiEntityToEntity(graphEntity, authentication.actorId),
   );
-
-  const [entity, ...unexpectedEntities] = getRoots(entitiesSubgraph);
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -190,16 +166,4 @@ export const getLatestEntityById = async (params: {
   }
 
   return entity;
-};
-
-export const archiveEntity = async (params: {
-  graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
-  entity: Entity;
-}) => {
-  const { graphApiClient, authentication, entity } = params;
-  await graphApiClient.patchEntity(authentication.actorId, {
-    entityId: entity.metadata.recordId.entityId,
-    archived: true,
-  });
 };

@@ -1,47 +1,50 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
   EntityType,
   EntityTypePermission,
-  EntityTypeStructuralQuery,
+  GetEntityTypesParams,
+  GetEntityTypeSubgraphParams,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  ProvidedOntologyEditionProvenance,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import type {
+  BaseUrl,
+  EntityTypeMetadata,
+  EntityTypeWithMetadata,
+  OntologyTypeRecordId,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  mapGraphApiEntityTypeToEntityType,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   ConstructEntityTypeParams,
   UserPermissionsOnEntityType,
 } from "@local/hash-isomorphic-utils/types";
 import type {
-  BaseUrl,
   EntityTypeAuthorizationRelationship,
-  EntityTypeMetadata,
   EntityTypeRelationAndSubject,
   EntityTypeRootType,
-  EntityTypeWithMetadata,
-  OntologyTypeRecordId,
-  OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import {
   linkEntityTypeUrl,
   ontologyTypeRecordIdToVersionedUrl,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
 
-import { publicUserAccountId } from "../../../auth/public-user-account-id";
 import type { ImpureGraphFunction } from "../../context-types";
+import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { getWebShortname, isExternalTypeId } from "./util";
 
 export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
@@ -134,10 +137,11 @@ export const createEntityType: ImpureGraphFunction<
     icon?: string | null;
     webShortname?: string;
     relationships: EntityTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, labelProperty, icon, webShortname } = params;
+  const { ownedById, labelProperty, icon, webShortname, provenance } = params;
 
   const shortname =
     webShortname ??
@@ -168,6 +172,7 @@ export const createEntityType: ImpureGraphFunction<
       labelProperty,
       icon,
       relationships: params.relationships,
+      provenance,
     },
   );
 
@@ -179,19 +184,39 @@ export const createEntityType: ImpureGraphFunction<
  *
  * @param params.query the structural query to filter entity types by.
  */
-export const getEntityTypes: ImpureGraphFunction<
-  {
-    query: Omit<EntityTypeStructuralQuery, "includeDrafts">;
+export const getEntityTypeSubgraph: ImpureGraphFunction<
+  Omit<GetEntityTypeSubgraphParams, "includeDrafts"> & {
+    temporalClient?: TemporalClient;
   },
   Promise<Subgraph<EntityTypeRootType>>
-> = async ({ graphApi }, { actorId }, { query }) => {
+> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+  await rewriteSemanticFilter(request.filter, temporalClient);
+
   return await graphApi
-    .getEntityTypesByQuery(actorId, { includeDrafts: false, ...query })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(data);
+    .getEntityTypeSubgraph(actorId, { includeDrafts: false, ...request })
+    .then(({ data: response }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
+        response.subgraph,
+        actorId,
+      );
 
       return subgraph;
     });
+};
+
+export const getEntityTypes: ImpureGraphFunction<
+  Omit<GetEntityTypesParams, "includeDrafts"> & {
+    temporalClient?: TemporalClient;
+  },
+  Promise<EntityTypeWithMetadata[]>
+> = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
+  await rewriteSemanticFilter(request.filter, temporalClient);
+
+  return await graphApi
+    .getEntityTypes(actorId, { includeDrafts: false, ...request })
+    .then(({ data: response }) =>
+      mapGraphApiEntityTypeToEntityType(response.entityTypes),
+    );
 };
 
 /**
@@ -208,14 +233,11 @@ export const getEntityTypeById: ImpureGraphFunction<
   const { entityTypeId } = params;
 
   const [entityType] = await getEntityTypes(context, authentication, {
-    query: {
-      filter: {
-        equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
+    filter: {
+      equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
-  }).then(getRoots);
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   if (!entityType) {
     throw new NotFoundError(
@@ -232,14 +254,14 @@ export const getEntityTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
-  Omit<EntityTypeStructuralQuery, "filter" | "includeDrafts"> & {
+  Omit<GetEntityTypeSubgraphParams, "filter" | "includeDrafts"> & {
     entityTypeId: VersionedUrl;
   },
   Promise<Subgraph<EntityTypeRootType>>
 > = async (context, authentication, params) => {
   const { graphResolveDepths, temporalAxes, entityTypeId } = params;
 
-  const query: EntityTypeStructuralQuery = {
+  const request: GetEntityTypeSubgraphParams = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
@@ -248,18 +270,14 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     includeDrafts: false,
   };
 
-  let subgraph = await getEntityTypes(context, authentication, {
-    query,
-  });
+  let subgraph = await getEntityTypeSubgraph(context, authentication, request);
 
   if (subgraph.roots.length === 0 && isExternalTypeId(entityTypeId)) {
     await context.graphApi.loadExternalEntityType(authentication.actorId, {
       entityTypeId,
     });
 
-    subgraph = await getEntityTypes(context, authentication, {
-      query,
-    });
+    subgraph = await getEntityTypeSubgraph(context, authentication, request);
   }
 
   return subgraph;
@@ -279,10 +297,11 @@ export const updateEntityType: ImpureGraphFunction<
     labelProperty?: BaseUrl;
     icon?: string | null;
     relationships: EntityTypeRelationAndSubject[];
+    provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { entityTypeId, schema, labelProperty, icon } = params;
+  const { entityTypeId, schema, labelProperty, icon, provenance } = params;
   const updateArguments: UpdateEntityTypeRequest = {
     typeToUpdate: entityTypeId,
     schema: {
@@ -293,6 +312,7 @@ export const updateEntityType: ImpureGraphFunction<
     labelProperty,
     icon,
     relationships: params.relationships,
+    provenance,
   };
 
   const { data: metadata } = await ctx.graphApi.updateEntityType(

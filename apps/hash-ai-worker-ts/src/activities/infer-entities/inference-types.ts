@@ -1,19 +1,15 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
-  InferenceTokenUsage,
   InferredEntityChangeResult,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Entity } from "@local/hash-subgraph";
 import type OpenAI from "openai";
 
-import type { DereferencedEntityType } from "./dereference-entity-type";
-import type { ProposedEntityCreationsByType } from "./persist-entities/generate-persist-entities-tools";
-
-export type PermittedOpenAiModel =
-  | "gpt-3.5-turbo-1106"
-  | "gpt-4-1106-preview"
-  | "gpt-4";
+import type { DereferencedEntityType } from "../shared/dereference-entity-type";
+import type { LlmUsage } from "../shared/get-llm-response/types";
+import type { PermittedOpenAiModel } from "../shared/openai-client";
 
 export type CompletionPayload = Omit<
   OpenAI.ChatCompletionCreateParams,
@@ -22,20 +18,24 @@ export type CompletionPayload = Omit<
 
 export type DereferencedEntityTypesByTypeId = Record<
   VersionedUrl,
-  { isLink: boolean; schema: DereferencedEntityType }
+  {
+    isLink: boolean;
+    schema: DereferencedEntityType;
+    simplifiedPropertyTypeMappings?: Record<string, BaseUrl>;
+  }
 >;
 
 export type ProposedEntitySummary = {
   entityId: number;
   entityTypeId: VersionedUrl;
-  sourceEntityId?: number;
-  targetEntityId?: number;
+  sourceEntityId?: number | string;
+  targetEntityId?: number | string;
   takenFromQueue?: boolean;
   summary: string;
 };
 
 export type UpdateCandidate = {
-  entity: Entity;
+  entity: SerializedEntity;
   proposedEntity: ProposedEntity;
   status: "update-candidate";
 };
@@ -48,18 +48,12 @@ export type InferenceState = {
   /** A list of entities that can be inferred from the input, in summary form (no properties) */
   proposedEntitySummaries: ProposedEntitySummary[];
   /** A map of entity type IDs to a set of proposed entities, in entity form (with properties) */
-  proposedEntityCreationsByType: ProposedEntityCreationsByType;
+  proposedEntityCreationsByType: Record<VersionedUrl, ProposedEntity[]>;
   /** The results of attempting to persist entities inferred from the input */
   resultsByTemporaryId: Record<
     number,
     InferredEntityChangeResult | UpdateCandidate
   >;
   /** The token usage for each iteration, in order */
-  usage: InferenceTokenUsage[];
-};
-
-export type WebPage = {
-  title: string;
-  url: string;
-  textContent: string;
+  usage: LlmUsage[];
 };

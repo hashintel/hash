@@ -8,9 +8,9 @@ import {
   getOrgMembershipUser,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -45,7 +45,6 @@ describe("OrgMembership", () => {
       graphContext,
       { actorId: testUser.accountId },
       "orgMembershipTest",
-      logger,
     );
 
     return async () => {

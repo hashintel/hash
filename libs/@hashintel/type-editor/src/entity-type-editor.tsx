@@ -2,11 +2,10 @@
 require("setimmediate");
 
 import type {
-  DataType,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/graph";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { DataType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { fluidFontClassName, theme } from "@hashintel/design-system/theme";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
 

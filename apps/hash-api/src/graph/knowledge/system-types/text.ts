@@ -1,8 +1,9 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -13,11 +14,9 @@ import {
   pageEntityTypeFilter,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Text as TextEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { Entity, EntityId } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import type {
   ImpureGraphFunction,
@@ -36,28 +35,34 @@ import { getUserById } from "./user";
 
 export type Text = {
   textualContent: TextToken[];
-  entity: Entity<TextProperties>;
+  entity: Entity<TextEntity>;
 };
 
-export const isEntityTextEntity = (
+function assertTextEntity(
   entity: Entity,
-): entity is Entity<TextProperties> =>
-  entity.metadata.entityTypeId === systemEntityTypes.text.entityTypeId;
-
-export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
-  entity,
-}) => {
-  if (!isEntityTextEntity(entity)) {
+): asserts entity is Entity<TextEntity> {
+  if (entity.metadata.entityTypeId !== systemEntityTypes.text.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.text.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
+}
+
+export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
+  entity,
+}) => {
+  assertTextEntity(entity);
 
   const { textualContent } = simplifyProperties(entity.properties);
 
-  return { entity, textualContent: textualContent as TextToken[] };
+  return {
+    entity,
+    textualContent: Array.isArray(textualContent)
+      ? (textualContent as TextToken[])
+      : [{ tokenType: "text", text: textualContent } satisfies TextToken],
+  };
 };
 
 /**
@@ -96,49 +101,43 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     matchingBlockDataLinksWithTextAtDepthTwo,
   ] = await Promise.all([
     getEntities(context, authentication, {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemLinkEntityTypes.hasData.linkEntityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                { path: ["rightEntity", "uuid"] },
-                { parameter: textEntityUuid },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts,
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemLinkEntityTypes.hasData.linkEntityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              { path: ["rightEntity", "uuid"] },
+              { parameter: textEntityUuid },
+            ],
+          },
+        ],
       },
-    }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity)),
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
+    }).then((entities) => entities.filter(isEntityLinkEntity)),
     getEntities(context, authentication, {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemLinkEntityTypes.hasData.linkEntityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                {
-                  path: ["rightEntity", "outgoingLinks", "rightEntity", "uuid"],
-                },
-                { parameter: textEntityUuid },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts,
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemLinkEntityTypes.hasData.linkEntityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: ["rightEntity", "outgoingLinks", "rightEntity", "uuid"],
+              },
+              { parameter: textEntityUuid },
+            ],
+          },
+        ],
       },
-    }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity)),
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
+    }).then((entities) => entities.filter(isEntityLinkEntity)),
   ]);
 
   /** @todo: unify these in a single structural query when it becomes possible */
@@ -148,55 +147,47 @@ export const getPageAndBlockByText: ImpureGraphFunction<
   ];
 
   const matchingContainsLinks = await getEntities(context, authentication, {
-    query: {
-      filter: {
-        all: [
-          contentLinkTypeFilter,
-          {
-            any: matchingBlockDataLinks.map(({ linkData }) => ({
-              equal: [
-                { path: ["rightEntity", "uuid"] },
-                {
-                  parameter: extractEntityUuidFromEntityId(
-                    linkData.leftEntityId,
-                  ),
-                },
-              ],
-            })),
-          },
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+    filter: {
+      all: [
+        contentLinkTypeFilter,
+        {
+          any: matchingBlockDataLinks.map(({ linkData }) => ({
+            equal: [
+              { path: ["rightEntity", "uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(linkData.leftEntityId),
+              },
+            ],
+          })),
+        },
+      ],
     },
-  }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+  }).then((entities) => entities.filter(isEntityLinkEntity));
 
   const pageEntities = await getEntities(context, authentication, {
-    query: {
-      filter: {
-        all: [
-          pageEntityTypeFilter,
-          {
-            any: matchingContainsLinks.map(({ metadata }) => ({
-              equal: [
-                { path: ["outgoingLinks", "uuid"] },
-                {
-                  parameter: extractEntityUuidFromEntityId(
-                    metadata.recordId.entityId,
-                  ),
-                },
-              ],
-            })),
-          },
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+    filter: {
+      all: [
+        pageEntityTypeFilter,
+        {
+          any: matchingContainsLinks.map(({ metadata }) => ({
+            equal: [
+              { path: ["outgoingLinks", "uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  metadata.recordId.entityId,
+                ),
+              },
+            ],
+          })),
+        },
+      ],
     },
-  }).then((subgraph) =>
-    getRoots(subgraph).map((entity) => getPageFromEntity({ entity })),
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+  }).then((entities) =>
+    entities.map((entity) => getPageFromEntity({ entity })),
   );
 
   const page = pageEntities[0];
@@ -231,30 +222,27 @@ export const getCommentByText: ImpureGraphFunction<
   );
 
   const matchingHasTextLinks = await getEntities(context, authentication, {
-    query: {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.hasText.linkEntityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              { path: ["rightEntity", "uuid"] },
-              { parameter: textEntityUuid },
-            ],
-          },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.comment.entityTypeId,
-            { ignoreParents: true, pathPrefix: ["leftEntity"] },
-          ),
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(
+          systemLinkEntityTypes.hasText.linkEntityTypeId,
+          { ignoreParents: true },
+        ),
+        {
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: textEntityUuid },
+          ],
+        },
+        generateVersionedUrlMatchingFilter(
+          systemEntityTypes.comment.entityTypeId,
+          { ignoreParents: true, pathPrefix: ["leftEntity"] },
+        ),
+      ],
     },
-  }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+  }).then((entities) => entities.filter(isEntityLinkEntity));
 
   if (matchingHasTextLinks.length > 1) {
     throw new Error("Text entity is in more than one comment");

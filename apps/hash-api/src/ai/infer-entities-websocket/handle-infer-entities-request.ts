@@ -1,144 +1,129 @@
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { getFlowRuns } from "@local/hash-backend-utils/flows";
+import type { GraphApi } from "@local/hash-graph-client";
 import type {
-  GetResultsFromCancelledInferenceRequestQuery,
-  InferEntitiesCallerParams,
-  InferEntitiesRequestMessage,
-  InferEntitiesResponseMessage,
-  InferEntitiesReturn,
+  AutomaticInferenceWebsocketRequestMessage,
+  ManualInferenceWebsocketRequestMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
-  inferenceModelNames,
-  inferEntitiesUserArgumentKeys,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
-import { StatusCode } from "@local/status";
+  automaticBrowserInferenceFlowDefinition,
+  manualBrowserInferenceFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import type {
-  ApplicationFailure,
-  Client,
-  WorkflowFailedError,
-} from "@temporalio/client";
-import type { WebSocket } from "ws";
+  AutomaticInferenceTriggerInputName,
+  AutomaticInferenceTriggerInputs,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
+import type {
+  RunFlowWorkflowParams,
+  RunFlowWorkflowResponse,
+} from "@local/hash-isomorphic-utils/flows/temporal-types";
+import type {
+  FlowTrigger,
+  StepOutput,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type { Client } from "@temporalio/client";
 
 import type { User } from "../../graph/knowledge/system-types/user";
-import { logger } from "../../logger";
+import { FlowRunStatus } from "../../graphql/api-types.gen";
 
 export const handleInferEntitiesRequest = async ({
-  socket,
+  graphApiClient,
   temporalClient,
   message,
   user,
 }: {
-  socket: WebSocket;
+  graphApiClient: GraphApi;
   temporalClient: Client;
-  message: Omit<InferEntitiesRequestMessage, "cookie">;
+  message: DistributiveOmit<
+    | ManualInferenceWebsocketRequestMessage
+    | AutomaticInferenceWebsocketRequestMessage,
+    "cookie"
+  >;
   user: User;
 }) => {
-  const { requestUuid, payload: userArguments } = message;
+  const {
+    requestUuid,
+    payload: { webId, ...triggerOutputs },
+  } = message;
 
-  const sendResponse = (
-    payload: InferEntitiesReturn,
-    status: InferEntitiesResponseMessage["status"],
-  ) => {
-    const responseMessage: InferEntitiesResponseMessage = {
+  const flowDefinition =
+    message.type === "manual-inference-request"
+      ? manualBrowserInferenceFlowDefinition
+      : automaticBrowserInferenceFlowDefinition;
+
+  const flowTrigger: FlowTrigger = {
+    triggerDefinitionId: flowDefinition.trigger.triggerDefinitionId,
+    outputs: typedEntries(triggerOutputs).map(([outputName, payload]) => ({
+      outputName,
       payload,
-      requestUuid,
-      status,
-      type: "inference-response",
-    };
-    socket.send(JSON.stringify(responseMessage));
+    })),
   };
 
-  if (inferEntitiesUserArgumentKeys.some((key) => !(key in userArguments))) {
-    sendResponse(
-      {
-        code: StatusCode.InvalidArgument,
-        contents: [],
-        message: `Invalid request body – expected an object containing all of ${inferEntitiesUserArgumentKeys.join(
-          ", ",
-        )}`,
+  if (message.type === "automatic-inference-request") {
+    const openFlowRuns = await getFlowRuns({
+      authentication: { actorId: user.accountId },
+      filters: {
+        executionStatus: FlowRunStatus.Running,
+        flowDefinitionIds: [
+          automaticBrowserInferenceFlowDefinition.flowDefinitionId,
+          manualBrowserInferenceFlowDefinition.flowDefinitionId,
+        ],
       },
-      "bad-request",
-    );
-    return;
-  }
-
-  if (!inferenceModelNames.includes(userArguments.model)) {
-    sendResponse(
-      {
-        code: StatusCode.InvalidArgument,
-        contents: [],
-        message: `Invalid request body – expected 'model' to be one of ${inferenceModelNames.join(
-          ", ",
-        )}`,
-      },
-      "bad-request",
-    );
-    return;
-  }
-
-  try {
-    const status = await temporalClient.workflow.execute<
-      (params: InferEntitiesCallerParams) => Promise<InferEntitiesReturn>
-    >("inferEntities", {
-      taskQueue: "ai",
-      args: [
-        {
-          authentication: { actorId: user.accountId },
-          requestUuid,
-          userArguments,
-        },
-      ],
-      memo: {
-        userAccountId: user.accountId,
-      },
-      workflowId: requestUuid,
-      retry: {
-        maximumAttempts: 1,
-      },
+      graphApiClient,
+      includeDetails: true,
+      temporalClient,
     });
 
-    sendResponse(
-      status,
-      status.code === StatusCode.Cancelled ? "user-cancelled" : "complete",
-    );
-  } catch (err) {
-    const handle = temporalClient.workflow.getHandle(requestUuid);
-
-    try {
-      // See if we can get the results from the cancelled workflow via a query
-      const partialResultsFromCancellation =
-        await handle.query<InferEntitiesReturn>(
-          "getResultsFromCancelledInference" satisfies GetResultsFromCancelledInferenceRequestQuery["name"],
-        );
-      sendResponse(partialResultsFromCancellation, "user-cancelled");
-      return;
-    } catch (queryError) {
-      logger.error(
-        "Error calling AI inference for results from cancelled workflow:",
-        err,
+    for (const flowRun of openFlowRuns) {
+      const flowIsAlreadyRunningOnPage = (
+        flowRun.inputs[0].flowTrigger.outputs as StepOutput<
+          AutomaticInferenceTriggerInputs[AutomaticInferenceTriggerInputName]
+        >[]
+      ).some(
+        (triggerOutput) =>
+          triggerOutput.outputName ===
+            ("visitedWebPage" satisfies AutomaticInferenceTriggerInputName) &&
+          triggerOutput.payload.value.url ===
+            triggerOutputs.visitedWebPage.value.url,
       );
-      // fallback to the error handling below
-    }
 
-    const errorCause = (err as WorkflowFailedError).cause?.cause as
-      | ApplicationFailure
-      | undefined;
-
-    const errorDetails = errorCause?.details?.[0] as
-      | InferEntitiesReturn
-      | undefined;
-
-    if (errorDetails) {
-      sendResponse(errorDetails, "complete");
-    } else {
-      sendResponse(
-        {
-          code: StatusCode.Internal,
-          contents: [],
-          message: `Unexpected error from Infer Entities workflow: ${
-            (err as Error).message
-          }`,
-        },
-        "complete",
-      );
+      if (flowIsAlreadyRunningOnPage) {
+        return true;
+      }
     }
   }
+
+  await temporalClient.workflow.start<
+    (params: RunFlowWorkflowParams) => Promise<RunFlowWorkflowResponse>
+  >("runFlow", {
+    taskQueue: "ai",
+    args: [
+      {
+        dataSources: {
+          files: { fileEntityIds: [] },
+          internetAccess: {
+            enabled: true,
+            browserPlugin: {
+              enabled: true,
+              domains: ["linkedin.com"],
+            },
+          },
+        },
+        flowDefinition,
+        flowTrigger,
+        userAuthentication: { actorId: user.accountId },
+        webId,
+      },
+    ],
+    memo: {
+      flowDefinitionId: flowDefinition.flowDefinitionId,
+      userAccountId: user.accountId,
+      webId,
+    },
+    workflowId: requestUuid,
+    retry: {
+      maximumAttempts: 1,
+    },
+  });
 };

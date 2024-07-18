@@ -1,6 +1,8 @@
 /* eslint-disable import/first */
 
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
+  getRequiredEnv,
   monorepoRootDir,
   realtimeSyncEnabled,
   waitOnResource,
@@ -20,11 +22,14 @@ import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
+import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
+import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
 import * as Sentry from "@sentry/node";
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -60,16 +65,15 @@ import {
   DummyEmailTransporter,
 } from "./email/transporters";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
+import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
-import { createOrUpdateSheetsIntegration } from "./integrations/google/create-or-update-sheets-integration";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
 import { googleOAuthCallback } from "./integrations/google/oauth-callback";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
 import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
-import { getAwsRegion } from "./lib/aws-config";
 import {
   CORS_CONFIG,
   getEnvStorageType,
@@ -89,8 +93,6 @@ import {
   setupStorageProviders,
 } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
-import { createTemporalClient } from "./temporal";
-import { getRequiredEnv } from "./util";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -233,13 +235,36 @@ const main = async () => {
 
   const vaultClient = createVaultClient();
 
-  const context = { graphApi, uploadProvider, temporalClient };
+  const machineProvenance: EnforcedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "api",
+    },
+  };
 
-  await ensureSystemGraphIsInitialized({ logger, context });
+  const machineActorContext = {
+    graphApi,
+    provenance: machineProvenance,
+    uploadProvider,
+    temporalClient,
+  };
+
+  if (isDevEnv) {
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: machineActorContext,
+    });
+  } else {
+    // Globally sets `systemAccountId`
+    await ensureHashSystemAccountExists({
+      logger,
+      context: machineActorContext,
+    });
+  }
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.
-  await seedOrgsAndUsers({ logger, context });
+  await seedOrgsAndUsers({ logger, context: machineActorContext });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -346,8 +371,11 @@ const main = async () => {
   );
 
   // Set up authentication related middleware and routes
-  addKratosAfterRegistrationHandler({ app, context });
-  const authMiddleware = createAuthMiddleware({ logger, context });
+  addKratosAfterRegistrationHandler({ app, context: machineActorContext });
+  const authMiddleware = createAuthMiddleware({
+    logger,
+    context: machineActorContext,
+  });
   app.use(authMiddleware);
 
   /**
@@ -461,8 +489,17 @@ const main = async () => {
   // Make the data sources/clients available to REST controllers
   // @todo figure out sharing of context between REST and GraphQL without repeating this
   app.use((req, _res, next) => {
+    const provenance: EnforcedEntityEditionProvenance = {
+      actorType: "human",
+      origin: {
+        type: getHashClientTypeFromRequest(req) ?? "api",
+        userAgent: req.headers["user-agent"],
+      },
+    };
+
     req.context = {
       graphApi,
+      provenance,
       temporalClient,
       uploadProvider,
       vaultClient,
@@ -524,11 +561,6 @@ const main = async () => {
     authRouteRateLimiter,
     checkGoogleAccessToken,
   );
-  app.post(
-    "/integrations/google/sheets",
-    authRouteRateLimiter,
-    createOrUpdateSheetsIntegration,
-  );
 
   // Endpoints used by HashGPT or in support of it
   app.post("/gpt/entities/query", gptQueryEntities);
@@ -571,7 +603,7 @@ const main = async () => {
   shutdown.addCleanup("HTTP Server", async () => terminator.terminate());
 
   openInferEntitiesWebSocket({
-    context,
+    context: machineActorContext,
     httpServer,
     logger,
     temporalClient,

@@ -70,7 +70,7 @@ The Graph's API is current exposed over REST with an accompanying OpenAPI spec.
 The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@local/hash-graph-client` typescript client. In the `/apps/hash-graph` directory run:
 
 ```shell
-just generate-openapi-client
+just generate-openapi-specs
 ```
 
 Make sure to run this command whenever changes are made to the specification. CI will not pass otherwise.

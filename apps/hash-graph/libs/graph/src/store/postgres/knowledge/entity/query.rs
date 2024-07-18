@@ -1,11 +1,8 @@
-use std::convert::identity;
+use core::convert::identity;
 
 use graph_types::{
     knowledge::{
-        entity::{
-            Entity, EntityEditionProvenanceMetadata, EntityId, EntityMetadata,
-            EntityProvenanceMetadata, EntityRecordId, EntityUuid,
-        },
+        entity::{Entity, EntityId, EntityMetadata, EntityProvenance, EntityRecordId, EntityUuid},
         link::LinkData,
     },
     owned_by_id::OwnedById,
@@ -14,6 +11,7 @@ use temporal_versioning::{
     ClosedTemporalBound, LeftClosedTemporalInterval, TemporalTagged, TimeAxis,
 };
 use tokio_postgres::Row;
+use tracing::instrument;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use uuid::Uuid;
 
@@ -54,10 +52,10 @@ pub struct EntityVertexIdCursorParameters<'p> {
 }
 
 impl QueryRecordDecode for VertexIdSorting<Entity> {
-    type CompilationArtifacts = EntityVertexIdIndices;
+    type Indices = EntityVertexIdIndices;
     type Output = EntityVertexId;
 
-    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self::Output {
+    fn decode(row: &Row, indices: &Self::Indices) -> Self::Output {
         let ClosedTemporalBound::Inclusive(revision_id) = *row
             .get::<_, LeftClosedTemporalInterval<VariableAxis>>(indices.revision_id)
             .start();
@@ -93,7 +91,7 @@ impl<'s> PostgresSorting<'s, Entity> for VertexIdSorting<Entity> {
         compiler: &mut SelectCompiler<'p, 'q, Entity>,
         parameters: Option<&'p Self::CompilationParameters>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Self::CompilationArtifacts {
+    ) -> Self::Indices {
         let revision_id_path = match temporal_axes.variable_time_axis() {
             TimeAxis::TransactionTime => &EntityQueryPath::TransactionTime,
             TimeAxis::DecisionTime => &EntityQueryPath::DecisionTime,
@@ -185,12 +183,15 @@ pub struct EntityRecordRowIndices {
     pub right_entity_uuid: usize,
     pub right_entity_owned_by_id: usize,
 
-    pub created_by_id: usize,
-    pub created_at_transaction_time: usize,
-    pub created_at_decision_time: usize,
-    pub first_non_draft_created_at_transaction_time: usize,
-    pub first_non_draft_created_at_decision_time: usize,
-    pub edition_created_by_id: usize,
+    pub provenance: usize,
+    pub edition_provenance: usize,
+    pub property_metadata: usize,
+
+    pub entity_confidence: usize,
+    pub left_entity_confidence: usize,
+    pub right_entity_confidence: usize,
+    pub left_entity_provenance: usize,
+    pub right_entity_provenance: usize,
 
     pub archived: usize,
 }
@@ -230,10 +231,10 @@ impl Default for EntityRecordPaths<'_> {
 }
 
 impl QueryRecordDecode for Entity {
-    type CompilationArtifacts = EntityRecordRowIndices;
+    type Indices = EntityRecordRowIndices;
     type Output = Self;
 
-    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
+    fn decode(row: &Row, indices: &Self::Indices) -> Self {
         let link_data = {
             let left_owned_by_id: Option<Uuid> = row.get(indices.left_entity_owned_by_id);
             let left_entity_uuid: Option<Uuid> = row.get(indices.left_entity_uuid);
@@ -261,6 +262,10 @@ impl QueryRecordDecode for Entity {
                         entity_uuid: EntityUuid::new(right_entity_uuid),
                         draft_id: None,
                     },
+                    left_entity_confidence: row.get(indices.left_entity_confidence),
+                    right_entity_confidence: row.get(indices.right_entity_confidence),
+                    left_entity_provenance: row.get(indices.left_entity_provenance),
+                    right_entity_provenance: row.get(indices.right_entity_provenance),
                 }),
                 (None, None, None, None) => None,
                 _ => unreachable!(
@@ -280,6 +285,10 @@ impl QueryRecordDecode for Entity {
             tracing::trace!(%entity_id, %distance, "Entity embedding was calculated");
         }
 
+        let property_metadata = row
+            .get::<_, Option<_>>(indices.property_metadata)
+            .unwrap_or_default();
+
         Self {
             properties: row.get(indices.properties),
             link_data,
@@ -298,18 +307,12 @@ impl QueryRecordDecode for Entity {
                     .zip(row.get::<_, Vec<OntologyTypeVersion>>(indices.type_versions_id))
                     .map(|(base_url, version)| VersionedUrl { base_url, version })
                     .collect(),
-                provenance: EntityProvenanceMetadata {
-                    created_by_id: row.get(indices.created_by_id),
-                    created_at_transaction_time: row.get(indices.created_at_transaction_time),
-                    created_at_decision_time: row.get(indices.created_at_decision_time),
-                    first_non_draft_created_at_transaction_time: row
-                        .get(indices.first_non_draft_created_at_transaction_time),
-                    first_non_draft_created_at_decision_time: row
-                        .get(indices.first_non_draft_created_at_decision_time),
-                    edition: EntityEditionProvenanceMetadata {
-                        created_by_id: row.get(indices.edition_created_by_id),
-                    },
+                provenance: EntityProvenance {
+                    inferred: row.get(indices.provenance),
+                    edition: row.get(indices.edition_provenance),
                 },
+                confidence: row.get(indices.entity_confidence),
+                properties: property_metadata,
                 archived: row.get(indices.archived),
             },
         }
@@ -327,10 +330,11 @@ impl PostgresRecord for Entity {
         EntityRecordPaths::default()
     }
 
+    #[instrument(level = "info", skip(compiler, paths))]
     fn compile<'p, 'q: 'p>(
         compiler: &mut SelectCompiler<'p, 'q, Self>,
         paths: &'p Self::CompilationParameters,
-    ) -> Self::CompilationArtifacts {
+    ) -> Self::Indices {
         EntityRecordRowIndices {
             owned_by_id: compiler.add_distinct_selection_with_ordering(
                 &EntityQueryPath::OwnedById,
@@ -369,17 +373,21 @@ impl PostgresRecord for Entity {
             right_entity_uuid: compiler.add_selection_path(&paths.right_entity_uuid),
             right_entity_owned_by_id: compiler.add_selection_path(&paths.right_owned_by_id),
 
-            created_by_id: compiler.add_selection_path(&EntityQueryPath::CreatedById),
-            created_at_transaction_time: compiler
-                .add_selection_path(&EntityQueryPath::CreatedAtTransactionTime),
-            created_at_decision_time: compiler
-                .add_selection_path(&EntityQueryPath::CreatedAtDecisionTime),
-            first_non_draft_created_at_transaction_time: compiler
-                .add_selection_path(&EntityQueryPath::FirstNonDraftCreatedAtTransactionTime),
-            first_non_draft_created_at_decision_time: compiler
-                .add_selection_path(&EntityQueryPath::FirstNonDraftCreatedAtDecisionTime),
-            edition_created_by_id: compiler
-                .add_selection_path(&EntityQueryPath::EditionCreatedById),
+            provenance: compiler.add_selection_path(&EntityQueryPath::Provenance(None)),
+            edition_provenance: compiler
+                .add_selection_path(&EntityQueryPath::EditionProvenance(None)),
+            property_metadata: compiler
+                .add_selection_path(&EntityQueryPath::PropertyMetadata(None)),
+
+            entity_confidence: compiler.add_selection_path(&EntityQueryPath::EntityConfidence),
+            left_entity_confidence: compiler
+                .add_selection_path(&EntityQueryPath::LeftEntityConfidence),
+            left_entity_provenance: compiler
+                .add_selection_path(&EntityQueryPath::LeftEntityProvenance),
+            right_entity_confidence: compiler
+                .add_selection_path(&EntityQueryPath::RightEntityConfidence),
+            right_entity_provenance: compiler
+                .add_selection_path(&EntityQueryPath::RightEntityProvenance),
 
             archived: compiler.add_selection_path(&EntityQueryPath::Archived),
         }

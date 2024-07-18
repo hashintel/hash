@@ -1,10 +1,13 @@
 import { performance } from "node:perf_hooks";
 
 import { makeExecutableSchema } from "@graphql-tools/schema";
+import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
+import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
 import * as Sentry from "@sentry/node";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
@@ -14,8 +17,6 @@ import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { CacheAdapter } from "../cache";
 import type { EmailTransporter } from "../email/transporters";
 import type { GraphApi } from "../graph/context-types";
-import type { UploadableStorageProvider } from "../storage/storage-provider";
-import type { TemporalClient } from "../temporal";
 import type { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 
@@ -68,6 +69,13 @@ export const createApolloServer = ({
       ...ctx,
       authentication: {
         actorId: getActorIdFromRequest(ctx.req),
+      },
+      provenance: {
+        actorType: "human",
+        origin: {
+          type: getHashClientTypeFromRequest(ctx.req) ?? "api",
+          userAgent: ctx.req.headers["user-agent"],
+        },
       },
       user: ctx.req.user,
       emailTransporter,

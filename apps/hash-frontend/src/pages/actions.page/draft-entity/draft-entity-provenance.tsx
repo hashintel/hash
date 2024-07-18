@@ -1,5 +1,5 @@
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import { Box, styled, Typography } from "@mui/material";
 import { format } from "date-fns";
 import type { FunctionComponent } from "react";
@@ -30,14 +30,13 @@ export const DraftEntityProvenance: FunctionComponent<{
     accountIds: [editionCreatedById],
   });
 
-  /** @todo: account for machine users */
   const createdBy = useMemo(
     () => actors?.find(({ accountId }) => accountId === editionCreatedById),
     [actors, editionCreatedById],
   );
 
   const createdAt = useMemo(
-    () => new Date(entity.metadata.provenance.createdAtDecisionTime),
+    () => new Date(entity.metadata.temporalVersioning.decisionTime.start.limit),
     [entity],
   );
 

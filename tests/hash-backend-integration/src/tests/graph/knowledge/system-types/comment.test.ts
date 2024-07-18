@@ -17,10 +17,10 @@ import {
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { OwnedById } from "@local/hash-subgraph";
+import type { Text } from "@local/hash-isomorphic-utils/system-types/shared";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -56,16 +56,18 @@ describe("Comment", () => {
       {
         ownedById: testUser.accountId as OwnedById,
         componentId: "text",
-        blockData: await createEntity(
+        blockData: await createEntity<Text>(
           graphContext,
           { actorId: testUser.accountId },
           {
             ownedById: testUser.accountId as OwnedById,
             entityTypeId: systemEntityTypes.text.entityTypeId,
             properties: {
-              "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-                [],
-            } as TextProperties,
+              value: {
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+                  { value: [] },
+              },
+            },
             relationships: createDefaultAuthorizationRelationships({
               actorId: testUser.accountId,
             }),

@@ -1,3 +1,6 @@
+import type { Uuid } from "@local/hash-graph-types/branded";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -5,8 +8,7 @@ import {
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { EntityUuid, OwnedById, Uuid } from "@local/hash-subgraph";
-import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 
 import { isProdEnv } from "../../../../lib/env-config";
 import { createOrUpdateMailchimpUser } from "../../../../mailchimp";
@@ -78,7 +80,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
         occurredInEntity.entity.metadata.provenance.createdById;
 
       const pageAuthor = await getUserById(context, authentication, {
-        entityId: entityIdFromOwnedByIdAndEntityUuid(
+        entityId: entityIdFromComponents(
           pageAuthorAccountId as Uuid as OwnedById,
           pageAuthorAccountId as Uuid as EntityUuid,
         ),
@@ -214,7 +216,7 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
   );
 
   const triggeredByUser = await getUserById(context, authentication, {
-    entityId: entityIdFromOwnedByIdAndEntityUuid(
+    entityId: entityIdFromComponents(
       authentication.actorId as OwnedById,
       authentication.actorId as string as EntityUuid,
     ),

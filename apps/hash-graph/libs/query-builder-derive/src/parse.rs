@@ -31,7 +31,7 @@ pub fn parse(input: TokenStream) -> Result<TokenStream> {
 impl TryFrom<Body> for QueryBuilderInput {
     type Error = Error;
 
-    fn try_from(value: Body) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: Body) -> core::result::Result<Self, Self::Error> {
         match value {
             Body::Struct(_) => Err(Error::custom("only enums are supported")),
             Body::Enum(body) => {
@@ -185,7 +185,7 @@ fn parse_field_attributes(attributes: &[ParsedAttribute]) -> Result {
 impl TryFrom<EnumVariant> for QueryBuilderVariant {
     type Error = Error;
 
-    fn try_from(value: EnumVariant) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: EnumVariant) -> core::result::Result<Self, Self::Error> {
         let attributes = parse_variant_attributes(&parse_attributes(&value.attributes)?)?;
 
         if attributes.skip.is_some() {

@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import type { Tabs } from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
+import { FlowRunStatus } from "../../../../../graphql/api-types.gen";
 import { createDefaultSettings } from "../../../../../shared/create-default-settings";
 import type {
-  GetSiteContentRequest,
-  GetSiteContentReturn,
+  GetTabContentRequest,
+  GetTabContentReturn,
 } from "../../../../../shared/messages";
 import type { LocalStorage } from "../../../../../shared/storage";
 import { sendMessageToBackground } from "../../../../shared/messages";
@@ -17,6 +18,7 @@ import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { ModelSelector } from "../shared/model-selector";
 import { Section } from "../shared/section";
 import { SelectWebTarget } from "../shared/select-web-target";
+import { useFlowRuns } from "../shared/use-flow-runs";
 import { ArrowUpToLineIcon } from "./infer-entities-action/arrow-up-to-line-icon";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
 
@@ -38,25 +40,16 @@ export const InferEntitiesAction = ({
   const { createAs, model, ownedById, targetEntityTypeIds } =
     manualInferenceConfig;
 
-  const [inferenceRequests] = useStorageSync("inferenceRequests", []);
+  const { flowRuns } = useFlowRuns();
 
   const pendingInferenceRequest = useMemo(
     () =>
-      inferenceRequests.some(
-        ({ entityTypeIds: requestEntityTypes, sourceUrl, status }) => {
-          return (
-            requestEntityTypes.length === targetEntityTypeIds.length &&
-            requestEntityTypes.every((versionedUrl) =>
-              targetEntityTypeIds.some(
-                (targetTypeId) => targetTypeId === versionedUrl,
-              ),
-            ) &&
-            sourceUrl === activeTab?.url &&
-            status === "pending"
-          );
-        },
-      ),
-    [activeTab, inferenceRequests, targetEntityTypeIds],
+      flowRuns.some(({ status, webPage }) => {
+        return (
+          webPage.url === activeTab?.url && status === FlowRunStatus.Running
+        );
+      }),
+    [activeTab, flowRuns],
   );
 
   const inferEntitiesFromPage = async () => {
@@ -64,24 +57,22 @@ export const InferEntitiesAction = ({
       throw new Error("No active tab");
     }
 
-    const message: GetSiteContentRequest = {
-      type: "get-site-content",
+    const message: GetTabContentRequest = {
+      type: "get-tab-content",
     };
 
     try {
-      const siteContent = await (browser.tabs.sendMessage(
+      const sourceWebPage = await (browser.tabs.sendMessage(
         activeTab.id,
         message,
-      ) as Promise<GetSiteContentReturn>);
+      ) as Promise<GetTabContentReturn>);
 
       void sendMessageToBackground({
         createAs,
         entityTypeIds: targetEntityTypeIds,
         model,
         ownedById,
-        sourceTitle: siteContent.pageTitle,
-        sourceUrl: siteContent.pageUrl,
-        textInput: siteContent.innerText,
+        sourceWebPage,
         type: "infer-entities",
       });
     } catch (err) {

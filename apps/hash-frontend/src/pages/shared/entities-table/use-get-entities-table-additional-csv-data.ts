@@ -1,28 +1,26 @@
 import { useLazyQuery } from "@apollo/client";
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type {
-  Entity,
-  EntityRootType,
-  EntityTypeWithMetadata,
-} from "@local/hash-subgraph";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { MutableRefObject } from "react";
 import { useCallback } from "react";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import type { GetAdditionalCsvDataFunction } from "../../../shared/table-header";
 import type { TypeEntitiesRow } from "./use-entities-table";
 
@@ -34,10 +32,10 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
   const { currentlyDisplayedRowsRef, propertyTypes, addPropertiesColumns } =
     props;
 
-  const [structuralQueryEntities] = useLazyQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery);
+  const [getEntitySubgraph] = useLazyQuery<
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery);
 
   const fetchOutgoingLinksOfEntities = useCallback(
     async (params: {
@@ -50,9 +48,9 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
     > => {
       const { leftEntities } = params;
 
-      const { data } = await structuralQueryEntities({
+      const { data } = await getEntitySubgraph({
         variables: {
-          query: {
+          request: {
             filter: {
               any: leftEntities.map((entity) => ({
                 equal: [
@@ -78,7 +76,7 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
 
       const outgoingLinksSubgraph = data
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            data.structuralQueryEntities.subgraph,
+            data.getEntitySubgraph.subgraph,
           )
         : undefined;
 
@@ -86,9 +84,9 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
         throw new Error("Could not fetch outgoing links of entities");
       }
 
-      const outgoingLinkEntities = getRoots(
-        outgoingLinksSubgraph,
-      ) as LinkEntity[];
+      const outgoingLinkEntities = getRoots(outgoingLinksSubgraph).map(
+        (linkEntity) => new LinkEntity(linkEntity),
+      );
 
       return outgoingLinkEntities
         .map((linkEntity) => {
@@ -104,7 +102,7 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
         })
         .flat();
     },
-    [structuralQueryEntities],
+    [getEntitySubgraph],
   );
 
   const getEntitiesTableAdditionalCsvData =

@@ -9,6 +9,7 @@
 use async_trait::async_trait;
 use error_stack::Result;
 use futures::{Stream, TryStreamExt};
+use tracing::instrument;
 
 use crate::{
     store::{query::Filter, QueryError, QueryRecord, SubgraphRecord},
@@ -16,10 +17,10 @@ use crate::{
 };
 
 pub trait QueryResult<R, S: Sorting> {
-    type Artifacts: Send;
+    type Indices: Send;
 
-    fn decode_record(&self, artifacts: &Self::Artifacts) -> R;
-    fn decode_cursor(&self, artifacts: &Self::Artifacts) -> <S as Sorting>::Cursor;
+    fn decode_record(&self, indices: &Self::Indices) -> R;
+    fn decode_cursor(&self, indices: &Self::Indices) -> <S as Sorting>::Cursor;
 }
 
 pub trait Sorting {
@@ -164,12 +165,13 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync = VertexIdSorting<R>>:
         Output = Result<
             (
                 Self::ReadPaginatedStream,
-                <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+                <Self::QueryResult as QueryResult<R, S>>::Indices,
             ),
             QueryError,
         >,
     > + Send;
 
+    #[instrument(level = "info", skip(self, filter, sorting))]
     fn read_paginated_vec(
         &self,
         filter: &Filter<'_, R>,
@@ -181,7 +183,7 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync = VertexIdSorting<R>>:
         Output = Result<
             (
                 Vec<Self::QueryResult>,
-                <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+                <Self::QueryResult as QueryResult<R, S>>::Indices,
             ),
             QueryError,
         >,
@@ -209,6 +211,7 @@ pub trait Read<R: QueryRecord>: Sync {
         include_drafts: bool,
     ) -> Result<Self::ReadStream, QueryError>;
 
+    #[instrument(level = "info", skip(self, filter))]
     async fn read_vec(
         &self,
         filter: &Filter<'_, R>,

@@ -5,7 +5,7 @@ export const createEntityMutation = gql`
   mutation createEntity(
     $entityTypeId: VersionedUrl!
     $ownedById: OwnedById
-    $properties: EntityPropertiesObject!
+    $properties: PropertyObjectWithMetadata!
     $linkData: LinkData
     $draft: Boolean
     $relationships: [EntityRelationAndSubject!]
@@ -55,12 +55,12 @@ export const queryEntitiesQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const structuralQueryEntitiesQuery = gql`
-  query structuralQueryEntities(
-    $query: EntityStructuralQuery!
+export const getEntitySubgraphQuery = gql`
+  query getEntitySubgraph(
+    $request: GetEntitySubgraphRequest!
     $includePermissions: Boolean!
   ) {
-    structuralQueryEntities(query: $query) {
+    getEntitySubgraph(request: $request) {
       userPermissionsOnEntities @include(if: $includePermissions)
       subgraph {
         ...SubgraphFields
@@ -178,12 +178,11 @@ export const getEntityAuthorizationRelationshipsQuery = gql`
   }
 `;
 
-export const startResearchTaskMutation = gql`
-  mutation startResearchTask(
-    $prompt: String!
-    $entityTypeIds: [VersionedUrl!]!
-  ) {
-    # This is a scalar, which has no selection.
-    startResearchTask(prompt: $prompt, entityTypeIds: $entityTypeIds)
+export const getEntityDiffsQuery = gql`
+  query getEntityDiffs($inputs: [DiffEntityInput!]!) {
+    getEntityDiffs(inputs: $inputs) {
+      input
+      diff
+    }
   }
 `;

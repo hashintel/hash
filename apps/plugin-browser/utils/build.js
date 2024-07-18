@@ -24,7 +24,7 @@ const filenameSuffix = process.env.BROWSER;
 
 config.plugins = (config.plugins || []).concat(
   new ZipPlugin({
-    filename: `${packageInfo.name}-${packageInfo.version}${
+    filename: `${packageInfo.name}${
       filenameSuffix ? `-${filenameSuffix}` : ""
     }.zip`,
     exclude: [/\.map$/],

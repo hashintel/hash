@@ -1,8 +1,9 @@
 locals {
-  prefix            = "${var.prefix}-app"
-  log_group_name    = "${local.prefix}log"
-  param_prefix      = "${var.param_prefix}/app"
-  spicedb_task_defs = [
+  prefix                   = "${var.prefix}-app"
+  log_group_name           = "${local.prefix}log"
+  param_prefix             = "${var.param_prefix}/app"
+  app_grace_period_seconds = 300
+  spicedb_task_defs        = [
     {
       task_def = local.spicedb_migration_container_def
       env_vars = aws_ssm_parameter.spicedb_migration_env_vars
@@ -55,21 +56,23 @@ locals {
       env_vars = aws_ssm_parameter.api_env_vars
       ecr_arn  = var.api_image.ecr_arn
     },
-    # TODO: Move it to the `worker` service and make sure it can connect to the Graph container
+    {
+      task_def = local.api_migration_container_def
+      env_vars = aws_ssm_parameter.api_migration_env_vars
+      ecr_arn  = var.api_image.ecr_arn
+    },
+  ]
+  worker_task_defs = [
     {
       task_def = local.temporal_worker_ai_ts_service_container_def
       env_vars = aws_ssm_parameter.temporal_worker_ai_ts_env_vars
       ecr_arn  = var.temporal_worker_ai_ts_image.ecr_arn
     },
-  ]
-  # To scale up the worker we probably want to move these into a separated service. They are defined in this task
-  # to easily connect to the Graph API.
-  worker_task_defs = [
     {
       task_def = local.temporal_worker_integration_service_container_def
       env_vars = aws_ssm_parameter.temporal_worker_integration_env_vars
       ecr_arn  = var.temporal_worker_integration_image.ecr_arn
-    }
+    },
   ]
 }
 
@@ -255,7 +258,9 @@ resource "aws_iam_role" "execution_role" {
             Effect   = "Allow"
             Action   = ["ssm:GetParameters"]
             Resource = concat(
-              flatten([for def in local.spicedb_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+              flatten([
+                for def in local.spicedb_task_defs : [for _, env_var in def.env_vars : env_var.arn]
+              ])
             )
           }
         ],
@@ -264,7 +269,9 @@ resource "aws_iam_role" "execution_role" {
             Effect   = "Allow"
             Action   = ["ssm:GetParameters"]
             Resource = concat(
-              flatten([for def in local.graph_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+              flatten([
+                for def in local.graph_task_defs : [for _, env_var in def.env_vars : env_var.arn]
+              ])
             )
           }
         ],
@@ -273,7 +280,9 @@ resource "aws_iam_role" "execution_role" {
             Effect   = "Allow"
             Action   = ["ssm:GetParameters"]
             Resource = concat(
-              flatten([for def in local.worker_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+              flatten([
+                for def in local.worker_task_defs : [for _, env_var in def.env_vars : env_var.arn]
+              ])
             )
           }
         ],
@@ -365,18 +374,21 @@ resource "aws_ecs_task_definition" "worker_task" {
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.execution_role.arn
   task_role_arn            = aws_iam_role.task_role.arn
-  container_definitions    = jsonencode([for task_def in local.worker_task_defs : task_def.task_def])
-  tags                     = {}
+  container_definitions    = jsonencode([
+    for task_def in local.worker_task_defs : task_def.task_def
+  ])
+  tags = {}
 }
 
 resource "aws_ecs_service" "svc" {
-  depends_on             = [aws_iam_role.task_role, aws_ecs_service.spicedb]
-  name                   = "${local.prefix}svc"
-  cluster                = data.aws_ecs_cluster.ecs.arn
-  task_definition        = aws_ecs_task_definition.task.arn
-  enable_execute_command = true
-  desired_count          = 1
-  launch_type            = "FARGATE"
+  depends_on                        = [aws_iam_role.task_role, aws_ecs_service.graph]
+  name                              = "${local.prefix}svc"
+  cluster                           = data.aws_ecs_cluster.ecs.arn
+  task_definition                   = aws_ecs_task_definition.task.arn
+  enable_execute_command            = true
+  desired_count                     = 1
+  launch_type                       = "FARGATE"
+  health_check_grace_period_seconds = local.app_grace_period_seconds
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
@@ -401,7 +413,7 @@ resource "aws_ecs_service" "svc" {
 }
 
 resource "aws_ecs_service" "worker" {
-  depends_on             = [aws_iam_role.task_role]
+  depends_on             = [aws_iam_role.task_role, aws_ecs_service.graph]
   name                   = "${local.prefix}worker-svc"
   cluster                = data.aws_ecs_cluster.ecs.arn
   task_definition        = aws_ecs_task_definition.worker_task.arn

@@ -1,14 +1,13 @@
-import type { Entity } from "@local/hash-subgraph";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
 import { getCommentAuthor } from "../../../../graph/knowledge/system-types/comment";
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedCommentGQL } from "../graphql-mapping";
-import { mapEntityToGQL } from "../graphql-mapping";
 
 export const commentAuthorResolver: ResolverFn<
-  Promise<Entity>,
+  Promise<SerializedEntity>,
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   Record<string, never>
@@ -20,5 +19,5 @@ export const commentAuthorResolver: ResolverFn<
     commentEntityId: metadata.recordId.entityId,
   });
 
-  return mapEntityToGQL(author.entity);
+  return author.entity.toJSON();
 };

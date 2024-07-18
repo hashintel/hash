@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
-import type { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityRevision,
@@ -237,7 +238,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           ...(leftOrRightDraftEntitiesToAccept ?? []),
         ].map((draftEntity) => ({
           entityId: draftEntity.metadata.recordId.entityId,
-          updatedProperties: draftEntity.properties,
+          propertyPatches: [],
           draft: false,
         })),
       },

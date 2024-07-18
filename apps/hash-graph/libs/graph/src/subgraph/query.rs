@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 use derivative::Derivative;
 use graph_types::{
@@ -161,7 +161,10 @@ use crate::{
 /// [`RecordPath`]: crate::store::query::QueryPath
 /// [`Parameter`]: crate::store::query::Parameter
 #[derive(Deserialize, Derivative)]
-#[derivative(Debug(bound = "R::QueryPath<'p>: Debug, R::VertexId: Debug"))]
+#[derivative(
+    Debug(bound = "R::QueryPath<'p>: Debug, R::VertexId: Debug"),
+    Clone(bound = "R::QueryPath<'p>: Clone")
+)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StructuralQuery<'p, R: SubgraphRecord> {
     #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
@@ -204,7 +207,6 @@ where
 pub type DataTypeStructuralQuery = StructuralQuery<'static, DataTypeWithMetadata>;
 pub type PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyTypeWithMetadata>;
 pub type EntityTypeStructuralQuery = StructuralQuery<'static, EntityTypeWithMetadata>;
-pub type EntityStructuralQuery<'q> = StructuralQuery<'q, Entity>;
 
 #[cfg(feature = "utoipa")]
 impl<'p> ToSchema<'_> for StructuralQuery<'p, DataTypeWithMetadata> {

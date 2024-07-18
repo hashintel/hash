@@ -1,29 +1,27 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use authorization::{
-    backend::ZanzibarBackend,
-    schema::{EntityRelationAndSubject, EntityTypeId},
-    NoAuthorization,
-};
+use authorization::{backend::ZanzibarBackend, schema::EntityRelationAndSubject, AuthorizationApi};
 use error_stack::{Report, ResultExt};
 use futures::TryStreamExt;
-use graph_types::knowledge::entity::{Entity, EntityUuid};
+use graph_types::{
+    knowledge::entity::{Entity, EntityUuid},
+    ontology::EntityTypeId,
+};
 use tokio_postgres::GenericClient;
-use type_system::ClosedEntityType;
-use validation::{Validate, ValidationProfile};
+use type_system::schema::ClosedEntityType;
+use validation::{Validate, ValidateEntityComponents};
 
 use crate::{
-    snapshot::{
-        entity::{
-            table::{EntityDraftRow, EntityEmbeddingRow, EntityIsOfTypeRow},
-            EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow,
-        },
-        WriteBatch,
-    },
+    snapshot::WriteBatch,
     store::{
-        crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, StoreCache,
-        StoreProvider,
+        crud::Read,
+        postgres::query::rows::{
+            EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
+            EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
+        },
+        query::Filter,
+        AsClient, InsertionError, PostgresStore, StoreCache, StoreProvider,
     },
 };
 
@@ -33,14 +31,21 @@ pub enum EntityRowBatch {
     Editions(Vec<EntityEditionRow>),
     Type(Vec<EntityIsOfTypeRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
-    Links(Vec<EntityLinkEdgeRow>),
-    Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
+    LeftLinks(Vec<EntityHasLeftEntityRow>),
+    RightLinks(Vec<EntityHasRightEntityRow>),
     Embeddings(Vec<EntityEmbeddingRow>),
+    Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
 }
 
 #[async_trait]
-impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
-    async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), Report<InsertionError>> {
+impl<C, A> WriteBatch<C, A> for EntityRowBatch
+where
+    C: AsClient,
+    A: ZanzibarBackend + AuthorizationApi,
+{
+    async fn begin(
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -65,17 +70,14 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     CREATE TEMPORARY TABLE entity_temporal_metadata_tmp
                         (LIKE entity_temporal_metadata INCLUDING ALL)
                         ON COMMIT DROP;
-                    ALTER TABLE entity_temporal_metadata_tmp
-                        ALTER COLUMN transaction_time SET DEFAULT TSTZRANGE(now(), NULL, '[)');
 
-                    CREATE TEMPORARY TABLE entity_link_edges_tmp (
-                        web_id UUID NOT NULL,
-                        entity_uuid UUID NOT NULL,
-                        left_web_id UUID NOT NULL,
-                        left_entity_uuid UUID NOT NULL,
-                        right_web_id UUID NOT NULL,
-                        right_entity_uuid UUID NOT NULL
-                    ) ON COMMIT DROP;
+                    CREATE TEMPORARY TABLE entity_has_left_entity_tmp
+                        (LIKE entity_has_left_entity INCLUDING ALL)
+                        ON COMMIT DROP;
+
+                    CREATE TEMPORARY TABLE entity_has_right_entity_tmp
+                        (LIKE entity_has_right_entity INCLUDING ALL)
+                        ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_embeddings_tmp
                         (LIKE entity_embeddings INCLUDING ALL)
@@ -91,8 +93,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
     #[expect(clippy::too_many_lines)]
     async fn write(
         self,
-        postgres_client: &PostgresStore<C>,
-        authorization_api: &mut (impl ZanzibarBackend + Send),
+        postgres_client: &mut PostgresStore<C, A>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -180,12 +181,12 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     tracing::info!("Read {} entity temporal metadata", rows.len());
                 }
             }
-            Self::Links(links) => {
+            Self::LeftLinks(links) => {
                 let rows = client
                     .query(
                         "
-                            INSERT INTO entity_link_edges_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_link_edges_tmp[])
+                            INSERT INTO entity_has_left_entity_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::entity_has_left_entity[])
                             RETURNING 1;
                         ",
                         &[&links],
@@ -193,11 +194,28 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
-                    tracing::info!("Read {} entity links", rows.len());
+                    tracing::info!("Read {} left entity links", rows.len());
+                }
+            }
+            Self::RightLinks(links) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO entity_has_right_entity_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::entity_has_right_entity[])
+                            RETURNING 1;
+                        ",
+                        &[&links],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} right entity links", rows.len());
                 }
             }
             Self::Relations(relations) => {
-                authorization_api
+                postgres_client
+                    .authorization_api
                     .touch_relationships(relations)
                     .await
                     .change_context(InsertionError)?;
@@ -207,7 +225,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .query(
                         "
                             INSERT INTO entity_embeddings_tmp
-                            SELECT * FROM UNNEST($1::entity_embeddings_tmp[])
+                            SELECT * FROM UNNEST($1::entity_embeddings[])
                             RETURNING 1;
                         ",
                         &[&embeddings],
@@ -223,7 +241,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
     }
 
     async fn commit(
-        postgres_client: &PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, A>,
         validation: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client
@@ -231,39 +249,26 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             .client()
             .simple_query(
                 "
-                    INSERT INTO entity_ids SELECT * FROM entity_ids_tmp;
+                    INSERT INTO entity_ids
+                        SELECT * FROM entity_ids_tmp;
 
-                    INSERT INTO entity_drafts SELECT * FROM entity_drafts_tmp;
+                    INSERT INTO entity_drafts
+                        SELECT * FROM entity_drafts_tmp;
 
                     INSERT INTO entity_editions
-                        SELECT
-                            entity_edition_id UUID,
-                            properties JSONB,
-                            edition_created_by_id UUID,
-                            archived BOOLEAN
-                        FROM entity_editions_tmp;
+                        SELECT * FROM entity_editions_tmp;
 
-                    INSERT INTO entity_temporal_metadata SELECT * FROM \
-                 entity_temporal_metadata_tmp;
+                    INSERT INTO entity_temporal_metadata
+                        SELECT * FROM entity_temporal_metadata_tmp;
 
                     INSERT INTO entity_is_of_type
                         SELECT * FROM entity_is_of_type_tmp;
 
                     INSERT INTO entity_has_left_entity
-                        SELECT
-                            web_id UUID,
-                            entity_uuid UUID,
-                            left_web_id UUID,
-                            left_entity_uuid UUID
-                        FROM entity_link_edges_tmp;
+                        SELECT * FROM entity_has_left_entity_tmp;
 
                     INSERT INTO entity_has_right_entity
-                        SELECT
-                            web_id UUID,
-                            entity_uuid UUID,
-                            right_web_id UUID,
-                            right_entity_uuid UUID
-                        FROM entity_link_edges_tmp;
+                        SELECT * FROM entity_has_right_entity_tmp;
 
                     INSERT INTO entity_embeddings
                         SELECT * FROM entity_embeddings_tmp;
@@ -286,7 +291,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                 .await
                 .change_context(InsertionError)?;
 
-            let validator_provider = StoreProvider::<_, NoAuthorization> {
+            let validator_provider = StoreProvider::<_, A> {
                 store: postgres_client,
                 cache: StoreCache::default(),
                 authorization: None,
@@ -309,9 +314,9 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .validate(
                         &schema,
                         if entity.metadata.record_id.entity_id.draft_id.is_some() {
-                            ValidationProfile::Draft
+                            ValidateEntityComponents::draft()
                         } else {
-                            ValidationProfile::Full
+                            ValidateEntityComponents::full()
                         },
                         &validator_provider,
                     )

@@ -1,4 +1,4 @@
-use std::{error::Error, fmt};
+use core::{error::Error, fmt};
 
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
@@ -7,6 +7,7 @@ use crate::{backend::ModifyRelationshipOperation, zanzibar};
 /// Error response returned from the API
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[expect(clippy::field_scoped_visibility_modifiers)]
 pub struct RpcError {
     pub(crate) code: i32,
     message: String,

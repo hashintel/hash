@@ -67,7 +67,7 @@ where
     }
 }
 
-pub struct BoundReflection<T: ?Sized>(#[allow(dead_code)] fn() -> *const T);
+pub struct BoundReflection<T: ?Sized>(#[expect(dead_code)] fn() -> *const T);
 
 impl<T> Reflection for BoundReflection<T>
 where
@@ -100,8 +100,9 @@ where
 {
     type Reflection = BoundReflection<T::Reflection>;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_enum(BoundEnumVisitor(PhantomData))
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_enum(BoundEnumVisitor(PhantomData))
             .change_context(DeserializeError)
     }
 }
@@ -262,8 +263,8 @@ where
 }
 
 pub struct RangeReflection<T: ?Sized, U: ?Sized>(
-    #[allow(dead_code)] fn() -> *const T,
-    #[allow(dead_code)] fn() -> *const U,
+    #[expect(dead_code)] fn() -> *const T,
+    #[expect(dead_code)] fn() -> *const U,
 );
 
 impl<T, U> Reflection for RangeReflection<T, U>

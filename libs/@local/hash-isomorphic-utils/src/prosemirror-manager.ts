@@ -1,7 +1,8 @@
 import type { BlockVariant, JsonObject } from "@blockprotocol/core";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityId, OwnedById } from "@local/hash-subgraph";
 import type { Node, Schema } from "prosemirror-model";
 import type { EditorState, Transaction } from "prosemirror-state";
 import type { EditorProps, EditorView } from "prosemirror-view";
@@ -14,7 +15,7 @@ import {
   prepareBlockCache,
 } from "./blocks";
 import type { BlockEntity } from "./entity";
-import { getBlockChildEntity, isRichTextContainingEntity } from "./entity";
+import { getBlockChildEntity, isRichTextProperties } from "./entity";
 import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
 import {
   createEntityStore,
@@ -146,17 +147,23 @@ export class ProsemirrorManager {
     if (draftBlockId && entityStore?.draft[draftBlockId]) {
       const entityInStore = entityStore.draft[draftBlockId];
       if (!isDraftBlockEntity(entityInStore)) {
-        /** @todo Make these errors instead of logs https://app.asana.com/0/0/1203099452204542/f */
+        /**
+         * @todo Make these errors instead of logs
+         * @see https://linear.app/hash/issue/H-3000
+         */
         // eslint-disable-next-line no-console
         console.error("Block entity missing from store");
       }
 
-      if (entityInStore?.componentId !== targetComponentId) {
+      if (entityInStore.componentId !== targetComponentId) {
         // eslint-disable-next-line no-console
         console.error("Cannot render this block entity with this component");
       }
 
-      /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+      /**
+       * @todo this any type coercion is incorrect, we need to adjust typings
+       * @see https://linear.app/hash/issue/H-3000
+       */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       blockEntity = entityInStore as any;
     }
@@ -169,8 +176,11 @@ export class ProsemirrorManager {
         : null;
 
     const content =
-      blockData && isRichTextContainingEntity(blockData)
-        ? childrenForTextEntity(blockData, this.schema)
+      blockData && isRichTextProperties(blockData.properties)
+        ? childrenForTextEntity(
+            { properties: blockData.properties },
+            this.schema,
+          )
         : [];
 
     /**

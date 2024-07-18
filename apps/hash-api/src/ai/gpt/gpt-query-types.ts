@@ -1,15 +1,15 @@
 import { typedValues } from "@local/advanced-types/typed-entries";
+import type { SimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
+import { getSimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { RequestHandler } from "express";
 
-import { genId } from "../../util";
-import type { SimpleEntityType } from "./shared/entity-types";
-import { getSimpleEntityType } from "./shared/entity-types";
 import { stringifyResults } from "./shared/stringify-results";
 
 export type GptQueryTypesRequestBody = {
@@ -67,13 +67,13 @@ export const gptQueryTypes: RequestHandler<
               input: [query],
             },
           ],
-          workflowId: genId(),
+          workflowId: generateUuid(),
         })
         .then(({ embeddings }) => embeddings[0])
     : null;
 
   const queryResponse: GptQueryTypesResponseBody = await req.context.graphApi
-    .getEntityTypesByQuery(user.accountId, {
+    .getEntityTypeSubgraph(user.accountId, {
       filter: {
         all: [
           ...(webUuids?.length
@@ -111,10 +111,13 @@ export const gptQueryTypes: RequestHandler<
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
-    .then(async (response) => {
+    .then(async ({ data: response }) => {
       const entityTypes: SimpleEntityType[] = [];
 
-      const subgraph = mapGraphApiSubgraphToSubgraph(response.data);
+      const subgraph = mapGraphApiSubgraphToSubgraph(
+        response.subgraph,
+        user.accountId,
+      );
 
       const vertices = typedValues(subgraph.vertices)
         .map((vertex) => typedValues(vertex))

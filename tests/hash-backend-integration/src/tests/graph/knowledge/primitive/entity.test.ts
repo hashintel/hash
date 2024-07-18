@@ -16,24 +16,22 @@ import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/en
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import type {
-  Entity,
-  EntityRootType,
-  EntityTypeWithMetadata,
-  OwnedById,
-  PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -75,7 +73,6 @@ describe("Entity CRU", () => {
       graphContext,
       authentication,
       "entitytestorg",
-      logger,
     );
     await joinOrg(graphContext, authentication, {
       userEntityId: testUser2.entity.metadata.recordId.entityId,
@@ -214,8 +211,22 @@ describe("Entity CRU", () => {
     createdEntity = await createEntity(graphContext, authentication, {
       ownedById: testOrg.accountGroupId as OwnedById,
       properties: {
-        [namePropertyType.metadata.recordId.baseUrl]: "Bob",
-        [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
+        value: {
+          [namePropertyType.metadata.recordId.baseUrl]: {
+            value: "Bob",
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+          [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
+            value: "some text",
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        },
       },
       entityTypeId: entityType.schema.$id,
       relationships: createDefaultAuthorizationRelationships(authentication),
@@ -250,11 +261,30 @@ describe("Entity CRU", () => {
       { actorId: testUser2.accountId },
       {
         entity: createdEntity,
-        properties: {
-          [namePropertyType.metadata.recordId.baseUrl]: "Updated Bob",
-          [favoriteBookPropertyType.metadata.recordId.baseUrl]:
-            "Even more text than before",
-        },
+        propertyPatches: [
+          {
+            op: "replace",
+            path: [namePropertyType.metadata.recordId.baseUrl],
+            property: {
+              value: "Updated Bob",
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          },
+          {
+            op: "replace",
+            path: [favoriteBookPropertyType.metadata.recordId.baseUrl],
+            property: {
+              value: "Even more text than before",
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          },
+        ],
       },
     ).catch((err) => Promise.reject(err));
 
@@ -265,33 +295,36 @@ describe("Entity CRU", () => {
 
   it("can read all latest person entities", async () => {
     const allEntities = await graphApi
-      .getEntitiesByQuery(testUser.accountId, {
-        query: {
-          filter: {
-            all: [
-              {
-                equal: [
-                  { path: ["ownedById"] },
-                  { parameter: testOrg.accountGroupId },
-                ],
-              },
-              {
-                endsWith: [
-                  { path: ["type(inheritanceDepth=0)", "baseUrl"] },
-                  {
-                    parameter: `/types/entity-type/person/`,
-                  },
-                ],
-              },
-            ],
-          },
-          graphResolveDepths: zeroedGraphResolveDepths,
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: false,
+      .getEntitySubgraph(testUser.accountId, {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["ownedById"] },
+                { parameter: testOrg.accountGroupId },
+              ],
+            },
+            {
+              endsWith: [
+                { path: ["type(inheritanceDepth=0)", "baseUrl"] },
+                {
+                  parameter: `/types/entity-type/person/`,
+                },
+              ],
+            },
+          ],
         },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       })
       .then(({ data }) =>
-        getRoots(mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph)),
+        getRoots(
+          mapGraphApiSubgraphToSubgraph<EntityRootType>(
+            data.subgraph,
+            testUser.accountId,
+          ),
+        ),
       );
 
     const newlyUpdated = allEntities.find(
@@ -323,8 +356,22 @@ describe("Entity CRU", () => {
         // First create a new entity given the following definition
         entityTypeId: entityType.schema.$id,
         properties: {
-          [namePropertyType.metadata.recordId.baseUrl]: "Alice",
-          [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
+          value: {
+            [namePropertyType.metadata.recordId.baseUrl]: {
+              value: "Alice",
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+            [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
+              value: "some text",
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              },
+            },
+          },
         },
         linkedEntities: [
           {

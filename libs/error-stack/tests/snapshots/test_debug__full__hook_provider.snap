@@ -1,14 +1,14 @@
 ---
-source: tests/test_debug.rs
+source: libs/error-stack/tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 context D
 ├╴usize: 420
 ├╴&'static str: Invalid User Input
-├╴at tests/test_debug.rs:588:38
+├╴at libs/error-stack/tests/test_debug.rs:584:38
 │
 ╰─▶ root error
-    ├╴at tests/common.rs:9:5
+    ├╴at libs/error-stack/tests/common.rs:9:5
     ├╴backtrace (1)
     ╰╴span trace with 2 frames (1)
 

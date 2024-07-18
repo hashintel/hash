@@ -3,14 +3,13 @@ import browser from "webextension-polyfill";
 import { setDisabledBadge, setEnabledBadge } from "../shared/badge";
 import { getUser } from "../shared/get-user";
 import type {
-  GetSiteContentRequest,
-  GetSiteContentReturn,
+  GetTabContentRequest,
+  GetTabContentReturn,
   Message,
 } from "../shared/messages";
 import {
   clearLocalStorage,
   getFromLocalStorage,
-  getSetFromLocalStorageValue,
   setInLocalStorage,
 } from "../shared/storage";
 import {
@@ -37,16 +36,17 @@ browser.runtime.onInstalled.addListener(({ reason }) => {
   }
 });
 
-browser.runtime.onMessage.addListener((message: Message, sender) => {
+browser.runtime.onMessage.addListener(async (message: Message, sender) => {
   if (sender.tab) {
     // We are not expecting any messages from the content script
     return;
   }
 
-  if (message.type === "infer-entities") {
-    void inferEntities(message, "user");
-  } else if (message.type === "cancel-infer-entities") {
-    void cancelInferEntities(message);
+  switch (message.type) {
+    case "infer-entities":
+      return inferEntities(message, "manual");
+    case "cancel-infer-entities":
+      return cancelInferEntities(message);
   }
 });
 
@@ -63,13 +63,13 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
             setTimeout(resolve, 2_000);
           });
 
-          const pageDetails = await (browser.tabs.sendMessage(tabId, {
-            type: "get-site-content",
-          } satisfies GetSiteContentRequest) as Promise<GetSiteContentReturn>);
+          const webPage = await (browser.tabs.sendMessage(tabId, {
+            type: "get-tab-content",
+          } satisfies GetTabContentRequest) as Promise<GetTabContentReturn>);
 
           const applicableRules = automaticInferenceConfig.rules.filter(
             ({ restrictToDomains }) => {
-              const pageHostname = new URL(pageDetails.pageUrl).hostname;
+              const pageHostname = new URL(webPage.url).hostname;
 
               if (
                 pageHostname === "app.hash.ai" ||
@@ -97,38 +97,16 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
             ({ entityTypeId }) => entityTypeId,
           );
 
-          const inferenceRequests =
-            await getFromLocalStorage("inferenceRequests");
-
-          const pendingRequest = inferenceRequests?.find((request) => {
-            return (
-              request.sourceUrl === pageDetails.pageUrl &&
-              (request.status === "pending" ||
-                // Prevent requests for the same page refiring within 30 seconds of a previous one
-                (request.status === "complete" &&
-                  new Date().valueOf() -
-                    new Date(request.finishedAt ?? "").valueOf() <
-                    30_000)) &&
-              request.trigger === "passive"
-            );
-          });
-
-          if (pendingRequest) {
-            return;
-          }
-
           void inferEntities(
             {
               createAs: automaticInferenceConfig.createAs,
               entityTypeIds: entityTypeIdsToInfer,
               model: automaticInferenceConfig.model,
               ownedById: automaticInferenceConfig.ownedById,
-              sourceTitle: pageDetails.pageTitle,
-              sourceUrl: pageDetails.pageUrl,
-              textInput: pageDetails.innerText,
+              sourceWebPage: webPage,
               type: "infer-entities",
             },
-            "passive",
+            "automatic",
           );
         }
       })
@@ -153,26 +131,3 @@ void getFromLocalStorage("automaticInferenceConfig").then((config) => {
     setDisabledBadge();
   }
 });
-
-const sixtyMinutesInMs = 60 * 60 * 1000;
-
-const setInferenceRequests = getSetFromLocalStorageValue("inferenceRequests");
-void setInferenceRequests((currentValue) =>
-  (currentValue ?? []).map((request) => {
-    if (request.status === "pending") {
-      const now = new Date();
-      const requestDate = new Date(request.createdAt);
-      const msSinceRequest = now.getTime() - requestDate.getTime();
-
-      if (msSinceRequest > sixtyMinutesInMs) {
-        return {
-          ...request,
-          errorMessage: "Request timed out",
-          status: "error",
-        };
-      }
-    }
-
-    return request;
-  }),
-);

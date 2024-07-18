@@ -4,16 +4,16 @@ import {
   isKnowledgeGraphOutwardEdge as isKnowledgeGraphOutwardEdgeBp,
   isOntologyOutwardEdge as isOntologyOutwardEdgeBp,
   type OutwardEdge as OutwardEdgeBp,
-} from "@blockprotocol/graph/temporal";
+} from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
-
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type {
-  EntityId,
   LimitedTemporalBound,
   TemporalBound,
   TimeInterval,
   Timestamp,
-} from "../../shared";
+} from "@local/hash-graph-types/temporal-versioning";
+
 import type {
   KnowledgeGraphOutwardEdge,
   OntologyOutwardEdge,

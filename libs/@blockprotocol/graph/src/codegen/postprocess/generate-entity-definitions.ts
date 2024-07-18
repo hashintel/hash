@@ -1,9 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import { mustBeDefined } from "../../shared/util/must-be-defined.js";
-import { typedEntries } from "../../shared/util/typed-object-iter.js";
-import type { PostprocessContext } from "../context/postprocess.js";
-import { entityDefinitionNameForEntityType } from "../shared.js";
+import { mustBeDefined } from "../../util/must-be-defined";
+import { typedEntries } from "../../util/typed-object-iter";
+import type { PostprocessContext } from "../context/postprocess";
+import { entityDefinitionNameForEntityType } from "../shared";
 
 const generateEntityDefinitionForEntityType = (
   entityTypeId: VersionedUrl,
@@ -12,11 +12,18 @@ const generateEntityDefinitionForEntityType = (
 ) => {
   const typeName = title;
   const isLinkType = mustBeDefined(context.linkTypeMap[entityTypeId]);
+  const type = mustBeDefined(context.entityTypes[entityTypeId]);
 
-  const linkSuffix = isLinkType ? ` & { linkData: LinkData }` : "";
   const entityName = entityDefinitionNameForEntityType(typeName);
 
-  const compiledContents = `\nexport type ${entityName} = Entity<${typeName}>${linkSuffix}\n`;
+  const compiledContents = `\n/**
+  * ${type.description}
+  */
+  export type ${entityName} = {
+  entityTypeId: "${entityTypeId}";
+  properties: ${typeName};
+  propertiesWithMetadata: ${typeName}WithMetadata;
+}\n`;
 
   return { entityName, isLinkType, compiledContents };
 };
@@ -24,19 +31,16 @@ const generateEntityDefinitionForEntityType = (
 const allocateEntityDefinitionToFile = (
   fileName: string,
   entityName: string,
-  isLinkType: boolean,
   compiledContents: string,
   context: PostprocessContext,
 ) => {
-  context.logTrace(
-    `Adding${isLinkType ? " link " : " "}entity definition for ${entityName}`,
-  );
+  context.logTrace(`Adding entity definition for ${entityName}`);
 
   context.defineIdentifierInFile(
     entityName,
     {
       definingPath: fileName,
-      dependentOnIdentifiers: isLinkType ? ["Entity", "LinkData"] : ["Entity"],
+      dependentOnIdentifiers: [],
       compiledContents,
     },
     true,
@@ -75,7 +79,7 @@ export const generateEntityDefinitions = (
     for (const identifier of dependentIdentifiers) {
       const entityTypeId = entityTypeIdentifiersToIds[identifier];
       if (entityTypeId) {
-        const { entityName, isLinkType, compiledContents } = mustBeDefined(
+        const { entityName, compiledContents } = mustBeDefined(
           entityTypeIdsToEntityDefinitions[entityTypeId],
         );
 
@@ -83,7 +87,6 @@ export const generateEntityDefinitions = (
           allocateEntityDefinitionToFile(
             file,
             entityName,
-            isLinkType,
             compiledContents,
             context,
           );

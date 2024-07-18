@@ -1,12 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
-  Entity,
-  EntityPropertiesObject,
+  EntityProperties,
   LinkData,
-  OwnedById,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";
@@ -47,21 +48,23 @@ export const getUser = async (requestContext: APIRequestContext) => {
   }).then(({ data }) => {
     return !data
       ? undefined
-      : (getRoots(data.me.subgraph)[0] as Entity<UserProperties>);
+      : getRoots(
+          deserializeSubgraph<EntityRootType<User>>(data.me.subgraph),
+        )[0];
   });
 };
 
-export const createEntity = async (
+export const createEntity = async <T extends EntityProperties>(
   requestContext: APIRequestContext,
   params: {
     draft: boolean;
-    entityTypeId: VersionedUrl;
-    properties: EntityPropertiesObject;
+    entityTypeId: T["entityTypeId"];
+    properties: T["propertiesWithMetadata"];
     linkData?: LinkData;
     linkedEntities?: LinkedEntityDefinition[];
     ownedById: OwnedById;
   },
-): Promise<Entity> => {
+): Promise<Entity<T>> => {
   return callGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
     requestContext,
     {
@@ -79,6 +82,6 @@ export const createEntity = async (
     if (!data) {
       throw new Error("Entity not created");
     }
-    return data.createEntity;
+    return new Entity<T>(data.createEntity);
   });
 };

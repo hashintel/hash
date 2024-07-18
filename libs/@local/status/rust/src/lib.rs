@@ -6,7 +6,7 @@
 
 mod status_code;
 
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 pub use status_code::StatusCode;
@@ -31,7 +31,7 @@ where
     D: Send + Sync + Debug + Serialize,
 {
     #[must_use]
-    pub fn new(code: StatusCode, message: Option<String>, contents: Vec<D>) -> Self {
+    pub const fn new(code: StatusCode, message: Option<String>, contents: Vec<D>) -> Self {
         Self {
             code,
             message,

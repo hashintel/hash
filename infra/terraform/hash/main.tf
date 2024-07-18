@@ -106,8 +106,8 @@ module "temporal" {
   cpu                 = 256
   memory              = 512
   # TODO: provide by the HASH variables.tf
-  temporal_version    = "1.21.0.0"
-  temporal_ui_version = "2.16.2"
+  temporal_version    = "1.23.1.0"
+  temporal_ui_version = "2.27.2"
 
   postgres_host          = module.postgres.pg_host
   postgres_port          = module.postgres.pg_port
@@ -296,8 +296,13 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_hydra_secrets_system"])
     },
   ])
-  api_image    = module.api_ecr
+  api_image              = module.api_ecr
+  api_migration_env_vars = var.hash_api_migration_env_vars
   api_env_vars = concat(var.hash_api_env_vars, [
+    {
+      name  = "ACCESS_FORM_SLACK_WEBHOOK_URL", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["access_form_slack_webhook_url"])
+    },
     {
       name  = "MAILCHIMP_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["mailchimp_api_key"])
@@ -347,9 +352,26 @@ module "application" {
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
     { name = "HASH_REDIS_ENCRYPTED_TRANSIT", secret = false, value = "true" },
     { name = "HASH_INTEGRATION_QUEUE_NAME", secret = false, value = "integration" },
-    { name = "HASH_VAULT_HOST", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"]) },
-    { name = "HASH_VAULT_PORT", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"]) },
-    { name = "HASH_VAULT_ROOT_TOKEN", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"]) },
+    {
+      name  = "HASH_VAULT_HOST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"])
+    },
+    {
+      name  = "HASH_VAULT_PORT", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
+    },
+    {
+      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
+    },
+    {
+      name  = "INTERNAL_API_HOST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_host"])
+    },
+    {
+      name  = "INTERNAL_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_key"])
+    },
     #    { name = "LINEAR_CLIENT_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_id"]) },
     #    { name = "LINEAR_CLIENT_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_secret"]) },
     {
@@ -363,24 +385,88 @@ module "application" {
   ])
   temporal_worker_ai_ts_image    = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [
+    { name = "LOG_LEVEL", secret = false, value = "debug" },
     {
       name  = "OPENAI_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
     },
     {
-      name = "INTERNAL_API_KEY", secret = true,
+      name  = "ANTHROPIC_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_anthropic_api_key"])
+    },
+    {
+      name  = "INTERNAL_API_HOST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_host"])
+    },
+    {
+      name  = "INTERNAL_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_key"])
+    },
+    {
+      name  = "HASH_VAULT_HOST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"])
+    },
+    {
+      name  = "HASH_VAULT_PORT", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
+    },
+    {
+      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
+    },
+    {
+      name  = "HASH_TEMPORAL_WORKER_AI_SENTRY_DSN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_sentry_dsn"])
+    },
+    { name = "AWS_REGION", secret = false, value = local.region },
+    {
+      name  = "AWS_S3_UPLOADS_ACCESS_KEY_ID", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_access_key_id"])
+    },
+    {
+      name  = "AWS_S3_UPLOADS_BUCKET", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_bucket"])
+    },
+    {
+      name  = "AWS_S3_UPLOADS_ENDPOINT", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_endpoint"])
+    },
+    {
+      name  = "AWS_S3_UPLOADS_SECRET_ACCESS_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_secret_access_key"])
+    },
+    {
+      name = "HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_aws_access_key_id"])
+    },
+    {
+      name = "HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_aws_secret_access_key"])
     }
   ]
-  temporal_worker_integration_image = module.temporal_worker_integration_ecr
+  temporal_worker_integration_image    = module.temporal_worker_integration_ecr
   temporal_worker_integration_env_vars = [
-    { name = "HASH_VAULT_HOST", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"]) },
-    { name = "HASH_VAULT_PORT", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"]) },
-    { name = "HASH_VAULT_ROOT_TOKEN", secret = true, value =  sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"]) },
+    { name = "LOG_LEVEL", secret = false, value = "debug" },
+    {
+      name  = "HASH_VAULT_HOST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_host"])
+    },
+    {
+      name  = "HASH_VAULT_PORT", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
+    },
+    {
+      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
+    },
+    {
+      name  = "HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_integration_sentry_dsn"])
+    },
   ]
-  temporal_host                     = module.temporal.host
-  temporal_port                     = module.temporal.port
-  spicedb_image                     = {
+  temporal_host = module.temporal.host
+  temporal_port = module.temporal.port
+  spicedb_image = {
     name    = "authzed/spicedb"
     version = "1.28.0"
   }

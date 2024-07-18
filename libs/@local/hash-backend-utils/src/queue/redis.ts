@@ -39,7 +39,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
   private queueOwned?: {
     name: string;
     lastUpdated: number;
-    interval: NodeJS.Timer;
+    interval: NodeJS.Timeout;
   };
 
   constructor(client: AsyncRedisClient) {

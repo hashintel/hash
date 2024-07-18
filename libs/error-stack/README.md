@@ -8,7 +8,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-[![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2024-03-18&color=blue)][rust-version]
+[![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2024-07-15&color=blue)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
@@ -24,7 +24,7 @@ Read our [announcement post] for the story behind its origins.
 The library enables building a `Report` around an error as it propagates:
 
 ```rust
-use std::fmt;
+use core::fmt;
 
 use error_stack::{Context, Report, Result, ResultExt};
 

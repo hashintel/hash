@@ -1,4 +1,5 @@
-use std::{borrow::Cow, error::Error, fmt, fmt::Write};
+use alloc::borrow::Cow;
+use core::{error::Error, fmt, fmt::Write};
 
 use bytes::BytesMut;
 use postgres_types::{IsNull, ToSql, Type};
@@ -18,7 +19,7 @@ pub struct JsonPath<'p> {
 
 impl<'p> JsonPath<'p> {
     #[must_use]
-    pub fn from_path_tokens(path: Vec<PathToken<'p>>) -> Self {
+    pub const fn from_path_tokens(path: Vec<PathToken<'p>>) -> Self {
         Self { path }
     }
 

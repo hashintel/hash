@@ -1,24 +1,23 @@
-import type { DataTypeReference, JsonValue } from "@blockprotocol/graph";
-import type { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
+import type { JsonValue, Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import {
   getPropertyTypeById as getPropertyTypeByIdBp,
   getPropertyTypeByVertexId as getPropertyTypeByVertexIdBp,
   getPropertyTypes as getPropertyTypesBp,
   getPropertyTypesByBaseUrl as getPropertyTypesByBaseUrlBp,
-} from "@blockprotocol/graph/temporal/stdlib";
+} from "@blockprotocol/graph/stdlib";
+import type { DataTypeReference } from "@blockprotocol/type-system";
 import type {
   EntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-
 import type {
   BaseUrl,
   DataTypeWithMetadata,
-  OntologyTypeVertexId,
   PropertyTypeWithMetadata,
-  Subgraph,
-} from "../../../main";
+} from "@local/hash-graph-types/ontology";
+
+import type { OntologyTypeVertexId, Subgraph } from "../../../main";
 import { getJsonSchemaTypeFromValue, mustGetDataTypeById } from "./data-type";
 import { getEntityTypeAndParentsById } from "./entity-type";
 

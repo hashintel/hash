@@ -1,58 +1,53 @@
 import { useQuery } from "@apollo/client";
-import type {
-  SimpleProperties,
-  Simplified,
-} from "@local/hash-isomorphic-utils/simplify-properties";
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type {
-  HASHInstance,
-  HASHInstanceProperties,
-} from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import type { Entity } from "@local/hash-subgraph";
+import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import { useMemo } from "react";
 
 import type {
-  GetHashInstanceEntityQueryQuery,
-  GetHashInstanceEntityQueryQueryVariables,
+  GetHashInstanceSettingsQueryQuery,
+  GetHashInstanceSettingsQueryQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash-instance.queries";
+import { getHashInstanceSettings } from "../../graphql/queries/knowledge/hash-instance.queries";
 
 /**
  * Retrieves the HASH instance.
  */
 export const useHashInstance = (): {
   loading: boolean;
-  hashInstance?: Entity<SimpleProperties<HASHInstanceProperties>>;
+  hashInstance?: Simplified<Entity<HASHInstance>>;
+  isUserAdmin: boolean;
 } => {
   const { data, loading } = useQuery<
-    GetHashInstanceEntityQueryQuery,
-    GetHashInstanceEntityQueryQueryVariables
-  >(getHashInstanceEntityQuery, {
+    GetHashInstanceSettingsQueryQuery,
+    GetHashInstanceSettingsQueryQueryVariables
+  >(getHashInstanceSettings, {
     fetchPolicy: "cache-and-network",
   });
 
-  const { hashInstanceEntity } = data ?? {};
+  const { hashInstanceSettings } = data ?? {};
 
   const hashInstance = useMemo<
-    | (Omit<Entity, "properties"> & {
-        properties: Simplified<HASHInstance>["properties"];
-      })
-    | undefined
+    Simplified<Entity<HASHInstance>> | undefined
   >(() => {
-    if (!hashInstanceEntity) {
+    if (!hashInstanceSettings) {
       return undefined;
     }
 
+    const deserializedHashInstanceEntity = new Entity<HASHInstance>(
+      hashInstanceSettings.entity,
+    );
+
     return {
-      ...hashInstanceEntity,
-      properties: simplifyProperties(
-        hashInstanceEntity.properties as HASHInstanceProperties,
-      ),
+      metadata: deserializedHashInstanceEntity.metadata,
+      properties: simplifyProperties(deserializedHashInstanceEntity.properties),
     };
-  }, [hashInstanceEntity]);
+  }, [hashInstanceSettings]);
 
   return {
     loading,
     hashInstance,
+    isUserAdmin: !!hashInstanceSettings?.isUserAdmin,
   };
 };

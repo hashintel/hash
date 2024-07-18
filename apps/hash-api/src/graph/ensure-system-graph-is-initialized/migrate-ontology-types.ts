@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import type { Logger } from "@local/hash-backend-utils/logger";
 
+import { isProdEnv } from "../../lib/env-config";
 import type { ImpureGraphContext } from "../context-types";
 import { systemAccountId } from "../system-account";
 import type {
@@ -40,6 +41,15 @@ export const migrateOntologyTypes = async (params: {
 
   for (const migrationFileName of migrationFileNames) {
     if (migrationFileName.endsWith(".migration.ts")) {
+      /**
+       * If the migration file is marked with `.dev.migration.ts`, it
+       * should only be seeded in non-production environments.
+       */
+      if (isProdEnv && migrationFileName.endsWith(".dev.migration.ts")) {
+        params.logger.debug(`Skipping dev migration ${migrationFileName}`);
+        continue;
+      }
+
       const filePath = path.join(migrationDirectory, migrationFileName);
 
       const module = await import(filePath);
@@ -54,6 +64,8 @@ export const migrateOntologyTypes = async (params: {
         authentication,
         migrationState,
       });
+
+      params.logger.debug(`Processed migration ${migrationFileName}`);
     }
   }
 };

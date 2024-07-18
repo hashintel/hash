@@ -20,14 +20,14 @@ import {
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
-  HasIndexedContentProperties,
-  TextProperties,
+  HasIndexedContent,
+  Text,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { OwnedById } from "@local/hash-subgraph";
-import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { generateKeyBetween } from "fractional-indexing";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -63,13 +63,15 @@ describe("Page", () => {
   const createTestBlock = async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const blockData = await createEntity(graphContext, authentication, {
+    const blockData = await createEntity<Text>(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       entityTypeId: systemEntityTypes.text.entityTypeId,
       properties: {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-          [],
-      } as TextProperties,
+        value: {
+          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+            { value: [] },
+        },
+      },
       relationships: createDefaultAuthorizationRelationships({
         actorId: testUser.accountId,
       }),
@@ -192,13 +194,13 @@ describe("Page", () => {
   });
 
   let testBlock1: Block;
-  let testBlockLink1: LinkEntity<HasIndexedContentProperties>;
+  let testBlockLink1: LinkEntity<HasIndexedContent>;
 
   let testBlock2: Block;
-  let testBlockLink2: LinkEntity<HasIndexedContentProperties>;
+  let testBlockLink2: LinkEntity<HasIndexedContent>;
 
   let testBlock3: Block;
-  let testBlockLink3: LinkEntity<HasIndexedContentProperties>;
+  let testBlockLink3: LinkEntity<HasIndexedContent>;
 
   let firstKey: string;
 
@@ -229,8 +231,9 @@ describe("Page", () => {
     expect(existingBlocks).toHaveLength(1);
 
     testBlock1 = existingBlocks[0]!.rightEntity!;
-    testBlockLink1 = existingBlocks[0]!
-      .linkEntity as unknown as LinkEntity<HasIndexedContentProperties>;
+    testBlockLink1 = new LinkEntity<HasIndexedContent>(
+      existingBlocks[0]!.linkEntity,
+    );
 
     [testBlock2, testBlock3] = await Promise.all([
       createTestBlock(),
@@ -257,7 +260,7 @@ describe("Page", () => {
           },
         },
       },
-    )) as unknown as LinkEntity<HasIndexedContentProperties>;
+    )) as unknown as LinkEntity<HasIndexedContent>;
 
     testBlockLink3 = (await addBlockToBlockCollection(
       graphContext,
@@ -278,7 +281,7 @@ describe("Page", () => {
           },
         },
       },
-    )) as unknown as LinkEntity<HasIndexedContentProperties>;
+    )) as unknown as LinkEntity<HasIndexedContent>;
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {

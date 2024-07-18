@@ -8,14 +8,17 @@ use crate::store::{
     migration::{Migration, MigrationState, StoreMigration},
 };
 
-#[expect(clippy::str_to_string)]
 mod embedded {
     use refinery::embed_migrations;
     embed_migrations!("../../postgres_migrations");
 }
 
 #[async_trait]
-impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
+impl<C, A> StoreMigration for PostgresStore<C, A>
+where
+    C: AsClient<Client = Client>,
+    A: Send + Sync,
+{
     async fn run_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
         Ok(embedded::migrations::runner()
             .run_async(self.as_mut_client())

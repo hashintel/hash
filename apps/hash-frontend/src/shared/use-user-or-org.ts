@@ -1,4 +1,9 @@
 import { useQuery } from "@apollo/client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  AccountGroupId,
+  AccountId,
+} from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -9,12 +14,9 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import type {
-  AccountGroupId,
-  AccountId,
-  Entity,
   EntityRootType,
   GraphResolveDepths,
   QueryTemporalAxesUnresolved,
@@ -23,10 +25,10 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import type {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { isEntityOrgEntity, isEntityUserEntity } from "../lib/user-and-org";
 
 export const useUserOrOrg = (
@@ -34,19 +36,18 @@ export const useUserOrOrg = (
     includePermissions?: boolean;
     graphResolveDepths?: Partial<GraphResolveDepths>;
     temporalAxes?: QueryTemporalAxesUnresolved;
-    includeDrafts?: boolean;
   } & (
     | { shortname?: string }
     | { accountOrAccountGroupId?: AccountId | AccountGroupId }
   ),
 ) => {
   const { data, loading, refetch } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
     variables: {
       includePermissions: params.includePermissions ?? false,
-      query: {
+      request: {
         filter: {
           all: [
             ...("shortname" in params
@@ -94,7 +95,7 @@ export const useUserOrOrg = (
         temporalAxes: params.temporalAxes
           ? params.temporalAxes
           : currentTimeInstantTemporalAxes,
-        includeDrafts: params.includeDrafts ?? false,
+        includeDrafts: false,
       },
     },
     skip: !("accountOrAccountGroupId" in params) && !("shortname" in params),
@@ -104,13 +105,13 @@ export const useUserOrOrg = (
   return useMemo(() => {
     const subgraph = data
       ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.structuralQueryEntities.subgraph,
+          data.getEntitySubgraph.subgraph,
         )
       : undefined;
 
     const rootEntity = subgraph
       ? getRoots(subgraph).reduce<
-          Entity<OrganizationProperties> | Entity<UserProperties> | undefined
+          Entity<Organization> | Entity<User> | undefined
         >((prev, currentEntity) => {
           if (
             !isEntityUserEntity(currentEntity) &&
@@ -137,14 +138,14 @@ export const useUserOrOrg = (
 
     const userOrOrgSubgraph = data
       ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.structuralQueryEntities.subgraph,
+          data.getEntitySubgraph.subgraph,
         )
       : undefined;
 
     return {
       canUserEdit: !!(
         rootEntity &&
-        data?.structuralQueryEntities.userPermissionsOnEntities?.[
+        data?.getEntitySubgraph.userPermissionsOnEntities?.[
           rootEntity.metadata.recordId.entityId
         ]?.edit
       ),

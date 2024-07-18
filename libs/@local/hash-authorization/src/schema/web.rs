@@ -1,4 +1,4 @@
-use std::error::Error;
+use core::error::Error;
 
 use graph_types::{
     account::{AccountGroupId, AccountId},

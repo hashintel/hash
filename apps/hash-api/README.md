@@ -47,6 +47,8 @@ The HASH Backend API service is configured using the following environment varia
   - `HASH_OPENSEARCH_PASSWORD`: the password to use when making the connection.
   - `HASH_OPENSEARCH_HTTPS_ENABLED`: (optional) set to "1" to connect to the cluster
     over an HTTPS connection.
+- `INTERNAL_API_KEY`: The API key used to authenticate with HASH (the company)'s internal API, required for some functionality specific to hosted HASH (the app)
+- `INTERNAL_API_HOST`: The host for the internal API, required if the internal API is not running locally
 - `STATSD_ENABLED`: (optional) set to "1" if the service should report metrics to a
   StatsD server. If enabled, the following variables must be set:
   - `STATSD_HOST`: the hostname of the StatsD server.

@@ -6,17 +6,19 @@ import {
   EyeSlashIconRegular,
   IconButton,
 } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
+} from "@local/hash-graph-types/account";
+import type {
   DataTypeWithMetadata,
-  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-graph-types/ontology";
+import { isBaseUrl } from "@local/hash-graph-types/ontology";
 import {
   extractOwnedByIdFromEntityId,
-  isBaseUrl,
   isExternalOntologyElementMetadata,
 } from "@local/hash-subgraph";
 import type { SxProps, Theme, TooltipProps } from "@mui/material";

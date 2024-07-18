@@ -1,9 +1,10 @@
 {
+  "name": "hash",
   "private": true,
   "description": "HASH monorepo",
   "workspaces": {
     "packages": [
-      "apps/*",
+      "apps/**",
       "blocks/*",
       "libs/**",
       "tests/**"
@@ -29,14 +30,14 @@
     "generate-ontology-type-ids": "yarn workspace @apps/hash-api generate-ontology-type-ids",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "@TODO.1": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.2)",
-    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-dep=@blockprotocol/graph --ignore-dep=@blockprotocol/type-system --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
+    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-dep=@blockprotocol/graph --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "fix:eslint": "turbo --continue fix:eslint --",
     "fix:markdownlint": "markdownlint --dot --fix .",
     "fix:prettier": "prettier --write  --ignore-unknown .",
     "fix:yarn-deduplicate": "yarn install && yarn-deduplicate --strategy=fewer && yarn install",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "@TODO.2": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.1)",
-    "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-dep=@blockprotocol/graph --ignore-dep=@blockprotocol/type-system --ignore-package=@apps/hashdotdev --ignore-package=@blocks/chart --ignore-package=@blocks/embed --ignore-package=@blocks/person",
+    "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-dep=@blockprotocol/graph --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "lint:eslint": "turbo --continue lint:eslint --",
     "lint:license-in-workspaces": "yarn workspace @local/repo-chores exe scripts/check-license-in-workspaces.ts",
     "lint:lockfile-lint": "lockfile-lint --path yarn.lock --allowed-hosts registry.yarnpkg.com --allowed-schemes \"https:\"",
@@ -50,9 +51,12 @@
     "seed-data:redis": "yarn workspace @apps/hash-realtime clear-redis",
     "seed-data": "concurrently \"yarn:seed-data:*\"",
     "test": "npm-run-all --continue-on-error \"test:*\"",
-    "test:unit": "turbo run test:unit --",
-    "test:integration": "turbo run test:integration --",
-    "test:system": "turbo run test:system --",
+    "test:unit": "turbo run test:unit --env-mode=loose --",
+    "test:integration": "turbo run test:integration --env-mode=loose --",
+    "test:system": "turbo runtest:system --env-mode=loose --",
+    "bench": "npm-run-all --continue-on-error \"bench:*\"",
+    "bench:unit": "turbo run bench:unit --env-mode=loose --",
+    "bench:integration": "turbo run bench:integration --env-mode=loose --",
     "prune-node-modules": "find . -type d -name \"node_modules\" -exec rm -rf {} +"
   },
   "lint-staged": {
@@ -79,7 +83,7 @@
     ]
   },
   "resolutions": {
-    "@types/react": "18.0.26",
+    "@types/react": "18.2.68",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
@@ -91,19 +95,20 @@
     "cross-env": "7.0.3",
     "dotenv-flow": "3.2.0",
     "husky": "8.0.3",
-    "lint-staged": "15.2.2",
-    "lockfile-lint": "4.13.2",
-    "markdownlint-cli": "0.39.0",
+    "lint-staged": "15.2.7",
+    "lockfile-lint": "4.14.0",
+    "markdownlint-cli": "0.41.0",
     "npm-run-all": "4.1.5",
     "patch-package": "6.5.0",
     "postinstall-postinstall": "2.1.0",
-    "prettier": "3.2.5",
-    "prettier-plugin-packagejson": "2.4.12",
+    "prettier": "3.3.2",
+    "prettier-plugin-packagejson": "2.5.0",
     "prettier-plugin-sh": "0.14.0",
     "prettier-plugin-sql": "0.12.1",
     "suppress-exit-code": "3.1.0",
-    "turbo": "1.12.5",
+    "turbo": "2.0.6",
     "wait-on": "6.0.1",
     "yarn-deduplicate": "6.0.2"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha256.c17d3797fb9a9115bf375e31bfd30058cac6bc9c3b8807a3d8cb2094794b51ca"
 }

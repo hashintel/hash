@@ -1,17 +1,17 @@
-use std::{fmt, fmt::Write};
+use core::{fmt, fmt::Write};
 
 use crate::store::postgres::query::{
     table::{Column, ForeignKeyReference},
-    Alias, AliasedTable, SelectStatement, Transpile,
+    Alias, AliasedTable, Expression, SelectStatement, Transpile,
 };
 
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct JoinCondition<'p> {
-    pub join: Column<'p>,
-    pub on: Column<'p>,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct JoinCondition {
+    pub join: Column,
+    pub on: Column,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JoinType {
     Inner,
     LeftOuter,
@@ -32,23 +32,23 @@ impl Transpile for JoinType {
 
 impl JoinType {
     #[must_use]
-    const fn from_nullability(left: bool, right: bool) -> Self {
-        match (left, right) {
-            (false, false) => Self::Inner,
-            (true, false) => Self::LeftOuter,
-            (false, true) => Self::RightOuter,
-            (true, true) => Self::FullOuter,
+    pub const fn reverse(self) -> Self {
+        match self {
+            Self::Inner => Self::Inner,
+            Self::LeftOuter => Self::RightOuter,
+            Self::RightOuter => Self::LeftOuter,
+            Self::FullOuter => Self::FullOuter,
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct JoinOn {
-    pub join: Column<'static>,
-    pub on: Column<'static>,
+    pub join: Column,
+    pub on: Column,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct JoinExpression {
     pub join: JoinType,
     pub statement: Option<SelectStatement>,
@@ -64,8 +64,12 @@ impl JoinExpression {
         join_alias: Alias,
     ) -> Self {
         match foreign_key_reference {
-            ForeignKeyReference::Single { join, on } => Self {
-                join: JoinType::from_nullability(join.nullable(), on.nullable()),
+            ForeignKeyReference::Single {
+                join,
+                on,
+                join_type,
+            } => Self {
+                join: join_type,
                 table: join.table().aliased(join_alias),
                 statement: None,
                 on_alias,
@@ -74,11 +78,9 @@ impl JoinExpression {
             ForeignKeyReference::Double {
                 join: [join1, join2],
                 on: [on1, on2],
+                join_type,
             } => Self {
-                join: JoinType::from_nullability(
-                    join1.nullable() || join2.nullable(),
-                    on1.nullable() || on2.nullable(),
-                ),
+                join: join_type,
                 table: join1.table().aliased(join_alias),
                 statement: None,
                 on_alias,
@@ -115,9 +117,17 @@ impl Transpile for JoinExpression {
             if i > 0 {
                 fmt.write_str(" AND ")?;
             }
-            condition.join.aliased(self.table.alias).transpile(fmt)?;
+            Expression::ColumnReference {
+                column: condition.join,
+                table_alias: Some(self.table.alias),
+            }
+            .transpile(fmt)?;
             fmt.write_str(" = ")?;
-            condition.on.aliased(self.on_alias).transpile(fmt)?;
+            Expression::ColumnReference {
+                column: condition.on,
+                table_alias: Some(self.on_alias),
+            }
+            .transpile(fmt)?;
         }
         Ok(())
     }
@@ -135,6 +145,7 @@ mod tests {
                 ForeignKeyReference::Single {
                     on: Column::DataTypes(DataTypes::OntologyId),
                     join: Column::OntologyIds(OntologyIds::OntologyId),
+                    join_type: JoinType::Inner,
                 },
                 Alias {
                     condition_index: 1,

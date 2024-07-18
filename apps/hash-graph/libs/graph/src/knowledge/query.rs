@@ -1,4 +1,5 @@
-use std::{fmt, str::FromStr};
+use alloc::borrow::Cow;
+use core::{fmt, str::FromStr};
 
 use graph_types::knowledge::entity::Entity;
 use serde::{
@@ -82,20 +83,18 @@ pub enum EntityQueryPath<'p> {
     /// The decision time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
     /// It's not possible to query for the temporal axis directly, this has to be done via the
-    /// `temporalAxes` parameter on [`StructuralQuery`]. The decision time is returned as part of
+    /// `temporalAxes` parameter on the request. The decision time is returned as part of
     /// [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
-    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     DecisionTime,
     /// The transaction time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
     /// It's not possible to query for the temporal axis directly, this has to be done via the
-    /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is returned as part
+    /// `temporalAxes` parameter on the request. The transaction time is returned as part
     /// of [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
-    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     TransactionTime,
@@ -105,7 +104,7 @@ pub enum EntityQueryPath<'p> {
     /// instead.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeBaseUrls,
     /// The list of [`EntityType`]s' versions belonging to the [`Entity`].
@@ -113,79 +112,29 @@ pub enum EntityQueryPath<'p> {
     /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
     /// instead.
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeVersions,
-    /// The timestamp of the transaction time when the [`Entity`] was _first inserted_ into the
-    /// database.
+    /// The confidence value for the [`Entity`].
     ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["createdAtTransactionTime"]))?;
-    /// assert_eq!(path, EntityQueryPath::CreatedAtTransactionTime);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
+    /// It's currently not possible to query for the entity confidence value directly.
+    EntityConfidence,
+    /// The confidence value for the [`Entity`]'s left entity link.
     ///
-    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
-    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
-    CreatedAtTransactionTime,
-    /// The timestamp of the decision time when the [`Entity`] was _first inserted_ into the
-    /// database.
+    /// It's currently not possible to query for the entity confidence value directly.
+    LeftEntityConfidence,
+    /// The provenance for the [`Entity`]'s left entity link.
     ///
-    /// This does not take into account if the [`Entity`] was updated with an earlier decision
-    /// time.
+    /// It's currently not possible to query for the link provenance value directly.
+    LeftEntityProvenance,
+    /// The confidence value for the [`Entity`]'s right entity link.
     ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["createdAtDecisionTime"]))?;
-    /// assert_eq!(path, EntityQueryPath::CreatedAtDecisionTime);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
+    /// It's currently not possible to query for the entity confidence value directly.
+    RightEntityConfidence,
+    /// The list of all property pointers of an [`Entity`].
     ///
-    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
-    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
-    CreatedAtDecisionTime,
-    /// The timestamp of the transaction time when the first non-draft edition of the [`Entity`]
-    /// was inserted into the database. This may be the first edition, if created as non-draft.
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["firstNonDraftCreatedAtTransactionTime"]))?;
-    /// assert_eq!(path, EntityQueryPath::FirstNonDraftCreatedAtTransactionTime);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
-    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
-    FirstNonDraftCreatedAtTransactionTime,
-    /// The timestamp of the decision time when the [`Entity`] was _first undrafted_ in the
-    /// database.
-    ///
-    /// This does not take into account if the [`Entity`] was updated with an earlier decision
-    /// time.
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["firstNonDraftCreatedAtDecisionTime"]))?;
-    /// assert_eq!(path, EntityQueryPath::FirstNonDraftCreatedAtDecisionTime);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
-    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
-    FirstNonDraftCreatedAtDecisionTime,
+    /// It's currently not possible to query for the list of property pointers directly.
+    RightEntityProvenance,
     /// Whether or not the [`Entity`] is in a draft state.
     ///
     /// ```rust
@@ -197,38 +146,6 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Archived,
-    /// The [`EditionCreatedById`] of the [`EntityProvenanceMetadata`] belonging to the [`Entity`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["editionCreatedById"]))?;
-    /// assert_eq!(path, EntityQueryPath::EditionCreatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
-    /// [`EntityProvenanceMetadata`]: graph_types::knowledge::entity::EntityProvenanceMetadata
-    EditionCreatedById,
-    /// The [`CreatedById`] of the [`EntityProvenanceMetadata`] belonging to the [`Entity`]
-    /// when it was _first inserted_ into the database.
-    ///
-    /// This does not take into account if the [`Entity`] was updated with an earlier decision
-    /// time.
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["createdById"]))?;
-    /// assert_eq!(path, EntityQueryPath::CreatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`CreatedById`]: graph_types::account::CreatedById
-    /// [`EntityProvenanceMetadata`]: graph_types::knowledge::entity::EntityProvenanceMetadata
-    CreatedById,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
     /// The corresponding reversed edge is [`EntityTypeQueryPath::EntityEdge`].
@@ -271,7 +188,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityType`]: type_system::PropertyType
+    /// [`EntityType`]: type_system::schema::PropertyType
     EntityTypeEdge {
         edge_kind: SharedEdgeKind,
         path: EntityTypeQueryPath<'p>,
@@ -407,6 +324,38 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Properties(Option<JsonPath<'p>>),
+    /// Corresponds to the provenance data of the [`Entity`].
+    ///
+    /// Deserializes from `["provenance", ...]` where `...` is a path to a provenance entry of an
+    /// [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["provenance", "createdById"]))?;
+    /// assert_eq!(path.to_string(), r#"provenance.$."createdById""#);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    Provenance(Option<JsonPath<'p>>),
+    /// Corresponds to the provenance data of the [`Entity`].
+    ///
+    /// Deserializes from `["editionProvenance", ...]` where `...` is a path to a provenance entry
+    /// of an [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["editionProvenance", "createdById"]))?;
+    /// assert_eq!(path.to_string(), r#"editionProvenance.$."createdById""#);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    EditionProvenance(Option<JsonPath<'p>>),
+    /// Corresponds to the metadata data of the properties of the [`Entity`].
+    ///
+    /// It's currently not possible to query for the list of property provenance values directly.
+    PropertyMetadata(Option<JsonPath<'p>>),
     /// The embedding for the whole entity blob.
     ///
     /// Deserializes from `["embedding"]`:
@@ -428,24 +377,20 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::DraftId => fmt.write_str("draftId"),
-            Self::EditionCreatedById => fmt.write_str("editionCreatedById"),
-            Self::CreatedById => fmt.write_str("createdById"),
             Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::TypeBaseUrls => fmt.write_str("typeBaseUrls"),
             Self::TypeVersions => fmt.write_str("typeVersions"),
-            Self::CreatedAtDecisionTime => fmt.write_str("createdAtDecisionTime"),
-            Self::CreatedAtTransactionTime => fmt.write_str("createdAtTransactionTime"),
-            Self::FirstNonDraftCreatedAtDecisionTime => {
-                fmt.write_str("firstNonDraftCreatedAtDecisionTime")
-            }
-            Self::FirstNonDraftCreatedAtTransactionTime => {
-                fmt.write_str("firstNonDraftCreatedAtTransactionTime")
-            }
             Self::Archived => fmt.write_str("archived"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
+            Self::Provenance(Some(path)) => write!(fmt, "provenance.{path}"),
+            Self::Provenance(None) => fmt.write_str("provenance"),
+            Self::EditionProvenance(Some(path)) => write!(fmt, "editionProvenance.{path}"),
+            Self::EditionProvenance(None) => fmt.write_str("editionProvenance"),
+            Self::PropertyMetadata(Some(path)) => write!(fmt, "propertyMetadata.{path}"),
+            Self::PropertyMetadata(None) => fmt.write_str("propertyMetadata"),
             Self::Embedding => fmt.write_str("embedding"),
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
@@ -477,6 +422,11 @@ impl fmt::Display for EntityQueryPath<'_> {
                 path,
                 direction: EdgeDirection::Incoming,
             } => write!(fmt, "incomingLinks.{path}"),
+            Self::EntityConfidence => fmt.write_str("entityConfidence"),
+            Self::LeftEntityConfidence => fmt.write_str("leftEntityConfidence"),
+            Self::LeftEntityProvenance => fmt.write_str("leftEntityProvenance"),
+            Self::RightEntityConfidence => fmt.write_str("rightEntityConfidence"),
+            Self::RightEntityProvenance => fmt.write_str("rightEntityProvenance"),
         }
     }
 }
@@ -484,22 +434,21 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::EditionId
-            | Self::Uuid
-            | Self::OwnedById
-            | Self::DraftId
-            | Self::EditionCreatedById
-            | Self::CreatedById => ParameterType::Uuid,
+            Self::EditionId | Self::Uuid | Self::OwnedById | Self::DraftId => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
             Self::TypeBaseUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
             Self::TypeVersions => {
                 ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion))
             }
-            Self::CreatedAtDecisionTime
-            | Self::CreatedAtTransactionTime
-            | Self::FirstNonDraftCreatedAtDecisionTime
-            | Self::FirstNonDraftCreatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Properties(_) => ParameterType::Any,
+            Self::Properties(_)
+            | Self::Provenance(_)
+            | Self::EditionProvenance(_)
+            | Self::PropertyMetadata(_)
+            | Self::LeftEntityProvenance
+            | Self::RightEntityProvenance => ParameterType::Any,
+            Self::EntityConfidence | Self::LeftEntityConfidence | Self::RightEntityConfidence => {
+                ParameterType::F64
+            }
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::Archived => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
@@ -519,14 +468,10 @@ pub enum EntityQueryToken {
     DraftId,
     Archived,
     OwnedById,
-    EditionCreatedById,
-    CreatedById,
-    CreatedAtTransactionTime,
-    CreatedAtDecisionTime,
-    FirstNonDraftCreatedAtTransactionTime,
-    FirstNonDraftCreatedAtDecisionTime,
     Type,
     Properties,
+    Provenance,
+    EditionProvenance,
     Embedding,
     IncomingLinks,
     OutgoingLinks,
@@ -541,11 +486,10 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str =
-        "one of `uuid`, `editionId`, `draftId`, `archived`, `ownedById`, `editionCreatedById`, \
-         `createdById`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
-         `firstNonDraftCreatedAtTransactionTime`, `firstNonDraftCreatedAtDecisionTime`, `type`, \
-         `properties`, `embedding`, `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`";
+    pub const EXPECTING: &'static str = "one of `uuid`, `editionId`, `draftId`, `archived`, \
+                                         `ownedById`, `type`, `properties`, `provenance`, \
+                                         `editionProvenance`, `embedding`, `incomingLinks`, \
+                                         `outgoingLinks`, `leftEntity`, `rightEntity`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -575,16 +519,6 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::EditionId => EntityQueryPath::EditionId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::DraftId => EntityQueryPath::DraftId,
-            EntityQueryToken::EditionCreatedById => EntityQueryPath::EditionCreatedById,
-            EntityQueryToken::CreatedById => EntityQueryPath::CreatedById,
-            EntityQueryToken::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
-            EntityQueryToken::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
-            EntityQueryToken::FirstNonDraftCreatedAtTransactionTime => {
-                EntityQueryPath::FirstNonDraftCreatedAtTransactionTime
-            }
-            EntityQueryToken::FirstNonDraftCreatedAtDecisionTime => {
-                EntityQueryPath::FirstNonDraftCreatedAtDecisionTime
-            }
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Embedding => EntityQueryPath::Embedding,
             EntityQueryToken::Type => EntityQueryPath::EntityTypeEdge {
@@ -607,6 +541,34 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
                     EntityQueryPath::Properties(None)
                 } else {
                     EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(path_tokens)))
+                }
+            }
+            EntityQueryToken::Provenance => {
+                let mut path_tokens = Vec::new();
+                while let Some(property) = seq.next_element::<PathToken<'de>>()? {
+                    path_tokens.push(property);
+                    self.position += 1;
+                }
+
+                if path_tokens.is_empty() {
+                    EntityQueryPath::Provenance(None)
+                } else {
+                    EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(path_tokens)))
+                }
+            }
+            EntityQueryToken::EditionProvenance => {
+                let mut path_tokens = Vec::new();
+                while let Some(property) = seq.next_element::<PathToken<'de>>()? {
+                    path_tokens.push(property);
+                    self.position += 1;
+                }
+
+                if path_tokens.is_empty() {
+                    EntityQueryPath::EditionProvenance(None)
+                } else {
+                    EntityQueryPath::EditionProvenance(Some(JsonPath::from_path_tokens(
+                        path_tokens,
+                    )))
                 }
             }
             EntityQueryToken::LeftEntity => EntityQueryPath::EntityEdge {
@@ -703,10 +665,14 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
             }
             EntityQuerySortingToken::RecordCreatedAtDecisionTime => EntityQueryPath::DecisionTime,
             EntityQuerySortingToken::CreatedAtTransactionTime => {
-                EntityQueryPath::CreatedAtTransactionTime
+                EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
+                    PathToken::Field(Cow::Borrowed("createdAtTransactionTime")),
+                ])))
             }
             EntityQuerySortingToken::CreatedAtDecisionTime => {
-                EntityQueryPath::CreatedAtDecisionTime
+                EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
+                    PathToken::Field(Cow::Borrowed("createdAtDecisionTime")),
+                ])))
             }
             EntityQuerySortingToken::Properties => {
                 let mut path_tokens = Vec::new();
@@ -741,26 +707,16 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
     #[must_use]
     pub fn into_owned(self) -> EntityQueryPath<'static> {
         match self {
-            EntityQueryPath::Uuid => EntityQueryPath::Uuid,
-            EntityQueryPath::OwnedById => EntityQueryPath::OwnedById,
-            EntityQueryPath::DraftId => EntityQueryPath::DraftId,
-            EntityQueryPath::EditionId => EntityQueryPath::EditionId,
-            EntityQueryPath::DecisionTime => EntityQueryPath::DecisionTime,
-            EntityQueryPath::TransactionTime => EntityQueryPath::TransactionTime,
-            EntityQueryPath::TypeBaseUrls => EntityQueryPath::TypeBaseUrls,
-            EntityQueryPath::TypeVersions => EntityQueryPath::TypeVersions,
-            EntityQueryPath::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
-            EntityQueryPath::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
-            EntityQueryPath::FirstNonDraftCreatedAtTransactionTime => {
-                EntityQueryPath::FirstNonDraftCreatedAtTransactionTime
-            }
-            EntityQueryPath::FirstNonDraftCreatedAtDecisionTime => {
-                EntityQueryPath::FirstNonDraftCreatedAtDecisionTime
-            }
-            EntityQueryPath::Archived => EntityQueryPath::Archived,
-            EntityQueryPath::EditionCreatedById => EntityQueryPath::EditionCreatedById,
-            EntityQueryPath::CreatedById => EntityQueryPath::CreatedById,
-            EntityQueryPath::EntityTypeEdge {
+            Self::Uuid => EntityQueryPath::Uuid,
+            Self::OwnedById => EntityQueryPath::OwnedById,
+            Self::DraftId => EntityQueryPath::DraftId,
+            Self::EditionId => EntityQueryPath::EditionId,
+            Self::DecisionTime => EntityQueryPath::DecisionTime,
+            Self::TransactionTime => EntityQueryPath::TransactionTime,
+            Self::TypeBaseUrls => EntityQueryPath::TypeBaseUrls,
+            Self::TypeVersions => EntityQueryPath::TypeVersions,
+            Self::Archived => EntityQueryPath::Archived,
+            Self::EntityTypeEdge {
                 path,
                 edge_kind,
                 inheritance_depth,
@@ -769,7 +725,7 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
                 edge_kind,
                 inheritance_depth,
             },
-            EntityQueryPath::EntityEdge {
+            Self::EntityEdge {
                 path,
                 edge_kind,
                 direction,
@@ -778,10 +734,20 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
                 edge_kind,
                 direction,
             },
-            EntityQueryPath::Properties(path) => {
-                EntityQueryPath::Properties(path.map(JsonPath::into_owned))
+            Self::Properties(path) => EntityQueryPath::Properties(path.map(JsonPath::into_owned)),
+            Self::Embedding => EntityQueryPath::Embedding,
+            Self::EntityConfidence => EntityQueryPath::EntityConfidence,
+            Self::LeftEntityConfidence => EntityQueryPath::LeftEntityConfidence,
+            Self::LeftEntityProvenance => EntityQueryPath::LeftEntityProvenance,
+            Self::RightEntityConfidence => EntityQueryPath::RightEntityConfidence,
+            Self::RightEntityProvenance => EntityQueryPath::RightEntityProvenance,
+            Self::Provenance(path) => EntityQueryPath::Provenance(path.map(JsonPath::into_owned)),
+            Self::EditionProvenance(path) => {
+                EntityQueryPath::EditionProvenance(path.map(JsonPath::into_owned))
             }
-            EntityQueryPath::Embedding => EntityQueryPath::Embedding,
+            Self::PropertyMetadata(path) => {
+                EntityQueryPath::PropertyMetadata(path.map(JsonPath::into_owned))
+            }
         }
     }
 }
@@ -818,7 +784,7 @@ impl SubgraphRecord for Entity {
 
 #[cfg(test)]
 mod tests {
-    use std::{borrow::Cow, iter::once};
+    use core::iter::once;
 
     use super::*;
 

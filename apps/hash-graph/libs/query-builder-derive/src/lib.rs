@@ -1,6 +1,8 @@
-// reason: This is a proc but as we want to document this crate as well this should be a warning
-//         instead
-#![allow(unreachable_pub)]
+#![expect(
+    unreachable_pub,
+    reason = "This is a proc but as we want to document this crate as well this should be a \
+              warning instead"
+)]
 
 /// Derive macro that implements a query-builder and automatic deserialize implementation
 use proc_macro::TokenStream;

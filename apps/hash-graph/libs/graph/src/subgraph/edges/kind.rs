@@ -1,4 +1,5 @@
-use std::{collections::HashSet, convert::identity};
+use core::convert::identity;
+use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
@@ -32,24 +33,24 @@ pub enum OntologyEdgeKind {
     InheritsFrom,
     /// A [`PropertyType`] or [`DataType`] can reference a [`DataType`] to constrain values.
     ///
-    /// [`DataType`]: type_system::DataType
-    /// [`PropertyType`]: type_system::PropertyType
+    /// [`DataType`]: type_system::schema::DataType
+    /// [`PropertyType`]: type_system::schema::PropertyType
     ConstrainsValuesOn,
     /// An [`EntityType`] or [`PropertyType`] can reference a [`PropertyType`] to constrain
     /// properties.
     ///
-    /// [`PropertyType`]: type_system::PropertyType
-    /// [`EntityType`]: type_system::EntityType
+    /// [`PropertyType`]: type_system::schema::PropertyType
+    /// [`EntityType`]: type_system::schema::EntityType
     ConstrainsPropertiesOn,
     /// An [`EntityType`] can reference a link [`EntityType`] to constrain the existence of
     /// certain kinds of links.
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     ConstrainsLinksOn,
     /// An [`EntityType`] can reference an [`EntityType`] to constrain the target entities of
     /// certain kinds of links.
     ///
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     ConstrainsLinkDestinationsOn,
 }
 
@@ -132,7 +133,7 @@ pub enum SharedEdgeKind {
     /// An [`Entity`] is of an [`EntityType`].
     ///
     /// [`Entity`]: graph_types::knowledge::entity::Entity
-    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType`]: type_system::schema::EntityType
     IsOfType,
 }
 
@@ -163,7 +164,7 @@ impl EdgeResolveDepths {
 }
 
 // TODO: Replace with `EdgeResolveDepths`
-//   see https://app.asana.com/0/1201095311341924/1203399511264512/f
+//   see https://linear.app/hash/issue/H-3018
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(deny_unknown_fields)]
@@ -182,7 +183,8 @@ impl OutgoingEdgeResolveDepth {
     }
 }
 
-/// TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
+// TODO: Add documentation for depths parameters
+//   see https://linear.app/hash/issue/H-3018 (sub-task noted in desc)
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -224,7 +226,7 @@ impl GraphResolveDepths {
 }
 
 pub trait GraphResolveDepthIndex {
-    fn depth_mut(self, direction: EdgeDirection, dephts: &mut GraphResolveDepths) -> &mut u8;
+    fn depth_mut(self, direction: EdgeDirection, depths: &mut GraphResolveDepths) -> &mut u8;
 }
 
 impl GraphResolveDepthIndex for OntologyEdgeKind {

@@ -1,33 +1,56 @@
-FROM node:18.15-alpine AS builder
+FROM node:20.13-alpine AS base
 
 WORKDIR /app
 
 COPY package.json .
-RUN apk add --no-cache jq && yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+RUN apk add --no-cache jq yq && \
+    yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
-RUN turbo prune --scope='@apps/hash-frontend' --docker
+# `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
+RUN turbo prune --scope='@apps/hash-frontend' --docker && \
+    find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
+      [ -f "/app/out/full/$1" ] || ( \
+        mkdir -p "/app/out/full/$(dirname "$1")/src" &&  \
+        echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
+        echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
+      )' _ {} \; && \
+    cp Cargo.toml Cargo.lock /app/out/full/
+
 # Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
 # Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
 COPY patches /app/out/full/patches
 
 
-FROM builder as installer
+FROM node:20.13-slim AS rust
 
-WORKDIR /usr/local/src/hash
+WORKDIR /usr/local/
 
-COPY --from=builder /app/out/json/ .
-COPY --from=builder /app/out/yarn.lock yarn.lock
-COPY --from=builder /app/out/full/patches patches
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=:$PATH:/usr/local/cargo/bin
 
-# Required dependencies for compiling the re2 NPM package
-RUN apk add --no-cache libc6-compat python3 make g++ linux-headers
+COPY rust-toolchain.toml .
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends default-jre-headless wget g++ libc-dev python3 make && \
+    rm -rf /var/lib/apt/lists/* && \
+    wget -q -O- https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal && \
+    rustup show && \
+    cargo install wasm-opt --debug
+
+
+FROM rust AS installer
+
+WORKDIR /usr/local/src/
+
+COPY --from=base /app/out/json/ .
+COPY --from=base /app/out/yarn.lock ./yarn.lock
+COPY --from=base /app/out/full/patches patches
+COPY --from=base /app/out/full/turbo.json turbo.json
 
 RUN yarn install --frozen-lockfile --prefer-offline \
     && yarn cache clean
 
-COPY --from=builder /app/out/full/ .
-
-RUN apk add --no-cache openjdk17-jre
+COPY --from=base /app/out/full/ .
 
 ENV NODE_ENV production
 ARG API_ORIGIN
@@ -35,22 +58,19 @@ ENV API_ORIGIN ${API_ORIGIN}
 ARG FRONTEND_URL
 ENV FRONTEND_URL ${FRONTEND_URL}
 
-RUN turbo build --filter '@apps/hash-frontend'
+RUN yarn turbo build --filter '@apps/hash-frontend' && rm -rf target/
 
 
-FROM node:18.15-alpine
+FROM node:20.13-slim AS runner
 
-RUN #apk add --no-cache libc6-compat
-
-COPY --from=installer /usr/local/src/hash /usr/local/src/hash
-WORKDIR /usr/local/src/hash/apps/hash-frontend
+COPY --from=installer /usr/local/src /usr/local/src
+WORKDIR /usr/local/src/apps/hash-frontend
 
 ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
 CMD ["start"]
 
-# Run as a non-root user
-RUN addgroup --system --gid 60000 hash \
-    && adduser --system --ingroup hash frontend
+RUN groupadd --system --gid 60000 hash && \
+    useradd --system frontend -G hash
 
 # Nextjs needs permissions to create caches
 RUN chown -R frontend:hash .next

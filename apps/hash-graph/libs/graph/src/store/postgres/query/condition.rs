@@ -1,11 +1,11 @@
-use std::{fmt, fmt::Write};
+use core::{fmt, fmt::Write};
 
 use crate::store::postgres::query::{Expression, Transpile};
 
 /// A [`Filter`], which can be transpiled.
 ///
 /// [`Filter`]: crate::store::query::Filter
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Condition {
     All(Vec<Self>),
     Any(Vec<Self>),
@@ -147,7 +147,7 @@ impl Transpile for Condition {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
+    use alloc::borrow::Cow;
 
     use graph_types::ontology::DataTypeWithMetadata;
     use postgres_types::ToSql;

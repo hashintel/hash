@@ -1,6 +1,6 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "pipeline": {
+  "tasks": {
     "postinstall": {
       "cache": false
     },
@@ -20,8 +20,17 @@
     },
     "test:system": {},
     "test:miri": {},
+    "bench:unit": {
+      "dependsOn": ["codegen"],
+      "cache": false
+    },
+    "bench:integration": {
+      "dependsOn": ["codegen"],
+      "cache": false
+    },
     "dev": {
-      "persistent": true
+      "persistent": true,
+      "dependsOn": ["codegen"]
     },
     "lint": {
       "dependsOn": ["codegen"]
@@ -37,7 +46,10 @@
     "fix:eslint": {
       "dependsOn": ["codegen"]
     },
-    "fix:clippy": {}
+    "fix:clippy": {},
+    "sentry:sourcemaps": {
+      "dependsOn": ["build"]
+    }
   },
   "globalDependencies": [
     "**/turbo.json",
@@ -48,6 +60,7 @@
     ".justfile",
     ".yarnrc",
     "Cargo.toml",
-    "package.json"
+    "package.json",
+    "apps/hash-external-services/**"
   ]
 }

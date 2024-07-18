@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use authorization::{schema::WebOwnerSubject, AuthorizationApi};
+use authorization::schema::WebOwnerSubject;
 use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -49,10 +49,9 @@ pub trait AccountStore {
     /// # Errors
     ///
     /// - if insertion failed, e.g. because the [`AccountId`] already exists.
-    async fn insert_account_id<A: AuthorizationApi + Send + Sync>(
+    async fn insert_account_id(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
         params: InsertAccountIdParams,
     ) -> Result<(), InsertionError>;
 
@@ -61,10 +60,9 @@ pub trait AccountStore {
     /// # Errors
     ///
     /// - if insertion failed, e.g. because the [`AccountGroupId`] already exists.
-    async fn insert_account_group_id<A: AuthorizationApi + Send + Sync>(
+    async fn insert_account_group_id(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
         params: InsertAccountGroupIdParams,
     ) -> Result<(), InsertionError>;
 
@@ -73,10 +71,9 @@ pub trait AccountStore {
     /// # Errors
     ///
     /// - if insertion failed, e.g. because the [`OwnedById`] already exists.
-    async fn insert_web_id<A: AuthorizationApi + Send + Sync>(
+    async fn insert_web_id(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &mut A,
         params: InsertWebIdParams,
     ) -> Result<(), InsertionError>;
 
