@@ -7,6 +7,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   },
-  "include": ["src"],
+  "include": ["src", "eslint.config.js"],
   "exclude": ["node-modules", "dist"]
 }

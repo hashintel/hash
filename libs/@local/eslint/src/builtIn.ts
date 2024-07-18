@@ -1,5 +1,5 @@
+import { Option, pipe, Predicate, Array as ReadonlyArray } from "effect";
 import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
-import { Option, pipe, Predicate, ReadonlyArray } from "effect";
 
 import type { NoRestrictedImportsRule, Options } from "./index.js";
 
@@ -37,10 +37,7 @@ const noRestrictedImports = (
     );
   }
 
-  if (
-    current.patterns !== undefined &&
-    current.patterns.some((pattern) => typeof pattern === "string")
-  ) {
+  if (current.patterns?.some((pattern) => typeof pattern === "string")) {
     throw new Error("expected patterns to be an array of objects");
   }
 
@@ -72,16 +69,18 @@ export const builtIn =
           // We always prefer arrow functions over function declarations.
           // Generators cannot be written as arrow functions, therefore are
           // allowed to be anonymous to accommodate effect.
-          "func-names": ["error", "always", { generators: "as-needed" }],
+          "func-names": ["error", "always", { generators: "never" }],
           // This is the same as sheriff's rule but allows for drafts to be modified
           "no-param-reassign": [
             "error",
             {
               props: true,
               ignorePropertyModificationsForRegex:
-                options.draftVariableRegex?.() ?? [],
+                options.mutableParametersRegex?.() ?? [],
             },
           ],
+          // Clashes with `@typescript-eslint/no-floating-promises`
+          "no-void": "off",
         },
       },
       ...noRestrictedImports(config, options.noRestrictedImports ?? (() => [])),

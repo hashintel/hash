@@ -1,8 +1,8 @@
-import type { Linter } from "eslint";
 import { Predicate } from "effect";
+import type { Linter } from "eslint";
 import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
 
-import { JS_EXTENSIONS, JSX_EXTENSIONS } from "./index.js";
+import { JS_EXTENSIONS, JSX_EXTENSIONS } from "./constants.js";
 
 const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
   "error",
@@ -11,6 +11,12 @@ const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
     selector: "default",
     format: ["camelCase", tsx && "StrictPascalCase"].filter(Predicate.isString),
     leadingUnderscore: "allow",
+    trailingUnderscore: "forbid",
+  },
+  {
+    selector: "import",
+    format: ["camelCase", "StrictPascalCase"],
+    leadingUnderscore: "forbid",
     trailingUnderscore: "forbid",
   },
   {
@@ -25,9 +31,7 @@ const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
   // but they cannot be unused.
   {
     selector: "variable",
-    format: ["camelCase", "UPPER_CASE", tsx && "StrictPascalCase"].filter(
-      Predicate.isString,
-    ),
+    format: ["camelCase", "UPPER_CASE", "StrictPascalCase"],
     modifiers: ["const", "global"],
     leadingUnderscore: "forbid",
     trailingUnderscore: "forbid",
@@ -104,6 +108,21 @@ export const typescript = (config: FlatESLintConfig[]): FlatESLintConfig[] =>
             varsIgnorePattern: "^_",
             ignoreRestSiblings: true,
           },
+        ],
+        "@typescript-eslint/no-shadow": [
+          "error",
+          {
+            hoist: "all",
+            allow: ["resolve", "reject", "done", "next", "err", "error", "_"],
+            ignoreTypeValueShadow: true,
+            ignoreFunctionTypeParameterNameValueShadow: true,
+          },
+        ],
+        // Allow numbers in template expressions, as they are used quite frequently
+        // and do not really suffer from the reasons described in the rule documentation
+        "@typescript-eslint/restrict-template-expressions": [
+          "error",
+          { allowNumber: true },
         ],
       },
     },

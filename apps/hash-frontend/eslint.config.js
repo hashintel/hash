@@ -1,4 +1,4 @@
-import { create } from "@repo/eslint";
+import { create } from "@local/eslint";
 
 export default create({
   enabled: {

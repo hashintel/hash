@@ -1,16 +1,13 @@
-import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
-import { sheriff } from "eslint-config-sheriff";
 import { pipe } from "effect";
+import { sheriff } from "eslint-config-sheriff";
+import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
 
 import { builtIn } from "./builtIn.js";
-import { unicorn } from "./unicorn.js";
 import { importPlugin } from "./import.js";
 import { react } from "./react.js";
-import { typescript } from "./typescript.js";
 import { stylistic } from "./stylistic.js";
-
-export const JS_EXTENSIONS = "js,mjs,cjs,ts,mts,cts";
-export const JSX_EXTENSIONS = "jsx,tsx,mtsx,mjsx";
+import { typescript } from "./typescript.js";
+import { unicorn } from "./unicorn.js";
 
 // A subset of the allowed rule config, because we're sane
 export interface NoRestrictedImportsPath {
@@ -39,7 +36,7 @@ export interface Options {
     tests: boolean;
   };
   noRestrictedImports?: () => NoRestrictedImportsRule[];
-  draftVariableRegex?: () => string[];
+  mutableParametersRegex?: () => string[];
 }
 
 export const create = (options: Options): FlatESLintConfig[] => {
