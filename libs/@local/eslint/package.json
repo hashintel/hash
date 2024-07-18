@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "prepare": "yarn build"
+    "postinstall": "yarn build"
   },
   "dependencies": {
     "effect": "^3.0.2",
