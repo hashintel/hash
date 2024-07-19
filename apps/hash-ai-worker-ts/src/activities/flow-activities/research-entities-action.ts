@@ -13,37 +13,37 @@ import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
-import { logger } from "../shared/activity-logger";
+import { logger } from "../shared/activity-logger.js";
 import {
   areUrlsTheSameAfterNormalization,
   getFlowContext,
   getProvidedFiles,
-} from "../shared/get-flow-context";
-import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
-import { logProgress } from "../shared/log-progress";
-import { stringify } from "../shared/stringify";
-import { checkSubTasksAgent } from "./research-entities-action/check-sub-tasks-agent";
+} from "../shared/get-flow-context.js";
+import type { ParsedLlmToolCall } from "../shared/get-llm-response/types.js";
+import { logProgress } from "../shared/log-progress.js";
+import { stringify } from "../shared/stringify.js";
+import { checkSubTasksAgent } from "./research-entities-action/check-sub-tasks-agent.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
-} from "./research-entities-action/coordinating-agent";
-import { coordinatingAgent } from "./research-entities-action/coordinating-agent";
+} from "./research-entities-action/coordinating-agent.js";
+import { coordinatingAgent } from "./research-entities-action/coordinating-agent.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
-} from "./research-entities-action/coordinator-tools";
-import type { DuplicateReport } from "./research-entities-action/deduplicate-entities";
-import { deduplicateEntities } from "./research-entities-action/deduplicate-entities";
-import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
-import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call";
-import { linkFollowerAgent } from "./research-entities-action/link-follower-agent";
-import { runSubTaskAgent } from "./research-entities-action/sub-task-agent";
-import type { CompletedCoordinatorToolCall } from "./research-entities-action/types";
-import { nullReturns } from "./research-entities-action/types";
-import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "./shared/infer-facts-from-text/types";
-import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
-import type { FlowActionActivity } from "./types";
+} from "./research-entities-action/coordinator-tools.js";
+import type { DuplicateReport } from "./research-entities-action/deduplicate-entities.js";
+import { deduplicateEntities } from "./research-entities-action/deduplicate-entities.js";
+import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human.js";
+import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call.js";
+import { linkFollowerAgent } from "./research-entities-action/link-follower-agent.js";
+import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
+import type { CompletedCoordinatorToolCall } from "./research-entities-action/types.js";
+import { nullReturns } from "./research-entities-action/types.js";
+import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { Fact } from "./shared/infer-facts-from-text/types.js";
+import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts.js";
+import type { FlowActionActivity } from "./types.js";
 
 export type AccessedRemoteFile = {
   entityTypeId: VersionedUrl;
@@ -495,10 +495,15 @@ export const researchEntitiesAction: FlowActionActivity<{
                   prompt,
                   entityTypeIds,
                   linkEntityTypeIds,
+                  relevantEntityIds,
                   descriptionOfExpectedContent,
                   exampleOfExpectedContent,
                   reason,
                 }) => {
+                  const relevantEntities = state.entitySummaries.filter(
+                    ({ localId }) => relevantEntityIds?.includes(localId),
+                  );
+
                   const response = await linkFollowerAgent({
                     initialResource: {
                       url,
@@ -507,11 +512,20 @@ export const researchEntitiesAction: FlowActionActivity<{
                       reason,
                     },
                     task: prompt,
-                    entityTypes: input.entityTypes.filter(({ $id }) =>
-                      entityTypeIds.includes($id),
+                    existingEntitiesOfInterest: relevantEntities,
+                    entityTypes: input.entityTypes.filter(
+                      ({ $id }) =>
+                        entityTypeIds.includes($id) ||
+                        relevantEntities.some(
+                          (entity) => entity.entityTypeId === $id,
+                        ),
                     ),
                     linkEntityTypes: input.linkEntityTypes?.filter(
-                      ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
+                      ({ $id }) =>
+                        !!linkEntityTypeIds?.includes($id) ||
+                        relevantEntities.some(
+                          (entity) => entity.entityTypeId === $id,
+                        ),
                     ),
                   });
 
@@ -527,7 +541,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             for (const { response } of responsesWithUrl) {
               inferredFacts.push(...response.facts);
-              entitySummaries.push(...response.entitySummaries);
+              entitySummaries.push(...response.existingEntitiesOfInterest);
               suggestionsForNextStepsMade.push(response.suggestionForNextSteps);
               resourceUrlsVisited.push(
                 ...response.exploredResources.map(({ url }) => url),
@@ -580,16 +594,24 @@ export const researchEntitiesAction: FlowActionActivity<{
                     explanation,
                   } = subTask;
 
-                  const entityTypes = input.entityTypes.filter(({ $id }) =>
-                    entityTypeIds.includes($id),
+                  const relevantEntities = state.entitySummaries.filter(
+                    ({ localId }) => relevantEntityIds?.includes(localId),
+                  );
+
+                  const entityTypes = input.entityTypes.filter(
+                    ({ $id }) =>
+                      entityTypeIds.includes($id) ||
+                      relevantEntities.some(
+                        (entity) => entity.entityTypeId === $id,
+                      ),
                   );
 
                   const linkEntityTypes = input.linkEntityTypes?.filter(
-                    ({ $id }) => linkEntityTypeIds?.includes($id) ?? false,
-                  );
-
-                  const relevantEntities = state.entitySummaries.filter(
-                    ({ localId }) => relevantEntityIds?.includes(localId),
+                    ({ $id }) =>
+                      !!linkEntityTypeIds?.includes($id) ||
+                      relevantEntities.some(
+                        (entity) => entity.entityTypeId === $id,
+                      ),
                   );
 
                   const existingFactsAboutRelevantEntities =
@@ -857,13 +879,23 @@ export const researchEntitiesAction: FlowActionActivity<{
     toolCalls: initialToolCalls,
   });
 
-  const submittedEntities = getSubmittedEntities();
+  /**
+   * These are entities the coordinator has chosen to highlight as the result of research,
+   * but we want to output all entity proposals from the task.
+   * @todo do something with the highlighted entities, e.g.
+   * - mark them for the user's attention
+   * - pass them to future steps
+   */
+  const _submittedEntities = getSubmittedEntities();
+  logger.debug(`Submitted Entities: ${stringify(_submittedEntities)}`);
 
-  const filesUsedToProposeSubmittedEntities = submittedEntities
-    .flatMap((submittedEntity) => {
+  const allProposedEntities = state.proposedEntities;
+
+  const filesUsedToProposeEntities = allProposedEntities
+    .flatMap((proposedEntity) => {
       const sourcesUsedToProposeEntity = [
-        ...(submittedEntity.provenance.sources ?? []),
-        ...flattenPropertyMetadata(submittedEntity.propertyMetadata).flatMap(
+        ...(proposedEntity.provenance.sources ?? []),
+        ...flattenPropertyMetadata(proposedEntity.propertyMetadata).flatMap(
           ({ metadata }) => metadata.provenance?.sources ?? [],
         ),
       ];
@@ -913,8 +945,8 @@ export const researchEntitiesAction: FlowActionActivity<{
    *
    * Note that uploading the file is handled in the "Persist Entity" action.
    */
-  const fileEntityProposals: ProposedEntity[] =
-    filesUsedToProposeSubmittedEntities.map(({ url, entityTypeId }) => ({
+  const fileEntityProposals: ProposedEntity[] = filesUsedToProposeEntities.map(
+    ({ url, entityTypeId }) => ({
       /**
        * @todo: H-2728 set the web page this file was discovered in (if applicable) in the property provenance
        * for the `fileUrl`
@@ -927,7 +959,8 @@ export const researchEntitiesAction: FlowActionActivity<{
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
           url,
       } satisfies FileProperties,
-    }));
+    }),
+  );
 
   const now = new Date().toISOString();
 
@@ -940,7 +973,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     })),
   );
 
-  logger.debug(`Submitted Entities: ${stringify(submittedEntities)}`);
+  logger.debug(`Proposed Entities: ${stringify(allProposedEntities)}`);
   logger.debug(`File Entities Proposed: ${stringify(fileEntityProposals)}`);
 
   return {
@@ -953,7 +986,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
             payload: {
               kind: "ProposedEntity",
-              value: [...submittedEntities, ...fileEntityProposals],
+              value: [...allProposedEntities, ...fileEntityProposals],
             },
           },
         ],

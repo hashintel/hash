@@ -1,4 +1,4 @@
-import type { InitializeContext } from "../../context/initialize";
+import type { InitializeContext } from "../../context/initialize.js";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 100;

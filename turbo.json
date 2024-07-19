@@ -8,7 +8,7 @@
       "dependsOn": ["^build"]
     },
     "build": {
-      "dependsOn": ["codegen"]
+      "dependsOn": ["^build", "codegen"]
     },
     "test:unit": {
       "dependsOn": ["codegen"],

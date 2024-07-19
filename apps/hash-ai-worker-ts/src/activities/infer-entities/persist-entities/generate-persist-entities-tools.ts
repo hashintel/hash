@@ -4,16 +4,16 @@ import type { ProposedEntitySchemaOrData } from "@local/hash-isomorphic-utils/ai
 import dedent from "dedent";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
-import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
 import type {
   ProposedEntityToolCreationsByType,
   ProposeEntitiesToolName,
-} from "../shared/generate-propose-entities-tools";
-import { generateProposeEntitiesTools } from "../shared/generate-propose-entities-tools";
-import { generateSimplifiedTypeId } from "../shared/generate-simplified-type-id";
-import type { PropertyValueWithSimplifiedProperties } from "../shared/map-simplified-properties-to-properties";
-import { stripIdsFromDereferencedProperties } from "../shared/strip-ids-from-dereferenced-properties";
+} from "../shared/generate-propose-entities-tools.js";
+import { generateProposeEntitiesTools } from "../shared/generate-propose-entities-tools.js";
+import { generateSimplifiedTypeId } from "../shared/generate-simplified-type-id.js";
+import type { PropertyValueWithSimplifiedProperties } from "../shared/map-simplified-properties-to-properties.js";
+import { stripIdsFromDereferencedProperties } from "../shared/strip-ids-from-dereferenced-properties.js";
 
 export type PersistEntitiesToolName =
   | "update_entities"

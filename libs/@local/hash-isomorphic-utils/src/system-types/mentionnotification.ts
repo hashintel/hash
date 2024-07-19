@@ -258,7 +258,7 @@ import type {
   UserPropertiesWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   Actor,

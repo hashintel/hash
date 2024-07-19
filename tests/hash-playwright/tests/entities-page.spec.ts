@@ -14,7 +14,7 @@ test("user can visit a page listing entities of a type", async ({ page }) => {
   });
 
   // Check if we are on the logged-in homepage
-  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
+  await expect(page.locator("text=Get support")).toBeVisible();
 
   // Click on 'Document' in the 'Entities' sidebar
   await page.locator("text=Document").first().click();

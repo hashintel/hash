@@ -15,7 +15,7 @@ import type {
   TextDataTypeWithMetadata,
   TriggerDefinitionIDPropertyValue,
   TriggerDefinitionIDPropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   DescriptionPropertyValue,

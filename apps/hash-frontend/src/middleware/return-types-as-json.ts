@@ -8,8 +8,6 @@ import {
   apiGraphQLEndpoint,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
-import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
-import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
 import type { OntologyTypeVertexId } from "@local/hash-subgraph";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
@@ -81,8 +79,8 @@ export const returnTypeAsJson = async (request: NextRequest) => {
   const shouldServeHashAiType =
     frontendUrl === "https://app.hash.ai" ||
     (frontendUrl === "http://localhost:3000" &&
-      systemTypeWebShortnames.includes(
-        urlObject.pathname.split("/")[1]!.slice(1) as SystemTypeWebShortname,
+      ["hash", "google", "linear"].includes(
+        urlObject.pathname.split("/")[1]!.slice(1),
       ));
 
   const urlToRequest = shouldServeHashAiType

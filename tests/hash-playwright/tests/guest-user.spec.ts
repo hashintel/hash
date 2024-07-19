@@ -60,6 +60,9 @@ testTolerateConsoleErrors(
   "incorrect credentials are handled",
   async ({ page }) => {
     await page.goto("/");
+
+    await page.locator("text=Sign In").nth(0).click();
+
     await page.waitForURL("**/signin");
 
     await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();

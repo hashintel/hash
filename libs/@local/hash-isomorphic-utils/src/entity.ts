@@ -1,23 +1,24 @@
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
-import type {
-  HasIndexedContent,
-  Text,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { Subgraph } from "@local/hash-subgraph";
 import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
 
-import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
+import type {
+  DraftEntity,
+  EntityStore,
+  EntityStoreType,
+} from "./entity-store.js";
 import {
   isDraftBlockEntity,
   textualContentPropertyTypeBaseUrl,
-} from "./entity-store";
+} from "./entity-store.js";
 import type {
   Block,
   BlockCollection as BlockCollectionGql,
-} from "./graphql/api-types.gen";
+} from "./graphql/api-types.gen.js";
+import type { HasSpatiallyPositionedContent } from "./system-types/canvas.js";
+import type { HasIndexedContent, Text } from "./system-types/shared.js";
+import type { TextToken } from "./types.js";
 
 export type BlockEntity = Omit<Block, "blockChildEntity"> & {
   blockChildEntity: Entity;

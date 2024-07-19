@@ -2,8 +2,8 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
-import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
-import type { CoordinatingAgentState } from "./coordinating-agent";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
+import type { CoordinatingAgentState } from "./coordinating-agent.js";
 
 export const coordinatorToolNames = [
   "requestHumanInput",
@@ -100,8 +100,7 @@ export const generateToolDefinitions = <
                     type: "string",
                   },
                   description: dedent(`
-                  The entity IDs of the entities which the sub-task is relevant to, for which existing
-                    facts have already been inferred.
+                  The entity IDs of the proposed entities which the sub-task is relevant to.
                   
                   ${params.state?.entitySummaries.length ? `The possible values are: ${params.state.entitySummaries.map(({ localId }) => localId).join(", ")}` : ""}
                 `),
@@ -233,6 +232,15 @@ export const generateToolDefinitions = <
                       "The linkEntityTypeIds of the kind of link entities to infer facts about on the web page",
                   },
                 },
+                relevantEntityIds: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                  },
+                  description: dedent(`
+                  The entityIds of already proposed entities which you are seeking further detail on, if any.
+                `),
+                },
               },
               required: [
                 "url",
@@ -251,19 +259,26 @@ export const generateToolDefinitions = <
     complete: {
       name: "complete",
       description: dedent(`
-            Complete the research task by specifying the entityIds of the entities to submit as the result of your research.
+            Complete the research task by specifying the entityIds of the entities to highlight as the result of your research.
           `),
       inputSchema: {
         type: "object",
         properties: {
-          explanation: explanationDefinition,
+          explanation: {
+            type: "string",
+            description: dedent(`
+              An explanation of why these entities were chosen to highlight as the result of the research task,
+              e.g. if the task asked for the 'top X' entities, explain why these are the top X.
+            `),
+          },
           entityIds: {
             type: "array",
             items: {
               type: "string",
             },
             description: dedent(`
-            An array of entityIds to submit.
+            An array of entityIds to highlight. 
+            The user will receive all entities discovered, with the highlighted entityIds identified for special attention.
             You must have made an effort to find as many properties and outgoing links for each entity as possible,
             as long as they relate to the research task in question.
           `),
@@ -340,6 +355,7 @@ export type CoordinatorToolCallArguments = Subtype<
         prompt: string;
         entityTypeIds: string[];
         linkEntityTypeIds?: string[];
+        relevantEntityIds?: string[];
         reason: string;
         descriptionOfExpectedContent: string;
         exampleOfExpectedContent: string;

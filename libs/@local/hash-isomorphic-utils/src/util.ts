@@ -1,5 +1,4 @@
-// @todo this should be defined elsewhere
-import uniq from "lodash/uniq";
+import { uniq } from "lodash-es";
 
 /**
  * This behaves differently from the type `{}`, and will error if you set more properties on it.
@@ -117,10 +116,12 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
  * Restructure a list of elements with parent references into a tree
  * This will ignore elements with missing parent entities and add them at the root level
  * This can be used for recreating a page tree structure from the list of an account's pages
- * @param elements is the list of elements that should contain an id and optionally reference to a parent and a list of children
+ * @param elements is the list of elements that should contain an id and optionally reference to a parent and a list of
+ *   children
  * @param key is the name of the id property on the element, used to strongly type the code
  * @param reference is the name of the parent reference property on the element
- * @param recursive is the name of the property that deals with children of an element. This will be populated with the tree structure.
+ * @param recursive is the name of the property that deals with children of an element. This will be populated with the
+ *   tree structure.
  */
 export const treeFromParentReferences = <
   Element extends {

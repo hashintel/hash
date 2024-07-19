@@ -26,7 +26,7 @@ export const loginUsingTempForm = async ({
   await page.press(passwordInputSelector, "Enter");
 
   // Wait for the redirect to the account page
-  await expect(page.locator("text=Welcome to HASH")).toBeVisible({
+  await expect(page.locator("text=Get support")).toBeVisible({
     timeout: 60_000,
   });
 

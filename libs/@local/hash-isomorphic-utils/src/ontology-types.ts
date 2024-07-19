@@ -2,13 +2,13 @@ import { atLeastOne } from "@blockprotocol/type-system";
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import {
   componentsFromVersionedUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 
-import { frontendUrl } from "./environment";
+import { frontendUrl } from "./environment.js";
+import { slugifyTypeTitle } from "./slugify-type-title.js";
 
 export type SchemaKind = "data-type" | "property-type" | "entity-type";
 

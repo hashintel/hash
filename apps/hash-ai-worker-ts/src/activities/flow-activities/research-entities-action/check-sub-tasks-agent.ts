@@ -1,16 +1,16 @@
 import dedent from "dedent";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
-import { getFlowContext } from "../../shared/get-flow-context";
-import { getLlmResponse } from "../../shared/get-llm-response";
-import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
-import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
-import { graphApiClient } from "../../shared/graph-api-client";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { getLlmResponse } from "../../shared/get-llm-response.js";
+import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message.js";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
-} from "./coordinating-agent";
-import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-for-llm-consumption";
+} from "./coordinating-agent.js";
+import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-for-llm-consumption.js";
 
 type SubmitVerdictToolCallInput = {
   [subTaskId: string]: {
@@ -182,6 +182,12 @@ export const checkSubTasksAgent = async (params: {
 
     return { acceptedSubTasks, rejectedSubTasks };
   } else {
-    throw new Error("Failed to get LLM response");
+    return {
+      acceptedSubTasks: subTasks.map(({ subTaskId }) => ({
+        subTaskId,
+        reason: "Could not get response from sub task checker, accepting task",
+      })),
+      rejectedSubTasks: [],
+    };
   }
 };

@@ -66,7 +66,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         data.me.subgraph,
       );
 
-      const user = getRoots(subgraph)[0];
+      const user = getRoots(subgraph)[0]!;
 
       const simpleProperties = simplifyProperties(
         user.properties as UserProperties,
@@ -100,13 +100,12 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         ({ linkEntity, rightEntity }) =>
           linkEntity[0]?.metadata.entityTypeId ===
             systemLinkEntityTypes.has.linkEntityTypeId &&
-          rightEntity[0].metadata.entityTypeId ===
+          rightEntity[0]?.metadata.entityTypeId ===
             systemEntityTypes.browserPluginSettings.entityTypeId,
       )[0]?.rightEntity[0];
 
       let settingsEntityId: EntityId;
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive
       if (userBrowserPreferences) {
         settingsEntityId = userBrowserPreferences.metadata.recordId.entityId;
 
@@ -222,7 +221,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
       }
 
       const orgs = orgLinksAndEntities.map(({ rightEntity }) => {
-        const org = rightEntity[0];
+        const org = rightEntity[0]!;
         const orgAvatar = getAvatarForEntity(
           subgraph,
           org.metadata.recordId.entityId,

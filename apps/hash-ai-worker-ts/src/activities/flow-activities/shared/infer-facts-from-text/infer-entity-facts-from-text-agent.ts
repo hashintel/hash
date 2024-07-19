@@ -1,21 +1,21 @@
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import dedent from "dedent";
 
-import { logger } from "../../../shared/activity-logger";
-import type { DereferencedEntityType } from "../../../shared/dereference-entity-type";
-import { getFlowContext } from "../../../shared/get-flow-context";
-import { getLlmResponse } from "../../../shared/get-llm-response";
+import { logger } from "../../../shared/activity-logger.js";
+import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
+import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type {
   LlmMessage,
   LlmMessageToolResultContent,
   LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message";
-import type { LlmToolDefinition } from "../../../shared/get-llm-response/types";
-import { graphApiClient } from "../../../shared/graph-api-client";
-import { stringify } from "../../../shared/stringify";
-import type { LocalEntitySummary } from "./get-entity-summaries-from-text";
-import type { Fact } from "./types";
+} from "../../../shared/get-llm-response/llm-message.js";
+import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
+import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { stringify } from "../../../shared/stringify.js";
+import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
+import type { Fact } from "./types.js";
 
 const toolNames = ["submitFacts"] as const;
 
@@ -166,7 +166,7 @@ const constructUserMessage = (params: {
 
 const retryMax = 3;
 
-export const inferEntityFactsFromText = async (params: {
+export const inferEntityFactsFromTextAgent = async (params: {
   subjectEntities: LocalEntitySummary[];
   potentialObjectEntities: LocalEntitySummary[];
   text: string;
@@ -239,7 +239,7 @@ export const inferEntityFactsFromText = async (params: {
       };
     }
 
-    return inferEntityFactsFromText({
+    return inferEntityFactsFromTextAgent({
       ...params,
       retryContext: {
         previousValidFacts: allValidInferredFacts,
@@ -283,20 +283,7 @@ export const inferEntityFactsFromText = async (params: {
       ],
     });
   } else if (llmResponse.status !== "ok") {
-    /**
-     * If a schema validation error couldn't be recovered from, we retry the
-     * request without retry messages.
-     */
-    if (llmResponse.status === "exceeded-maximum-retries") {
-      return retry({
-        allValidInferredFacts: params.retryContext?.previousValidFacts ?? [],
-        retryMessages: [],
-      });
-    }
-
-    throw new Error(
-      `Failed to get response from LLM: ${stringify(llmResponse)}`,
-    );
+    return { facts: params.retryContext?.previousValidFacts ?? [] };
   }
 
   const validFacts: Fact[] = [];
@@ -336,7 +323,7 @@ export const inferEntityFactsFromText = async (params: {
       if (!subjectEntity) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `An invalid "subjectEntityLocalId" has been provided: ${fact.subjectEntityLocalId}`,
+          invalidReason: `An invalid "subjectEntityLocalId" has been provided: ${fact.subjectEntityLocalId}. All facts must relate to a subject entity – don't submit facts that can't be linked to one.`,
           toolCallId: toolCall.id,
         });
 
@@ -354,26 +341,23 @@ export const inferEntityFactsFromText = async (params: {
       if (fact.objectEntityLocalId && !objectEntity) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `An invalid "objectEntityLocalId" has been provided: ${fact.objectEntityLocalId}`,
+          invalidReason: `An invalid "objectEntityLocalId" has been provided: ${fact.objectEntityLocalId} – if not null, the objectEntityId must relate to a provided entity.`,
           toolCallId: toolCall.id,
         });
 
         continue;
       }
 
-      if (!fact.text.startsWith(subjectEntity.name)) {
+      if (!fact.text.includes(subjectEntity.name)) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `The fact does not start with "${subjectEntity.name}" as the subject of the fact. Facts must have the subject entity as the singular subject.`,
+          invalidReason: `The fact specifies subjectEntityId "${fact.subjectEntityLocalId}", but that entity's name "${subjectEntity.name}" does not appear in the fact. Facts must start with the name of the subject.`,
           toolCallId: toolCall.id,
         });
-      } else if (
-        objectEntity &&
-        !fact.text.replace(/\.$/, "").endsWith(objectEntity.name)
-      ) {
+      } else if (objectEntity && !fact.text.includes(objectEntity.name)) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `The fact does not end with "${objectEntity.name}" as the object of the fact. Facts must have the object entity as the singular object, and specify any prepositional phrases via the "prepositionalPhrases" argument.`,
+          invalidReason: `The fact specifies objectEntityId "${fact.objectEntityLocalId}, but that entity's name "${objectEntity.name}" does not appear in the fact. Facts must end with the name of the object of the fact.`,
           toolCallId: toolCall.id,
         });
       } else {
@@ -412,7 +396,7 @@ export const inferEntityFactsFromText = async (params: {
             ${invalidFactsProvidedInToolCall
               .map(
                 (invalidFact) =>
-                  `Fact: ${invalidFact.text}\nInvalid Reason: ${invalidFact.invalidReason}`,
+                  `InvalidFact: ${stringify(invalidFact)}\nInvalid Reason: ${invalidFact.invalidReason}`,
               )
               .join("\n\n")}
 

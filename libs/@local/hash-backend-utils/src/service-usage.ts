@@ -1,4 +1,3 @@
-import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   type EnforcedEntityEditionProvenance,
@@ -38,6 +37,9 @@ import type {
 } from "@local/hash-subgraph";
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { backOff } from "exponential-backoff";
+
+import { getHashInstanceAdminAccountGroupId } from "./hash-instance.js";
 
 /**
  * Retrieve a web's service usage
@@ -54,50 +56,58 @@ export const getWebServiceUsage = async (
     webId: OwnedById;
   },
 ): Promise<AggregatedUsageRecord[]> => {
-  const serviceUsageRecordSubgraph = await context.graphApi
-    .getEntitySubgraph(userAccountId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.usageRecord.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
+  const serviceUsageRecordSubgraph = await backOff(
+    () =>
+      context.graphApi
+        .getEntitySubgraph(userAccountId, {
+          filter: {
+            all: [
+              generateVersionedUrlMatchingFilter(
+                systemEntityTypes.usageRecord.entityTypeId,
+                { ignoreParents: true },
+              ),
               {
-                path: ["ownedById"],
+                equal: [
+                  {
+                    path: ["ownedById"],
+                  },
+                  { parameter: webId },
+                ],
               },
-              { parameter: webId },
             ],
           },
-        ],
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        // Depths required to retrieve the service the usage record relates to
-        hasLeftEntity: { incoming: 1, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 1 },
-      },
-      temporalAxes: decisionTimeInterval
-        ? {
-            pinned: {
-              axis: "transactionTime",
-              timestamp: null,
-            },
-            variable: {
-              axis: "decisionTime",
-              interval: decisionTimeInterval,
-            },
-          }
-        : currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data }) => {
-      return mapGraphApiSubgraphToSubgraph<EntityRootType<UsageRecord>>(
-        data.subgraph,
-        userAccountId,
-      );
-    });
+          graphResolveDepths: {
+            ...zeroedGraphResolveDepths,
+            // Depths required to retrieve the service the usage record relates to
+            hasLeftEntity: { incoming: 1, outgoing: 0 },
+            hasRightEntity: { incoming: 0, outgoing: 1 },
+          },
+          temporalAxes: decisionTimeInterval
+            ? {
+                pinned: {
+                  axis: "transactionTime",
+                  timestamp: null,
+                },
+                variable: {
+                  axis: "decisionTime",
+                  interval: decisionTimeInterval,
+                },
+              }
+            : currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+        })
+        .then(({ data }) => {
+          return mapGraphApiSubgraphToSubgraph<EntityRootType<UsageRecord>>(
+            data.subgraph,
+            userAccountId,
+          );
+        }),
+    {
+      numOfAttempts: 3,
+      startingDelay: 500,
+      timeMultiple: 2,
+    },
+  );
 
   const serviceUsageRecords = getRoots(serviceUsageRecordSubgraph);
 

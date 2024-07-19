@@ -19,7 +19,7 @@ import type { Client as TemporalClient } from "@temporalio/client";
 import type { MemoryCache } from "cache-manager";
 import { caching } from "cache-manager";
 
-import { graphApiClient } from "./graph-api-client";
+import { graphApiClient } from "./graph-api-client.js";
 
 let _temporalClient: TemporalClient | undefined;
 

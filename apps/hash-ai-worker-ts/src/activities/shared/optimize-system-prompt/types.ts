@@ -1,4 +1,4 @@
-import type { LlmErrorResponse, LlmParams } from "../get-llm-response/types";
+import type { LlmErrorResponse, LlmParams } from "../get-llm-response/types.js";
 
 export type MetricResult = {
   testingParams: {

@@ -7,42 +7,42 @@ import type {
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
-import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
-import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
-import { logger } from "../../shared/activity-logger";
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
-import { getFlowContext } from "../../shared/get-flow-context";
-import { getLlmResponse } from "../../shared/get-llm-response";
+import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
+import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
+import { logger } from "../../shared/activity-logger.js";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { getLlmResponse } from "../../shared/get-llm-response.js";
 import type {
   LlmMessage,
   LlmMessageTextContent,
   LlmUserMessage,
-} from "../../shared/get-llm-response/llm-message";
-import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
+} from "../../shared/get-llm-response/llm-message.js";
+import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
   ParsedLlmToolCall,
-} from "../../shared/get-llm-response/types";
-import { graphApiClient } from "../../shared/graph-api-client";
-import { logProgress } from "../../shared/log-progress";
-import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
-import { stringify } from "../../shared/stringify";
-import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "../shared/infer-facts-from-text/types";
+} from "../../shared/get-llm-response/types.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
+import { logProgress } from "../../shared/log-progress.js";
+import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities.js";
+import { stringify } from "../../shared/stringify.js";
+import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { Fact } from "../shared/infer-facts-from-text/types.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
-} from "./coordinator-tools";
-import { generateToolDefinitions } from "./coordinator-tools";
-import { getAnswersFromHuman } from "./get-answers-from-human";
+} from "./coordinator-tools.js";
+import { generateToolDefinitions } from "./coordinator-tools.js";
+import { getAnswersFromHuman } from "./get-answers-from-human.js";
 import {
   simplifyEntityTypeForLlmConsumption,
   simplifyProposedEntityForLlmConsumption,
-} from "./shared/simplify-for-llm-consumption";
-import type { ExistingEntitySummary } from "./summarize-existing-entities";
-import { summarizeExistingEntities } from "./summarize-existing-entities";
-import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types";
-import { mapPreviousCallsToLlmMessages } from "./util";
+} from "./shared/simplify-for-llm-consumption.js";
+import type { ExistingEntitySummary } from "./summarize-existing-entities.js";
+import { summarizeExistingEntities } from "./summarize-existing-entities.js";
+import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types.js";
+import { mapPreviousCallsToLlmMessages } from "./util.js";
 
 const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 

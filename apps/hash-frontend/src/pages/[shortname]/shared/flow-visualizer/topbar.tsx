@@ -16,6 +16,7 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
+import type { FlowRun } from "../../../../graphql/api-types.gen";
 import { BoltLightIcon } from "../../../../shared/icons/bolt-light-icon";
 import { Button } from "../../../../shared/ui/button";
 import { Link } from "../../../../shared/ui/link";
@@ -55,11 +56,20 @@ const Divider = () => (
 
 export const topbarHeight = 50;
 
+const generateRunLabel = (run: Pick<FlowRun, "closedAt">) =>
+  `Run ${
+    run.closedAt
+      ? ` – ${format(new Date(run.closedAt), "yyyy-MM-dd h:mm a")}`
+      : " – in progress"
+  }`;
+
 export const Topbar = ({
   handleRunFlowClicked,
+  readonly,
   showRunButton,
 }: {
   handleRunFlowClicked: () => void;
+  readonly?: boolean;
   showRunButton: boolean;
 }) => {
   const { push } = useRouter();
@@ -67,7 +77,7 @@ export const Topbar = ({
   const { flowDefinitions, selectedFlowDefinitionId } =
     useFlowDefinitionsContext();
 
-  const { flowRuns, selectedFlowRunId } = useFlowRunsContext();
+  const { flowRuns, selectedFlowRunId, selectedFlowRun } = useFlowRunsContext();
 
   const getOwner = useGetOwnerForEntity();
 
@@ -79,16 +89,19 @@ export const Topbar = ({
     [flowRuns, selectedFlowDefinitionId],
   );
 
+  const selectedFlowDefinition = flowDefinitions.find(
+    (flow) => flow.flowDefinitionId === selectedFlowDefinitionId,
+  );
+
   return (
     <Stack
       alignItems="center"
       direction="row"
       justifyContent="space-between"
       sx={({ palette }) => ({
-        background: palette.gray[5],
         borderBottom: `1px solid ${palette.gray[20]}`,
         height: topbarHeight,
-        px: 2,
+        px: 3,
         width: "100%",
       })}
     >
@@ -121,85 +134,94 @@ export const Topbar = ({
         </Link>
         <Divider />
         <Box mr={1}>
-          <Select
-            selectSx={selectSx}
-            value={selectedFlowDefinitionId ?? "none"}
-            onChange={(event) => {
-              /**
-               * @todo update this to use the flow definition's uuid when stored in the db
-               *    also then needs to take account of the correct namespace, which might be different from the current
-               */
-              void push(
-                generateFlowDefinitionPath({
-                  shortname: "hash",
-                  flowDefinitionId: event.target.value,
-                }),
-              );
-            }}
-          >
-            {flowDefinitions.map((flow) => (
-              <MenuItem
-                key={flow.flowDefinitionId}
-                value={flow.flowDefinitionId}
-              >
-                {flow.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </Box>
-        {runOptions.length > 0 && (
-          <>
-            <Divider />
+          {readonly ? (
+            <Typography sx={typographySx} variant="smallTextParagraphs">
+              {selectedFlowDefinition?.name}
+            </Typography>
+          ) : (
             <Select
-              selectSx={{ ...selectSx, minWidth: 100 }}
-              value={selectedFlowRunId ?? "none"}
+              selectSx={selectSx}
+              value={selectedFlowDefinitionId ?? "none"}
               onChange={(event) => {
-                const value = event.target.value;
-
-                if (value === "none") {
-                  void push(
-                    generateFlowDefinitionPath({
-                      shortname: "hash",
-                      flowDefinitionId: selectedFlowDefinitionId ?? "none",
-                    }),
-                  );
-                  return;
-                }
-
-                const flowRun = flowRuns.find((run) => run.flowRunId === value);
-                if (!flowRun) {
-                  throw new Error(`Flow run with id ${value} not found`);
-                }
-
-                const { shortname } = getOwner({ ownedById: flowRun.webId });
-
+                /**
+                 * @todo update this to use the flow definition's uuid when stored in the db
+                 *    also then needs to take account of the correct namespace, which might be different from the
+                 *   current
+                 */
                 void push(
-                  generateWorkerRunPath({
-                    shortname,
-                    flowRunId: value as EntityUuid,
+                  generateFlowDefinitionPath({
+                    shortname: "hash",
+                    flowDefinitionId: event.target.value,
                   }),
                 );
               }}
             >
-              <MenuItem selected value="none">
-                Definition
-              </MenuItem>
-              {runOptions.map((run) => (
+              {flowDefinitions.map((flow) => (
                 <MenuItem
-                  key={run.flowRunId}
-                  value={run.flowRunId}
-                  sx={{ fontFamily: "monospace" }}
+                  key={flow.flowDefinitionId}
+                  value={flow.flowDefinitionId}
                 >
-                  Run
-                  {run.closedAt
-                    ? ` – ${format(
-                        new Date(run.closedAt),
-                        "yyyy-MM-dd h:mm a",
-                      )}`
-                    : " – in progress"}
+                  {flow.name}
                 </MenuItem>
               ))}
             </Select>
+          )}
+        </Box>
+        {runOptions.length > 0 && (
+          <>
+            <Divider />
+            {readonly && selectedFlowRun ? (
+              <Typography sx={typographySx} variant="smallTextParagraphs">
+                {generateRunLabel(selectedFlowRun)}
+              </Typography>
+            ) : (
+              <Select
+                selectSx={{ ...selectSx, minWidth: 100 }}
+                value={selectedFlowRunId ?? "none"}
+                onChange={(event) => {
+                  const value = event.target.value;
+
+                  if (value === "none") {
+                    void push(
+                      generateFlowDefinitionPath({
+                        shortname: "hash",
+                        flowDefinitionId: selectedFlowDefinitionId ?? "none",
+                      }),
+                    );
+                    return;
+                  }
+
+                  const flowRun = flowRuns.find(
+                    (run) => run.flowRunId === value,
+                  );
+                  if (!flowRun) {
+                    throw new Error(`Flow run with id ${value} not found`);
+                  }
+
+                  const { shortname } = getOwner({ ownedById: flowRun.webId });
+
+                  void push(
+                    generateWorkerRunPath({
+                      shortname,
+                      flowRunId: value as EntityUuid,
+                    }),
+                  );
+                }}
+              >
+                <MenuItem selected value="none">
+                  Definition
+                </MenuItem>
+                {runOptions.map((run) => (
+                  <MenuItem
+                    key={run.flowRunId}
+                    value={run.flowRunId}
+                    sx={{ fontFamily: "monospace" }}
+                  >
+                    {generateRunLabel(run)}
+                  </MenuItem>
+                ))}
+              </Select>
+            )}
           </>
         )}
       </Stack>

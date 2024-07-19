@@ -21,7 +21,6 @@ import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
 import { useNotificationEntities } from "../../notification-entities-context";
 import { useRoutePageInfo } from "../../routing";
-import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { AccountEntitiesList } from "./account-entities-list";
 import { AccountEntityTypeList } from "./account-entity-type-list";
 import { AccountPageList } from "./account-page-list/account-page-list";
@@ -175,7 +174,6 @@ export const PageSidebar: FunctionComponent = () => {
       sx={{
         zIndex: 0,
         width: SIDEBAR_WIDTH,
-        height: `calc(100vh - ${HEADER_HEIGHT}px)`,
       }}
       PaperProps={{
         sx: (theme) => ({

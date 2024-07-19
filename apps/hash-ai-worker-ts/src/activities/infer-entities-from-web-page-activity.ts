@@ -3,18 +3,18 @@ import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
-import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
+import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page.js";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-} from "./infer-entities/inference-types";
-import { proposeEntities } from "./infer-entities/propose-entities";
-import { logger } from "./shared/activity-logger";
-import { getFlowContext } from "./shared/get-flow-context";
-import { graphApiClient } from "./shared/graph-api-client";
-import type { PermittedOpenAiModel } from "./shared/openai-client";
-import { simplifyEntity } from "./shared/simplify-entity";
-import { stringify } from "./shared/stringify";
+} from "./infer-entities/inference-types.js";
+import { proposeEntities } from "./infer-entities/propose-entities.js";
+import { logger } from "./shared/activity-logger.js";
+import { getFlowContext } from "./shared/get-flow-context.js";
+import { graphApiClient } from "./shared/graph-api-client.js";
+import type { PermittedOpenAiModel } from "./shared/openai-client.js";
+import { simplifyEntity } from "./shared/simplify-entity.js";
+import { stringify } from "./shared/stringify.js";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
   webPage: WebPage | string;

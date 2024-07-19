@@ -24,11 +24,11 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { logger } from "./activity-logger";
-import type { DereferencedEntityType } from "./dereference-entity-type";
-import { dereferenceEntityType } from "./dereference-entity-type";
-import { createEntityEmbeddings } from "./embeddings";
-import { getEntityByFilter } from "./get-entity-by-filter";
+import { logger } from "./activity-logger.js";
+import type { DereferencedEntityType } from "./dereference-entity-type.js";
+import { dereferenceEntityType } from "./dereference-entity-type.js";
+import { createEntityEmbeddings } from "./embeddings.js";
+import { getEntityByFilter } from "./get-entity-by-filter.js";
 
 export const findExistingEntity = async ({
   actorId,

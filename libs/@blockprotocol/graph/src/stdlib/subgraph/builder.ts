@@ -3,13 +3,13 @@ import {
   inferEntityEdgesInSubgraphByMutation,
   inferEntityTypeEdgesInSubgraphByMutation,
   inferPropertyTypeEdgesInSubgraphByMutation,
-} from "../../internal/mutate-subgraph/edge";
+} from "../../internal/mutate-subgraph/edge.js";
 import {
   addDataTypeVerticesToSubgraphByMutation,
   addEntityTypeVerticesToSubgraphByMutation,
   addEntityVerticesToSubgraphByMutation,
   addPropertyTypeVerticesToSubgraphByMutation,
-} from "../../internal/mutate-subgraph/element";
+} from "../../internal/mutate-subgraph/element.js";
 import type {
   DataTypeWithMetadata,
   Entity,
@@ -23,10 +23,10 @@ import type {
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphTemporalAxes,
-} from "../../types";
-import { isEntityRecordId, isOntologyTypeRecordId } from "../../types";
-import { typedEntries } from "../../util";
-import { getVertexIdForRecordId } from "./vertex-id-for-element";
+} from "../../types.js";
+import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
+import { typedEntries } from "../../util.js";
+import { getVertexIdForRecordId } from "./vertex-id-for-element.js";
 
 /**
  * Builds a {@link Subgraph} from a given set of graph elements.

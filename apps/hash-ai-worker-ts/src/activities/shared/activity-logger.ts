@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { Context } from "@temporalio/activity";
 
-import { logToConsole } from "../../shared/logger";
+import { logToConsole } from "../../shared/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

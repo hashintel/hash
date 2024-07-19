@@ -6,7 +6,7 @@ import * as path from "node:path";
 import { argv } from "node:process";
 
 import execa from "execa";
-import snakeCase from "lodash/snakeCase";
+import { snakeCase } from "lodash-es";
 import yargs from "yargs";
 
 const removeOldGenDirs = (outDir: string) => {

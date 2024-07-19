@@ -8,4 +8,4 @@ export {
   inferEntityEdgesInSubgraphByMutation,
   inferEntityTypeEdgesInSubgraphByMutation,
   inferPropertyTypeEdgesInSubgraphByMutation,
-} from "./internal/mutate-subgraph";
+} from "./internal/mutate-subgraph.js";

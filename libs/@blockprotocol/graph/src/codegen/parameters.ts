@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
 
-import { typedEntries, typedKeys } from "../util/typed-object-iter";
+import { typedEntries, typedKeys } from "../util/typed-object-iter.js";
 
 /**
  * The input parameters of Codegen, prior to their validation.

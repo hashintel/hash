@@ -5,7 +5,6 @@ import {
   updateOrgName,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -22,7 +21,6 @@ const graphContext = createTestImpureGraphContext();
 
 describe("Org", () => {
   beforeAll(async () => {
-    await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
   });
 

@@ -5,37 +5,30 @@
   "license": "(MIT OR Apache-2.0)",
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./pkg/src/main.ts",
-      "node": "./pkg/src/main.ts",
-      "default": "./pkg/src/main.ts"
-    },
-    "./type-defs/*": {
-      "types": "./type-defs/*.ts",
-      "node": "./type-defs/*.ts",
-      "default": "./type-defs/*.ts"
-    }
+    ".": "./dist/pkg/src/main.js",
+    "./type-defs/*": "./dist/type-defs/*.js"
   },
-  "main": "./pkg/src/main.ts",
-  "types": "./pkg/src/main.ts",
+  "types": "./dist/pkg/src/main.d.ts",
   "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
     "execa": "5.1.1",
-    "lodash": "4.17.21",
+    "lodash-es": "4.17.21",
     "typescript": "5.5.3",
-    "yargs": "^17.7.1"
+    "yargs": "17.7.1"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/lodash": "4.17.4",
+    "@types/lodash-es": "4.17.12",
     "@types/node": "20.12.3",
-    "@types/yargs": "^17.0.22",
-    "eslint": "^8.57.0",
-    "quicktype": "^16.0.43"
+    "@types/yargs": "17.0.22",
+    "eslint": "8.57.0",
+    "quicktype": "16.0.43",
+    "rimraf": "6.0.1"
   }
 }

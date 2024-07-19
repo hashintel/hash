@@ -1,41 +1,45 @@
 import type { BlockVariant, JsonObject } from "@blockprotocol/core";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { Node, Schema } from "prosemirror-model";
 import type { EditorState, Transaction } from "prosemirror-state";
 import type { EditorProps, EditorView } from "prosemirror-view";
 
-import type { HashBlock } from "./blocks";
+import type { HashBlock } from "./blocks.js";
 import {
   areComponentsCompatible,
   fetchBlock,
   isBlockWithTextualContentProperty,
   prepareBlockCache,
-} from "./blocks";
-import type { BlockEntity } from "./entity";
-import { getBlockChildEntity, isRichTextProperties } from "./entity";
-import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
+} from "./blocks.js";
+import type { BlockEntity } from "./entity.js";
+import { getBlockChildEntity, isRichTextProperties } from "./entity.js";
+import type {
+  DraftEntity,
+  EntityStore,
+  EntityStoreType,
+} from "./entity-store.js";
 import {
   createEntityStore,
   isBlockEntity,
   isDraftBlockEntity,
   textualContentPropertyTypeBaseUrl,
-} from "./entity-store";
+} from "./entity-store.js";
 import {
   addEntityStoreAction,
   entityStorePluginState,
   entityStorePluginStateFromTransaction,
   generateDraftIdForEntity,
   mustGetDraftEntityByEntityId,
-} from "./entity-store-plugin";
+} from "./entity-store-plugin.js";
 import {
   componentNodeGroupName,
   findComponentNode,
   mutateSchema,
-} from "./prosemirror";
-import { childrenForTextEntity } from "./text";
+} from "./prosemirror.js";
+import type { TextualContentPropertyValue } from "./system-types/shared.js";
+import { childrenForTextEntity } from "./text.js";
+import type { TextToken } from "./types.js";
 
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 

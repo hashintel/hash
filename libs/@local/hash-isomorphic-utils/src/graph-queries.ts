@@ -11,7 +11,6 @@ import type {
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   EntityRelationAndSubject,
   EntityTypeRelationAndSubject,
@@ -22,8 +21,9 @@ import type {
 import { splitEntityId } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
-import type { SubgraphFieldsFragment } from "./graphql/api-types.gen";
-import { systemPropertyTypes } from "./ontology-type-ids";
+import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
+import { systemPropertyTypes } from "./ontology-type-ids.js";
+import { deserializeSubgraph } from "./subgraph-mapping.js";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
   inheritsFrom: { outgoing: 0 },
@@ -140,6 +140,7 @@ export const fullTransactionTimeAxis: QueryTemporalAxesUnresolved = {
  *
  * @param versionedUrl
  * @param [options] configuration of the returned filter
+ * @param [options.forEntityType] if this filter is targeting Entity Type roots rather than Entity roots
  * @param [options.ignoreParents] don't check the type's parents for a match against the versionedUrl
  * @param [options.pathPrefix] the path to the thing to match the type of, if it's not the root of the query
  *     @example ["outgoingLinks", "rightEntity"] to filter query results to things with a linked entity of the given
@@ -148,6 +149,7 @@ export const fullTransactionTimeAxis: QueryTemporalAxesUnresolved = {
 export const generateVersionedUrlMatchingFilter = (
   versionedUrl: VersionedUrl,
   options?: {
+    forEntityType?: boolean;
     ignoreParents?: boolean;
     pathPrefix?: (
       | DataTypeQueryToken
@@ -158,14 +160,19 @@ export const generateVersionedUrlMatchingFilter = (
     )[];
   },
 ): Filter => {
-  const { ignoreParents = false, pathPrefix = [] } = options ?? {};
+  const {
+    forEntityType,
+    ignoreParents = false,
+    pathPrefix = [],
+  } = options ?? {};
 
   const { baseUrl, version } = componentsFromVersionedUrl(versionedUrl);
 
-  const basePath = [
-    ...pathPrefix,
-    ignoreParents ? "type(inheritanceDepth = 0)" : "type",
-  ];
+  const basePath: string[] = pathPrefix;
+
+  if (!forEntityType) {
+    basePath.push(ignoreParents ? "type(inheritanceDepth = 0)" : "type");
+  }
 
   return {
     all: [

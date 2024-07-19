@@ -39,7 +39,7 @@ export const useKratosErrorHandler = <S>(props: {
             return;
           }
           case "session_already_available":
-            // User is already signed in, if we're in the login flow let's redirect them home!
+            // If user is already signed in, redirect them home
             if (flowType === "login") {
               if (!authenticatedUser) {
                 throw new Error(
@@ -60,13 +60,13 @@ export const useKratosErrorHandler = <S>(props: {
             return;
           }
           case "self_service_flow_return_to_forbidden":
-            // The flow expired, let's request a new one.
+            // If flow has expired, request a new one
             setErrorMessage("The return_to address is not allowed.");
             setFlow(undefined);
             await router.push(`/${flowType}`);
             return;
           case "self_service_flow_expired":
-            // The flow expired, let's request a new one.
+            // If flow has expired, request a new one
             setErrorMessage(
               "Your interaction expired, please fill out the form again.",
             );
@@ -87,7 +87,7 @@ export const useKratosErrorHandler = <S>(props: {
             await router.push(`/${flowType}`);
             return;
           case "browser_location_change_required": {
-            // Ory Kratos asked us to point the user to this URL.
+            // Ory Kratos asked us to point the user to this URL
             const { redirect_browser_to } =
               kratosError as ErrorBrowserLocationChangeRequired;
 

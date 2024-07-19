@@ -3,7 +3,7 @@
  */
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- this is an enum, 'import type' breaks scripts/codegen
-import { StatusCode } from "./status-code";
+import { StatusCode } from "./status-code.js";
 
 /**
  * The canonical shape of a response object describing the status of a request between services.

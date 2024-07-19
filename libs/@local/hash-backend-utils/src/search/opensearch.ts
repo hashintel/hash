@@ -3,8 +3,8 @@ import type { ClientOptions } from "@opensearch-project/opensearch";
 import { Client, errors } from "@opensearch-project/opensearch";
 import { DataSource } from "apollo-datasource";
 
-import type { Logger } from "../logger";
-import { sleep } from "../utils";
+import type { Logger } from "../logger.js";
+import { sleep } from "../utils.js";
 import type {
   SearchAdapter,
   SearchField,
@@ -13,7 +13,7 @@ import type {
   SearchParameters,
   SearchResult,
   SearchResultPaginated,
-} from "./adapter";
+} from "./adapter.js";
 
 const KEEP_ALIVE_CURSOR_DURATION = "10m";
 

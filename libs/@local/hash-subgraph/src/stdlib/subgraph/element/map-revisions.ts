@@ -1,4 +1,4 @@
-import type { Vertex } from "../../../main";
+import type { Vertex } from "../../../main.js";
 
 type BaseIdToRevisions<GraphElementType extends Vertex["inner"]> = Record<
   /*

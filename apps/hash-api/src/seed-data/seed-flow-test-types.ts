@@ -53,7 +53,7 @@ const provenance: EnforcedEntityEditionProvenance = {
   },
 };
 
-const webShortname = "ftse";
+const webShortname = "hash";
 const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   {
     propertyTypeDefinition: Omit<PropertyTypeDefinition, "propertyTypeId">;
@@ -66,7 +66,6 @@ const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   const baseUrl = generateSystemTypeBaseUrl({
     kind: "property-type",
     title,
-    // @ts-expect-error -- temporary seeding script
     shortname: webShortname,
   });
 
@@ -121,7 +120,6 @@ const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   const baseUrl = generateSystemTypeBaseUrl({
     kind: "entity-type",
     title,
-    // @ts-expect-error -- temporary seeding script
     shortname: webShortname,
   });
 
@@ -1008,6 +1006,101 @@ const seedFlowTestTypes = async () => {
         title: "Power Draw",
         description: "Power draw in watts.",
         possibleValues: [{ dataTypeId: systemDataTypes.watts.dataTypeId }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const trainingStartDate = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Training Start Date",
+        description: "The date on which a thing's training began",
+        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const trainingEndDate = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Training End Date",
+        description: "The date on which a thing's training ended",
+        possibleValues: [{ dataTypeId: systemDataTypes.date.dataTypeId }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const tokenOutputSpeed = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Token Output Speed",
+        description:
+          'The rate at which an AI model is able to output tokens (generally, although not always, specified as "tokens per second")',
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const contextWindow = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Context Window",
+        description:
+          "The maximum number of tokens that an AI model can operate on, including both its inputs and outputs.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      ownedById: hashOwnedById,
+    },
+  );
+
+  const _aiModelEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "AI Model",
+        description:
+          "An AI model is a program that has been trained on a set of data to recognize certain patterns and produce certain outputs (e.g. text, images, code, decisions) without further human intervention.",
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: systemPropertyTypes.inputUnitCost.propertyTypeId,
+          },
+          {
+            propertyType: systemPropertyTypes.outputUnitCost.propertyTypeId,
+          },
+          {
+            propertyType: trainingStartDate,
+          },
+          {
+            propertyType: trainingEndDate,
+          },
+          {
+            propertyType: tokenOutputSpeed,
+          },
+          {
+            propertyType: contextWindow,
+          },
+        ],
       },
       ownedById: hashOwnedById,
     },

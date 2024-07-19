@@ -5,7 +5,6 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/hash-instance";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   getHashInstance,
@@ -29,7 +28,6 @@ const graphContext = createTestImpureGraphContext();
 
 describe("Hash Instance", () => {
   beforeAll(async () => {
-    await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     return async () => {

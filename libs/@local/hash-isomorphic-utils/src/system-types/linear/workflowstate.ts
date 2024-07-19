@@ -8,7 +8,7 @@ import type {
   WorkflowStateOutgoingLinksByLinkEntityTypeId,
   WorkflowStateProperties,
   WorkflowStatePropertiesWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   WorkflowState,

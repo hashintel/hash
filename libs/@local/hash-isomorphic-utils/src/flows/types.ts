@@ -12,12 +12,12 @@ import type {
   PropertyObject,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type { Status } from "@local/status";
 
-import type { ActionDefinitionId } from "./action-definitions";
-import type { TriggerDefinitionId } from "./trigger-definitions";
+import type { FlowRun } from "../graphql/api-types.gen.js";
+import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
+import type { ActionDefinitionId } from "./action-definitions.js";
+import type { TriggerDefinitionId } from "./trigger-definitions.js";
 
 export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
@@ -474,7 +474,9 @@ export type ExternalInputResponseWithoutUser = DistributiveOmit<
   "resolvedBy"
 >;
 
-export type ExternalInputRequest = ExternalInputRequestSignal & {
+export type ExternalInputRequest<
+  RequestType extends ExternalInputRequestType = ExternalInputRequestType,
+> = ExternalInputRequestSignal<RequestType> & {
   /** The answers given by the human, if it was a request for human input */
   answers?: string[];
   /** The time at which the request was resolved */

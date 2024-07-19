@@ -7,11 +7,11 @@ import type {
 import dedent from "dedent";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
-import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
-import { generateSimplifiedTypeId } from "./generate-simplified-type-id";
-import type { PropertyValueWithSimplifiedProperties } from "./map-simplified-properties-to-properties";
-import { stripIdsFromDereferencedProperties } from "./strip-ids-from-dereferenced-properties";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
+import { generateSimplifiedTypeId } from "./generate-simplified-type-id.js";
+import type { PropertyValueWithSimplifiedProperties } from "./map-simplified-properties-to-properties.js";
+import { stripIdsFromDereferencedProperties } from "./strip-ids-from-dereferenced-properties.js";
 
 export type ProposeEntitiesToolName = "abandon_entities" | "create_entities";
 

@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
-import { actionDefinitions } from "./action-definitions";
-import { triggerDefinitions } from "./trigger-definitions";
+import { actionDefinitions } from "./action-definitions.js";
+import { triggerDefinitions } from "./trigger-definitions.js";
 import type {
   ActionStepDefinition,
   FlowDefinition,
   ParallelGroupStepDefinition,
   StepDefinition,
-} from "./types";
+} from "./types.js";
 
 type AnyStepDefinition =
   | StepDefinition
@@ -122,6 +121,7 @@ const recursivelyValidateSteps = (params: {
           }
         }
       }
+      /* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */
     } else if (inputSourceToParallelizeOn.kind === "hardcoded") {
       /**
        * Note we don't need to validate whether the hardcoded value is an array,
@@ -153,6 +153,7 @@ const recursivelyValidateSteps = (params: {
           `${errorPrefix}references an aggregate output source step output "${aggregateOutput.stepOutputName}" that does not exist in its child step`,
         );
       }
+      /* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */
     } else if (childStepUsedForAggregateOutput.kind === "parallel-group") {
       if (
         childStepUsedForAggregateOutput.aggregateOutput.name !==
@@ -172,6 +173,7 @@ const recursivelyValidateSteps = (params: {
         allStepDefinitions,
       });
     }
+    /* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */
   } else if (step.kind === "action") {
     const { actionDefinitionId, inputSources } = step;
 

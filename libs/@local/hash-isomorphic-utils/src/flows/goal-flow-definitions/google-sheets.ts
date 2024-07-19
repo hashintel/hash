@@ -1,9 +1,10 @@
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
+
 import type {
   InputNameForAction,
   OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+} from "../action-definitions.js";
+import type { FlowDefinition } from "../types.js";
 
 export type GoogleSheetTriggerInput = "Google Account" | "Google Sheet";
 

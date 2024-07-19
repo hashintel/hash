@@ -168,7 +168,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@2335425120e645291d84cec8194c63983a0c8ee5 # v2.41.10
+        uses: taiki-e/install-action@3e71e7135de310b70bc22dccb4d275acde8e055a # v2.42.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,cargo-nextest@0.9.68,cargo-llvm-cov@0.6.9
 
@@ -285,7 +285,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@2335425120e645291d84cec8194c63983a0c8ee5 # v2.41.10
+        uses: taiki-e/install-action@3e71e7135de310b70bc22dccb4d275acde8e055a # v2.42.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,cargo-nextest@0.9.68,cargo-llvm-cov@0.6.9
 
@@ -417,7 +417,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@2335425120e645291d84cec8194c63983a0c8ee5 # v2.41.10
+        uses: taiki-e/install-action@3e71e7135de310b70bc22dccb4d275acde8e055a # v2.42.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,cargo-nextest@0.9.68,cargo-llvm-cov@0.6.9
 
@@ -585,7 +585,7 @@ jobs:
           [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
       - name: Check system tests
         run: |
-          [[ ${{ needs.system-tests.result }} =~ success|skipped|failure ]]
+          [[ ${{ needs.system-tests.result }} =~ success|skipped ]]
       - name: Check publish results
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]
@@ -595,7 +595,7 @@ jobs:
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "At least one test job failed for a Pull Request in the Merge Queue failed <@U0143NL4GMP> <@U027NPY8Y3X> <@U02NLJY0FGX>"
+          SLACK_MESSAGE: "At least one test job failed for a Pull Request in the Merge Queue failed <@U0143NL4GMP> <@U02NLJY0FGX>" # Notifies C & T
           SLACK_TITLE: Tests failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub

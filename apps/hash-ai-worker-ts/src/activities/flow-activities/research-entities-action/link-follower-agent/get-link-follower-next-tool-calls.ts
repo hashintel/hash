@@ -1,18 +1,19 @@
 import type { Subtype } from "@local/advanced-types/subtype";
 import dedent from "dedent";
 
-import { getFlowContext } from "../../../shared/get-flow-context";
-import { getLlmResponse } from "../../../shared/get-llm-response";
-import type { LlmUserMessage } from "../../../shared/get-llm-response/llm-message";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
+import { getLlmResponse } from "../../../shared/get-llm-response.js";
+import type { LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
+import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
   LlmToolDefinition,
-} from "../../../shared/get-llm-response/types";
-import { graphApiClient } from "../../../shared/graph-api-client";
-import type { LocalEntitySummary } from "../../shared/infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "../../shared/infer-facts-from-text/types";
-import type { Link } from "./extract-links-from-content";
+} from "../../../shared/get-llm-response/types.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+import type { LocalEntitySummary } from "../../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { Fact } from "../../shared/infer-facts-from-text/types.js";
+import { simplifyFactForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
+import type { Link } from "./choose-relevant-links-from-content.js";
 
 const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
@@ -52,10 +53,6 @@ type GetLinkFollowerNextToolCallsParams = {
   possibleNextLinks: Link[];
 };
 
-const simplifyFactForLlmConsumption = (fact: Fact) => {
-  return `${fact.text} ${fact.prepositionalPhrases.join(", ")}`;
-};
-
 const generateUserMessage = (
   params: GetLinkFollowerNextToolCallsParams,
 ): LlmUserMessage => {
@@ -75,34 +72,33 @@ const generateUserMessage = (
         text: dedent(`
 <Task>${task}</Task>
 <PreviouslyVisitedLinks>${previouslyVisitedLinks.map(({ url }) => url).join("\n")}</PreviouslyVisitedLinks>
-<Entities> ${
-          (JSON.stringify(
-            entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
-              const factsAboutEntity = factsGathered.filter(
-                (fact) => fact.subjectEntityLocalId === localId,
-              );
+<Entities>${JSON.stringify(
+          entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
+            const factsAboutEntity = factsGathered.filter(
+              (fact) => fact.subjectEntityLocalId === localId,
+            );
 
-              return {
-                name,
-                summary,
-                entityType: entityTypeId,
-                facts: JSON.stringify(
-                  factsAboutEntity.map(simplifyFactForLlmConsumption),
-                ),
-              };
-            }),
-          ),
-          undefined,
-          2)
-        }</Entities>
-Possible Next Links: ${JSON.stringify(
-          possibleNextLinks.filter(
-            (link) =>
-              !previouslyVisitedLinks.some(({ url }) => url === link.url),
-          ),
+            return {
+              name,
+              summary,
+              entityType: entityTypeId,
+              facts: JSON.stringify(
+                factsAboutEntity.map(simplifyFactForLlmConsumption),
+              ),
+            };
+          }),
           undefined,
           2,
-        )}
+        )}</Entities>
+<PossibleNextLinks>
+${JSON.stringify(
+  possibleNextLinks.filter(
+    (link) => !previouslyVisitedLinks.some(({ url }) => url === link.url),
+  ),
+  undefined,
+  2,
+)}
+</PossibleNextLinks>
     `),
       },
     ],
@@ -329,5 +325,5 @@ export const getLinkFollowerNextToolCalls = async (
     };
   }
 
-  throw new Error(`Failed to get LLM response: ${response.status}`);
+  return getLinkFollowerNextToolCalls(params);
 };

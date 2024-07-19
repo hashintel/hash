@@ -1,14 +1,16 @@
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
-import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
-import { logger } from "../../shared/activity-logger";
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
-import { stringify } from "../../shared/stringify";
-import type { ExistingEntitySummary } from "../research-entities-action/summarize-existing-entities";
-import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "./infer-facts-from-text/types";
-import { proposeEntityFromFactsAgent } from "./propose-entities-from-facts/propose-entity-from-facts-agent";
+import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
+import { logger } from "../../shared/activity-logger.js";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { logProgress } from "../../shared/log-progress.js";
+import { stringify } from "../../shared/stringify.js";
+import type { ExistingEntitySummary } from "../research-entities-action/summarize-existing-entities.js";
+import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { Fact } from "./infer-facts-from-text/types.js";
+import { proposeEntityFromFactsAgent } from "./propose-entities-from-facts/propose-entity-from-facts-agent.js";
 
 export const proposeEntitiesFromFacts = async (params: {
   entitySummaries: LocalEntitySummary[];
@@ -24,6 +26,8 @@ export const proposeEntitiesFromFacts = async (params: {
     facts,
     potentialLinkTargetEntitySummaries,
   } = params;
+
+  const { stepId } = await getFlowContext();
 
   const proposedEntities = await Promise.all(
     entitySummaries.map(async (entitySummary) => {
@@ -142,6 +146,17 @@ export const proposeEntitiesFromFacts = async (params: {
       return [proposedEntity, ...proposedOutgoingLinkEntities];
     }),
   ).then((unflattenedProposedEntities) => unflattenedProposedEntities.flat());
+
+  const now = new Date().toISOString();
+
+  logProgress(
+    proposedEntities.map((entity) => ({
+      type: "ProposedEntity",
+      proposedEntity: entity,
+      stepId,
+      recordedAt: now,
+    })),
+  );
 
   return { proposedEntities };
 };

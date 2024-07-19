@@ -1,6 +1,6 @@
 import { gql } from "@apollo/client";
 
-import { subgraphFieldsFragment } from "./subgraph";
+import { subgraphFieldsFragment } from "./subgraph.js";
 
 export const getEntityQuery = gql`
   query getEntity(

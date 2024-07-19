@@ -26,7 +26,7 @@ use super::{
     SessionConfig, SessionEvent,
 };
 use crate::{
-    codec::{ErrorEncoder, WriteError},
+    codec::{ErrorEncoder, WireError},
     session::{
         error::{
             ConnectionGracefulShutdownError, InstanceTransactionLimitReachedError, TransactionError,
@@ -83,7 +83,7 @@ where
 {
     async fn respond_error<T>(&self, id: RequestId, error: T, tx: &mpsc::Sender<Response>)
     where
-        T: WriteError + Send + Sync,
+        T: WireError + Send + Sync,
     {
         let TransactionError { code, bytes } = self.encoder.encode_error(error).await;
 

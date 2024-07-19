@@ -17,31 +17,20 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/cjs/main.d.ts",
-      "node": "./dist/node/main.cjs",
-      "import": "./dist/es/main.js",
-      "default": "./dist/cjs/main.cjs"
-    },
-    "./slim": {
-      "types": "./dist/cjs-slim/main-slim.d.ts",
-      "node": "./dist/node/main.cjs",
-      "import": "./dist/es-slim/main-slim.js",
-      "default": "./dist/cjs-slim/main-slim.cjs"
-    },
+    ".": "./dist/es/main.js",
+    "./slim": "./dist/es-slim/main-slim.js",
     "./package.json": "./package.json",
     "./wasm": "./dist/wasm/type-system.wasm"
   },
-  "main": "./dist/umd/main.js",
-  "module": "./dist/es/main.js",
-  "types": "./dist/umd/main.d.ts",
+  "main": "./dist/es/main.js",
+  "types": "./dist/es/main.d.ts",
   "typesVersions": {
     "*": {
       "*": [
-        "./dist/cjs-slim/main.d.ts"
+        "./dist/es-slim/main.d.ts"
       ],
       "slim": [
-        "./dist/cjs-slim/main-slim.d.ts"
+        "./dist/es-slim/main-slim.d.ts"
       ],
       "wasm": [
         "./dist/wasm/type-system.wasm.d.ts"
@@ -52,7 +41,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "rollup -c --bundleConfigAsCjs",
+    "build": "yarn clean && rollup -c --bundleConfigAsCjs",
     "clean": "rimraf ./dist/",
     "compressed-size": "yarn build && find dist -iname '*.js' -exec npx terser@latest --compress --mangle --output {} -- {} \\;",
     "fix:eslint": "eslint --fix .",

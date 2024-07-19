@@ -1,5 +1,5 @@
-import { typedValues } from "../../util/typed-object-iter";
-import type { PreprocessContext } from "../context";
+import { typedValues } from "../../util/typed-object-iter.js";
+import type { PreprocessContext } from "../context.js";
 
 /** Iteratively loop through the full object and remove any occurrence of `allOf: []` */
 const removeEmptyAllOfsFromObject = (obj: object) => {

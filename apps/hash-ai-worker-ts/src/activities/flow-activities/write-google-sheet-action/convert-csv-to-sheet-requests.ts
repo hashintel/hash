@@ -2,7 +2,7 @@ import type { sheets_v4 } from "googleapis";
 import type { ParseResult } from "papaparse";
 import Papa from "papaparse";
 
-import { createCellFromValue } from "./shared/create-sheet-data";
+import { createCellFromValue } from "./shared/create-sheet-data.js";
 
 type SheetOutputFormat = {
   audience: "human" | "machine";

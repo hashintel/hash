@@ -11,5 +11,5 @@ export const queryGraphQlApi = async <
 ): Promise<{ data: ReturnData }> => {
   const apiOrigin = (await getFromLocalStorage("apiOrigin")) ?? API_ORIGIN;
 
-  return queryApi({ query, variables, apiOrigin });
+  return queryApi({ client: "browser-extension", query, variables, apiOrigin });
 };

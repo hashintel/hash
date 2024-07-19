@@ -29,7 +29,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
   const { refetch } = useAuthInfo();
 
   useEffect(() => {
-    // If user registration is disabled, redirect the user to the login page
+    // If user registration is disabled, redirect the user to the signin page
     if (
       hashInstance &&
       !hashInstance.properties.userSelfRegistrationIsEnabled

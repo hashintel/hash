@@ -20,9 +20,9 @@ import type {
   CreatedById,
   EditionArchivedById,
   EditionCreatedById,
-} from "./account";
-import type { Uuid } from "./branded";
-import type { BaseUrl } from "./ontology";
+} from "./account.js";
+import type { Uuid } from "./branded.js";
+import type { BaseUrl } from "./ontology.js";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
@@ -31,8 +31,8 @@ import type {
   TemporalAxis,
   TimeInterval,
   Unbounded,
-} from "./temporal-versioning";
-import type { OwnedById } from "./web";
+} from "./temporal-versioning.js";
+import type { OwnedById } from "./web.js";
 
 /** A `Uuid` that points to an Entity without any edition */
 export type EntityUuid = Brand<Uuid, "EntityUuid">;

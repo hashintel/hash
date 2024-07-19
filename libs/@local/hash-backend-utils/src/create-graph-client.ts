@@ -1,6 +1,5 @@
 import { inspect } from "node:util";
 
-import type { Logger } from "@local/hash-backend-utils/logger";
 import {
   Configuration,
   GraphApi as GraphApiClient,
@@ -12,6 +11,8 @@ import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import type { DataSource } from "apollo-datasource";
 import type { AxiosError } from "axios";
 import axios from "axios";
+
+import type { Logger } from "./logger.js";
 
 type GraphApi = GraphApiClient & DataSource;
 

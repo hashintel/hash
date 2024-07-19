@@ -1,12 +1,12 @@
-import "../../../../shared/testing-utilities/mock-get-flow-context";
+import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { expect, test } from "vitest";
 
-import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity";
-import { getWebPageActivity } from "../../../get-web-page-activity";
-import { getFlowContext } from "../../../shared/get-flow-context";
-import { graphApiClient } from "../../../shared/graph-api-client";
-import { inferEntityFactsFromText } from "./infer-entity-facts-from-text";
+import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
+import { getWebPageActivity } from "../../../get-web-page-activity.js";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { inferEntityFactsFromTextAgent } from "./infer-entity-facts-from-text-agent.js";
 
 test.skip(
   "Test inferEntityFactsFromText with the FTSE350 table",
@@ -36,7 +36,7 @@ test.skip(
 
     const { htmlContent } = webPage;
 
-    const { facts } = await inferEntityFactsFromText({
+    const { facts } = await inferEntityFactsFromTextAgent({
       text: htmlContent,
       dereferencedEntityType,
       subjectEntities: [
@@ -90,7 +90,7 @@ test.skip(
 
     const { htmlContent } = webPage;
 
-    const { facts } = await inferEntityFactsFromText({
+    const { facts } = await inferEntityFactsFromTextAgent({
       text: htmlContent,
       dereferencedEntityType,
       subjectEntities: [

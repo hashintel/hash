@@ -5,8 +5,9 @@
   "description": "OpenAPI client for the HASH internal API",
   "license": "See LICENSE.md",
   "type": "module",
-  "main": "index.ts",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
     "generate": "openapi-generator-cli generate && prettier --cache --write --ignore-unknown .",
     "validate": "openapi-generator-cli validate"
   },
@@ -14,8 +15,11 @@
     "axios": "1.6.0"
   },
   "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
     "@openapitools/openapi-generator-cli": "2.5.2",
     "@types/node": "20.12.3",
+    "eslint": "8.57.0",
+    "rimraf": "6.0.1",
     "typescript": "5.5.3"
   }
 }

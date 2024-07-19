@@ -154,7 +154,7 @@ const SigninPage: NextPageWithLayout = () => {
 
     if (!flow) {
       throw new Error(
-        "No login flow available – please try clearing your cookies.",
+        "No sign in flow available – please try clearing your cookies.",
       );
     }
 
