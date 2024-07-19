@@ -23,7 +23,7 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId, EditionArchivedById},
     ontology::{
-        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
+        DataTypeId, OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },
     owned_by_id::OwnedById,
@@ -34,8 +34,8 @@ use time::OffsetDateTime;
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
     schema::{
-        ClosedDataType, ClosedEntityType, DataType, DataTypeReference, EntityType,
-        EntityTypeReference, PropertyType, PropertyTypeReference,
+        ClosedDataType, ClosedDataTypeMetadata, ClosedEntityType, DataType, DataTypeReference,
+        EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     Valid,
@@ -394,8 +394,9 @@ where
         ontology_id: OntologyId,
         data_type: &Valid<DataType>,
         closed_data_type: &Valid<ClosedDataType>,
+        metadata: &ClosedDataTypeMetadata,
     ) -> Result<Option<OntologyId>, InsertionError> {
-        Ok(self
+        let ontology_id = self
             .as_client()
             .query_opt(
                 "
@@ -411,7 +412,29 @@ where
             )
             .await
             .change_context(InsertionError)?
-            .map(|row| row.get(0)))
+            .map(|row| row.get(0));
+
+        for (target, &depth) in &metadata.inheritance_depths {
+            self.as_client()
+                .query(
+                    "
+                        INSERT INTO data_type_inherits_from (
+                            source_data_type_ontology_id,
+                            target_data_type_ontology_id,
+                            depth
+                        ) VALUES (
+                            $1,
+                            $2,
+                            $3
+                        );
+                    ",
+                    &[&ontology_id, &DataTypeId::from_url(target), &(depth as i32)],
+                )
+                .await
+                .change_context(InsertionError)?;
+        }
+
+        Ok(ontology_id)
     }
 
     /// Inserts a [`PropertyType`] identified by [`OntologyId`], and associated with an

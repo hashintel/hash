@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::iter::once;
 use std::collections::HashSet;
 
@@ -23,7 +24,7 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
-    schema::{ClosedDataType, DataTypeValidator},
+    schema::{DataTypeValidator, OntologyTypeResolver},
     url::{OntologyTypeVersion, VersionedUrl},
     Validator,
 };
@@ -282,8 +283,18 @@ where
         let mut inserted_data_types = Vec::new();
 
         let data_type_validator = DataTypeValidator;
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
 
-        for parameters in params {
+        // TODO: Avoid cloning the schema
+        let (schemas, params): (Vec<_>, Vec<_>) = params
+            .into_iter()
+            .map(|params| (Arc::new(params.schema.clone()), params))
+            .unzip();
+        let schema_metadata = ontology_type_resolver
+            .resolve_data_type_metadata(schemas)
+            .change_context(InsertionError)?;
+
+        for (parameters, schema_metadata) in params.into_iter().zip(schema_metadata) {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
                     created_by_id: EditionCreatedById::new(actor_id),
@@ -341,13 +352,14 @@ where
                     .change_context(InsertionError)?;
                 let closed_schema = data_type_validator
                     .validate(
-                        ClosedDataType::new(schema.clone().into_inner())
+                        ontology_type_resolver
+                            .get_closed_data_type(&schema.id)
                             .change_context(InsertionError)?,
                     )
                     .await
                     .change_context(InsertionError)?;
                 transaction
-                    .insert_data_type_with_id(ontology_id, schema, &closed_schema)
+                    .insert_data_type_with_id(ontology_id, schema, &closed_schema, &schema_metadata)
                     .await?;
                 let metadata = DataTypeMetadata {
                     record_id,
@@ -584,15 +596,26 @@ where
             .validate_ref(&params.schema)
             .await
             .change_context(UpdateError)?;
+
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+        let [metadata] = ontology_type_resolver
+            .resolve_data_type_metadata([Arc::new(schema.clone().into_inner())])
+            .change_context(UpdateError)?
+            .try_into()
+            .expect("Expected exactly one closed data type metadata");
         let closed_schema = data_type_validator
-            .validate(ClosedDataType::new(schema.clone().into_inner()).change_context(UpdateError)?)
+            .validate(
+                ontology_type_resolver
+                    .get_closed_data_type(&schema.id)
+                    .change_context(UpdateError)?,
+            )
             .await
             .change_context(UpdateError)?;
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
             .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
         transaction
-            .insert_data_type_with_id(ontology_id, schema, &closed_schema)
+            .insert_data_type_with_id(ontology_id, schema, &closed_schema, &metadata)
             .await
             .change_context(UpdateError)?;
 
