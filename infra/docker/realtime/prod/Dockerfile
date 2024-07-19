@@ -9,12 +9,12 @@ RUN yarn install --frozen-lockfile --production --ignore-scripts --prefer-offlin
 
 # Also ensure that api node modules can be cached
 COPY apps/hash-realtime/package.json apps/hash-realtime/
-COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
+COPY libs/@local/eslint/package.json libs/@local/eslint/
 COPY libs/@local/hash-backend-utils/package.json libs/@local/hash-backend-utils/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
 RUN yarn workspace @apps/hash-realtime install --frozen-lockfile --ignore-scripts --prefer-offline
 
-COPY libs/@local/eslint-config libs/@local/eslint-config
+COPY libs/@local/eslint libs/@local/eslint
 COPY libs/@local/hash-backend-utils libs/@local/hash-backend-utils
 COPY libs/@local/tsconfig libs/@local/tsconfig
 COPY apps/hash-realtime apps/hash-realtime
@@ -33,4 +33,3 @@ USER appuser
 ENV NODE_ENV production
 
 CMD ["yarn", "workspace","@apps/hash-realtime", "start"]
-

@@ -13,7 +13,7 @@
     "@babel/preset-typescript": "7.23.3",
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@storybook/addon-essentials": "7.0.5",
     "@storybook/addon-interactions": "7.0.5",

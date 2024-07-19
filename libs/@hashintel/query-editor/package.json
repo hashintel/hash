@@ -28,7 +28,7 @@
     "clsx": "1.2.1"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@mui/material": "5.14.11",
     "@mui/system": "5.14.11",
     "react": "18.2.0",

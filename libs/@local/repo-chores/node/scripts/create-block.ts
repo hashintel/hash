@@ -59,7 +59,7 @@ const script = async () => {
   (packageJson.scripts as JsonObject).format =
     "prettier --write --ignore-unknown src/types/generated/*.ts";
 
-  (packageJson.devDependencies as JsonObject)["@local/eslint-config"] =
+  (packageJson.devDependencies as JsonObject)["@local/eslint"] =
     "0.0.0-private";
 
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
