@@ -40,10 +40,10 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
       type={"text"}
       value={caption}
       disabled={readonly}
+      onBlur={onCaptionConfirm}
       onChange={(event) => {
         onCaptionChange(event.target.value);
       }}
-      onBlur={onCaptionConfirm}
     />
   );
 

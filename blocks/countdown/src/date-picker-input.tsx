@@ -1,11 +1,10 @@
-import type {
-  FunctionComponent,
-  HTMLAttributes,
-  MutableRefObject,
+import {
+  type FunctionComponent,
+  type HTMLAttributes,
+  type MutableRefObject,
+  forwardRef, useRef
 } from "react";
-import { forwardRef, useRef } from "react";
-import DatePicker from "react-datepicker";
-import type { ReactDatePickerProps } from "react-datepicker";
+import DatePicker, { type ReactDatePickerProps } from "react-datepicker";
 
 const CalenderIcon: FunctionComponent<{ onClick: () => void }> = ({
   onClick,
@@ -21,10 +20,10 @@ const CalenderIcon: FunctionComponent<{ onClick: () => void }> = ({
     >
       <g opacity={"0.5"}>
         <path
+          fill={"currentColor"}
           d={
             "M6.25 2H10.75V0.75C10.75 0.34375 11.0625 0 11.5 0C11.9062 0 12.25 0.34375 12.25 0.75V2H13.5C14.5938 2 15.5 2.90625 15.5 4V14C15.5 15.125 14.5938 16 13.5 16H3.5C2.375 16 1.5 15.125 1.5 14V4C1.5 2.90625 2.375 2 3.5 2H4.75V0.75C4.75 0.34375 5.0625 0 5.5 0C5.90625 0 6.25 0.34375 6.25 0.75V2ZM3 14C3 14.2812 3.21875 14.5 3.5 14.5H13.5C13.75 14.5 14 14.2812 14 14V6H3V14Z"
           }
-          fill={"currentColor"}
         />
       </g>
     </svg>
@@ -89,20 +88,20 @@ const CustomTimeInput = forwardRef<HTMLInputElement, CustomTimeInputProps>(
         <input
           required
           ref={ref}
-          type="time"
-          className="react-datepicker-time__input"
-          placeholder="Time"
-          name="time-input"
+          type={"time"}
+          className={"react-datepicker-time__input"}
+          placeholder={"Time"}
+          name={"time-input"}
           {...props}
-          onChange={(evt) => {
-            props.onChange?.(evt.target.value || "00:00");
+          onChange={(event) => {
+            props.onChange?.(event.target.value || "00:00");
           }}
         />
         <button
+          type={"button"}
           className={
             "react-datepicker-time__btn react-datepicker-time__btn--remove"
           }
-          type={"button"}
           onClick={() => {
             setDisplayTime(false);
           }}
@@ -126,7 +125,7 @@ export const DatePickerInput = forwardRef<DatePicker, DatePickerInputProps>(
       <div>
         <DatePicker
           ref={ref}
-          placeholderText="Select a date"
+          placeholderText={"Select a date"}
           disabled={readonly}
           dateFormat={displayTime ? "MMM d, yyyy h:mm aa" : "MMM d, yyyy"}
           {...props}

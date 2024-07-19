@@ -256,13 +256,13 @@ export const Media: FunctionComponent<
             caption={draftCaption}
             type={"video"}
             readonly={readonly}
+            onReset={resetComponent}
             onCaptionChange={(caption) => {
               setDraftCaption(caption);
             }}
             onCaptionConfirm={() => {
               updateData({ src: draftSource });
             }}
-            onReset={resetComponent}
           />
         ) : (
           <>

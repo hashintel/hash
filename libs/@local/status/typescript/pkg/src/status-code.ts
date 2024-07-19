@@ -110,34 +110,34 @@ export const convertHttpCodeToStatusCode = (statusCode: number) => {
   }
   if (statusCode > 418 && statusCode <= 422) {
     return StatusCode.InvalidArgument;
-  } else if (statusCode === 423) {
+  } if (statusCode === 423) {
     return StatusCode.Aborted;
-  } else if (statusCode === 424 || statusCode === 425 || statusCode === 426) {
+  } if (statusCode === 424 || statusCode === 425 || statusCode === 426) {
     // 424 generally refers to a failed dependency, and therefore the client shouldn't retry until
     // the dependency is satisfied
     // 425 generally refers to the request being too early, and needing some other condition to
     // happen first
     // 426 generally refers to the client needing to upgrade to a different protocol
     return StatusCode.FailedPrecondition;
-  } else if (statusCode === 427) {
+  } if (statusCode === 427) {
     // 427 is an unassigned code
     return StatusCode.Unknown;
-  } else if (statusCode === 428) {
+  } if (statusCode === 428) {
     return StatusCode.FailedPrecondition;
-  } else if (statusCode === 429) {
+  } if (statusCode === 429) {
     return StatusCode.ResourceExhausted;
-  } else if (statusCode === 430) {
+  } if (statusCode === 430) {
     // 430 is an unassigned code
     return StatusCode.Unknown;
-  } else if (statusCode === 431) {
+  } if (statusCode === 431) {
     return StatusCode.InvalidArgument;
-  } else if (statusCode > 431 && statusCode < 451) {
+  } if (statusCode > 431 && statusCode < 451) {
     return StatusCode.Unknown;
-  } else if (statusCode === 451) {
+  } if (statusCode === 451) {
     // 451 refers to denying access for legal reasons, we could also potentially return
     // `Unavailable` here
     return StatusCode.PermissionDenied;
-  } else if (statusCode > 451 && statusCode < 500) {
+  } if (statusCode > 451 && statusCode < 500) {
     return StatusCode.Unknown;
   } else if (statusCode === 500) {
     return StatusCode.Internal;

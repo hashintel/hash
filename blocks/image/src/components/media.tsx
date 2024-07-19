@@ -278,13 +278,13 @@ export const Media: FunctionComponent<
             type={"image"}
             readonly={readonly}
             onWidthChange={updateWidth}
+            onReset={resetComponent}
             onCaptionChange={(caption) => {
               setDraftCaption(caption);
             }}
             onCaptionConfirm={() => {
               updateData({ src: draftSource });
             }}
-            onReset={resetComponent}
           />
         ) : (
           <>
