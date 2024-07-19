@@ -9,5 +9,9 @@ export default defineFlatConfig([
       storybook: false,
     },
   }),
-  { "import/no-extraneous-dependencies": ["error", { devDependencies: true }] },
+  {
+    rules: {
+      "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+    },
+  },
 ]);
