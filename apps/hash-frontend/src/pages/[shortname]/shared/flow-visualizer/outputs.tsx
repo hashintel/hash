@@ -21,8 +21,10 @@ import {
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { entityIdFromComponents } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import {
+  entityIdFromComponents,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
 import {
   getDataTypes,
   getEntityTypes,

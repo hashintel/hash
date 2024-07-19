@@ -200,22 +200,23 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
     }
 
     for (const linkEntity of linkEntities ?? []) {
+      const linkEntityType = getEntityTypeById(
+        subgraphWithTypes,
+        linkEntity.metadata.entityTypeId,
+      );
+
       edges.push({
         /** @todo: figure out why the right entity is the source and not the target */
         source: linkEntity.linkData.leftEntityId,
         target: linkEntity.linkData.rightEntityId,
         id: linkEntity.metadata.recordId.entityId,
+        name: linkEntity.metadata.recordId.entityId,
         label: {
           show: true,
-          formatter: () =>
-            getEntityTypeById(
-              subgraphWithTypes,
-              linkEntity.metadata.entityTypeId,
-            )?.schema.title ?? "Unknown",
+          formatter: () => linkEntityType?.schema.title ?? "Unknown",
         },
         symbol: ["none", "arrow"],
         symbolSize: 8,
-        name: linkEntity.metadata.entityTypeId,
       });
     }
 
@@ -292,8 +293,8 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
           layoutAnimation: chartInitialized,
         },
         scaleLimit: {
-          min: 6,
-          max: 20,
+          min: 4,
+          max: 12,
         },
         nodes,
         edges,

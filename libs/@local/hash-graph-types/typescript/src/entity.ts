@@ -145,7 +145,9 @@ export type PropertyMetadataArray = {
  * It contains metadata for the object itself and for each of its properties.
  */
 export type PropertyMetadataObject = {
-  value: Record<BaseUrl, PropertyMetadata>;
+  value: {
+    [key: BaseUrl]: PropertyMetadata;
+  };
   metadata?: ObjectMetadata;
 };
 
