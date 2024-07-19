@@ -11,6 +11,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger.js";
@@ -44,7 +45,6 @@ import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-enti
 import type { Fact } from "./shared/infer-facts-from-text/types.js";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts.js";
 import type { FlowActionActivity } from "./types.js";
-import { Context } from "@temporalio/activity";
 
 const adjustDuplicates = (params: {
   duplicates: DuplicateReport[];

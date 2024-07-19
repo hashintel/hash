@@ -182,7 +182,28 @@ const mockEntityFromProposedEntity = (
     end: { kind: "unbounded" },
   };
 
+  const { sourceEntityId, targetEntityId } = proposedEntity;
+
   return new Entity({
+    linkData:
+      sourceEntityId && targetEntityId
+        ? {
+            leftEntityId:
+              "localId" in sourceEntityId
+                ? entityIdFromComponents(
+                    webId,
+                    sourceEntityId.localId as EntityUuid,
+                  )
+                : sourceEntityId.entityId,
+            rightEntityId:
+              "localId" in targetEntityId
+                ? entityIdFromComponents(
+                    webId,
+                    targetEntityId.localId as EntityUuid,
+                  )
+                : targetEntityId.entityId,
+          }
+        : undefined,
     metadata: {
       recordId: {
         entityId: entityIdFromComponents(
@@ -360,6 +381,8 @@ export const Outputs = ({
         selectedFlowRun.webId,
       );
 
+      console.log({ mockedEntity });
+
       /**
        * @todo also handle proposed entities which link to existing persisted entities
        *   -- requires having fetched them.
@@ -367,6 +390,12 @@ export const Outputs = ({
       const linkedEntities = proposedEntities
         .filter(
           (entity) =>
+            (proposedEntity.sourceEntityId?.kind === "proposed-entity" &&
+              proposedEntity.sourceEntityId?.localId ===
+                entity.localEntityId) ||
+            (proposedEntity.targetEntityId?.kind === "proposed-entity" &&
+              proposedEntity.targetEntityId?.localId ===
+                entity.localEntityId) ||
             (entity.sourceEntityId?.kind === "proposed-entity" &&
               entity.sourceEntityId.localId === selectedEntityId) ||
             (entity.targetEntityId?.kind === "proposed-entity" &&
@@ -468,11 +497,17 @@ export const Outputs = ({
             ? {
                 leftEntityId:
                   "localId" in sourceEntityId
-                    ? (sourceEntityId.localId as EntityId)
+                    ? entityIdFromComponents(
+                        "ownedById" as OwnedById,
+                        sourceEntityId.localId as EntityUuid,
+                      )
                     : sourceEntityId.entityId,
                 rightEntityId:
                   "localId" in targetEntityId
-                    ? (targetEntityId.localId as EntityId)
+                    ? entityIdFromComponents(
+                        "ownedById" as OwnedById,
+                        targetEntityId.localId as EntityUuid,
+                      )
                     : targetEntityId.entityId,
               }
             : undefined,
@@ -491,6 +526,8 @@ export const Outputs = ({
     }
     return entities;
   }, [persistedEntities, proposedEntities]);
+
+  console.log({ entitiesForGraph });
 
   return (
     <>

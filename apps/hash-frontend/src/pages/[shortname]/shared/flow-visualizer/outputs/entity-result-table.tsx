@@ -263,7 +263,7 @@ const PropertyValueCell = memo(
           onClose={() => setShowMetadataTooltip(false)}
           anchorOrigin={{
             vertical: "bottom",
-            horizontal: "middle",
+            horizontal: "left",
           }}
           slotProps={{
             paper: {
@@ -276,10 +276,10 @@ const PropertyValueCell = memo(
             root: {
               sx: {
                 background: "rgba(0,0,0,0.3)",
-                transition: "none !important",
               },
             },
           }}
+          transitionDuration={50}
         >
           <SourcesList sources={metadata.provenance?.sources ?? []} />
         </Popover>
