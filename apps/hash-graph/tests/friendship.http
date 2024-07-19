@@ -120,28 +120,15 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "ownedById": "{{account_id}}",
   "schema":
-  [{
+  {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     "kind": "dataType",
-    "$id": "http://localhost:3000/@alice/types/data-type/number2/v/1",
+    "$id": "http://localhost:3000/@alice/types/data-type/meter/v/1",
     "title": "Meter",
     "type": "number",
     "description": "A unit of length",
     "minimum": 0
-  },{
-    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-    "kind": "dataType",
-    "$id": "http://localhost:3000/@alice/types/data-type/number-23/v/1",
-    "allOf": [
-        {
-            "$ref": "http://localhost:3000/@alice/types/data-type/number2/v/1"
-        }
-    ],
-    "title": "Meter",
-    "type": "number",
-    "description": "A unit of length",
-    "minimum": 0
-  }],
+  },
   "relationships": [{
     "relation": "viewer",
     "subject": {
@@ -235,7 +222,15 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
-    "all": [
+    "equal": [
+      {
+        "path": [
+          "versionedUrl"
+        ]
+      },
+      {
+        "parameter": "{{text_data_type_id}}"
+      }
     ]
   },
   "temporalAxes": {

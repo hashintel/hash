@@ -428,7 +428,11 @@ where
                             $3
                         );
                     ",
-                    &[&ontology_id, &DataTypeId::from_url(target), &(depth as i32)],
+                    &[
+                        &ontology_id,
+                        &DataTypeId::from_url(target),
+                        &i32::try_from(depth).change_context(InsertionError)?,
+                    ],
                 )
                 .await
                 .change_context(InsertionError)?;

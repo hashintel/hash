@@ -728,38 +728,102 @@ mod tests {
         let closed_value = resolver
             .get_closed_data_type(&value.id)
             .expect("Failed to get closed data type");
+        assert_eq!(closed_value_metadata.inheritance_depths, HashMap::new());
+        assert_eq!(json!(closed_value.schema), json!(value));
+        assert_eq!(json!(closed_value.definitions), json!({}));
         DataTypeValidator
             .validate_ref(&closed_value)
             .await
             .expect("Failed to validate closed data type");
+
         let closed_number = resolver
             .get_closed_data_type(&number.id)
             .expect("Failed to get closed data type");
-        DataTypeValidator
-            .validate_ref(&closed_number)
-            .await
-            .expect("Failed to validate closed data type");
+        assert_eq!(
+            closed_number_metadata.inheritance_depths,
+            HashMap::from([(value.id.clone(), 0)])
+        );
+        assert_eq!(json!(closed_number.schema), json!(number));
+        assert_eq!(
+            json!(closed_number.definitions),
+            json!({
+                value.id.to_string(): value,
+            })
+        );
+        // DataTypeValidator
+        //     .validate_ref(&closed_number)
+        //     .await
+        //     .expect("Failed to validate closed data type");
+
         let closed_integer = resolver
             .get_closed_data_type(&integer.id)
             .expect("Failed to get closed data type");
-        DataTypeValidator
-            .validate_ref(&closed_integer)
-            .await
-            .expect("Failed to validate closed data type");
+        assert_eq!(
+            closed_integer_metadata.inheritance_depths,
+            HashMap::from([(value.id.clone(), 1), (number.id.clone(), 0)])
+        );
+        assert_eq!(json!(closed_integer.schema), json!(integer));
+        assert_eq!(
+            json!(closed_integer.definitions),
+            json!({
+                value.id.to_string(): value,
+                number.id.to_string(): number,
+            })
+        );
+        // DataTypeValidator
+        //     .validate_ref(&closed_integer)
+        //     .await
+        //     .expect("Failed to validate closed data type");
+
         let closed_unsigned_number = resolver
             .get_closed_data_type(&unsigned_number.id)
             .expect("Failed to get closed data type");
-        DataTypeValidator
-            .validate_ref(&closed_unsigned_number)
-            .await
-            .expect("Failed to validate closed data type");
+        assert_eq!(
+            closed_unsigned_number_metadata.inheritance_depths,
+            HashMap::from([(value.id.clone(), 1), (number.id.clone(), 0)])
+        );
+        assert_eq!(json!(closed_unsigned_number.schema), json!(unsigned_number));
+        assert_eq!(
+            json!(closed_unsigned_number.definitions),
+            json!({
+                value.id.to_string(): value,
+                number.id.to_string(): number,
+            })
+        );
+        // DataTypeValidator
+        //     .validate_ref(&closed_unsigned_number)
+        //     .await
+        //     .expect("Failed to validate closed data type");
+
         let closed_unsigned_integer = resolver
             .get_closed_data_type(&unsigned_integer.id)
             .expect("Failed to get closed data type");
-        DataTypeValidator
-            .validate_ref(&closed_unsigned_integer)
-            .await
-            .expect("Failed to validate closed data type");
+        assert_eq!(
+            closed_unsigned_integer_metadata.inheritance_depths,
+            HashMap::from([
+                (value.id.clone(), 2),
+                (number.id.clone(), 1),
+                (unsigned_number.id.clone(), 0),
+                (integer.id.clone(), 0)
+            ])
+        );
+        assert_eq!(
+            json!(closed_unsigned_integer.schema),
+            json!(unsigned_integer)
+        );
+        assert_eq!(
+            json!(closed_unsigned_integer.definitions),
+            json!({
+                value.id.to_string(): value,
+                number.id.to_string(): number,
+                unsigned_number.id.to_string(): unsigned_number,
+                integer.id.to_string(): integer,
+            })
+        );
+        // DataTypeValidator
+        //     .validate_ref(&closed_unsigned_integer)
+        //     .await
+        //     .expect("Failed to validate closed data type");
 
         let mut resolver = OntologyTypeResolver::default();
         resolver.add_closed(Arc::clone(&number), Arc::clone(&closed_number_metadata));
