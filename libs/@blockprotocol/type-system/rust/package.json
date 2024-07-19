@@ -20,7 +20,6 @@
   "scripts": {
     "build:wasm": "wasm-pack build --target web --out-name type-system --scope blockprotocol --release . && rm pkg/package.json",
     "fix:clippy": "just clippy --fix",
-    "postinstall": "wasm-pack --version | grep -q '0.12.1' || cargo install 'wasm-pack' --version '0.12.1' --locked --force",
     "lint:clippy": "just clippy && just clippy --target wasm32-unknown-unknown",
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
@@ -28,6 +27,7 @@
     "@rust/codec": "0.0.0-private"
   },
   "devDependencies": {
-    "@rust/graph-test-data": "0.0.0-private"
+    "@rust/graph-test-data": "0.0.0-private",
+    "wasm-pack": "0.13.0"
   }
 }
