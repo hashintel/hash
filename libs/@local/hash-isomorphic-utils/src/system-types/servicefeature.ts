@@ -3,11 +3,6 @@
  */
 
 import type {
-  ServiceFeatureOutgoingLinkAndTarget,
-  ServiceFeatureOutgoingLinksByLinkEntityTypeId,
-  ServiceFeatureProperties,
-  ServiceFeaturePropertiesWithMetadata,
-  ServiceNamePropertyValue,
   ServiceNamePropertyValueWithMetadata,
   ServiceUnitCostPropertyValue,
   ServiceUnitCostPropertyValueWithMetadata,
@@ -16,11 +11,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  ServiceFeatureOutgoingLinkAndTarget,
-  ServiceFeatureOutgoingLinksByLinkEntityTypeId,
-  ServiceFeatureProperties,
-  ServiceFeaturePropertiesWithMetadata,
-  ServiceNamePropertyValue,
   ServiceNamePropertyValueWithMetadata,
   ServiceUnitCostPropertyValue,
   ServiceUnitCostPropertyValueWithMetadata,
@@ -44,4 +34,9 @@ export {
   type OutputUnitCostPropertyValue,
   type OutputUnitCostPropertyValueWithMetadata,
   type ServiceFeature,
+  type ServiceFeatureOutgoingLinkAndTarget,
+  type ServiceFeatureOutgoingLinksByLinkEntityTypeId,
+  type ServiceFeatureProperties,
+  type ServiceFeaturePropertiesWithMetadata,
+  type ServiceNamePropertyValue,
 } from "./shared.js";

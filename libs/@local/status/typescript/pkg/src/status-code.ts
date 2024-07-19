@@ -185,13 +185,15 @@ export const convertHttpCodeToStatusCode = (statusCode: number) => {
     // This is an unofficial code which is sometimes used to indicate that the server has hit its
     // bandwidth limit
     return StatusCode.Unknown;
-  } else if (statusCode === 510) {
+  }
+  if (statusCode === 510) {
     // An uncommon code which refers to a server not supporting a particular extension
     return StatusCode.Unimplemented;
-  } else if (statusCode === 511) {
+  }
+  if (statusCode === 511) {
     // An uncommon code which refers to a client needing to authenticate to gain network access
     return StatusCode.Unauthenticated;
-  } else {
-    return StatusCode.Unknown;
   }
+
+  return StatusCode.Unknown;
 };

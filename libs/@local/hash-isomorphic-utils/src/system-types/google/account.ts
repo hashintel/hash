@@ -3,11 +3,6 @@
  */
 
 import type {
-  ExpiredAtPropertyValueWithMetadata,
-  Link,
-  LinkOutgoingLinkAndTarget,
-  LinkOutgoingLinksByLinkEntityTypeId,
-  LinkProperties,
   LinkPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
@@ -26,11 +21,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  ExpiredAtPropertyValueWithMetadata,
-  Link,
-  LinkOutgoingLinkAndTarget,
-  LinkOutgoingLinksByLinkEntityTypeId,
-  LinkProperties,
   LinkPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
@@ -64,4 +54,9 @@ export {
   type EmailPropertyValue,
   type EmailPropertyValueWithMetadata,
   type ExpiredAtPropertyValue,
+  type ExpiredAtPropertyValueWithMetadata,
+  type Link,
+  type LinkOutgoingLinkAndTarget,
+  type LinkOutgoingLinksByLinkEntityTypeId,
+  type LinkProperties,
 } from "./shared.js";

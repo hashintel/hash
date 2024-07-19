@@ -2,10 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { TextDataType, TextDataTypeWithMetadata } from "./shared.js";
-
-export type { TextDataType, TextDataTypeWithMetadata };
-
 export {
   type AutomaticInferenceConfigurationPropertyValue,
   type AutomaticInferenceConfigurationPropertyValueWithMetadata,
@@ -22,4 +18,6 @@ export {
   type ManualInferenceConfigurationPropertyValueWithMetadata,
   type ObjectDataType,
   type ObjectDataTypeWithMetadata,
+  type TextDataType,
+  type TextDataTypeWithMetadata,
 } from "./shared.js";

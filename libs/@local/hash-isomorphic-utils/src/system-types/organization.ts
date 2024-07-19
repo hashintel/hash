@@ -3,11 +3,6 @@
  */
 
 import type {
-  DateTimeDataType,
-  DateTimeDataTypeWithMetadata,
-  DescriptionPropertyValue,
-  DescriptionPropertyValueWithMetadata,
-  DisplayNamePropertyValue,
   DisplayNamePropertyValueWithMetadata,
   File,
   FileHashPropertyValue,
@@ -112,11 +107,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  DateTimeDataType,
-  DateTimeDataTypeWithMetadata,
-  DescriptionPropertyValue,
-  DescriptionPropertyValueWithMetadata,
-  DisplayNamePropertyValue,
   DisplayNamePropertyValueWithMetadata,
   File,
   FileHashPropertyValue,
@@ -236,4 +226,9 @@ export {
   type BooleanDataTypeWithMetadata,
   type ComponentIdPropertyValue,
   type ComponentIdPropertyValueWithMetadata,
+  type DateTimeDataType,
+  type DateTimeDataTypeWithMetadata,
+  type DescriptionPropertyValue,
+  type DescriptionPropertyValueWithMetadata,
+  type DisplayNamePropertyValue,
 } from "./shared.js";

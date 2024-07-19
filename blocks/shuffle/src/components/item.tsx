@@ -1,7 +1,7 @@
 import React, {
   type CSSProperties,
-  type RefObject,
   forwardRef,
+  type RefObject,
   useState,
 } from "react";
 import type { DraggableAttributes } from "@dnd-kit/core";

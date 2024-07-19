@@ -3,11 +3,6 @@
  */
 
 import type {
-  BlockOutgoingLinksByLinkEntityTypeId,
-  BlockProperties,
-  BlockPropertiesWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
   BrowserPluginSettings,
   BrowserPluginSettingsOutgoingLinkAndTarget,
   BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId,
@@ -172,11 +167,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  BlockOutgoingLinksByLinkEntityTypeId,
-  BlockProperties,
-  BlockPropertiesWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
   BrowserPluginSettings,
   BrowserPluginSettingsOutgoingLinkAndTarget,
   BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId,
@@ -356,4 +346,9 @@ export {
   type BlockCollectionPropertiesWithMetadata,
   type BlockHasDataLink,
   type BlockOutgoingLinkAndTarget,
+  type BlockOutgoingLinksByLinkEntityTypeId,
+  type BlockProperties,
+  type BlockPropertiesWithMetadata,
+  type BooleanDataType,
+  type BooleanDataTypeWithMetadata,
 } from "./shared.js";

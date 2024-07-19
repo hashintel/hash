@@ -2,23 +2,9 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type {
-  TextDataType,
-  TextDataTypeWithMetadata,
-  TriggerDefinitionIDPropertyValue,
-  TriggerDefinitionIDPropertyValueWithMetadata,
-  TriggerPropertyValue,
-  TriggerPropertyValueWithMetadata,
-} from "./shared.js";
+import type { TriggerPropertyValueWithMetadata } from "./shared.js";
 
-export type {
-  TextDataType,
-  TextDataTypeWithMetadata,
-  TriggerDefinitionIDPropertyValue,
-  TriggerDefinitionIDPropertyValueWithMetadata,
-  TriggerPropertyValue,
-  TriggerPropertyValueWithMetadata,
-};
+export type { TriggerPropertyValueWithMetadata };
 
 export {
   type FlowDefinitionIDPropertyValue,
@@ -36,4 +22,9 @@ export {
   type OutputsPropertyValueWithMetadata,
   type StepPropertyValue,
   type StepPropertyValueWithMetadata,
+  type TextDataType,
+  type TextDataTypeWithMetadata,
+  type TriggerDefinitionIDPropertyValue,
+  type TriggerDefinitionIDPropertyValueWithMetadata,
+  type TriggerPropertyValue,
 } from "./shared.js";

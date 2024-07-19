@@ -23,8 +23,8 @@ import { promisify } from "node:util";
 import bodyParser from "body-parser";
 import cors from "cors";
 import proxy from "express-http-proxy";
-import type {
-  Options as RateLimitOptions,
+import {
+  type Options as RateLimitOptions,
   rateLimit,
 } from "express-rate-limit";
 import helmet from "helmet";
@@ -59,10 +59,10 @@ import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
-import type {
+import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
-  EmailTransporter,
+  type EmailTransporter,
 } from "./email/transporters";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";

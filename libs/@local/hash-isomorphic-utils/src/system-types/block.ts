@@ -2,22 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type {
-  LinkOutgoingLinksByLinkEntityTypeId,
-  LinkProperties,
-  LinkPropertiesWithMetadata,
-  TextDataType,
-  TextDataTypeWithMetadata,
-} from "./shared.js";
-
-export type {
-  LinkOutgoingLinksByLinkEntityTypeId,
-  LinkProperties,
-  LinkPropertiesWithMetadata,
-  TextDataType,
-  TextDataTypeWithMetadata,
-};
-
 export {
   type Block,
   type BlockHasDataLink,
@@ -34,4 +18,9 @@ export {
   type HasDataPropertiesWithMetadata,
   type Link,
   type LinkOutgoingLinkAndTarget,
+  type LinkOutgoingLinksByLinkEntityTypeId,
+  type LinkProperties,
+  type LinkPropertiesWithMetadata,
+  type TextDataType,
+  type TextDataTypeWithMetadata,
 } from "./shared.js";

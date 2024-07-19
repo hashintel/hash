@@ -3,11 +3,6 @@
  */
 
 import type {
-  BelongsToOrganizationProperties,
-  BelongsToOrganizationPropertiesWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  CreatedAtPropertyValue,
   CreatedAtPropertyValueWithMetadata,
   CreatedIssueCountPropertyValue,
   CreatedIssueCountPropertyValueWithMetadata,
@@ -96,11 +91,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  BelongsToOrganizationProperties,
-  BelongsToOrganizationPropertiesWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  CreatedAtPropertyValue,
   CreatedAtPropertyValueWithMetadata,
   CreatedIssueCountPropertyValue,
   CreatedIssueCountPropertyValueWithMetadata,
@@ -204,4 +194,9 @@ export {
   type BelongsToOrganization,
   type BelongsToOrganizationOutgoingLinkAndTarget,
   type BelongsToOrganizationOutgoingLinksByLinkEntityTypeId,
+  type BelongsToOrganizationProperties,
+  type BelongsToOrganizationPropertiesWithMetadata,
+  type BooleanDataType,
+  type BooleanDataTypeWithMetadata,
+  type CreatedAtPropertyValue,
 } from "./shared.js";

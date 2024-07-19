@@ -3,11 +3,6 @@
  */
 
 import type {
-  GitBranchFormatPropertyValueWithMetadata,
-  GitLinkbackMessagesEnabledPropertyValue,
-  GitLinkbackMessagesEnabledPropertyValueWithMetadata,
-  GitPublicLinkbackMessagesEnabledPropertyValue,
-  GitPublicLinkbackMessagesEnabledPropertyValueWithMetadata,
   IDPropertyValue,
   IDPropertyValueWithMetadata,
   LogoURLPropertyValue,
@@ -46,11 +41,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  GitBranchFormatPropertyValueWithMetadata,
-  GitLinkbackMessagesEnabledPropertyValue,
-  GitLinkbackMessagesEnabledPropertyValueWithMetadata,
-  GitPublicLinkbackMessagesEnabledPropertyValue,
-  GitPublicLinkbackMessagesEnabledPropertyValueWithMetadata,
   IDPropertyValue,
   IDPropertyValueWithMetadata,
   LogoURLPropertyValue,
@@ -104,4 +94,9 @@ export {
   type DeletionRequestedAtPropertyValue,
   type DeletionRequestedAtPropertyValueWithMetadata,
   type GitBranchFormatPropertyValue,
+  type GitBranchFormatPropertyValueWithMetadata,
+  type GitLinkbackMessagesEnabledPropertyValue,
+  type GitLinkbackMessagesEnabledPropertyValueWithMetadata,
+  type GitPublicLinkbackMessagesEnabledPropertyValue,
+  type GitPublicLinkbackMessagesEnabledPropertyValueWithMetadata,
 } from "./shared.js";

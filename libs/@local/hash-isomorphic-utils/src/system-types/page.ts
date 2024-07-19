@@ -3,11 +3,6 @@
  */
 
 import type {
-  HasParentPropertiesWithMetadata,
-  IconPropertyValue,
-  IconPropertyValueWithMetadata,
-  Link,
-  LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
@@ -26,11 +21,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  HasParentPropertiesWithMetadata,
-  IconPropertyValue,
-  IconPropertyValueWithMetadata,
-  Link,
-  LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
@@ -64,4 +54,9 @@ export {
   type HasParentOutgoingLinkAndTarget,
   type HasParentOutgoingLinksByLinkEntityTypeId,
   type HasParentProperties,
+  type HasParentPropertiesWithMetadata,
+  type IconPropertyValue,
+  type IconPropertyValueWithMetadata,
+  type Link,
+  type LinkOutgoingLinkAndTarget,
 } from "./shared.js";

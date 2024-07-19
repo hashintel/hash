@@ -3,11 +3,6 @@
  */
 
 import type {
-  AvatarURLPropertyValueWithMetadata,
-  BelongsToOrganization,
-  BelongsToOrganizationOutgoingLinkAndTarget,
-  BelongsToOrganizationOutgoingLinksByLinkEntityTypeId,
-  BelongsToOrganizationProperties,
   BelongsToOrganizationPropertiesWithMetadata,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
@@ -190,11 +185,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  AvatarURLPropertyValueWithMetadata,
-  BelongsToOrganization,
-  BelongsToOrganizationOutgoingLinkAndTarget,
-  BelongsToOrganizationOutgoingLinksByLinkEntityTypeId,
-  BelongsToOrganizationProperties,
   BelongsToOrganizationPropertiesWithMetadata,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
@@ -392,4 +382,9 @@ export {
   type AutoClosedAtPropertyValue,
   type AutoClosedAtPropertyValueWithMetadata,
   type AvatarURLPropertyValue,
+  type AvatarURLPropertyValueWithMetadata,
+  type BelongsToOrganization,
+  type BelongsToOrganizationOutgoingLinkAndTarget,
+  type BelongsToOrganizationOutgoingLinksByLinkEntityTypeId,
+  type BelongsToOrganizationProperties,
 } from "./shared.js";

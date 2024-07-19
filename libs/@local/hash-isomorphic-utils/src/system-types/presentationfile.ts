@@ -3,11 +3,6 @@
  */
 
 import type {
-  FileProperties,
-  FilePropertiesWithMetadata,
-  FileSizePropertyValue,
-  FileSizePropertyValueWithMetadata,
-  FileStorageBucketPropertyValue,
   FileStorageBucketPropertyValueWithMetadata,
   FileStorageEndpointPropertyValue,
   FileStorageEndpointPropertyValueWithMetadata,
@@ -47,11 +42,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  FileProperties,
-  FilePropertiesWithMetadata,
-  FileSizePropertyValue,
-  FileSizePropertyValueWithMetadata,
-  FileStorageBucketPropertyValue,
   FileStorageBucketPropertyValueWithMetadata,
   FileStorageEndpointPropertyValue,
   FileStorageEndpointPropertyValueWithMetadata,
@@ -106,4 +96,9 @@ export {
   type FileNamePropertyValueWithMetadata,
   type FileOutgoingLinkAndTarget,
   type FileOutgoingLinksByLinkEntityTypeId,
+  type FileProperties,
+  type FilePropertiesWithMetadata,
+  type FileSizePropertyValue,
+  type FileSizePropertyValueWithMetadata,
+  type FileStorageBucketPropertyValue,
 } from "./shared.js";
