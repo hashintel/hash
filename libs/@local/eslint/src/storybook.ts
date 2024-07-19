@@ -8,26 +8,26 @@ import type { Options } from "./index.js";
 
 export const storybook =
   (options: PartialDeep<Options>) =>
-    (config: FlatESLintConfig[]): FlatESLintConfig[] => {
-      return config;
+  (config: FlatESLintConfig[]): FlatESLintConfig[] => {
+    return config;
 
-      // if (!options.enabled?.storybook) {
-      //   return config;
-      // }
+    // if (!options.enabled?.storybook) {
+    //   return config;
+    // }
 
-      // return defineFlatConfig([
-      //   ...config,
-      //   ...eslintPluginStorybook.configs["flat/recommended"],
-      //   {
-      //     rules: {
-      //       "storybook/no-uninstalled-addons": "error",
-      //     },
-      //   },
-      //   {
-      //     files: ["*.stories.{j,t}s{x,}"],
-      //     rules: {
-      //       "import/no-default-export": "off",
-      //     },
-      //   },
-      // ]);
-    };
+    // return defineFlatConfig([
+    //   ...config,
+    //   ...eslintPluginStorybook.configs["flat/recommended"],
+    //   {
+    //     rules: {
+    //       "storybook/no-uninstalled-addons": "error",
+    //     },
+    //   },
+    //   {
+    //     files: ["*.stories.{j,t}s{x,}"],
+    //     rules: {
+    //       "import/no-default-export": "off",
+    //     },
+    //   },
+    // ]);
+  };
