@@ -3,11 +3,6 @@
  */
 
 import type {
-  HasDataOutgoingLinksByLinkEntityTypeId,
-  HasDataProperties,
-  HasDataPropertiesWithMetadata,
-  Link,
-  LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
@@ -16,11 +11,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  HasDataOutgoingLinksByLinkEntityTypeId,
-  HasDataProperties,
-  HasDataPropertiesWithMetadata,
-  Link,
-  LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
@@ -38,5 +28,5 @@ export {
   type ComponentIdPropertyValue,
   type ComponentIdPropertyValueWithMetadata,
   type HasData,
-  type HasDataOutgoingLinkAndTarget,
+  type HasDataOutgoingLinkAndTarget, type HasDataOutgoingLinksByLinkEntityTypeId, type HasDataProperties, type HasDataPropertiesWithMetadata, type Link, type LinkOutgoingLinkAndTarget,
 } from "./shared.js";

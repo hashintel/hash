@@ -3,11 +3,6 @@
  */
 
 import type {
-  NumberDataType,
-  NumberDataTypeWithMetadata,
-  OutputUnitCostPropertyValue,
-  OutputUnitCostPropertyValueWithMetadata,
-  ServiceFeature,
   ServiceFeatureOutgoingLinkAndTarget,
   ServiceFeatureOutgoingLinksByLinkEntityTypeId,
   ServiceFeatureProperties,
@@ -21,11 +16,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  NumberDataType,
-  NumberDataTypeWithMetadata,
-  OutputUnitCostPropertyValue,
-  OutputUnitCostPropertyValueWithMetadata,
-  ServiceFeature,
   ServiceFeatureOutgoingLinkAndTarget,
   ServiceFeatureOutgoingLinksByLinkEntityTypeId,
   ServiceFeatureProperties,
@@ -48,5 +38,5 @@ export {
   type FeatureNamePropertyValue,
   type FeatureNamePropertyValueWithMetadata,
   type InputUnitCostPropertyValue,
-  type InputUnitCostPropertyValueWithMetadata,
+  type InputUnitCostPropertyValueWithMetadata, type NumberDataType, type NumberDataTypeWithMetadata, type OutputUnitCostPropertyValue, type OutputUnitCostPropertyValueWithMetadata, type ServiceFeature,
 } from "./shared.js";

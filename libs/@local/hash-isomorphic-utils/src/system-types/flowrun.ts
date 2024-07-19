@@ -3,11 +3,6 @@
  */
 
 import type {
-  ObjectDataTypeWithMetadata,
-  OutputsPropertyValue,
-  OutputsPropertyValueWithMetadata,
-  StepPropertyValue,
-  StepPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
   TriggerDefinitionIDPropertyValue,
@@ -17,11 +12,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  ObjectDataTypeWithMetadata,
-  OutputsPropertyValue,
-  OutputsPropertyValueWithMetadata,
-  StepPropertyValue,
-  StepPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
   TriggerDefinitionIDPropertyValue,
@@ -40,5 +30,5 @@ export {
   type FlowRunPropertiesWithMetadata,
   type NamePropertyValue,
   type NamePropertyValueWithMetadata,
-  type ObjectDataType,
+  type ObjectDataType, type ObjectDataTypeWithMetadata, type OutputsPropertyValue, type OutputsPropertyValueWithMetadata, type StepPropertyValue, type StepPropertyValueWithMetadata,
 } from "./shared.js";

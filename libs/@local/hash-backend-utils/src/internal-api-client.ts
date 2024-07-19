@@ -1,5 +1,4 @@
-import axios from "axios";
-import type { AxiosError } from "axios";
+import axios, { type AxiosError } from "axios";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import {
   Configuration,

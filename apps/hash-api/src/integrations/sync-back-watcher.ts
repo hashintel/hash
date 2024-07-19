@@ -68,6 +68,7 @@ export const createIntegrationSyncBackWatcher = async (
               mapGraphApiEntityToEntity(graphEntity, null, true),
             ),
           );
+
         if (!entity) {
           /**
            * The linear bot may not have access to the entity, which means

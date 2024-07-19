@@ -3,11 +3,6 @@
  */
 
 import type {
-  DocumentFileOutgoingLinksByLinkEntityTypeId,
-  DocumentFileProperties,
-  DocumentFilePropertiesWithMetadata,
-  File,
-  FileHashPropertyValue,
   FileHashPropertyValueWithMetadata,
   FileNamePropertyValue,
   FileNamePropertyValueWithMetadata,
@@ -52,11 +47,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  DocumentFileOutgoingLinksByLinkEntityTypeId,
-  DocumentFileProperties,
-  DocumentFilePropertiesWithMetadata,
-  File,
-  FileHashPropertyValue,
   FileHashPropertyValueWithMetadata,
   FileNamePropertyValue,
   FileNamePropertyValueWithMetadata,
@@ -110,5 +100,5 @@ export {
   type DisplayNamePropertyValue,
   type DisplayNamePropertyValueWithMetadata,
   type DocumentFile,
-  type DocumentFileOutgoingLinkAndTarget,
+  type DocumentFileOutgoingLinkAndTarget, type DocumentFileOutgoingLinksByLinkEntityTypeId, type DocumentFileProperties, type DocumentFilePropertiesWithMetadata, type File, type FileHashPropertyValue,
 } from "./shared.js";

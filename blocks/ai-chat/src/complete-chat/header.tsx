@@ -101,13 +101,13 @@ export const Header: FunctionComponent<{
                     paddingRight: disabled ? 0 : 2,
                   },
               }}
+              onChange={setChatModel}
               onOpen={() => {
                 setChatModelSelectorOpen(true);
               }}
               onClose={() => {
                 setChatModelSelectorOpen(false);
               }}
-              onChange={setChatModel}
             />
             in
             <SystemPromptSelector
@@ -122,13 +122,13 @@ export const Header: FunctionComponent<{
                   paddingRight: disabled ? 0 : undefined,
                 },
               }}
+              onChange={setSystemPromptId}
               onOpen={() => {
                 setSystemPromptSelectorOpen(true);
               }}
               onClose={() => {
                 setSystemPromptSelectorOpen(false);
               }}
-              onChange={setSystemPromptId}
             />
           </Typography>
         </Collapse>

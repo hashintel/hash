@@ -3,11 +3,6 @@
  */
 
 import type {
-  AutoArchivedAtPropertyValue,
-  AutoArchivedAtPropertyValueWithMetadata,
-  AutoClosedAtPropertyValue,
-  AutoClosedAtPropertyValueWithMetadata,
-  AvatarURLPropertyValue,
   AvatarURLPropertyValueWithMetadata,
   BelongsToOrganization,
   BelongsToOrganizationOutgoingLinkAndTarget,
@@ -195,11 +190,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  AutoArchivedAtPropertyValue,
-  AutoArchivedAtPropertyValueWithMetadata,
-  AutoClosedAtPropertyValue,
-  AutoClosedAtPropertyValueWithMetadata,
-  AvatarURLPropertyValue,
   AvatarURLPropertyValueWithMetadata,
   BelongsToOrganization,
   BelongsToOrganizationOutgoingLinkAndTarget,
@@ -396,5 +386,5 @@ export {
   type AllowMembersToInvitePropertyValue,
   type AllowMembersToInvitePropertyValueWithMetadata,
   type ArchivedAtPropertyValue,
-  type ArchivedAtPropertyValueWithMetadata,
+  type ArchivedAtPropertyValueWithMetadata, type AutoArchivedAtPropertyValue, type AutoArchivedAtPropertyValueWithMetadata, type AutoClosedAtPropertyValue, type AutoClosedAtPropertyValueWithMetadata, type AvatarURLPropertyValue,
 } from "./shared.js";

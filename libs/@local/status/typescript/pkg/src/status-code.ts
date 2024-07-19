@@ -149,29 +149,29 @@ export const convertHttpCodeToStatusCode = (statusCode: number) => {
   }
   if (statusCode > 451 && statusCode < 500) {
     return StatusCode.Unknown;
-  } else if (statusCode === 500) {
+  } if (statusCode === 500) {
     return StatusCode.Internal;
-  } else if (statusCode === 501) {
+  } if (statusCode === 501) {
     return StatusCode.Unimplemented;
-  } else if (statusCode === 502) {
+  } if (statusCode === 502) {
     return StatusCode.Internal;
-  } else if (statusCode === 503) {
+  } if (statusCode === 503) {
     return StatusCode.Unavailable;
-  } else if (statusCode === 504) {
+  } if (statusCode === 504) {
     return StatusCode.DeadlineExceeded;
-  } else if (statusCode === 505) {
+  } if (statusCode === 505) {
     // 505 generally refers to an unsupported HTTP version, which potentially could be represented as
     // `InvalidArgument` instead
     return StatusCode.Unimplemented;
-  } else if (statusCode === 506) {
+  } if (statusCode === 506) {
     // An uncommon code which isn't fully standardized
     return StatusCode.Internal;
-  } else if (statusCode === 507) {
+  } if (statusCode === 507) {
     return StatusCode.ResourceExhausted;
-  } else if (statusCode === 508) {
+  } if (statusCode === 508) {
     // 508 generally refers to a loop in the server, which is a server-side problem
     return StatusCode.Internal;
-  } else if (statusCode === 509) {
+  } if (statusCode === 509) {
     // This is an unofficial code which is sometimes used to indicate that the server has hit its
     // bandwidth limit
     return StatusCode.Unknown;

@@ -2,9 +2,9 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { TextualContentPropertyValueWithMetadata } from "./shared.js";
 
-export type { TextualContentPropertyValueWithMetadata };
+
+
 
 export {
   type ObjectDataType,
@@ -16,5 +16,5 @@ export {
   type TextOutgoingLinksByLinkEntityTypeId,
   type TextProperties,
   type TextPropertiesWithMetadata,
-  type TextualContentPropertyValue,
+  type TextualContentPropertyValue, type TextualContentPropertyValueWithMetadata,
 } from "./shared.js";

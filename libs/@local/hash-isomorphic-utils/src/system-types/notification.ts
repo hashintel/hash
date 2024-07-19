@@ -2,17 +2,9 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type {
-  ReadAtPropertyValueWithMetadata,
-  TextDataType,
-  TextDataTypeWithMetadata,
-} from "./shared.js";
 
-export type {
-  ReadAtPropertyValueWithMetadata,
-  TextDataType,
-  TextDataTypeWithMetadata,
-};
+
+
 
 export {
   type ArchivedPropertyValue,
@@ -24,5 +16,5 @@ export {
   type NotificationOutgoingLinksByLinkEntityTypeId,
   type NotificationProperties,
   type NotificationPropertiesWithMetadata,
-  type ReadAtPropertyValue,
+  type ReadAtPropertyValue, type ReadAtPropertyValueWithMetadata, type TextDataType, type TextDataTypeWithMetadata,
 } from "./shared.js";

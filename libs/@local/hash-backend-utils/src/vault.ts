@@ -1,5 +1,4 @@
-import axios from "axios";
-import type { AxiosError, AxiosInstance } from "axios";
+import axios, { type AxiosError, type AxiosInstance } from "axios";
 import type { AccountId } from "@local/hash-graph-types/account";
 
 interface VaultSecret<D = unknown> {
@@ -87,9 +86,9 @@ export const createVaultClient = () => {
     process.env.HASH_VAULT_PORT &&
     process.env.HASH_VAULT_ROOT_TOKEN
     ? new VaultClient({
-        endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
-        token: process.env.HASH_VAULT_ROOT_TOKEN,
-      })
+      endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
+      token: process.env.HASH_VAULT_ROOT_TOKEN,
+    })
     : undefined;
 };
 

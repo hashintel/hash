@@ -66,10 +66,10 @@ export const App: BlockComponent<BlockEntity> = ({
             lineHeight: "1.2 !important",
             color: "black",
           }}
+          onBlur={(event) => updateEntity({ [titleKey]: event.target.value })}
           onChange={(event) => {
             setTitleValue(event.target.value);
           }}
-          onBlur={(event) => updateEntity({ [titleKey]: event.target.value })}
         />
 
         <Board

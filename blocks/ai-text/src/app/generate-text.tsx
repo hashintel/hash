@@ -156,13 +156,13 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
               <ModelSelector
                 open={selectorOpen}
                 value={model}
+                onChange={setModel}
                 onOpen={() => {
                   setSelectorOpen(true);
                 }}
                 onClose={() => {
                   setSelectorOpen(false);
                 }}
-                onChange={setModel}
               />
             </Box>
           </Fade>

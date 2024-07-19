@@ -3,11 +3,6 @@
  */
 
 import type {
-  BlockCollectionOutgoingLinksByLinkEntityTypeId,
-  BlockCollectionProperties,
-  BlockCollectionPropertiesWithMetadata,
-  BlockHasDataLink,
-  BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BlockPropertiesWithMetadata,
@@ -177,11 +172,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  BlockCollectionOutgoingLinksByLinkEntityTypeId,
-  BlockCollectionProperties,
-  BlockCollectionPropertiesWithMetadata,
-  BlockHasDataLink,
-  BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BlockPropertiesWithMetadata,
@@ -360,5 +350,5 @@ export {
   type AutomaticInferenceConfigurationPropertyValueWithMetadata,
   type Block,
   type BlockCollection,
-  type BlockCollectionOutgoingLinkAndTarget,
+  type BlockCollectionOutgoingLinkAndTarget, type BlockCollectionOutgoingLinksByLinkEntityTypeId, type BlockCollectionProperties, type BlockCollectionPropertiesWithMetadata, type BlockHasDataLink, type BlockOutgoingLinkAndTarget,
 } from "./shared.js";

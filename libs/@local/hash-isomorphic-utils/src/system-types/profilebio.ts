@@ -3,11 +3,6 @@
  */
 
 import type {
-  BlockPropertiesWithMetadata,
-  ComponentIdPropertyValue,
-  ComponentIdPropertyValueWithMetadata,
-  FractionalIndexPropertyValue,
-  FractionalIndexPropertyValueWithMetadata,
   HasData,
   HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
@@ -34,11 +29,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  BlockPropertiesWithMetadata,
-  ComponentIdPropertyValue,
-  ComponentIdPropertyValueWithMetadata,
-  FractionalIndexPropertyValue,
-  FractionalIndexPropertyValueWithMetadata,
   HasData,
   HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
@@ -74,5 +64,5 @@ export {
   type BlockHasDataLink,
   type BlockOutgoingLinkAndTarget,
   type BlockOutgoingLinksByLinkEntityTypeId,
-  type BlockProperties,
+  type BlockProperties, type BlockPropertiesWithMetadata, type ComponentIdPropertyValue, type ComponentIdPropertyValueWithMetadata, type FractionalIndexPropertyValue, type FractionalIndexPropertyValueWithMetadata,
 } from "./shared.js";

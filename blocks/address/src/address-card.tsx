@@ -172,10 +172,10 @@ export const AddressCard = ({
         <EditableField
           editIconFontSize={14}
           value={descriptionValue}
+          readonly={readonly}
           placeholder={
             "Click here to add a description or more detailed information"
           }
-          readonly={readonly}
           sx={{
             fontWeight: 500,
             fontSize: 14,

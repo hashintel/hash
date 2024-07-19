@@ -1,7 +1,6 @@
 /* eslint-disable import/first */
 
-import express, { raw } from "express";
-import type { ErrorRequestHandler } from "express";
+import express, type { ErrorRequestHandler , raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 import {
   getRequiredEnv,
@@ -61,9 +60,9 @@ import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
 import type {
-  EmailTransporter,
   AwsSesEmailTransporter,
   DummyEmailTransporter,
+  EmailTransporter,
 } from "./email/transporters";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
@@ -318,6 +317,7 @@ const main = async () => {
     ) {
       // webhooks typically need the raw body for signature verification
       rawParser(request, res, next);
+
       return;
     }
 
@@ -365,13 +365,14 @@ const main = async () => {
          * expected value here before returning the response, to prevent CORS errors
          * in modern browsers.
          */
-        userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
+        userResDecorator: (_proxyRes, proxyResData, _userRequest, userRes) => {
           if (typeof expectedAccessControlAllowOriginHeader === "string") {
             userRes.set(
               "Access-Control-Allow-Origin",
               expectedAccessControlAllowOriginHeader,
             );
           }
+
           return proxyResData;
         },
       })(request, res, next);

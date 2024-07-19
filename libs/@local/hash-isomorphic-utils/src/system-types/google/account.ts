@@ -3,11 +3,6 @@
  */
 
 import type {
-  DisplayNamePropertyValue,
-  DisplayNamePropertyValueWithMetadata,
-  EmailPropertyValue,
-  EmailPropertyValueWithMetadata,
-  ExpiredAtPropertyValue,
   ExpiredAtPropertyValueWithMetadata,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -31,11 +26,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  DisplayNamePropertyValue,
-  DisplayNamePropertyValueWithMetadata,
-  EmailPropertyValue,
-  EmailPropertyValueWithMetadata,
-  ExpiredAtPropertyValue,
   ExpiredAtPropertyValueWithMetadata,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -68,5 +58,5 @@ export {
   type AccountPropertiesWithMetadata,
   type AccountUsesUserSecretLink,
   type ConnectionSourceNamePropertyValue,
-  type ConnectionSourceNamePropertyValueWithMetadata,
+  type ConnectionSourceNamePropertyValueWithMetadata, type DisplayNamePropertyValue, type DisplayNamePropertyValueWithMetadata, type EmailPropertyValue, type EmailPropertyValueWithMetadata, type ExpiredAtPropertyValue,
 } from "./shared.js";

@@ -1,6 +1,5 @@
 import type { sheets_v4 } from "googleapis";
-import Papa from "papaparse";
-import type { ParseResult } from "papaparse";
+import Papa, { type ParseResult } from "papaparse";
 import { createCellFromValue } from "./shared/create-sheet-data.js";
 
 interface SheetOutputFormat {
@@ -84,28 +83,28 @@ export const convertCsvToSheetRequests = ({
     },
     ...(humanReadable
       ? [
-          {
-            setBasicFilter: {
-              filter: {
-                range: {
-                  sheetId,
-                  startRowIndex: 0,
-                  endRowIndex: rows.length,
-                  startColumnIndex: 0,
-                  endColumnIndex: rows[0]?.values?.length ?? 0,
-                },
-              },
-            },
-          },
-          {
-            autoResizeDimensions: {
-              dimensions: {
+        {
+          setBasicFilter: {
+            filter: {
+              range: {
                 sheetId,
-                dimension: "COLUMNS",
+                startRowIndex: 0,
+                endRowIndex: rows.length,
+                startColumnIndex: 0,
+                endColumnIndex: rows[0]?.values?.length ?? 0,
               },
             },
           },
-        ]
+        },
+        {
+          autoResizeDimensions: {
+            dimensions: {
+              sheetId,
+              dimension: "COLUMNS",
+            },
+          },
+        },
+      ]
       : []),
   ];
 

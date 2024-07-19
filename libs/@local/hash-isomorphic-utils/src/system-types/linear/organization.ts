@@ -3,11 +3,6 @@
  */
 
 import type {
-  CreatedIssueCountPropertyValue,
-  CreatedIssueCountPropertyValueWithMetadata,
-  DeletionRequestedAtPropertyValue,
-  DeletionRequestedAtPropertyValueWithMetadata,
-  GitBranchFormatPropertyValue,
   GitBranchFormatPropertyValueWithMetadata,
   GitLinkbackMessagesEnabledPropertyValue,
   GitLinkbackMessagesEnabledPropertyValueWithMetadata,
@@ -51,11 +46,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  CreatedIssueCountPropertyValue,
-  CreatedIssueCountPropertyValueWithMetadata,
-  DeletionRequestedAtPropertyValue,
-  DeletionRequestedAtPropertyValueWithMetadata,
-  GitBranchFormatPropertyValue,
   GitBranchFormatPropertyValueWithMetadata,
   GitLinkbackMessagesEnabledPropertyValue,
   GitLinkbackMessagesEnabledPropertyValueWithMetadata,
@@ -108,5 +98,5 @@ export {
   type BooleanDataType,
   type BooleanDataTypeWithMetadata,
   type CreatedAtPropertyValue,
-  type CreatedAtPropertyValueWithMetadata,
+  type CreatedAtPropertyValueWithMetadata, type CreatedIssueCountPropertyValue, type CreatedIssueCountPropertyValueWithMetadata, type DeletionRequestedAtPropertyValue, type DeletionRequestedAtPropertyValueWithMetadata, type GitBranchFormatPropertyValue,
 } from "./shared.js";

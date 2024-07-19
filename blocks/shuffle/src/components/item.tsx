@@ -1,10 +1,10 @@
-import React, { forwardRef, useState } from "react";
-import type { CSSProperties, RefObject } from "react";
+import React, { type CSSProperties, type RefObject, forwardRef, useState } from "react";
 import type { DraggableAttributes } from "@dnd-kit/core";
 import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import LinkIcon from "@mui/icons-material/Link";
 import { type SxProps, Tooltip } from "@mui/material";
+
 import {
   SButtonsWrapper,
   SIconButton,

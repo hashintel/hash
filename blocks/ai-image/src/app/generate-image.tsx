@@ -262,13 +262,13 @@ export const GenerateImage = ({
                 <ImageNumberSelector
                   open={selectorOpen}
                   value={imageNumber}
+                  onChange={setImageNumber}
                   onOpen={() => {
                     setSelectorOpen(true);
                   }}
                   onClose={() => {
                     setSelectorOpen(false);
                   }}
-                  onChange={setImageNumber}
                 />
               ) : null}
             </Box>

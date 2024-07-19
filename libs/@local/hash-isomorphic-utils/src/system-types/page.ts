@@ -3,11 +3,6 @@
  */
 
 import type {
-  FractionalIndexPropertyValueWithMetadata,
-  HasParent,
-  HasParentOutgoingLinkAndTarget,
-  HasParentOutgoingLinksByLinkEntityTypeId,
-  HasParentProperties,
   HasParentPropertiesWithMetadata,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
@@ -31,11 +26,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  FractionalIndexPropertyValueWithMetadata,
-  HasParent,
-  HasParentOutgoingLinkAndTarget,
-  HasParentOutgoingLinksByLinkEntityTypeId,
-  HasParentProperties,
   HasParentPropertiesWithMetadata,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
@@ -68,5 +58,5 @@ export {
   type BlockCollectionPropertiesWithMetadata,
   type BooleanDataType,
   type BooleanDataTypeWithMetadata,
-  type FractionalIndexPropertyValue,
+  type FractionalIndexPropertyValue, type FractionalIndexPropertyValueWithMetadata, type HasParent, type HasParentOutgoingLinkAndTarget, type HasParentOutgoingLinksByLinkEntityTypeId, type HasParentProperties,
 } from "./shared.js";

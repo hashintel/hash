@@ -1,7 +1,6 @@
-import React, { useMemo, useRef, useState } from "react";
-import type { FunctionComponent } from "react";
-import type { DropAnimation, UniqueIdentifier } from "@dnd-kit/core";
+import React, { type FunctionComponent, useMemo, useRef, useState } from "react";
 import {
+  type DropAnimation, type UniqueIdentifier,
   closestCenter,
   DndContext,
   DragOverlay,

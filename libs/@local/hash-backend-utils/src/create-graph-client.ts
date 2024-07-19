@@ -2,16 +2,15 @@ import { inspect } from "node:util";
 
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import type { DataSource } from "apollo-datasource";
-import axios from "axios";
-import type { AxiosError } from "axios";
+import axios, { type AxiosError } from "axios";
 import {
   Configuration,
   GraphApi as GraphApiClient,
 } from "@local/hash-graph-client";
-import type {
-  Status,
+import {
   convertHttpCodeToStatusCode,
   isStatus,
+  type Status,
 } from "@local/status";
 import type { ErrorInfo } from "@local/status/type-defs/status-payloads/error-info";
 
@@ -109,8 +108,7 @@ export const createGraphClient = (
         /* @todo - Do we have any useful information we can extract from `response.request`? */
         return Promise.reject(
           new Error(
-            `Encountered an error while calling the Graph API, which wasn't identified as coming from the Graph API: ${
-              (secondaryError as Error).message
+            `Encountered an error while calling the Graph API, which wasn't identified as coming from the Graph API: ${(secondaryError as Error).message
             },`,
           ),
         );

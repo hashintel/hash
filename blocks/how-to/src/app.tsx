@@ -367,10 +367,10 @@ export const App: BlockComponent<BlockEntity> = ({
                       <EditableField
                         editIconFontSize={14}
                         value={descriptionValue}
+                        readonly={readonly}
                         placeholder={
                           "Click here to add a description of the how-to process"
                         }
-                        readonly={readonly}
                         sx={{
                           fontWeight: 500,
                           fontSize: 14,
@@ -426,15 +426,15 @@ export const App: BlockComponent<BlockEntity> = ({
                         <Step
                           header={"Introduction"}
                           title={introEntity?.properties[titleKey] ?? ""}
+                          updateField={updateIntroductionField}
+                          readonly={readonly}
+                          deleteButtonText={"Remove intro"}
                           titlePlaceholder={
                             "Requirements, Ingredients, Pre-requisites, etc."
                           }
                           descriptionPlaceholder={
                             "Enter a list of things that might be helpful for people to know before they begin."
                           }
-                          updateField={updateIntroductionField}
-                          readonly={readonly}
-                          deleteButtonText={"Remove intro"}
                           description={
                             introEntity?.properties[descriptionKey] ?? ""
                           }

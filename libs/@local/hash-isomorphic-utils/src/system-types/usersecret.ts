@@ -2,17 +2,9 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type {
-  UserSecretPropertiesWithMetadata,
-  VaultPathPropertyValue,
-  VaultPathPropertyValueWithMetadata,
-} from "./shared.js";
 
-export type {
-  UserSecretPropertiesWithMetadata,
-  VaultPathPropertyValue,
-  VaultPathPropertyValueWithMetadata,
-};
+
+
 
 export {
   type ConnectionSourceNamePropertyValue,
@@ -24,5 +16,5 @@ export {
   type UserSecret,
   type UserSecretOutgoingLinkAndTarget,
   type UserSecretOutgoingLinksByLinkEntityTypeId,
-  type UserSecretProperties,
+  type UserSecretProperties, type UserSecretPropertiesWithMetadata, type VaultPathPropertyValue, type VaultPathPropertyValueWithMetadata,
 } from "./shared.js";

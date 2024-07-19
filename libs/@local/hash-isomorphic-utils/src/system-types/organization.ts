@@ -3,11 +3,6 @@
  */
 
 import type {
-  BlockPropertiesWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  ComponentIdPropertyValue,
-  ComponentIdPropertyValueWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -117,11 +112,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  BlockPropertiesWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  ComponentIdPropertyValue,
-  ComponentIdPropertyValueWithMetadata,
   DateTimeDataType,
   DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -240,5 +230,5 @@ export {
   type BlockHasDataLink,
   type BlockOutgoingLinkAndTarget,
   type BlockOutgoingLinksByLinkEntityTypeId,
-  type BlockProperties,
+  type BlockProperties, type BlockPropertiesWithMetadata, type BooleanDataType, type BooleanDataTypeWithMetadata, type ComponentIdPropertyValue, type ComponentIdPropertyValueWithMetadata,
 } from "./shared.js";

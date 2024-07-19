@@ -3,21 +3,11 @@
  */
 
 import type {
-  DraftNotePropertyValueWithMetadata,
-  ManualInferenceConfigurationPropertyValue,
-  ManualInferenceConfigurationPropertyValueWithMetadata,
-  ObjectDataType,
-  ObjectDataTypeWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
-  DraftNotePropertyValueWithMetadata,
-  ManualInferenceConfigurationPropertyValue,
-  ManualInferenceConfigurationPropertyValueWithMetadata,
-  ObjectDataType,
-  ObjectDataTypeWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
 };
@@ -32,5 +22,5 @@ export {
   type BrowserPluginSettingsPropertiesWithMetadata,
   type BrowserPluginTabPropertyValue,
   type BrowserPluginTabPropertyValueWithMetadata,
-  type DraftNotePropertyValue,
+  type DraftNotePropertyValue, type DraftNotePropertyValueWithMetadata, type ManualInferenceConfigurationPropertyValue, type ManualInferenceConfigurationPropertyValueWithMetadata, type ObjectDataType, type ObjectDataTypeWithMetadata,
 } from "./shared.js";
