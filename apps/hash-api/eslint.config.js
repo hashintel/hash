@@ -4,6 +4,6 @@ export default create({
   enabled: {
     frontend: false,
     playwright: false,
-    tests: false,
+    tests: true,
   },
 });

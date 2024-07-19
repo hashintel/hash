@@ -5,7 +5,7 @@ export default defineFlatConfig([
     enabled: {
       frontend: false,
       playwright: false,
-      tests: false,
+      tests: true,
     },
     noRestrictedImports: () => [
       {
