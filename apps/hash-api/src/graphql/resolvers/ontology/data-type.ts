@@ -73,9 +73,9 @@ export const getDataType: ResolverFn<
       graphQLContext.authentication,
       {
         dataTypeId,
-                 * @see https://linear.app/hash/issue/H-2994
-/** @todo - make these configurable once non-primitive data types are a thing
-/**
+        /**
+         * @see https://linear.app/hash/issue/H-2994
+         * @todo - make these configurable once non-primitive data types are a thing
          */
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,

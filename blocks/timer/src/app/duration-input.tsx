@@ -3,14 +3,14 @@ import type {
   FocusEventHandler,
   FunctionComponent,
   KeyboardEventHandler,
- useCallback, useEffect, useMemo, useRef, useState } from "react";
+} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { clamp } from "./clamp";
 
 interface DurationInputProps {
   /** Milliseconds */
   value: number;
   disabled: boolean;
-  /** @param newValue - milliseconds 
   onChange: (newValue: number) => void;
   onSubmit: () => void;
 }
