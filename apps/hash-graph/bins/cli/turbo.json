@@ -1,0 +1,11 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "start:migrate": {
+      "dependsOn": []
+    },
+    "start:healthcheck": {
+      "dependsOn": []
+    }
+  }
+}
