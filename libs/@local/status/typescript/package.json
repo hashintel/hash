@@ -35,8 +35,7 @@
     "@types/lodash": "4.17.4",
     "@types/node": "20.12.3",
     "@types/yargs": "^17.0.22",
-    "eslint": "8.57.0",
+    "eslint": "^8.57.0",
     "quicktype": "^16.0.43"
   }
 }
-

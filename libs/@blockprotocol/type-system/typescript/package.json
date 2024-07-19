@@ -73,7 +73,7 @@
     "@types/node": "20.12.3",
     "@types/react": "18.2.68",
     "@vitest/coverage-istanbul": "2.0.3",
-    "eslint": "8.57.0",
+    "eslint": "^8.57.0",
     "react": "18.2.0",
     "rollup": "4.12.0",
     "tslib": "2.4.1",

@@ -116,9 +116,8 @@
     "@types/mime-types": "2.1.1",
     "@types/nodemailer": "6.4.6",
     "@vitest/coverage-istanbul": "2.0.3",
-    "eslint": "8.57.0",
+    "eslint": "^8.57.0",
     "rimraf": "6.0.1",
     "vitest": "2.0.3"
   }
 }
-
