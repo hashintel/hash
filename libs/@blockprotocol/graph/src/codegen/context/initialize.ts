@@ -7,7 +7,9 @@ import type {
 
 import type {
   CodegenParameters,
- processCodegenParameters,  ProcessedCodegenParameters } from "../parameters.js";
+  processCodegenParameters,
+  ProcessedCodegenParameters,
+} from "../parameters.js";
 import type { JsonSchema, LogLevel } from "../shared.js";
 
 import { TypeDependencyMap } from "./shared.js";
@@ -32,7 +34,6 @@ export class InitializeContext {
   /* @todo - Replace this with a proper logging implementation */
   logWarn(message: string) {
     if (this.logLevel !== "silent") {
-       
       console.warn(`WARN: ${message}`);
     }
   }

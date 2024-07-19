@@ -1,14 +1,23 @@
-import type { castDraft, Draft , produce } from "immer";
+import type { castDraft, Draft, produce } from "immer";
 import { isEqual } from "lodash-es";
 import type { Node } from "prosemirror-model";
-import type { EditorState, Plugin, PluginKey,Transaction  } from "prosemirror-state";
+import type {
+  EditorState,
+  Plugin,
+  PluginKey,
+  Transaction,
+} from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
-import type { BlockEntity , getEntityChildEntity, isRichTextProperties } from "./entity.js";
+import type {
+  BlockEntity,
+  getEntityChildEntity,
+  isRichTextProperties,
+} from "./entity.js";
 import type {
   createEntityStore,
   DraftEntity,
@@ -17,9 +26,12 @@ import type {
   getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
-  textualContentPropertyTypeBaseUrl} from "./entity-store.js";
-import type { ComponentNode,   componentNodeToId,
-EntityNode ,
+  textualContentPropertyTypeBaseUrl,
+} from "./entity-store.js";
+import type {
+  ComponentNode,
+  componentNodeToId,
+  EntityNode,
   findComponentNodes,
   isComponentNode,
   isEntityNode,
@@ -29,7 +41,10 @@ import { collect } from "./util.js";
 
 type EntityStorePluginStateListener = (store: EntityStore) => void;
 
-export interface TrackedAction { action: EntityStorePluginAction; id: string }
+export interface TrackedAction {
+  action: EntityStorePluginAction;
+  id: string;
+}
 interface EntityStorePluginState {
   store: EntityStore;
   trackedActions: TrackedAction[];
@@ -159,13 +174,13 @@ const updateEntitiesByDraftId = (
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
       // This type is very deep now, so traversal causes TS to complain.
-       
+
       // @ts-ignore
       const blockChildEntity = entity.blockChildEntity!;
 
       if (blockChildEntity.draftId && blockChildEntity.draftId === draftId) {
         // This type is very deep now, so traversal causes TS to complain.
-         
+
         // @ts-ignore
         entities.push(blockChildEntity as DraftEntity);
       }
@@ -596,7 +611,7 @@ class ProsemirrorStateChangeHandler {
   }
 
   private potentialUpdateParentBlockEntity(node: EntityNode, pos: number) {
-    const {parent} = this.tr.doc.resolve(pos);
+    const { parent } = this.tr.doc.resolve(pos);
 
     if (isEntityNode(parent)) {
       const parentDraftId = parent.attrs.draftId;

@@ -2,14 +2,17 @@ import type { JSONSchema as PartialJsonSchema } from "json-schema-to-typescript"
 import type {
   DataType,
   EntityType,
- isPropertyValuesArray,  PropertyType,
+  isPropertyValuesArray,
+  PropertyType,
   PropertyValues,
-  VersionedUrl } from "@blockprotocol/type-system/slim";
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 
-import type {   arrayMetadataSchema,
+import type {
+  arrayMetadataSchema,
   confidenceMetadataSchema,
   generatedTypeSuffix,
-JsonSchema ,
+  JsonSchema,
   metadataSchemaKind as kind,
   objectMetadataSchema,
   propertyProvenanceSchema,

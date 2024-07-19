@@ -1,13 +1,17 @@
 import { randomUUID } from "node:crypto";
 
-import type { LOG_LEVELS, Logger,LogLevel  } from "@local/hash-backend-utils/logger";
+import type {
+  LOG_LEVELS,
+  Logger,
+  LogLevel,
+} from "@local/hash-backend-utils/logger";
 
 export const INSTANCE_ID = randomUUID();
 
 // TODO: Switch to https://www.npmjs.com/package/envalid
 
 export const NODE_ENV = process.env.NODE_ENV ?? "development";
-export const {LOG_LEVEL} = process.env;
+export const { LOG_LEVEL } = process.env;
 
 if (LOG_LEVEL && !LOG_LEVELS.includes(LOG_LEVEL as LogLevel)) {
   throw new Error(`Invalid value "${LOG_LEVEL}" for envvar "LOG_LEVEL"`);

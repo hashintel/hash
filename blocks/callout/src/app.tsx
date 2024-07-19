@@ -1,5 +1,6 @@
 import { useRef } from "react";
-import type { BlockComponent ,
+import type {
+  BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";

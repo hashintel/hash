@@ -1,6 +1,9 @@
 import { useRef, useState } from "react";
 import { setup, tw } from "twind";
-import type { BlockComponent , useEntitySubgraph } from "@blockprotocol/graph/react";
+import type {
+  BlockComponent,
+  useEntitySubgraph,
+} from "@blockprotocol/graph/react";
 import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
 
 import { Media } from "./components/media";

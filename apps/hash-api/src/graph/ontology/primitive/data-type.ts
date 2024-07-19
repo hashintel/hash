@@ -1,4 +1,7 @@
-import type { DATA_TYPE_META_SCHEMA,VersionedUrl  } from "@blockprotocol/type-system";
+import type {
+  DATA_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   ArchiveDataTypeParams,
@@ -27,7 +30,9 @@ import type {
   DataTypeAuthorizationRelationship,
   DataTypeRelationAndSubject,
   DataTypeRootType,
- ontologyTypeRecordIdToVersionedUrl,  Subgraph } from "@local/hash-subgraph";
+  ontologyTypeRecordIdToVersionedUrl,
+  Subgraph,
+} from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 

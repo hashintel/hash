@@ -6,8 +6,9 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/hash-instance";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import type {   getHashInstance,
-HashInstance ,
+import type {
+  getHashInstance,
+  HashInstance,
   isUserHashInstanceAdmin,
 } from "@local/hash-backend-utils/hash-instance";
 import { Logger } from "@local/hash-backend-utils/logger";

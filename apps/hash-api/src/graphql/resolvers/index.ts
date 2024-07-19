@@ -246,12 +246,12 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     __resolveType(object: EntityAuthorizationSubject) {
       if ("accountGroupId" in object) {
         return "AccountGroupAuthorizationSubject";
-      } if ("accountId" in object) {
+      }
+      if ("accountId" in object) {
         return "AccountAuthorizationSubject";
       }
- 
-        return "PublicAuthorizationSubject";
-      
+
+      return "PublicAuthorizationSubject";
     },
   },
 };

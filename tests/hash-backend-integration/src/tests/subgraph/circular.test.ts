@@ -287,7 +287,9 @@ describe("single linked list", () => {
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
-    expect(verticesEquals(subgraph, [entity_a, link_ab, entity_b])).toBeTruthy();
+    expect(
+      verticesEquals(subgraph, [entity_a, link_ab, entity_b]),
+    ).toBeTruthy();
     expect(
       edgesEquals(subgraph, [
         {

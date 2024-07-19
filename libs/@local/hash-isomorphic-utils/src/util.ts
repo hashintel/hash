@@ -67,7 +67,7 @@ export class DefaultMap<K, V> extends Map<K, V> {
  *
  * @returns A topological ordering of the nodes represented by the graph in `edges`.
  * @throws An error if the graph has a cycle.
-  */
+ */
 export const topologicalSort = <T>(edges: [T, T][]) => {
   // Implementation based on Kahn's algorithm. See:
   // https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm)

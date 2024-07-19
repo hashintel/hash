@@ -4,8 +4,9 @@ import type { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 import type { ApolloClient } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type {   Entity,
-LinkEntity ,
+import type {
+  Entity,
+  LinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -22,7 +23,9 @@ import {
 } from "./block-collection.js";
 import type { ComponentIdHashBlockMap } from "./blocks.js";
 import type { BlockEntity } from "./entity.js";
-import type { DraftEntity, EntityStore ,
+import type {
+  DraftEntity,
+  EntityStore,
   getDraftEntityByEntityId,
   isDraftBlockEntity,
 } from "./entity-store.js";

@@ -1,5 +1,8 @@
 import { useRef } from "react";
-import type { BlockComponent , useEntitySubgraph } from "@blockprotocol/graph/react";
+import type {
+  BlockComponent,
+  useEntitySubgraph,
+} from "@blockprotocol/graph/react";
 import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
 
 import { propertyIds } from "./property-ids";

@@ -42,7 +42,7 @@ import {
   isEntityLinkEntity,
 } from "../primitive/link-entity";
 
-import type { Comment , getCommentFromEntity } from "./comment";
+import type { Comment, getCommentFromEntity } from "./comment";
 
 export interface Block {
   componentId: string;

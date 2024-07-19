@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity ,
+import type {
+  Entity,
   LinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
@@ -26,7 +27,7 @@ import {
   updateLinkEntity,
 } from "../primitive/link-entity";
 
-import type { Block , getBlockFromEntity } from "./block";
+import type { Block, getBlockFromEntity } from "./block";
 
 /**
  * Get the blocks in this blockCollection.

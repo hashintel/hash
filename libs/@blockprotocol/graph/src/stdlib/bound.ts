@@ -100,7 +100,6 @@ export const boundIsAdjacentToBound = (
   ) {
     return left.limit === right.limit;
   }
- 
-    return false;
-  
+
+  return false;
 };

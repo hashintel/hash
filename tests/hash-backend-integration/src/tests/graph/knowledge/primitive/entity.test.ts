@@ -11,7 +11,10 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type { joinOrg,User  } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type {
+  joinOrg,
+  User,
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -28,7 +31,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType , linkEntityTypeUrl } from "@local/hash-subgraph";
+import type { EntityRootType, linkEntityTypeUrl } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { resetGraph } from "../../../test-server";

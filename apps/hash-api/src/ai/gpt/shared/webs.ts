@@ -2,7 +2,10 @@ import type { AccountId } from "@local/hash-graph-types/account";
 
 import type { ImpureGraphContext } from "../../../graph/context-types";
 import { getOrgMembershipOrg } from "../../../graph/knowledge/system-types/org-membership";
-import type { getUserOrgMemberships,User  } from "../../../graph/knowledge/system-types/user";
+import type {
+  getUserOrgMemberships,
+  User,
+} from "../../../graph/knowledge/system-types/user";
 
 export interface SimpleWeb {
   uuid: string;

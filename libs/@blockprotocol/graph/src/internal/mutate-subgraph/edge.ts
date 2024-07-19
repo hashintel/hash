@@ -13,10 +13,12 @@ import type {
   EntityVertexId,
   isEntityTypeVertex,
   isEntityVertex,
-  isPropertyTypeVertex,  OntologyTypeRevisionId,
+  isPropertyTypeVertex,
+  OntologyTypeRevisionId,
   OntologyTypeVertexId,
   OutwardEdge,
-  Subgraph} from "../../types/subgraph.js";
+  Subgraph,
+} from "../../types/subgraph.js";
 
 /**
  * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`.
@@ -293,7 +295,7 @@ export const inferEntityEdgesInSubgraphByMutation = (
         subgraph.temporalAxes.resolved.variable.axis
       ];
 
-    const {entityTypeId} = vertex.inner.metadata;
+    const { entityTypeId } = vertex.inner.metadata;
     const entityTypeBaseUrl = extractBaseUrl(entityTypeId);
     const entityTypeRevisionId = extractVersion(entityTypeId).toString();
 

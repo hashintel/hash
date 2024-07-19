@@ -10,8 +10,11 @@ import type {
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import type {
- mapCommentToGQL, mapPageToGQL,  UnresolvedCommentGQL,
-  UnresolvedPageGQL } from "../graphql-mapping";
+  mapCommentToGQL,
+  mapPageToGQL,
+  UnresolvedCommentGQL,
+  UnresolvedPageGQL,
+} from "../graphql-mapping";
 
 export const createPageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,

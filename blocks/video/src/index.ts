@@ -4,7 +4,4 @@
  * Entrypoint of the Block Component.
  */
 
-
-
-
-export {Video as default} from "./video";
+export { Video as default } from "./video";

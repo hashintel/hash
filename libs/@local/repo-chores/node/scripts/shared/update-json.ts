@@ -7,7 +7,6 @@ export const updateJson = async (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   transform: (existingJson: any) => void,
 ) => {
-   
   const rawJson = await fs.readFile(jsonFilePath, "utf8");
   const json = JSON.parse(rawJson);
 
@@ -20,5 +19,4 @@ export const updateJson = async (
   if (rawJson !== newRawJson) {
     await fs.writeFile(jsonFilePath, newRawJson);
   }
-   
 };

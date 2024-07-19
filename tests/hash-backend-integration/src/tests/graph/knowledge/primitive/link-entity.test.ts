@@ -1,7 +1,10 @@
 import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type { EntityTypeDefinition , generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
+import type {
+  EntityTypeDefinition,
+  generateSystemEntityTypeSchema,
+} from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import {
   createEntity,
   getEntityOutgoingLinks,

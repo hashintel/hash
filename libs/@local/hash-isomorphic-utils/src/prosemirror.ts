@@ -1,6 +1,6 @@
 import { toggleMark } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
-import type { Node, NodeSpec, NodeType , Schema } from "prosemirror-model";
+import type { Node, NodeSpec, NodeType, Schema } from "prosemirror-model";
 import { paragraphBlockComponentId } from "./blocks.js";
 
 type NodeWithAttributes<Attributes extends Record<string, unknown>> = Omit<
@@ -353,7 +353,6 @@ export const mutateSchema = (
     );
   }
 
-   
   new (class extends Schema {
     // @ts-expect-error: This is one of the hacks in our code to allow defining new node types at run time which isn't officially supported in ProseMirror
     get nodes() {

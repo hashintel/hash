@@ -12,7 +12,6 @@ export const test = base.extend<{
   context: BrowserContext;
   extensionId: string;
 }>({
-   
   context: async ({}, use) => {
     const pathToExtension = path.join(
       monorepoRootDir,
@@ -47,4 +46,4 @@ export const test = base.extend<{
   },
 });
 
-export const {expect} = test;
+export const { expect } = test;

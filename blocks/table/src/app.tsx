@@ -110,8 +110,12 @@ export const App: BlockComponent<BlockEntity> = ({
               sx={{
                 position: "relative",
               }}
-              onMouseEnter={() => { setHovered(true); }}
-              onMouseLeave={() => { setHovered(false); }}
+              onMouseEnter={() => {
+                setHovered(true);
+              }}
+              onMouseLeave={() => {
+                setHovered(false);
+              }}
             >
               <WelcomeModal
                 open={isWelcomeModalOpen}
@@ -148,7 +152,9 @@ export const App: BlockComponent<BlockEntity> = ({
                       lineHeight: "1.2 !important",
                       color: "black",
                     }}
-                    onChange={(event) => { setTitleValue(event.target.value); }}
+                    onChange={(event) => {
+                      setTitleValue(event.target.value);
+                    }}
                     onBlur={(event) =>
                       updateEntity({ [titleKey]: event.target.value })
                     }

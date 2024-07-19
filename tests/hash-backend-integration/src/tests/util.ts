@@ -16,7 +16,7 @@ export const textDataTypeId =
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
 
-  return Array.from({length: 6})
+  return Array.from({ length: 6 })
     .fill(undefined)
     .map(() => alphabet[Math.floor(Math.random() * alphabet.length)])
     .join("");

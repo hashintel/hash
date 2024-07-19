@@ -418,4 +418,15 @@ export type {
   WebsiteURLPropertyValueWithMetadata,
 };
 
-export {type Actor, type ActorOutgoingLinkAndTarget, type ActorOutgoingLinksByLinkEntityTypeId, type ActorProperties, type ActorPropertiesWithMetadata, type AuthoredBy, type AuthoredByOutgoingLinkAndTarget, type AuthoredByOutgoingLinksByLinkEntityTypeId, type AuthoredByProperties, type AuthoredByPropertiesWithMetadata} from "./shared.js";
+export {
+  type Actor,
+  type ActorOutgoingLinkAndTarget,
+  type ActorOutgoingLinksByLinkEntityTypeId,
+  type ActorProperties,
+  type ActorPropertiesWithMetadata,
+  type AuthoredBy,
+  type AuthoredByOutgoingLinkAndTarget,
+  type AuthoredByOutgoingLinksByLinkEntityTypeId,
+  type AuthoredByProperties,
+  type AuthoredByPropertiesWithMetadata,
+} from "./shared.js";

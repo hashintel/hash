@@ -555,14 +555,17 @@ export const getSimplifiedActionInputs = <
 }): SimplifiedActionInputsObject<T> => {
   const { inputs } = params;
 
-  return inputs.reduce<SimplifiedActionInputsObject<T>>((accumulator, input) => {
-    const inputName = input.inputName as InputNameForAction<T>;
+  return inputs.reduce<SimplifiedActionInputsObject<T>>(
+    (accumulator, input) => {
+      const inputName = input.inputName as InputNameForAction<T>;
 
-    accumulator[inputName] = input.payload.value as InputPayloadType<
-      T,
-      typeof inputName
-    >;
+      accumulator[inputName] = input.payload.value as InputPayloadType<
+        T,
+        typeof inputName
+      >;
 
-    return accumulator;
-  }, {});
+      return accumulator;
+    },
+    {},
+  );
 };

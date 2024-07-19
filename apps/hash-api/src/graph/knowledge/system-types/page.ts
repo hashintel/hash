@@ -49,7 +49,7 @@ import {
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
 
-import type { Block , getBlockComments, getBlockFromEntity } from "./block";
+import type { Block, getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
 import type { Comment } from "./comment";
 

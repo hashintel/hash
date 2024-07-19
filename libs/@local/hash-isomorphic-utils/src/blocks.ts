@@ -162,7 +162,8 @@ export const fetchBlock = async (
 
   if (options.useCachedData && cachedPromise) {
     return cachedPromise;
-  } if (blockCache.has(baseUrl)) {
+  }
+  if (blockCache.has(baseUrl)) {
     blockCache.delete(baseUrl);
   }
 
@@ -194,7 +195,6 @@ export const fetchBlock = async (
       configureAppReloadWhenBlockChanges(
         metadata.devReloadEndpoint,
         (problem) => {
-           
           console.error(
             `${baseUrl} → block-metadata.json → devReloadEndpoint: ${problem}`,
           );
@@ -221,7 +221,6 @@ export const fetchBlock = async (
  * @todo-0.3 replace this temporary domain with blockprotocol.org
  */
 export const blockProtocolHubOrigin =
-   
   process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_SITE_HOST ||
   "https://blockprotocol.org";
 

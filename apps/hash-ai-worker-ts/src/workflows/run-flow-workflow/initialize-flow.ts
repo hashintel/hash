@@ -191,9 +191,8 @@ export const initializeFlow = (params: {
       if (stepDefinition.kind === "action") {
         return initializeActionStep({ flowTrigger, stepDefinition });
       }
- 
-        return initializeParallelGroup({ flowTrigger, stepDefinition });
-      
+
+      return initializeParallelGroup({ flowTrigger, stepDefinition });
     }),
   };
 };

@@ -82,7 +82,6 @@ const workflowOption = () =>
     : { workflowsPath: require.resolve("./workflows") };
 
 async function run() {
-   
   console.info("Starting integration worker...");
   const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
@@ -116,25 +115,22 @@ async function run() {
   const port = 4300;
 
   httpServer.listen({ host: "::", port });
-   
+
   console.info(`HTTP server listening on port ${port}`);
 
   await worker.run();
 }
 
 process.on("SIGINT", () => {
-   
   console.info("Received SIGINT, exiting...");
   process.exit(1);
 });
 process.on("SIGTERM", () => {
-   
   console.info("Received SIGTERM, exiting...");
   process.exit(1);
 });
 
 run().catch((error) => {
-   
   console.error(error);
   process.exit(1);
 });

@@ -21,7 +21,12 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
-import type { BundleOptions , defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
+import type {
+  BundleOptions,
+  defaultSinks,
+  NativeConnection,
+  Worker,
+} from "@temporalio/worker";
 
 import { createAiActivities, createGraphActivities } from "./activities.js";
 import { createFlowActivities } from "./activities/flow-activities.js";

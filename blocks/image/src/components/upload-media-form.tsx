@@ -60,7 +60,9 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
             type={"url"}
             placeholder={`Enter ${capitalisedType} URL`}
             disabled={readonly}
-            onChange={(event) => { onUrlChange(event.target.value); }}
+            onChange={(event) => {
+              onUrlChange(event.target.value);
+            }}
           />
         </div>
         <div>
@@ -78,9 +80,9 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
               disabled={readonly}
               type={"file"}
               accept={`${type}/*`}
-              onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                { onFilesChoose(event.target.files); }
-              }
+              onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                onFilesChoose(event.target.files);
+              }}
             />
           </label>
         </div>

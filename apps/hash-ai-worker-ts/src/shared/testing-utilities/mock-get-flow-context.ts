@@ -1,4 +1,3 @@
- 
 import { vi } from "vitest";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";

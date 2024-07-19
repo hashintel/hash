@@ -1,7 +1,8 @@
 import type {
   CreateEntityParameters,
   Entity,
- LinkEntity } from "@local/hash-graph-sdk/entity";
+  LinkEntity,
+} from "@local/hash-graph-sdk/entity";
 import type {
   EntityProperties,
   LinkData,

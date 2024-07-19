@@ -107,7 +107,8 @@ const saveSummaryToCSV = (params: {
           );
 
         return scores.length > 0
-          ? scores.reduce((accumulator, score) => accumulator + score, 0) / scores.length
+          ? scores.reduce((accumulator, score) => accumulator + score, 0) /
+              scores.length
           : 0;
       });
 
@@ -121,13 +122,15 @@ const saveSummaryToCSV = (params: {
         });
 
         return scores.length > 0
-          ? scores.reduce((accumulator, score) => accumulator + score, 0) / scores.length
+          ? scores.reduce((accumulator, score) => accumulator + score, 0) /
+              scores.length
           : 0;
       });
 
       const allScores = [...modelAverageScores, ...metricAverageScores];
       const overallScore =
-        allScores.reduce((accumulator, score) => accumulator + score, 0) / allScores.length;
+        allScores.reduce((accumulator, score) => accumulator + score, 0) /
+        allScores.length;
 
       return [
         iteration.toString(),

@@ -4,7 +4,9 @@ import type {
   PropertyType,
   PropertyValues,
   validateBaseUrl,
-  validateVersionedUrl,  VersionedUrl} from "@blockprotocol/type-system";
+  validateVersionedUrl,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type {
   DataType as DataTypeGraphApi,
   DataTypeMetadata as DataTypeMetadataGraphApi,
@@ -52,9 +54,11 @@ import type {
 } from "@local/hash-graph-types/temporal-versioning";
 
 import type {
- isEntityId,  KnowledgeGraphVertex,
+  isEntityId,
+  KnowledgeGraphVertex,
   OntologyVertex,
-  Vertices } from "../../src/main.js";
+  Vertices,
+} from "../../src/main.js";
 
 const mapDataType = (dataType: DataTypeGraphApi): CustomDataType => {
   const idResult = validateVersionedUrl(dataType.$id);

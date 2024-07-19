@@ -13,7 +13,9 @@ import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-
 import type {
   EntityRootType,
   EntityVertex,
- isEntityVertex,  Subgraph } from "@local/hash-subgraph";
+  isEntityVertex,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getEntityTypeAndParentsById,
@@ -500,160 +502,165 @@ export const convertSubgraphToSheetRequests = ({
 
     for (const key of Object.keys(columns)) {
       switch (key) {
-      case "entityId": {
-        entityCells.push(
-          createCellFromValue({ value: entity.metadata.recordId.entityId }),
-        );
-      
-      break;
-      }
-      case "label": {
-        entityCells.push(
-          createCellFromValue({
-            value: generateEntityLabel(subgraph, entity),
-          }),
-        );
-      
-      break;
-      }
-      case "editionCreatedAt": {
-        entityCells.push(
-          createCellFromValue({
-            value: entity.metadata.temporalVersioning.decisionTime.start.limit,
-          }),
-        );
-      
-      break;
-      }
-      case "entityCreatedAt": {
-        entityCells.push(
-          createCellFromValue({
-            value: entity.metadata.provenance.createdAtDecisionTime,
-          }),
-        );
-      
-      break;
-      }
-      case "draft": {
-        entityCells.push(createCellFromValue({ value: isDraftEntity(entity) }));
-      
-      break;
-      }
-      default: { if (key.startsWith("properties.")) {
-        const propertyKey = columns[key]!.baseOrVersionedUrl;
-        const value = entity.properties[propertyKey as BaseUrl];
+        case "entityId": {
+          entityCells.push(
+            createCellFromValue({ value: entity.metadata.recordId.entityId }),
+          );
 
-        entityCells.push(createCellFromValue({ value }));
-      } else if (key === "leftEntityId") {
-        const leftEntityId = entity.linkData?.leftEntityId;
+          break;
+        }
+        case "label": {
+          entityCells.push(
+            createCellFromValue({
+              value: generateEntityLabel(subgraph, entity),
+            }),
+          );
 
-        if (leftEntityId) {
-          const entityPosition = entityPositionMap[leftEntityId];
+          break;
+        }
+        case "editionCreatedAt": {
+          entityCells.push(
+            createCellFromValue({
+              value:
+                entity.metadata.temporalVersioning.decisionTime.start.limit,
+            }),
+          );
 
-          if (humanReadable && entityPosition) {
-            /**
-             * If this is a human-readable sheet, we want to:
-             * 1. Link from the link type's sheet to the range in the entity's sheet
-             * 2. Track the rows in the link type's sheet that link from this entity,
-             *    and insert a link to the range in the entity's sheet when we have all the rows.
-             * If we can't find the linked entity in the sheet (no entityPosition), we go to the else branch and just
-             * list the id. It might be excluded from the query due to permissions, archive or draft status.
-             */
-            const { sheetId, rowIndex } = entityPosition;
-            const linkedEntity = getEntityRevision(subgraph, leftEntityId);
+          break;
+        }
+        case "entityCreatedAt": {
+          entityCells.push(
+            createCellFromValue({
+              value: entity.metadata.provenance.createdAtDecisionTime,
+            }),
+          );
 
-            /** Create the link from this sheet to the source entity */
-            entityCells.push(
-              createHyperlinkCell({
-                label: generateEntityLabel(subgraph, linkedEntity),
-                sheetId,
-                startCellInclusive: `A${rowIndex + 1}`,
-                endCellInclusive: `${entityPosition.lastColumnLetter}${
-                  rowIndex + 1
-                }`,
-              }),
-            );
+          break;
+        }
+        case "draft": {
+          entityCells.push(
+            createCellFromValue({ value: isDraftEntity(entity) }),
+          );
 
-            /**
-             * Track the range of rows in this link type's sheet that have a specific entity as the source.
-             * We sorted link entities by leftEntityId, so we know it will be an unbroken series in this sheet.
-             */
-            const outgoingLinkMapForLeftEntity =
-              entityOutgoingLinkRangeByLinkTypeId[leftEntityId]?.[typeId];
+          break;
+        }
+        default: {
+          if (key.startsWith("properties.")) {
+            const propertyKey = columns[key]!.baseOrVersionedUrl;
+            const value = entity.properties[propertyKey as BaseUrl];
 
-            if (!outgoingLinkMapForLeftEntity) {
-              throw new Error(
-                `Outgoing link map for entity ${leftEntityId} somehow not initialized by the time ${typeId} links were processed`,
-              );
+            entityCells.push(createCellFromValue({ value }));
+          } else if (key === "leftEntityId") {
+            const leftEntityId = entity.linkData?.leftEntityId;
+
+            if (leftEntityId) {
+              const entityPosition = entityPositionMap[leftEntityId];
+
+              if (humanReadable && entityPosition) {
+                /**
+                 * If this is a human-readable sheet, we want to:
+                 * 1. Link from the link type's sheet to the range in the entity's sheet
+                 * 2. Track the rows in the link type's sheet that link from this entity,
+                 *    and insert a link to the range in the entity's sheet when we have all the rows.
+                 * If we can't find the linked entity in the sheet (no entityPosition), we go to the else branch and just
+                 * list the id. It might be excluded from the query due to permissions, archive or draft status.
+                 */
+                const { sheetId, rowIndex } = entityPosition;
+                const linkedEntity = getEntityRevision(subgraph, leftEntityId);
+
+                /** Create the link from this sheet to the source entity */
+                entityCells.push(
+                  createHyperlinkCell({
+                    label: generateEntityLabel(subgraph, linkedEntity),
+                    sheetId,
+                    startCellInclusive: `A${rowIndex + 1}`,
+                    endCellInclusive: `${entityPosition.lastColumnLetter}${
+                      rowIndex + 1
+                    }`,
+                  }),
+                );
+
+                /**
+                 * Track the range of rows in this link type's sheet that have a specific entity as the source.
+                 * We sorted link entities by leftEntityId, so we know it will be an unbroken series in this sheet.
+                 */
+                const outgoingLinkMapForLeftEntity =
+                  entityOutgoingLinkRangeByLinkTypeId[leftEntityId]?.[typeId];
+
+                if (!outgoingLinkMapForLeftEntity) {
+                  throw new Error(
+                    `Outgoing link map for entity ${leftEntityId} somehow not initialized by the time ${typeId} links were processed`,
+                  );
+                }
+                if (!outgoingLinkMapForLeftEntity.sheetId) {
+                  /**
+                   * This is the first time we've seen this entity as a source in this sheet, set the sheetId and start
+                   * index.
+                   */
+                  outgoingLinkMapForLeftEntity.sheetId =
+                    entitySheetRequests[typeId].sheetId;
+                  outgoingLinkMapForLeftEntity.startRowIndex = thisRowIndex;
+                  outgoingLinkMapForLeftEntity.lastColumnLetter =
+                    lastColumnLetter;
+                }
+                /** Set the end index. We'll keep updating this until we no longer see the entity as a source */
+                outgoingLinkMapForLeftEntity.endRowIndex = thisRowIndex;
+              } else {
+                /**
+                 * We're not in human-readable format or we can't find the source entity, just show its id.
+                 */
+                entityCells.push(
+                  createCellFromValue({
+                    value: entity.linkData.leftEntityId,
+                  }),
+                );
+              }
             }
-            if (!outgoingLinkMapForLeftEntity.sheetId) {
-              /**
-               * This is the first time we've seen this entity as a source in this sheet, set the sheetId and start
-               * index.
-               */
-              outgoingLinkMapForLeftEntity.sheetId =
-                entitySheetRequests[typeId].sheetId;
-              outgoingLinkMapForLeftEntity.startRowIndex = thisRowIndex;
-              outgoingLinkMapForLeftEntity.lastColumnLetter = lastColumnLetter;
+          } else if (key === "rightEntityId") {
+            const rightEntityId = entity.linkData?.rightEntityId;
+
+            if (rightEntityId) {
+              const entityPosition = entityPositionMap[rightEntityId];
+
+              if (humanReadable && entityPosition) {
+                const { sheetId, rowIndex } = entityPosition;
+
+                const linkedEntity = getEntityRevision(subgraph, rightEntityId);
+
+                entityCells.push(
+                  createHyperlinkCell({
+                    label: generateEntityLabel(subgraph, linkedEntity),
+                    sheetId,
+                    startCellInclusive: `A${rowIndex + 1}`,
+                    endCellInclusive: `${entityPosition.lastColumnLetter}${
+                      rowIndex + 1
+                    }`,
+                  }),
+                );
+              } else {
+                entityCells.push(
+                  createCellFromValue({
+                    value: entity.linkData.rightEntityId,
+                  }),
+                );
+              }
             }
-            /** Set the end index. We'll keep updating this until we no longer see the entity as a source */
-            outgoingLinkMapForLeftEntity.endRowIndex = thisRowIndex;
+          } else if (key.startsWith("links.")) {
+            /**
+             * At this point we just need to initialize the map where we'll insert the range for each type of outgoing link
+             * from this entity.
+             * – when we process the link entities, we'll add a link in these cells to the range in the link type's sheet
+             * (see leftEntityId above).
+             */
+            entityOutgoingLinkRangeByLinkTypeId[
+              entity.metadata.recordId.entityId
+            ]![columns[key]!.baseOrVersionedUrl as VersionedUrl] = {
+              sourceColumnIndex: Object.keys(columns).indexOf(key),
+            };
           } else {
-            /**
-             * We're not in human-readable format or we can't find the source entity, just show its id.
-             */
-            entityCells.push(
-              createCellFromValue({
-                value: entity.linkData.leftEntityId,
-              }),
-            );
+            throw new Error(`Unexpected column key ${key}`);
           }
         }
-      } else if (key === "rightEntityId") {
-        const rightEntityId = entity.linkData?.rightEntityId;
-
-        if (rightEntityId) {
-          const entityPosition = entityPositionMap[rightEntityId];
-
-          if (humanReadable && entityPosition) {
-            const { sheetId, rowIndex } = entityPosition;
-
-            const linkedEntity = getEntityRevision(subgraph, rightEntityId);
-
-            entityCells.push(
-              createHyperlinkCell({
-                label: generateEntityLabel(subgraph, linkedEntity),
-                sheetId,
-                startCellInclusive: `A${rowIndex + 1}`,
-                endCellInclusive: `${entityPosition.lastColumnLetter}${
-                  rowIndex + 1
-                }`,
-              }),
-            );
-          } else {
-            entityCells.push(
-              createCellFromValue({
-                value: entity.linkData.rightEntityId,
-              }),
-            );
-          }
-        }
-      } else if (key.startsWith("links.")) {
-        /**
-         * At this point we just need to initialize the map where we'll insert the range for each type of outgoing link
-         * from this entity.
-         * – when we process the link entities, we'll add a link in these cells to the range in the link type's sheet
-         * (see leftEntityId above).
-         */
-        entityOutgoingLinkRangeByLinkTypeId[entity.metadata.recordId.entityId]![
-          columns[key]!.baseOrVersionedUrl as VersionedUrl
-        ] = {
-          sourceColumnIndex: Object.keys(columns).indexOf(key),
-        };
-      } else {
-        throw new Error(`Unexpected column key ${key}`);
-      }
-      }
       }
     }
 
@@ -673,69 +680,67 @@ export const convertSubgraphToSheetRequests = ({
     // );
 
     requests.push(
-      
-        {
-          addSheet: {
-            properties: {
-              gridProperties: {
-                frozenRowCount: format.audience === "human" ? 2 : 0,
-              },
-              sheetId,
-              title: format.audience === "human" ? typeTitle : typeId,
+      {
+        addSheet: {
+          properties: {
+            gridProperties: {
+              frozenRowCount: format.audience === "human" ? 2 : 0,
             },
+            sheetId,
+            title: format.audience === "human" ? typeTitle : typeId,
           },
         },
-        {
-          updateCells: {
-            fields: "*",
-            range: {
-              sheetId,
-              startRowIndex: 0,
-            },
-            rows,
+      },
+      {
+        updateCells: {
+          fields: "*",
+          range: {
+            sheetId,
+            startRowIndex: 0,
           },
+          rows,
         },
-        ...(humanReadable
-          ? [
-              {
-                setBasicFilter: {
-                  filter: {
-                    range: {
-                      sheetId,
-                      startRowIndex: 1,
-                      endRowIndex: rows.length,
-                      startColumnIndex: 0,
-                      endColumnIndex: rows[0]?.values?.length ?? 0,
-                    },
+      },
+      ...(humanReadable
+        ? [
+            {
+              setBasicFilter: {
+                filter: {
+                  range: {
+                    sheetId,
+                    startRowIndex: 1,
+                    endRowIndex: rows.length,
+                    startColumnIndex: 0,
+                    endColumnIndex: rows[0]?.values?.length ?? 0,
                   },
                 },
               },
-            ]
-          : []),
-        /**
-         * This will show a warning when the user tries to edit the sheet, including:
-         * 1. Editing / deleting a cell
-         * 2. Sorting the sheet
-         * 3. Resizing the columns / rows
-         * Disabling for now as it's annoying and we aren't relying on the content/position of the cells,
-         * we just overwrite them each time. Might be useful when we start reading from the sheets, e.g. For 2-way sync.
-         */
-        // {
-        //   addProtectedRange: {
-        //     protectedRange: {
-        //       range: {
-        //         sheetId,
-        //         startRowIndex: 0,
-        //         endRowIndex: rows.length,
-        //         startColumnIndex: 0,
-        //         endColumnIndex: rows[0]?.values?.length ?? 0,
-        //       },
-        //       warningOnly: true,
-        //     },
-        //   },
-        // },
-        ...additionalRequests
-      ,
+            },
+          ]
+        : []),
+      /**
+       * This will show a warning when the user tries to edit the sheet, including:
+       * 1. Editing / deleting a cell
+       * 2. Sorting the sheet
+       * 3. Resizing the columns / rows
+       * Disabling for now as it's annoying and we aren't relying on the content/position of the cells,
+       * we just overwrite them each time. Might be useful when we start reading from the sheets, e.g. For 2-way sync.
+       */
+      // {
+      //   addProtectedRange: {
+      //     protectedRange: {
+      //       range: {
+      //         sheetId,
+      //         startRowIndex: 0,
+      //         endRowIndex: rows.length,
+      //         startColumnIndex: 0,
+      //         endColumnIndex: rows[0]?.values?.length ?? 0,
+      //       },
+      //       warningOnly: true,
+      //     },
+      //   },
+      // },
+      ...additionalRequests,
     );
   }
 

@@ -7,9 +7,11 @@ import type { DereferencedEntityType } from "../../shared/dereference-entity-typ
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../shared/get-llm-response.js";
 import type {
- getToolCallsFromLlmAssistantMessage,  LlmMessage,
+  getToolCallsFromLlmAssistantMessage,
+  LlmMessage,
   LlmMessageTextContent,
-  LlmUserMessage } from "../../shared/get-llm-response/llm-message.js";
+  LlmUserMessage,
+} from "../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
   LlmToolDefinition,
@@ -23,8 +25,12 @@ import type { Fact } from "../shared/infer-facts-from-text/types.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
- generateToolDefinitions as generateCoordinatorToolDefinitions } from "./coordinator-tools.js";
-import type { deduplicateEntities,DuplicateReport  } from "./deduplicate-entities.js";
+  generateToolDefinitions as generateCoordinatorToolDefinitions,
+} from "./coordinator-tools.js";
+import type {
+  deduplicateEntities,
+  DuplicateReport,
+} from "./deduplicate-entities.js";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message.js";
 import { handleWebSearchToolCall } from "./handle-web-search-tool-call.js";
 import { linkFollowerAgent } from "./link-follower-agent.js";
@@ -498,7 +504,8 @@ export const runSubTaskAgent = async (params: {
                 ...toolCall,
                 output: `The plan has been successfully updated.`,
               };
-            } if (toolCall.name === "webSearch") {
+            }
+            if (toolCall.name === "webSearch") {
               const webPageSummaries = await handleWebSearchToolCall({
                 input:
                   toolCall.input as SubTaskAgentToolCallArguments["webSearch"],
@@ -517,7 +524,8 @@ Summary: ${summary}`,
                 ...toolCall,
                 output,
               };
-            } if (toolCall.name === "inferFactsFromResources") {
+            }
+            if (toolCall.name === "inferFactsFromResources") {
               const { resources } =
                 toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
 
@@ -633,7 +641,7 @@ Summary: ${summary}`,
                 inferredFacts.push(...response.facts);
                 entitySummaries.push(...response.existingEntitiesOfInterest);
 
-                outputMessage = `${outputMessage  }Inferred ${
+                outputMessage = `${outputMessage}Inferred ${
                   response.facts.length
                 } facts on the web page with url ${url} for the following entities: ${stringify(
                   response.existingEntitiesOfInterest.map(
@@ -645,7 +653,9 @@ Summary: ${summary}`,
                 )}. ${response.suggestionForNextSteps}\n`;
               }
 
-              outputMessage = outputMessage + dedent(`
+              outputMessage =
+                outputMessage +
+                dedent(`
               If further research is needed to fill more properties of the entities,
                 consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
 

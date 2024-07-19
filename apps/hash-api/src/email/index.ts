@@ -2,7 +2,7 @@
  * @see https://linear.app/hash/issue/H-591
  * @todo Fix relevant portions of this file and remove the rest.
  */
- 
+
 // @ts-nocheck
 
 import { URLSearchParams } from "node:url";

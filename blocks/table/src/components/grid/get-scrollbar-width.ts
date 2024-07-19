@@ -5,7 +5,9 @@
 let scrollbarWidthCache: number | undefined = undefined;
 
 export function getScrollBarWidth(): number {
-  if (scrollbarWidthCache !== undefined) {return scrollbarWidthCache;}
+  if (scrollbarWidthCache !== undefined) {
+    return scrollbarWidthCache;
+  }
   const inner = document.createElement("p");
 
   inner.style.width = "100%";

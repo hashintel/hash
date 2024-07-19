@@ -15,7 +15,7 @@ import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entit
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 
-import type { runSubTaskAgent,SubTaskAgentState  } from "./sub-task-agent.js";
+import type { runSubTaskAgent, SubTaskAgentState } from "./sub-task-agent.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -91,8 +91,9 @@ test(
         linkEntityTypes: [],
       },
       testingParams: {
-        persistState: (state) =>
-          { persistState({ state, testName: "github-url" }); },
+        persistState: (state) => {
+          persistState({ state, testName: "github-url" });
+        },
         resumeFromState: retrievePreviousState({
           testName: "github-url",
         }),

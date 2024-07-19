@@ -7,8 +7,10 @@ import type { ProposedEntitySchemaOrData } from "@local/hash-isomorphic-utils/ai
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
 import type {
- generateProposeEntitiesTools,  ProposedEntityToolCreationsByType,
-  ProposeEntitiesToolName } from "../shared/generate-propose-entities-tools.js";
+  generateProposeEntitiesTools,
+  ProposedEntityToolCreationsByType,
+  ProposeEntitiesToolName,
+} from "../shared/generate-propose-entities-tools.js";
 import { generateSimplifiedTypeId } from "../shared/generate-simplified-type-id.js";
 import type { PropertyValueWithSimplifiedProperties } from "../shared/map-simplified-properties-to-properties.js";
 import { stripIdsFromDereferencedProperties } from "../shared/strip-ids-from-dereferenced-properties.js";

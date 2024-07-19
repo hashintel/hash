@@ -14,7 +14,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType ,
+import type {
+  EntityRootType,
   extractDraftIdFromEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
@@ -102,9 +103,9 @@ export const getEntityUpdate = <T extends PropertyObjectWithMetadata>({
     }
   }
 
-  const existingEntityIsDraft = Boolean(extractDraftIdFromEntityId(
-    existingEntity.metadata.recordId.entityId,
-  ));
+  const existingEntityIsDraft = Boolean(
+    extractDraftIdFromEntityId(existingEntity.metadata.recordId.entityId),
+  );
 
   return {
     existingEntityIsDraft,

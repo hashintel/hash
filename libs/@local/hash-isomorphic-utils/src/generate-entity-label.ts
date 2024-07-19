@@ -1,7 +1,11 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityMetadata, Property } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { EntityRootType, extractEntityUuidFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getRoots,
@@ -35,7 +39,7 @@ const getFallbackLabel = ({
   entity: { properties: Entity["properties"]; metadata: EntityMetadata };
 }) => {
   // fallback to the entity type and a few characters of the entityUuid
-  const {entityId} = entity.metadata.recordId;
+  const { entityId } = entity.metadata.recordId;
 
   const entityTypeName = entityType?.schema.title ?? "Entity";
 
@@ -73,7 +77,6 @@ export const generateEntityLabel = (
 
       entityType = entityTypeAndAncestors[0];
     } catch (error) {
-       
       console.error(
         `Error looking for entity type and ancestors in provided subgraph: ${
           (error as Error).message
@@ -148,9 +151,11 @@ export const generateEntityLabel = (
 
   if (firstName && lastName) {
     return `${firstName} ${lastName}`;
-  } if (firstName) {
+  }
+  if (firstName) {
     return firstName;
-  } if (lastName) {
+  }
+  if (lastName) {
     return lastName;
   }
 

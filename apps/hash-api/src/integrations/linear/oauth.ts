@@ -18,9 +18,10 @@ import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomor
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
-import type {   getLinearIntegrationByLinearOrgId,
+import type {
+  getLinearIntegrationByLinearOrgId,
   getLinearIntegrationFromEntity,
-LinearIntegration ,
+  LinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
@@ -153,7 +154,8 @@ export const oAuthLinearCallback: RequestHandler<
     }
 
     if (
-      stateData.actorEntityId !== request.user?.entity.metadata.recordId.entityId
+      stateData.actorEntityId !==
+      request.user?.entity.metadata.recordId.entityId
     ) {
       res.status(403).send({ error: "State mismatch" });
 

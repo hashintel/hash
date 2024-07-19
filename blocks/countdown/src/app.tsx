@@ -2,7 +2,8 @@ import "react-datepicker/dist/react-datepicker.css";
 import "./datepicker-override.scss";
 import "./styles.scss";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { BlockComponent ,
+import type {
+  BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
@@ -113,7 +114,10 @@ export const App: BlockComponent<BlockEntity> = ({
         onChangeText={setLocalTitle}
         onBlur={updateRemoteData}
       />
-      <Display targetDate={localTargetDate} displayTime={Boolean(localDisplayTime)} />
+      <Display
+        targetDate={localTargetDate}
+        displayTime={Boolean(localDisplayTime)}
+      />
       <DatePickerInput
         selected={localTargetDate}
         displayTime={localDisplayTime}

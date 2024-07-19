@@ -10,7 +10,10 @@ import {
   createPage,
   getPageBlocks,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import type { joinOrg,User  } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type {
+  joinOrg,
+  User,
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";

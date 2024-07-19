@@ -44,7 +44,9 @@ export type SubgraphRootType =
   | EntityTypeRootType
   | EntityRootType;
 
-export interface Subgraph<RootType extends SubgraphRootType = SubgraphRootType> {
+export interface Subgraph<
+  RootType extends SubgraphRootType = SubgraphRootType,
+> {
   roots: RootType["vertexId"][];
   vertices: Vertices;
   edges: Edges;

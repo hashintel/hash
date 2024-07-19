@@ -137,9 +137,11 @@ export const getAggregateUsageRecordsByServiceFeature = ({
     };
     const aggregateUsage = aggregateUsageByServiceFeature[serviceFeatureKey];
 
-    aggregateUsage.totalInputUnitCount = aggregateUsage.totalInputUnitCount +
+    aggregateUsage.totalInputUnitCount =
+      aggregateUsage.totalInputUnitCount +
       (inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0);
-    aggregateUsage.totalOutputUnitCount = aggregateUsage.totalOutputUnitCount +
+    aggregateUsage.totalOutputUnitCount =
+      aggregateUsage.totalOutputUnitCount +
       (outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0);
 
     const inputCost =
@@ -157,7 +159,8 @@ export const getAggregateUsageRecordsByServiceFeature = ({
     ).toISOString();
 
     if (record.metadata.provenance.createdAtTransactionTime > oneDayEarlier) {
-      aggregateUsage.last24hoursTotalCostInUsd = aggregateUsage.last24hoursTotalCostInUsd + totalCost;
+      aggregateUsage.last24hoursTotalCostInUsd =
+        aggregateUsage.last24hoursTotalCostInUsd + totalCost;
     }
   }
 
@@ -205,9 +208,11 @@ export const getAggregateUsageRecordsByTask = ({
     };
     const aggregateUsage = aggregateUsageByTask[taskName];
 
-    aggregateUsage.totalInputUnitCount = aggregateUsage.totalInputUnitCount +
+    aggregateUsage.totalInputUnitCount =
+      aggregateUsage.totalInputUnitCount +
       (inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0);
-    aggregateUsage.totalOutputUnitCount = aggregateUsage.totalOutputUnitCount +
+    aggregateUsage.totalOutputUnitCount =
+      aggregateUsage.totalOutputUnitCount +
       (outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0);
 
     const inputCost =

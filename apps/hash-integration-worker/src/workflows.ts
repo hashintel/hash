@@ -5,7 +5,7 @@ import type {
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import type { ActivityOptions , proxyActivities } from "@temporalio/workflow";
+import type { ActivityOptions, proxyActivities } from "@temporalio/workflow";
 import type { createLinearIntegrationActivities } from "./linear-activities";
 
 const commonConfig: ActivityOptions = {

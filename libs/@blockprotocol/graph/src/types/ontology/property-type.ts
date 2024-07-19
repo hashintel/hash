@@ -19,10 +19,12 @@ export interface QueryPropertyTypesData {
   >;
 }
 
-export interface QueryPropertyTypesResult<T extends Subgraph<PropertyTypeRootType>> {
-    results: T[];
-    operation: QueryOperationInput;
-  }
+export interface QueryPropertyTypesResult<
+  T extends Subgraph<PropertyTypeRootType>,
+> {
+  results: T[];
+  operation: QueryOperationInput;
+}
 
 export interface GetPropertyTypeData {
   propertyTypeId: VersionedUrl;

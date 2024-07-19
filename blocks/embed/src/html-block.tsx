@@ -1,4 +1,4 @@
-import type { FunctionComponent , useEffect, useRef } from "react";
+import type { FunctionComponent, useEffect, useRef } from "react";
 import { tw } from "twind";
 
 import { toCSSText } from "./utils";
@@ -21,7 +21,9 @@ export const HtmlBlock: FunctionComponent<HtmlBlockProps> = ({
       return;
     }
 
-    const documentFragment = document.createRange().createContextualFragment(html);
+    const documentFragment = document
+      .createRange()
+      .createContextualFragment(html);
 
     divRef.current.innerHTML = "";
     divRef.current.appendChild(documentFragment);

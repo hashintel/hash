@@ -5,7 +5,7 @@ import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity , LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -24,12 +24,12 @@ const supportedLinearEntityTypeIds = linearTypeMappings.map(
   ({ hashEntityTypeId }) => hashEntityTypeId as VersionedUrl,
 );
 
-const supportedLinearLinkEntityTypeIds = linearTypeMappings
-  .flatMap(({ outgoingLinkMappings }) =>
+const supportedLinearLinkEntityTypeIds = linearTypeMappings.flatMap(
+  ({ outgoingLinkMappings }) =>
     outgoingLinkMappings.map(
       ({ linkEntityTypeId }) => linkEntityTypeId as VersionedUrl,
     ),
-  );
+);
 
 export const supportedLinearTypeIds = [
   ...supportedLinearEntityTypeIds,

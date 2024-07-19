@@ -1,7 +1,7 @@
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
 import type { Headers } from "@anthropic-ai/sdk/core";
-import type { APIError,RateLimitError  } from "@anthropic-ai/sdk/error";
+import type { APIError, RateLimitError } from "@anthropic-ai/sdk/error";
 import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 
 import { logger } from "../activity-logger.js";
@@ -13,7 +13,8 @@ import type {
   AnthropicMessagesCreateParams,
   AnthropicMessagesCreateResponse,
   createAnthropicMessagesWithTools,
-  isAnthropicContentToolUseBlock} from "./anthropic-client.js";
+  isAnthropicContentToolUseBlock,
+} from "./anthropic-client.js";
 import {
   defaultRateLimitRetryDelay,
   maximumExponentialBackoffRetries,
@@ -25,7 +26,8 @@ import type {
   LlmMessageToolUseContent,
   LlmUserMessage,
   mapAnthropicMessageToLlmMessage,
-  mapLlmMessageToAnthropicMessage} from "./llm-message.js";
+  mapLlmMessageToAnthropicMessage,
+} from "./llm-message.js";
 import type {
   AnthropicLlmParams,
   AnthropicResponse,

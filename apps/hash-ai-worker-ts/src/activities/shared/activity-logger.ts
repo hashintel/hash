@@ -42,9 +42,19 @@ const log = (
 };
 
 export const logger = {
-  debug: (message: string) => { log(message, "debug"); },
-  error: (message: string) => { log(message, "error"); },
-  info: (message: string) => { log(message, "info"); },
-  silly: (message: string) => { log(message, "silly"); },
-  warn: (message: string) => { log(message, "warn"); },
+  debug: (message: string) => {
+    log(message, "debug");
+  },
+  error: (message: string) => {
+    log(message, "error");
+  },
+  info: (message: string) => {
+    log(message, "info");
+  },
+  silly: (message: string) => {
+    log(message, "silly");
+  },
+  warn: (message: string) => {
+    log(message, "warn");
+  },
 };

@@ -119,18 +119,17 @@ export async function getFlowRunById({
       webId,
     });
   }
- 
-    return getSparseFlowRunFromWorkflowId({
-      name: existingFlowEntity.properties[
-        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-      ],
-      workflowId: extractEntityUuidFromEntityId(
-        existingFlowEntity.metadata.recordId.entityId,
-      ),
-      temporalClient,
-      webId,
-    });
-  
+
+  return getSparseFlowRunFromWorkflowId({
+    name: existingFlowEntity.properties[
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
+    ],
+    workflowId: extractEntityUuidFromEntityId(
+      existingFlowEntity.metadata.recordId.entityId,
+    ),
+    temporalClient,
+    webId,
+  });
 }
 
 const convertScreamingSnakeToPascalCase = (string_: string) =>
@@ -238,7 +237,7 @@ export async function getFlowRuns({
     .join(", ")})`;
 
   if (filters.executionStatus) {
-    query = `${query  } AND ExecutionStatus = "${convertScreamingSnakeToPascalCase(
+    query = `${query} AND ExecutionStatus = "${convertScreamingSnakeToPascalCase(
       filters.executionStatus,
     )}"`;
   }
@@ -269,29 +268,28 @@ export async function getFlowRuns({
     }
 
     return workflows;
-  } 
-    const workflows: SparseFlowRun[] = [];
+  }
+  const workflows: SparseFlowRun[] = [];
 
-    for await (const workflow of workflowIterable) {
-      const flowRunId = workflow.workflowId as EntityUuid;
+  for await (const workflow of workflowIterable) {
+    const flowRunId = workflow.workflowId as EntityUuid;
 
-      const flowDetails = relevantFlows[flowRunId];
+    const flowDetails = relevantFlows[flowRunId];
 
-      if (!flowDetails) {
-        throw new Error(
-          `Could not find details for workflowId ${workflow.workflowId}`,
-        );
-      }
-      const runInfo = await getSparseFlowRunFromWorkflowId({
-        name: flowDetails.name,
-        workflowId: flowRunId,
-        temporalClient,
-        webId: flowDetails.ownedById,
-      });
-
-      workflows.push(runInfo);
+    if (!flowDetails) {
+      throw new Error(
+        `Could not find details for workflowId ${workflow.workflowId}`,
+      );
     }
+    const runInfo = await getSparseFlowRunFromWorkflowId({
+      name: flowDetails.name,
+      workflowId: flowRunId,
+      temporalClient,
+      webId: flowDetails.ownedById,
+    });
 
-    return workflows;
-  
+    workflows.push(runInfo);
+  }
+
+  return workflows;
 }

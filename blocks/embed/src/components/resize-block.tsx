@@ -1,5 +1,13 @@
 import { throttle } from "lodash";
-import type { FunctionComponent, MouseEvent, ReactNode , useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import type {
+  FunctionComponent,
+  MouseEvent,
+  ReactNode,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { tw } from "twind";
 
 import { MIN_HEIGHT, MIN_WIDTH } from "../constants";
@@ -68,7 +76,9 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
 
   const updateLocalDimensions = useCallback(
     (dimensions: { width?: number; height?: number }) => {
-      if (!divRef.current) {return;}
+      if (!divRef.current) {
+        return;
+      }
 
       const styles = {
         ...toCSSObject(divRef.current.style.cssText),
@@ -92,7 +102,9 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
   );
 
   useLayoutEffect(() => {
-    if (!divRef.current) {return;}
+    if (!divRef.current) {
+      return;
+    }
     const { width: localWidth, height: localHeight } =
       divRef.current.getBoundingClientRect();
 
@@ -105,12 +117,18 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
     _event: MouseEvent,
     direction: (typeof BLOCK_RESIZER_POSITIONS)[number]["position"],
   ) => {
-    if (!childrenWrapperRef.current) {return;}
+    if (!childrenWrapperRef.current) {
+      return;
+    }
     let isResizing = false;
 
     function onMouseMove(mouseMoveEvent: globalThis.MouseEvent) {
-      if (!divRef.current) {return;}
-      if (!childrenWrapperRef.current) {return;}
+      if (!divRef.current) {
+        return;
+      }
+      if (!childrenWrapperRef.current) {
+        return;
+      }
       /**
        * Fixes issue with iframes affecting mouseover event. Https://stackoverflow.com/q/32885485/6789071
        * logic is to put off pointer events on embed iframe while resizing.
@@ -181,13 +199,17 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
     }
 
     function onMouseUp() {
-      if (!childrenWrapperRef.current) {return;}
+      if (!childrenWrapperRef.current) {
+        return;
+      }
       childrenWrapperRef.current.style.pointerEvents = "auto";
       isResizing = false;
       document.removeEventListener("mousemove", onMouseMove);
 
       setTimeout(() => {
-        if (!divRef.current) {return;}
+        if (!divRef.current) {
+          return;
+        }
         const { width: newWidth, height: newHeight } =
           divRef.current.getBoundingClientRect();
 
@@ -225,7 +247,9 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
               key={position}
               type={"button"}
               className={tw`transition-all absolute z-10 opacity-0 group-hover:opacity-100 focus:outline-none ${className}`}
-              onMouseDown={(event) => { handleResize(event, position); }}
+              onMouseDown={(event) => {
+                handleResize(event, position);
+              }}
             >
               <CornerResize position={position} />
             </button>
@@ -239,7 +263,9 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
             aria-label={`${position} resize button`}
             type={"button"}
             className={tw`transition-all absolute border-1 border-white rounded-full bg-black bg-opacity-70 z-10 opacity-0 focus:outline-none group-hover:opacity-100 ${className}`}
-            onMouseDown={(event) => { handleResize(event, position); }}
+            onMouseDown={(event) => {
+              handleResize(event, position);
+            }}
           />
         );
       })}

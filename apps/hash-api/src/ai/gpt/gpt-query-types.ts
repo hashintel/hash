@@ -1,6 +1,9 @@
 import type { RequestHandler } from "express";
 import { typedValues } from "@local/advanced-types/typed-entries";
-import type { getSimpleEntityType,SimpleEntityType  } from "@local/hash-backend-utils/simplified-graph";
+import type {
+  getSimpleEntityType,
+  SimpleEntityType,
+} from "@local/hash-backend-utils/simplified-graph";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -74,76 +77,78 @@ export const gptQueryTypes: RequestHandler<
         .then(({ embeddings }) => embeddings[0])
     : null;
 
-  const queryResponse: GptQueryTypesResponseBody = await request.context.graphApi
-    .getEntityTypeSubgraph(user.accountId, {
-      filter: {
-        all: [
-          ...(webUuids?.length
-            ? [
-                {
-                  any: webUuids.map((webUuid) => ({
-                    equal: [{ path: ["ownedById"] }, { parameter: webUuid }],
-                  })),
-                },
-              ]
-            : []),
-          ...(semanticSearchString
-            ? [
-                {
-                  cosineDistance: [
-                    { path: ["embedding"] },
-                    { parameter: semanticSearchString },
-                    { parameter: 0.9 },
-                  ],
-                },
-              ]
-            : []),
-        ],
-      },
-      includeDrafts: false,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      graphResolveDepths: {
-        inheritsFrom: { outgoing: 255 },
-        constrainsValuesOn: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        constrainsLinksOn: { outgoing: 255 },
-        constrainsLinkDestinationsOn: { outgoing: 255 },
-        isOfType: { outgoing: 1 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
-      },
-    })
-    .then(async ({ data: response }) => {
-      const entityTypes: SimpleEntityType[] = [];
+  const queryResponse: GptQueryTypesResponseBody =
+    await request.context.graphApi
+      .getEntityTypeSubgraph(user.accountId, {
+        filter: {
+          all: [
+            ...(webUuids?.length
+              ? [
+                  {
+                    any: webUuids.map((webUuid) => ({
+                      equal: [{ path: ["ownedById"] }, { parameter: webUuid }],
+                    })),
+                  },
+                ]
+              : []),
+            ...(semanticSearchString
+              ? [
+                  {
+                    cosineDistance: [
+                      { path: ["embedding"] },
+                      { parameter: semanticSearchString },
+                      { parameter: 0.9 },
+                    ],
+                  },
+                ]
+              : []),
+          ],
+        },
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: {
+          inheritsFrom: { outgoing: 255 },
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 255 },
+          constrainsLinkDestinationsOn: { outgoing: 255 },
+          isOfType: { outgoing: 1 },
+          hasLeftEntity: { incoming: 0, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 0 },
+        },
+      })
+      .then(async ({ data: response }) => {
+        const entityTypes: SimpleEntityType[] = [];
 
-      const subgraph = mapGraphApiSubgraphToSubgraph(
-        response.subgraph,
-        user.accountId,
-      );
+        const subgraph = mapGraphApiSubgraphToSubgraph(
+          response.subgraph,
+          user.accountId,
+        );
 
-      const vertices = typedValues(subgraph.vertices)
-        .flatMap((vertex) => typedValues(vertex));
+        const vertices = typedValues(subgraph.vertices).flatMap((vertex) =>
+          typedValues(vertex),
+        );
 
-      for (const vertex of vertices) {
-        if (vertex.kind === "entityType") {
-          const entityType = entityTypes.find(
-            (type) => type.entityTypeId === vertex.inner.schema.$id,
-          );
-
-          if (!entityType) {
-            entityTypes.push(
-              getSimpleEntityType(subgraph, vertex.inner.schema.$id),
+        for (const vertex of vertices) {
+          if (vertex.kind === "entityType") {
+            const entityType = entityTypes.find(
+              (type) => type.entityTypeId === vertex.inner.schema.$id,
             );
+
+            if (!entityType) {
+              entityTypes.push(
+                getSimpleEntityType(subgraph, vertex.inner.schema.$id),
+              );
+            }
           }
         }
-      }
 
-      return {
-        entityTypes: `
+        return {
+          entityTypes: `
           ---- Entity Types ----
         ${stringifyResults(entityTypes)}`,
-      };
-    });
+        };
+      });
 
   res.status(200).json(queryResponse);
 };

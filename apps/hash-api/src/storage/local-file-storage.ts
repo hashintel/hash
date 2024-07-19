@@ -31,7 +31,8 @@ export interface LocalFileSystemStorageProviderConstructorArgs {
  * This storage provider is given as an easy to setup alternative to S3 file uploads for simple setups.
  */
 export class LocalFileSystemStorageProvider
-  implements UploadableStorageProvider {
+  implements UploadableStorageProvider
+{
   public storageType: StorageType = "LOCAL_FILE_SYSTEM";
 
   private fileUploadPath: string;

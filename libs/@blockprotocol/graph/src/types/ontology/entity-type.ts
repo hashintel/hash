@@ -24,7 +24,9 @@ export interface QueryEntityTypesData {
   operation?: Omit<QueryOperationInput, "entityTypeId"> | null;
 }
 
-export interface QueryEntityTypesResult<T extends Subgraph<EntityTypeRootType>> {
+export interface QueryEntityTypesResult<
+  T extends Subgraph<EntityTypeRootType>,
+> {
   results: T[];
   operation: QueryOperationInput;
 }

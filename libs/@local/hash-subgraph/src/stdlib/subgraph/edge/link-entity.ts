@@ -3,12 +3,14 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
-import type {   isHasLeftEntityEdge,
+import type {
+  isHasLeftEntityEdge,
   isHasRightEntityEdge,
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
-LinkEntityAndRightEntity,   stripDraftIdFromEntityId,
-Subgraph ,
+  LinkEntityAndRightEntity,
+  stripDraftIdFromEntityId,
+  Subgraph,
 } from "../../../main.js";
 import { getEntityRevisionsByEntityId } from "../../../stdlib.js";
 import {
@@ -26,11 +28,10 @@ const getUniqueEntitiesFilter = () => {
 
     if (set.has(recordIdString)) {
       return false;
-    } 
-      set.add(recordIdString);
+    }
+    set.add(recordIdString);
 
-      return true;
-    
+    return true;
   };
 };
 
@@ -314,18 +315,17 @@ export const getOutgoingLinkAndTargetEntities = <
     entityId,
     searchInterval,
   );
-  const mappedRevisions = outgoingLinkEntities.reduce<Record<EntityId, Entity[]>>(
-    (revisionMap, entity) => {
-      const linkEntityId = entity.metadata.recordId.entityId;
+  const mappedRevisions = outgoingLinkEntities.reduce<
+    Record<EntityId, Entity[]>
+  >((revisionMap, entity) => {
+    const linkEntityId = entity.metadata.recordId.entityId;
 
-      // eslint-disable-next-line no-param-reassign
-      revisionMap[linkEntityId] ??= [];
-      revisionMap[linkEntityId].push(entity);
+    // eslint-disable-next-line no-param-reassign
+    revisionMap[linkEntityId] ??= [];
+    revisionMap[linkEntityId].push(entity);
 
-      return revisionMap;
-    },
-    {},
-  );
+    return revisionMap;
+  }, {});
 
   return typedEntries(mappedRevisions).map(
     ([linkEntityId, linkEntityRevisions]) => {

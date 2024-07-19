@@ -101,7 +101,7 @@ export const createApolloServer = ({
 
           return {
             didResolveOperation: async (didResolveOperationCtx) => {
-              const {operationName} = didResolveOperationCtx;
+              const { operationName } = didResolveOperationCtx;
 
               if (operationName) {
                 statsd?.increment(operationName, ["graphql"]);

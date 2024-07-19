@@ -4,12 +4,13 @@ import {
   kratosIdentityApi,
 } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type {   createUser,
+import type {
+  createUser,
   getUserByKratosIdentityId,
   getUserByShortname,
   isUserMemberOfOrg,
   joinOrg,
-User ,
+  User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";

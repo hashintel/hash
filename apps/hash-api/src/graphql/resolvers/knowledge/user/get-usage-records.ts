@@ -9,7 +9,7 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { AccountEntityId , extractAccountId } from "@local/hash-subgraph";
+import type { AccountEntityId, extractAccountId } from "@local/hash-subgraph";
 import { getEntities } from "../../../../graph/knowledge/primitive/entity";
 import type {
   Query,

@@ -3,9 +3,11 @@ import type {
   EntityRootType,
   EntityTypeRootType,
   isEntityVertexId,
-  isOntologyTypeVertexId,  PropertyTypeRootType,
+  isOntologyTypeVertexId,
+  PropertyTypeRootType,
   Subgraph,
-  SubgraphRootType} from "../../types/subgraph.js";
+  SubgraphRootType,
+} from "../../types/subgraph.js";
 import { mustBeDefined } from "../../util.js";
 import { getDataTypeByVertexId } from "./element/data-type.js";
 import { getEntityRevision } from "./element/entity.js";

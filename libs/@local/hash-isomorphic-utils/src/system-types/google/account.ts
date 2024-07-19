@@ -58,4 +58,15 @@ export type {
   VaultPathPropertyValueWithMetadata,
 };
 
-export {type Account, type AccountIdPropertyValue, type AccountIdPropertyValueWithMetadata, type AccountOutgoingLinkAndTarget, type AccountOutgoingLinksByLinkEntityTypeId, type AccountProperties, type AccountPropertiesWithMetadata, type AccountUsesUserSecretLink, type ConnectionSourceNamePropertyValue, type ConnectionSourceNamePropertyValueWithMetadata} from "./shared.js";
+export {
+  type Account,
+  type AccountIdPropertyValue,
+  type AccountIdPropertyValueWithMetadata,
+  type AccountOutgoingLinkAndTarget,
+  type AccountOutgoingLinksByLinkEntityTypeId,
+  type AccountProperties,
+  type AccountPropertiesWithMetadata,
+  type AccountUsesUserSecretLink,
+  type ConnectionSourceNamePropertyValue,
+  type ConnectionSourceNamePropertyValueWithMetadata,
+} from "./shared.js";

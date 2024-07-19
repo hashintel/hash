@@ -198,68 +198,65 @@ export const guessSchemaForPropertyValue = (
             isArrayOfSchema,
           };
         }
- 
-          // This is a nested array or property object
+
+        // This is a nested array or property object
+        return {
+          schema: null,
+          isArrayOfSchema,
+        };
+      }
+      // There are multiple potential values of the expected array
+      if (possibleArrayValues.every((schema) => "$ref" in schema)) {
+        // The potential values of the array are all data types
+        if (!Array.isArray(value)) {
+          throw new TypeError(
+            "Non-array value provided for array property type",
+          );
+        }
+
+        const possibleDataTypes = possibleArrayValues.map((schema) =>
+          mustGetDataTypeById(subgraph, (schema as DataTypeReference).$ref),
+        );
+
+        // Guess which of the possible schemas each value corresponds to, based on the value's type
+        const guessedSchemas = value.map((innerValue) => {
+          const jsonSchemaType = getJsonSchemaTypeFromValue(innerValue);
+
+          const dataType = possibleDataTypes.find(
+            ({ schema }) => schema.type === jsonSchemaType,
+          );
+
+          if (!dataType) {
+            // None of the available schemas match the value's type
+            return null;
+          }
+
+          return dataType.schema;
+        });
+
+        const allSchemasFound = guessedSchemas.every(Boolean);
+
+        if (!allSchemasFound) {
           return {
             schema: null,
-            isArrayOfSchema,
-          };
-        
-      } 
-        // There are multiple potential values of the expected array
-        if (possibleArrayValues.every((schema) => "$ref" in schema)) {
-          // The potential values of the array are all data types
-          if (!Array.isArray(value)) {
-            throw new TypeError("Non-array value provided for array property type");
-          }
-
-          const possibleDataTypes = possibleArrayValues.map((schema) =>
-            mustGetDataTypeById(subgraph, (schema as DataTypeReference).$ref),
-          );
-
-          // Guess which of the possible schemas each value corresponds to, based on the value's type
-          const guessedSchemas = value.map((innerValue) => {
-            const jsonSchemaType = getJsonSchemaTypeFromValue(innerValue);
-
-            const dataType = possibleDataTypes.find(
-              ({ schema }) => schema.type === jsonSchemaType,
-            );
-
-            if (!dataType) {
-              // None of the available schemas match the value's type
-              return null;
-            }
-
-            return dataType.schema;
-          });
-
-          const allSchemasFound = guessedSchemas.every(
-            Boolean,
-          );
-
-          if (!allSchemasFound) {
-            return {
-              schema: null,
-              isArrayOfSchema,
-            };
-          }
-
-          return {
-            schema: guessedSchemas,
             isArrayOfSchema,
           };
         }
 
         return {
-          schema: null,
+          schema: guessedSchemas,
           isArrayOfSchema,
         };
-      
+      }
+
+      return {
+        schema: null,
+        isArrayOfSchema,
+      };
     }
   } else {
     // There are multiple potential top-level values
 
-     
     if (propertyType.oneOf.every((schema) => "$ref" in schema)) {
       // Each possible value is a single data type
 

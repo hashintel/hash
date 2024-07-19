@@ -1,6 +1,10 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import type { Configuration,Identity  } from "@ory/client";
-import type { CreateIdentityBody , FrontendApi, IdentityApi } from "@ory/kratos-client";
+import type { Configuration, Identity } from "@ory/client";
+import type {
+  CreateIdentityBody,
+  FrontendApi,
+  IdentityApi,
+} from "@ory/kratos-client";
 
 export const kratosPublicUrl = getRequiredEnv("HASH_KRATOS_PUBLIC_URL");
 

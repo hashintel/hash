@@ -3,18 +3,22 @@ import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import type { Block , createBlock } from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import type {
+  Block,
+  createBlock,
+} from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import {
   addBlockToBlockCollection,
   moveBlockInBlockCollection,
   removeBlockFromBlockCollection,
 } from "@apps/hash-api/src/graph/knowledge/system-types/block-collection";
-import type {   createPage,
+import type {
+  createPage,
   getAllPagesInWorkspace,
   getPageBlocks,
   getPageById,
   getPageParentPage,
-Page ,
+  Page,
   setPageParentPage,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";

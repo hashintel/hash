@@ -4,12 +4,14 @@ import type {
   DataType,
   EntityType,
   extractBaseUrl,
-  extractVersion,  PropertyType} from "@blockprotocol/type-system/slim";
+  extractVersion,
+  PropertyType,
+} from "@blockprotocol/type-system/slim";
 
 import { mustBeDefined } from "../../util/must-be-defined.js";
 import { typedEntries, typedKeys } from "../../util/typed-object-iter.js";
 import type { PreprocessContext } from "../context.js";
-import type { generatedTypeSuffix,JsonSchema  } from "../shared.js";
+import type { generatedTypeSuffix, JsonSchema } from "../shared.js";
 
 const typescriptKeywords = new Array(
   ts.SyntaxKind.LastKeyword - ts.SyntaxKind.FirstKeyword,
@@ -67,7 +69,7 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
     metadataSchema: {},
   };
 
-  const {typeNameOverrides} = context.parameters;
+  const { typeNameOverrides } = context.parameters;
 
   for (const [typeId, type] of typedEntries(context.allTypes)) {
     const override = typeNameOverrides[typeId];
@@ -147,7 +149,7 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
       for (const type of typesForName) {
         type.title = type.title + generatedTypeSuffix[typeKind];
         if (isTypescriptKeyword(type.title)) {
-          type.title = `${type.title  }Type`;
+          type.title = `${type.title}Type`;
         }
         context.logTrace(`Renamed the title of ${type.$id} to ${type.title}`);
       }

@@ -12,7 +12,7 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
-import type { Status , StatusCode } from "@local/status";
+import type { Status, StatusCode } from "@local/status";
 import {
   ActivityCancellationType,
   ApplicationFailure,
@@ -88,13 +88,15 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
          * If the input has been provided, the input has been satisfied.
          */
         return true;
-      } if (inputDefinition.required) {
+      }
+      if (inputDefinition.required) {
         /**
          * If the input is required, and it hasn't been provided the step
          * has not satisfied its dependencies.
          */
         return false;
-      } if (
+      }
+      if (
         inputSource.kind === "step-output" &&
         inputSource.sourceStepId !== "trigger"
       ) {
@@ -107,7 +109,8 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
          * are provided in the flow.
          */
         return processedStepIds.includes(inputSource.sourceStepId);
-      } if (inputSource.kind === "parallel-group-input") {
+      }
+      if (inputSource.kind === "parallel-group-input") {
         /**
          * If the input is optional, but has a parallel group input as it's source
          * the step should only be processed once this input has been provided.
@@ -116,23 +119,21 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
          */
         return false;
       }
- 
-        /**
-         * Otherwise, we consider the input satisfied because it is optional.
-         */
-        return true;
-      
+
+      /**
+       * Otherwise, we consider the input satisfied because it is optional.
+       */
+      return true;
     });
-  } 
-    /**
-     * A parallel group step has satisfied dependencies if the input it
-     * parallelizes over has been provided.
-     */
+  }
+  /**
+   * A parallel group step has satisfied dependencies if the input it
+   * parallelizes over has been provided.
+   */
 
-    const { inputToParallelizeOn } = step;
+  const { inputToParallelizeOn } = step;
 
-    return Boolean(inputToParallelizeOn);
-  
+  return Boolean(inputToParallelizeOn);
 };
 
 const proxyFlowActivity = <
@@ -352,7 +353,6 @@ export const runFlowWorkflow = async (
           message: status.message,
         };
 
-         
         return;
       }
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -395,9 +395,8 @@ export const runFlowWorkflow = async (
                 parallelGroupInputPayload,
               });
             }
- 
-              return initializeParallelGroup({ flowTrigger, stepDefinition });
-            
+
+            return initializeParallelGroup({ flowTrigger, stepDefinition });
           }),
       );
 
@@ -447,10 +446,7 @@ export const runFlowWorkflow = async (
           step,
           flowDefinition,
           processedStepIds,
-        }) &&
-        !processedStepIds.includes(
-          step.stepId,
-        ),
+        }) && !processedStepIds.includes(step.stepId),
     );
 
     // There are no more steps which can be processed, so we exit the recursive loop

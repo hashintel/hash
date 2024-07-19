@@ -2,7 +2,9 @@ import type {
   extractBaseUrl as extractBaseUrlBp,
   extractVersion,
   ParseVersionedUrlError,
-  validateVersionedUrl,  VersionedUrl} from "@blockprotocol/type-system/slim";
+  validateVersionedUrl,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export const extractBaseUrl = (versionedUrl: VersionedUrl): BaseUrl =>

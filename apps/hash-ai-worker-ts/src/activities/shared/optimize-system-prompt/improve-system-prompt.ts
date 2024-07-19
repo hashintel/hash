@@ -67,8 +67,9 @@ export const improveSystemPrompt = async (params: {
 
   const metricDefinitions = results
     .flatMap(({ metricResultsForModels }) =>
-      metricResultsForModels
-        .flatMap(({ metricResults }) => metricResults.map(({ metric }) => metric)),
+      metricResultsForModels.flatMap(({ metricResults }) =>
+        metricResults.map(({ metric }) => metric),
+      ),
     )
     .filter(
       (metric, index, all) =>

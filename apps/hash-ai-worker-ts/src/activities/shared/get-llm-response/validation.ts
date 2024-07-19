@@ -104,7 +104,8 @@ const applyAdditionalPropertiesFalseToSchema = (params: {
       patternProperties: updatedPatternProperties,
       additionalProperties: false,
     };
-  } if (schema.type === "array" && schema.items) {
+  }
+  if (schema.type === "array" && schema.items) {
     return {
       ...schema,
       items:

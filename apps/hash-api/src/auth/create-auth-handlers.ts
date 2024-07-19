@@ -7,14 +7,15 @@ import { publicUserAccountId } from "@local/hash-backend-utils/public-user-accou
 import type { Session } from "@ory/client";
 
 import type { ImpureGraphContext } from "../graph/context-types";
-import type {   createUser,
+import type {
+  createUser,
   getUserByKratosIdentityId,
-User ,
+  User,
 } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 
 import { hydraAdmin } from "./ory-hydra";
-import type { kratosFrontendApi,KratosUserIdentity  } from "./ory-kratos";
+import type { kratosFrontendApi, KratosUserIdentity } from "./ory-kratos";
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
 

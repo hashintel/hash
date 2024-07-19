@@ -2,7 +2,8 @@ import produce from "immer";
 import isEqual from "lodash.isequal";
 import React, { useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
-import type { BlockComponent ,
+import type {
+  BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
@@ -82,8 +83,8 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
     }
   };
 
-  const handleReorder = (sourceIndex: number, destinationIndex: number) =>
-    { updateItems(
+  const handleReorder = (sourceIndex: number, destinationIndex: number) => {
+    updateItems(
       produce(draftItems, (newItems) => {
         const [removed] = newItems.splice(sourceIndex, 1);
 
@@ -91,7 +92,8 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
           newItems.splice(destinationIndex, 0, removed);
         }
       }),
-    ); };
+    );
+  };
 
   const handleValueChange = (index: number, value: string) => {
     if (readonly) {
@@ -108,7 +110,9 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
     );
   };
 
-  const handleItemBlur = () => { publishItems(draftItems); };
+  const handleItemBlur = () => {
+    publishItems(draftItems);
+  };
 
   const handleDelete = (index: number) => {
     updateItems(
@@ -127,25 +131,27 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
     );
   };
 
-  const handleAddNewClick = () =>
-    { updateItems(
+  const handleAddNewClick = () => {
+    updateItems(
       produce(draftItems, (newItems) => {
         newItems.push({
           [propertyIds.id]: uuid(),
           [propertyIds.value]: `Thing ${draftItems.length + 1}`,
         });
       }),
-    ); };
+    );
+  };
 
-  const handleShuffleClick = () =>
-    { updateItems(
+  const handleShuffleClick = () => {
+    updateItems(
       produce(draftItems, (newItems) => {
         return newItems
           .map((value) => ({ value, sort: Math.random() }))
           .sort((a, b) => a.sort - b.sort)
           .map(({ value }) => value);
       }),
-    ); };
+    );
+  };
 
   const handleRemoveAllClick = () => {
     // we also want to remove all links for the linked items

@@ -20,7 +20,8 @@ import type {
   LlmMessageToolUseContent,
   LlmUserMessage,
   mapLlmMessageToOpenAiMessages,
-  mapOpenAiMessagesToLlmMessages} from "./llm-message.js";
+  mapOpenAiMessagesToLlmMessages,
+} from "./llm-message.js";
 import type {
   LlmResponse,
   LlmStopReason,

@@ -4,7 +4,4 @@
  * Entrypoint of the Block Component.
  */
 
-
-
-
-export {Image as default} from "./image";
+export { Image as default } from "./image";

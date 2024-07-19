@@ -1,7 +1,8 @@
 import { atLeastOne } from "@blockprotocol/type-system";
-import type {   getReferencedIdsFromEntityType,
+import type {
+  getReferencedIdsFromEntityType,
   getReferencedIdsFromPropertyType,
-VersionedUrl ,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
 import { typedValues } from "../../util/typed-object-iter.js";
@@ -98,9 +99,8 @@ class TraversalContext {
 
       return typeId;
     }
- 
-      return undefined;
-    
+
+    return undefined;
   }
 }
 
@@ -166,8 +166,9 @@ export const traverseAndCollateSchemas = async (
 
           nestedForEach(
             [constrainsValuesOnDataTypes, constrainsPropertiesOnPropertyTypes],
-            (dependencyTypeId) =>
-              { traversalContext.encounter(typeId, dependencyTypeId); },
+            (dependencyTypeId) => {
+              traversalContext.encounter(typeId, dependencyTypeId);
+            },
           );
 
           initialContext.addPropertyType(type);
@@ -196,8 +197,9 @@ export const traverseAndCollateSchemas = async (
               constrainsLinksOnEntityTypes,
               inheritsFromEntityTypes,
             ],
-            (dependencyTypeId) =>
-              { traversalContext.encounter(typeId, dependencyTypeId); },
+            (dependencyTypeId) => {
+              traversalContext.encounter(typeId, dependencyTypeId);
+            },
           );
 
           initialContext.addEntityType(type);

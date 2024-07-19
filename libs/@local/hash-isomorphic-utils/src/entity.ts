@@ -8,7 +8,8 @@ import type {
   EntityStore,
   EntityStoreType,
   isDraftBlockEntity,
-  textualContentPropertyTypeBaseUrl} from "./entity-store.js";
+  textualContentPropertyTypeBaseUrl,
+} from "./entity-store.js";
 import type {
   Block,
   BlockCollection as BlockCollectionGql,

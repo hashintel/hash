@@ -69,7 +69,8 @@ const ftse350Metric: MetricDefinition = {
 
     const correctLinks = expectedLinks.reduce(
       (accumulator, expectedLink) =>
-        accumulator + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
+        accumulator +
+        (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
       0,
     );
 
@@ -147,7 +148,8 @@ const marksAndSpencersAnnualInvestorsReport: MetricDefinition = {
 
     const correctLinks = expectedLinks.reduce(
       (accumulator, expectedLink) =>
-        accumulator + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
+        accumulator +
+        (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
       0,
     );
 
@@ -224,7 +226,8 @@ const graphicsCardSpecificationMetric: MetricDefinition = {
 
     const correctLinks = expectedLinks.reduce(
       (accumulator, expectedLink) =>
-        accumulator + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
+        accumulator +
+        (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
       0,
     );
 

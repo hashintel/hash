@@ -53,7 +53,9 @@ export type ManualInferenceTriggerInputs = Subtype<
   }
 >;
 
-interface BaseInferenceArguments { webId: OwnedById }
+interface BaseInferenceArguments {
+  webId: OwnedById;
+}
 
 export type AutomaticInferenceArguments = AutomaticInferenceTriggerInputs &
   BaseInferenceArguments;

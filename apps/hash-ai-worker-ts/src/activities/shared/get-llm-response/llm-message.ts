@@ -73,26 +73,26 @@ export const mapAnthropicMessageToLlmMessage = (params: {
             ]
           : anthropicMessage.content.map((content) => {
               switch (content.type) {
-              case "image": {
-                throw new Error("Image content not supported");
-              }
-              case "tool_result": {
-                throw new Error(
-                  `Anthropic assistant message contains a tool result: ${JSON.stringify(
-                    content,
-                  )}`,
-                );
-              }
-              case "tool_use": {
-                return {
-                  type: "tool_use" as const,
-                  id: content.id,
-                  name: content.name,
-                  input: content.input as object,
-                } satisfies LlmMessageToolUseContent;
-              }
-              default:
-              // Do nothing
+                case "image": {
+                  throw new Error("Image content not supported");
+                }
+                case "tool_result": {
+                  throw new Error(
+                    `Anthropic assistant message contains a tool result: ${JSON.stringify(
+                      content,
+                    )}`,
+                  );
+                }
+                case "tool_use": {
+                  return {
+                    type: "tool_use" as const,
+                    id: content.id,
+                    name: content.name,
+                    input: content.input as object,
+                  } satisfies LlmMessageToolUseContent;
+                }
+                default:
+                // Do nothing
               }
 
               return content;
@@ -112,38 +112,38 @@ export const mapAnthropicMessageToLlmMessage = (params: {
           ]
         : anthropicMessage.content.map((block) => {
             switch (block.type) {
-            case "image": {
-              throw new Error("Image content not supported");
-            }
-            case "tool_use": {
-              throw new Error("Tool use content not supported");
-            }
-            case "tool_result": {
-              /**
-               * Currently images are not supported in LLM messages,
-               * so we filter them out from the content.
-               *
-               * @todo: add support for images in LLM messages, including
-               * the content in the tool result.
-               */
-              const textBlocks = block.content?.map((content) => {
-                if (content.type === "text") {
-                  return content;
-                }
+              case "image": {
+                throw new Error("Image content not supported");
+              }
+              case "tool_use": {
+                throw new Error("Tool use content not supported");
+              }
+              case "tool_result": {
+                /**
+                 * Currently images are not supported in LLM messages,
+                 * so we filter them out from the content.
+                 *
+                 * @todo: add support for images in LLM messages, including
+                 * the content in the tool result.
+                 */
+                const textBlocks = block.content?.map((content) => {
+                  if (content.type === "text") {
+                    return content;
+                  }
 
-                throw new Error(
-                  `Unexpected content type in tool result: ${content.type}`,
-                );
-              });
+                  throw new Error(
+                    `Unexpected content type in tool result: ${content.type}`,
+                  );
+                });
 
-              return {
-                type: "tool_result" as const,
-                tool_use_id: block.tool_use_id,
-                content: textBlocks?.join("\n") ?? "",
-              } satisfies LlmMessageToolResultContent;
-            }
-            default:
-            // Do nothing
+                return {
+                  type: "tool_result" as const,
+                  tool_use_id: block.tool_use_id,
+                  content: textBlocks?.join("\n") ?? "",
+                } satisfies LlmMessageToolResultContent;
+              }
+              default:
+              // Do nothing
             }
 
             return block;
@@ -273,7 +273,8 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
             ],
           } satisfies LlmAssistantMessage,
         ];
-      } if (currentMessage.role === "user") {
+      }
+      if (currentMessage.role === "user") {
         return [
           ...previousLlmMessages,
           {
@@ -302,7 +303,8 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
               : [],
           } satisfies LlmUserMessage,
         ];
-      } if (currentMessage.role === "tool") {
+      }
+      if (currentMessage.role === "tool") {
         const toolResultContent: LlmMessageToolResultContent = {
           type: "tool_result",
           tool_use_id: currentMessage.tool_call_id,

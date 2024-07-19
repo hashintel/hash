@@ -130,7 +130,10 @@ export interface BlockCollectionPropertiesWithMetadata {
   value: {};
 }
 
-export interface BlockHasDataLink { linkEntity: HasData; rightEntity: Entity }
+export interface BlockHasDataLink {
+  linkEntity: HasData;
+  rightEntity: Entity;
+}
 
 export type BlockOutgoingLinkAndTarget = BlockHasDataLink;
 
@@ -227,7 +230,10 @@ export interface CommentHasParentLink {
   rightEntity: Comment | Block;
 }
 
-export interface CommentHasTextLink { linkEntity: HasText; rightEntity: Text }
+export interface CommentHasTextLink {
+  linkEntity: HasText;
+  rightEntity: Text;
+}
 
 export type CommentOutgoingLinkAndTarget =
   | CommentAuthoredByLink
@@ -1260,7 +1266,10 @@ export interface Page {
   propertiesWithMetadata: PagePropertiesWithMetadata;
 }
 
-export interface PageHasParentLink { linkEntity: HasParent; rightEntity: Page }
+export interface PageHasParentLink {
+  linkEntity: HasParent;
+  rightEntity: Page;
+}
 
 export type PageOutgoingLinkAndTarget = PageHasParentLink;
 
@@ -1656,9 +1665,15 @@ export interface User {
   propertiesWithMetadata: UserPropertiesWithMetadata;
 }
 
-export interface UserHasAvatarLink { linkEntity: HasAvatar; rightEntity: Image }
+export interface UserHasAvatarLink {
+  linkEntity: HasAvatar;
+  rightEntity: Image;
+}
 
-export interface UserHasBioLink { linkEntity: HasBio; rightEntity: ProfileBio }
+export interface UserHasBioLink {
+  linkEntity: HasBio;
+  rightEntity: ProfileBio;
+}
 
 export interface UserHasLink {
   linkEntity: Has;

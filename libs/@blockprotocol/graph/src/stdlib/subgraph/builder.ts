@@ -18,11 +18,14 @@ import type {
   EntityTypeWithMetadata,
   EntityVertexId,
   GraphResolveDepths,
- isEntityRecordId, isOntologyTypeRecordId,  OntologyTypeRecordId,
+  isEntityRecordId,
+  isOntologyTypeRecordId,
+  OntologyTypeRecordId,
   OntologyTypeVertexId,
   PropertyTypeWithMetadata,
   Subgraph,
-  SubgraphTemporalAxes } from "../../types.js";
+  SubgraphTemporalAxes,
+} from "../../types.js";
 import { typedEntries } from "../../util.js";
 import { getVertexIdForRecordId } from "./vertex-id-for-element.js";
 

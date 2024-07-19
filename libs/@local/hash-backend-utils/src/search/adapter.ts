@@ -77,7 +77,7 @@ export interface SearchAdapter extends DataSource {
    * @param params.index - The name of the search index.
    * @param params.id - The document ID.
    * @param params.body - The body of the document to index.
-    */
+   */
   index: (params: { index: string; id: string; body: object }) => Promise<void>;
 
   /**
@@ -86,7 +86,7 @@ export interface SearchAdapter extends DataSource {
    * @param params.index - The name of the search index.
    * @param params.field - The document field to search.
    * @param params.query - The value to search for in the provided `field`.
-    */
+   */
   search: (params: SearchParameters) => Promise<SearchResult>;
 
   /**
@@ -96,7 +96,7 @@ export interface SearchAdapter extends DataSource {
    * @param params.index - The name of the search index.
    * @param params.field - The document field to search.
    * @param params.query - The value to search for in the provided `field`.
-    */
+   */
   startPaginatedSearch: (
     params: SearchParameters & { pageSize: number },
   ) => Promise<SearchResultPaginated>;
@@ -105,7 +105,7 @@ export interface SearchAdapter extends DataSource {
    * Continue paginating given a cursor.
    *
    * @param params.cursor - The search cursor to fetch hits from.
-    */
+   */
   continuePaginatedSearch: (params: {
     cursor: SearchCursor;
   }) => Promise<SearchResultPaginated>;

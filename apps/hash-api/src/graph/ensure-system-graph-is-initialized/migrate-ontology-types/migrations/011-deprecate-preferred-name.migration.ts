@@ -130,12 +130,11 @@ const migrate: MigrationFunction = async ({
         ) {
           return previous;
         }
- 
-          return {
-            ...previous,
-            [propertyTypeBaseUrl]: value,
-          };
-        
+
+        return {
+          ...previous,
+          [propertyTypeBaseUrl]: value,
+        };
       },
       {},
     ),

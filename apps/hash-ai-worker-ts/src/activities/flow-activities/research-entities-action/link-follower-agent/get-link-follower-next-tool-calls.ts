@@ -3,7 +3,10 @@ import type { Subtype } from "@local/advanced-types/subtype";
 
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
-import type { getToolCallsFromLlmAssistantMessage,LlmUserMessage  } from "../../../shared/get-llm-response/llm-message.js";
+import type {
+  getToolCallsFromLlmAssistantMessage,
+  LlmUserMessage,
+} from "../../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
   LlmToolDefinition,
@@ -306,7 +309,8 @@ export const getLinkFollowerNextToolCalls = async (
           input: nextToolCall.input as ToolCallInputs["complete"],
         },
       };
-    } if (nextToolCall.name === "terminate") {
+    }
+    if (nextToolCall.name === "terminate") {
       return {
         status: "ok",
         nextToolCall: {

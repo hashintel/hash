@@ -207,7 +207,8 @@ export const App: BlockComponent<BlockEntity> = ({
 
   const schema = useMemo(() => {
     const questionsWithTitle = questionEntities.filter(
-      ({ properties: { [questionKey]: schemaQuestion } }) => Boolean(schemaQuestion),
+      ({ properties: { [questionKey]: schemaQuestion } }) =>
+        Boolean(schemaQuestion),
     );
 
     return JSON.stringify({
@@ -231,7 +232,8 @@ export const App: BlockComponent<BlockEntity> = ({
     });
   }, [questionEntities]);
 
-  const shouldDisplayIntro = Boolean(title) || Boolean(description) || !readonly;
+  const shouldDisplayIntro =
+    Boolean(title) || Boolean(description) || !readonly;
 
   return (
     <>
@@ -244,8 +246,12 @@ export const App: BlockComponent<BlockEntity> = ({
         <Box
           ref={blockRootRef}
           sx={{ display: "inline-block", width: 1 }}
-          onMouseEnter={() => { setHovered(true); }}
-          onMouseLeave={() => { setHovered(false); }}
+          onMouseEnter={() => {
+            setHovered(true);
+          }}
+          onMouseLeave={() => {
+            setHovered(false);
+          }}
         >
           {!readonly ? (
             <Fade in={hovered}>
@@ -258,9 +264,16 @@ export const App: BlockComponent<BlockEntity> = ({
                   mb: 1.5,
                 }}
               >
-                <GetHelpLink href={"https://blockprotocol.org/@hash/blocks/faq"} />
+                <GetHelpLink
+                  href={"https://blockprotocol.org/@hash/blocks/faq"}
+                />
 
-                <Box display={"flex"} flexWrap={"wrap"} rowGap={1} columnGap={3}>
+                <Box
+                  display={"flex"}
+                  flexWrap={"wrap"}
+                  rowGap={1}
+                  columnGap={3}
+                >
                   <Box display={"flex"} gap={1}>
                     <Typography
                       sx={{
@@ -424,7 +437,9 @@ export const App: BlockComponent<BlockEntity> = ({
                       updateField={(value, field) =>
                         updateQuestionField(index, value, field)
                       }
-                      onRemove={() => { removeQuestion(index); }}
+                      onRemove={() => {
+                        removeQuestion(index);
+                      }}
                     />
                   </Box>
                 </Collapse>

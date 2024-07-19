@@ -16,7 +16,9 @@ import type {
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,
   QueryTemporalAxesUnresolved,
- splitEntityId,  SubgraphRootType } from "@local/hash-subgraph";
+  splitEntityId,
+  SubgraphRootType,
+} from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";

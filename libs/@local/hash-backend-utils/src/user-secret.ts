@@ -14,7 +14,10 @@ import {
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType , extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
 import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 
 export const getSecretEntitiesForIntegration = async ({

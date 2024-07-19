@@ -48,7 +48,9 @@ export const HeaderMenu = ({
       <input
         autoFocus
         defaultValue={title}
-        onChange={(event) => { updateTitle(event.target.value); }}
+        onChange={(event) => {
+          updateTitle(event.target.value);
+        }}
       />
       <DangerButton
         sx={{

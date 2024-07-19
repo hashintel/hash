@@ -4,7 +4,9 @@ import type {
   BlockGraphProperties,
   Entity,
   EntityPropertiesObject,
- GraphBlockHandler,  LinkEntityAndRightEntity } from "./main.js";
+  GraphBlockHandler,
+  LinkEntityAndRightEntity,
+} from "./main.js";
 import { getOutgoingLinkAndTargetEntities, getRoots } from "./stdlib.js";
 
 export interface BlockElementBase<

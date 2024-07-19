@@ -30,12 +30,11 @@ export const validateBaseUrl = (
         inner: url,
       };
     }
- 
-      return {
-        type: "Err",
-        inner: { reason: "MissingTrailingSlash" },
-      };
-    
+
+    return {
+      type: "Err",
+      inner: { reason: "MissingTrailingSlash" },
+    };
   } catch (error) {
     // I don't know why we're doing this, but it's in the original code
     // this simply enforces that when stringifying the error, the keys are sorted
@@ -83,66 +82,66 @@ export const validateVersionedUrl = (
       type: "Err",
       inner: { reason: "IncorrectFormatting" },
     };
-  } 
-    const [_match, baseUrl, version] = groups;
+  }
+  const [_match, baseUrl, version] = groups;
 
-    if (!baseUrl) {
-      return {
-        type: "Err",
-        inner: { reason: "IncorrectFormatting" },
-      };
-    }
+  if (!baseUrl) {
+    return {
+      type: "Err",
+      inner: { reason: "IncorrectFormatting" },
+    };
+  }
 
-    if (!version || version.length === 0) {
-      return {
-        type: "Err",
-        inner: { reason: "MissingVersion" },
-      };
-    }
+  if (!version || version.length === 0) {
+    return {
+      type: "Err",
+      inner: { reason: "MissingVersion" },
+    };
+  }
 
-    const index = version.search(/\D/);
+  const index = version.search(/\D/);
 
-    if (index === 0) {
-      return {
-        type: "Err",
-        inner: {
-          reason: "InvalidVersion",
-          inner: [version, "invalid digit found in string"],
-        },
-      };
-    } if (index > 0) {
-      return {
-        type: "Err",
-        inner: {
-          reason: "AdditionalEndContent",
-          inner: version.slice(Math.max(0, index)),
-        },
-      };
-    }
+  if (index === 0) {
+    return {
+      type: "Err",
+      inner: {
+        reason: "InvalidVersion",
+        inner: [version, "invalid digit found in string"],
+      },
+    };
+  }
+  if (index > 0) {
+    return {
+      type: "Err",
+      inner: {
+        reason: "AdditionalEndContent",
+        inner: version.slice(Math.max(0, index)),
+      },
+    };
+  }
 
-    const versionNumber = Number(version);
+  const versionNumber = Number(version);
 
-    if (versionNumber > 4294967295) {
-      return {
-        type: "Err",
-        inner: {
-          reason: "InvalidVersion",
-          inner: [version, "number too large to fit in target type"],
-        },
-      };
-    }
+  if (versionNumber > 4294967295) {
+    return {
+      type: "Err",
+      inner: {
+        reason: "InvalidVersion",
+        inner: [version, "number too large to fit in target type"],
+      },
+    };
+  }
 
-    const validBaseUrlResult = validateBaseUrl(baseUrl);
+  const validBaseUrlResult = validateBaseUrl(baseUrl);
 
-    if (validBaseUrlResult.type === "Err") {
-      return {
-        type: "Err",
-        inner: { reason: "InvalidBaseUrl", inner: validBaseUrlResult.inner },
-      };
-    }
+  if (validBaseUrlResult.type === "Err") {
+    return {
+      type: "Err",
+      inner: { reason: "InvalidBaseUrl", inner: validBaseUrlResult.inner },
+    };
+  }
 
-    return { type: "Ok", inner: url as VersionedUrl };
-  
+  return { type: "Ok", inner: url as VersionedUrl };
 };
 
 /**

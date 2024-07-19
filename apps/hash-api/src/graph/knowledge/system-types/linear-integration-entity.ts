@@ -24,7 +24,8 @@ import type {
   SyncLinearDataWith,
   SyncLinearDataWithProperties,
 } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { EntityRootType ,
+import type {
+  EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";

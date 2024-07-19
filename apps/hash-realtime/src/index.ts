@@ -14,7 +14,10 @@ import {
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { createPostgresConnPool,PgPool  } from "@local/hash-backend-utils/postgres";
+import type {
+  createPostgresConnPool,
+  PgPool,
+} from "@local/hash-backend-utils/postgres";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 
 import { generateQueues, MONITOR_TABLES } from "./config";

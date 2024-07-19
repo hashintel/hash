@@ -4,7 +4,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { Status , StatusCode } from "@local/status";
+import type { Status, StatusCode } from "@local/status";
 
 const usageCostLimit = {
   admin: {
@@ -47,8 +47,10 @@ export const checkWebServiceUsageNotExceeded = async (params: {
 
   const { lastDaysCost, lastThirtyDaysCost } = webServiceUsage.reduce(
     (accumulator, usageRecord) => {
-      accumulator.lastDaysCost = accumulator.lastDaysCost + usageRecord.last24hoursTotalCostInUsd;
-      accumulator.lastThirtyDaysCost = accumulator.lastThirtyDaysCost + usageRecord.totalCostInUsd;
+      accumulator.lastDaysCost =
+        accumulator.lastDaysCost + usageRecord.last24hoursTotalCostInUsd;
+      accumulator.lastThirtyDaysCost =
+        accumulator.lastThirtyDaysCost + usageRecord.totalCostInUsd;
 
       return accumulator;
     },

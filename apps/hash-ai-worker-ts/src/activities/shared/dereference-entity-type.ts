@@ -1,19 +1,22 @@
 import type {
   ArraySchema,
- atLeastOne,   EntityType,
-extractVersion,  ObjectSchema,
+  atLeastOne,
+  EntityType,
+  extractVersion,
+  ObjectSchema,
   OneOfSchema,
   PropertyType,
   PropertyValues,
   ValueOrArray,
-  VersionedUrl } from "@blockprotocol/type-system";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   BaseUrl,
   CustomDataType,
   EntityTypeMetadata,
 } from "@local/hash-graph-types/ontology";
-import type { linkEntityTypeUrl,Subgraph  } from "@local/hash-subgraph";
+import type { linkEntityTypeUrl, Subgraph } from "@local/hash-subgraph";
 import {
   getDataTypeById,
   getEntityTypeAndParentsById,

@@ -1,10 +1,12 @@
 import { describe, expect, test } from "vitest";
 
-import type { BaseUrl,   extractBaseUrl,
+import type {
+  BaseUrl,
+  extractBaseUrl,
   extractVersion,
   validateBaseUrl,
   validateVersionedUrl,
-VersionedUrl ,
+  VersionedUrl,
 } from "../src/main.js";
 
 const invalidBaseUrlCases: string[] = [

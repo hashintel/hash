@@ -1,8 +1,10 @@
-import type {   ApolloClient,
+import type {
+  ApolloClient,
   ApolloLink,
-DefaultOptions,   HttpLink,
+  DefaultOptions,
+  HttpLink,
   InMemoryCache,
-NormalizedCacheObject ,
+  NormalizedCacheObject,
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
@@ -61,7 +63,6 @@ export const createApolloClient = (params?: {
       try {
         ({ operationName } = JSON.parse(options.body));
       } catch (error) {
-         
         console.error(error);
       }
     }

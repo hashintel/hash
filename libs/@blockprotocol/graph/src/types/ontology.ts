@@ -1,4 +1,4 @@
-import type { BaseUrl , validateBaseUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl, validateBaseUrl } from "@blockprotocol/type-system/slim";
 
 export * from "./ontology/data-type.js";
 export * from "./ontology/entity-type.js";

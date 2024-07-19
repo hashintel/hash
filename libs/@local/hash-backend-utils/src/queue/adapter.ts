@@ -6,7 +6,7 @@ export interface QueueProducer {
    * @param name - The name of the queue.
    * @param items - A collection of strings to add to the end of the queue.
    * @returns The number of items in the queue after the operation.
-    */
+   */
   push: (name: string, ...items: string[]) => Promise<number>;
 }
 
@@ -24,7 +24,7 @@ export interface QueueExclusiveConsumer {
    * @param timeoutMs - The maximum time, in milliseconds, to wait until the queue is
    * acquired. The value of this argument should be at least `1000` milliseconds.
    * @returns `true` if the queue was acquired, `false` otherwise.
-    */
+   */
   acquire: (name: string, timeoutMs: number) => Promise<boolean>;
 
   /** Like `acquire`, but blocks indefinitely until the queue is acquired. */
@@ -60,7 +60,10 @@ export interface QueueExclusiveConsumer {
   /**
    * Like `pop`, but blocks indefinitely until an item appears on the queue.
    */
-  popBlocking: <T>(name: string, callback: (item: string) => Promise<T>) => Promise<T>;
+  popBlocking: <T>(
+    name: string,
+    callback: (item: string) => Promise<T>,
+  ) => Promise<T>;
 
   /**
    * @param name - The name of the queue.

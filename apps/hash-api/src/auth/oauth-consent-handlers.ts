@@ -11,7 +11,7 @@ export const oauthConsentRequestHandler: RequestHandler<
   Record<string, never>,
   { consent_challenge: string }
 > = (request, res, next) => {
-  const {query} = request;
+  const { query } = request;
 
   // The challenge is used to fetch information about the consent request from ORY hydraAdmin.
   const consentChallenge = query.consent_challenge;

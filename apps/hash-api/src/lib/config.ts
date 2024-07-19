@@ -1,5 +1,8 @@
 import type corsMiddleware from "cors";
-import type { StorageType , storageTypes } from "@local/hash-backend-utils/file-storage";
+import type {
+  StorageType,
+  storageTypes,
+} from "@local/hash-backend-utils/file-storage";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 
 export function getEnvStorageType(): StorageType {

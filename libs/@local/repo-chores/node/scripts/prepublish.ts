@@ -12,8 +12,10 @@ import {
 } from "./shared/package-infos";
 import { updateJson } from "./shared/update-json";
 
-const replaceWithDistributionPath = (exportPath: string, extension: ".d.ts" | ".js") =>
-  exportPath.replace("src", "dist").replace(".ts", extension);
+const replaceWithDistributionPath = (
+  exportPath: string,
+  extension: ".d.ts" | ".js",
+) => exportPath.replace("src", "dist").replace(".ts", extension);
 
 const script = async () => {
   console.log(chalk.bold("Cleaning up before publishing..."));
@@ -90,13 +92,17 @@ const script = async () => {
         for (const [key, exportPath] of Object.entries(
           packageJson.exports as Record<string, string>,
         )) {
-          packageJson.exports[key] = replaceWithDistributionPath(exportPath, ".js");
+          packageJson.exports[key] = replaceWithDistributionPath(
+            exportPath,
+            ".js",
+          );
         }
         for (const [key, typePathArray] of Object.entries(
           packageJson.typesVersions["*"] as Record<string, string[]>,
         )) {
           packageJson.typesVersions["*"][key] = typePathArray.map(
-            (typePath: string) => replaceWithDistributionPath(typePath, ".d.ts"),
+            (typePath: string) =>
+              replaceWithDistributionPath(typePath, ".d.ts"),
           );
         }
 

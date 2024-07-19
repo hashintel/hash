@@ -12,7 +12,7 @@ import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { createEntity, getUser } from "./shared/api-queries";
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
-import type { APIRequestContext , expect, test } from "./shared/runtime";
+import type { APIRequestContext, expect, test } from "./shared/runtime";
 
 const createNotification = async ({
   draft,
@@ -117,9 +117,7 @@ test("new notifications are shown on inbox page", async ({ page }) => {
 
   const draftNotificationTitle = new Date().toISOString();
 
-  await expect(
-    page.locator(`text=${draftNotificationTitle}`),
-  ).toBeHidden();
+  await expect(page.locator(`text=${draftNotificationTitle}`)).toBeHidden();
 
   /** Check notifications linked to draft entities */
   await createNotification({
@@ -135,9 +133,7 @@ test("new notifications are shown on inbox page", async ({ page }) => {
 
   const nonDraftNotificationTitle = new Date().toISOString();
 
-  await expect(
-    page.locator(`text=${nonDraftNotificationTitle}`),
-  ).toBeHidden();
+  await expect(page.locator(`text=${nonDraftNotificationTitle}`)).toBeHidden();
 
   /** Check notifications linked to non-draft entities */
   await createNotification({

@@ -22,7 +22,9 @@ export const ReturnButton = ({ onCancel }: { onCancel: () => void }) => {
             fill: palette.gray[80],
           },
         })}
-        onClick={() => { onCancel(); }}
+        onClick={() => {
+          onCancel();
+        }}
       >
         <ArrowLeftIcon
           sx={{

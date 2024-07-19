@@ -35,9 +35,9 @@ import {
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
 
-import type { Block , getBlockFromEntity } from "./block";
-import type { getTextFromEntity,Text  } from "./text";
-import type { getUserFromEntity,User  } from "./user";
+import type { Block, getBlockFromEntity } from "./block";
+import type { getTextFromEntity, Text } from "./text";
+import type { getUserFromEntity, User } from "./user";
 
 export interface Comment {
   /**
@@ -467,9 +467,8 @@ export const getCommentAncestorBlock: ImpureGraphFunction<
     // @todo - make sure the entity is really a block
     return getBlockFromEntity({ entity: parentEntity as Block["entity"] });
   }
- 
-    return getCommentAncestorBlock(context, authentication, {
-      commentEntityId: parentEntity.metadata.recordId.entityId,
-    });
-  
+
+  return getCommentAncestorBlock(context, authentication, {
+    commentEntityId: parentEntity.metadata.recordId.entityId,
+  });
 };

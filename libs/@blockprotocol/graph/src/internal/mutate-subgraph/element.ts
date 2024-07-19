@@ -136,7 +136,7 @@ export const addEntityVerticesToSubgraphByMutation = (
 
   /* eslint-disable no-param-reassign -- We want to mutate the input here */
   for (const entity of entities) {
-    const {entityId} = entity.metadata.recordId;
+    const { entityId } = entity.metadata.recordId;
 
     /*
         this cast should be safe as we have just checked if the Subgraph has temporal information, in which case the

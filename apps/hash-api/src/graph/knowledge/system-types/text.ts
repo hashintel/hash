@@ -25,10 +25,10 @@ import type {
 import { getEntities, getLatestEntityById } from "../primitive/entity";
 import { isEntityLinkEntity } from "../primitive/link-entity";
 
-import type { Block , getBlockById } from "./block";
-import type { Comment , getCommentById } from "./comment";
-import type { getPageFromEntity,Page  } from "./page";
-import type { getUserById,User  } from "./user";
+import type { Block, getBlockById } from "./block";
+import type { Comment, getCommentById } from "./comment";
+import type { getPageFromEntity, Page } from "./page";
+import type { getUserById, User } from "./user";
 
 export interface Text {
   textualContent: TextToken[];

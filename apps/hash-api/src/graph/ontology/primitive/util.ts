@@ -8,7 +8,10 @@ import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
-import type { entityIdFromComponents,WebAuthorizationRelationship  } from "@local/hash-subgraph";
+import type {
+  entityIdFromComponents,
+  WebAuthorizationRelationship,
+} from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getOrgById } from "../../knowledge/system-types/org";

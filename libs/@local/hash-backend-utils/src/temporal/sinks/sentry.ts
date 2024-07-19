@@ -37,19 +37,21 @@ const setTemporalScope = (scope: Sentry.Scope, workflowInfo: WorkflowInfo) => {
 export const sentrySinks = (): InjectedSinks<SentrySinks> => ({
   sentry: {
     captureMessage: {
-      fn: (workflowInfo, ...args) =>
-        { Sentry.withScope((scope) => {
+      fn: (workflowInfo, ...args) => {
+        Sentry.withScope((scope) => {
           setTemporalScope(scope, workflowInfo);
           Sentry.captureMessage(...args);
-        }); },
+        });
+      },
       callDuringReplay: false,
     },
     captureException: {
-      fn: (workflowInfo, ...args) =>
-        { Sentry.withScope((scope) => {
+      fn: (workflowInfo, ...args) => {
+        Sentry.withScope((scope) => {
           setTemporalScope(scope, workflowInfo);
           Sentry.captureException(...args);
-        }); },
+        });
+      },
       callDuringReplay: false,
     },
   },

@@ -1,10 +1,12 @@
 import "@glideapps/glide-data-grid/dist/index.css";
 import uniqueId from "lodash.uniqueid";
-import type { Ref , useEffect, useMemo, useRef, useState } from "react";
+import type { Ref, useEffect, useMemo, useRef, useState } from "react";
 import type {
- DataEditor,  DataEditorProps,
+  DataEditor,
+  DataEditorProps,
   DataEditorRef,
-  Theme } from "@glideapps/glide-data-grid";
+  Theme,
+} from "@glideapps/glide-data-grid";
 import { Box, useTheme } from "@mui/material";
 
 import { getScrollBarWidth } from "./get-scrollbar-width";

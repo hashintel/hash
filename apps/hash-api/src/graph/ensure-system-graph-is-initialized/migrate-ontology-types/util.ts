@@ -13,11 +13,13 @@ import type {
   extractVersion,
   ObjectSchema,
   OneOfSchema,
-  PROPERTY_TYPE_META_SCHEMA,  PropertyType,
+  PROPERTY_TYPE_META_SCHEMA,
+  PropertyType,
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
-  VersionedUrl} from "@blockprotocol/type-system";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   DataTypeRelationAndSubject,
@@ -48,12 +50,16 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   generateLinkMapWithConsistentSelfReferences,
-  generateTypeBaseUrl,  SchemaKind,
-  SystemTypeWebShortname} from "@local/hash-isomorphic-utils/ontology-types";
+  generateTypeBaseUrl,
+  SchemaKind,
+  SystemTypeWebShortname,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import type {
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
- extractOwnedByIdFromEntityId,  PropertyTypeRelationAndSubject } from "@local/hash-subgraph";
+  extractOwnedByIdFromEntityId,
+  PropertyTypeRelationAndSubject,
+} from "@local/hash-subgraph";
 import {
   componentsFromVersionedUrl,
   extractBaseUrl,
@@ -79,7 +85,10 @@ import {
   createPropertyType,
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
-import type { getOrCreateOwningAccountGroupId,PrimitiveDataTypeKey  } from "../system-webs-and-entities";
+import type {
+  getOrCreateOwningAccountGroupId,
+  PrimitiveDataTypeKey,
+} from "../system-webs-and-entities";
 
 import type { MigrationState } from "./types";
 import { upgradeWebEntities } from "./util/upgrade-entities";
@@ -384,9 +393,8 @@ export const generateSystemPropertyTypeSchema = (
 
         return arrayOfPropertyValues;
       }
- 
-        return inner;
-      
+
+      return inner;
     },
   );
 
@@ -484,24 +492,23 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
     return getDataTypeById(context, authentication, {
       dataTypeId: dataTypeSchema.$id,
     });
-  } 
-    // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
-    const createdDataType = await createDataType(
-      context,
-      { actorId: machineActorId },
-      {
-        ownedById: accountGroupId as OwnedById,
-        schema: dataTypeSchema,
-        webShortname,
-        relationships,
-      },
-    ).catch((createError) => {
-      // logger.warn(`Failed to create data type: ${propertyTypeId}`);
-      throw createError;
-    });
+  }
+  // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
+  const createdDataType = await createDataType(
+    context,
+    { actorId: machineActorId },
+    {
+      ownedById: accountGroupId as OwnedById,
+      schema: dataTypeSchema,
+      webShortname,
+      relationships,
+    },
+  ).catch((createError) => {
+    // logger.warn(`Failed to create data type: ${propertyTypeId}`);
+    throw createError;
+  });
 
-    return createdDataType;
-  
+  return createdDataType;
 };
 
 export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
@@ -580,24 +587,23 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     return getPropertyTypeById(context, authentication, {
       propertyTypeId: propertyTypeSchema.$id,
     });
-  } 
-    // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
-    const createdPropertyType = await createPropertyType(
-      context,
-      { actorId: machineActorId },
-      {
-        ownedById: accountGroupId as OwnedById,
-        schema: propertyTypeSchema,
-        webShortname,
-        relationships,
-      },
-    ).catch((createError) => {
-      // logger.warn(`Failed to create property type: ${propertyTypeId}`);
-      throw createError;
-    });
+  }
+  // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
+  const createdPropertyType = await createPropertyType(
+    context,
+    { actorId: machineActorId },
+    {
+      ownedById: accountGroupId as OwnedById,
+      schema: propertyTypeSchema,
+      webShortname,
+      relationships,
+    },
+  ).catch((createError) => {
+    // logger.warn(`Failed to create property type: ${propertyTypeId}`);
+    throw createError;
+  });
 
-    return createdPropertyType;
-  
+  return createdPropertyType;
 };
 
 type LinkDestinationConstraint =
@@ -804,25 +810,24 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     return getEntityTypeById(context, authentication, {
       entityTypeId: entityTypeSchema.$id,
     });
-  } 
-    // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we create the system types in a web
-    const createdEntityType = await createEntityType(
-      context,
-      { actorId: machineActorId },
-      {
-        ownedById: accountGroupId as OwnedById,
-        schema: entityTypeSchema,
-        webShortname,
-        relationships,
-        labelProperty: entityTypeDefinition.labelProperty,
-      },
-    ).catch((createError) => {
-      // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);
-      throw createError;
-    });
+  }
+  // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we create the system types in a web
+  const createdEntityType = await createEntityType(
+    context,
+    { actorId: machineActorId },
+    {
+      ownedById: accountGroupId as OwnedById,
+      schema: entityTypeSchema,
+      webShortname,
+      relationships,
+      labelProperty: entityTypeDefinition.labelProperty,
+    },
+  ).catch((createError) => {
+    // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);
+    throw createError;
+  });
 
-    return createdEntityType;
-  
+  return createdEntityType;
 };
 
 export const getCurrentHashSystemEntityTypeId = ({
@@ -832,7 +837,7 @@ export const getCurrentHashSystemEntityTypeId = ({
   entityTypeKey: keyof typeof systemEntityTypes;
   migrationState: MigrationState;
 }) => {
-  const {entityTypeBaseUrl} = systemEntityTypes[entityTypeKey];
+  const { entityTypeBaseUrl } = systemEntityTypes[entityTypeKey];
 
   const entityTypeVersion =
     migrationState.entityTypeVersions[entityTypeBaseUrl];
@@ -853,7 +858,7 @@ export const getCurrentHashLinkEntityTypeId = ({
   linkEntityTypeKey: keyof typeof systemLinkEntityTypes;
   migrationState: MigrationState;
 }) => {
-  const {linkEntityTypeBaseUrl} = systemLinkEntityTypes[linkEntityTypeKey];
+  const { linkEntityTypeBaseUrl } = systemLinkEntityTypes[linkEntityTypeKey];
 
   const linkEntityTypeVersion =
     migrationState.entityTypeVersions[linkEntityTypeBaseUrl];
@@ -877,7 +882,7 @@ export const getCurrentHashPropertyTypeId = ({
   propertyTypeKey: keyof typeof systemPropertyTypes;
   migrationState: MigrationState;
 }) => {
-  const {propertyTypeBaseUrl} = systemPropertyTypes[propertyTypeKey];
+  const { propertyTypeBaseUrl } = systemPropertyTypes[propertyTypeKey];
 
   const propertyTypeVersion =
     migrationState.propertyTypeVersions[propertyTypeBaseUrl];
@@ -898,12 +903,14 @@ export const getCurrentHashDataTypeId = ({
   dataTypeKey: keyof typeof systemDataTypes;
   migrationState: MigrationState;
 }) => {
-  const {dataTypeBaseUrl} = systemDataTypes[dataTypeKey];
+  const { dataTypeBaseUrl } = systemDataTypes[dataTypeKey];
 
   const dataTypeVersion = migrationState.dataTypeVersions[dataTypeBaseUrl];
 
   if (typeof dataTypeVersion === "undefined") {
-    throw new TypeError(`Expected '${dataTypeKey}' data type to have been seeded`);
+    throw new TypeError(
+      `Expected '${dataTypeKey}' data type to have been seeded`,
+    );
   }
 
   return versionedUrlFromComponents(dataTypeBaseUrl, dataTypeVersion);

@@ -49,7 +49,9 @@ export const Card = ({
         content={data.content}
         readonly={readonly}
         onChange={(value) => updateCardContent?.(data.id, value)}
-        onDelete={() => { onDelete(); }}
+        onDelete={() => {
+          onDelete();
+        }}
       />
     </div>
   );

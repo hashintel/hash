@@ -267,7 +267,7 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
             },
           );
         }
-      })
+      }),
   );
 };
 

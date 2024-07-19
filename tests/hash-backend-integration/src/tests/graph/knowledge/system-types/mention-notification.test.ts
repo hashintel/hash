@@ -5,21 +5,30 @@ import {
   getEntityOutgoingLinks,
   updateEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import type { Block , getBlockData } from "@apps/hash-api/src/graph/knowledge/system-types/block";
-import type { Comment ,
+import type {
+  Block,
+  getBlockData,
+} from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import type {
+  Comment,
   createComment,
   getCommentText,
 } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
-import type {   archiveNotification,
+import type {
+  archiveNotification,
   createMentionNotification,
   getMentionNotification,
-MentionNotification ,
+  MentionNotification,
 } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
-import type {   createPage,
+import type {
+  createPage,
   getPageBlocks,
-Page ,
+  Page,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import type { getTextFromEntity,Text  } from "@apps/hash-api/src/graph/knowledge/system-types/text";
+import type {
+  getTextFromEntity,
+  Text,
+} from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { OwnedById } from "@local/hash-graph-types/web";

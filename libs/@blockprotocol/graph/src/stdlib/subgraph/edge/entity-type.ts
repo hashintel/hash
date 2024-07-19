@@ -1,16 +1,20 @@
-import type { BaseUrl,   extractBaseUrl,
+import type {
+  BaseUrl,
+  extractBaseUrl,
   extractVersion,
-VersionedUrl ,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
 import type {
   isConstrainsLinkDestinationsOnEdge,
   isConstrainsLinksOnEdge,
   isConstrainsPropertiesOnEdge,
-  isInheritsFromEdge,  OntologyOutwardEdge,
+  isInheritsFromEdge,
+  OntologyOutwardEdge,
   OntologyTypeRevisionId,
   OntologyTypeVertexId,
-  Subgraph} from "../../../types/subgraph.js";
+  Subgraph,
+} from "../../../types/subgraph.js";
 
 import { getOntologyEndpointsForOntologyOutwardEdge } from "./shared.js";
 
@@ -75,15 +79,20 @@ export const getEntityTypesReferencedByEntityType = (
     return ontologyVertexIds;
   }
 
-  return outwardEdges.reduce<EntityTypeReferences>((accumulator, outwardEdge) => {
-    if (isInheritsFromEdge(outwardEdge)) {
-      accumulator.inheritsFrom.push(outwardEdge.rightEndpoint);
-    } else if (isConstrainsLinksOnEdge(outwardEdge)) {
-      accumulator.constrainsLinksOn.push(outwardEdge.rightEndpoint);
-    } else if (isConstrainsLinkDestinationsOnEdge(outwardEdge)) {
-      accumulator.constrainsLinkDestinationsOn.push(outwardEdge.rightEndpoint);
-    }
+  return outwardEdges.reduce<EntityTypeReferences>(
+    (accumulator, outwardEdge) => {
+      if (isInheritsFromEdge(outwardEdge)) {
+        accumulator.inheritsFrom.push(outwardEdge.rightEndpoint);
+      } else if (isConstrainsLinksOnEdge(outwardEdge)) {
+        accumulator.constrainsLinksOn.push(outwardEdge.rightEndpoint);
+      } else if (isConstrainsLinkDestinationsOnEdge(outwardEdge)) {
+        accumulator.constrainsLinkDestinationsOn.push(
+          outwardEdge.rightEndpoint,
+        );
+      }
 
-    return accumulator;
-  }, ontologyVertexIds);
+      return accumulator;
+    },
+    ontologyVertexIds,
+  );
 };

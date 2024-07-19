@@ -3,12 +3,18 @@ import type {
   DataType,
   EntityType,
   PropertyType,
- validateVersionedUrl,  VersionedUrl } from "@blockprotocol/type-system/slim";
+  validateVersionedUrl,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 
 import { mustBeDefined } from "../../util/must-be-defined.js";
 import { typedValues } from "../../util/typed-object-iter.js";
 import type { CompileContext } from "../context.js";
-import type { CompiledTsType, JsonSchema , redundantTypePlaceholder } from "../shared.js";
+import type {
+  CompiledTsType,
+  JsonSchema,
+  redundantTypePlaceholder,
+} from "../shared.js";
 
 const compileIndividualSchemaToTypescript = async (
   type: DataType | PropertyType | EntityType | JsonSchema,

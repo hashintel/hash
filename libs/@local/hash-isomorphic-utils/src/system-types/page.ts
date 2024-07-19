@@ -58,4 +58,15 @@ export type {
   TitlePropertyValueWithMetadata,
 };
 
-export {type ArchivedPropertyValue, type ArchivedPropertyValueWithMetadata, type BlockCollection, type BlockCollectionOutgoingLinkAndTarget, type BlockCollectionOutgoingLinksByLinkEntityTypeId, type BlockCollectionProperties, type BlockCollectionPropertiesWithMetadata, type BooleanDataType, type BooleanDataTypeWithMetadata, type FractionalIndexPropertyValue} from "./shared.js";
+export {
+  type ArchivedPropertyValue,
+  type ArchivedPropertyValueWithMetadata,
+  type BlockCollection,
+  type BlockCollectionOutgoingLinkAndTarget,
+  type BlockCollectionOutgoingLinksByLinkEntityTypeId,
+  type BlockCollectionProperties,
+  type BlockCollectionPropertiesWithMetadata,
+  type BooleanDataType,
+  type BooleanDataTypeWithMetadata,
+  type FractionalIndexPropertyValue,
+} from "./shared.js";

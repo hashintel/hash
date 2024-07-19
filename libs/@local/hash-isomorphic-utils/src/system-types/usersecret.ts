@@ -14,4 +14,15 @@ export type {
   VaultPathPropertyValueWithMetadata,
 };
 
-export {type ConnectionSourceNamePropertyValue, type ConnectionSourceNamePropertyValueWithMetadata, type ExpiredAtPropertyValue, type ExpiredAtPropertyValueWithMetadata, type TextDataType, type TextDataTypeWithMetadata, type UserSecret, type UserSecretOutgoingLinkAndTarget, type UserSecretOutgoingLinksByLinkEntityTypeId, type UserSecretProperties} from "./shared.js";
+export {
+  type ConnectionSourceNamePropertyValue,
+  type ConnectionSourceNamePropertyValueWithMetadata,
+  type ExpiredAtPropertyValue,
+  type ExpiredAtPropertyValueWithMetadata,
+  type TextDataType,
+  type TextDataTypeWithMetadata,
+  type UserSecret,
+  type UserSecretOutgoingLinkAndTarget,
+  type UserSecretOutgoingLinksByLinkEntityTypeId,
+  type UserSecretProperties,
+} from "./shared.js";

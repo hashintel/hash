@@ -41,7 +41,10 @@ import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { linkEntityTypeUrl,QueryTemporalAxesUnresolved  } from "@local/hash-subgraph";
+import type {
+  linkEntityTypeUrl,
+  QueryTemporalAxesUnresolved,
+} from "@local/hash-subgraph";
 import {
   getEntityTypes as getEntityTypesFromSubgraph,
   getIncomingLinksForEntity,
@@ -743,8 +746,7 @@ describe("non-zero, simple resolve depths", () => {
 
     expect(friendshipEntity).toStrictEqual(linkEntities[0]);
     expect(
-      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!)
-        ,
+      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!),
     ).toHaveLength(1);
     expect(
       Object.keys(
@@ -800,8 +802,7 @@ describe("non-zero, simple resolve depths", () => {
 
     expect(friendshipEntity).toStrictEqual(linkEntities[0]);
     expect(
-      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!)
-        ,
+      Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!),
     ).toHaveLength(1);
     expect(
       Object.keys(

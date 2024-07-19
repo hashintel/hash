@@ -35,7 +35,9 @@ export const CardContent = ({
           role={"button"}
           tabIndex={0}
           className={styles.wrapper}
-          onClick={() => { setEditing(true); }}
+          onClick={() => {
+            setEditing(true);
+          }}
         >
           {content}
         </div>
@@ -54,7 +56,9 @@ export const CardContent = ({
       ref={inputRef}
       className={styles.wrapper}
       value={inputValue}
-      onBlur={() => { setEditing(false); }}
+      onBlur={() => {
+        setEditing(false);
+      }}
       onClick={(event) => {
         event.stopPropagation();
         event.preventDefault();

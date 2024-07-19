@@ -3,7 +3,7 @@ import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 import { resetDb } from "./shared/reset-db";
-import type { expect, Locator, Page , test } from "./shared/runtime";
+import type { expect, Locator, Page, test } from "./shared/runtime";
 
 /**
  * This gets the text for the requested cell in the hidden html table,

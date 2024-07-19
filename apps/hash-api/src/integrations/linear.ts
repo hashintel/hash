@@ -1,4 +1,4 @@
-import type { LinearClient,Organization, Team  } from "@linear/sdk";
+import type { LinearClient, Organization, Team } from "@linear/sdk";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { SyncWorkspaceWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";

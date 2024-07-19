@@ -52,25 +52,22 @@ export const createIntegrationSyncBackWatcher = async (
           { identifier: "linear" },
         );
 
-        const [entity] = 
-          await graphApiClient
-            .getEntities(linearBotAccountId, {
-              filter: {
-                equal: [
-                  { path: ["editionId"] },
-                  { parameter: entityEdition.entityEditionId },
-                ],
-              },
-              temporalAxes: fullDecisionTimeAxis,
-              includeDrafts: false,
-            })
-            .then(({ data: response }) =>
-              response.entities.map((graphEntity) =>
-                mapGraphApiEntityToEntity(graphEntity, null, true),
-              ),
-            )
-        ;
-
+        const [entity] = await graphApiClient
+          .getEntities(linearBotAccountId, {
+            filter: {
+              equal: [
+                { path: ["editionId"] },
+                { parameter: entityEdition.entityEditionId },
+              ],
+            },
+            temporalAxes: fullDecisionTimeAxis,
+            includeDrafts: false,
+          })
+          .then(({ data: response }) =>
+            response.entities.map((graphEntity) =>
+              mapGraphApiEntityToEntity(graphEntity, null, true),
+            ),
+          );
         if (!entity) {
           /**
            * The linear bot may not have access to the entity, which means
@@ -92,7 +89,6 @@ export const createIntegrationSyncBackWatcher = async (
         return true;
       })
       .catch((error) => {
-         
         console.error(`Could not take message from queue: ${error.message}`);
       });
   };

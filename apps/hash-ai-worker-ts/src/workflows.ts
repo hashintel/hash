@@ -4,7 +4,7 @@ import type {
   EntityQueryCursor,
   Filter,
 } from "@local/hash-graph-client";
-import type { Entity,SerializedEntity  } from "@local/hash-graph-sdk/entity";
+import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   DataTypeWithMetadata,
@@ -26,7 +26,6 @@ import type {
   createAiActivities,
   createGraphActivities,
 } from "./activities.js";
-
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
   cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
@@ -130,8 +129,10 @@ export const updateDataTypeEmbeddings = async (
       reset: true,
     });
 
-    usage.prompt_tokens = usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
-    usage.total_tokens = usage.total_tokens + generatedEmbeddings.usage.total_tokens;
+    usage.prompt_tokens =
+      usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
+    usage.total_tokens =
+      usage.total_tokens + generatedEmbeddings.usage.total_tokens;
   }
 
   return usage;
@@ -216,8 +217,10 @@ export const updatePropertyTypeEmbeddings = async (
       reset: true,
     });
 
-    usage.prompt_tokens = usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
-    usage.total_tokens = usage.total_tokens + generatedEmbeddings.usage.total_tokens;
+    usage.prompt_tokens =
+      usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
+    usage.total_tokens =
+      usage.total_tokens + generatedEmbeddings.usage.total_tokens;
   }
 
   return usage;
@@ -302,8 +305,10 @@ export const updateEntityTypeEmbeddings = async (
       reset: true,
     });
 
-    usage.prompt_tokens = usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
-    usage.total_tokens = usage.total_tokens + generatedEmbeddings.usage.total_tokens;
+    usage.prompt_tokens =
+      usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
+    usage.total_tokens =
+      usage.total_tokens + generatedEmbeddings.usage.total_tokens;
   }
 
   return usage;
@@ -449,8 +454,10 @@ export const updateEntityEmbeddings = async (
         });
       }
 
-      usage.prompt_tokens = usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
-      usage.total_tokens = usage.total_tokens + generatedEmbeddings.usage.total_tokens;
+      usage.prompt_tokens =
+        usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
+      usage.total_tokens =
+        usage.total_tokens + generatedEmbeddings.usage.total_tokens;
     }
 
     if (!cursor) {
@@ -564,6 +571,4 @@ export const parseTextFromFile = async (
   await aiActivities.parseTextFromFileActivity(params);
 };
 
-
-
-export {runFlowWorkflow as runFlow} from "./workflows/run-flow-workflow.js";
+export { runFlowWorkflow as runFlow } from "./workflows/run-flow-workflow.js";

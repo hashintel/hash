@@ -7,7 +7,9 @@ import { forwardRef, useRef } from "react";
 import DatePicker from "react-datepicker";
 import type { ReactDatePickerProps } from "react-datepicker";
 
-const CalenderIcon: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => {
+const CalenderIcon: FunctionComponent<{ onClick: () => void }> = ({
+  onClick,
+}) => {
   return (
     <svg
       width={"17"}

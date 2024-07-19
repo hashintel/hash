@@ -1,6 +1,10 @@
 import { DataSource } from "apollo-datasource";
 import type { JsonObject } from "@blockprotocol/core";
-import type { Client, ClientOptions , errors } from "@opensearch-project/opensearch";
+import type {
+  Client,
+  ClientOptions,
+  errors,
+} from "@opensearch-project/opensearch";
 
 import type { Logger } from "../logger.js";
 import { sleep } from "../utils.js";
@@ -113,7 +117,7 @@ const generateSearchBody = (params: SearchParameters) => {
  * `OpenSearch` is an implementation of the `SearchAdapter` infterface for the
  * OpenSearch.org search index. Use `OpenSearch.connect` to open a connection to a
  * cluster.
-  */
+ */
 export class OpenSearch extends DataSource implements SearchAdapter {
   constructor(
     private client: Client,
@@ -129,7 +133,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
   ): Promise<OpenSearch> {
     const protocol = cfg.httpsEnabled ? "https" : "http";
     const node = `${protocol}://${cfg.host}:${cfg.port}/`;
-     
+
     const attempts = cfg.maxConnectionAttempts || 10;
 
     if (attempts < 1) {
@@ -179,7 +183,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
    * @param params.index - The name of the index.
    * @todo: should be able to define type mappings here. Currently just creating an
    * index with a dynamic mapping.
-    */
+   */
   async createIndex(params: { index: string }) {
     await this.client.indices.create({
       index: params.index,
@@ -201,7 +205,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
    * Check if an index exists.
    *
    * @param params.index - The name of the index.
-    */
+   */
   async indexExists(params: { index: string }): Promise<boolean> {
     const resp = await this.client.indices.exists(params);
 
@@ -296,7 +300,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
     if (endOfSearch) {
       await this.clearScrollAndReturnUndefined(openSearchCursor);
 
- return;
+      return;
     }
 
     /**
@@ -370,9 +374,9 @@ export class OpenSearch extends DataSource implements SearchAdapter {
       hitCount: hits.length,
       seenCount: 0,
       total,
-       
+
       openSearchCursor: body._scroll_id,
-       
+
       nextOpenSearchCursor: body._scroll_id,
     });
 
@@ -438,7 +442,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
       seenCount,
       total,
       openSearchCursor,
-       
+
       nextOpenSearchCursor: body._scroll_id,
     });
 

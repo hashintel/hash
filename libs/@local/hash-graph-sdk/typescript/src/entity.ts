@@ -25,7 +25,8 @@ import type {
   EntityUuid,
   isArrayMetadata,
   isObjectMetadata,
-  isValueMetadata,  LinkData,
+  isValueMetadata,
+  LinkData,
   Property,
   PropertyArrayWithMetadata,
   PropertyMetadata,
@@ -35,8 +36,9 @@ import type {
   PropertyPatchOperation,
   PropertyPath,
   PropertyValueWithMetadata,
-  PropertyWithMetadata} from "@local/hash-graph-types/entity";
-import type { BaseUrl , isBaseUrl } from "@local/hash-graph-types/ontology";
+  PropertyWithMetadata,
+} from "@local/hash-graph-types/entity";
+import type { BaseUrl, isBaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
@@ -290,7 +292,6 @@ export const mergePropertiesAndMetadata = (
       let isPropertyObject = true;
 
       for (const [key, value] of typedEntries(property)) {
-         
         if (value === undefined) {
           continue;
         }
@@ -319,7 +320,7 @@ export const mergePropertiesAndMetadata = (
       return {
         value: Object.fromEntries(
           Object.entries(property)
-             
+
             .filter(([_key, value]) => value !== undefined)
             .map(([key, value]) => {
               if (!isBaseUrl(key)) {
@@ -403,7 +404,7 @@ export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
   return {
     value: Object.fromEntries(
       Object.entries(property)
-         
+
         .filter(([_key, value]) => value !== undefined)
         .map(([key, value]) => {
           if (!isBaseUrl(key)) {
@@ -658,15 +659,14 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
         if (Array.isArray(map.value)) {
           return map.value[key];
         }
- 
-          return undefined;
-        
-      } if (!Array.isArray(map.value)) {
+
+        return undefined;
+      }
+      if (!Array.isArray(map.value)) {
         return map.value[key];
       }
- 
-        return undefined;
-      
+
+      return undefined;
     }, this.#entity.metadata.properties)?.metadata;
   }
 

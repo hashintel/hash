@@ -1,6 +1,8 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
 
-interface ErrorResponse { error: string }
+interface ErrorResponse {
+  error: string;
+}
 
 export interface GoogleOAuth2CallbackRequest {
   code: string;

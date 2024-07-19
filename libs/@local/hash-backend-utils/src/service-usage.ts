@@ -22,7 +22,10 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AggregatedUsageRecord , getAggregateUsageRecordsByServiceFeature } from "@local/hash-isomorphic-utils/service-usage";
+import type {
+  AggregatedUsageRecord,
+  getAggregateUsageRecordsByServiceFeature,
+} from "@local/hash-isomorphic-utils/service-usage";
 import {
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
@@ -32,8 +35,10 @@ import type {
   UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type {
- entityIdFromComponents,  EntityRelationAndSubject,
-  EntityRootType } from "@local/hash-subgraph";
+  entityIdFromComponents,
+  EntityRelationAndSubject,
+  EntityRootType,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { getHashInstanceAdminAccountGroupId } from "./hash-instance.js";

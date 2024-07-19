@@ -1,6 +1,9 @@
 import "../../shared/testing-utilities/mock-get-flow-context.js";
 import { expect, test } from "vitest";
-import type { actionDefinitions,InputNameForAction  } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type {
+  actionDefinitions,
+  InputNameForAction,
+} from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 
 import { getWebPageSummaryAction } from "./get-web-page-summary-action.js";

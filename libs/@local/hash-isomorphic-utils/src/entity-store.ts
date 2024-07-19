@@ -1,4 +1,4 @@
-import type { Draft , produce } from "immer";
+import type { Draft, produce } from "immer";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   EntityId,
@@ -152,7 +152,7 @@ export const createEntityStore = (
   const entities = findEntities(contents);
 
   for (const entity of entities) {
-    const {entityId} = entity.metadata.recordId;
+    const { entityId } = entity.metadata.recordId;
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (entity && !entityToDraft[entityId]) {
@@ -161,7 +161,7 @@ export const createEntityStore = (
   }
 
   for (const entity of entities) {
-    const {entityId} = entity.metadata.recordId;
+    const { entityId } = entity.metadata.recordId;
 
     saved[entityId] = entity;
     const draftId = entityToDraft[entityId]!;
@@ -214,7 +214,7 @@ export const createEntityStore = (
           const restoredDraftId = restoreDraftId(
             {
               // This type is very deep now, so traversal causes TS to complain.
-               
+
               // @ts-ignore
               entityId: draftEntity.metadata.recordId.entityId,
               draftId: draftEntity.draftId,

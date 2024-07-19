@@ -38,7 +38,9 @@ export type ExclusiveLimitedTemporalBound = Subtype<
   }
 >;
 
-export interface Unbounded { kind: "unbounded" }
+export interface Unbounded {
+  kind: "unbounded";
+}
 
 /**
  * The bound (or explicit lack of a bound) of a time-interval.

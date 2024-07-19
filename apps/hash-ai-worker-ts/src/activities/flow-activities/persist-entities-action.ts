@@ -32,7 +32,8 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
 
       if (isAFileEntity && !isBFileEntity) {
         return -1;
-      } if (isBFileEntity && !isAFileEntity) {
+      }
+      if (isBFileEntity && !isAFileEntity) {
         return 1;
       }
 

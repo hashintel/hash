@@ -1,4 +1,4 @@
-import type { createPool,DatabasePoolType  } from "slonik";
+import type { createPool, DatabasePoolType } from "slonik";
 
 import type { Logger } from "./logger.js";
 

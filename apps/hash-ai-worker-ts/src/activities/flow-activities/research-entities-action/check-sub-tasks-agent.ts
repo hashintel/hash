@@ -99,8 +99,10 @@ export const checkSubTasksAgent = async (params: {
     description: "Submit the verdict of which subTasks to accept or reject",
     inputSchema: {
       type: "object",
-      properties: Object.fromEntries(subTasks.map<Record<string, JSONSchemaDefinition>>(
-        ( subTask) => [subTask.subTaskId, {
+      properties: Object.fromEntries(
+        subTasks.map<Record<string, JSONSchemaDefinition>>((subTask) => [
+          subTask.subTaskId,
+          {
             type: "object",
             properties: {
               accept: {
@@ -114,8 +116,9 @@ export const checkSubTasksAgent = async (params: {
               },
             },
             required: ["reason", "accept"],
-          }],
-      )),
+          },
+        ]),
+      ),
       required: subTasks.map(({ subTaskId }) => subTaskId),
     },
   };
@@ -178,13 +181,12 @@ export const checkSubTasksAgent = async (params: {
 
     return { acceptedSubTasks, rejectedSubTasks };
   }
- 
-    return {
-      acceptedSubTasks: subTasks.map(({ subTaskId }) => ({
-        subTaskId,
-        reason: "Could not get response from sub task checker, accepting task",
-      })),
-      rejectedSubTasks: [],
-    };
-  
+
+  return {
+    acceptedSubTasks: subTasks.map(({ subTaskId }) => ({
+      subTaskId,
+      reason: "Could not get response from sub task checker, accepting task",
+    })),
+    rejectedSubTasks: [],
+  };
 };

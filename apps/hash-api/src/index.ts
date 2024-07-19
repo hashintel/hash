@@ -24,7 +24,10 @@ import { promisify } from "node:util";
 import bodyParser from "body-parser";
 import cors from "cors";
 import proxy from "express-http-proxy";
-import type { Options as RateLimitOptions, rateLimit } from "express-rate-limit";
+import type {
+  Options as RateLimitOptions,
+  rateLimit,
+} from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import httpTerminator from "http-terminator";
@@ -314,7 +317,8 @@ const main = async () => {
       request.path === LOCAL_FILE_UPLOAD_PATH
     ) {
       // webhooks typically need the raw body for signature verification
-      rawParser(request, res, next); return;
+      rawParser(request, res, next);
+      return;
     }
 
     jsonParser(request, res, next);
@@ -439,29 +443,29 @@ const main = async () => {
   const emailTransporter =
     isTestEnv || isDevEnv || process.env.HASH_EMAIL_TRANSPORTER === "dummy"
       ? new DummyEmailTransporter({
-        copyCodesOrLinksToClipboard:
-          process.env.DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD === "true",
-        displayCodesOrLinksInStdout: true,
-        filePath: process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH
-          ? path.resolve(
-            monorepoRootDir,
-            process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH,
-          )
-          : undefined,
-      })
+          copyCodesOrLinksToClipboard:
+            process.env.DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD === "true",
+          displayCodesOrLinksInStdout: true,
+          filePath: process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH
+            ? path.resolve(
+                monorepoRootDir,
+                process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH,
+              )
+            : undefined,
+        })
       : process.env.AWS_REGION
         ? new AwsSesEmailTransporter({
-          from: `${getRequiredEnv(
-            "SYSTEM_EMAIL_SENDER_NAME",
-          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
-          region: getAwsRegion(),
-          subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
-        })
+            from: `${getRequiredEnv(
+              "SYSTEM_EMAIL_SENDER_NAME",
+            )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
+            region: getAwsRegion(),
+            subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
+          })
         : ({
-          sendMail: (mail) => {
-            logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
-          },
-        } as EmailTransporter);
+            sendMail: (mail) => {
+              logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
+            },
+          } as EmailTransporter);
 
   let search: OpenSearch | undefined;
 
@@ -470,9 +474,9 @@ const main = async () => {
       process.env.HASH_OPENSEARCH_USERNAME === undefined
         ? undefined
         : {
-          username: process.env.HASH_OPENSEARCH_USERNAME,
-          password: process.env.HASH_OPENSEARCH_PASSWORD || "",
-        };
+            username: process.env.HASH_OPENSEARCH_USERNAME,
+            password: process.env.HASH_OPENSEARCH_PASSWORD || "",
+          };
 
     search = await OpenSearch.connect(logger, {
       host: getRequiredEnv("HASH_OPENSEARCH_HOST"),

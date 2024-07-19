@@ -128,27 +128,30 @@ export const linkedTreeFlatten = <
 
     depth++;
     // Traverse direct descendants of all nodes in the current depth
-    const descendantsToQueue = toInsert.reduce<AugmentedOuter[][]>((accumulator, current) => {
-      const outer = current[outerKey];
+    const descendantsToQueue = toInsert.reduce<AugmentedOuter[][]>(
+      (accumulator, current) => {
+        const outer = current[outerKey];
 
-      if (outer) {
-        const extractedFromInner = outer.map((entry) => {
-          // The direct descendants' structures get flattened
-          const { [innerKey]: _omitted, ...innerValues } = entry;
+        if (outer) {
+          const extractedFromInner = outer.map((entry) => {
+            // The direct descendants' structures get flattened
+            const { [innerKey]: _omitted, ...innerValues } = entry;
 
-          return {
-            parentIndex: current.currentIndex,
-            currentIndex: currentIndex++,
-            meta: innerValues,
-            ...entry[innerKey],
-          };
-        });
+            return {
+              parentIndex: current.currentIndex,
+              currentIndex: currentIndex++,
+              meta: innerValues,
+              ...entry[innerKey],
+            };
+          });
 
-        accumulator.push(extractedFromInner);
-      }
+          accumulator.push(extractedFromInner);
+        }
 
-      return accumulator;
-    }, []);
+        return accumulator;
+      },
+      [],
+    );
 
     index = currentIndex;
     // all descendants of all of the nodes in this depth layer

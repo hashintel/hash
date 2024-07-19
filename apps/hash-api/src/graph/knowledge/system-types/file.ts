@@ -1,9 +1,10 @@
 import mime from "mime-types";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type {   formatFileUrl,
+import type {
+  formatFileUrl,
   getEntityTypeIdForMimeType,
-PresignedPutUpload ,
+  PresignedPutUpload,
 } from "@local/hash-backend-utils/file-storage";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -66,7 +67,8 @@ const generateCommonParameters = async (
         existingEntity.metadata.recordId.entityId,
       ),
     };
-  } if (fileEntityCreationInput) {
+  }
+  if (fileEntityCreationInput) {
     const { entityTypeId: specifiedEntityTypeId } = fileEntityCreationInput;
 
     const entityTypeIdByMimeType = getEntityTypeIdForMimeType(mimeType);

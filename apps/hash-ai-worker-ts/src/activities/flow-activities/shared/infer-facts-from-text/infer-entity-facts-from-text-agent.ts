@@ -6,9 +6,11 @@ import type { DereferencedEntityType } from "../../../shared/dereference-entity-
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type {
- getToolCallsFromLlmAssistantMessage,  LlmMessage,
+  getToolCallsFromLlmAssistantMessage,
+  LlmMessage,
   LlmMessageToolResultContent,
-  LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
+  LlmUserMessage,
+} from "../../../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
@@ -282,7 +284,8 @@ export const inferEntityFactsFromTextAgent = async (params: {
         },
       ],
     });
-  } if (llmResponse.status !== "ok") {
+  }
+  if (llmResponse.status !== "ok") {
     return { facts: params.retryContext?.previousValidFacts ?? [] };
   }
 

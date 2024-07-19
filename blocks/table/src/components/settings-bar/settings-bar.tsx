@@ -67,7 +67,9 @@ export const SettingsBar = ({
         {collapseSettings ? (
           <BlockSettingsButton
             expanded={mobileSettingsExpanded}
-            onClick={() => { setMobileSettingsExpanded(!mobileSettingsExpanded); }}
+            onClick={() => {
+              setMobileSettingsExpanded(!mobileSettingsExpanded);
+            }}
           />
         ) : null}
 

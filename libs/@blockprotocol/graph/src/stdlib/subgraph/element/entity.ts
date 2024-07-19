@@ -31,11 +31,10 @@ export const getEntities = (subgraph: Subgraph, latest: boolean): Entity[] => {
 
       return isEntityVertex(vertex) ? [vertex.inner] : [];
     }
- 
-      return typedValues(revisions)
-        .filter(isEntityVertex)
-        .map((vertex) => vertex.inner);
-    
+
+    return typedValues(revisions)
+      .filter(isEntityVertex)
+      .map((vertex) => vertex.inner);
   });
 };
 
@@ -129,35 +128,34 @@ export const getEntityRevision = (
     }
 
     return vertex.inner;
-  } 
-    const targetTime =
-      typeof targetRevisionInformation === "string"
-        ? targetRevisionInformation
-        : targetRevisionInformation.toISOString();
+  }
+  const targetTime =
+    typeof targetRevisionInformation === "string"
+      ? targetRevisionInformation
+      : targetRevisionInformation.toISOString();
 
-    for (const revisionTimestamp of revisionVersions) {
-      const vertex = mustBeDefined(entityRevisions[revisionTimestamp]);
+  for (const revisionTimestamp of revisionVersions) {
+    const vertex = mustBeDefined(entityRevisions[revisionTimestamp]);
 
-      if (!isEntityVertex(vertex)) {
-        throw new Error(
-          `Found non-entity vertex associated with EntityId: ${entityId}`,
-        );
-      }
-
-      if (
-        intervalContainsTimestamp(
-          vertex.inner.metadata.temporalVersioning[
-            subgraph.temporalAxes.resolved.variable.axis
-          ],
-          targetTime,
-        )
-      ) {
-        return vertex.inner;
-      }
+    if (!isEntityVertex(vertex)) {
+      throw new Error(
+        `Found non-entity vertex associated with EntityId: ${entityId}`,
+      );
     }
 
-    return undefined;
-  
+    if (
+      intervalContainsTimestamp(
+        vertex.inner.metadata.temporalVersioning[
+          subgraph.temporalAxes.resolved.variable.axis
+        ],
+        targetTime,
+      )
+    ) {
+      return vertex.inner;
+    }
+  }
+
+  return undefined;
 };
 
 /**
@@ -211,11 +209,10 @@ export const getEntityRevisionsByEntityId = (
     }
 
     return filteredEntities;
-  } 
-    const entityVertices = typedValues(entityRevisions);
+  }
+  const entityVertices = typedValues(entityRevisions);
 
-    return entityVertices.filter(isEntityVertex).map((vertex) => {
-      return vertex.inner;
-    });
-  
+  return entityVertices.filter(isEntityVertex).map((vertex) => {
+    return vertex.inner;
+  });
 };

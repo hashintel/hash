@@ -1,10 +1,13 @@
 import type { AxiosError } from "axios";
 import type { Logger } from "@local/hash-backend-utils/logger";
-import type { FeatureFlag , featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+import type {
+  FeatureFlag,
+  featureFlags,
+} from "@local/hash-isomorphic-utils/feature-flags";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import type { ImpureGraphContext } from "../graph/context-types";
-import type { createUser,User  } from "../graph/knowledge/system-types/user";
+import type { createUser, User } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { isDevEnv, isTestEnv } from "../lib/env-config";
 
@@ -93,13 +96,10 @@ export const ensureUsersAreSeeded = async ({
       if (error.response?.status === 409) {
         // The user already exists on 409 CONFLICT, which is fine
         return null;
-      } 
-        logger.warn(
-          `Could not create seeded user identity, email = "${email}".`,
-        );
+      }
+      logger.warn(`Could not create seeded user identity, email = "${email}".`);
 
-        return Promise.reject(error);
-      
+      return Promise.reject(error);
     });
 
     if (maybeNewIdentity !== null) {

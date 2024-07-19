@@ -1,4 +1,4 @@
-import type { codegen,CodegenParameters  } from "@blockprotocol/graph/codegen";
+import type { codegen, CodegenParameters } from "@blockprotocol/graph/codegen";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 

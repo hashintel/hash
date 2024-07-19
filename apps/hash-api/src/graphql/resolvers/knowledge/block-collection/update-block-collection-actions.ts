@@ -2,7 +2,10 @@ import { ApolloError, UserInputError } from "apollo-server-errors";
 import produce from "immer";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { Entity , mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
+import type {
+  Entity,
+  mergePropertiesAndMetadata,
+} from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   PropertyPatchOperation,
@@ -11,12 +14,14 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 
 import type { ImpureGraphContext } from "../../../../graph/context-types";
-import type {   createEntityWithLinks,
+import type {
+  createEntityWithLinks,
   getLatestEntityById,
-PropertyValue ,
+  PropertyValue,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
-import type { Block ,
+import type {
+  Block,
   createBlock,
   getBlockById,
   updateBlockDataEntity,
@@ -323,7 +328,7 @@ export const handleUpdateEntity = async (
   const authentication = { actorId: user.accountId };
 
   // If this entity ID is a placeholder, use that instead.
-  let {entityId} = action;
+  let { entityId } = action;
 
   if (placeholderResults.has(entityId)) {
     entityId = placeholderResults.get(entityId) as EntityId;

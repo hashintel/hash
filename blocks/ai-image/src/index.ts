@@ -3,7 +3,4 @@
  */
 // eslint-disable-next-line canonical/filename-no-index
 
-
-
-
-export {App as default} from "./app";
+export { App as default } from "./app";

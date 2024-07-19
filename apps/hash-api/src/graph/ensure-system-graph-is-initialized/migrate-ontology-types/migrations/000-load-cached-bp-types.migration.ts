@@ -19,7 +19,6 @@ const migrate: MigrationFunction = async ({
 }) => {
   let blockProtocolDataTypeId: VersionedUrl;
 
-   
   for (blockProtocolDataTypeId in CACHED_DATA_TYPE_SCHEMAS) {
     await loadExternalDataTypeIfNotExists(context, authentication, {
       dataTypeId: blockProtocolDataTypeId,
@@ -29,7 +28,6 @@ const migrate: MigrationFunction = async ({
 
   let blockProtocolPropertyTypeId: VersionedUrl;
 
-   
   for (blockProtocolPropertyTypeId in CACHED_PROPERTY_TYPE_SCHEMAS) {
     await loadExternalPropertyTypeIfNotExists(context, authentication, {
       propertyTypeId: blockProtocolPropertyTypeId,
@@ -39,7 +37,6 @@ const migrate: MigrationFunction = async ({
 
   let blockProtocolEntityTypeId: VersionedUrl;
 
-   
   for (blockProtocolEntityTypeId in CACHED_ENTITY_TYPE_SCHEMAS) {
     await loadExternalEntityTypeIfNotExists(context, authentication, {
       entityTypeId: blockProtocolEntityTypeId,

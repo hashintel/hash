@@ -1,8 +1,11 @@
 import type {
   EntityRecordId,
   GraphElementVertexId,
- isEntityRecordId, isOntologyTypeRecordId,  OntologyTypeRecordId,
-  Subgraph } from "../../types.js";
+  isEntityRecordId,
+  isOntologyTypeRecordId,
+  OntologyTypeRecordId,
+  Subgraph,
+} from "../../types.js";
 import { typedEntries } from "../../util.js";
 
 /**

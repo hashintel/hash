@@ -15,10 +15,11 @@ import md5 from "md5";
 
 import { logger } from "../../../../shared/activity-logger.js";
 
-import type {   generateSimpleStorageContextFilePaths,
+import type {
+  generateSimpleStorageContextFilePaths,
   persistSimpleStorageContext,
   retrieveSimpleStorageContext,
-SimpleStorageContext ,
+  SimpleStorageContext,
 } from "./simple-storage-context.js";
 
 export const indexPdfFile = async (params: {

@@ -20,8 +20,8 @@ test("user can create entity type", async ({ page }) => {
 
   // Go to Create Entity Type
   await page.locator('[data-testid="create-entity-type-btn"]').click();
-  await page.waitForURL(
-    (url) => Boolean(url.pathname.match(/^\/new\/types\/entity-type/)),
+  await page.waitForURL((url) =>
+    Boolean(url.pathname.match(/^\/new\/types\/entity-type/)),
   );
 
   // Create a random entity name for each test
@@ -41,8 +41,9 @@ test("user can create entity type", async ({ page }) => {
   await page.click("[data-testid=entity-type-creation-form] button");
   await page.waitForURL(
     (url) =>
-      Boolean(url.pathname.match(/^\/@alice\/types\/entity-type\/testentity/)) &&
-      url.searchParams.has("draft"),
+      Boolean(
+        url.pathname.match(/^\/@alice\/types\/entity-type\/testentity/),
+      ) && url.searchParams.has("draft"),
   );
 
   // Add a link type

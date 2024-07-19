@@ -1,4 +1,4 @@
-import type { Schema , validate } from "jsonschema";
+import type { Schema, validate } from "jsonschema";
 import type { JsonArray, JsonObject, JsonValue } from "@blockprotocol/core";
 
 export const validateDataAgainstSchema = (data: unknown, schema: Schema) =>

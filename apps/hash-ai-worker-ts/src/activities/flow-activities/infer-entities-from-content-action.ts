@@ -82,13 +82,16 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
 
   const entityTypes = Object.entries(
     dereferencedEntityTypesWithExistingEntitiesTypes,
-  ).reduce<DereferencedEntityTypesByTypeId>((accumulator, [entityTypeId, entityType]) => {
-    if (entityTypeIds.includes(entityTypeId as VersionedUrl)) {
-      accumulator[entityTypeId as VersionedUrl] = entityType;
-    }
+  ).reduce<DereferencedEntityTypesByTypeId>(
+    (accumulator, [entityTypeId, entityType]) => {
+      if (entityTypeIds.includes(entityTypeId as VersionedUrl)) {
+        accumulator[entityTypeId as VersionedUrl] = entityType;
+      }
 
-    return accumulator;
-  }, {});
+      return accumulator;
+    },
+    {},
+  );
 
   let webPageInferenceState: InferenceState = {
     iterationCount: 1,

@@ -56,8 +56,12 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
         disablePadding
         ref={ref}
         sx={{ ...style, opacity: isDragging ? 0 : 1 }}
-        onMouseOver={() => { setIsHovered(true); }}
-        onMouseOut={() => { setIsHovered(false); }}
+        onMouseOver={() => {
+          setIsHovered(true);
+        }}
+        onMouseOut={() => {
+          setIsHovered(false);
+        }}
         {...attributes}
       >
         <SPaper sx={paperStyle} ref={dragOverlay}>

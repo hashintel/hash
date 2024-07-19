@@ -62,7 +62,7 @@ export const logProgress = (logs: StepProgressLog[]) => {
     return;
   }
 
-  const {workflowId} = Context.current().info.workflowExecution;
+  const { workflowId } = Context.current().info.workflowExecution;
 
   const existingLogs = logQueueByRunId.get(workflowId) ?? [];
 

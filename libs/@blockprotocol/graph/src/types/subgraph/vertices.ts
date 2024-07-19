@@ -1,4 +1,4 @@
-import type { BaseUrl , validateBaseUrl } from "@blockprotocol/type-system/slim";
+import type { BaseUrl, validateBaseUrl } from "@blockprotocol/type-system/slim";
 import { stringIsNonNegativeInteger } from "../../util.js";
 import type {
   Entity,
@@ -32,7 +32,10 @@ export interface EntityVertex<
     BaseUrl,
     EntityPropertyValue
   >,
-> { kind: "entity"; inner: Entity<Properties> }
+> {
+  kind: "entity";
+  inner: Entity<Properties>;
+}
 
 export type OntologyVertex =
   | DataTypeVertex

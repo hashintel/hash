@@ -141,7 +141,6 @@ export class PostprocessContext {
   /* @todo - Replace this with a proper logging implementation */
   logWarn(message: string) {
     if (this.logLevel !== "silent") {
-       
       console.warn(`WARN: ${message}`);
     }
   }

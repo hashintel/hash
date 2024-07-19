@@ -1,7 +1,8 @@
 import { backOff } from "exponential-backoff";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { CreateEntityParameters ,
+import type {
+  CreateEntityParameters,
   Entity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";

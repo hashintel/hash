@@ -8,7 +8,7 @@ export const parseLabelFromEntity = (
 ): string => {
   const getFallbackLabel = () => {
     // fallback to the entity type and a few characters of the entityId
-    const {entityId} = entityToLabel.metadata.recordId;
+    const { entityId } = entityToLabel.metadata.recordId;
 
     const entityType = getEntityTypeById(
       subgraph,

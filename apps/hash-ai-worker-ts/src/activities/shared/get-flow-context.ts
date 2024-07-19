@@ -1,4 +1,4 @@
-import type { caching,MemoryCache  } from "cache-manager";
+import type { caching, MemoryCache } from "cache-manager";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
 import { Entity } from "@local/hash-graph-sdk/entity";

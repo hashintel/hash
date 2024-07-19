@@ -3,7 +3,10 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
 import { logger } from "../../shared/activity-logger.js";
 
-import type { getEntitySummariesFromText,LocalEntitySummary  } from "./infer-facts-from-text/get-entity-summaries-from-text.js";
+import type {
+  getEntitySummariesFromText,
+  LocalEntitySummary,
+} from "./infer-facts-from-text/get-entity-summaries-from-text.js";
 import { inferEntityFactsFromTextAgent } from "./infer-facts-from-text/infer-entity-facts-from-text-agent.js";
 import type { Fact } from "./infer-facts-from-text/types.js";
 
@@ -63,7 +66,10 @@ export const inferFactsFromText = async (params: {
 
       return {
         ...previous,
-        [entityTypeId]: [...(previous[entityTypeId] ?? []), currentEntitySummary],
+        [entityTypeId]: [
+          ...(previous[entityTypeId] ?? []),
+          currentEntitySummary,
+        ],
       };
     },
     {},

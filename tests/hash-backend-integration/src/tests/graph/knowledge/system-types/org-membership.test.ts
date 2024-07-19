@@ -2,10 +2,11 @@ import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type {   createOrgMembership,
+import type {
+  createOrgMembership,
   getOrgMembershipOrg,
   getOrgMembershipUser,
-OrgMembership ,
+  OrgMembership,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { Logger } from "@local/hash-backend-utils/logger";

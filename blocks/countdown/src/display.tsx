@@ -1,5 +1,5 @@
-import type { Duration , intervalToDuration, isPast } from "date-fns";
-import type { FunctionComponent , useEffect, useState } from "react";
+import type { Duration, intervalToDuration, isPast } from "date-fns";
+import type { FunctionComponent, useEffect, useState } from "react";
 
 interface DisplayProps {
   targetDate: Date | null;
@@ -29,14 +29,18 @@ export const Display: FunctionComponent<DisplayProps> = ({
   const [_, setClock] = useState(new Date());
 
   useEffect(() => {
-    const tick = () => { setClock(new Date()); };
+    const tick = () => {
+      setClock(new Date());
+    };
     // Tick at most once per second
     // It might take slightly longer than a second depending on how long it takes to get through other events
     const tickInterval = setInterval(tick, 1000);
 
     tick();
 
-    return () => { clearInterval(tickInterval); };
+    return () => {
+      clearInterval(tickInterval);
+    };
   }, []);
 
   const duration = targetDate
@@ -46,16 +50,19 @@ export const Display: FunctionComponent<DisplayProps> = ({
       })
     : defaultDuration;
 
-  const filteredIntervals = intervals.reduce<(keyof Duration)[]>((accumulator, value) => {
-    if (!displayTime && ["hours", "minutes"].includes(value)) {
-      return accumulator;
-    }
-    if (duration[value] ?? accumulator.length > 0) {
-      return [...accumulator, value];
-    }
+  const filteredIntervals = intervals.reduce<(keyof Duration)[]>(
+    (accumulator, value) => {
+      if (!displayTime && ["hours", "minutes"].includes(value)) {
+        return accumulator;
+      }
+      if (duration[value] ?? accumulator.length > 0) {
+        return [...accumulator, value];
+      }
 
-    return accumulator;
-  }, []);
+      return accumulator;
+    },
+    [],
+  );
 
   const intervalsToDisplay =
     filteredIntervals.length > 0

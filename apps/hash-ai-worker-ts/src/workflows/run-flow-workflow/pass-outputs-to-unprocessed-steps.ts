@@ -9,7 +9,7 @@ import type {
   StepInputSource,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { Status , StatusCode } from "@local/status";
+import type { Status, StatusCode } from "@local/status";
 import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./get-step-definition-from-flow.js";
 
@@ -35,10 +35,7 @@ export const passOutputsToUnprocessedSteps = (params: {
   } = params;
 
   const unprocessedSteps = getAllStepsInFlow(flow).filter(
-    (step) =>
-      !processedStepIds.includes(
-        step.stepId,
-      ),
+    (step) => !processedStepIds.includes(step.stepId),
   );
 
   for (const unprocessedStep of unprocessedSteps) {

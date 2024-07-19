@@ -24,7 +24,10 @@ import type {
   ImpureGraphContext,
   ImpureGraphFunction,
 } from "./graph/context-types";
-import type { getOrgByShortname,Org  } from "./graph/knowledge/system-types/org";
+import type {
+  getOrgByShortname,
+  Org,
+} from "./graph/knowledge/system-types/org";
 import { getDataTypes } from "./graph/ontology/primitive/data-type";
 import {
   getEntityTypes,
@@ -60,10 +63,12 @@ const serializeTypeIds = (
   isLinkEntityType?: boolean,
 ) =>
   JSON.stringify(
-    Object.fromEntries(types
-      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
-      .map(
-        ( { schema }) => [convertTitleToCamelCase(schema.title), {
+    Object.fromEntries(
+      types
+        .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
+        .map(({ schema }) => [
+          convertTitleToCamelCase(schema.title),
+          {
             [`${isLinkEntityType ? "linkEntityType" : schema.kind}Id`]:
               schema.$id,
             [`${isLinkEntityType ? "linkEntityType" : schema.kind}BaseUrl`]:
@@ -74,8 +79,9 @@ const serializeTypeIds = (
                   description: schema.description,
                 }
               : {}),
-          }],
-      )),
+          },
+        ]),
+    ),
   ).replaceAll('/"', '/" as BaseUrl');
 
 const getLatestTypesInOrganizationQuery = (params: { organization: Org }) => ({

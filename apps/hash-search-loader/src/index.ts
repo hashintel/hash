@@ -1,6 +1,5 @@
 /* eslint-disable canonical/filename-no-index -- @todo rename file */
 
- 
 // @ts-nocheck
 import * as http from "node:http";
 import { promisify } from "node:util";
@@ -25,7 +24,7 @@ if (!OPENSEARCH_ENABLED) {
 }
 
 // Environment variables
- 
+
 const PORT = process.env.HASH_SEARCH_LOADER_PORT || 3838;
 const REDIS_HOST = getRequiredEnv("HASH_REDIS_HOST");
 const REDIS_PORT = parseInt(process.env.HASH_REDIS_PORT || "6379", 10);
@@ -45,7 +44,6 @@ const PG_PORT = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
 const PG_USER = getRequiredEnv("HASH_PG_USER");
 const PG_PASSWORD = getRequiredEnv("HASH_PG_PASSWORD");
 const PG_DATABASE = getRequiredEnv("HASH_PG_DATABASE");
- 
 
 // Configure the StatsD client for reporting metrics
 let statsd: StatsD | undefined;
@@ -79,7 +77,8 @@ const createHttpServer = (callbacks: { isQueueAcquired: () => boolean }) => {
       );
 
       return;
-    } if (request.method === "POST" && request.url === "/shutdown") {
+    }
+    if (request.method === "POST" && request.url === "/shutdown") {
       // Will be picked up by the `GracefulShutdown` instance
       process.kill(process.pid, "SIGTERM");
       res.writeHead(201);
@@ -195,7 +194,9 @@ const main = async () => {
     statsd.gauge("queue_size", size);
   }, 5_000);
 
-  shutdown.addCleanup("statsd reporting", () => { clearInterval(int1); });
+  shutdown.addCleanup("statsd reporting", () => {
+    clearInterval(int1);
+  });
 
   // Initialize the SearchLoader
   const loader = new SearchLoader({

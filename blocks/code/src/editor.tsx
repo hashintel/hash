@@ -1,5 +1,12 @@
 import Prism from "prismjs";
-import type { ChangeEvent, KeyboardEvent, RefObject , useCallback, useEffect, useRef } from "react";
+import type {
+  ChangeEvent,
+  KeyboardEvent,
+  RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import styles from "./editor.module.css";
 import type { LanguageType } from "./utils";
 
@@ -24,7 +31,9 @@ export const Editor = ({
   const highlightedElementRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
-    if (!highlightedElementRef.current) {return;}
+    if (!highlightedElementRef.current) {
+      return;
+    }
     Prism.highlightElement(highlightedElementRef.current.children[0]!);
   }, [language, content]);
 
@@ -34,7 +43,9 @@ export const Editor = ({
    *
    */
   const syncScroll = useCallback(() => {
-    if (!highlightedElementRef.current || !textAreaRef.current) {return;}
+    if (!highlightedElementRef.current || !textAreaRef.current) {
+      return;
+    }
 
     highlightedElementRef.current.scrollLeft = textAreaRef.current.scrollLeft;
   }, [textAreaRef, highlightedElementRef]);
@@ -47,7 +58,9 @@ export const Editor = ({
     const textAreaElement = textAreaRef.current;
     const preElement = highlightedElementRef.current; // <pre> element
 
-    if (!textAreaElement || !preElement) {return;}
+    if (!textAreaElement || !preElement) {
+      return;
+    }
 
     const hasHorizontalScrollbar =
       textAreaElement.scrollWidth > textAreaElement.clientWidth;
@@ -65,7 +78,9 @@ export const Editor = ({
 
     window.addEventListener("resize", resizeListener);
 
-    return () => { window.removeEventListener("resize", resizeListener); };
+    return () => {
+      window.removeEventListener("resize", resizeListener);
+    };
   });
 
   useEffect(() => {
@@ -78,7 +93,9 @@ export const Editor = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!textAreaRef.current) {return;}
+    if (!textAreaRef.current) {
+      return;
+    }
 
     if (event.key === "Tab") {
       event.preventDefault();

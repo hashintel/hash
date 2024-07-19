@@ -134,8 +134,12 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
   return (
     <Box
       ref={blockRootRef}
-      onMouseEnter={() => { setHovered(true); }}
-      onMouseLeave={() => { setHovered(false); }}
+      onMouseEnter={() => {
+        setHovered(true);
+      }}
+      onMouseLeave={() => {
+        setHovered(false);
+      }}
     >
       <Fade
         in={
@@ -143,15 +147,21 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
         }
       >
         <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
-          <GetHelpLink href={"https://blockprotocol.org/@hash/blocks/ai-text"} />
+          <GetHelpLink
+            href={"https://blockprotocol.org/@hash/blocks/ai-text"}
+          />
 
           <Fade in={!generatedText}>
             <Box display={"flex"} gap={1} alignItems={"center"}>
               <ModelSelector
                 open={selectorOpen}
                 value={model}
-                onOpen={() => { setSelectorOpen(true); }}
-                onClose={() => { setSelectorOpen(false); }}
+                onOpen={() => {
+                  setSelectorOpen(true);
+                }}
+                onClose={() => {
+                  setSelectorOpen(false);
+                }}
                 onChange={setModel}
               />
             </Box>
@@ -161,8 +171,12 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
 
       <Collapse
         in={!generatedText && !animatingIn}
-        onEntered={() => { setAnimatingOut(false); }}
-        onExited={() => { setAnimatingIn(false); }}
+        onEntered={() => {
+          setAnimatingOut(false);
+        }}
+        onExited={() => {
+          setAnimatingIn(false);
+        }}
       >
         <BlockPromptInput
           value={promptText}
@@ -189,15 +203,23 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
             )
           }
           onSubmit={onSubmit}
-          onFocus={() => { setInputFocused(true); }}
-          onBlur={() => { setInputFocused(false); }}
-          onChange={(event) => { setPromptText(event.target.value); }}
+          onFocus={() => {
+            setInputFocused(true);
+          }}
+          onBlur={() => {
+            setInputFocused(false);
+          }}
+          onChange={(event) => {
+            setPromptText(event.target.value);
+          }}
         />
       </Collapse>
 
       <Collapse
         in={Boolean(generatedText) && !animatingOut && !animatingIn}
-        onExited={() => { setGeneratedText(""); }}
+        onExited={() => {
+          setGeneratedText("");
+        }}
       >
         {generatedText && (
           <TextPreview

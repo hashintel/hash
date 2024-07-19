@@ -219,11 +219,12 @@ export class DummyEmailTransporter implements EmailTransporter {
         recursive: true,
       });
 
-      const yamlFileContents = this.emailDumps.length > 0
-        ? `${yamlFileHeader}\n\n---\n${this.emailDumps
-            .map((email) => dump(email, { lineWidth: -1 }))
-            .join("\n---\n")}`
-        : yamlFileHeader;
+      const yamlFileContents =
+        this.emailDumps.length > 0
+          ? `${yamlFileHeader}\n\n---\n${this.emailDumps
+              .map((email) => dump(email, { lineWidth: -1 }))
+              .join("\n---\n")}`
+          : yamlFileHeader;
 
       await fs.writeFile(this.config.filePath, yamlFileContents, "utf-8");
     } catch (error) {

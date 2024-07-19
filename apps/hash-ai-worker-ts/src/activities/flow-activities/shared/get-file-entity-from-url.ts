@@ -91,7 +91,9 @@ const writeFileToS3URL = async ({
 }) => {
   return new Promise((resolve, reject) => {
     const fileStream = createReadStream(filePath);
-    const request = (presignedPutUrl.startsWith("https://") ? https : http).request(
+    const request = (
+      presignedPutUrl.startsWith("https://") ? https : http
+    ).request(
       presignedPutUrl,
       {
         headers: { "Content-Length": sizeInBytes, "Content-Type": mimeType },
@@ -117,9 +119,9 @@ const writeFileToS3URL = async ({
       reject(new Error(`Request error: ${error.message}`));
     });
 
-    fileStream.on("error", (error) =>
-      { reject(new Error(`Error reading file: ${error.message}`)); },
-    );
+    fileStream.on("error", (error) => {
+      reject(new Error(`Error reading file: ${error.message}`));
+    });
     fileStream.pipe(request);
     fileStream.on("end", () => request.end());
   }).finally(() => {

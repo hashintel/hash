@@ -27,7 +27,6 @@ const script = async () => {
     return;
   }
 
-   
   const packageJson = await fs.readJson(
     path.join(packageInfo.path, "package.json"),
   );

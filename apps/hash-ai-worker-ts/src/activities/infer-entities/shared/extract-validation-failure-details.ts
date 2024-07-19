@@ -69,7 +69,6 @@ export const extractErrorMessage = (error: unknown) => {
       }
     }
   } catch {
-     
     console.error(`Unexpected error message structure: ${stringify(error)}`);
   }
 

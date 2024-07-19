@@ -1,8 +1,11 @@
 import type {
   Next,
- proxySinks,   WorkflowExecuteInput,
+  proxySinks,
+  WorkflowExecuteInput,
   WorkflowInboundCallsInterceptor,
-workflowInfo,  WorkflowInterceptors } from "@temporalio/workflow";
+  workflowInfo,
+  WorkflowInterceptors,
+} from "@temporalio/workflow";
 
 import type { SentrySinks } from "../../sinks/sentry.js";
 

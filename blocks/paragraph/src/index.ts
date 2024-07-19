@@ -4,7 +4,4 @@
  * Entrypoint of the Block Component.
  */
 
-
-
-
-export {App as default} from "./app";
+export { App as default } from "./app";

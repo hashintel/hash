@@ -14,7 +14,9 @@ import type {
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type {
   CreateEntityParameters,
- Entity,  SerializedEntity } from "@local/hash-graph-sdk/entity";
+  Entity,
+  SerializedEntity,
+} from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type {
@@ -33,9 +35,11 @@ import {
 import type {
   DataTypeRootType,
   EntityTypeRootType,
- extractEntityUuidFromEntityId,  PropertyTypeRootType,
+  extractEntityUuidFromEntityId,
+  PropertyTypeRootType,
   SerializedEntityRootType,
-  SerializedSubgraph } from "@local/hash-subgraph";
+  SerializedSubgraph,
+} from "@local/hash-subgraph";
 import {
   getDataTypes,
   getEntities,

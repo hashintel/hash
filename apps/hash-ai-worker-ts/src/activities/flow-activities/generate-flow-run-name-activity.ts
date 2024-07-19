@@ -6,7 +6,10 @@ import type {
   AutomaticInferenceTriggerInputName,
   ManualInferenceTriggerInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type { goalFlowDefinitionIds,GoalFlowTriggerInput  } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import type {
+  goalFlowDefinitionIds,
+  GoalFlowTriggerInput,
+} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type {
   FlowDefinition,
   FlowTrigger,
@@ -15,7 +18,10 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
-import type { getLlmResponse,UsageTrackingParams  } from "../shared/get-llm-response.js";
+import type {
+  getLlmResponse,
+  UsageTrackingParams,
+} from "../shared/get-llm-response.js";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 

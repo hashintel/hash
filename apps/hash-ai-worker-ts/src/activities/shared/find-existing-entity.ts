@@ -17,14 +17,18 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityTypeRootType ,
+import type {
+  EntityTypeRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { logger } from "./activity-logger.js";
-import type { DereferencedEntityType , dereferenceEntityType } from "./dereference-entity-type.js";
+import type {
+  DereferencedEntityType,
+  dereferenceEntityType,
+} from "./dereference-entity-type.js";
 import { createEntityEmbeddings } from "./embeddings.js";
 import { getEntityByFilter } from "./get-entity-by-filter.js";
 
@@ -43,7 +47,7 @@ export const findExistingEntity = async ({
   proposedEntity: Pick<ProposedEntity, "entityTypeId" | "properties">;
   includeDrafts: boolean;
 }): Promise<Entity | undefined> => {
-  const {entityTypeId} = proposedEntity;
+  const { entityTypeId } = proposedEntity;
 
   const entityType: DereferencedEntityType | undefined =
     dereferencedEntityType ??
@@ -122,7 +126,7 @@ export const findExistingEntity = async ({
   /**
    * First find suitable specific properties to match on.
    */
-  const {labelProperty} = entityType;
+  const { labelProperty } = entityType;
 
   const propertyBaseUrlsToMatchOn: BaseUrl[] =
     labelProperty &&

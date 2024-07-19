@@ -1,6 +1,7 @@
 import type { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
 import type { BlockComponent } from "blockprotocol/react";
-import type { Reducer ,
+import type {
+  Reducer,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -191,11 +192,14 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     initialEmbedType,
   ]);
 
-  const setErrorString = (error: string) =>
-    { dispatch({ type: "UPDATE_STATE", payload: { errorString: error } }); };
+  const setErrorString = (error: string) => {
+    dispatch({ type: "UPDATE_STATE", payload: { errorString: error } });
+  };
 
   useLayoutEffect(() => {
-    if (!containerRef.current) {return;}
+    if (!containerRef.current) {
+      return;
+    }
     const blockWidth = containerRef.current.getBoundingClientRect().width;
 
     if (!blockWidthRef.current) {
@@ -259,7 +263,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         payload: { errorString: error, loading: false },
       });
 
- return;
+      return;
     }
 
     const { defaultHeight, defaultWidth } = getBlockDefaultSize({
@@ -308,15 +312,16 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           placeholderText={placeholderText}
           embedUrl={embedUrl}
           onSubmit={handleGetEmbed}
-          onChangeEmbedUrl={(url: string) =>
-            { dispatch({ type: "UPDATE_STATE", payload: { embedUrl: url } }); }
-          }
+          onChangeEmbedUrl={(url: string) => {
+            dispatch({ type: "UPDATE_STATE", payload: { embedUrl: url } });
+          }}
         />
       );
     }
 
     const shouldRespectAspectRatio =
-      Boolean(embedType) && PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO.has(embedType);
+      Boolean(embedType) &&
+      PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO.has(embedType);
 
     const shouldNotBeResized =
       Boolean(embedType) && PROVIDER_NAMES_THAT_CANT_BE_RESIZED.has(embedType);

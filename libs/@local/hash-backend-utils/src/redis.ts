@@ -1,5 +1,5 @@
 import { DataSource } from "apollo-datasource";
-import type { createClient,RedisClientType  } from "redis";
+import type { createClient, RedisClientType } from "redis";
 
 import type { Logger } from "./logger.js";
 
@@ -16,7 +16,7 @@ export class AsyncRedisClient extends DataSource {
    * of the `dst` list, and return the item. If the `src` list is empty, and
    * `timeoutSecs` is `0`, the function blocks indefinitely until an item arrives,
    * otherwise, it waits for the specified time, returning `null` if no new item arrives.
-    */
+   */
   brpoplpush: (
     source: string,
     dst: string,

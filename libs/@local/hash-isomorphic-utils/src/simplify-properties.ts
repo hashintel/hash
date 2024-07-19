@@ -44,14 +44,17 @@ export const simplifyProperties = <T extends PropertyObject>(
   properties: T,
 ): SimpleProperties<T> => {
   // this function is only called with property objects that follow the HASH URL/bp scheme
-  return typedEntries(properties).reduce<SimpleProperties<T>>((accumulator, [key, value]) => {
-    // fallback to a non-simplified key if the key is not in the expected format
-    const id = key.split("/").at(-2);
-    const simplified = id ? camelCase(id) : key;
+  return typedEntries(properties).reduce<SimpleProperties<T>>(
+    (accumulator, [key, value]) => {
+      // fallback to a non-simplified key if the key is not in the expected format
+      const id = key.split("/").at(-2);
+      const simplified = id ? camelCase(id) : key;
 
-    return {
-      ...accumulator,
-      [simplified]: value,
-    };
-  }, {});
+      return {
+        ...accumulator,
+        [simplified]: value,
+      };
+    },
+    {},
+  );
 };

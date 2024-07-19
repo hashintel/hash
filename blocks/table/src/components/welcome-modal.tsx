@@ -1,7 +1,8 @@
 import type { FunctionComponent } from "react";
-import type {   MagnifyingGlassRegularIcon,
+import type {
+  MagnifyingGlassRegularIcon,
   Modal,
-ModalProps ,
+  ModalProps,
   PersonRunningRegularIcon,
 } from "@hashintel/design-system";
 import {

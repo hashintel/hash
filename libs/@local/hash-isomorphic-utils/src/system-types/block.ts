@@ -28,4 +28,15 @@ export type {
   TextDataTypeWithMetadata,
 };
 
-export {type Block, type BlockHasDataLink, type BlockOutgoingLinkAndTarget, type BlockOutgoingLinksByLinkEntityTypeId, type BlockProperties, type BlockPropertiesWithMetadata, type ComponentIdPropertyValue, type ComponentIdPropertyValueWithMetadata, type HasData, type HasDataOutgoingLinkAndTarget} from "./shared.js";
+export {
+  type Block,
+  type BlockHasDataLink,
+  type BlockOutgoingLinkAndTarget,
+  type BlockOutgoingLinksByLinkEntityTypeId,
+  type BlockProperties,
+  type BlockPropertiesWithMetadata,
+  type ComponentIdPropertyValue,
+  type ComponentIdPropertyValueWithMetadata,
+  type HasData,
+  type HasDataOutgoingLinkAndTarget,
+} from "./shared.js";

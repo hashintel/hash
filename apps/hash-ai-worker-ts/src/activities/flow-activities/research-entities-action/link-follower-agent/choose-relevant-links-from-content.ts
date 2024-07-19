@@ -98,7 +98,7 @@ const extractLinksFromHtml = (html: string) => {
   let linksList = "";
 
   for (const link of links) {
-    linksList = `${linksList  }${link.innerText ? `${link.innerText}: ` : ""}${link.href}\n`;
+    linksList = `${linksList}${link.innerText ? `${link.innerText}: ` : ""}${link.href}\n`;
   }
 
   return linksList;

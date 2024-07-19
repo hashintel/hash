@@ -109,8 +109,12 @@ export const AddressCard = ({
               letterSpacing: "-0.02em",
               color: theme.palette.common.black,
             }}
-            onChange={(event) => { setTitleValue(event.target.value); }}
-            onBlur={(event) => { updateTitle(event.target.value); }}
+            onChange={(event) => {
+              setTitleValue(event.target.value);
+            }}
+            onBlur={(event) => {
+              updateTitle(event.target.value);
+            }}
           />
 
           <Box display={"flex"} gap={1} alignItems={"center"}>
@@ -168,7 +172,9 @@ export const AddressCard = ({
         <EditableField
           editIconFontSize={14}
           value={descriptionValue}
-          placeholder={"Click here to add a description or more detailed information"}
+          placeholder={
+            "Click here to add a description or more detailed information"
+          }
           readonly={readonly}
           sx={{
             fontWeight: 500,
@@ -177,7 +183,9 @@ export const AddressCard = ({
             letterSpacing: "-0.02em",
             color: theme.palette.gray[90],
           }}
-          onChange={(event) => { setDescriptionValue(event.target.value); }}
+          onChange={(event) => {
+            setDescriptionValue(event.target.value);
+          }}
           onBlur={(event) => {
             updateDescription(event.target.value);
           }}

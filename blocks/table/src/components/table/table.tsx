@@ -1,13 +1,22 @@
 import produce from "immer";
 import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
-import type { FunctionComponent , useCallback, useMemo, useRef, useState } from "react";
 import type {
- CompactSelection,   DataEditorProps,
+  FunctionComponent,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type {
+  CompactSelection,
+  DataEditorProps,
   DataEditorRef,
-GridCellKind,  GridColumn,
+  GridCellKind,
+  GridColumn,
   GridSelection,
-  Rectangle } from "@glideapps/glide-data-grid";
+  Rectangle,
+} from "@glideapps/glide-data-grid";
 import { ButtonBase, useTheme } from "@mui/material";
 
 import type { ColumnKey, RootKey } from "../../additional-types";
@@ -112,8 +121,12 @@ export const Table: FunctionComponent<{
       newLocalColumns?: TableLocalColumnPropertyValue[];
       newLocalRows?: Record<string, unknown>[];
     }) => {
-      if (newLocalColumns) {setLocalColumns(newLocalColumns);}
-      if (newLocalRows) {setLocalRows(newLocalRows);}
+      if (newLocalColumns) {
+        setLocalColumns(newLocalColumns);
+      }
+      if (newLocalRows) {
+        setLocalRows(newLocalRows);
+      }
 
       isDebounceQueued.current = true;
 
@@ -158,7 +171,9 @@ export const Table: FunctionComponent<{
       setTimeout(() => {
         const bounds = gridRef.current?.getBounds(col, 0);
 
-        if (!bounds) {return;}
+        if (!bounds) {
+          return;
+        }
 
         bounds.y = bounds.y - ROW_HEIGHT;
         setHeaderMenu({ col, bounds });
@@ -355,7 +370,9 @@ export const Table: FunctionComponent<{
               ),
             });
           }}
-          onClose={() => { setHeaderMenu(undefined); }}
+          onClose={() => {
+            setHeaderMenu(undefined);
+          }}
           onOutsideClick={() => {
             if (justClickedHeaderRef.current) {
               justClickedHeaderRef.current = false;

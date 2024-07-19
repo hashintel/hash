@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type {   getOrgByShortname,
-Org ,
+import type {
+  getOrgByShortname,
+  Org,
   updateOrgName,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";

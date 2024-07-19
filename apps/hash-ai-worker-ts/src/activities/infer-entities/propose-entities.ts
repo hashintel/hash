@@ -4,15 +4,17 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Status , StatusCode } from "@local/status";
+import type { Status, StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
 import { logger } from "../shared/activity-logger.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { getLlmResponse } from "../shared/get-llm-response.js";
 import type {
- getToolCallsFromLlmAssistantMessage,  LlmMessage,
-  LlmUserMessage } from "../shared/get-llm-response/llm-message.js";
+  getToolCallsFromLlmAssistantMessage,
+  LlmMessage,
+  LlmUserMessage,
+} from "../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
 import { stringify } from "../shared/stringify.js";
@@ -24,7 +26,10 @@ import type {
 } from "./inference-types.js";
 import { validateProposedEntitiesByType } from "./persist-entities/generate-persist-entities-tools.js";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details.js";
-import type { generateProposeEntitiesTools,ProposedEntityToolCreationsByType  } from "./shared/generate-propose-entities-tools.js";
+import type {
+  generateProposeEntitiesTools,
+  ProposedEntityToolCreationsByType,
+} from "./shared/generate-propose-entities-tools.js";
 import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties.js";
 
 /**
@@ -467,7 +472,9 @@ export const proposeEntities = async (params: {
           ).then((invalidProposals) => invalidProposals.flat());
 
           if (invalidProposedEntities.length > 0) {
-            retryMessageContentText = retryMessageContentText + dedent(`
+            retryMessageContentText =
+              retryMessageContentText +
+              dedent(`
               Some of the entities you suggested for creation were invalid. Please review their properties and try again.
               The entities you should review and make a 'create_entities' call for are:
               ${invalidProposedEntities

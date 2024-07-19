@@ -190,8 +190,12 @@ export const GenerateImage = ({
     <Box
       ref={blockRootRef}
       style={{ fontFamily: "colfax-web", fontWeight: 400 }}
-      onMouseEnter={() => { setHovered(true); }}
-      onMouseLeave={() => { setHovered(false); }}
+      onMouseEnter={() => {
+        setHovered(true);
+      }}
+      onMouseLeave={() => {
+        setHovered(false);
+      }}
     >
       <Fade
         in={
@@ -203,17 +207,26 @@ export const GenerateImage = ({
         }
       >
         <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
-          <GetHelpLink href={"https://blockprotocol.org/@hash/blocks/ai-image"} />
+          <GetHelpLink
+            href={"https://blockprotocol.org/@hash/blocks/ai-image"}
+          />
 
           {isMobile ? (
             <BlockSettingsButton
               expanded={mobileSettingsExpanded}
-              onClick={() => { setMobileSettingsExpanded(!mobileSettingsExpanded); }}
+              onClick={() => {
+                setMobileSettingsExpanded(!mobileSettingsExpanded);
+              }}
             />
           ) : null}
 
           <Collapse in={!isMobile || mobileSettingsExpanded}>
-            <Box display={"flex"} gap={1} flexWrap={"wrap"} mt={isMobile ? 1 : 0}>
+            <Box
+              display={"flex"}
+              gap={1}
+              flexWrap={"wrap"}
+              mt={isMobile ? 1 : 0}
+            >
               <Typography
                 variant={"regularTextLabels"}
                 sx={{
@@ -249,8 +262,12 @@ export const GenerateImage = ({
                 <ImageNumberSelector
                   open={selectorOpen}
                   value={imageNumber}
-                  onOpen={() => { setSelectorOpen(true); }}
-                  onClose={() => { setSelectorOpen(false); }}
+                  onOpen={() => {
+                    setSelectorOpen(true);
+                  }}
+                  onClose={() => {
+                    setSelectorOpen(false);
+                  }}
                   onChange={setImageNumber}
                 />
               ) : null}
@@ -261,8 +278,12 @@ export const GenerateImage = ({
 
       <Collapse
         in={!images?.length && !animatingIn}
-        onEntered={() => { setAnimatingOut(false); }}
-        onExited={() => { setAnimatingIn(false); }}
+        onEntered={() => {
+          setAnimatingOut(false);
+        }}
+        onExited={() => {
+          setAnimatingIn(false);
+        }}
       >
         <BlockPromptInput
           value={promptText}
@@ -293,15 +314,23 @@ export const GenerateImage = ({
             )
           }
           onSubmit={() => generateAndUploadImages()}
-          onFocus={() => { setInputFocused(true); }}
-          onBlur={() => { setInputFocused(false); }}
-          onChange={(event) => { setPromptText(event.target.value); }}
+          onFocus={() => {
+            setInputFocused(true);
+          }}
+          onBlur={() => {
+            setInputFocused(false);
+          }}
+          onChange={(event) => {
+            setPromptText(event.target.value);
+          }}
         />
       </Collapse>
 
       <Collapse
         in={Boolean(images?.length) && !animatingOut && !animatingIn}
-        onExited={() => { setImages(null); }}
+        onExited={() => {
+          setImages(null);
+        }}
       >
         {images && (
           <ImagePreview

@@ -1,6 +1,8 @@
-import type { BaseUrl,   extractBaseUrl,
+import type {
+  BaseUrl,
+  extractBaseUrl,
   extractVersion,
-VersionedUrl ,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
 import type {

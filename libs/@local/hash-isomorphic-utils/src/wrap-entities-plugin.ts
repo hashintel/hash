@@ -1,11 +1,13 @@
 import { mapValues } from "lodash-es";
 import { keymap } from "prosemirror-keymap";
 import type { Node } from "prosemirror-model";
-import type { Command,   EditorState,
+import type {
+  Command,
+  EditorState,
   NodeSelection,
   Plugin,
   TextSelection,
-Transaction ,
+  Transaction,
 } from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
 
@@ -192,7 +194,7 @@ const prepareCommandForWrappedEntities =
             const wrapperNodes: Node[] = [];
             const $originalStart = state.doc.resolve(pos);
 
-            for (let {depth} = $originalStart; depth > 0; depth--) {
+            for (let { depth } = $originalStart; depth > 0; depth--) {
               /**
                * The order of wrapperNodes will be the parent order of the
                * replacement wrappers, and as we're traversing up, we need to add

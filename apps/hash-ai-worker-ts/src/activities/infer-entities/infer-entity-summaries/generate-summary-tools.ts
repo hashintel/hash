@@ -1,6 +1,9 @@
 import type { JSONSchema } from "openai/lib/jsonschema";
 import type { JsonObject } from "@blockprotocol/core";
-import type { validateVersionedUrl,VersionedUrl  } from "@blockprotocol/type-system";
+import type {
+  validateVersionedUrl,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";

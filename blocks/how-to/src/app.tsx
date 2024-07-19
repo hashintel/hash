@@ -293,8 +293,12 @@ export const App: BlockComponent<BlockEntity> = ({
               <Box
                 ref={blockRootRef}
                 sx={{ display: "inline-block", width: 1 }}
-                onMouseEnter={() => { setHovered(true); }}
-                onMouseLeave={() => { setHovered(false); }}
+                onMouseEnter={() => {
+                  setHovered(true);
+                }}
+                onMouseLeave={() => {
+                  setHovered(false);
+                }}
               >
                 {!readonly ? (
                   <Fade in={hovered}>
@@ -306,7 +310,9 @@ export const App: BlockComponent<BlockEntity> = ({
                         mb: 1.5,
                       }}
                     >
-                      <GetHelpLink href={"https://blockprotocol.org/@hash/blocks/how-to"} />
+                      <GetHelpLink
+                        href={"https://blockprotocol.org/@hash/blocks/how-to"}
+                      />
                     </Box>
                   </Fade>
                 ) : null}
@@ -331,71 +337,69 @@ export const App: BlockComponent<BlockEntity> = ({
                         }),
                   }}
                 >
-                  {
-                     
-                    title || description || !readonly ? (
-                      <Stack
+                  {title || description || !readonly ? (
+                    <Stack
+                      sx={{
+                        gap: 1.5,
+                      }}
+                    >
+                      <EditableField
+                        value={titleValue}
+                        placeholder={"Enter a how-to guide name"}
+                        readonly={readonly}
                         sx={{
-                          gap: 1.5,
+                          fontWeight: 700,
+                          fontSize: 21,
+                          lineHeight: 1,
+                          letterSpacing: "-0.02em",
+                          color: theme.palette.common.black,
                         }}
-                      >
-                        <EditableField
-                          value={titleValue}
-                          placeholder={"Enter a how-to guide name"}
-                          readonly={readonly}
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 21,
-                            lineHeight: 1,
-                            letterSpacing: "-0.02em",
-                            color: theme.palette.common.black,
-                          }}
-                          onChange={(event) => {
-                            if (!readonly) {
-                              setTitleValue(event.target.value);
-                            }
-                          }}
-                          onBlur={(event) =>
-                            updateField(event.target.value, titleKey)
+                        onChange={(event) => {
+                          if (!readonly) {
+                            setTitleValue(event.target.value);
                           }
-                        />
+                        }}
+                        onBlur={(event) =>
+                          updateField(event.target.value, titleKey)
+                        }
+                      />
 
-                        <EditableField
-                          editIconFontSize={14}
-                          value={descriptionValue}
-                          placeholder={"Click here to add a description of the how-to process"}
-                          readonly={readonly}
-                          sx={{
-                            fontWeight: 500,
-                            fontSize: 14,
-                            lineHeight: 1.3,
-                            letterSpacing: "-0.02em",
-                            color: theme.palette.gray[90],
-                          }}
-                          placeholderSx={{
-                            fontStyle: "italic",
-                          }}
-                          onChange={(event) => {
-                            if (!readonly) {
-                              setDescriptionValue(event.target.value);
-                            }
-                          }}
-                          onBlur={(event) => {
-                            void updateField(
-                              event.target.value,
-                              descriptionKey,
-                            );
-                          }}
-                        />
-                      </Stack>
-                    ) : null
-                  }
+                      <EditableField
+                        editIconFontSize={14}
+                        value={descriptionValue}
+                        placeholder={
+                          "Click here to add a description of the how-to process"
+                        }
+                        readonly={readonly}
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: 14,
+                          lineHeight: 1.3,
+                          letterSpacing: "-0.02em",
+                          color: theme.palette.gray[90],
+                        }}
+                        placeholderSx={{
+                          fontStyle: "italic",
+                        }}
+                        onChange={(event) => {
+                          if (!readonly) {
+                            setDescriptionValue(event.target.value);
+                          }
+                        }}
+                        onBlur={(event) => {
+                          void updateField(event.target.value, descriptionKey);
+                        }}
+                      />
+                    </Stack>
+                  ) : null}
 
                   {(introEntity ?? !readonly) ? (
                     <Box>
                       <Collapse
                         in={!readonly && !introEntity && !introAnimatingOut}
-                        onExited={() => { setIntroButtonAnimatingOut(false); }}
+                        onExited={() => {
+                          setIntroButtonAnimatingOut(false);
+                        }}
                       >
                         <Button
                           variant={"tertiary"}
@@ -415,13 +419,19 @@ export const App: BlockComponent<BlockEntity> = ({
                       <Collapse
                         appear
                         in={Boolean(introEntity) && !introButtonAnimatingOut}
-                        onExited={() => { setIntroAnimatingOut(false); }}
+                        onExited={() => {
+                          setIntroAnimatingOut(false);
+                        }}
                       >
                         <Step
                           header={"Introduction"}
                           title={introEntity?.properties[titleKey] ?? ""}
-                          titlePlaceholder={"Requirements, Ingredients, Pre-requisites, etc."}
-                          descriptionPlaceholder={"Enter a list of things that might be helpful for people to know before they begin."}
+                          titlePlaceholder={
+                            "Requirements, Ingredients, Pre-requisites, etc."
+                          }
+                          descriptionPlaceholder={
+                            "Enter a list of things that might be helpful for people to know before they begin."
+                          }
                           updateField={updateIntroductionField}
                           readonly={readonly}
                           deleteButtonText={"Remove intro"}
@@ -487,7 +497,9 @@ export const App: BlockComponent<BlockEntity> = ({
                             updateField={(value, field) =>
                               updateStepField(index, value, field)
                             }
-                            onRemove={() => { removeStep(index); }}
+                            onRemove={() => {
+                              removeStep(index);
+                            }}
                           />
                         </Box>
                       </Collapse>

@@ -389,7 +389,10 @@ export interface IssueHasAssigneeLink {
   rightEntity: User;
 }
 
-export interface IssueHasCreatorLink { linkEntity: HasCreator; rightEntity: User }
+export interface IssueHasCreatorLink {
+  linkEntity: HasCreator;
+  rightEntity: User;
+}
 
 export interface IssueHasSubscriberLink {
   linkEntity: HasSubscriber;
@@ -420,7 +423,10 @@ export interface IssueOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@linear/types/entity-type/state/v/1": IssueStateLink;
 }
 
-export interface IssueParentLink { linkEntity: Parent; rightEntity: Issue }
+export interface IssueParentLink {
+  linkEntity: Parent;
+  rightEntity: Issue;
+}
 
 /**
  * An issue.
@@ -493,9 +499,15 @@ export interface IssuePropertiesWithMetadata {
   };
 }
 
-export interface IssueSnoozedByLink { linkEntity: SnoozedBy; rightEntity: User }
+export interface IssueSnoozedByLink {
+  linkEntity: SnoozedBy;
+  rightEntity: User;
+}
 
-export interface IssueStateLink { linkEntity: State; rightEntity: WorkflowState }
+export interface IssueStateLink {
+  linkEntity: State;
+  rightEntity: WorkflowState;
+}
 
 /**
  * The URL of the issue.

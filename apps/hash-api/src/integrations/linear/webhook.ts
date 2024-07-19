@@ -4,7 +4,10 @@ import type { RequestHandler } from "express";
 import { tupleIncludes } from "@local/advanced-types/includes";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
-import type { supportedLinearTypes,WorkflowTypeMap  } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type {
+  supportedLinearTypes,
+  WorkflowTypeMap,
+} from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -59,7 +62,7 @@ export const linearWebhook: RequestHandler<
 
   const temporalClient = await createTemporalClient(logger);
 
-  const {organizationId} = payload;
+  const { organizationId } = payload;
 
   if (!payload.data) {
     res

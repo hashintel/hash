@@ -1,4 +1,9 @@
-import type { FunctionComponent, MouseEvent , useLayoutEffect, useRef } from "react";
+import type {
+  FunctionComponent,
+  MouseEvent,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import { tw } from "twind";
 
 interface ResizeBlockProps {
@@ -29,8 +34,12 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
   });
 
   useLayoutEffect(() => {
-    if (!imageRef.current) {return;}
-    if (!imageSrc) {return;}
+    if (!imageRef.current) {
+      return;
+    }
+    if (!imageSrc) {
+      return;
+    }
 
     const imageWidth = imageRef.current.getBoundingClientRect().width;
 
@@ -47,7 +56,9 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
 
   const handleResize = (_event: MouseEvent, direction: "left" | "right") => {
     function onMouseMove(mouseMoveEvent: globalThis.MouseEvent) {
-      if (!imageRef.current) {return;}
+      if (!imageRef.current) {
+        return;
+      }
       let newWidth;
       const { left, right } = imageRef.current.getBoundingClientRect();
 
@@ -68,7 +79,9 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       setTimeout(() => {
-        if (!imageRef.current) {return;}
+        if (!imageRef.current) {
+          return;
+        }
         const { width: newWidth } = imageRef.current.getBoundingClientRect();
 
         updateWidthRef.current(newWidth);
@@ -98,7 +111,9 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
               className={tw`transition-all absolute ${
                 position === "left" ? "left-1" : "right-1"
               } top-1/2 -translate-y-1/2 h-12 w-1.5 rounded-full bg-black bg-opacity-70 cursor-col-resize opacity-0 group-hover:opacity-100`}
-              onMouseDown={(event) => { handleResize(event, position); }}
+              onMouseDown={(event) => {
+                handleResize(event, position);
+              }}
             />
           ))}
     </div>

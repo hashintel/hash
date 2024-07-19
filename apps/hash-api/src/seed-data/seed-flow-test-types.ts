@@ -18,7 +18,10 @@ import {
   systemDataTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityTypeRelationAndSubject , linkEntityTypeUrl } from "@local/hash-subgraph";
+import type {
+  EntityTypeRelationAndSubject,
+  linkEntityTypeUrl,
+} from "@local/hash-subgraph";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphFunction } from "../graph/context-types";
@@ -26,7 +29,9 @@ import type {
   EntityTypeDefinition,
   generateSystemEntityTypeSchema,
   generateSystemPropertyTypeSchema,
-  generateSystemTypeBaseUrl,  PropertyTypeDefinition} from "../graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
+  generateSystemTypeBaseUrl,
+  PropertyTypeDefinition,
+} from "../graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import {
   createOrg,
   getOrgByShortname,

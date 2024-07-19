@@ -16,7 +16,10 @@ import type {
   OrganizationNamePropertyValueWithMetadata,
   OrganizationPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { AccountGroupEntityId , extractAccountGroupId } from "@local/hash-subgraph";
+import type {
+  AccountGroupEntityId,
+  extractAccountGroupId,
+} from "@local/hash-subgraph";
 import {
   extractBaseUrl,
   versionedUrlFromComponents,

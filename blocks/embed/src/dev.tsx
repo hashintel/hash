@@ -3,7 +3,7 @@
  * This file is not bundled with the library during the build process.
  */
 import { MockBlockDock } from "mock-block-dock";
-import type { FunctionComponent , useState } from "react";
+import type { FunctionComponent, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { tw } from "twind";
 
@@ -71,9 +71,9 @@ const AppComponent: FunctionComponent = () => {
       <select
         className={tw`text-base border-1 border-gray-300 rounded-md p-1`}
         value={selectedVariantIndex}
-        onChange={(event) =>
-          { setSelectedVariantIndex(parseInt(event.target.value, 10)); }
-        }
+        onChange={(event) => {
+          setSelectedVariantIndex(parseInt(event.target.value, 10));
+        }}
       >
         {variants.map((variant, variantIndex) => (
           <option value={variantIndex} key={variant.name}>

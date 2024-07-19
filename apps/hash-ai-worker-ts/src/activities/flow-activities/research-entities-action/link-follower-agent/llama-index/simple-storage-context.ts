@@ -2,10 +2,11 @@ import { access, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type {   SimpleDocumentStore,
+import type {
+  SimpleDocumentStore,
   SimpleIndexStore,
   SimpleVectorStore,
-StorageContext ,
+  StorageContext,
 } from "llamaindex";
 import type { Subtype } from "@local/advanced-types/subtype";
 
@@ -64,7 +65,6 @@ export const retrieveSimpleStorageContext = async (params: {
 
     return { simpleStorageContext };
   } catch (error) {
-     
     console.error(
       `Failed to retrieve storage context: ${(error as Error).message}`,
     );

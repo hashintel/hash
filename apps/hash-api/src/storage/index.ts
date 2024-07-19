@@ -3,8 +3,10 @@ import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import type {
   FileStorageProvider,
   isStorageType,
-  storageProviderLookup,  StorageType,
-  UploadableStorageProvider} from "@local/hash-backend-utils/file-storage";
+  storageProviderLookup,
+  StorageType,
+  UploadableStorageProvider,
+} from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -163,7 +165,7 @@ export const setupFileDownloadProxyHandler = (
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- should likely be using express-async-handler
   app.get("/file/:key(*)", async (request, res) => {
-    const {key} = request.params;
+    const { key } = request.params;
 
     // We purposefully return 404 for all error cases.
     if (!key) {

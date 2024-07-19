@@ -11,7 +11,9 @@ import type {
 import type {
   FlowRun,
   FlowRunStatus,
- FlowStepStatus,  StepRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+  FlowStepStatus,
+  StepRun,
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 import type { Client as TemporalClient } from "@temporalio/client";
 import proto from "@temporalio/proto";

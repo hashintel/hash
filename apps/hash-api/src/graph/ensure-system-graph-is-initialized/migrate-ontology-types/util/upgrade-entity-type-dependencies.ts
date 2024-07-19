@@ -1,7 +1,9 @@
 import type {
- atLeastOne,  EntityType,
+  atLeastOne,
+  EntityType,
   EntityTypeReference,
-  VersionedUrl } from "@blockprotocol/type-system";
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 

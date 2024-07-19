@@ -53,7 +53,8 @@ export const mapQueryTemporalAxesUnresolved = (
         ),
       },
     };
-  } if (
+  }
+  if (
     temporalAxes.pinned.axis === "decisionTime" &&
     temporalAxes.variable.axis === "transactionTime"
   ) {
@@ -115,7 +116,8 @@ export const mapQueryTemporalAxes = (
         ),
       },
     };
-  } if (
+  }
+  if (
     temporalAxes.pinned.axis === "decisionTime" &&
     temporalAxes.variable.axis === "transactionTime"
   ) {

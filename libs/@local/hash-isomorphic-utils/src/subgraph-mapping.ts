@@ -24,13 +24,15 @@ import type {
 import type {
   extractOwnedByIdFromEntityId,
   isEntityId,
-  isEntityVertex,  KnowledgeGraphVertex,
+  isEntityVertex,
+  KnowledgeGraphVertex,
   SerializedKnowledgeGraphVertex,
   SerializedSubgraph,
   SerializedVertices,
   Subgraph,
   SubgraphRootType,
-  Vertices} from "@local/hash-subgraph";
+  Vertices,
+} from "@local/hash-subgraph";
 
 import { systemEntityTypes, systemPropertyTypes } from "./ontology-type-ids.js";
 

@@ -1,4 +1,4 @@
-import type { FunctionComponent , useState } from "react";
+import type { FunctionComponent, useState } from "react";
 import {
   BlockSettingsButton,
   GetHelpLink,
@@ -12,8 +12,11 @@ import {
   Typography,
 } from "@mui/material";
 
-import type { ChatModelId , ChatModelSelector } from "./chat-model-selector";
-import type { SystemPromptId , SystemPromptSelector } from "./system-prompt-selector";
+import type { ChatModelId, ChatModelSelector } from "./chat-model-selector";
+import type {
+  SystemPromptId,
+  SystemPromptSelector,
+} from "./system-prompt-selector";
 
 export const Header: FunctionComponent<{
   readonly: boolean;
@@ -60,7 +63,9 @@ export const Header: FunctionComponent<{
         {isMobile ? (
           <BlockSettingsButton
             expanded={mobileSettingsExpanded}
-            onClick={() => { setMobileSettingsExpanded(!mobileSettingsExpanded); }}
+            onClick={() => {
+              setMobileSettingsExpanded(!mobileSettingsExpanded);
+            }}
           />
         ) : null}
 
@@ -96,8 +101,12 @@ export const Header: FunctionComponent<{
                     paddingRight: disabled ? 0 : 2,
                   },
               }}
-              onOpen={() => { setChatModelSelectorOpen(true); }}
-              onClose={() => { setChatModelSelectorOpen(false); }}
+              onOpen={() => {
+                setChatModelSelectorOpen(true);
+              }}
+              onClose={() => {
+                setChatModelSelectorOpen(false);
+              }}
               onChange={setChatModel}
             />
             in
@@ -113,8 +122,12 @@ export const Header: FunctionComponent<{
                   paddingRight: disabled ? 0 : undefined,
                 },
               }}
-              onOpen={() => { setSystemPromptSelectorOpen(true); }}
-              onClose={() => { setSystemPromptSelectorOpen(false); }}
+              onOpen={() => {
+                setSystemPromptSelectorOpen(true);
+              }}
+              onClose={() => {
+                setSystemPromptSelectorOpen(false);
+              }}
               onChange={setSystemPromptId}
             />
           </Typography>

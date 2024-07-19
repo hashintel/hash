@@ -10,7 +10,10 @@ import {
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SimpleProperties , simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type {
+  SimpleProperties,
+  simplifyProperties,
+} from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   HASHInstance,
@@ -102,7 +105,6 @@ export const isUserHashInstanceAdmin = async (
   // console.info(`[${userAccountId}] Fetching HASH Instance entity`);
   const hashInstance = await getHashInstance(ctx, authentication).catch(
     (error) => {
-       
       console.error(
         `[${userAccountId}] ERROR Fetching HASH Instance entity: ${error}`,
       );

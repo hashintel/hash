@@ -217,18 +217,17 @@ export const intervalIntersectionWithInterval = <
   if (!intervalOverlapsInterval(left, right)) {
     return null;
   }
- 
-    return {
-      start:
-        compareBounds(left.start, right.start, "start", "start") <= 0
-          ? right.start
-          : left.start,
-      end:
-        compareBounds(left.end, right.end, "end", "end") <= 0
-          ? left.end
-          : right.end,
-    } as IntersectionReturn<LeftInterval, RightInterval>;
-  
+
+  return {
+    start:
+      compareBounds(left.start, right.start, "start", "start") <= 0
+        ? right.start
+        : left.start,
+    end:
+      compareBounds(left.end, right.end, "end", "end") <= 0
+        ? left.end
+        : right.end,
+  } as IntersectionReturn<LeftInterval, RightInterval>;
 };
 
 /**
@@ -333,12 +332,12 @@ export const intervalUnionWithInterval = <
     intervalIsAdjacentToInterval(left, right)
   ) {
     return [intervalMergeWithInterval(left, right)];
-  } if (compareBounds(left.start, right.start, "start", "start") < 0) {
+  }
+  if (compareBounds(left.start, right.start, "start", "start") < 0) {
     return [left, right];
   }
- 
-    return [right, left];
-  
+
+  return [right, left];
 };
 
 /**
@@ -370,15 +369,14 @@ export const unionOfIntervals = <IntervalsType extends TimeInterval>(
       if (union.length === 0) {
         return [currentInterval];
       }
- 
-        // The intervals were sorted above, it's only necessary to check the union of this with the last interval, if it
-        // overlaps two of the previous ones (which would make it necessary to check the union with more than just the
-        // last) then those would have been merged into one in the previous iteration (again because they are sorted).
-        return [
-          ...union.slice(0, -1),
-          ...intervalUnionWithInterval(union.at(-1)!, currentInterval),
-        ];
-      
+
+      // The intervals were sorted above, it's only necessary to check the union of this with the last interval, if it
+      // overlaps two of the previous ones (which would make it necessary to check the union with more than just the
+      // last) then those would have been merged into one in the previous iteration (again because they are sorted).
+      return [
+        ...union.slice(0, -1),
+        ...intervalUnionWithInterval(union.at(-1)!, currentInterval),
+      ];
     },
     [],
   );

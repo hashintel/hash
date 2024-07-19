@@ -2,7 +2,8 @@ import dedent from "dedent";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance ,
+import type {
+  EnforcedEntityEditionProvenance,
   Entity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
@@ -11,14 +12,19 @@ import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { extractErrorMessage } from "../../../infer-entities/shared/extract-validation-failure-details.js";
-import type { mapSimplifiedPropertiesToProperties,PropertyValueWithSimplifiedProperties  } from "../../../infer-entities/shared/map-simplified-properties-to-properties.js";
+import type {
+  mapSimplifiedPropertiesToProperties,
+  PropertyValueWithSimplifiedProperties,
+} from "../../../infer-entities/shared/map-simplified-properties-to-properties.js";
 import { stripIdsFromDereferencedProperties } from "../../../infer-entities/shared/strip-ids-from-dereferenced-properties.js";
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type {
- getToolCallsFromLlmAssistantMessage,  LlmMessage,
-  LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
+  getToolCallsFromLlmAssistantMessage,
+  LlmMessage,
+  LlmUserMessage,
+} from "../../../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";

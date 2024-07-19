@@ -198,4 +198,15 @@ export type {
   UserPropertiesWithMetadata,
 };
 
-export {type ActivePropertyValue, type ActivePropertyValueWithMetadata, type AdminPropertyValue, type AdminPropertyValueWithMetadata, type AllowedAuthServicePropertyValue, type AllowedAuthServicePropertyValueWithMetadata, type AllowMembersToInvitePropertyValue, type AllowMembersToInvitePropertyValueWithMetadata, type ArchivedAtPropertyValue, type ArchivedAtPropertyValueWithMetadata} from "./shared.js";
+export {
+  type ActivePropertyValue,
+  type ActivePropertyValueWithMetadata,
+  type AdminPropertyValue,
+  type AdminPropertyValueWithMetadata,
+  type AllowedAuthServicePropertyValue,
+  type AllowedAuthServicePropertyValueWithMetadata,
+  type AllowMembersToInvitePropertyValue,
+  type AllowMembersToInvitePropertyValueWithMetadata,
+  type ArchivedAtPropertyValue,
+  type ArchivedAtPropertyValueWithMetadata,
+} from "./shared.js";

@@ -1,4 +1,10 @@
-import type { FunctionComponent , useCallback, useMemo, useRef, useState } from "react";
+import type {
+  FunctionComponent,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { SizeMe } from "react-sizeme";
 import { TransitionGroup } from "react-transition-group";
 import { v4 as uuid } from "uuid";
@@ -8,16 +14,18 @@ import { useServiceBlockModule } from "@blockprotocol/service/react";
 import { Box, Collapse } from "@mui/material";
 
 import { ChatMessage } from "./complete-chat/chat-message";
-import type { ChatModelId ,
+import type {
+  ChatModelId,
   defaultChatModelId,
   isChatModelId,
 } from "./complete-chat/chat-model-selector";
 import { ChatTextField } from "./complete-chat/chat-textfield";
 import { ExamplePrompts } from "./complete-chat/example-prompts";
 import { Header } from "./complete-chat/header";
-import type {   defaultSystemPromptId,
+import type {
+  defaultSystemPromptId,
   isSystemPromptId,
-SystemPromptId ,
+  SystemPromptId,
   systemPrompts,
 } from "./complete-chat/system-prompt-selector";
 import type {
@@ -243,8 +251,8 @@ export const CompleteChat: FunctionComponent<{
   }
 
   const updateOrAddChatMessage = useCallback(
-    (message: CompleteChatRequest | CompleteChatResponse) =>
-      { isMessageCompleteChatResponse(message)
+    (message: CompleteChatRequest | CompleteChatResponse) => {
+      isMessageCompleteChatResponse(message)
         ? setCompleteChatResponses((previousResponses) => {
             const existingResponseIndex = previousResponses.findIndex(
               ({ id }) => id === message.id,
@@ -270,7 +278,8 @@ export const CompleteChat: FunctionComponent<{
                   message,
                   ...previousRequests.slice(existingRequestIndex + 1),
                 ];
-          }); },
+          });
+    },
     [setCompleteChatResponses, setCompleteChatRequests],
   );
 
@@ -441,8 +450,12 @@ export const CompleteChat: FunctionComponent<{
     <Box
       ref={blockRootRef}
       sx={{ maxWidth: maximumWidth }}
-      onPointerEnter={() => { setHovered(true); }}
-      onPointerLeave={() => { setHovered(false); }}
+      onPointerEnter={() => {
+        setHovered(true);
+      }}
+      onPointerLeave={() => {
+        setHovered(false);
+      }}
     >
       <SizeMe>
         {({ size }) => {
@@ -498,8 +511,12 @@ export const CompleteChat: FunctionComponent<{
                           },
                         });
                       }}
-                      onFocus={() => { setInputFocused(true); }}
-                      onBlur={() => { setInputFocused(false); }}
+                      onFocus={() => {
+                        setInputFocused(true);
+                      }}
+                      onBlur={() => {
+                        setInputFocused(false);
+                      }}
                     />
                     <Collapse in={!chatHasStarted}>
                       <Box

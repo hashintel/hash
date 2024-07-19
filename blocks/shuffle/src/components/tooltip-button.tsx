@@ -1,4 +1,4 @@
-import type { Button,ButtonProps  } from "@hashintel/design-system";
+import type { Button, ButtonProps } from "@hashintel/design-system";
 import { Tooltip } from "@mui/material";
 
 interface TooltipButtonProps extends ButtonProps {

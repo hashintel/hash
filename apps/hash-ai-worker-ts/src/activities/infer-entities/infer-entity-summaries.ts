@@ -6,7 +6,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { Status , StatusCode } from "@local/status";
+import type { Status, StatusCode } from "@local/status";
 
 import { logger } from "../shared/activity-logger.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -24,7 +24,8 @@ import type {
   CouldNotInferEntitiesReturn,
   generateSummaryTools,
   ProposedEntitySummariesByType,
-  validateEntitySummariesByType} from "./infer-entity-summaries/generate-summary-tools.js";
+  validateEntitySummariesByType,
+} from "./infer-entity-summaries/generate-summary-tools.js";
 import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
@@ -353,7 +354,8 @@ export const inferEntitySummaries = async (params: {
       const toolCallsWithoutProblems = toolCalls.filter(
         (toolCall) =>
           !retryMessages.some(
-            (message_) => message_.role === "tool" && message_.tool_call_id === toolCall.id,
+            (message_) =>
+              message_.role === "tool" && message_.tool_call_id === toolCall.id,
           ),
       );
 

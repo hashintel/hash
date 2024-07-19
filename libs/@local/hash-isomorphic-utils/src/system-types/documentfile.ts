@@ -100,4 +100,15 @@ export type {
   UploadCompletedAtPropertyValueWithMetadata,
 };
 
-export {type BooleanDataType, type BooleanDataTypeWithMetadata, type DateTimeDataType, type DateTimeDataTypeWithMetadata, type DescriptionPropertyValue, type DescriptionPropertyValueWithMetadata, type DisplayNamePropertyValue, type DisplayNamePropertyValueWithMetadata, type DocumentFile, type DocumentFileOutgoingLinkAndTarget} from "./shared.js";
+export {
+  type BooleanDataType,
+  type BooleanDataTypeWithMetadata,
+  type DateTimeDataType,
+  type DateTimeDataTypeWithMetadata,
+  type DescriptionPropertyValue,
+  type DescriptionPropertyValueWithMetadata,
+  type DisplayNamePropertyValue,
+  type DisplayNamePropertyValueWithMetadata,
+  type DocumentFile,
+  type DocumentFileOutgoingLinkAndTarget,
+} from "./shared.js";

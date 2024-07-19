@@ -14,4 +14,15 @@ export type {
   TextDataTypeWithMetadata,
 };
 
-export {type ArchivedPropertyValue, type ArchivedPropertyValueWithMetadata, type BooleanDataType, type BooleanDataTypeWithMetadata, type Notification, type NotificationOutgoingLinkAndTarget, type NotificationOutgoingLinksByLinkEntityTypeId, type NotificationProperties, type NotificationPropertiesWithMetadata, type ReadAtPropertyValue} from "./shared.js";
+export {
+  type ArchivedPropertyValue,
+  type ArchivedPropertyValueWithMetadata,
+  type BooleanDataType,
+  type BooleanDataTypeWithMetadata,
+  type Notification,
+  type NotificationOutgoingLinkAndTarget,
+  type NotificationOutgoingLinksByLinkEntityTypeId,
+  type NotificationProperties,
+  type NotificationPropertiesWithMetadata,
+  type ReadAtPropertyValue,
+} from "./shared.js";

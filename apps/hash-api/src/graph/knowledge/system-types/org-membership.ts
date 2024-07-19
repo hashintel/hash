@@ -10,7 +10,8 @@ import type {
   AccountGroupEntityId,
   extractAccountGroupId,
   extractAccountId,
-  extractEntityUuidFromEntityId} from "@local/hash-subgraph";
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
 
 import type {
   ImpureGraphFunction,
@@ -22,8 +23,8 @@ import {
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
 
-import type { getOrgFromEntity,Org  } from "./org";
-import type { getUserFromEntity,User  } from "./user";
+import type { getOrgFromEntity, Org } from "./org";
+import type { getUserFromEntity, User } from "./user";
 
 export interface OrgMembership {
   linkEntity: LinkEntity<IsMemberOf>;

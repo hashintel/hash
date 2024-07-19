@@ -1,4 +1,4 @@
-import type { FunctionComponent , useCallback, useState } from "react";
+import type { FunctionComponent, useCallback, useState } from "react";
 import { BlockPromptInput } from "@hashintel/block-design-system";
 
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
@@ -36,7 +36,9 @@ export const ChatTextField: FunctionComponent<{
       onSubmit={handleSubmit}
       onFocus={onFocus}
       onBlur={onBlur}
-      onChange={({ target }) => { setInputValue(target.value); }}
+      onChange={({ target }) => {
+        setInputValue(target.value);
+      }}
     />
   );
 };

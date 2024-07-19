@@ -6,9 +6,10 @@ import {
 } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type {   extractDraftIdFromEntityId,
+import type {
+  extractDraftIdFromEntityId,
   extractOwnedByIdFromEntityId,
-Subgraph ,
+  Subgraph,
 } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
@@ -152,7 +153,9 @@ const createBaseSimpleEntityFields = (
   );
 
   return {
-    draft: Boolean(extractDraftIdFromEntityId(entity.metadata.recordId.entityId)),
+    draft: Boolean(
+      extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
+    ),
     entityId: entity.metadata.recordId.entityId,
     entityType: typeSchema.schema.title,
     properties,
@@ -164,8 +167,9 @@ export const getSimpleGraph = (subgraph: Subgraph) => {
   const entities: SimpleEntityWithoutHref[] = [];
   const entityTypes: SimpleEntityType[] = [];
 
-  const vertices = typedValues(subgraph.vertices)
-    .flatMap((vertex) => typedValues(vertex));
+  const vertices = typedValues(subgraph.vertices).flatMap((vertex) =>
+    typedValues(vertex),
+  );
 
   for (const vertex of vertices) {
     if (vertex.kind === "entity") {

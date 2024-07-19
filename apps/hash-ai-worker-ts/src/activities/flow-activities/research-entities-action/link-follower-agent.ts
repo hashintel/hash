@@ -2,7 +2,7 @@ import dedent from "dedent";
 import { MetadataMode } from "llamaindex";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import type { SourceProvenance , SourceType } from "@local/hash-graph-client";
+import type { SourceProvenance, SourceType } from "@local/hash-graph-client";
 
 import { getWebPageActivity } from "../../get-web-page-activity.js";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
@@ -19,7 +19,10 @@ import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-ent
 import type { Fact } from "../shared/infer-facts-from-text/types.js";
 
 import { deduplicateEntities } from "./deduplicate-entities.js";
-import type { chooseRelevantLinksFromContent,Link  } from "./link-follower-agent/choose-relevant-links-from-content.js";
+import type {
+  chooseRelevantLinksFromContent,
+  Link,
+} from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
 import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.js";
@@ -109,7 +112,6 @@ const exploreResource = async (params: {
   let resourceTitle: string | undefined =
     hashEntityForFile?.properties[
       "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
-       
     ] ||
     hashEntityForFile?.properties[
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"
@@ -314,12 +316,18 @@ const exploreResource = async (params: {
   );
 
   const dereferencedEntityTypesById = {
-    ...Object.fromEntries(entityTypes.map<DereferencedEntityTypesByTypeId>(
-      ( schema) => [schema.$id, { schema, isLink: false }],
-    )),
-    ...Object.fromEntries((linkEntityTypes ?? []).map<DereferencedEntityTypesByTypeId>(
-      ( schema) => [schema.$id, { schema, isLink: true }],
-    )),
+    ...Object.fromEntries(
+      entityTypes.map<DereferencedEntityTypesByTypeId>((schema) => [
+        schema.$id,
+        { schema, isLink: false },
+      ]),
+    ),
+    ...Object.fromEntries(
+      (linkEntityTypes ?? []).map<DereferencedEntityTypesByTypeId>((schema) => [
+        schema.$id,
+        { schema, isLink: true },
+      ]),
+    ),
   };
 
   const {

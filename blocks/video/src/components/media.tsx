@@ -204,12 +204,12 @@ export const Media: FunctionComponent<
               });
             }
           })
-          .catch((error: Error) =>
-            { unstable_batchedUpdates(() => {
+          .catch((error: Error) => {
+            unstable_batchedUpdates(() => {
               setErrorString(error.message);
               setLoading(false);
-            }); },
-          );
+            });
+          });
       }
     },
     [
@@ -256,8 +256,12 @@ export const Media: FunctionComponent<
             caption={draftCaption}
             type={"video"}
             readonly={readonly}
-            onCaptionChange={(caption) => { setDraftCaption(caption); }}
-            onCaptionConfirm={() => { updateData({ src: draftSource }); }}
+            onCaptionChange={(caption) => {
+              setDraftCaption(caption);
+            }}
+            onCaptionConfirm={() => {
+              updateData({ src: draftSource });
+            }}
             onReset={resetComponent}
           />
         ) : (
@@ -265,7 +269,9 @@ export const Media: FunctionComponent<
             {errorString && (
               <ErrorAlert
                 error={errorString}
-                onClearError={() => { setErrorString(null); }}
+                onClearError={() => {
+                  setErrorString(null);
+                }}
               />
             )}
             <UploadMediaForm
@@ -273,8 +279,12 @@ export const Media: FunctionComponent<
               type={"video"}
               readonly={readonly}
               onUrlConfirm={onUrlConfirm}
-              onFileChoose={(file) => { handleImageUpload({ file }); }}
-              onUrlChange={(nextDraftUrl) => { setDraftUrl(nextDraftUrl); }}
+              onFileChoose={(file) => {
+                handleImageUpload({ file });
+              }}
+              onUrlChange={(nextDraftUrl) => {
+                setDraftUrl(nextDraftUrl);
+              }}
             />
           </>
         )}

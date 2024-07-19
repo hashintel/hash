@@ -26,6 +26,6 @@ export interface CacheAdapter extends DataSource {
    * Push one or more values onto the end of a list.
    *
    * @returns The new length of the list.
-    */
+   */
   rpush: (key: string, values: string[]) => Promise<number>;
 }

@@ -15,8 +15,10 @@ import type {
 } from "@local/hash-graph-types/account";
 import type {
   DraftId,
- ENTITY_ID_DELIMITER,  EntityId,
-  EntityUuid } from "@local/hash-graph-types/entity";
+  ENTITY_ID_DELIMITER,
+  EntityId,
+  EntityUuid,
+} from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 export const isEntityId = (entityId: string): entityId is EntityId => {

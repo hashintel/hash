@@ -40,7 +40,7 @@ import type {
   HasMapImage,
   Image,
 } from "./types/generated/block-entity";
-import type { Address , useMapbox } from "./use-mapbox";
+import type { Address, useMapbox } from "./use-mapbox";
 
 const INPUT_MAX_WIDTH = 420;
 const DEFAULT_ZOOM_LEVEL = 16;
@@ -403,7 +403,8 @@ export const App: BlockComponent<BlockEntity> = ({
   const displayTitle = title ?? selectedAddress?.featureName;
   const displayFullAddress = selectedAddress?.fullAddress ?? remoteFullAddress;
 
-  const shouldDisplayCard = Boolean(displayFullAddress) || selectedAddressLoading;
+  const shouldDisplayCard =
+    Boolean(displayFullAddress) || selectedAddressLoading;
 
   return (
     <>
@@ -431,8 +432,12 @@ export const App: BlockComponent<BlockEntity> = ({
                   width: 1,
                   overflowX: "hidden",
                 }}
-                onMouseEnter={() => { setHovered(true); }}
-                onMouseLeave={() => { setHovered(false); }}
+                onMouseEnter={() => {
+                  setHovered(true);
+                }}
+                onMouseLeave={() => {
+                  setHovered(false);
+                }}
               >
                 {!readonly ? (
                   <>
@@ -454,14 +459,20 @@ export const App: BlockComponent<BlockEntity> = ({
                           rowGap: isMobile ? 0 : 1,
                         }}
                       >
-                        <GetHelpLink href={"https://blockprotocol.org/@hash/blocks/address"} />
+                        <GetHelpLink
+                          href={
+                            "https://blockprotocol.org/@hash/blocks/address"
+                          }
+                        />
 
                         {isMobile ? (
                           <BlockSettingsButton
                             expanded={mobileSettingsExpanded}
-                            onClick={() =>
-                              { setMobileSettingsExpanded(!mobileSettingsExpanded); }
-                            }
+                            onClick={() => {
+                              setMobileSettingsExpanded(
+                                !mobileSettingsExpanded,
+                              );
+                            }}
                           />
                         ) : null}
 
@@ -526,7 +537,9 @@ export const App: BlockComponent<BlockEntity> = ({
                       in={
                         (!shouldDisplayCard && !animatingIn) || suggestionsError
                       }
-                      onEntered={() => { setAnimatingOut(false); }}
+                      onEntered={() => {
+                        setAnimatingOut(false);
+                      }}
                       onExited={() => {
                         if (animatingIn) {
                           selectAddress(animatingIn);
@@ -632,8 +645,12 @@ export const App: BlockComponent<BlockEntity> = ({
                                 `${spacing(2.75)} !important`,
                             },
                           }}
-                          onFocus={() => { setAutocompleteFocused(true); }}
-                          onBlur={() => { setAutocompleteFocused(false); }}
+                          onFocus={() => {
+                            setAutocompleteFocused(true);
+                          }}
+                          onBlur={() => {
+                            setAutocompleteFocused(false);
+                          }}
                           onInputChange={(_event, newInputValue) => {
                             if (newInputValue.trim() !== "") {
                               fetchSuggestions(newInputValue);
@@ -656,7 +673,9 @@ export const App: BlockComponent<BlockEntity> = ({
 
                 <Collapse
                   in={shouldDisplayCard && !animatingOut && !suggestionsError}
-                  onEntered={() => { setAnimatingIn(null); }}
+                  onEntered={() => {
+                    setAnimatingIn(null);
+                  }}
                 >
                   {displayFullAddress ? (
                     <AddressCard

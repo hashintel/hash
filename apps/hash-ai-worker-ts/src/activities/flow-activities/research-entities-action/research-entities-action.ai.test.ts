@@ -83,8 +83,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          { persistState({ state, testName: "google-subsidiaries" }); },
+        persistState: (state) => {
+          persistState({ state, testName: "google-subsidiaries" });
+        },
         resumeFromState: retrievePreviousState({
           testName: "google-subsidiaries",
         }),
@@ -121,8 +122,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          { persistState({ state, testName: "sora-authors" }); },
+        persistState: (state) => {
+          persistState({ state, testName: "sora-authors" });
+        },
         resumeFromState: retrievePreviousState({
           testName: "sora-authors",
         }),
@@ -159,8 +161,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          { persistState({ state, testName: "ben-werner" }); },
+        persistState: (state) => {
+          persistState({ state, testName: "ben-werner" });
+        },
         // resumeFromState: retrievePreviousState({ testName: "ben-werner" }),
       },
     });
@@ -195,8 +198,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          { persistState({ state, testName: "tim-brooks" }); },
+        persistState: (state) => {
+          persistState({ state, testName: "tim-brooks" });
+        },
         resumeFromState: retrievePreviousState({ testName: "tim-brooks" }),
       },
     });
@@ -232,8 +236,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          { persistState({ state, testName: "openai-llm" }); },
+        persistState: (state) => {
+          persistState({ state, testName: "openai-llm" });
+        },
         resumeFromState: retrievePreviousState({ testName: "openai-llm" }),
       },
     });
@@ -270,8 +275,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          { persistState({ state, testName: "graphics-cards" }); },
+        persistState: (state) => {
+          persistState({ state, testName: "graphics-cards" });
+        },
         resumeFromState: retrievePreviousState({ testName: "graphics-cards" }),
       },
     });

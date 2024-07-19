@@ -39,8 +39,9 @@ export const intervalCompareWithInterval = (
  *
  * @param intervals
  */
-export const sortIntervals = (intervals: TimeInterval[]) =>
-  { sortIntervalsBp(intervals); };
+export const sortIntervals = (intervals: TimeInterval[]) => {
+  sortIntervalsBp(intervals);
+};
 
 /**
  * Creates a {@link BoundedTimeInterval} that represents the instant of time identified by the given {@link Timestamp}.

@@ -2,7 +2,7 @@ import { cloneDeep } from "lodash-es";
 import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import type { Node, Schema } from "prosemirror-model";
-import type { EditorState,Plugin  } from "prosemirror-state";
+import type { EditorState, Plugin } from "prosemirror-state";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 import { createEntityStorePlugin } from "./entity-store-plugin.js";
@@ -22,8 +22,9 @@ const nodes = {
   ...pageEditorNodes,
 };
 
-const createInitialDocument = (schema: Schema = createSchema(cloneDeep(nodes))) =>
-  schema.node("doc", {}, [schema.node("loading")]);
+const createInitialDocument = (
+  schema: Schema = createSchema(cloneDeep(nodes)),
+) => schema.node("doc", {}, [schema.node("loading")]);
 
 const defaultPlugins: Plugin<unknown>[] = [
   ...wrapEntitiesPlugin(baseKeymap),

@@ -48,7 +48,9 @@ export const EditView: FunctionComponent<EditViewProps> = ({
             aria-label={"Close"}
             type={"button"}
             className={tw`absolute focus:outline-none top-0 bottom-0 right-0 px-4 py-3`}
-            onClick={() => { setErrorString(""); }}
+            onClick={() => {
+              setErrorString("");
+            }}
           >
             <Cross />
           </button>
@@ -66,7 +68,9 @@ export const EditView: FunctionComponent<EditViewProps> = ({
               value={embedUrl}
               type={"url"}
               placeholder={placeholderText}
-              onChange={(event) => { onChangeEmbedUrl(event.target.value); }}
+              onChange={(event) => {
+                onChangeEmbedUrl(event.target.value);
+              }}
             />
           </div>
           <div className={tw`mt-4`}>

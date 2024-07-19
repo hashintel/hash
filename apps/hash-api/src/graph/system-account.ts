@@ -8,7 +8,6 @@ import { createAccount } from "./account-permission-management";
 import type { ImpureGraphContext } from "./context-types";
 import { getEntityTypeById } from "./ontology/primitive/entity-type";
 
- 
 export let systemAccountId: AccountId;
 
 const authentication = { actorId: publicUserAccountId };

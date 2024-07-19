@@ -4,7 +4,7 @@
  */
 
 import type { ExternalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/types";
-import type { defineQuery,QueryDefinition  } from "@temporalio/workflow";
+import type { defineQuery, QueryDefinition } from "@temporalio/workflow";
 
 export interface ExternalInputQueryRequest {
   requestId: string;

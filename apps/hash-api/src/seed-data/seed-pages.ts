@@ -3,8 +3,9 @@ import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { ImpureGraphContext } from "../graph/context-types";
-import type {   createPage,
-Page ,
+import type {
+  createPage,
+  Page,
   setPageParentPage,
 } from "../graph/knowledge/system-types/page";
 

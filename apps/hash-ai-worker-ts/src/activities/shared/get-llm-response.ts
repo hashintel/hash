@@ -2,7 +2,10 @@ import { backOff } from "exponential-backoff";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance , Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -19,7 +22,11 @@ import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-se
 import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response.js";
 import { getOpenAiResponse } from "./get-llm-response/get-openai-reponse.js";
 import { logLlmRequest } from "./get-llm-response/log-llm-request.js";
-import type { isLlmParamsAnthropicLlmParams,LlmParams, LlmResponse  } from "./get-llm-response/types.js";
+import type {
+  isLlmParamsAnthropicLlmParams,
+  LlmParams,
+  LlmResponse,
+} from "./get-llm-response/types.js";
 import { stringify } from "./stringify.js";
 
 export interface UsageTrackingParams {
@@ -92,10 +99,10 @@ export const getLlmResponse = async <T extends LlmParams>(
   let debugMessage = `Getting LLM response for model ${llmParams.model}`;
 
   if (taskName) {
-    debugMessage = `${debugMessage  } for task ${taskName}`;
+    debugMessage = `${debugMessage} for task ${taskName}`;
   }
 
-  debugMessage = `${debugMessage  } in step ${stepId}`;
+  debugMessage = `${debugMessage} in step ${stepId}`;
 
   logger.debug(debugMessage);
 

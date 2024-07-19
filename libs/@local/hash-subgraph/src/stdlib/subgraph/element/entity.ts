@@ -4,7 +4,12 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
-import type { EntityRevisionId, isEntityVertex,Subgraph, Vertices  } from "../../../main.js";
+import type {
+  EntityRevisionId,
+  isEntityVertex,
+  Subgraph,
+  Vertices,
+} from "../../../main.js";
 import { mustBeDefined } from "../../../shared/invariant.js";
 import {
   intervalContainsTimestamp,
@@ -119,39 +124,38 @@ export const getEntityRevision = (
     }
 
     return vertex.inner;
-  } 
-    const targetTime =
-      typeof targetRevisionInformation === "string"
-        ? targetRevisionInformation
-        : targetRevisionInformation.toISOString();
+  }
+  const targetTime =
+    typeof targetRevisionInformation === "string"
+      ? targetRevisionInformation
+      : targetRevisionInformation.toISOString();
 
-    for (const revisionTimestamp of revisionVersions) {
-      const vertex = mustBeDefined(entityRevisions[revisionTimestamp]);
+  for (const revisionTimestamp of revisionVersions) {
+    const vertex = mustBeDefined(entityRevisions[revisionTimestamp]);
 
-      if (!isEntityVertex(vertex)) {
-        throw new Error(
-          `Found non-entity vertex associated with EntityId: ${entityId}`,
-        );
-      }
+    if (!isEntityVertex(vertex)) {
+      throw new Error(
+        `Found non-entity vertex associated with EntityId: ${entityId}`,
+      );
+    }
 
-      if (
-        intervalContainsTimestamp(
-          /*
+    if (
+      intervalContainsTimestamp(
+        /*
          these casts are safe as we check for `targetRevisionInformation === undefined` above and that's only ever
          defined if `Temporal extends true`
          */
-          vertex.inner.metadata.temporalVersioning[
-            subgraph.temporalAxes.resolved.variable.axis
-          ],
-          targetTime as EntityRevisionId,
-        )
-      ) {
-        return vertex.inner;
-      }
+        vertex.inner.metadata.temporalVersioning[
+          subgraph.temporalAxes.resolved.variable.axis
+        ],
+        targetTime as EntityRevisionId,
+      )
+    ) {
+      return vertex.inner;
     }
+  }
 
-    return undefined;
-  
+  return undefined;
 };
 
 /**
@@ -209,11 +213,10 @@ export const getEntityRevisionsByEntityId = (
     }
 
     return filteredEntities;
-  } 
-    const entityVertices = typedValues(entityRevisions);
+  }
+  const entityVertices = typedValues(entityRevisions);
 
-    return entityVertices.filter(isEntityVertex).map((vertex) => {
-      return vertex.inner;
-    });
-  
+  return entityVertices.filter(isEntityVertex).map((vertex) => {
+    return vertex.inner;
+  });
 };

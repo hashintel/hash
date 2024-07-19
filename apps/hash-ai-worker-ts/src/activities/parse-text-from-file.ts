@@ -1,7 +1,10 @@
 import officeParser from "officeparser";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance , Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,

@@ -133,7 +133,9 @@ export const ImagePreview = ({
       resizeObserver.observe(imageListContainerRef.current);
     }
 
-    return () => { resizeObserver.disconnect(); };
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, [calculateSelectedImageTransition]);
 
   useEffect(() => {
@@ -256,7 +258,9 @@ export const ImagePreview = ({
           {isMobile ? (
             <Collapse
               in={shouldDetailsFadeIn}
-              onEntered={() => { setAnimationStage(false); }}
+              onEntered={() => {
+                setAnimationStage(false);
+              }}
               onExited={() => {
                 setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
                 setTimeout(() => {
@@ -385,7 +389,9 @@ export const ImagePreview = ({
                           fill: palette.gray[60],
                         },
                       })}
-                      onClick={() => { generateAdditionalImages(number); }}
+                      onClick={() => {
+                        generateAdditionalImages(number);
+                      }}
                     >
                       <Icon sx={{ fontSize: 28, mb: 1.5 }} />
                       <Box>
@@ -401,7 +407,9 @@ export const ImagePreview = ({
             {!isMobile ? (
               <Fade
                 in={shouldDetailsFadeIn}
-                onEntered={() => { setAnimationStage(false); }}
+                onEntered={() => {
+                  setAnimationStage(false);
+                }}
                 onExited={() => {
                   setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
                   setTimeout(() => {
@@ -440,7 +448,9 @@ export const ImagePreview = ({
         {isMobile ? (
           <Collapse
             in={shouldDetailsFadeIn}
-            onEntered={() => { setAnimationStage(false); }}
+            onEntered={() => {
+              setAnimationStage(false);
+            }}
             onExited={() => {
               setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
               setTimeout(() => {

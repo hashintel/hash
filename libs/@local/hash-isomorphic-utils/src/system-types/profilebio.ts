@@ -64,4 +64,15 @@ export type {
   TextDataTypeWithMetadata,
 };
 
-export {type Block, type BlockCollection, type BlockCollectionOutgoingLinkAndTarget, type BlockCollectionOutgoingLinksByLinkEntityTypeId, type BlockCollectionProperties, type BlockCollectionPropertiesWithMetadata, type BlockHasDataLink, type BlockOutgoingLinkAndTarget, type BlockOutgoingLinksByLinkEntityTypeId, type BlockProperties} from "./shared.js";
+export {
+  type Block,
+  type BlockCollection,
+  type BlockCollectionOutgoingLinkAndTarget,
+  type BlockCollectionOutgoingLinksByLinkEntityTypeId,
+  type BlockCollectionProperties,
+  type BlockCollectionPropertiesWithMetadata,
+  type BlockHasDataLink,
+  type BlockOutgoingLinkAndTarget,
+  type BlockOutgoingLinksByLinkEntityTypeId,
+  type BlockProperties,
+} from "./shared.js";

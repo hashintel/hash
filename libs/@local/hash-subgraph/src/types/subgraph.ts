@@ -86,7 +86,9 @@ export type SerializedSubgraphRootType =
 //   temporalAxes: SubgraphTemporalAxes
 // }, SubgraphBp< RootType>;
 
-export interface Subgraph<RootType extends SubgraphRootType = SubgraphRootType> {
+export interface Subgraph<
+  RootType extends SubgraphRootType = SubgraphRootType,
+> {
   roots: RootType["vertexId"][];
   vertices: Vertices;
   edges: Edges;

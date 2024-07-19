@@ -6,7 +6,7 @@ import { getBlockCollectionBlocks } from "../../../../graph/knowledge/system-typ
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import type { mapBlockToGQL,UnresolvedBlockGQL  } from "../graphql-mapping";
+import type { mapBlockToGQL, UnresolvedBlockGQL } from "../graphql-mapping";
 
 export const blockCollectionContents: ResolverFn<
   {

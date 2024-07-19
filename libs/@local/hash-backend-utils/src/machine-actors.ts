@@ -1,7 +1,10 @@
 import { backOff } from "exponential-backoff";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance , Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  EnforcedEntityEditionProvenance,
+  Entity,
+} from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";

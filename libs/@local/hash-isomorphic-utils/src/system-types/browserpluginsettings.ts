@@ -22,4 +22,15 @@ export type {
   TextDataTypeWithMetadata,
 };
 
-export {type AutomaticInferenceConfigurationPropertyValue, type AutomaticInferenceConfigurationPropertyValueWithMetadata, type BrowserPluginSettings, type BrowserPluginSettingsOutgoingLinkAndTarget, type BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId, type BrowserPluginSettingsProperties, type BrowserPluginSettingsPropertiesWithMetadata, type BrowserPluginTabPropertyValue, type BrowserPluginTabPropertyValueWithMetadata, type DraftNotePropertyValue} from "./shared.js";
+export {
+  type AutomaticInferenceConfigurationPropertyValue,
+  type AutomaticInferenceConfigurationPropertyValueWithMetadata,
+  type BrowserPluginSettings,
+  type BrowserPluginSettingsOutgoingLinkAndTarget,
+  type BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId,
+  type BrowserPluginSettingsProperties,
+  type BrowserPluginSettingsPropertiesWithMetadata,
+  type BrowserPluginTabPropertyValue,
+  type BrowserPluginTabPropertyValueWithMetadata,
+  type DraftNotePropertyValue,
+} from "./shared.js";

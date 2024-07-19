@@ -1,6 +1,6 @@
 import "./index.css";
 import DOMPurify from "dompurify";
-import type { CSSProperties , useMemo, useRef } from "react";
+import type { CSSProperties, useMemo, useRef } from "react";
 import type { BlockComponent } from "@blockprotocol/graph/react";
 
 import { LinkIcon } from "./icons/link-icon";

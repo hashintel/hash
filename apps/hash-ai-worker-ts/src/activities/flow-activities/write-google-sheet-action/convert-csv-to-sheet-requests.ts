@@ -84,28 +84,28 @@ export const convertCsvToSheetRequests = ({
     },
     ...(humanReadable
       ? [
-        {
-          setBasicFilter: {
-            filter: {
-              range: {
-                sheetId,
-                startRowIndex: 0,
-                endRowIndex: rows.length,
-                startColumnIndex: 0,
-                endColumnIndex: rows[0]?.values?.length ?? 0,
+          {
+            setBasicFilter: {
+              filter: {
+                range: {
+                  sheetId,
+                  startRowIndex: 0,
+                  endRowIndex: rows.length,
+                  startColumnIndex: 0,
+                  endColumnIndex: rows[0]?.values?.length ?? 0,
+                },
               },
             },
           },
-        },
-        {
-          autoResizeDimensions: {
-            dimensions: {
-              sheetId,
-              dimension: "COLUMNS",
+          {
+            autoResizeDimensions: {
+              dimensions: {
+                sheetId,
+                dimension: "COLUMNS",
+              },
             },
           },
-        },
-      ]
+        ]
       : []),
   ];
 

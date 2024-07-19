@@ -1,5 +1,5 @@
 import debounce from "lodash.debounce";
-import type { RefObject , useCallback, useEffect, useState } from "react";
+import type { RefObject, useCallback, useEffect, useState } from "react";
 import { useSessionstorageState } from "rooks";
 import { v4 as uuid } from "uuid";
 import type { MapboxRetrieveStaticMapData } from "@blockprotocol/service";

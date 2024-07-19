@@ -4,7 +4,4 @@
  * Entrypoint of the Block Component.
  */
 
-
-
-
-export {Shuffle as default} from "./shuffle";
+export { Shuffle as default } from "./shuffle";

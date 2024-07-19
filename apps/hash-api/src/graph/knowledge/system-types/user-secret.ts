@@ -1,8 +1,10 @@
 import type { Auth } from "googleapis";
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type {
- createUserSecretPath,  UserSecretService,
-  VaultClient } from "@local/hash-backend-utils/vault";
+  createUserSecretPath,
+  UserSecretService,
+  VaultClient,
+} from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";

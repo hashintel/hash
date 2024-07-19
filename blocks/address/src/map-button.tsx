@@ -1,4 +1,4 @@
-import type { Button,ButtonProps  } from "@hashintel/design-system";
+import type { Button, ButtonProps } from "@hashintel/design-system";
 import { Link } from "@mui/material";
 
 export const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
@@ -25,7 +25,7 @@ export const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
             paddingY: 1.5,
             paddingX: 2.5,
           }),
-           
+
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
       >

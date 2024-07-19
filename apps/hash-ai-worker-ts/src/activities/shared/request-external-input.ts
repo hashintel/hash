@@ -21,7 +21,7 @@ export const requestExternalInput = async <
 ): Promise<ExternalInputResponseSignal<Request["type"]>> => {
   temporalClient = temporalClient ?? (await createTemporalClient());
 
-  const {workflowId} = Context.current().info.workflowExecution;
+  const { workflowId } = Context.current().info.workflowExecution;
 
   const handle = temporalClient.workflow.getHandle(workflowId);
 

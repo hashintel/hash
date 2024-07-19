@@ -1,9 +1,9 @@
-import type { FunctionComponent , useState } from "react";
+import type { FunctionComponent, useState } from "react";
 import { EditableField } from "@hashintel/block-design-system";
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Collapse, Fade } from "@mui/material";
 
-import type { answerKey, questionKey,QuestionOrAnswer  } from "./app";
+import type { answerKey, questionKey, QuestionOrAnswer } from "./app";
 import { CaretDownIcon } from "./icons/caret-down";
 
 interface QuestionProps {
@@ -52,7 +52,9 @@ export const Question: FunctionComponent<QuestionProps> = ({
             color: ({ palette }) => `${palette.black} !important`,
             transition: ({ transitions }) => transitions.create("margin-right"),
           }}
-          onClick={() => { setExpanded(!expanded); }}
+          onClick={() => {
+            setExpanded(!expanded);
+          }}
         >
           <Collapse in={displayNumber} orientation={"horizontal"}>
             {index}
@@ -116,7 +118,9 @@ export const Question: FunctionComponent<QuestionProps> = ({
               flexGrow: 1,
               color: ({ palette }) => palette.gray[90],
             }}
-            onBlur={(event) => { updateField(event.target.value, questionKey); }}
+            onBlur={(event) => {
+              updateField(event.target.value, questionKey);
+            }}
             onChange={(event) => {
               setQuestionValue(event.target.value);
             }}
@@ -177,7 +181,9 @@ export const Question: FunctionComponent<QuestionProps> = ({
                 color: ({ palette }) => palette.gray[90],
                 ...(readonly ? { paddingY: 0.5 } : {}),
               }}
-              onBlur={(event) => { updateField(event.target.value, answerKey); }}
+              onBlur={(event) => {
+                updateField(event.target.value, answerKey);
+              }}
               onChange={(event) => {
                 setAnswerValue(event.target.value);
               }}

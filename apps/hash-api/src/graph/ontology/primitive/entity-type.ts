@@ -1,4 +1,7 @@
-import type { ENTITY_TYPE_META_SCHEMA,VersionedUrl  } from "@blockprotocol/type-system";
+import type {
+  ENTITY_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
@@ -36,7 +39,9 @@ import type {
   EntityTypeRelationAndSubject,
   EntityTypeRootType,
   linkEntityTypeUrl,
-  ontologyTypeRecordIdToVersionedUrl,  Subgraph} from "@local/hash-subgraph";
+  ontologyTypeRecordIdToVersionedUrl,
+  Subgraph,
+} from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
@@ -364,7 +369,9 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
 
     void Promise.all(promises).then(() =>
       // If we haven't resolved yet, then none of the parent types are link types. If we have resolved this is a no-op.
-      { resolve(false); },
+      {
+        resolve(false);
+      },
     );
   });
 };

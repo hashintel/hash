@@ -13,7 +13,8 @@ import type {
   PointerSensor,
   UniqueIdentifier,
   useSensor,
-  useSensors} from "@dnd-kit/core";
+  useSensors,
+} from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
@@ -156,10 +157,16 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     newColumnOrder?: string[];
     skipUpdatingEntity?: boolean;
   }) => {
-    if (newColumns) {setColumns(newColumns);}
-    if (newColumnOrder) {setColumnOrder(newColumnOrder);}
+    if (newColumns) {
+      setColumns(newColumns);
+    }
+    if (newColumnOrder) {
+      setColumnOrder(newColumnOrder);
+    }
 
-    if (skipUpdatingEntity) {return;}
+    if (skipUpdatingEntity) {
+      return;
+    }
 
     isDebounceQueued.current = true;
     void debouncedUpdateEntity({
@@ -171,14 +178,16 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   };
 
   const isCardOrColumn = (id: UniqueIdentifier) => {
-    if (id in columns) {return "column";}
+    if (id in columns) {
+      return "column";
+    }
 
     return "card";
   };
 
   const findColumnOfCard = (cardId: UniqueIdentifier) => {
-    return Object.values(columns).find(
-      (col) => Boolean(col.cards.find((card) => card.id === cardId)),
+    return Object.values(columns).find((col) =>
+      Boolean(col.cards.find((card) => card.id === cardId)),
     );
   };
 
@@ -214,7 +223,9 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const updateColumnTitle: UpdateColumnTitleCallback = (columnId, newTitle) => {
     const targetCol = columns[columnId];
 
-    if (!targetCol) {return;}
+    if (!targetCol) {
+      return;
+    }
 
     updateStateAndEntity({
       newColumns: {
@@ -227,7 +238,9 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const createCard: CreateCardCallback = (columnId, content) => {
     const targetCol = columns[columnId];
 
-    if (!targetCol) {return;}
+    if (!targetCol) {
+      return;
+    }
 
     const cloneCol = { ...targetCol };
 
@@ -244,7 +257,9 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const deleteCard: DeleteCardCallback = (columnId, cardId) => {
     const targetCol = columns[columnId];
 
-    if (!targetCol) {return;}
+    if (!targetCol) {
+      return;
+    }
 
     const cloneCol = { ...targetCol };
 
@@ -267,7 +282,9 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
     const targetCol = columns[columnId];
 
-    if (!targetCol) {return;}
+    if (!targetCol) {
+      return;
+    }
 
     const cloneCol = { ...targetCol };
 
@@ -289,7 +306,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
       setActiveItem({ type: "column", id: active.id });
 
- return;
+      return;
     }
 
     const foundCard = findColumnOfCard(active.id)?.cards.find(
@@ -449,14 +466,16 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const handleDragCancel = () => {
     setActiveItem(null);
 
-    if (!dataBeforeDrag) {return;}
+    if (!dataBeforeDrag) {
+      return;
+    }
 
     const { data, type } = dataBeforeDrag;
 
     if (type === "columnOrder") {
       setColumnOrder(data);
 
- return;
+      return;
     }
 
     setColumns(data);

@@ -47,7 +47,8 @@ import type {
   AccountGroupAuthorizationSubjectRelation,
   AuthorizationSubjectKind,
   AuthorizationViewerInput,
-  EntityAuthorizationRelation,  EntityAuthorizationRelationship,
+  EntityAuthorizationRelation,
+  EntityAuthorizationRelationship,
   MutationAddEntityEditorArgs,
   MutationAddEntityOwnerArgs,
   MutationAddEntityViewerArgs,
@@ -63,7 +64,8 @@ import type {
   QueryGetEntitySubgraphArgs,
   QueryIsEntityPublicArgs,
   QueryResolvers,
-  ResolverFn} from "../../../api-types.gen";
+  ResolverFn,
+} from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
@@ -506,23 +508,23 @@ const parseGqlAuthorizationViewerInput = ({
 }: AuthorizationViewerInput) => {
   if (kind === AuthorizationSubjectKind.Public) {
     return { kind: "public" } as const;
-  } if (kind === AuthorizationSubjectKind.Account) {
+  }
+  if (kind === AuthorizationSubjectKind.Account) {
     if (!viewer) {
       throw new UserInputError("Viewer Account ID must be specified");
     }
 
     return { kind: "account", subjectId: viewer as AccountId } as const;
-  } 
-    if (!viewer) {
-      throw new UserInputError("Viewer Account Group ID must be specified");
-    }
+  }
+  if (!viewer) {
+    throw new UserInputError("Viewer Account Group ID must be specified");
+  }
 
-    return {
-      kind: "accountGroup",
-      subjectId: viewer as AccountGroupId,
-      subjectSet: "member",
-    } as const;
-  
+  return {
+    kind: "accountGroup",
+    subjectId: viewer as AccountGroupId,
+    subjectSet: "member",
+  } as const;
 };
 
 export const addEntityViewerResolver: ResolverFn<

@@ -35,7 +35,7 @@ const testEntity: BlockEntity = {
  * 4. It displays a debug UI allowing you to see the contents of its datastore, and messages sent back and forth.
  */
 const DevApp = () => {
-  const {tagName} = packageJson.blockprotocol.blockType;
+  const { tagName } = packageJson.blockprotocol.blockType;
 
   if (!tagName) {
     throw new Error(

@@ -1,7 +1,8 @@
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import type {   getHashInstance,
+import type {
+  getHashInstance,
   getHashInstanceFromEntity,
-HashInstance ,
+  HashInstance,
 } from "@local/hash-backend-utils/hash-instance";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";

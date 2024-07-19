@@ -1,4 +1,4 @@
-import type { expect,Page  } from "@playwright/test";
+import type { expect, Page } from "@playwright/test";
 
 import { getDerivedPayloadFromMostRecentEmail } from "./get-derived-payload-from-most-recent-email";
 

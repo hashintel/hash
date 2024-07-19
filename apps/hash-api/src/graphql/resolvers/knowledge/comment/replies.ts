@@ -2,7 +2,7 @@ import { getCommentReplies } from "../../../../graph/knowledge/system-types/comm
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import type { mapCommentToGQL,UnresolvedCommentGQL  } from "../graphql-mapping";
+import type { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const commentRepliesResolver: ResolverFn<
   UnresolvedCommentGQL[],

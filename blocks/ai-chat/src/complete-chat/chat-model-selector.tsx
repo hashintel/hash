@@ -1,6 +1,8 @@
 import type {
- DropdownSelector,  DropdownSelectorProps,
-  GroupedOptions } from "@hashintel/block-design-system";
+  DropdownSelector,
+  DropdownSelectorProps,
+  GroupedOptions,
+} from "@hashintel/block-design-system";
 import { Box } from "@mui/material";
 
 import { AbstractAiIcon } from "../icons/abstract-ai";

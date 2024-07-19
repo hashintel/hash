@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import type { SvgIcon,SvgIconProps  } from "@mui/material";
+import type { SvgIcon, SvgIconProps } from "@mui/material";
 
 export const ArrowTurnDownLeftIcon: FunctionComponent<SvgIconProps> = (
   props,
@@ -12,7 +12,11 @@ export const ArrowTurnDownLeftIcon: FunctionComponent<SvgIconProps> = (
       fill={"none"}
       {...props}
     >
-      <path d={"M135 432.1l-128-128C2.344 300.3 0 294.2 0 288s2.344-12.28 7.031-16.97l128-128c9.375-9.375 24.56-9.375 33.94 0s9.375 24.56 0 33.94L81.94 264H464v-208C464 42.75 474.8 32 488 32S512 42.75 512 56V288c0 13.25-10.75 24-24 24H81.94l87.03 87.03c9.375 9.375 9.375 24.56 0 33.94S144.4 442.3 135 432.1z"} />
+      <path
+        d={
+          "M135 432.1l-128-128C2.344 300.3 0 294.2 0 288s2.344-12.28 7.031-16.97l128-128c9.375-9.375 24.56-9.375 33.94 0s9.375 24.56 0 33.94L81.94 264H464v-208C464 42.75 474.8 32 488 32S512 42.75 512 56V288c0 13.25-10.75 24-24 24H81.94l87.03 87.03c9.375 9.375 9.375 24.56 0 33.94S144.4 442.3 135 432.1z"
+        }
+      />
     </SvgIcon>
   );
 };

@@ -1,12 +1,15 @@
-import type { FunctionComponent, RefObject , useMemo } from "react";
+import type { FunctionComponent, RefObject, useMemo } from "react";
 import { useModuleConstructor } from "@blockprotocol/core/react";
 
 import type {
   BlockGraphProperties,
   Entity,
   EntityVertexId,
- GraphBlockHandler, GraphEmbedderHandler,  LinkEntityAndRightEntity,
-  Subgraph } from "./main.js";
+  GraphBlockHandler,
+  GraphEmbedderHandler,
+  LinkEntityAndRightEntity,
+  Subgraph,
+} from "./main.js";
 import { getOutgoingLinkAndTargetEntities, getRoots } from "./stdlib.js";
 
 export type BlockComponent<RootEntity extends Entity = Entity> =

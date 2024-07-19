@@ -15,8 +15,10 @@ import type {
   Edges,
   isEntityId,
   isKnowledgeGraphOutwardEdge,
-  isOntologyOutwardEdge,  OntologyTypeRevisionId,
-  OutwardEdge} from "../../src/main.js";
+  isOntologyOutwardEdge,
+  OntologyTypeRevisionId,
+  OutwardEdge,
+} from "../../src/main.js";
 
 export const mapOutwardEdge = (
   outwardEdge: OntologyOutwardEdgeGraphApi | KnowledgeGraphOutwardEdgeGraphApi,

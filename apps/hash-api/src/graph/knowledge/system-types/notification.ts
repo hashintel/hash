@@ -5,7 +5,8 @@ import { createNotificationEntityPermissions } from "@local/hash-backend-utils/n
 import type {
   CreateEntityParameters,
   Entity,
- LinkEntity } from "@local/hash-graph-sdk/entity";
+  LinkEntity,
+} from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,

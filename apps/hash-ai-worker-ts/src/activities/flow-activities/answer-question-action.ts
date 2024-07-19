@@ -6,14 +6,18 @@ import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/ac
 import type {
   FormattedText,
   StepOutput,
- textFormats } from "@local/hash-isomorphic-utils/flows/types";
+  textFormats,
+} from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType , extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import type { Status , StatusCode } from "@local/status";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
+import type { Status, StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
 import { logger } from "../shared/activity-logger.js";
@@ -508,7 +512,7 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
     );
 
     if (entities) {
-      message = `${message  }
+      message = `${message}
       The context is an array containing entities, and entityTypes which describe the structure of the entities.
       Each entity has:
        * entityId: The unique id for the entity, to identify it as the target of links from other entities

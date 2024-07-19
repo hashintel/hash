@@ -1,6 +1,6 @@
 import dedent from "dedent";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { OriginProvenance , SourceType } from "@local/hash-graph-client";
+import type { OriginProvenance, SourceType } from "@local/hash-graph-client";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -24,18 +24,26 @@ import { stringify } from "../shared/stringify.js";
 
 import { checkSubTasksAgent } from "./research-entities-action/check-sub-tasks-agent.js";
 import type {
- coordinatingAgent,  CoordinatingAgentInput,
-  CoordinatingAgentState } from "./research-entities-action/coordinating-agent.js";
+  coordinatingAgent,
+  CoordinatingAgentInput,
+  CoordinatingAgentState,
+} from "./research-entities-action/coordinating-agent.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools.js";
-import type { deduplicateEntities,DuplicateReport  } from "./research-entities-action/deduplicate-entities.js";
+import type {
+  deduplicateEntities,
+  DuplicateReport,
+} from "./research-entities-action/deduplicate-entities.js";
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human.js";
 import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call.js";
 import { linkFollowerAgent } from "./research-entities-action/link-follower-agent.js";
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
-import type { CompletedCoordinatorToolCall , nullReturns } from "./research-entities-action/types.js";
+import type {
+  CompletedCoordinatorToolCall,
+  nullReturns,
+} from "./research-entities-action/types.js";
 import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text.js";
 import type { Fact } from "./shared/infer-facts-from-text/types.js";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts.js";
@@ -128,14 +136,12 @@ const updateStateFromInferredFacts = async (params: {
      * There are some entities that shouldn't be marked as the duplicates, and
      * should instead always be the canonical entity.
      */
-    const entityIdsWhichCannotBeDeduplicated = 
+    const entityIdsWhichCannotBeDeduplicated =
       /**
        * We don't want to deduplicate any entities that are already persisted in
        * the graph (i.e. The `existingEntities` passed in as input to the action).
        */
-      (input.existingEntitySummaries ?? []).map(({ entityId }) => entityId)
-    ;
-
+      (input.existingEntitySummaries ?? []).map(({ entityId }) => entityId);
     const adjustedDuplicates = adjustDuplicates({
       duplicates,
       entityIdsWhichCannotBeDeduplicated,
@@ -377,7 +383,8 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: `The plan has been successfully updated.`,
             };
-          } if (toolCall.name === "requestHumanInput") {
+          }
+          if (toolCall.name === "requestHumanInput") {
             const { questions } =
               toolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
 
@@ -408,7 +415,8 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: response,
             };
-          } if (toolCall.name === "webSearch") {
+          }
+          if (toolCall.name === "webSearch") {
             const webPageSummaries = await handleWebSearchToolCall({
               input:
                 toolCall.input as CoordinatorToolCallArguments["webSearch"],
@@ -420,7 +428,8 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: "Search successful",
               webPagesFromSearchQuery: webPageSummaries,
             };
-          } if (toolCall.name === "inferFactsFromResources") {
+          }
+          if (toolCall.name === "inferFactsFromResources") {
             const { resources } =
               toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
 
@@ -557,7 +566,8 @@ export const researchEntitiesAction: FlowActionActivity<{
                   ? "Entities inferred from web page"
                   : "No facts were inferred about any relevant entities.",
             };
-          } if (toolCall.name === "startFactGatheringSubTasks") {
+          }
+          if (toolCall.name === "startFactGatheringSubTasks") {
             const { subTasks } =
               toolCall.input as CoordinatorToolCallArguments["startFactGatheringSubTasks"];
 
@@ -653,7 +663,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               if (response.status === "ok") {
                 subTasksCompleted.push(subTask.goal);
               } else {
-                errorMessage = `${errorMessage  }An error was encountered when completing the sub-task with goal "${subTask.goal}": ${response.reason}\n`;
+                errorMessage = `${errorMessage}An error was encountered when completing the sub-task with goal "${subTask.goal}": ${response.reason}\n`;
               }
             }
 
@@ -662,7 +672,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                 (subTask) => subTask.subTaskId === subTaskId,
               )!;
 
-              errorMessage = `${errorMessage  }The sub-task with goal "${goal}" was rejected for the following reason: ${reason}\n`;
+              errorMessage = `${errorMessage}The sub-task with goal "${goal}" was rejected for the following reason: ${reason}\n`;
             }
 
             return {
@@ -674,7 +684,8 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: errorMessage || "Sub-tasks all completed.",
               isError: Boolean(errorMessage),
             };
-          } if (toolCall.name === "complete") {
+          }
+          if (toolCall.name === "complete") {
             if (!state.hasConductedCheckStep) {
               const warnings: string[] = [];
 
@@ -769,9 +780,8 @@ export const researchEntitiesAction: FlowActionActivity<{
                   `),
                   isError: true,
                 };
-              } 
-                state.hasConductedCheckStep = true;
-              
+              }
+              state.hasConductedCheckStep = true;
             }
 
             return {
@@ -851,9 +861,8 @@ export const researchEntitiesAction: FlowActionActivity<{
     if (isCompleted) {
       if (state.hasConductedCheckStep) {
         return;
-      } 
-        state.hasConductedCheckStep = true;
-      
+      }
+      state.hasConductedCheckStep = true;
     }
 
     state.previousCalls = [...state.previousCalls, { completedToolCalls }];

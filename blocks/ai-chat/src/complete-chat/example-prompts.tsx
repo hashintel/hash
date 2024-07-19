@@ -69,7 +69,9 @@ export const ExamplePrompts: FunctionComponent<{
                 marginTop: isMobile ? 0.5 : 0,
               },
             }}
-            onClick={() => { submitPrompt(prompt); }}
+            onClick={() => {
+              submitPrompt(prompt);
+            }}
           >
             {prompt}
           </Button>

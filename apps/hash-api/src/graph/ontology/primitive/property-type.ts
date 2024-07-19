@@ -1,4 +1,7 @@
-import type { PROPERTY_TYPE_META_SCHEMA,VersionedUrl  } from "@blockprotocol/type-system";
+import type {
+  PROPERTY_TYPE_META_SCHEMA,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   ArchivePropertyTypeParams,
@@ -25,10 +28,12 @@ import {
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import type {
- ontologyTypeRecordIdToVersionedUrl,  PropertyTypeAuthorizationRelationship,
+  ontologyTypeRecordIdToVersionedUrl,
+  PropertyTypeAuthorizationRelationship,
   PropertyTypeRelationAndSubject,
   PropertyTypeRootType,
-  Subgraph } from "@local/hash-subgraph";
+  Subgraph,
+} from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 

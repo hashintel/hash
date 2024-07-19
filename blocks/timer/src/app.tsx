@@ -1,8 +1,15 @@
 import "./app.scss";
 import { isValid, parseISO } from "date-fns";
 import * as duration from "duration-fns";
-import type { MouseEventHandler , useCallback, useMemo, useRef, useState } from "react";
-import type { BlockComponent ,
+import type {
+  MouseEventHandler,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type {
+  BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
@@ -161,7 +168,7 @@ export const App: BlockComponent<BlockEntity> = ({
                       newTimerState.pauseDurationInMs,
                     ),
                   )
-                  .replaceAll(',', "."), // https://github.com/dlevs/duration-fns/issues/26
+                  .replaceAll(",", "."), // https://github.com/dlevs/duration-fns/issues/26
               }
             : {}),
           ...(newTimerState.targetTimestamp
@@ -340,7 +347,9 @@ export const App: BlockComponent<BlockEntity> = ({
           className={"reset-button"}
           type={"button"}
           disabled={
-            Boolean(readonly) || timerStatus === "idle" || timerStatus === "finished"
+            Boolean(readonly) ||
+            timerStatus === "idle" ||
+            timerStatus === "finished"
           }
           onClick={handleReset}
         />

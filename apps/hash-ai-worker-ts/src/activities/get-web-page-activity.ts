@@ -85,7 +85,7 @@ export const sanitizeHtmlForLlmConsumption = (params: {
   });
 
   const dom = new JSDOM(sanitizedHtml);
-  const {document} = dom.window;
+  const { document } = dom.window;
 
   const elements = document.querySelectorAll(
     disallowedTagsWithNoRelevantAttributes.join(","),
@@ -135,7 +135,9 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
     });
 
     const timeoutPromise = new Promise((resolve) => {
-      setTimeout(() => { resolve(undefined); }, timeout);
+      setTimeout(() => {
+        resolve(undefined);
+      }, timeout);
     });
 
     /**

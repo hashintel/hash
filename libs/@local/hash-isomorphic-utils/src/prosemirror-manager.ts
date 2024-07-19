@@ -5,13 +5,18 @@ import type { BlockVariant, JsonObject } from "@blockprotocol/core";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
-import type {   areComponentsCompatible,
+import type {
+  areComponentsCompatible,
   fetchBlock,
-HashBlock ,
+  HashBlock,
   isBlockWithTextualContentProperty,
   prepareBlockCache,
 } from "./blocks.js";
-import type { BlockEntity , getBlockChildEntity, isRichTextProperties } from "./entity.js";
+import type {
+  BlockEntity,
+  getBlockChildEntity,
+  isRichTextProperties,
+} from "./entity.js";
 import type {
   createEntityStore,
   DraftEntity,
@@ -19,7 +24,8 @@ import type {
   EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
-  textualContentPropertyTypeBaseUrl} from "./entity-store.js";
+  textualContentPropertyTypeBaseUrl,
+} from "./entity-store.js";
 import {
   addEntityStoreAction,
   entityStorePluginState,
@@ -83,9 +89,8 @@ export class ProsemirrorManager {
           if (node.textContent.length > 0) {
             return ["span", { "data-hash-type": "component" }, 0];
           }
- 
-            return ["span", { "data-hash-type": "component" }];
-          
+
+          return ["span", { "data-hash-type": "component" }];
         },
       });
     });
@@ -154,12 +159,11 @@ export class ProsemirrorManager {
          * @see https://linear.app/hash/issue/H-3000
          * @todo Make these errors instead of logs.
          */
-         
+
         console.error("Block entity missing from store");
       }
 
       if (entityInStore.componentId !== targetComponentId) {
-         
         console.error("Cannot render this block entity with this component");
       }
 

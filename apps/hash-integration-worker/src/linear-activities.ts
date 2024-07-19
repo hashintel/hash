@@ -1,4 +1,9 @@
-import type { Connection, LinearClient,LinearDocument, Team  } from "@linear/sdk";
+import type {
+  Connection,
+  LinearClient,
+  LinearDocument,
+  Team,
+} from "@linear/sdk";
 import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
 import type {
   CreateHashEntityFromLinearData,
@@ -7,7 +12,8 @@ import type {
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance ,
+import type {
+  EnforcedEntityEditionProvenance,
   Entity,
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
@@ -318,7 +324,7 @@ const updateHashEntityFromLinearData =
   };
 
 const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
-  const {nodes} = connection;
+  const { nodes } = connection;
 
   while (connection.pageInfo.hasNextPage) {
     // eslint-disable-next-line no-param-reassign

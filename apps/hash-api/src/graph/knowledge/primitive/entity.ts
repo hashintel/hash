@@ -16,7 +16,11 @@ import type {
   GraphResolveDepths,
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
-import type { CreateEntityParameters , Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  CreateEntityParameters,
+  Entity,
+  LinkEntity,
+} from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -50,7 +54,9 @@ import type {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   isEntityVertex,
-  splitEntityId,  Subgraph} from "@local/hash-subgraph";
+  splitEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 
 import type {
   EntityDefinition,
@@ -105,7 +111,7 @@ export const createEntity = async <Properties extends EntityProperties>(
   const { graphApi, provenance } = context;
   const { actorId } = authentication;
 
-  let {properties} = params;
+  let { properties } = params;
 
   for (const beforeCreateHook of beforeCreateEntityHooks) {
     if (beforeCreateHook.entityTypeId === createParams.entityTypeId) {
@@ -500,7 +506,9 @@ export const createEntityWithLinks = async <
           draft:
             /** If either side of the link is a draft entity, the link entity must be draft also */
             params.draft ||
-            Boolean(extractDraftIdFromEntityId(entity.metadata.recordId.entityId)),
+            Boolean(
+              extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
+            ),
         });
       }
     }),

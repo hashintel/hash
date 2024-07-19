@@ -40,7 +40,9 @@ export const ImageTile = ({
           width: "100%",
           height: "100%",
         }}
-        onLoad={() => { setLoading(false); }}
+        onLoad={() => {
+          setLoading(false);
+        }}
       />
     </Box>
   );

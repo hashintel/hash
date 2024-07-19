@@ -18,14 +18,17 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
-import type { AccountEntityId ,
+import type {
+  AccountEntityId,
   extractAccountId,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
 
 import type {
- kratosIdentityApi,  KratosUserIdentity,
-  KratosUserIdentityTraits } from "../../../auth/ory-kratos";
+  kratosIdentityApi,
+  KratosUserIdentity,
+  KratosUserIdentityTraits,
+} from "../../../auth/ory-kratos";
 import { createAccount, createWeb } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
@@ -44,10 +47,11 @@ import {
   shortnameIsTaken,
 } from "./account.fields";
 import { addHashInstanceAdmin } from "./hash-instance";
-import type {   createOrgMembership,
+import type {
+  createOrgMembership,
   getOrgMembershipFromLinkEntity,
   getOrgMembershipOrg,
-OrgMembership ,
+  OrgMembership,
 } from "./org-membership";
 
 export interface User {
@@ -583,9 +587,11 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
     ),
   );
 
-  return Boolean(orgs.find(
-    (org) =>
-      extractEntityUuidFromEntityId(org.entity.metadata.recordId.entityId) ===
-      params.orgEntityUuid,
-  ));
+  return Boolean(
+    orgs.find(
+      (org) =>
+        extractEntityUuidFromEntityId(org.entity.metadata.recordId.entityId) ===
+        params.orgEntityUuid,
+    ),
+  );
 };

@@ -84,7 +84,7 @@ export const createEntityEmbeddings = async (params: {
       propertyValue: property,
     });
 
-    combinedEntityEmbedding = `${combinedEntityEmbedding  }${embeddingInput}\n`;
+    combinedEntityEmbedding = `${combinedEntityEmbedding}${embeddingInput}\n`;
     propertyEmbeddings.push(embeddingInput);
     usedPropertyBaseUrls.push(baseUrl);
   }

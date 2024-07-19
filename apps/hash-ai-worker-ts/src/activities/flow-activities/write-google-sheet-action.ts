@@ -1,4 +1,4 @@
-import type { google,sheets_v4  } from "googleapis";
+import type { google, sheets_v4 } from "googleapis";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
@@ -55,13 +55,13 @@ const createSpreadsheet = async ({
     },
   });
 
-  const {spreadsheetId} = response.data;
+  const { spreadsheetId } = response.data;
 
   if (!spreadsheetId) {
     throw new Error("No spreadsheetId returned from Google Sheets API");
   }
 
-  const {spreadsheetUrl} = response.data;
+  const { spreadsheetUrl } = response.data;
 
   if (!spreadsheetUrl) {
     throw new Error("No spreadsheetUrl returned from Google Sheets API");
@@ -237,7 +237,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         spreadsheetId: existingSpreadsheetId,
       });
 
-      const {spreadsheetUrl} = retrievalResponse.data;
+      const { spreadsheetUrl } = retrievalResponse.data;
 
       if (!spreadsheetUrl) {
         return {

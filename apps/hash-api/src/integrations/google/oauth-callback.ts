@@ -125,29 +125,33 @@ export const googleOAuthCallback: RequestHandler<
         },
       };
 
-      newGoogleAccountEntity = await createEntity(request.context, authentication, {
-        entityTypeId: googleEntityTypes.account.entityTypeId,
-        ownedById: request.user.accountId as OwnedById,
-        properties: googleAccountProperties,
-        relationships: [
-          {
-            // Only allow the Google bot to edit the Google Account entity
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: googleBotAccountId,
+      newGoogleAccountEntity = await createEntity(
+        request.context,
+        authentication,
+        {
+          entityTypeId: googleEntityTypes.account.entityTypeId,
+          ownedById: request.user.accountId as OwnedById,
+          properties: googleAccountProperties,
+          relationships: [
+            {
+              // Only allow the Google bot to edit the Google Account entity
+              relation: "administrator",
+              subject: {
+                kind: "account",
+                subjectId: googleBotAccountId,
+              },
             },
-          },
-          {
-            // Allow the user to view the Google Account entity
-            relation: "setting",
-            subject: {
-              kind: "setting",
-              subjectId: "viewFromWeb",
+            {
+              // Allow the user to view the Google Account entity
+              relation: "setting",
+              subject: {
+                kind: "setting",
+                subjectId: "viewFromWeb",
+              },
             },
-          },
-        ],
-      });
+          ],
+        },
+      );
     }
 
     const googleAccountEntity =

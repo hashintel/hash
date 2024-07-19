@@ -28,7 +28,9 @@ export const EditableColumnTitle = ({
         role={"button"}
         tabIndex={0}
         className={styles.wrapper}
-        onClick={() => { setEditing(true); }}
+        onClick={() => {
+          setEditing(true);
+        }}
       >
         {title}
       </div>
@@ -41,7 +43,9 @@ export const EditableColumnTitle = ({
       ref={inputRef}
       className={styles.wrapper}
       value={inputValue}
-      onBlur={() => { setEditing(false); }}
+      onBlur={() => {
+        setEditing(false);
+      }}
       onClick={(event) => {
         event.stopPropagation();
         event.preventDefault();

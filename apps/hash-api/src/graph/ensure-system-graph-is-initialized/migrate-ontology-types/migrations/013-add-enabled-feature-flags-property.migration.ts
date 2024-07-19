@@ -70,7 +70,7 @@ const migrate: MigrationFunction = async ({
 
   /**
    * Step 4: Update the dependencies of the `User` entity type.
-    */
+   */
   await upgradeDependenciesInHashEntityType(context, authentication, {
     upgradedEntityTypeIds: [updatedUserEntityTypeId],
     dependentEntityTypeKeys: [

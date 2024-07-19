@@ -3,7 +3,8 @@ import { frontendUrl } from "./environment.js";
 export const sanitizeHref = (url?: string) => {
   if (!url) {
     return "";
-  } if (url.startsWith("#")) {
+  }
+  if (url.startsWith("#")) {
     return url;
   }
 
@@ -19,7 +20,6 @@ export const sanitizeHref = (url?: string) => {
 
     return href;
   } catch (error) {
-     
     console.error(`Could not construct URL from ${url}`);
 
     return "";

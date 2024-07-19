@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { BlockComponent ,
+import type {
+  BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
@@ -9,7 +10,7 @@ import { Editor } from "./editor";
 import { CopyIcon } from "./icons";
 import { propertyIds } from "./property-ids";
 import type { BlockEntity } from "./types/generated/block-entity";
-import type { languages,LanguageType  } from "./utils";
+import type { languages, LanguageType } from "./utils";
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -94,23 +95,28 @@ export const App: BlockComponent<BlockEntity> = ({
             : "",
         );
         setCopied(true);
-        setTimeout(() => { setCopied(false); }, 2000);
+        setTimeout(() => {
+          setCopied(false);
+        }, 2000);
 
         return;
       }
 
       if (document.queryCommandEnabled("copy")) {
-        if (!editorRef.current) {return;}
+        if (!editorRef.current) {
+          return;
+        }
         editorRef.current.select();
         const success = document.execCommand("copy");
 
         if (success) {
           setCopied(true);
-          setTimeout(() => { setCopied(false); }, 2000);
+          setTimeout(() => {
+            setCopied(false);
+          }, 2000);
         }
       }
     } catch (error) {
-       
       console.error(error);
     }
   };
@@ -143,7 +149,9 @@ export const App: BlockComponent<BlockEntity> = ({
             value={localData[propertyIds.language]}
             onChange={
               // @todo remove assertion when the type system supports enums and CodeSnippet type is update
-              (event) => { handleLanguageChange(event.target.value as LanguageType); }
+              (event) => {
+                handleLanguageChange(event.target.value as LanguageType);
+              }
             }
           >
             {languages.map(({ code, title }) => (
@@ -195,9 +203,9 @@ export const App: BlockComponent<BlockEntity> = ({
         placeholder={"Write a caption..."}
         value={localData[propertyIds.caption] ?? ""}
         onBlur={handleCaptionInputBlur}
-        onChange={(event) =>
-          { updateLocalData({ [propertyIds.caption]: event.target.value }); }
-        }
+        onChange={(event) => {
+          updateLocalData({ [propertyIds.caption]: event.target.value });
+        }}
       />
     </div>
   );

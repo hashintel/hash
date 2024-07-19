@@ -12,7 +12,7 @@ import type {
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import type { mapPageToGQL,UnresolvedPageGQL  } from "../graphql-mapping";
+import type { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 
 export const updatePageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,
@@ -29,7 +29,8 @@ export const updatePageResolver: ResolverFn<
     entity: page.entity,
     propertyPatches: Object.entries(updatedProperties).map(
       ([propertyName, value]) => {
-        const {propertyTypeBaseUrl} = systemPropertyTypes[
+        const { propertyTypeBaseUrl } =
+          systemPropertyTypes[
             propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
           ];
 

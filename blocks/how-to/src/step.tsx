@@ -1,9 +1,9 @@
-import type { FunctionComponent , useState } from "react";
+import type { FunctionComponent, useState } from "react";
 import { EditableField } from "@hashintel/block-design-system";
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
-import type { Box, Fade, SxProps, Theme , Typography } from "@mui/material";
+import type { Box, Fade, SxProps, Theme, Typography } from "@mui/material";
 
-import type { descriptionKey, titleKey,TitleOrDescription  } from "./app";
+import type { descriptionKey, titleKey, TitleOrDescription } from "./app";
 
 interface StepProps {
   header: string;
@@ -110,7 +110,9 @@ export const Step: FunctionComponent<StepProps> = ({
             color: ({ palette }) => palette.gray[90],
             ...(readonly ? { paddingY: 0.5 } : {}),
           }}
-          onBlur={(event) => { updateField(event.target.value, titleKey); }}
+          onBlur={(event) => {
+            updateField(event.target.value, titleKey);
+          }}
           onChange={(event) => {
             if (!readonly) {
               setTitleValue(event.target.value);
@@ -146,7 +148,9 @@ export const Step: FunctionComponent<StepProps> = ({
             color: ({ palette }) => palette.gray[90],
             ...(readonly ? { paddingY: 0.5 } : {}),
           }}
-          onBlur={(event) => { updateField(event.target.value, descriptionKey); }}
+          onBlur={(event) => {
+            updateField(event.target.value, descriptionKey);
+          }}
           onChange={(event) => {
             if (!readonly) {
               setDescriptionValue(event.target.value);

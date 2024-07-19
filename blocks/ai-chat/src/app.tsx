@@ -13,8 +13,10 @@ import type {
   CompleteChatRequest,
   CompleteChatResponse,
   createRequestId,
-  createResponseId,  RequestId,
-  ResponseId} from "./complete-chat";
+  createResponseId,
+  RequestId,
+  ResponseId,
+} from "./complete-chat";
 import type {
   AIChatBlock,
   AIChatRequestMessage,

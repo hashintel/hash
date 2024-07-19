@@ -1,4 +1,4 @@
-import type { atLeastOne,EntityType  } from "@blockprotocol/type-system";
+import type { atLeastOne, EntityType } from "@blockprotocol/type-system";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";

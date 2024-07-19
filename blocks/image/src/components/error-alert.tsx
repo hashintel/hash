@@ -3,7 +3,10 @@ import { tw } from "twind";
 
 import Cross from "../svgs/cross";
 
-interface ImageErrorAlertProps { error: string | null; onClearError: () => void }
+interface ImageErrorAlertProps {
+  error: string | null;
+  onClearError: () => void;
+}
 
 export const ErrorAlert: FunctionComponent<ImageErrorAlertProps> = ({
   error,
