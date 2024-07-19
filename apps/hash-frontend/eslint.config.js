@@ -2,7 +2,7 @@ import { create } from "@local/eslint";
 
 export default create({
   enabled: {
-    frontend: true,
+    frontend: "next",
     playwright: false,
     tests: false,
   },
@@ -65,5 +65,5 @@ export default create({
       ],
     },
   ],
-  draftVariableRegex: () => ["^draft"],
+  mutableParametersRegex: () => ["^draft"],
 });

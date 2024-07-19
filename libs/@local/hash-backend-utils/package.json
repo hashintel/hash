@@ -53,7 +53,7 @@
     "winston": "3.11.0"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.2.0",
     "@types/node": "20.12.3",
@@ -64,3 +64,4 @@
     "vitest": "2.0.3"
   }
 }
+

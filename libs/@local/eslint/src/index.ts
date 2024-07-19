@@ -8,6 +8,7 @@ import { react } from "./react.js";
 import { stylistic } from "./stylistic.js";
 import { typescript } from "./typescript.js";
 import { unicorn } from "./unicorn.js";
+import { SheriffSettings } from "@sherifforg/types";
 
 // A subset of the allowed rule config, because we're sane
 export interface NoRestrictedImportsPath {
@@ -40,7 +41,7 @@ export interface Options {
 }
 
 export const create = (options: Options): FlatESLintConfig[] => {
-  const sheriffOptions = {
+  const sheriffOptions: SheriffSettings = {
     react: options.enabled.frontend === "react",
     next: options.enabled.frontend === "next",
     // I want to move away from lodash, not add more of it
@@ -48,6 +49,10 @@ export const create = (options: Options): FlatESLintConfig[] => {
     playwright: options.enabled.playwright,
     jest: false,
     vitest: options.enabled.tests,
+    ignores: {
+      recommended: true,
+      inheritedFromGitignore: true,
+    },
   };
 
   return pipe(
@@ -61,3 +66,5 @@ export const create = (options: Options): FlatESLintConfig[] => {
     stylistic,
   );
 };
+
+export { defineFlatConfig, type FlatESLintConfig };

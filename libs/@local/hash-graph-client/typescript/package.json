@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@apps/hash-graph": "0.0.0-private",
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@redocly/cli": "1.18.0",
     "@types/node": "20.12.3",
@@ -24,3 +24,4 @@
     "typescript": "5.5.3"
   }
 }
+

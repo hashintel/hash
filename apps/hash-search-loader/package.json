@@ -22,9 +22,10 @@
     "typescript": "5.5.3"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "20.12.3",
     "eslint": "8.57.0"
   }
 }
+

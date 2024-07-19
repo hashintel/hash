@@ -28,7 +28,7 @@
     "@local/hash-graph-types": "0.0.0-private"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@vitest/coverage-istanbul": "2.0.3",
     "eslint": "8.57.0",
@@ -36,3 +36,4 @@
     "vitest": "2.0.3"
   }
 }
+

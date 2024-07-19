@@ -1,4 +1,4 @@
-import { create } from "./dist/index.js";
+import { create } from "@local/eslint";
 
 export default create({
   enabled: {

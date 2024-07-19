@@ -20,8 +20,10 @@
     "eslint-define-config": "^2.1.0"
   },
   "devDependencies": {
+    "@sherifforg/types": "3.1.2",
     "@types/eslint": "8.56.9",
     "tsup": "8.0.2",
     "typescript": "5.4.5"
   }
 }
+
