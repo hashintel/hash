@@ -36,7 +36,7 @@
     "@graphql-codegen/typescript": "2.8.7",
     "@graphql-codegen/typescript-graphql-request": "4.5.8",
     "@graphql-codegen/typescript-resolvers": "2.7.12",
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node-fetch": "2.6.2",
     "@vitest/coverage-istanbul": "2.0.3",

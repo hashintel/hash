@@ -11,7 +11,7 @@
     "test:system": "PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1 PW_EXPERIMENTAL_TS_ESM=1 npx playwright test --project chromium"
   },
   "dependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
