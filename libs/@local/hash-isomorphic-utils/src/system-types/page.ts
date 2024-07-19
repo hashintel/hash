@@ -58,5 +58,10 @@ export {
   type BlockCollectionPropertiesWithMetadata,
   type BooleanDataType,
   type BooleanDataTypeWithMetadata,
-  type FractionalIndexPropertyValue, type FractionalIndexPropertyValueWithMetadata, type HasParent, type HasParentOutgoingLinkAndTarget, type HasParentOutgoingLinksByLinkEntityTypeId, type HasParentProperties,
+  type FractionalIndexPropertyValue,
+  type FractionalIndexPropertyValueWithMetadata,
+  type HasParent,
+  type HasParentOutgoingLinkAndTarget,
+  type HasParentOutgoingLinksByLinkEntityTypeId,
+  type HasParentProperties,
 } from "./shared.js";

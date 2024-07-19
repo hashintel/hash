@@ -64,5 +64,10 @@ export {
   type BlockHasDataLink,
   type BlockOutgoingLinkAndTarget,
   type BlockOutgoingLinksByLinkEntityTypeId,
-  type BlockProperties, type BlockPropertiesWithMetadata, type ComponentIdPropertyValue, type ComponentIdPropertyValueWithMetadata, type FractionalIndexPropertyValue, type FractionalIndexPropertyValueWithMetadata,
+  type BlockProperties,
+  type BlockPropertiesWithMetadata,
+  type ComponentIdPropertyValue,
+  type ComponentIdPropertyValueWithMetadata,
+  type FractionalIndexPropertyValue,
+  type FractionalIndexPropertyValueWithMetadata,
 } from "./shared.js";

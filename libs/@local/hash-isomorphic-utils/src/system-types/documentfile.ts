@@ -100,5 +100,10 @@ export {
   type DisplayNamePropertyValue,
   type DisplayNamePropertyValueWithMetadata,
   type DocumentFile,
-  type DocumentFileOutgoingLinkAndTarget, type DocumentFileOutgoingLinksByLinkEntityTypeId, type DocumentFileProperties, type DocumentFilePropertiesWithMetadata, type File, type FileHashPropertyValue,
+  type DocumentFileOutgoingLinkAndTarget,
+  type DocumentFileOutgoingLinksByLinkEntityTypeId,
+  type DocumentFileProperties,
+  type DocumentFilePropertiesWithMetadata,
+  type File,
+  type FileHashPropertyValue,
 } from "./shared.js";

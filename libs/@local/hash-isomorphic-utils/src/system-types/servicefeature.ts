@@ -38,5 +38,10 @@ export {
   type FeatureNamePropertyValue,
   type FeatureNamePropertyValueWithMetadata,
   type InputUnitCostPropertyValue,
-  type InputUnitCostPropertyValueWithMetadata, type NumberDataType, type NumberDataTypeWithMetadata, type OutputUnitCostPropertyValue, type OutputUnitCostPropertyValueWithMetadata, type ServiceFeature,
+  type InputUnitCostPropertyValueWithMetadata,
+  type NumberDataType,
+  type NumberDataTypeWithMetadata,
+  type OutputUnitCostPropertyValue,
+  type OutputUnitCostPropertyValueWithMetadata,
+  type ServiceFeature,
 } from "./shared.js";

@@ -1,4 +1,9 @@
-import React, { type CSSProperties, type RefObject, forwardRef, useState } from "react";
+import React, {
+  type CSSProperties,
+  type RefObject,
+  forwardRef,
+  useState,
+} from "react";
 import type { DraggableAttributes } from "@dnd-kit/core";
 import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";

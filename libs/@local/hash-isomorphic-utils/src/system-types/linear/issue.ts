@@ -386,5 +386,10 @@ export {
   type AllowMembersToInvitePropertyValue,
   type AllowMembersToInvitePropertyValueWithMetadata,
   type ArchivedAtPropertyValue,
-  type ArchivedAtPropertyValueWithMetadata, type AutoArchivedAtPropertyValue, type AutoArchivedAtPropertyValueWithMetadata, type AutoClosedAtPropertyValue, type AutoClosedAtPropertyValueWithMetadata, type AvatarURLPropertyValue,
+  type ArchivedAtPropertyValueWithMetadata,
+  type AutoArchivedAtPropertyValue,
+  type AutoArchivedAtPropertyValueWithMetadata,
+  type AutoClosedAtPropertyValue,
+  type AutoClosedAtPropertyValueWithMetadata,
+  type AvatarURLPropertyValue,
 } from "./shared.js";

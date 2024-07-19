@@ -230,5 +230,10 @@ export {
   type BlockHasDataLink,
   type BlockOutgoingLinkAndTarget,
   type BlockOutgoingLinksByLinkEntityTypeId,
-  type BlockProperties, type BlockPropertiesWithMetadata, type BooleanDataType, type BooleanDataTypeWithMetadata, type ComponentIdPropertyValue, type ComponentIdPropertyValueWithMetadata,
+  type BlockProperties,
+  type BlockPropertiesWithMetadata,
+  type BooleanDataType,
+  type BooleanDataTypeWithMetadata,
+  type ComponentIdPropertyValue,
+  type ComponentIdPropertyValueWithMetadata,
 } from "./shared.js";

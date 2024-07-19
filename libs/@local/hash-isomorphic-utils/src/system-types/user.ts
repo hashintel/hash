@@ -350,5 +350,10 @@ export {
   type AutomaticInferenceConfigurationPropertyValueWithMetadata,
   type Block,
   type BlockCollection,
-  type BlockCollectionOutgoingLinkAndTarget, type BlockCollectionOutgoingLinksByLinkEntityTypeId, type BlockCollectionProperties, type BlockCollectionPropertiesWithMetadata, type BlockHasDataLink, type BlockOutgoingLinkAndTarget,
+  type BlockCollectionOutgoingLinkAndTarget,
+  type BlockCollectionOutgoingLinksByLinkEntityTypeId,
+  type BlockCollectionProperties,
+  type BlockCollectionPropertiesWithMetadata,
+  type BlockHasDataLink,
+  type BlockOutgoingLinkAndTarget,
 } from "./shared.js";

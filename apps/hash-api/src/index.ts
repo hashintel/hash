@@ -1,6 +1,6 @@
 /* eslint-disable import/first */
 
-import express, type { ErrorRequestHandler , raw } from "express";
+import express, { type ErrorRequestHandler, raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 import {
   getRequiredEnv,

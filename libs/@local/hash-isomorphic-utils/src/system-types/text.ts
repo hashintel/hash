@@ -2,10 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-
-
-
-
 export {
   type ObjectDataType,
   type ObjectDataTypeWithMetadata,
@@ -16,5 +12,6 @@ export {
   type TextOutgoingLinksByLinkEntityTypeId,
   type TextProperties,
   type TextPropertiesWithMetadata,
-  type TextualContentPropertyValue, type TextualContentPropertyValueWithMetadata,
+  type TextualContentPropertyValue,
+  type TextualContentPropertyValueWithMetadata,
 } from "./shared.js";

@@ -28,5 +28,10 @@ export {
   type ComponentIdPropertyValue,
   type ComponentIdPropertyValueWithMetadata,
   type HasData,
-  type HasDataOutgoingLinkAndTarget, type HasDataOutgoingLinksByLinkEntityTypeId, type HasDataProperties, type HasDataPropertiesWithMetadata, type Link, type LinkOutgoingLinkAndTarget,
+  type HasDataOutgoingLinkAndTarget,
+  type HasDataOutgoingLinksByLinkEntityTypeId,
+  type HasDataProperties,
+  type HasDataPropertiesWithMetadata,
+  type Link,
+  type LinkOutgoingLinkAndTarget,
 } from "./shared.js";

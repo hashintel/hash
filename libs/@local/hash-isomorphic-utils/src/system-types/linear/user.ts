@@ -198,5 +198,10 @@ export {
   type AllowMembersToInvitePropertyValue,
   type AllowMembersToInvitePropertyValueWithMetadata,
   type ArchivedAtPropertyValue,
-  type ArchivedAtPropertyValueWithMetadata, type AvatarURLPropertyValue, type AvatarURLPropertyValueWithMetadata, type BelongsToOrganization, type BelongsToOrganizationOutgoingLinkAndTarget, type BelongsToOrganizationOutgoingLinksByLinkEntityTypeId,
+  type ArchivedAtPropertyValueWithMetadata,
+  type AvatarURLPropertyValue,
+  type AvatarURLPropertyValueWithMetadata,
+  type BelongsToOrganization,
+  type BelongsToOrganizationOutgoingLinkAndTarget,
+  type BelongsToOrganizationOutgoingLinksByLinkEntityTypeId,
 } from "./shared.js";

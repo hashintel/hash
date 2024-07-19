@@ -2,10 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-
-
-
-
 export {
   type ArchivedPropertyValue,
   type ArchivedPropertyValueWithMetadata,
@@ -16,5 +12,8 @@ export {
   type NotificationOutgoingLinksByLinkEntityTypeId,
   type NotificationProperties,
   type NotificationPropertiesWithMetadata,
-  type ReadAtPropertyValue, type ReadAtPropertyValueWithMetadata, type TextDataType, type TextDataTypeWithMetadata,
+  type ReadAtPropertyValue,
+  type ReadAtPropertyValueWithMetadata,
+  type TextDataType,
+  type TextDataTypeWithMetadata,
 } from "./shared.js";

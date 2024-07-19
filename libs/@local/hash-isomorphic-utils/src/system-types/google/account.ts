@@ -58,5 +58,10 @@ export {
   type AccountPropertiesWithMetadata,
   type AccountUsesUserSecretLink,
   type ConnectionSourceNamePropertyValue,
-  type ConnectionSourceNamePropertyValueWithMetadata, type DisplayNamePropertyValue, type DisplayNamePropertyValueWithMetadata, type EmailPropertyValue, type EmailPropertyValueWithMetadata, type ExpiredAtPropertyValue,
+  type ConnectionSourceNamePropertyValueWithMetadata,
+  type DisplayNamePropertyValue,
+  type DisplayNamePropertyValueWithMetadata,
+  type EmailPropertyValue,
+  type EmailPropertyValueWithMetadata,
+  type ExpiredAtPropertyValue,
 } from "./shared.js";

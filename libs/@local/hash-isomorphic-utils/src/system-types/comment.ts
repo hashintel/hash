@@ -418,5 +418,10 @@ export {
   type AuthoredByOutgoingLinkAndTarget,
   type AuthoredByOutgoingLinksByLinkEntityTypeId,
   type AuthoredByProperties,
-  type AuthoredByPropertiesWithMetadata, type AutomaticInferenceConfigurationPropertyValue, type AutomaticInferenceConfigurationPropertyValueWithMetadata, type Block, type BlockCollection, type BlockCollectionOutgoingLinkAndTarget,
+  type AuthoredByPropertiesWithMetadata,
+  type AutomaticInferenceConfigurationPropertyValue,
+  type AutomaticInferenceConfigurationPropertyValueWithMetadata,
+  type Block,
+  type BlockCollection,
+  type BlockCollectionOutgoingLinkAndTarget,
 } from "./shared.js";

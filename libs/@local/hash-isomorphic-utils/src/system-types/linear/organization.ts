@@ -98,5 +98,10 @@ export {
   type BooleanDataType,
   type BooleanDataTypeWithMetadata,
   type CreatedAtPropertyValue,
-  type CreatedAtPropertyValueWithMetadata, type CreatedIssueCountPropertyValue, type CreatedIssueCountPropertyValueWithMetadata, type DeletionRequestedAtPropertyValue, type DeletionRequestedAtPropertyValueWithMetadata, type GitBranchFormatPropertyValue,
+  type CreatedAtPropertyValueWithMetadata,
+  type CreatedIssueCountPropertyValue,
+  type CreatedIssueCountPropertyValueWithMetadata,
+  type DeletionRequestedAtPropertyValue,
+  type DeletionRequestedAtPropertyValueWithMetadata,
+  type GitBranchFormatPropertyValue,
 } from "./shared.js";
