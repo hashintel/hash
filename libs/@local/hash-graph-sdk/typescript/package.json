@@ -26,8 +26,7 @@
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
-    "@local/hash-graph-types": "0.0.0-private",
-    "@local/hash-subgraph": "0.0.0-private"
+    "@local/hash-graph-types": "0.0.0-private"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

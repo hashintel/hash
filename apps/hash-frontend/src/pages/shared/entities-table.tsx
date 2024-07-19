@@ -7,7 +7,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
-import { ListRegularIcon } from "@hashintel/design-system";
+import { ListRegularIcon, Skeleton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
@@ -608,7 +608,9 @@ export const EntitiesTable: FunctionComponent<{
         toggleSearch={view === "Table" ? () => setShowSearch(true) : undefined}
         onBulkActionCompleted={() => setSelectedRows([])}
       />
-      {view === "Graph" ? (
+      {!subgraph ? (
+        <Skeleton sx={{ height: 400 }} />
+      ) : view === "Graph" ? (
         <EntitiesGraphChart
           entities={entities}
           isPrimaryEntity={(entity) =>
@@ -637,9 +639,7 @@ export const EntitiesTable: FunctionComponent<{
             borderBottomRightRadius: 6,
             borderBottomLeftRadius: 6,
           }}
-          subgraphWithTypes={
-            subgraph as unknown as BpSubgraph<BpEntityRootType>
-          }
+          subgraphWithTypes={subgraph}
         />
       ) : view === "Grid" ? (
         <GridView entities={entities} />

@@ -9,12 +9,11 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { simplifyProperties } from "./simplify-properties.js";
-import { isEntity } from "@local/hash-isomorphic-utils/entity-store";
 
 const getLabelPropertyValue = (
   entityToLabel: {
     properties: Entity["properties"];
-    metadata: EntityMetadata;
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
   },
   entityType: EntityTypeWithMetadata,
 ) => {
@@ -34,7 +33,10 @@ const getFallbackLabel = ({
   entity,
 }: {
   entityType?: EntityTypeWithMetadata;
-  entity: { properties: Entity["properties"]; metadata: EntityMetadata };
+  entity: {
+    properties: Entity["properties"];
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
+  };
 }) => {
   // fallback to the entity type and a few characters of the entityUuid
   const entityId = entity.metadata.recordId.entityId;
@@ -51,14 +53,14 @@ export function generateEntityLabel(
   entitySubgraph: Subgraph<EntityRootType>,
   entity?: {
     properties: Entity["properties"];
-    metadata: Pick<EntityMetadata, "recordId">;
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
   },
 ): string;
 export function generateEntityLabel(
   entitySubgraph: Subgraph | null,
   entity: {
     properties: Entity["properties"];
-    metadata: Pick<EntityMetadata, "recordId">;
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
   },
 ): string;
 /**
@@ -73,7 +75,7 @@ export function generateEntityLabel(
   entitySubgraph: Subgraph | null,
   entity?: {
     properties: Entity["properties"];
-    metadata: Pick<EntityMetadata, "recordId">;
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
   },
 ): string {
   if (!entitySubgraph && !entity) {
@@ -81,7 +83,7 @@ export function generateEntityLabel(
   }
   const entityToLabel = entity ?? getRoots(entitySubgraph!)[0]!;
 
-  if (!isEntity(entityToLabel)) {
+  if (!("properties" in entityToLabel)) {
     throw new Error(
       `Either one of 'entity' or an entity rooted subgraph must be provided`,
     );

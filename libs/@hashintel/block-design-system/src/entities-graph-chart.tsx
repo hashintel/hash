@@ -1,4 +1,10 @@
-import type { Chart, ECOption } from "@hashintel/design-system";
+import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
+import type {
+  Chart,
+  ECOption,
+  GraphEdge,
+  GraphNode,
+} from "@hashintel/design-system";
 import { EChart } from "@hashintel/design-system";
 /* eslint-disable no-restricted-imports */
 import type {
@@ -41,7 +47,7 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
   filterEntity?: (entity: T) => boolean;
   onEntityClick?: (entity: T) => void;
   isPrimaryEntity?: (entity: T) => boolean;
-  subgraphWithTypes?: Subgraph;
+  subgraphWithTypes: Subgraph;
   sx?: BoxProps["sx"];
 }) => {
   const [chart, setChart] = useState<Chart>();
@@ -113,9 +119,103 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
   const theme = useTheme();
 
   const eChartOptions = useMemo<ECOption>(() => {
+    const nodes: GraphNode[] = [];
+    const edges: GraphEdge[] = [];
+
+    const typesAlreadyAdded: Set<VersionedUrl> = new Set();
+
+    const nodeLabelStyle = {
+      backgroundColor: "rgba(255, 255, 255, 0.8)",
+      fontFamily: theme.typography.fontFamily,
+      fontSize: 14,
+      fontWeight: 600,
+      position: "bottom",
+      padding: 2,
+      distance: 3,
+      show: true,
+    } as const;
+
+    for (const entity of nonLinkEntities ?? []) {
+      nodes.push({
+        name: generateEntityLabel(subgraphWithTypes, entity),
+        id: entity.metadata.recordId.entityId,
+        label: nodeLabelStyle,
+        itemStyle: {
+          borderColor: theme.palette.gray[30],
+          color: theme.palette.common.white,
+          ...(isPrimaryEntity
+            ? {
+                opacity: isPrimaryEntity(entity) ? 1 : 0.6,
+              }
+            : {}),
+        },
+      });
+
+      const entityType = getEntityTypeById(
+        subgraphWithTypes,
+        entity.metadata.entityTypeId,
+      );
+
+      if (entityType) {
+        const {
+          schema: { title, $id },
+        } = entityType;
+
+        if (!typesAlreadyAdded.has($id)) {
+          typesAlreadyAdded.add($id);
+
+          nodes.push({
+            name: title,
+            id: $id,
+            label: {
+              ...nodeLabelStyle,
+              color: theme.palette.gray[60],
+            },
+            itemStyle: {
+              color: theme.palette.blue[20],
+              borderColor: theme.palette.blue[30],
+            },
+          });
+        }
+
+        edges.push({
+          source: entity.metadata.recordId.entityId,
+          target: $id,
+          name: `${entity.metadata.recordId.entityId}-${$id}`,
+          label: {
+            fontSize: 12,
+            padding: 2,
+            show: true,
+            formatter: () => "is of type",
+          },
+          symbol: ["none", "arrow"],
+          symbolSize: 8,
+        });
+      }
+    }
+
+    for (const linkEntity of linkEntities ?? []) {
+      edges.push({
+        /** @todo: figure out why the right entity is the source and not the target */
+        source: linkEntity.linkData.leftEntityId,
+        target: linkEntity.linkData.rightEntityId,
+        id: linkEntity.metadata.recordId.entityId,
+        label: {
+          show: true,
+          formatter: () =>
+            getEntityTypeById(
+              subgraphWithTypes,
+              linkEntity.metadata.entityTypeId,
+            )?.schema.title ?? "Unknown",
+        },
+        symbol: ["none", "arrow"],
+        symbolSize: 8,
+        name: linkEntity.metadata.entityTypeId,
+      });
+    }
+
     return {
       tooltip: {
-        borderColor: theme.palette.blue[70],
         show: true,
         trigger: "item",
         formatter: (params) => {
@@ -129,7 +229,7 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
               ({ metadata }) => metadata.recordId.entityId === id,
             );
 
-            if (linkEntity && subgraphWithTypes) {
+            if (linkEntity) {
               const leftEntity = entities?.find(
                 ({ metadata }) =>
                   metadata.recordId.entityId ===
@@ -164,7 +264,7 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
               ({ metadata }) => metadata.recordId.entityId === id,
             );
 
-            if (entity && subgraphWithTypes) {
+            if (entity) {
               const entityType = getEntityTypeById(
                 subgraphWithTypes,
                 entity.metadata.entityTypeId,
@@ -179,43 +279,16 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
       },
       series: {
         roam: true,
-        draggable: true,
+        draggable: false,
         force: {
           layoutAnimation: chartInitialized,
         },
-        data: nonLinkEntities?.map((entity) => ({
-          name: generateEntityLabel(subgraphWithTypes!, entity),
-          id: entity.metadata.recordId.entityId,
-          label: {
-            show: true,
-            textBorderColor: theme.palette.blue[90],
-            textBorderWidth: 2,
-          },
-          itemStyle: {
-            color: theme.palette.blue[70],
-            ...(isPrimaryEntity
-              ? {
-                  opacity: isPrimaryEntity(entity) ? 1 : 0.6,
-                }
-              : {}),
-          },
-        })),
-        edges: linkEntities?.map((linkEntity) => ({
-          /** @todo: figure out why the right entity is the source and not the target */
-          source: linkEntity.linkData.leftEntityId,
-          target: linkEntity.linkData.rightEntityId,
-          id: linkEntity.metadata.recordId.entityId,
-          label: {
-            show: true,
-            formatter: () =>
-              getEntityTypeById(
-                subgraphWithTypes!,
-                linkEntity.metadata.entityTypeId,
-              )?.schema.title ?? "Unknown",
-          },
-          symbol: ["none", "arrow"],
-          name: linkEntity.metadata.entityTypeId,
-        })),
+        scaleLimit: {
+          min: 6,
+          max: 20,
+        },
+        nodes,
+        edges,
         type: "graph",
         layout: "force",
         // Hack for only setting the zoom if the chart hasn't already been initialized

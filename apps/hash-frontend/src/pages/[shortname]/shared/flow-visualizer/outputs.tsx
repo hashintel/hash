@@ -447,7 +447,9 @@ export const Outputs = ({
                 })
               }
               entities={entitiesForGraph}
-              subgraphWithTypes={persistedEntitiesSubgraph}
+              subgraphWithTypes={
+                persistedEntitiesSubgraph ?? proposedEntitiesTypesSubgraph
+              }
             />
           ))}
 

@@ -31,10 +31,6 @@ export const EntityResultGraph = ({
       EntityForGraphChart
     > = {};
     for (const entity of entities) {
-      if (!entity) {
-        continue;
-      }
-
       const entityId = entity.metadata.recordId.entityId;
 
       const existing = deduplicatedLatestEntitiesByEntityId[entityId];
@@ -70,12 +66,14 @@ export const EntityResultGraph = ({
 
   return (
     <OutputContainer sx={{ flex: 1.5 }}>
-      <EntitiesGraphChart
-        entities={deduplicatedEntities}
-        onEntityClick={(entity) => onEntityClick(entity)}
-        subgraphWithTypes={subgraphWithTypes}
-        sx={{ maxHeight: "100%" }}
-      />
+      {subgraphWithTypes && (
+        <EntitiesGraphChart
+          entities={deduplicatedEntities}
+          onEntityClick={(entity) => onEntityClick(entity)}
+          subgraphWithTypes={subgraphWithTypes}
+          sx={{ maxHeight: "100%" }}
+        />
+      )}
     </OutputContainer>
   );
 };

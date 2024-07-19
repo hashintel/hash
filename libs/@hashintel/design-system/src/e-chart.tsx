@@ -18,6 +18,9 @@ import { useEffect, useRef, useState } from "react";
 
 export type Chart = echarts.ECharts;
 
+export type GraphNode = NonNullable<GraphSeriesOption["data"]>[number];
+export type GraphEdge = NonNullable<GraphSeriesOption["edges"]>[number];
+
 export type SeriesOption =
   | LineSeriesOption
   | ScatterSeriesOption
@@ -89,7 +92,10 @@ export const EChart: FunctionComponent<GraphProps> = ({
 
   return (
     <Box
-      sx={[{ width: "100%", height: 500 }, ...(Array.isArray(sx) ? sx : [sx])]}
+      sx={[
+        { width: "100%", height: "100%" },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
       ref={wrapperRef}
     />
   );

@@ -195,14 +195,14 @@ export const FlowRunSidebar = ({
         </SidebarSection>
       </Box>
 
-      <Box sx={{ mt: 2 }}>
+      <Box sx={{ my: 2 }}>
         <SectionLabel text="Manager" />
         <SidebarSection>
           <Manager />
         </SidebarSection>
       </Box>
       {isUsageAvailable && usage ? (
-        <Box sx={{ mt: 2 }}>
+        <Box sx={{ mb: 2 }}>
           <SectionLabel text="Cost" />
           <SidebarSection>
             <Stack

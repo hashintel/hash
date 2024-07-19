@@ -414,7 +414,7 @@ export const FlowVisualizer = () => {
           selectedFlowDefinition={selectedFlowDefinition}
         />
       )}
-      <Box sx={{ height: containerHeight }}>
+      <Stack sx={{ height: containerHeight }}>
         {isRunnableFromHere && (
           <RunFlowModal
             key={selectedFlowDefinition.name}
@@ -469,7 +469,8 @@ export const FlowVisualizer = () => {
         <Stack
           direction="row"
           sx={{
-            height: `calc(100% - ${logHeight + topbarHeight}px)`,
+            flex: 1,
+            minHeight: `calc(100% - ${logHeight + topbarHeight}px)`,
             overflow: "auto",
             width: "100%",
             background: ({ palette }) =>
@@ -520,6 +521,7 @@ export const FlowVisualizer = () => {
             background: palette.gray[10],
             borderTop: `2px solid ${palette.gray[20]}`,
             height: logHeight,
+            maxHeight: "30%",
             maxWidth: "100%",
             px: 3,
             width: "100%",
@@ -537,7 +539,7 @@ export const FlowVisualizer = () => {
             <ActivityLog key={`${flowRunStateKey}-activity-log`} logs={logs} />
           </Stack>
         </Stack>
-      </Box>
+      </Stack>
     </>
   );
 };
