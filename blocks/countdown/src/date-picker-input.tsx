@@ -2,7 +2,8 @@ import {
   type FunctionComponent,
   type HTMLAttributes,
   type MutableRefObject,
-  forwardRef, useRef
+  forwardRef,
+  useRef,
 } from "react";
 import DatePicker, { type ReactDatePickerProps } from "react-datepicker";
 

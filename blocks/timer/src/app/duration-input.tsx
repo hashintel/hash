@@ -3,7 +3,11 @@ import {
   type FocusEventHandler,
   type FunctionComponent,
   type KeyboardEventHandler,
-  useCallback, useEffect, useMemo, useRef, useState
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 
 import { clamp } from "./clamp";
@@ -123,7 +127,7 @@ export const DurationInput: FunctionComponent<DurationInputProps> = ({
       if (
         event.key === "ArrowLeft" &&
         event.currentTarget.selectionEnd ===
-        event.currentTarget.selectionStart &&
+          event.currentTarget.selectionStart &&
         event.currentTarget.selectionStart === 0
       ) {
         inputToJumpTo = findInputByIndex(containerRef.current, inputIndex - 1);
@@ -132,7 +136,7 @@ export const DurationInput: FunctionComponent<DurationInputProps> = ({
       if (
         event.key === "ArrowRight" &&
         event.currentTarget.selectionEnd ===
-        event.currentTarget.selectionStart &&
+          event.currentTarget.selectionStart &&
         event.currentTarget.selectionEnd === event.currentTarget.value.length
       ) {
         inputToJumpTo = findInputByIndex(containerRef.current, inputIndex + 1);
