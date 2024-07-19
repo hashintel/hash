@@ -1,10 +1,16 @@
 import { useQuery } from "@apollo/client";
+import { buildSubgraph } from "@blockprotocol/graph/stdlib";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { IconButton } from "@hashintel/design-system";
-import type { Filter } from "@local/hash-graph-client";
+import type {
+  Entity as GraphApiEntity,
+  Filter,
+  LeftClosedTemporalInterval,
+} from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -14,8 +20,14 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, EntityTypeRootType } from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import {
+  getDataTypes,
+  getEntityTypes,
+  getPropertyTypes,
+} from "@local/hash-subgraph/stdlib";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren } from "react";
@@ -157,6 +169,45 @@ const SectionTabButton = ({
   </IconButton>
 );
 
+const mockEntityFromProposedEntity = (
+  proposedEntity: ProposedEntityOutput,
+  webId: OwnedById,
+): Entity => {
+  const editionId = new Date().toISOString();
+
+  const temporalInterval: LeftClosedTemporalInterval = {
+    start: { kind: "inclusive", limit: editionId },
+    end: { kind: "unbounded" },
+  };
+
+  return new Entity({
+    metadata: {
+      recordId: {
+        entityId: entityIdFromComponents(
+          webId,
+          proposedEntity.localEntityId as EntityUuid,
+        ),
+        editionId,
+      },
+      entityTypeIds: [proposedEntity.entityTypeId],
+      temporalVersioning: {
+        decisionTime: temporalInterval,
+        transactionTime: temporalInterval,
+      },
+      archived: false,
+      provenance: {
+        createdAtDecisionTime: editionId,
+        createdAtTransactionTime: editionId,
+        createdById: "ownedById",
+        edition: {
+          createdById: "ownedById",
+        },
+      },
+    },
+    properties: proposedEntity.properties,
+  } satisfies GraphApiEntity);
+};
+
 type ResultSlideOver =
   | {
       type: "entity";
@@ -250,9 +301,7 @@ export const Outputs = ({
       return undefined;
     }
 
-    return deserializeSubgraph<EntityTypeRootType>(
-      proposedEntitiesTypesData.queryEntityTypes,
-    );
+    return deserializeSubgraph(proposedEntitiesTypesData.queryEntityTypes);
   }, [proposedEntitiesTypesData]);
 
   const { data: entitiesSubgraphData } = useQuery<
@@ -286,16 +335,92 @@ export const Outputs = ({
   }, [entitiesSubgraphData]);
 
   const selectedEntitySubgraph = useMemo(() => {
-    const defaultEntity = persistedEntities[0]?.entity
-      ? new Entity(persistedEntities[0].entity)
-      : undefined;
-
     const selectedEntityId =
-      slideOver?.type === "entity"
-        ? slideOver.entityId
-        : defaultEntity?.metadata.recordId.entityId;
+      slideOver?.type === "entity" ? slideOver.entityId : undefined;
 
-    if (!persistedEntitiesSubgraph || !selectedEntityId) {
+    if (!selectedEntityId || !selectedFlowRun?.webId) {
+      return undefined;
+    }
+
+    const proposedEntity = proposedEntities.find(
+      (entity) =>
+        entity.localEntityId ===
+        extractEntityUuidFromEntityId(selectedEntityId),
+    );
+
+    if (proposedEntity) {
+      if (!proposedEntitiesTypesSubgraph) {
+        return undefined;
+      }
+
+      const mockedEntity = mockEntityFromProposedEntity(
+        proposedEntity,
+        selectedFlowRun.webId,
+      );
+
+      /**
+       * @todo also handle proposed entities which link to existing persisted entities
+       *   -- requires having fetched them.
+       */
+      const linkedEntities = proposedEntities
+        .filter(
+          (entity) =>
+            (entity.sourceEntityId?.kind === "proposed-entity" &&
+              entity.sourceEntityId.localId === selectedEntityId) ||
+            (entity.targetEntityId?.kind === "proposed-entity" &&
+              entity.targetEntityId.localId === selectedEntityId),
+        )
+        .map((linkedEntity) =>
+          mockEntityFromProposedEntity(linkedEntity, selectedFlowRun.webId),
+        );
+
+      const entityTypes = getEntityTypes(proposedEntitiesTypesSubgraph);
+      const propertyTypes = getPropertyTypes(proposedEntitiesTypesSubgraph);
+      const dataTypes = getDataTypes(proposedEntitiesTypesSubgraph);
+
+      const now = new Date().toISOString();
+
+      const mockSubgraph = buildSubgraph(
+        {
+          dataTypes,
+          propertyTypes,
+          entityTypes,
+          entities: [mockedEntity, ...linkedEntities],
+        },
+        [mockedEntity.metadata.recordId],
+        {
+          ...fullOntologyResolveDepths,
+          hasLeftEntity: {
+            outgoing: 0,
+            incoming: 1,
+          },
+          hasRightEntity: {
+            outgoing: 1,
+            incoming: 0,
+          },
+        },
+        {
+          initial: currentTimeInstantTemporalAxes,
+          resolved: {
+            pinned: {
+              axis: "transactionTime",
+              timestamp: now,
+            },
+            variable: {
+              axis: "decisionTime",
+              interval: {
+                start: { kind: "inclusive", limit: new Date(0).toISOString() },
+                end: { kind: "inclusive", limit: now },
+              },
+            },
+          },
+        },
+      ) as unknown as Subgraph<EntityRootType>;
+
+      return mockSubgraph;
+    }
+
+    if (!persistedEntitiesSubgraph) {
       return undefined;
     }
 
@@ -303,7 +428,13 @@ export const Outputs = ({
       selectedEntityId,
       persistedEntitiesSubgraph,
     );
-  }, [persistedEntities, persistedEntitiesSubgraph, slideOver]);
+  }, [
+    persistedEntitiesSubgraph,
+    proposedEntitiesTypesSubgraph,
+    proposedEntities,
+    selectedFlowRun?.webId,
+    slideOver,
+  ]);
 
   const entitiesForGraph = useMemo<EntityForGraphChart[]>(() => {
     const entities: EntityForGraphChart[] = [];
@@ -346,7 +477,10 @@ export const Outputs = ({
         metadata: {
           recordId: {
             editionId,
-            entityId: `ownedById~${localEntityId}` as EntityId,
+            entityId: entityIdFromComponents(
+              "ownedById" as OwnedById,
+              localEntityId as EntityUuid,
+            ),
           },
           entityTypeId,
         },
@@ -367,6 +501,7 @@ export const Outputs = ({
       {selectedEntitySubgraph && (
         <EditEntitySlideOver
           entitySubgraph={selectedEntitySubgraph}
+          hideOpenInNew={persistedEntities.length === 0}
           open={slideOver?.type === "entity"}
           onClose={() => setSlideOver(null)}
           onSubmit={() => {
@@ -427,8 +562,8 @@ export const Outputs = ({
         {sectionVisibility.entities &&
           (entityDisplay === "table" ? (
             <EntityResultTable
-              onEntityClick={(entity) =>
-                setSlideOver({ type: "entity", entityId: entity.entityId })
+              onEntityClick={(entityId) =>
+                setSlideOver({ type: "entity", entityId })
               }
               onEntityTypeClick={(entityTypeId) =>
                 setSlideOver({ type: "entityType", entityTypeId })

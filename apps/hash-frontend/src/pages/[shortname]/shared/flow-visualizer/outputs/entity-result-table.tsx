@@ -5,12 +5,14 @@ import type {
   EntityId,
   EntityMetadata,
   EntityRecordId,
+  EntityUuid,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type {
+import {
+  entityIdFromComponents,
   EntityRootType,
   EntityTypeRootType,
   Subgraph,
@@ -39,6 +41,7 @@ import type { ProposedEntityOutput } from "../shared/types";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
+import { OwnedById } from "@local/hash-graph-types/web";
 
 const fixedFieldIds = ["status", "entityTypeId", "entityLabel"] as const;
 
@@ -118,7 +121,8 @@ type EntityResultRow = {
   entityLabel: string;
   entityTypeId: VersionedUrl;
   entityType: EntityType;
-  onEntityClick: (entity: Entity) => void;
+  proposedEntityId?: EntityId;
+  onEntityClick: (entityId: EntityId) => void;
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntity?: Entity;
   properties: PropertyObject;
@@ -190,31 +194,33 @@ const TableRow = memo(
             zIndex: 1,
           }}
         >
-          {row.persistedEntity ? (
-            <Box
-              component="button"
-              onClick={() => row.onEntityClick(row.persistedEntity!)}
-              sx={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
+          <Box
+            component="button"
+            onClick={() =>
+              row.onEntityClick(
+                row.persistedEntity
+                  ? row.persistedEntity.metadata.recordId.entityId
+                  : row.proposedEntityId!,
+              )
+            }
+            sx={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
 
-                p: 0,
-                textAlign: "left",
+              p: 0,
+              textAlign: "left",
+            }}
+          >
+            <ValueChip
+              sx={{
+                ...typographySx,
+                color: ({ palette }) => palette.blue[70],
               }}
             >
-              <ValueChip
-                sx={{
-                  ...typographySx,
-                  color: ({ palette }) => palette.blue[70],
-                }}
-              >
-                {row.entityLabel}
-              </ValueChip>
-            </Box>
-          ) : (
-            <ValueChip sx={typographySx}>{row.entityLabel}</ValueChip>
-          )}
+              {row.entityLabel}
+            </ValueChip>
+          </Box>
         </TableCell>
         {columns.slice(fixedFieldIds.length).map((column) => {
           const appliesToEntity = column.metadata?.appliesToEntityTypeIds.some(
@@ -310,12 +316,12 @@ const createRowContent: CreateVirtualizedRowContentFn<
 );
 
 type EntityResultTableProps = {
-  onEntityClick: (entity: Entity) => void;
+  onEntityClick: (entityId: EntityId) => void;
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
   proposedEntities: ProposedEntityOutput[];
-  proposedEntitiesTypesSubgraph?: Subgraph<EntityTypeRootType>;
+  proposedEntitiesTypesSubgraph?: Subgraph;
 };
 
 export const EntityResultTable = ({
@@ -415,6 +421,12 @@ export const EntityResultTable = ({
           onEntityClick,
           onEntityTypeClick,
           persistedEntity: "metadata" in entity ? entity : undefined,
+          proposedEntityId: isProposed
+            ? entityIdFromComponents(
+                "ownedById" as OwnedById,
+                entityId as EntityUuid,
+              )
+            : undefined,
           properties: entity.properties,
           researchOngoing:
             "researchOngoing" in record && record.researchOngoing,

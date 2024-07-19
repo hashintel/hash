@@ -14,7 +14,8 @@ import type {
   PropertyObject,
 } from "@local/hash-graph-types/entity";
 import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { isEntityId, Subgraph } from "@local/hash-subgraph";
+import type { Subgraph } from "@local/hash-subgraph";
+import { isEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 /* eslint-enable no-restricted-imports */
 import type { BoxProps } from "@mui/material";
@@ -129,13 +130,13 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
     const typesAlreadyAdded: Set<VersionedUrl> = new Set();
 
     const nodeLabelStyle = {
-      backgroundColor: "rgba(255, 255, 255, 0.8)",
+      backgroundColor: "rgba(255, 255, 255, 0.4)",
       fontFamily: theme.typography.fontFamily,
       fontSize: 14,
       fontWeight: 600,
       position: "bottom",
-      padding: 2,
-      distance: 3,
+      padding: 4,
+      distance: 1,
       show: true,
     } as const;
 
@@ -146,8 +147,8 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
         id: entity.metadata.recordId.entityId,
         label: nodeLabelStyle,
         itemStyle: {
-          borderColor: theme.palette.gray[30],
-          color: theme.palette.common.white,
+          color: theme.palette.blue[20],
+          borderColor: theme.palette.blue[30],
           ...(isPrimaryEntity
             ? {
                 opacity: isPrimaryEntity(entity) ? 1 : 0.6,
@@ -175,11 +176,9 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
             id: $id,
             label: {
               ...nodeLabelStyle,
-              color: theme.palette.gray[60],
             },
             itemStyle: {
-              color: theme.palette.blue[20],
-              borderColor: theme.palette.blue[30],
+              color: theme.palette.blue[70],
             },
           });
         }
