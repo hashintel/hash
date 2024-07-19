@@ -91,7 +91,7 @@ export const addressTypeId =
   "https://blockprotocol.org/@hash/types/entity-type/address/v/2";
 
 const getOptionLabel = (option: AutofillSuggestion | string) =>
-  typeof option === "string" ? option : option.place_name ?? "";
+  typeof option === "string" ? option : (option.place_name ?? "");
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },

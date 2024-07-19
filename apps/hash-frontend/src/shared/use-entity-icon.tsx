@@ -60,10 +60,10 @@ export const useEntityIcon = (params: {
         // @todo when implementing H-783 – do we need this check? see comment above
         isPageEntityTypeId(entity.metadata.entityTypeId)
         ? pageIcon
-        : entityTypeIcons[entity.metadata.entityTypeId] ??
+        : (entityTypeIcons[entity.metadata.entityTypeId] ??
             entityType?.metadata.icon ?? (
               <AsteriskRegularIcon sx={{ fontSize: 12 }} />
-            );
+            ));
     }
   }, [entity, entityType, pageIcon]);
 };

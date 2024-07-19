@@ -102,8 +102,8 @@ const ActionsPage: NextPageWithLayout = () => {
 
   const draftEntitiesWithLinkedDataSubgraph = useMemo(
     () =>
-      draftEntitiesWithLinkedDataResponse ??
-      previouslyFetchedDraftEntitiesWithLinkedDataResponse
+      (draftEntitiesWithLinkedDataResponse ??
+      previouslyFetchedDraftEntitiesWithLinkedDataResponse)
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
             (draftEntitiesWithLinkedDataResponse ??
               previouslyFetchedDraftEntitiesWithLinkedDataResponse)!

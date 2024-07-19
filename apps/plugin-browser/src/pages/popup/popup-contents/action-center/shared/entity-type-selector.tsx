@@ -244,7 +244,7 @@ export const EntityTypeSelector = ({
       value={
         multiple
           ? selectedEntityTypes
-          : selectedEntityTypes[0] ?? (null as unknown as undefined)
+          : (selectedEntityTypes[0] ?? (null as unknown as undefined))
       }
     />
   );

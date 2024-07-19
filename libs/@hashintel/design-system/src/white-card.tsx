@@ -65,7 +65,7 @@ export const WhiteCard = ({
        * clicks on the entity's type.
        * @see https://linear.app/hash/issue/H-3023
        */}
-      {onClick ?? href ? (
+      {(onClick ?? href) ? (
         <CardActionArea
           {...(onClick ? { onClick } : { href })}
           LinkComponent={LinkComponent}
