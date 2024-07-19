@@ -30,7 +30,7 @@
     "twind": "0.16.17"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash": "4.14.188",
     "@types/react-dom": "18.0.9",
@@ -68,3 +68,4 @@
     "protocol": "0.1"
   }
 }
+

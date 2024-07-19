@@ -44,7 +44,7 @@
     "react-textarea-autosize": "8.4.0"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.clonedeep": "4.5.7",
     "@types/lodash.debounce": "4.0.9",

@@ -39,7 +39,7 @@
     "uuid": "9.0.1"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.isequal": "4.5.8",
     "@types/uuid": "8.3.0",
@@ -97,3 +97,4 @@
     }
   }
 }
+
