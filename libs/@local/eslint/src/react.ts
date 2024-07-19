@@ -1,11 +1,12 @@
 import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
+import type { PartialDeep } from "type-fest";
 
 import type { Options } from "./index.js";
 
 export const react =
-  (options: Options) =>
+  (options: PartialDeep<Options>) =>
   (config: FlatESLintConfig[]): FlatESLintConfig[] => {
-    if (!options.enabled.frontend) {
+    if (!options.enabled?.frontend) {
       return config;
     }
 

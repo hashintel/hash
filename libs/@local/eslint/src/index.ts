@@ -1,6 +1,7 @@
 import { pipe } from "effect";
 import { sheriff } from "eslint-config-sheriff";
 import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
+import type { PartialDeep } from "type-fest";
 
 import { builtIn } from "./builtIn.js";
 import { importPlugin } from "./import.js";
@@ -9,6 +10,7 @@ import { stylistic } from "./stylistic.js";
 import { typescript } from "./typescript.js";
 import { unicorn } from "./unicorn.js";
 import { SheriffSettings } from "@sherifforg/types";
+import { storybook } from "./storybook.js";
 
 // A subset of the allowed rule config, because we're sane
 export interface NoRestrictedImportsPath {
@@ -30,25 +32,28 @@ export interface NoRestrictedImportsRule {
   patterns?: NoRestrictedImportsPattern[];
 }
 
-export interface Options {
-  enabled: {
-    frontend: "next" | "react" | false;
-    playwright: boolean;
-    tests: boolean;
-  };
-  noRestrictedImports?: () => NoRestrictedImportsRule[];
-  mutableParametersRegex?: () => string[];
+interface Modules {
+  frontend: "next" | "react" | false;
+  playwright: boolean;
+  tests: boolean;
+  storybook: boolean;
 }
 
-export const create = (options: Options): FlatESLintConfig[] => {
+export interface Options {
+  enabled: Modules;
+  noRestrictedImports(): NoRestrictedImportsRule[];
+  mutableParametersRegex(): string[];
+}
+
+export const create = (options: PartialDeep<Options>): FlatESLintConfig[] => {
   const sheriffOptions: SheriffSettings = {
-    react: options.enabled.frontend === "react",
-    next: options.enabled.frontend === "next",
+    react: options.enabled?.frontend === "react",
+    next: options.enabled?.frontend === "next",
     // I want to move away from lodash, not add more of it
     lodash: false,
-    playwright: options.enabled.playwright,
+    playwright: options.enabled?.playwright ?? false,
     jest: false,
-    vitest: options.enabled.tests,
+    vitest: options.enabled?.tests ?? false,
     ignores: {
       recommended: true,
       inheritedFromGitignore: true,
@@ -64,6 +69,7 @@ export const create = (options: Options): FlatESLintConfig[] => {
     react(options),
     typescript,
     stylistic,
+    storybook(options),
   );
 };
 

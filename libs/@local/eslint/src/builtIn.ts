@@ -1,5 +1,6 @@
 import { Option, pipe, Predicate, Array as ReadonlyArray } from "effect";
 import { defineFlatConfig, type FlatESLintConfig } from "eslint-define-config";
+import type { PartialDeep } from "type-fest";
 
 import type { NoRestrictedImportsRule, Options } from "./index.js";
 
@@ -56,7 +57,7 @@ const noRestrictedImports = (
 };
 
 export const builtIn =
-  (options: Options) =>
+  (options: PartialDeep<Options>) =>
   (config: FlatESLintConfig[]): FlatESLintConfig[] =>
     defineFlatConfig([
       ...config,

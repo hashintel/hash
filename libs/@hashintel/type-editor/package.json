@@ -33,7 +33,7 @@
     "setimmediate": "1.0.5"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@mui/material": "5.14.11",
     "@mui/system": "5.14.11",
     "@types/lodash.memoize": "4.1.7",
