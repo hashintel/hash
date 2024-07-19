@@ -7,6 +7,7 @@ import type {
 
 import type { ProcessedCodegenParameters } from "../parameters.js";
 import type { JsonSchema, LogLevel } from "../shared.js";
+
 import type { InitializeContext } from "./initialize.js";
 import type { TypeDependencyMap } from "./shared.js";
 
@@ -48,7 +49,7 @@ export class PreprocessContext {
   /* @todo - Replace this with a proper logging implementation */
   logWarn(message: string) {
     if (this.logLevel !== "silent") {
-      // eslint-disable-next-line no-console
+       
       console.warn(`WARN: ${message}`);
     }
   }

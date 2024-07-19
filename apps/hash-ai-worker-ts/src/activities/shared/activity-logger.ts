@@ -14,6 +14,7 @@ const log = (
   level: "debug" | "error" | "info" | "silly" | "warn",
 ) => {
   let requestId = "no-requestId-in-context";
+
   try {
     requestId = Context.current().info.workflowExecution.workflowId;
   } catch {
@@ -28,6 +29,7 @@ const log = (
       fs.mkdirSync(logFolderPath);
     }
     const logFilePath = path.join(logFolderPath, `${requestId}.log`);
+
     fs.appendFileSync(logFilePath, `${logMessage}\n`);
   }
 
@@ -40,9 +42,9 @@ const log = (
 };
 
 export const logger = {
-  debug: (message: string) => log(message, "debug"),
-  error: (message: string) => log(message, "error"),
-  info: (message: string) => log(message, "info"),
-  silly: (message: string) => log(message, "silly"),
-  warn: (message: string) => log(message, "warn"),
+  debug: (message: string) => { log(message, "debug"); },
+  error: (message: string) => { log(message, "error"); },
+  info: (message: string) => { log(message, "info"); },
+  silly: (message: string) => { log(message, "silly"); },
+  warn: (message: string) => { log(message, "warn"); },
 };

@@ -1,7 +1,6 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
+import type { BaseUrl,   extractBaseUrl,
   extractVersion,
+VersionedUrl ,
 } from "@blockprotocol/type-system/slim";
 
 import type {
@@ -17,10 +16,10 @@ import type {
  * This is a helper function to extract ontology edges given an `outwardEdgePredicate` function.
  *
  * @internal
- * @param subgraph {Subgraph} - The `Subgraph` containing the underlying ontology types
- * @param ontologyTypeId {OntologyTypeVertexId | VersionedUrl} - The identifier of the `EntityType` to search for
- * @param outwardEdgePredicate {(outwardEdge: OutwardEdge<boolean>) => outwardEdge is OntologyToOntologyOutwardEdge} - The predicate to filter edges by
- * @returns {OntologyTypeVertexId[]} - The resulting endpoints of the filtered edges
+ * @param subgraph - {Subgraph} - The `Subgraph` containing the underlying ontology types.
+ * @param ontologyTypeId - {OntologyTypeVertexId | VersionedUrl} - The identifier of the `EntityType` to search for.
+ * @param outwardEdgePredicate - {(outwardEdge: OutwardEdge<boolean>) => outwardEdge is OntologyToOntologyOutwardEdge} - The predicate to filter edges by.
+ * @returns - The resulting endpoints of the filtered edges.
  */
 export const getOntologyEndpointsForOntologyOutwardEdge = (
   subgraph: Subgraph,

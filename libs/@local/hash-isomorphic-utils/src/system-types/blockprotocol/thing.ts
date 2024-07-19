@@ -5,24 +5,24 @@
 import type { ObjectMetadata } from "@local/hash-graph-client";
 
 /**
- * A generic thing
+ * A generic thing.
  */
-export type Thing = {
+export interface Thing {
   entityTypeId: "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1";
   properties: ThingProperties;
   propertiesWithMetadata: ThingPropertiesWithMetadata;
-};
+}
 
 export type ThingOutgoingLinkAndTarget = never;
 
-export type ThingOutgoingLinksByLinkEntityTypeId = {};
+export interface ThingOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * A generic thing
+ * A generic thing.
  */
-export type ThingProperties = {};
+export interface ThingProperties {}
 
-export type ThingPropertiesWithMetadata = {
+export interface ThingPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

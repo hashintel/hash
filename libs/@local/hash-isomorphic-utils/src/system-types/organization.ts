@@ -3,16 +3,6 @@
  */
 
 import type {
-  Block,
-  BlockCollection,
-  BlockCollectionOutgoingLinkAndTarget,
-  BlockCollectionOutgoingLinksByLinkEntityTypeId,
-  BlockCollectionProperties,
-  BlockCollectionPropertiesWithMetadata,
-  BlockHasDataLink,
-  BlockOutgoingLinkAndTarget,
-  BlockOutgoingLinksByLinkEntityTypeId,
-  BlockProperties,
   BlockPropertiesWithMetadata,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
@@ -127,16 +117,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  Block,
-  BlockCollection,
-  BlockCollectionOutgoingLinkAndTarget,
-  BlockCollectionOutgoingLinksByLinkEntityTypeId,
-  BlockCollectionProperties,
-  BlockCollectionPropertiesWithMetadata,
-  BlockHasDataLink,
-  BlockOutgoingLinkAndTarget,
-  BlockOutgoingLinksByLinkEntityTypeId,
-  BlockProperties,
   BlockPropertiesWithMetadata,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
@@ -249,3 +229,5 @@ export type {
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 };
+
+export {type Block, type BlockCollection, type BlockCollectionOutgoingLinkAndTarget, type BlockCollectionOutgoingLinksByLinkEntityTypeId, type BlockCollectionProperties, type BlockCollectionPropertiesWithMetadata, type BlockHasDataLink, type BlockOutgoingLinkAndTarget, type BlockOutgoingLinksByLinkEntityTypeId, type BlockProperties} from "./shared.js";

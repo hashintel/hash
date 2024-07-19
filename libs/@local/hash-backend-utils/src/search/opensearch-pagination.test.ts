@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 
+import { describe, expect, test, vi } from "vitest";
 import type { Client } from "@opensearch-project/opensearch";
-import { describe, expect, it, vi } from "vitest";
 
 import { Logger } from "../logger.js";
+
 import { OpenSearch } from "./opensearch.js";
 
 const ENTITIES_SEARCH_INDEX = "entities";
@@ -38,6 +39,7 @@ function* generateHitPage(
   for (let page = 0; page < pageCount; page++) {
     const offset = pageCount * page;
     const residual = page + 1 === pageCount ? totalHits % pageSize : 0;
+
     yield {
       statusCode: 200,
       body: {
@@ -53,12 +55,13 @@ function* generateHitPage(
   }
 }
 
-describe("OpenSearch pagination", () => {
-  it("can paginate a single page", async () => {
+describe("openSearch pagination", () => {
+  test("can paginate a single page", async () => {
     const totalHits = 20;
     const pageSize = 20;
 
     const gen = generateHitPage(totalHits, pageSize, ENTITIES_SEARCH_INDEX);
+
     stub.search.mockReset().mockImplementation(() => gen.next().value);
     stub.scroll.mockReset().mockImplementation(() => gen.next().value);
 
@@ -81,11 +84,12 @@ describe("OpenSearch pagination", () => {
     expect(firstPage.hits).toHaveLength(pageSize);
   });
 
-  it("can paginate two pages", async () => {
+  test("can paginate two pages", async () => {
     const totalHits = 15;
     const pageSize = 10;
 
     const gen = generateHitPage(totalHits, pageSize, ENTITIES_SEARCH_INDEX);
+
     stub.search.mockReset().mockImplementation(() => gen.next().value);
     stub.scroll.mockReset().mockImplementation(() => gen.next().value);
 
@@ -118,11 +122,12 @@ describe("OpenSearch pagination", () => {
     expect(stub.scroll).toBeCalledTimes(1);
   });
 
-  it("can paginate many pages", async () => {
+  test("can paginate many pages", async () => {
     const totalHits = 200;
     const pageSize = 20;
 
     const gen = generateHitPage(totalHits, pageSize, ENTITIES_SEARCH_INDEX);
+
     stub.search.mockReset().mockImplementation(() => gen.next().value);
     stub.scroll.mockReset().mockImplementation(() => gen.next().value);
 
@@ -142,6 +147,7 @@ describe("OpenSearch pagination", () => {
     });
 
     let lastPage = firstPage;
+
     while (lastPage.cursor !== undefined) {
       const nextPage = await openSearch.continuePaginatedSearch({
         cursor: lastPage.cursor,

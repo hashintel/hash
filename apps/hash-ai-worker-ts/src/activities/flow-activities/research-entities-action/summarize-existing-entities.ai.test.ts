@@ -1,5 +1,5 @@
 import "../../../shared/testing-utilities/mock-get-flow-context.js";
-
+import { expect, test } from "vitest";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
   currentTimeInstantTemporalAxes,
@@ -7,13 +7,13 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import { expect, test } from "vitest";
 
 import { graphApiClient } from "../../shared/graph-api-client.js";
+
 import { summarizeExistingEntities } from "./summarize-existing-entities.js";
 
 test.skip(
-  "Test summarizeExistingEntities with user entities",
+  "test summarizeExistingEntities with user entities",
   async () => {
     const publicUserEntities = await graphApiClient
       .getEntities(publicUserAccountId, {

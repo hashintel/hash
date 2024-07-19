@@ -1,30 +1,25 @@
-import type { BlockVariant, JsonObject } from "@blockprotocol/core";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Node, Schema } from "prosemirror-model";
 import type { EditorState, Transaction } from "prosemirror-state";
 import type { EditorProps, EditorView } from "prosemirror-view";
+import type { BlockVariant, JsonObject } from "@blockprotocol/core";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 
-import type { HashBlock } from "./blocks.js";
-import {
-  areComponentsCompatible,
+import type {   areComponentsCompatible,
   fetchBlock,
+HashBlock ,
   isBlockWithTextualContentProperty,
   prepareBlockCache,
 } from "./blocks.js";
-import type { BlockEntity } from "./entity.js";
-import { getBlockChildEntity, isRichTextProperties } from "./entity.js";
+import type { BlockEntity , getBlockChildEntity, isRichTextProperties } from "./entity.js";
 import type {
+  createEntityStore,
   DraftEntity,
   EntityStore,
   EntityStoreType,
-} from "./entity-store.js";
-import {
-  createEntityStore,
   isBlockEntity,
   isDraftBlockEntity,
-  textualContentPropertyTypeBaseUrl,
-} from "./entity-store.js";
+  textualContentPropertyTypeBaseUrl} from "./entity-store.js";
 import {
   addEntityStoreAction,
   entityStorePluginState,
@@ -79,16 +74,18 @@ export class ProsemirrorManager {
         group: componentNodeGroupName,
 
         /**
-         * Used for serializing when drag and dropping
-         * @todo consider if we should encode the component id here / any other
-         *       information
+         * Used for serializing when drag and dropping.
+         *
+         * @todo Consider if we should encode the component id here / any other
+         *       information.
          */
         toDOM(node) {
           if (node.textContent.length > 0) {
             return ["span", { "data-hash-type": "component" }, 0];
-          } else {
-            return ["span", { "data-hash-type": "component" }];
           }
+ 
+            return ["span", { "data-hash-type": "component" }];
+          
         },
       });
     });
@@ -107,9 +104,9 @@ export class ProsemirrorManager {
 
   /**
    * Defining a new type of block in Prosemirror. Designed to be cached so
-   * doesn't need to request the block multiple times
+   * doesn't need to request the block multiple times.
    *
-   * @todo support taking a signal
+   * @todo Support taking a signal.
    */
   async defineBlockByComponentId(
     componentId: string,
@@ -125,7 +122,7 @@ export class ProsemirrorManager {
   }
 
   /**
-   * Blocks need to be defined before loading into Prosemirror
+   * Blocks need to be defined before loading into Prosemirror.
    */
   async ensureBlocksDefined(componentIds: string[] = []) {
     return Promise.all(
@@ -148,25 +145,27 @@ export class ProsemirrorManager {
     this.assertBlockDefined(targetComponentId);
 
     let blockEntity: DraftEntity<BlockEntity> | null = null;
+
     if (draftBlockId && entityStore?.draft[draftBlockId]) {
       const entityInStore = entityStore.draft[draftBlockId];
+
       if (!isDraftBlockEntity(entityInStore)) {
         /**
-         * @todo Make these errors instead of logs
          * @see https://linear.app/hash/issue/H-3000
+         * @todo Make these errors instead of logs.
          */
-        // eslint-disable-next-line no-console
+         
         console.error("Block entity missing from store");
       }
 
       if (entityInStore.componentId !== targetComponentId) {
-        // eslint-disable-next-line no-console
+         
         console.error("Cannot render this block entity with this component");
       }
 
       /**
-       * @todo this any type coercion is incorrect, we need to adjust typings
        * @see https://linear.app/hash/issue/H-3000
+       * @todo This any type coercion is incorrect, we need to adjust typings.
        */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       blockEntity = entityInStore as any;
@@ -193,7 +192,7 @@ export class ProsemirrorManager {
      * Block node (BlockView) to render the wrapping block UI, i.e, block handle
      * -> Entity node, which renders no UI, to store the block entity draft id
      *   -> Entity node, to store the block data entity's draft id
-     *     -> The component node (ComponentView), to render the actual block component
+     *     -> The component node (ComponentView), to render the actual block component.
      */
     return this.schema.nodes.block!.create({}, [
       this.schema.nodes.entity!.create(
@@ -253,7 +252,7 @@ export class ProsemirrorManager {
   }
 
   /**
-   * @todo consider removing the old block from the entity store
+   * @todo Consider removing the old block from the entity store.
    */
   async replaceNode(
     draftBlockId: string,
@@ -280,7 +279,7 @@ export class ProsemirrorManager {
   }
 
   /**
-   * @todo consider removing the old block from the entity store
+   * @todo Consider removing the old block from the entity store.
    */
   // eslint-disable-next-line @typescript-eslint/require-await -- using async for future proofing
   async deleteNode(node: Node, pos: number) {
@@ -441,7 +440,7 @@ export class ProsemirrorManager {
     )?.[1];
 
     if (typeof componentPosition !== "number") {
-      throw new Error(
+      throw new TypeError(
         "Cannot find inserted component node position in transaction",
       );
     }
@@ -452,9 +451,9 @@ export class ProsemirrorManager {
   /**
    * This handles changing the block's data (blockEntity.properties.entity)
    * to point to the targetEntity and updating the prosemirror tree to render
-   * the block with updated content
+   * the block with updated content.
    *
-   * @todo this does not work within text blocks
+   * @todo This does not work within text blocks.
    */
   replaceBlockChildEntity(
     blockEntityId: EntityId,
@@ -509,8 +508,9 @@ export class ProsemirrorManager {
   /**
    * Updates the provided properties on the specified entity.
    * Merges provided properties in with existing properties.
-   * @param entityId the id of the entity to update
-   * @param propertiesToUpdate the properties to update
+   *
+   * @param entityId - The id of the entity to update.
+   * @param propertiesToUpdate - The properties to update.
    */
   updateEntityProperties(entityId: EntityId, propertiesToUpdate: JsonObject) {
     if (!this.view) {
@@ -551,6 +551,7 @@ export class ProsemirrorManager {
     }
 
     const newBlockId = generateDraftIdForEntity(null);
+
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
@@ -561,6 +562,7 @@ export class ProsemirrorManager {
     });
 
     const blockDataDraftId = generateDraftIdForEntity(null);
+
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
@@ -594,6 +596,7 @@ export class ProsemirrorManager {
         },
       },
     });
+
     return newBlockId;
   }
 }

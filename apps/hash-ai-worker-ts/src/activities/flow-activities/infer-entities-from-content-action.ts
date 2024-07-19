@@ -29,6 +29,7 @@ import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
 import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities.js";
 import { isPermittedOpenAiModel } from "../shared/openai-client.js";
+
 import type { FlowActionActivity } from "./types.js";
 
 export const inferEntitiesFromContentAction: FlowActionActivity = async ({
@@ -81,13 +82,13 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
 
   const entityTypes = Object.entries(
     dereferencedEntityTypesWithExistingEntitiesTypes,
-  ).reduce((acc, [entityTypeId, entityType]) => {
+  ).reduce<DereferencedEntityTypesByTypeId>((accumulator, [entityTypeId, entityType]) => {
     if (entityTypeIds.includes(entityTypeId as VersionedUrl)) {
-      acc[entityTypeId as VersionedUrl] = entityType;
+      accumulator[entityTypeId as VersionedUrl] = entityType;
     }
 
-    return acc;
-  }, {} as DereferencedEntityTypesByTypeId);
+    return accumulator;
+  }, {});
 
   let webPageInferenceState: InferenceState = {
     iterationCount: 1,
@@ -177,12 +178,12 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
         propertyMetadata: typedKeys(
           proposal.properties ?? {},
         ).reduce<PropertyMetadataObject>(
-          (acc, propertyKey) => {
-            acc.value[propertyKey] = {
+          (accumulator, propertyKey) => {
+            accumulator.value[propertyKey] = {
               metadata: { provenance: { sources: [source] } },
             };
 
-            return acc;
+            return accumulator;
           },
           { value: {} },
         ),

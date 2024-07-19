@@ -26,7 +26,7 @@ async function bundle() {
   console.log(`Bundle written to ${codePath}`);
 }
 
-bundle().catch((err) => {
-  console.error(err);
+bundle().catch((error) => {
+  console.error(error);
   process.exit(1);
 });

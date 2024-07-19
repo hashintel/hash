@@ -4,19 +4,18 @@ import * as crypto from "node:crypto";
 import * as http from "node:http";
 
 import {
+  clearIntervalAsync,
+  setIntervalAsync,
+} from "set-interval-async/dynamic";
+import { sql } from "slonik";
+import {
   getRequiredEnv,
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { PgPool } from "@local/hash-backend-utils/postgres";
-import { createPostgresConnPool } from "@local/hash-backend-utils/postgres";
+import type { createPostgresConnPool,PgPool  } from "@local/hash-backend-utils/postgres";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
-import {
-  clearIntervalAsync,
-  setIntervalAsync,
-} from "set-interval-async/dynamic";
-import { sql } from "slonik";
 
 import { generateQueues, MONITOR_TABLES } from "./config";
 
@@ -87,26 +86,29 @@ const acquireReplicationSlot = async (
     logger.info(`Replication slot '${slotName}' exists.`);
   } else {
     logger.warn(`Could not create replication slot '${slotName}'. Retrying..`);
+
     return false;
   }
 
   // Attempt to take ownership of the slot
-  return await pool.transaction(async (tx) => {
+  return pool.transaction(async (tx) => {
     /**
-     * @todo the 'for update' clause only works for single-shard queries in citus
-     *   make sure that this use case falls under that category.
      * @see https://linear.app/hash/issue/H-3013
      * @see https://docs.citusdata.com/en/stable/develop/reference_workarounds.html#sql-support-and-workarounds
+     * @todo The 'for update' clause only works for single-shard queries in citus
+     *   make sure that this use case falls under that category.
      */
     const slotIsOwned = await tx.maybeOneFirst(sql`
       select ownership_expires_at > now() as owned from realtime.ownership
       where slot_name = ${slotName}
       for update
     `);
+
     if (!slotIsOwned) {
       const expires = sql`now() + ${
         OWNERSHIP_EXPIRY_MILLIS / 1000
       } * interval '1 second'`;
+
       await tx.query(sql`
         insert into realtime.ownership (slot_name, slot_owner, ownership_expires_at)
         values (${slotName}, ${INSTANCE_ID}, ${expires})
@@ -115,8 +117,10 @@ const acquireReplicationSlot = async (
           slot_owner = EXCLUDED.slot_owner,
           ownership_expires_at = EXCLUDED.ownership_expires_at
       `);
+
       return true;
     }
+
     // The slot is owned by another instance of the realtime service
     return false;
   });
@@ -142,6 +146,7 @@ const releaseSlotOwnership = async (pool: PgPool, slotName: string) => {
     delete from realtime.ownership
     where slot_name = ${slotName} and slot_owner = ${INSTANCE_ID}
   `);
+
   if (res.rowCount > 0) {
     logger.debug(`Released ownership of slot "${slotName}"`);
   }
@@ -160,6 +165,7 @@ const pollChanges = async (pool: PgPool, slotName: string) => {
       'include-transaction', 'false'
     )
   `);
+
   // Push each row change onto the queues
   for (const change of rows) {
     logger.debug({ message: "change", change });
@@ -167,16 +173,17 @@ const pollChanges = async (pool: PgPool, slotName: string) => {
     if (change?.action === "T") {
       continue;
     }
-    const changeStr = JSON.stringify(change);
+    const changeString = JSON.stringify(change);
+
     await Promise.all(
-      QUEUES.map(({ name, producer }) => producer.push(name, changeStr)),
+      QUEUES.map(({ name, producer }) => producer.push(name, changeString)),
     );
   }
 };
 
 const createHttpServer = () => {
-  const server = http.createServer((req, res) => {
-    if (req.method === "GET" && req.url === "/health-check") {
+  const server = http.createServer((request, res) => {
+    if (request.method === "GET" && request.url === "/health-check") {
       res.setHeader("Content-Type", "application/json");
       res.writeHead(200);
       res.end(
@@ -184,13 +191,14 @@ const createHttpServer = () => {
           msg: "realtime server healthy",
         }),
       );
+
       return;
     }
     res.writeHead(404);
     res.end("");
   });
 
-  server.on("error", (err) => logger.error(err));
+  server.on("error", (error) => logger.error(error));
   server.on("close", () => logger.info("HTTP server closed"));
 
   return server;
@@ -205,6 +213,7 @@ const main = async () => {
   // Start a HTTP server
   const httpServer = createHttpServer();
   const port = parseInt(process.env.HASH_REALTIME_PORT ?? "", 10) || 3333;
+
   httpServer.listen({ host: "::", port });
   logger.info(`HTTP server listening on port ${port}`);
   shutdown.addCleanup("HTTP server", async () => {
@@ -218,6 +227,7 @@ const main = async () => {
 
   const pgHost = process.env.HASH_GRAPH_PG_HOST ?? "localhost";
   const pgPort = parseInt(process.env.HASH_GRAPH_PG_PORT ?? "5432", 10);
+
   await waitOnResource(`tcp:${pgHost}:${pgPort}`, logger);
 
   const pool = createPostgresConnPool(logger, {
@@ -225,8 +235,8 @@ const main = async () => {
     host: pgHost,
     port: pgPort,
     /**
-     * @todo update how the database is set once realtime if realtime is run in the testing environment.
      * @see https://linear.app/hash/issue/H-3014
+     * @todo Update how the database is set once realtime if realtime is run in the testing environment.
      */
     database: getRequiredEnv("HASH_GRAPH_PG_DATABASE"),
     password: getRequiredEnv("HASH_GRAPH_REALTIME_PG_PASSWORD"),
@@ -259,6 +269,7 @@ const main = async () => {
         await clearIntervalAsync(slotInterval);
         logger.info("Acquired slot ownership");
       })();
+
       return;
     }
 
@@ -305,7 +316,7 @@ const main = async () => {
 
 (async () => {
   await main();
-})().catch(async (err) => {
-  logger.error(err);
+})().catch(async (error) => {
+  logger.error(error);
   await shutdown.trigger();
 });

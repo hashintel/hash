@@ -14,7 +14,7 @@ export const StaticCard = ({
       className={styles.wrapper}
       style={shadow ? { boxShadow: "var(--shadow-3)" } : {}}
     >
-      <CardContent content={data.content} readonly />
+      <CardContent readonly content={data.content} />
     </div>
   );
 };

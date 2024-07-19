@@ -1,10 +1,9 @@
-import type { BlockComponent } from "@blockprotocol/graph/react";
-import {
+import { useRef } from "react";
+import type { BlockComponent ,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
-import { useRef } from "react";
 
 import { EmojiIcon } from "./emoji-icon";
 import { propertyIds } from "./property-ids";
@@ -65,6 +64,7 @@ export const App: BlockComponent<BlockEntity> = ({
 
   return (
     <div
+      ref={blockRef}
       style={{
         borderRadius: "0.25em",
         width: "100%",
@@ -73,19 +73,18 @@ export const App: BlockComponent<BlockEntity> = ({
         background: "#f9fafc",
         border: "1px solid #dee7f3",
       }}
-      ref={blockRef}
     >
       <EmojiIcon
         disabled={readonly}
-        onChange={handleIconChange}
         value={icon ?? "📢"}
+        onChange={handleIconChange}
       />
       <div
+        ref={editableRef}
         style={{
           minHeight: "1.5em",
           paddingLeft: "1.5em",
         }}
-        ref={editableRef}
       />
     </div>
   );

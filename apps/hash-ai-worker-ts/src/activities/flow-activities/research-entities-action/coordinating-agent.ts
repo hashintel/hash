@@ -1,3 +1,4 @@
+import dedent from "dedent";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
@@ -5,7 +6,6 @@ import type {
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
-import dedent from "dedent";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
@@ -14,11 +14,9 @@ import type { DereferencedEntityType } from "../../shared/dereference-entity-typ
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../shared/get-llm-response.js";
 import type {
-  LlmMessage,
+ getToolCallsFromLlmAssistantMessage,  LlmMessage,
   LlmMessageTextContent,
-  LlmUserMessage,
-} from "../../shared/get-llm-response/llm-message.js";
-import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message.js";
+  LlmUserMessage } from "../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
   ParsedLlmToolCall,
@@ -29,24 +27,23 @@ import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-
 import { stringify } from "../../shared/stringify.js";
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
 import type { Fact } from "../shared/infer-facts-from-text/types.js";
+
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
-} from "./coordinator-tools.js";
-import { generateToolDefinitions } from "./coordinator-tools.js";
+ generateToolDefinitions } from "./coordinator-tools.js";
 import { getAnswersFromHuman } from "./get-answers-from-human.js";
 import {
   simplifyEntityTypeForLlmConsumption,
   simplifyProposedEntityForLlmConsumption,
 } from "./shared/simplify-for-llm-consumption.js";
-import type { ExistingEntitySummary } from "./summarize-existing-entities.js";
-import { summarizeExistingEntities } from "./summarize-existing-entities.js";
+import type { ExistingEntitySummary , summarizeExistingEntities } from "./summarize-existing-entities.js";
 import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types.js";
 import { mapPreviousCallsToLlmMessages } from "./util.js";
 
 const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
-export type CoordinatingAgentInput = {
+export interface CoordinatingAgentInput {
   humanInputCanBeRequested: boolean;
   prompt: string;
   reportSpecification?: string;
@@ -55,7 +52,7 @@ export type CoordinatingAgentInput = {
   linkEntityTypes?: DereferencedEntityType<string>[];
   existingEntities?: Entity[];
   existingEntitySummaries?: ExistingEntitySummary[];
-};
+}
 
 const generateSystemPromptPrefix = (params: {
   input: CoordinatingAgentInput;
@@ -139,7 +136,6 @@ ${
   /**
    * @todo: simplify link type definitions, potentially by moving them to an "Outgoing Links" field
    * on the simplified entity type definition.
-   *
    * @see https://linear.app/hash/issue/H-2826/simplify-property-values-for-llm-consumption
    */
   linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""
@@ -149,7 +145,7 @@ ${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : 
   };
 };
 
-export type CoordinatingAgentState = {
+export interface CoordinatingAgentState {
   plan: string;
   previousCalls: {
     completedToolCalls: CompletedCoordinatorToolCall<CoordinatorToolName>[];
@@ -165,7 +161,7 @@ export type CoordinatingAgentState = {
   webQueriesMade: string[];
   hasConductedCheckStep: boolean;
   questionsAndAnswers: string | null;
-};
+}
 
 const generateProgressReport = (params: {
   input: CoordinatingAgentInput;
@@ -199,24 +195,24 @@ const generateProgressReport = (params: {
     : "";
 
   if (proposedEntities.length > 0 || proposedLinks.length > 0) {
-    progressReport +=
-      "Here's what we've discovered so far. If this is sufficient to satisfy the research brief, call 'complete' with the entityIds of the entities and links of interest:\n\n";
+    progressReport = `${progressReport 
+      }Here's what we've discovered so far. If this is sufficient to satisfy the research brief, call 'complete' with the entityIds of the entities and links of interest:\n\n`;
     if (proposedEntities.length > 0) {
-      progressReport += dedent(`
+      progressReport = progressReport + dedent(`
       <DiscoveredEntities>
       ${proposedEntities.map((proposedEntity) => simplifyProposedEntityForLlmConsumption({ proposedEntity })).join("\n")}
       </DiscoveredEntities>
     `);
     }
     if (proposedLinks.length > 0) {
-      progressReport += dedent(`
+      progressReport = progressReport + dedent(`
       <DiscoveredLinks>
       ${proposedLinks.map((proposedLink) => simplifyProposedEntityForLlmConsumption({ proposedEntity: proposedLink })).join("\n")}
       </DiscoveredLinks>
     `);
     }
 
-    progressReport += dedent`
+    progressReport = progressReport + dedent`
     If further research is needed to fill more properties of any entities or links,
       consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
 
@@ -230,7 +226,7 @@ const generateProgressReport = (params: {
     webQueriesMade.length > 0
   ) {
     if (resourceUrlsVisited.length > 0) {
-      progressReport += dedent(`
+      progressReport = progressReport + dedent(`
         You have already visited the following resources – they may be worth visiting again if you need more information:
         <ResourcesVisited>
         ${resourceUrlsVisited.join("\n")}
@@ -238,7 +234,7 @@ const generateProgressReport = (params: {
       `);
     }
     if (resourcesNotVisited.length > 0) {
-      progressReport += dedent(`
+      progressReport = progressReport + dedent(`
         You have not visited the following resources:
         <ResourcesNotVisited>
         ${resourcesNotVisited.map((webPage) => `Url: ${webPage.url}\nSummary:${webPage.summary}`).join("\n\n")}
@@ -246,7 +242,7 @@ const generateProgressReport = (params: {
       `);
     }
     if (webQueriesMade.length > 0) {
-      progressReport += dedent(`
+      progressReport = progressReport + dedent(`
         You have made the following web searches – there is no point in making these or very similar searches again:
         <WebSearchesMade>
         ${webQueriesMade.join("\n")}
@@ -256,7 +252,7 @@ const generateProgressReport = (params: {
   }
 
   if (suggestionsForNextStepsMade.length > 0) {
-    progressReport += dedent(`
+    progressReport = progressReport + dedent(`
       We have received the following suggestions for next steps (some may now be redundant or already have been acted upon):
       <SuggestionsForNextSteps>
       ${suggestionsForNextStepsMade.join("\n")}
@@ -265,7 +261,7 @@ const generateProgressReport = (params: {
   }
 
   if (subTasksCompleted.length > 0) {
-    progressReport += dedent(`
+    progressReport = progressReport + dedent(`
       You have completed the following sub-tasks:
       <SubTasksCompleted>
       ${subTasksCompleted.join("\n")}
@@ -392,7 +388,7 @@ const createInitialPlan = async (params: {
     ${generateSystemPromptPrefix({ input })}
     
     ${
-      providedFiles.length
+      providedFiles.length > 0
         ? dedent(`
       The user has provided you with the following resources which can be used to infer facts from:
       ${providedFiles.map((file) => `<Resource>Url: ${file.url}\nTitle: ${file.title}</Resource>`).join("\n\n")}`)

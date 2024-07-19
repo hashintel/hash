@@ -36,9 +36,11 @@ test("user can toggle nested pages", async ({ page }) => {
     );
 
   const toggleButtonLevel1 = selectExpandPageButton("First");
+
   await toggleButtonLevel1.click();
 
   const toggleButtonLevel2 = selectExpandPageButton("Middle");
+
   await toggleButtonLevel2.click();
 
   const leafPage = page.locator(
@@ -50,7 +52,7 @@ test("user can toggle nested pages", async ({ page }) => {
   await sleep(500);
   await leafPage.click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => Boolean(url.pathname.match(/^\/@[\w-]+\/[\w-]+$/)));
 
   const pageTitle = page.locator(pageTitleInputSelector);
 

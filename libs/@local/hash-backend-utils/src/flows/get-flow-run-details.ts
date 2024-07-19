@@ -11,9 +11,7 @@ import type {
 import type {
   FlowRun,
   FlowRunStatus,
-  StepRun,
-} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+ FlowStepStatus,  StepRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 import type { Client as TemporalClient } from "@temporalio/client";
 import proto from "@temporalio/proto";
@@ -24,6 +22,7 @@ const eventTimeIsoStringFromEvent = (
   event?: proto.temporal.api.history.v1.IHistoryEvent,
 ) => {
   const { eventTime } = event ?? {};
+
   if (!eventTime?.seconds) {
     return;
   }
@@ -35,7 +34,7 @@ const eventTimeIsoStringFromEvent = (
 };
 
 /**
- * Get details from an ActivityTaskScheduledEvent
+ * Get details from an ActivityTaskScheduledEvent.
  */
 const getActivityScheduledDetails = (
   event: proto.temporal.api.history.v1.IHistoryEvent,
@@ -54,6 +53,7 @@ const getActivityScheduledDetails = (
   }
 
   const scheduledAt = eventTimeIsoStringFromEvent(event);
+
   if (!scheduledAt) {
     throw new Error("No eventTime on scheduled event");
   }
@@ -178,6 +178,7 @@ const getFlowRunDetailedFields = async ({
      */
     for (let i = events.length - 1; i >= 0; i--) {
       const event = events[i];
+
       if (!event) {
         throw new Error("Somehow out of bounds for events array");
       }
@@ -205,10 +206,11 @@ const getFlowRunDetailedFields = async ({
         }
 
         /**
-         * This is a request for external input
+         * This is a request for external input.
          */
         const existingRequest = inputRequestsById[signalData.requestId];
         const raisedAt = eventTimeIsoStringFromEvent(event);
+
         if (!raisedAt) {
           throw new Error(
             `No eventTime on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
@@ -385,8 +387,9 @@ const getFlowRunDetailedFields = async ({
           break;
         }
 
-        default:
+        default: {
           throw new Error(`Unhandled event type ${event.eventType}`);
+        }
       }
     }
   }
@@ -397,6 +400,7 @@ const getFlowRunDetailedFields = async ({
    */
   for (let i = progressSignalEvents.length - 1; i >= 0; i--) {
     const progressSignalEvent = progressSignalEvents[i];
+
     if (!progressSignalEvent) {
       throw new Error("Somehow out of bounds for progressSignalEvents array");
     }
@@ -418,10 +422,12 @@ const getFlowRunDetailedFields = async ({
     }
 
     const { attempt, logs } = signalData;
+
     for (const log of logs) {
       const { stepId } = log;
 
       const activityRecord = stepMap[stepId];
+
       if (!activityRecord) {
         throw new Error(`No activity record found for step with id ${stepId}`);
       }
@@ -446,9 +452,11 @@ const getFlowRunDetailedFields = async ({
   }
 
   const inputRequests = Object.values(inputRequestsById);
+
   for (const inputRequest of inputRequests) {
     if (!workflowStoppedEarly && !inputRequest.resolvedAt) {
       const step = stepMap[inputRequest.stepId];
+
       if (!step) {
         throw new Error(
           `Could not find step with id ${inputRequest.stepId} for input request with id ${inputRequest.requestId}`,

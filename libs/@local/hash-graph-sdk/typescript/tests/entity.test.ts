@@ -1,7 +1,7 @@
+import { expect, test } from "vitest";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
 import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { expect, test } from "vitest";
 
 import { Entity } from "../src/entity.js";
 
@@ -112,7 +112,7 @@ const createTestEntity = (): GraphApiEntity => ({
   properties: {},
 });
 
-test("Entity can be created from Graph API", () => {
+test("entity can be created from Graph API", () => {
   const testEntity = createTestEntity();
   const entityInstance = new Entity(testEntity);
 

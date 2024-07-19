@@ -1,5 +1,5 @@
-import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 import execa from "execa";
+import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 
 export const recreateDbAndRunSchemaMigrations = async () => {
   await execa(

@@ -3,33 +3,15 @@
  */
 
 import type {
-  ConnectionSourceNamePropertyValue,
-  ConnectionSourceNamePropertyValueWithMetadata,
-  ExpiredAtPropertyValue,
-  ExpiredAtPropertyValueWithMetadata,
-  TextDataType,
-  TextDataTypeWithMetadata,
-  UserSecret,
-  UserSecretOutgoingLinkAndTarget,
-  UserSecretOutgoingLinksByLinkEntityTypeId,
-  UserSecretProperties,
   UserSecretPropertiesWithMetadata,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
 } from "./shared.js";
 
 export type {
-  ConnectionSourceNamePropertyValue,
-  ConnectionSourceNamePropertyValueWithMetadata,
-  ExpiredAtPropertyValue,
-  ExpiredAtPropertyValueWithMetadata,
-  TextDataType,
-  TextDataTypeWithMetadata,
-  UserSecret,
-  UserSecretOutgoingLinkAndTarget,
-  UserSecretOutgoingLinksByLinkEntityTypeId,
-  UserSecretProperties,
   UserSecretPropertiesWithMetadata,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
 };
+
+export {type ConnectionSourceNamePropertyValue, type ConnectionSourceNamePropertyValueWithMetadata, type ExpiredAtPropertyValue, type ExpiredAtPropertyValueWithMetadata, type TextDataType, type TextDataTypeWithMetadata, type UserSecret, type UserSecretOutgoingLinkAndTarget, type UserSecretOutgoingLinksByLinkEntityTypeId, type UserSecretProperties} from "./shared.js";

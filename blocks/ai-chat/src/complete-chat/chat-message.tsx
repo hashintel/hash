@@ -1,10 +1,11 @@
-import { AiAssistantMessage } from "@hashintel/block-design-system";
-import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { TypeAnimation } from "react-type-animation";
+import { AiAssistantMessage } from "@hashintel/block-design-system";
+import { Box, Typography } from "@mui/material";
 
 import { AbstractAiIcon } from "../icons/abstract-ai";
 import { UserIcon } from "../icons/user";
+
 import type {
   IncompleteOpenAiAssistantMessage,
   OpenAIChatMessage,
@@ -52,9 +53,9 @@ export const ChatMessage: FunctionComponent<{
               messageContent={message.content}
             />
           ) : (
-            <Box display="flex">
+            <Box display={"flex"}>
               <Typography>
-                <TypeAnimation sequence={[]} cursor />
+                <TypeAnimation cursor sequence={[]} />
               </Typography>
               <Typography sx={{ color: ({ palette }) => palette.gray[50] }}>
                 Thinking...

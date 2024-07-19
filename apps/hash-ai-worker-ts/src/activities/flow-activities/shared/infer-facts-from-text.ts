@@ -2,8 +2,8 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
 import { logger } from "../../shared/activity-logger.js";
-import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text.js";
-import { getEntitySummariesFromText } from "./infer-facts-from-text/get-entity-summaries-from-text.js";
+
+import type { getEntitySummariesFromText,LocalEntitySummary  } from "./infer-facts-from-text/get-entity-summaries-from-text.js";
 import { inferEntityFactsFromTextAgent } from "./infer-facts-from-text/infer-entity-facts-from-text-agent.js";
 import type { Fact } from "./infer-facts-from-text/types.js";
 
@@ -57,16 +57,16 @@ export const inferFactsFromText = async (params: {
   const entitySummariesForInferenceByType = [
     ...newEntitySummaries,
     ...existingEntitiesOfInterest,
-  ].reduce(
-    (prev, currentEntitySummary) => {
+  ].reduce<Record<VersionedUrl, LocalEntitySummary[]>>(
+    (previous, currentEntitySummary) => {
       const { entityTypeId } = currentEntitySummary;
 
       return {
-        ...prev,
-        [entityTypeId]: [...(prev[entityTypeId] ?? []), currentEntitySummary],
+        ...previous,
+        [entityTypeId]: [...(previous[entityTypeId] ?? []), currentEntitySummary],
       };
     },
-    {} as Record<VersionedUrl, LocalEntitySummary[]>,
+    {},
   );
 
   const aggregatedFacts: Fact[] = await Promise.all(
@@ -85,7 +85,7 @@ export const inferFactsFromText = async (params: {
           );
         }
 
-        return await Promise.all(
+        return Promise.all(
           entitySummariesOfType.map(async (entity) => {
             const { facts: factsForSingleEntity } =
               await inferEntityFactsFromTextAgent({

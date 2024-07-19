@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { v4 as uuid } from "uuid";
 import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
 import {
   type BlockComponent,
@@ -17,8 +19,6 @@ import {
   Typography,
 } from "@mui/material";
 import Box from "@mui/material/Box";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { v4 as uuid } from "uuid";
 
 import { Question } from "./question";
 import type {
@@ -191,13 +191,14 @@ export const App: BlockComponent<BlockEntity> = ({
         if (index === questionIndex) {
           return { ...question, animatingOut: true };
         }
+
         return question;
       }),
     );
   };
 
   useEffect(() => {
-    if (!readonly && !questionEntities.length) {
+    if (!readonly && questionEntities.length === 0) {
       void addQuestion();
     }
     // We only want to run this once when the block is initiated
@@ -206,7 +207,7 @@ export const App: BlockComponent<BlockEntity> = ({
 
   const schema = useMemo(() => {
     const questionsWithTitle = questionEntities.filter(
-      ({ properties: { [questionKey]: schemaQuestion } }) => !!schemaQuestion,
+      ({ properties: { [questionKey]: schemaQuestion } }) => Boolean(schemaQuestion),
     );
 
     return JSON.stringify({
@@ -230,12 +231,12 @@ export const App: BlockComponent<BlockEntity> = ({
     });
   }, [questionEntities]);
 
-  const shouldDisplayIntro = !!title || !!description || !readonly;
+  const shouldDisplayIntro = Boolean(title) || Boolean(description) || !readonly;
 
   return (
     <>
       <script
-        type="application/ld+json"
+        type={"application/ld+json"}
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: schema }}
       />
@@ -243,8 +244,8 @@ export const App: BlockComponent<BlockEntity> = ({
         <Box
           ref={blockRootRef}
           sx={{ display: "inline-block", width: 1 }}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
+          onMouseEnter={() => { setHovered(true); }}
+          onMouseLeave={() => { setHovered(false); }}
         >
           {!readonly ? (
             <Fade in={hovered}>
@@ -257,10 +258,10 @@ export const App: BlockComponent<BlockEntity> = ({
                   mb: 1.5,
                 }}
               >
-                <GetHelpLink href="https://blockprotocol.org/@hash/blocks/faq" />
+                <GetHelpLink href={"https://blockprotocol.org/@hash/blocks/faq"} />
 
-                <Box display="flex" flexWrap="wrap" rowGap={1} columnGap={3}>
-                  <Box display="flex" gap={1}>
+                <Box display={"flex"} flexWrap={"wrap"} rowGap={1} columnGap={3}>
+                  <Box display={"flex"} gap={1}>
                     <Typography
                       sx={{
                         fontWeight: 500,
@@ -272,7 +273,7 @@ export const App: BlockComponent<BlockEntity> = ({
                       Show numbers?
                     </Typography>
                     <Switch
-                      size="small"
+                      size={"small"}
                       checked={displayNumbers}
                       onChange={(event) => {
                         setDisplayNumbers(event.target.checked);
@@ -284,7 +285,7 @@ export const App: BlockComponent<BlockEntity> = ({
                     />
                   </Box>
 
-                  <Box display="flex" gap={1}>
+                  <Box display={"flex"} gap={1}>
                     <Typography
                       sx={{
                         fontWeight: 500,
@@ -296,7 +297,7 @@ export const App: BlockComponent<BlockEntity> = ({
                       Show toggles?
                     </Typography>
                     <Switch
-                      size="small"
+                      size={"small"}
                       checked={displayToggles}
                       onChange={(event) => {
                         setDisplayToggles(event.target.checked);
@@ -339,10 +340,8 @@ export const App: BlockComponent<BlockEntity> = ({
               >
                 <EditableField
                   value={titleValue}
-                  onChange={(event) => {
-                    setTitleValue(event.target.value);
-                  }}
-                  onBlur={(event) => updateField(event.target.value, titleKey)}
+                  placeholder={"Enter an optional FAQ section title"}
+                  readonly={readonly}
                   sx={{
                     fontWeight: 700,
                     fontSize: 21,
@@ -350,19 +349,17 @@ export const App: BlockComponent<BlockEntity> = ({
                     letterSpacing: "-0.02em",
                     color: theme.palette.common.black,
                   }}
-                  placeholder="Enter an optional FAQ section title"
-                  readonly={readonly}
+                  onBlur={(event) => updateField(event.target.value, titleKey)}
+                  onChange={(event) => {
+                    setTitleValue(event.target.value);
+                  }}
                 />
 
                 <EditableField
                   editIconFontSize={14}
                   value={descriptionValue}
-                  onChange={(event) => {
-                    setDescriptionValue(event.target.value);
-                  }}
-                  onBlur={(event) => {
-                    void updateField(event.target.value, descriptionKey);
-                  }}
+                  placeholder={"Enter an optional description/introduction"}
+                  readonly={readonly}
                   sx={{
                     fontWeight: 500,
                     fontSize: 14,
@@ -370,11 +367,15 @@ export const App: BlockComponent<BlockEntity> = ({
                     letterSpacing: "-0.02em",
                     color: theme.palette.gray[90],
                   }}
-                  placeholder="Enter an optional description/introduction"
                   placeholderSx={{
                     fontStyle: "italic",
                   }}
-                  readonly={readonly}
+                  onChange={(event) => {
+                    setDescriptionValue(event.target.value);
+                  }}
+                  onBlur={(event) => {
+                    void updateField(event.target.value, descriptionKey);
+                  }}
                 />
               </Stack>
             ) : null}
@@ -382,10 +383,12 @@ export const App: BlockComponent<BlockEntity> = ({
             <Box>
               {questions.map((question, index) => (
                 <Collapse
+                  appear
                   key={question.id}
                   in={!question.animatingOut}
                   onExited={async () => {
                     const newQuestions = [...questions];
+
                     newQuestions.splice(index, 1);
                     setQuestions(newQuestions);
 
@@ -402,7 +405,6 @@ export const App: BlockComponent<BlockEntity> = ({
                       },
                     });
                   }}
-                  appear
                 >
                   <Box
                     sx={{
@@ -415,14 +417,14 @@ export const App: BlockComponent<BlockEntity> = ({
                       index={index + 1}
                       question={question.properties[questionKey]}
                       answer={question.properties[answerKey]}
-                      updateField={(value, field) =>
-                        updateQuestionField(index, value, field)
-                      }
-                      onRemove={() => removeQuestion(index)}
                       readonly={readonly}
                       deletable={questionEntities.length > 1}
                       displayNumber={displayNumbers}
                       displayToggle={displayToggles}
+                      updateField={(value, field) =>
+                        updateQuestionField(index, value, field)
+                      }
+                      onRemove={() => { removeQuestion(index); }}
                     />
                   </Box>
                 </Collapse>
@@ -432,8 +434,8 @@ export const App: BlockComponent<BlockEntity> = ({
             {!readonly ? (
               <Box>
                 <Button
-                  variant="tertiary"
-                  size="small"
+                  variant={"tertiary"}
+                  size={"small"}
                   sx={{ fontSize: 14 }}
                   onClick={addQuestion}
                 >

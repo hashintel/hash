@@ -12,7 +12,7 @@ export const test = base.extend<{
   context: BrowserContext;
   extensionId: string;
 }>({
-  // eslint-disable-next-line no-empty-pattern
+   
   context: async ({}, use) => {
     const pathToExtension = path.join(
       monorepoRootDir,
@@ -27,16 +27,19 @@ export const test = base.extend<{
       ],
       serviceWorkers: "allow",
     });
+
     await use(context);
     await context.close();
   },
   extensionId: async ({ context }, use) => {
     let [background] = context.serviceWorkers();
+
     if (!background) {
       background = await context.waitForEvent("serviceworker");
     }
 
     const extensionId = background.url().split("/")[2];
+
     if (!extensionId) {
       throw new Error("Could not find extension ID");
     }
@@ -44,4 +47,4 @@ export const test = base.extend<{
   },
 });
 
-export const expect = test.expect;
+export const {expect} = test;

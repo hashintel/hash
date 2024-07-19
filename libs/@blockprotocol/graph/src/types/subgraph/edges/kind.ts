@@ -22,15 +22,15 @@ export type SharedEdgeKind = (typeof SHARED_EDGE_KIND)[number];
 // -------------------------------- Type Guards --------------------------------
 
 export const isOntologyEdgeKind = (kind: string): kind is OntologyEdgeKind => {
-  return (ONTOLOGY_EDGE_KINDS as ReadonlyArray<string>).includes(kind);
+  return (ONTOLOGY_EDGE_KINDS as readonly string[]).includes(kind);
 };
 
 export const isKnowledgeGraphEdgeKind = (
   kind: string,
 ): kind is KnowledgeGraphEdgeKind => {
-  return (KNOWLEDGE_GRAPH_EDGE_KIND as ReadonlyArray<string>).includes(kind);
+  return (KNOWLEDGE_GRAPH_EDGE_KIND as readonly string[]).includes(kind);
 };
 
 export const isSharedEdgeKind = (kind: string): kind is SharedEdgeKind => {
-  return (SHARED_EDGE_KIND as ReadonlyArray<string>).includes(kind);
+  return (SHARED_EDGE_KIND as readonly string[]).includes(kind);
 };

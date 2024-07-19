@@ -1,15 +1,15 @@
+import type { FunctionComponent, ReactNode } from "react";
 import { Button } from "@hashintel/design-system";
 import { Box, buttonClasses, Typography } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
 import { CodeIcon } from "../icons/code";
 import { CommentsQuestionsCheckIcon } from "../icons/comments-questions-check";
 import { PenFancyIcon } from "../icons/pen-fancy";
 
-type ExamplePrompt = {
+interface ExamplePrompt {
   icon: ReactNode;
   prompt: string;
-};
+}
 
 export const examplePrompts: ExamplePrompt[] = [
   {
@@ -44,11 +44,11 @@ export const ExamplePrompts: FunctionComponent<{
       >
         Or try an example prompt
       </Typography>
-      <Box display="flex" flexDirection="column" alignItems="flex-start">
+      <Box display={"flex"} flexDirection={"column"} alignItems={"flex-start"}>
         {examplePrompts.map(({ icon, prompt }) => (
           <Button
             key={prompt}
-            variant="tertiary_quiet"
+            variant={"tertiary_quiet"}
             startIcon={icon}
             sx={{
               fontSize: 14,
@@ -69,7 +69,7 @@ export const ExamplePrompts: FunctionComponent<{
                 marginTop: isMobile ? 0.5 : 0,
               },
             }}
-            onClick={() => submitPrompt(prompt)}
+            onClick={() => { submitPrompt(prompt); }}
           >
             {prompt}
           </Button>

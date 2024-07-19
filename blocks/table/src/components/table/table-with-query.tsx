@@ -1,22 +1,18 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   BaseUrl,
   Entity,
   EntityRootType,
-  GraphBlockHandler,
+ extractBaseUrl, extractVersion,  GraphBlockHandler,
   JsonValue,
   MultiFilter,
   PropertyType,
-  Subgraph,
-} from "@blockprotocol/graph";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/graph";
+  Subgraph } from "@blockprotocol/graph";
 import { getPropertyTypes, getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   DataEditorProps,
   DataEditorRef,
-  GridColumn,
-} from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
-import { useEffect, useMemo, useRef, useState } from "react";
+ GridCellKind,  GridColumn } from "@glideapps/glide-data-grid";
 
 import type { RootKey } from "../../additional-types";
 import type { BlockEntity } from "../../types/generated/block-entity";
@@ -92,11 +88,9 @@ export const TableWithQuery = ({
 
   const uniquePropertyTypeBaseUrls = useMemo<BaseUrl[]>(
     () =>
-      Array.from(
-        new Set<string>(
+      [...new Set<string>(
           entities.flatMap(({ properties }) => Object.keys(properties)),
-        ),
-      ),
+        )],
     [entities],
   );
 
@@ -109,27 +103,28 @@ export const TableWithQuery = ({
       ({ schema }) => schema,
     );
 
-    return allPropertyTypes.reduce<PropertyType[]>((prev, propertyType) => {
-      const previouslyAddedPropertyType = prev.find(
+    return allPropertyTypes.reduce<PropertyType[]>((previous, propertyType) => {
+      const previouslyAddedPropertyType = previous.find(
         (schema) =>
           extractBaseUrl(schema.$id) === extractBaseUrl(propertyType.$id),
       );
 
       if (!previouslyAddedPropertyType) {
-        return [...prev, propertyType];
-      } else if (
+        return [...previous, propertyType];
+      } if (
         extractVersion(previouslyAddedPropertyType.$id) <
         extractVersion(propertyType.$id)
       ) {
         return [
-          ...prev.filter(
+          ...previous.filter(
             (schema) => schema.$id !== previouslyAddedPropertyType.$id,
           ),
           propertyType,
         ];
-      } else {
-        return prev;
       }
+ 
+        return previous;
+      
     }, []);
   }, [subgraph]);
 
@@ -158,7 +153,7 @@ export const TableWithQuery = ({
   ) => {
     setEntities((currentEntities) =>
       currentEntities.map((entity, index) => {
-        if (index !== rowIndex) return entity;
+        if (index !== rowIndex) {return entity;}
 
         const column = columns[colIndex];
         const propertyTypeBaseUrl = column?.id;
@@ -200,7 +195,7 @@ export const TableWithQuery = ({
     return row % 2 ? { bgCell: "#f9f9f9" } : undefined;
   };
 
-  if (loading) return <h4>Loading...</h4>;
+  if (loading) {return <h4>Loading...</h4>;}
 
   return (
     <Grid
@@ -209,10 +204,9 @@ export const TableWithQuery = ({
       rows={entities.length}
       columns={columns}
       getRowThemeOverride={getRowThemeOverride}
-      onCellEdited={handleCellEdited}
       headerHeight={hideHeaderRow ? 0 : ROW_HEIGHT}
       rowMarkers={hideRowNumbers ? "none" : "number"}
-      rowSelectionMode="multi"
+      rowSelectionMode={"multi"}
       getCellContent={([colIndex, rowIndex]) => {
         const key = columns[colIndex]?.id;
 
@@ -226,7 +220,7 @@ export const TableWithQuery = ({
         }
 
         const entity = entities[rowIndex];
-        const hasValue = !!entity && key in entity.properties;
+        const hasValue = Boolean(entity) && key in entity.properties;
         const value = (entity?.properties[key] ?? "") as JsonValue;
 
         return {
@@ -236,6 +230,7 @@ export const TableWithQuery = ({
           allowOverlay: hasValue && !readonly,
         };
       }}
+      onCellEdited={handleCellEdited}
     />
   );
 };

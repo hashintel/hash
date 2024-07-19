@@ -1,32 +1,25 @@
+import type { castDraft, Draft , produce } from "immer";
+import { isEqual } from "lodash-es";
+import type { Node } from "prosemirror-model";
+import type { EditorState, Plugin, PluginKey,Transaction  } from "prosemirror-state";
+import type { EditorView } from "prosemirror-view";
+import { v4 as uuid } from "uuid";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { Draft } from "immer";
-import { castDraft, produce } from "immer";
-import { isEqual } from "lodash-es";
-import type { Node } from "prosemirror-model";
-import type { EditorState, Transaction } from "prosemirror-state";
-import { Plugin, PluginKey } from "prosemirror-state";
-import type { EditorView } from "prosemirror-view";
-import { v4 as uuid } from "uuid";
 
-import type { BlockEntity } from "./entity.js";
-import { getEntityChildEntity, isRichTextProperties } from "./entity.js";
+import type { BlockEntity , getEntityChildEntity, isRichTextProperties } from "./entity.js";
 import type {
+  createEntityStore,
   DraftEntity,
   EntityStore,
   EntityStoreType,
-} from "./entity-store.js";
-import {
-  createEntityStore,
   getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
-  textualContentPropertyTypeBaseUrl,
-} from "./entity-store.js";
-import type { ComponentNode, EntityNode } from "./prosemirror.js";
-import {
-  componentNodeToId,
+  textualContentPropertyTypeBaseUrl} from "./entity-store.js";
+import type { ComponentNode,   componentNodeToId,
+EntityNode ,
   findComponentNodes,
   isComponentNode,
   isEntityNode,
@@ -36,11 +29,11 @@ import { collect } from "./util.js";
 
 type EntityStorePluginStateListener = (store: EntityStore) => void;
 
-export type TrackedAction = { action: EntityStorePluginAction; id: string };
-type EntityStorePluginState = {
+export interface TrackedAction { action: EntityStorePluginAction; id: string }
+interface EntityStorePluginState {
   store: EntityStore;
   trackedActions: TrackedAction[];
-};
+}
 
 export type EntityStorePluginAction = { received?: boolean } & (
   | /**
@@ -54,7 +47,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
    * other clients, as it is not sync-able.
    *
    * @deprecated
-   * @todo remove this once we better handle saves
+   * @todo Remove this once we better handle saves.
    */
   {
       type: "mergeNewPageContents";
@@ -102,10 +95,10 @@ const entityStorePluginKey = new PluginKey<EntityStorePluginState>(
   "entityStore",
 );
 
-type EntityStoreMeta = {
+interface EntityStoreMeta {
   store?: EntityStorePluginState;
   disableInterpretation?: boolean;
-};
+}
 
 const getMeta = (transaction: Transaction): EntityStoreMeta | undefined =>
   transaction.getMeta(entityStorePluginKey);
@@ -124,6 +117,7 @@ export const entityStorePluginState = (state: EditorState) => {
       "Cannot get entity store when state does not have entity store plugin",
     );
   }
+
   return pluginState;
 };
 
@@ -141,7 +135,7 @@ export const entityStorePluginStateFromTransaction = (
  * If the entityId is not yet available, a fake draft id is used for the session.
  * Pass 'null' if the entity is new and the entityId is not available.
  * Do NOT change the entity's draftId mid-session - leave it as fake.
- * If you need to recall the entity's draftId, use mustGetDraftEntityForEntityId
+ * If you need to recall the entity's draftId, use mustGetDraftEntityForEntityId.
  */
 export const generateDraftIdForEntity = (entityId: EntityId | null) =>
   entityId ? `draft-${entityId}-${uuid()}` : `fake-${uuid()}`;
@@ -153,7 +147,7 @@ export const generateDraftIdForEntity = (entityId: EntityId | null) =>
  * handler which can mutate this entity. This will ensure a desired update
  * is applied everywhere that's necessary.
  *
- * @todo look into removing this when the entity store is flat
+ * @todo Look into removing this when the entity store is flat.
  */
 const updateEntitiesByDraftId = (
   draftEntityStore: Draft<EntityStore["draft"]>,
@@ -165,12 +159,13 @@ const updateEntitiesByDraftId = (
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
       // This type is very deep now, so traversal causes TS to complain.
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+       
       // @ts-ignore
       const blockChildEntity = entity.blockChildEntity!;
+
       if (blockChildEntity.draftId && blockChildEntity.draftId === draftId) {
         // This type is very deep now, so traversal causes TS to complain.
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+         
         // @ts-ignore
         entities.push(blockChildEntity as DraftEntity);
       }
@@ -185,10 +180,11 @@ const updateEntitiesByDraftId = (
 /**
  * The method does the following
  * 1. Fetches the targetEntity from draft store if it exists and adds it to draft store if it's not present
- * 2. Sets targetEntity as the new block data
- * @param draftEntityStore draft entity store
- * @param blockEntityDraftId draft id of the Block Entity whose child entity should be changed
- * @param targetEntity entity to be changed to
+ * 2. Sets targetEntity as the new block data.
+ *
+ * @param draftEntityStore - Draft entity store.
+ * @param blockEntityDraftId - Draft id of the Block Entity whose child entity should be changed.
+ * @param targetEntity - Entity to be changed to.
  */
 const setBlockChildEntity = (
   draftEntityStore: Draft<EntityStore["draft"]>,
@@ -207,13 +203,14 @@ const setBlockChildEntity = (
     const targetEntityDraftId = generateDraftIdForEntity(
       targetEntity.metadata.recordId.entityId,
     );
+
     targetDraftEntity = {
       metadata: targetEntity.metadata,
       draftId: targetEntityDraftId,
       properties: castDraft(targetEntity.properties),
       /**
-       * @todo use the actual updated date here
        * @see https://linear.app/hash/issue/H-3000
+       * @todo Use the actual updated date here.
        */
       // updatedAt: targetEntity.updatedAt,
     };
@@ -230,8 +227,8 @@ const setBlockChildEntity = (
   }
 
   /**
-   * @todo sort out entity store types
    * @see https://linear.app/hash/issue/H-3000
+   * @todo Sort out entity store types.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   draftBlockEntity.blockChildEntity = targetDraftEntity as any;
@@ -243,17 +240,16 @@ const setBlockChildEntity = (
  * the same object as the other entity. We either need to change that, or
  * remove immer, or both.
  *
- * @todo address this
  * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
- *
- * @todo reduce duplication
+ * @todo Address this.
+ * @todo Reduce duplication.
  */
 const entityStoreReducer = (
   state: EntityStorePluginState,
   action: EntityStorePluginAction,
 ): EntityStorePluginState => {
   switch (action.type) {
-    case "mergeNewPageContents":
+    case "mergeNewPageContents": {
       return {
         ...state,
         store: createEntityStore(
@@ -262,6 +258,7 @@ const entityStoreReducer = (
           action.payload.presetDraftIds,
         ),
       };
+    }
 
     case "store": {
       return {
@@ -314,7 +311,7 @@ const entityStoreReducer = (
              * we compare the decision time of the local draft entities to that of the API-provided ones to see which
              * to prefer. Although this is fragile and not a robust solution given the possibility of the API and the
              * frontend having different clocks, it's better than nothing. We should instead have a proper
-             * collaborative server which manages document state. H-1234
+             * collaborative server which manages document state. H-1234.
              */
             draftEntity.metadata.temporalVersioning = {
               decisionTime: {
@@ -369,7 +366,7 @@ const entityStoreReducer = (
       });
     }
 
-    case "newDraftEntity":
+    case "newDraftEntity": {
       if (state.store.draft[action.payload.draftId]) {
         throw new Error("Draft entity already exists");
       }
@@ -412,6 +409,7 @@ const entityStoreReducer = (
           properties: {},
         };
       });
+    }
   }
 
   return state;
@@ -421,23 +419,24 @@ export const disableEntityStoreTransactionInterpretation = (
   tr: Transaction,
 ) => {
   setMeta(tr, {
-    ...(getMeta(tr) ?? {}),
+    ...getMeta(tr),
     disableInterpretation: true,
   });
 };
 
 /**
- * @todo store actions on transaction
+ * @todo Store actions on transaction.
  */
 export const addEntityStoreAction = (
   state: EditorState,
   tr: Transaction,
   action: EntityStorePluginAction,
 ) => {
-  const prevState = entityStorePluginStateFromTransaction(tr, state);
-  const nextState = entityStoreReducer(prevState, action);
+  const previousState = entityStorePluginStateFromTransaction(tr, state);
+  const nextState = entityStoreReducer(previousState, action);
+
   setMeta(tr, {
-    ...(getMeta(tr) ?? {}),
+    ...getMeta(tr),
     store: nextState,
   });
 
@@ -465,7 +464,7 @@ const updateEntityStoreListeners = collect<
         listeners.delete(listener);
       }
     } else {
-      listeners ??= new Set();
+      listeners = listeners ?? new Set();
 
       listeners.add(listener);
     }
@@ -489,7 +488,8 @@ export const subscribeToEntityStore = (
 
 /**
  * Retrieves the draft entity for an entity, given its entityId and the draft store.
- * @throws {Error} if entity not found - use getDraftEntityForEntityId if you don't want an error on missing entities.
+ *
+ * @throws {Error} If entity not found - use getDraftEntityForEntityId if you don't want an error on missing entities.
  */
 export const mustGetDraftEntityByEntityId = (
   draftStore: EntityStore["draft"],
@@ -550,8 +550,10 @@ class ProsemirrorStateChangeHandler {
   private componentNode(node: ComponentNode, pos: number) {
     let blockEntityNode: EntityNode | null = null;
     const resolved = this.tr.doc.resolve(pos);
+
     for (let depth = 0; depth < resolved.depth; depth++) {
       const parentNode = resolved.node(depth);
+
       if (isEntityNode(parentNode)) {
         blockEntityNode = parentNode;
         break;
@@ -594,16 +596,18 @@ class ProsemirrorStateChangeHandler {
   }
 
   private potentialUpdateParentBlockEntity(node: EntityNode, pos: number) {
-    const parent = this.tr.doc.resolve(pos).parent;
+    const {parent} = this.tr.doc.resolve(pos);
 
     if (isEntityNode(parent)) {
       const parentDraftId = parent.attrs.draftId;
+
       if (!parentDraftId) {
         throw new Error("invariant: parents must have a draft id");
       }
 
       const draftEntityStore = this.getDraftEntityStoreFromTransaction();
       const parentEntity = draftEntityStore[parentDraftId];
+
       if (!parentEntity) {
         throw new Error("invariant: parent node missing from draft store");
       }
@@ -687,9 +691,9 @@ class ProsemirrorStateChangeHandler {
     const draftId = entityId
       ? mustGetDraftEntityByEntityId(draftEntityStore, entityId).draftId
       : /**
-         * @todo this will lead to the frontend setting draft id uuids for
+         * @todo This will lead to the frontend setting draft id uuids for
          *   new blocks – this is potentially insecure and needs
-         *   considering
+         *   considering.
          */
         (node.attrs.draftId ?? generateDraftIdForEntity(null));
 
@@ -705,9 +709,9 @@ class ProsemirrorStateChangeHandler {
     }
 
     /**
-     * @todo need to ensure we throw away now unused draft entities
-     * @todo does this ever happen now? We're trying to make it so draftId
-     * never changes
+     * @todo Need to ensure we throw away now unused draft entities.
+     * @todo Does this ever happen now? We're trying to make it so draftId
+     * never changes.
      */
     if (draftId !== node.attrs.draftId) {
       this.tr.setNodeMarkup(pos, undefined, {
@@ -760,16 +764,16 @@ const scheduleNotifyEntityStoreSubscribers = collect<
     entityStorePlugin: Plugin<EntityStorePluginState>,
   ]
 >((calls) => {
-  for (const [view, prevState, entityStorePlugin] of calls) {
+  for (const [view, previousState, entityStorePlugin] of calls) {
     const nextPluginState = entityStorePlugin.getState(view.state);
-    const prevPluginState = entityStorePlugin.getState(prevState);
+    const previousPluginState = entityStorePlugin.getState(previousState);
 
     // If the plugin state has changed, notify listeners
-    if (nextPluginState && nextPluginState !== prevPluginState) {
+    if (nextPluginState && nextPluginState !== previousPluginState) {
       const listeners = EntityStoreListeners.get(entityStorePlugin);
 
       if (listeners) {
-        for (const listener of Array.from(listeners)) {
+        for (const listener of listeners) {
           listener(nextPluginState.store);
         }
       }
@@ -798,10 +802,10 @@ export const createEntityStorePlugin = ({
 
     view() {
       return {
-        update: (view, prevState) => {
+        update: (view, previousState) => {
           scheduleNotifyEntityStoreSubscribers(
             view,
-            prevState,
+            previousState,
             entityStorePlugin,
           );
         },
@@ -810,10 +814,10 @@ export const createEntityStorePlugin = ({
 
     /**
      * This is necessary to ensure the draft entity store stays in sync with the
-     * changes made by users to the document
+     * changes made by users to the document.
      *
-     * @todo we need to take the state left by the transactions as the start
-     * for nodeChangeHandler
+     * @todo We need to take the state left by the transactions as the start
+     * for nodeChangeHandler.
      */
     appendTransaction(transactions, _, state) {
       if (!transactions.some((tr) => tr.docChanged)) {
@@ -829,5 +833,6 @@ export const createEntityStorePlugin = ({
       return new ProsemirrorStateChangeHandler(state, ownedById).handleDoc();
     },
   });
+
   return entityStorePlugin;
 };

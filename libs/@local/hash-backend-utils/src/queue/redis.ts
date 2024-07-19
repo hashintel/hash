@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { AsyncRedisClient } from "../redis.js";
 import { sleep } from "../utils.js";
+
 import type { QueueExclusiveConsumer, QueueProducer } from "./adapter.js";
 
 // The interval on which a consumer which owns the queue will re-affirm their ownership.
@@ -56,6 +57,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     const interval = setInterval(() => {
       void this.updateOwnership(name);
     }, heartbeat);
+
     this.queueOwned = { name, lastUpdated: Date.now(), interval };
     await this.updateOwnership(name);
   }
@@ -63,6 +65,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
   private async updateOwnership(name: string) {
     if (!this.ownershipIsValid(name)) {
       await this.release();
+
       return;
     }
     if (this.queueOwned === undefined) {
@@ -80,6 +83,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
 
   private ownershipIsValid(name: string): boolean {
     const timeout = QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS;
+
     return (
       this.queueOwned !== undefined &&
       this.queueOwned.name === name &&
@@ -96,6 +100,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     timeoutMs: number | null,
   ): Promise<boolean> {
     const timeout = timeoutMs === null ? null : Math.min(timeoutMs, 1000);
+
     if (this.queueOwned && this.queueOwned.name === name) {
       // Queue is already acquired
       return true;
@@ -106,9 +111,11 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
 
     // Check if the queue already has an exclusive consumer, and if not, acquire it.
     const start = Date.now();
+
     while (timeout ? Date.now() - start < timeout : true) {
       const ttl = await this.client.ttl(this.ownerKey(name)); // seconds
       const ttlMs = ttl * 1000;
+
       if (timeout && Date.now() + ttlMs - start > timeout) {
         // The TTL is longer than the timeout. No point in trying again.
         return false;
@@ -121,10 +128,12 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
           this.ownerKey(name),
           this.consumerId,
         );
+
         if (!isSet) {
           continue;
         }
         await this.setOwnership(name);
+
         return true;
       }
       await sleep(ttlMs + 100);
@@ -138,7 +147,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
   }
 
   async acquire(name: string, timeoutMs: number) {
-    return await this._acquire(name, timeoutMs);
+    return this._acquire(name, timeoutMs);
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await -- using async to match QueueExclusiveConsumer interface
@@ -164,7 +173,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
   private async _pop<T>(
     name: string,
     timeoutMs: number | null,
-    cb: (item: string) => Promise<T>,
+    callback: (item: string) => Promise<T>,
   ): Promise<T | null> {
     if (timeoutMs !== null && timeoutMs < 0) {
       throw new Error("`timeoutMs` must be non-negative");
@@ -199,7 +208,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
       return null;
     }
 
-    const result = await cb(item);
+    const result = await callback(item);
 
     // The callback has succeeded. Remove the item from the processing queue.
     await this.client.lpop(processingName);
@@ -209,24 +218,25 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
 
   async popBlocking<T>(
     name: string,
-    cb: (item: string) => Promise<T>,
+    callback: (item: string) => Promise<T>,
   ): Promise<T> {
-    return (await this._pop(name, 0, cb))!;
+    return (await this._pop(name, 0, callback))!;
   }
 
   async pop<T>(
     name: string,
     timeoutMs: number | null,
-    cb: (item: string) => Promise<T>,
+    callback: (item: string) => Promise<T>,
   ): Promise<T | null> {
-    return this._pop(name, timeoutMs, cb);
+    return this._pop(name, timeoutMs, callback);
   }
 
   async length(name: string) {
-    const [mainLen, processingLen] = await Promise.all([
+    const [mainLength, processingLength] = await Promise.all([
       this.client.llen(name),
       this.client.llen(this.processingName(name)),
     ]);
-    return mainLen + processingLen;
+
+    return mainLength + processingLength;
   }
 }

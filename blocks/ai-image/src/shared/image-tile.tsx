@@ -1,5 +1,5 @@
-import { Box, Skeleton } from "@mui/material";
 import { useState } from "react";
+import { Box, Skeleton } from "@mui/material";
 
 export const ImageTile = ({
   description,
@@ -25,22 +25,22 @@ export const ImageTile = ({
     >
       {loading ? (
         <Skeleton
-          variant="rectangular"
-          width="100%"
-          height="100%"
+          variant={"rectangular"}
+          width={"100%"}
+          height={"100%"}
           sx={{ transform: "unset" }}
         />
       ) : null}
       <img
         alt={description}
         src={url}
-        onLoad={() => setLoading(false)}
         style={{
           display: loading ? "none" : "block",
           objectFit,
           width: "100%",
           height: "100%",
         }}
+        onLoad={() => { setLoading(false); }}
       />
     </Box>
   );

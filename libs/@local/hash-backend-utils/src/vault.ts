@@ -1,8 +1,8 @@
-import type { AccountId } from "@local/hash-graph-types/account";
-import type { AxiosError, AxiosInstance } from "axios";
 import axios from "axios";
+import type { AxiosError, AxiosInstance } from "axios";
+import type { AccountId } from "@local/hash-graph-types/account";
 
-type VaultSecret<D = unknown> = {
+interface VaultSecret<D = unknown> {
   data: D;
   metadata: {
     created_time: string;
@@ -11,7 +11,7 @@ type VaultSecret<D = unknown> = {
     destroyed: boolean;
     version: number;
   };
-};
+}
 
 type UserSecretPath = `users/${AccountId}/${string}`;
 
@@ -67,6 +67,7 @@ export class VaultClient {
     const { secretMountPath, path } = params;
 
     const userAccountIdInPath = path.split("/").at(1);
+
     if (userAccountIdInPath !== params.userAccountId) {
       throw new Error(
         `User accountId '${userAccountIdInPath}' in secret path does not match provided accountId '${params.userAccountId}'`,
@@ -86,9 +87,9 @@ export const createVaultClient = () => {
     process.env.HASH_VAULT_PORT &&
     process.env.HASH_VAULT_ROOT_TOKEN
     ? new VaultClient({
-        endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
-        token: process.env.HASH_VAULT_ROOT_TOKEN,
-      })
+      endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
+      token: process.env.HASH_VAULT_ROOT_TOKEN,
+    })
     : undefined;
 };
 

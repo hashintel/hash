@@ -18,7 +18,8 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   let blockProtocolDataTypeId: VersionedUrl;
-  // eslint-disable-next-line guard-for-in
+
+   
   for (blockProtocolDataTypeId in CACHED_DATA_TYPE_SCHEMAS) {
     await loadExternalDataTypeIfNotExists(context, authentication, {
       dataTypeId: blockProtocolDataTypeId,
@@ -27,7 +28,8 @@ const migrate: MigrationFunction = async ({
   }
 
   let blockProtocolPropertyTypeId: VersionedUrl;
-  // eslint-disable-next-line guard-for-in
+
+   
   for (blockProtocolPropertyTypeId in CACHED_PROPERTY_TYPE_SCHEMAS) {
     await loadExternalPropertyTypeIfNotExists(context, authentication, {
       propertyTypeId: blockProtocolPropertyTypeId,
@@ -36,7 +38,8 @@ const migrate: MigrationFunction = async ({
   }
 
   let blockProtocolEntityTypeId: VersionedUrl;
-  // eslint-disable-next-line guard-for-in
+
+   
   for (blockProtocolEntityTypeId in CACHED_ENTITY_TYPE_SCHEMAS) {
     await loadExternalEntityTypeIfNotExists(context, authentication, {
       entityTypeId: blockProtocolEntityTypeId,

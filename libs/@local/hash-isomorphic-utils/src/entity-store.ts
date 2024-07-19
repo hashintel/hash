@@ -1,3 +1,4 @@
+import type { Draft , produce } from "immer";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   EntityId,
@@ -5,8 +6,6 @@ import type {
   LinkData,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
-import type { Draft } from "immer";
-import { produce } from "immer";
 
 import type { BlockEntity } from "./entity.js";
 import { generateDraftIdForEntity } from "./entity-store-plugin.js";
@@ -17,7 +16,7 @@ export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 export const textualContentPropertyTypeBaseUrl =
   blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl;
 
-export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
+export interface DraftEntity<Type extends EntityStoreType = EntityStoreType> {
   metadata: {
     recordId: {
       entityId: EntityId | null;
@@ -28,8 +27,8 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   };
 
   /**
-   * @todo properly type this part of the DraftEntity type
    * @see https://linear.app/hash/issue/H-3000
+   * @todo Properly type this part of the DraftEntity type.
    */
   blockChildEntity?: Type & { draftId?: string };
   properties: PropertyObject;
@@ -43,19 +42,19 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   draftId: string;
 
   /**
-   * @todo use updated at from the Graph API
    * @see https://linear.app/hash/issue/H-3000
+   * @todo Use updated at from the Graph API.
    */
   // updatedAt: string;
-};
+}
 
-export type EntityStore = {
+export interface EntityStore {
   saved: Record<string, EntityStoreType>;
   draft: Record<string, DraftEntity>;
-};
+}
 
 /**
- * @todo should be more robust
+ * @todo Should be more robust.
  */
 export const isEntity = (value: unknown): value is EntityStoreType =>
   typeof value === "object" && value !== null && "metadata" in value;
@@ -79,7 +78,8 @@ export const isDraftBlockEntity = (
 /**
  * Returns the draft entity associated with an entity id, or undefined if it does not.
  * Use mustGetDraftEntityFromEntityId if you want an error if the entity is missing.
- * @todo we could store a map of entity id <-> draft id to make this easier
+ *
+ * @todo We could store a map of entity id <-> draft id to make this easier.
  */
 export const getDraftEntityByEntityId = (
   draft: EntityStore["draft"],
@@ -123,10 +123,10 @@ const restoreDraftId = (
  * This is used to create the initial state of the entity store, and also in response to update the contents in the API.
  * The latter is a source of bugs, because more recent local updates can be overwritten by stale data from the API.
  *
- * This would be solved by having a collaborative editing server which managed document state centrally. H-1234
+ * This would be solved by having a collaborative editing server which managed document state centrally. H-1234.
  *
- * @todo this should be flat – so that we don't have to traverse links
- * @todo clean up
+ * @todo This should be flat – so that we don't have to traverse links.
+ * @todo Clean up.
  */
 export const createEntityStore = (
   contents: BlockEntity[],
@@ -152,7 +152,7 @@ export const createEntityStore = (
   const entities = findEntities(contents);
 
   for (const entity of entities) {
-    const entityId = entity.metadata.recordId.entityId;
+    const {entityId} = entity.metadata.recordId;
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (entity && !entityToDraft[entityId]) {
@@ -161,18 +161,19 @@ export const createEntityStore = (
   }
 
   for (const entity of entities) {
-    const entityId = entity.metadata.recordId.entityId;
+    const {entityId} = entity.metadata.recordId;
 
     saved[entityId] = entity;
     const draftId = entityToDraft[entityId]!;
+
     /**
      * We current violate Immer's rules, as properties inside entities can be
      * other entities themselves, and we expect `entity.property.entity` to be
      * the same object as the other entity. We either need to change that, or
      * remove immer, or both.
      *
-     * @todo address this
      * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
+     * @todo Address this.
      */
     draft[draftId] = produce<DraftEntity>(
       {
@@ -188,7 +189,7 @@ export const createEntityStore = (
           /**
            * If we have a local draft of this entity, and it's recorded as being updated more recently than the API-provided one,
            * we prefer the local entity. We set the decision time manually in the entityStoreReducer when updating properties.
-           * This is not a good long-term solution – we need a collaborative editing server to manage document state. H-1234
+           * This is not a good long-term solution – we need a collaborative editing server to manage document state. H-1234.
            */
           if (
             new Date(
@@ -213,7 +214,7 @@ export const createEntityStore = (
           const restoredDraftId = restoreDraftId(
             {
               // This type is very deep now, so traversal causes TS to complain.
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+               
               // @ts-ignore
               entityId: draftEntity.metadata.recordId.entityId,
               draftId: draftEntity.draftId,
@@ -264,6 +265,7 @@ export const createEntityStore = (
 
   for (const [draftId, entityId] of Object.entries(presetDraftIds)) {
     const draftEntity = draft[draftId];
+
     if (!draftEntity) {
       throw new Error("Cannot update relevant entity id");
     }

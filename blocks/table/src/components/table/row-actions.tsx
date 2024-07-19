@@ -14,12 +14,12 @@ export const RowActions = ({
         selectedRowCount > 1 ? "rows" : "row"
       } selected`}</div>
       <DangerButton
-        onClick={onDelete}
         sx={{
           padding: ({ spacing }) => spacing(0, 1),
           height: "100%",
           alignItems: "center",
         }}
+        onClick={onDelete}
       >
         Delete
       </DangerButton>

@@ -9,9 +9,9 @@ import type {
 /**
  * Checks if a given URL string is a valid base URL.
  *
- * @param {BaseUrl} url - The URL string.
- * @returns {(Result<BaseUrl, ParseBaseUrlError>)} - an Ok with an inner of the string as a
- * BaseUrl if valid, or an Err with an inner ParseBaseUrlError
+ * @param url - The URL string.
+ * @returns - An Ok with an inner of the string as a
+ * BaseUrl if valid, or an Err with an inner ParseBaseUrlError.
  */
 export const validateBaseUrl = (
   url: string,
@@ -29,20 +29,22 @@ export const validateBaseUrl = (
         type: "Ok",
         inner: url,
       };
-    } else {
+    }
+ 
       return {
         type: "Err",
         inner: { reason: "MissingTrailingSlash" },
       };
-    }
-  } catch (err) {
+    
+  } catch (error) {
     // I don't know why we're doing this, but it's in the original code
     // this simply enforces that when stringifying the error, the keys are sorted
     let inner;
-    if (typeof err === "object" && err !== null) {
-      inner = JSON.stringify(err, Object.keys(err).sort());
+
+    if (typeof error === "object" && error !== null) {
+      inner = JSON.stringify(error, Object.keys(error).sort());
     } else {
-      inner = JSON.stringify(err);
+      inner = JSON.stringify(error);
     }
 
     return {
@@ -60,10 +62,10 @@ const versionedUrlRegExp = /(.+\/)v\/(.*)/;
 /**
  * Checks if a given URL string is a Block Protocol compliant Versioned URL.
  *
- * @param {string} url - The URL string.
- * @returns {(Result<VersionedUrl, ParseVersionedUrlError>)} - an Ok with an inner of the string
- as
- * a VersionedUrl if valid, or an Err with an inner ParseVersionedUrlError
+ * @param url - The URL string.
+ * @returns - An Ok with an inner of the string
+ * as
+ * a VersionedUrl if valid, or an Err with an inner ParseVersionedUrlError.
  */
 export const validateVersionedUrl = (
   url: string,
@@ -81,7 +83,7 @@ export const validateVersionedUrl = (
       type: "Err",
       inner: { reason: "IncorrectFormatting" },
     };
-  } else {
+  } 
     const [_match, baseUrl, version] = groups;
 
     if (!baseUrl) {
@@ -98,7 +100,8 @@ export const validateVersionedUrl = (
       };
     }
 
-    const index = version.search(/[^0-9]/);
+    const index = version.search(/\D/);
+
     if (index === 0) {
       return {
         type: "Err",
@@ -107,17 +110,18 @@ export const validateVersionedUrl = (
           inner: [version, "invalid digit found in string"],
         },
       };
-    } else if (index > 0) {
+    } if (index > 0) {
       return {
         type: "Err",
         inner: {
           reason: "AdditionalEndContent",
-          inner: version.substring(index),
+          inner: version.slice(Math.max(0, index)),
         },
       };
     }
 
     const versionNumber = Number(version);
+
     if (versionNumber > 4294967295) {
       return {
         type: "Err",
@@ -138,14 +142,14 @@ export const validateVersionedUrl = (
     }
 
     return { type: "Ok", inner: url as VersionedUrl };
-  }
+  
 };
 
 /**
  * Extracts the base URL from a Versioned URL.
  *
- * @param {VersionedUrl} url - The versioned URL.
- * @throws if the versioned URL is invalid.
+ * @param url - The versioned URL.
+ * @throws If the versioned URL is invalid.
  */
 export const extractBaseUrl = (url: VersionedUrl): BaseUrl => {
   if (url.length > 2048) {
@@ -170,8 +174,8 @@ export const extractBaseUrl = (url: VersionedUrl): BaseUrl => {
 /**
  * Extracts the version from a Versioned URL.
  *
- * @param {VersionedUrl} url - The versioned URL.
- * @throws if the versioned URL is invalid.
+ * @param url - The versioned URL.
+ * @throws If the versioned URL is invalid.
  */
 export const extractVersion = (url: VersionedUrl): number => {
   if (url.length > 2048) {

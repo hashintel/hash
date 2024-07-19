@@ -1,5 +1,4 @@
-import type { DatabasePoolType } from "slonik";
-import { createPool } from "slonik";
+import type { createPool,DatabasePoolType  } from "slonik";
 
 import type { Logger } from "./logger.js";
 
@@ -18,9 +17,9 @@ export const createPostgresConnPool = (
   },
 ): PgPool => {
   const { user, password, host, port, database } = params;
-  const connStr = `postgresql://${user}:${password}@${host}:${port}/${database}`;
+  const connString = `postgresql://${user}:${password}@${host}:${port}/${database}`;
 
-  return createPool(connStr, {
+  return createPool(connString, {
     captureStackTrace: true,
     connectionTimeout: 10_000,
     maximumPoolSize: params.maxPoolSize,
@@ -40,6 +39,7 @@ export const createPostgresConnPool = (
             stackTrace,
             transactionId,
           });
+
           return null;
         },
       },

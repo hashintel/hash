@@ -1,28 +1,27 @@
+import dedent from "dedent";
+import { CodeInterpreter, Sandbox } from "e2b";
+import { OpenAI } from "openai";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FormattedText,
   StepOutput,
-} from "@local/hash-isomorphic-utils/flows/types";
-import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
+ textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import type { Status } from "@local/status";
-import { StatusCode } from "@local/status";
+import type { EntityRootType , extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { Status , StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
-import dedent from "dedent";
-import { CodeInterpreter, Sandbox } from "e2b";
-import { OpenAI } from "openai";
 
 import { logger } from "../shared/activity-logger.js";
 import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 import { stringify } from "../shared/stringify.js";
+
 import type { FlowActionActivity } from "./types.js";
+
 import ChatCompletionUserMessageParam = OpenAI.ChatCompletionUserMessageParam;
 import ChatCompletionToolMessageParam = OpenAI.ChatCompletionToolMessageParam;
 
@@ -103,6 +102,7 @@ const runPythonCode = async (code: string, contextToUpload: string | null) => {
 
   if (contextToUpload) {
     const requestId = Context.current().info.workflowExecution.workflowId;
+
     await sandbox.uploadFile(Buffer.from(contextToUpload), requestId);
   }
 
@@ -115,6 +115,7 @@ const runPythonCode = async (code: string, contextToUpload: string | null) => {
   const downloadedArtifacts = await Promise.all(
     artifacts.map(async (artifact) => {
       const rawArtifact = await artifact.download();
+
       return rawArtifact;
     }),
   );
@@ -142,12 +143,12 @@ const systemPrompt = dedent(`
   1 represents absolute certainty, and 0 a complete guess – you never provide answers with confidence 0, but instead explain why you can't answer.
 `);
 
-type ModelResponseArgs = {
+interface ModelResponseArgs {
   answer?: FormattedText;
   explanation: string;
   confidence?: number;
   code?: string;
-};
+}
 
 const maximumIterations = 10;
 
@@ -226,9 +227,11 @@ const callModel = async (
         }
 
         const { answer, confidence } = parsedArguments;
+
         explanation = parsedArguments.explanation;
 
         const outputs: StepOutput[] = [];
+
         if (answer) {
           outputs.push({
             outputName: "answer",
@@ -336,6 +339,7 @@ const callModel = async (
 
   if (iteration > maximumIterations) {
     const outputs: StepOutput[] = [];
+
     if (explanation) {
       outputs.push({
         outputName: "explanation",
@@ -366,7 +370,7 @@ const callModel = async (
     };
   }
 
-  if (responseMessages.length) {
+  if (responseMessages.length > 0) {
     return callModel(
       [
         ...messages,
@@ -476,6 +480,7 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
     const requestId = Context.current().info.workflowExecution.workflowId;
 
     const sandbox = await Sandbox.create({ template: "base" });
+
     contextFilePath = await sandbox.uploadFile(
       Buffer.from(contextToUpload),
       requestId,
@@ -503,7 +508,7 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
     );
 
     if (entities) {
-      message += `
+      message = `${message  }
       The context is an array containing entities, and entityTypes which describe the structure of the entities.
       Each entity has:
        * entityId: The unique id for the entity, to identify it as the target of links from other entities
@@ -526,5 +531,5 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
     });
   }
 
-  return await callModel(messages, contextToUpload ?? null, null, 1);
+  return callModel(messages, contextToUpload ?? null, null, 1);
 };

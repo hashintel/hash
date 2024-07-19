@@ -87,8 +87,8 @@ export const compareBounds = (
  *
  * As such, two inclusive (or two exclusive) bounds with the same limit are *not* adjacent.
  *
- * @param left - The first bound of the comparison (order is unimportant)
- * @param right - The second bound of the comparison
+ * @param left - The first bound of the comparison (order is unimportant).
+ * @param right - The second bound of the comparison.
  */
 export const boundIsAdjacentToBound = (
   left: TemporalBound,
@@ -99,7 +99,8 @@ export const boundIsAdjacentToBound = (
     (left.kind === "exclusive" && right.kind === "inclusive")
   ) {
     return left.limit === right.limit;
-  } else {
-    return false;
   }
+ 
+    return false;
+  
 };

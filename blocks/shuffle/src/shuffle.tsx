@@ -1,5 +1,8 @@
-import type { BlockComponent } from "@blockprotocol/graph/react";
-import {
+import produce from "immer";
+import isEqual from "lodash.isequal";
+import React, { useMemo, useRef, useState } from "react";
+import { v4 as uuid } from "uuid";
+import type { BlockComponent ,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
@@ -12,10 +15,6 @@ import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
 import ShuffleIcon from "@mui/icons-material/Shuffle";
 import Box from "@mui/material/Box";
-import produce from "immer";
-import isEqual from "lodash.isequal";
-import React, { useMemo, useRef, useState } from "react";
-import { v4 as uuid } from "uuid";
 
 import { ItemList } from "./components/item-list";
 import { TooltipButton } from "./components/tooltip-button";
@@ -46,10 +45,10 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
   const [draftItems, setDraftItems] = useState<ShuffleBlockItemPropertyValue[]>(
     items?.length ? items : initialItems,
   );
-  const [prevItems, setPrevItems] = useState(items);
+  const [previousItems, setPreviousItems] = useState(items);
 
-  if (items !== prevItems) {
-    setPrevItems(items);
+  if (items !== previousItems) {
+    setPreviousItems(items);
 
     if (!isEqual(items, draftItems)) {
       setDraftItems(items ?? initialItems);
@@ -84,14 +83,15 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
   };
 
   const handleReorder = (sourceIndex: number, destinationIndex: number) =>
-    updateItems(
+    { updateItems(
       produce(draftItems, (newItems) => {
         const [removed] = newItems.splice(sourceIndex, 1);
+
         if (removed) {
           newItems.splice(destinationIndex, 0, removed);
         }
       }),
-    );
+    ); };
 
   const handleValueChange = (index: number, value: string) => {
     if (readonly) {
@@ -108,7 +108,7 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
     );
   };
 
-  const handleItemBlur = () => publishItems(draftItems);
+  const handleItemBlur = () => { publishItems(draftItems); };
 
   const handleDelete = (index: number) => {
     updateItems(
@@ -117,6 +117,7 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
 
         // if item is linked to an entity, we want to delete the link as well
         const linkId = deletedItem?.[propertyIds.linkEntityId];
+
         if (linkId) {
           void graphModule.deleteEntity({
             data: { entityId: linkId },
@@ -127,30 +128,31 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
   };
 
   const handleAddNewClick = () =>
-    updateItems(
+    { updateItems(
       produce(draftItems, (newItems) => {
         newItems.push({
           [propertyIds.id]: uuid(),
           [propertyIds.value]: `Thing ${draftItems.length + 1}`,
         });
       }),
-    );
+    ); };
 
   const handleShuffleClick = () =>
-    updateItems(
+    { updateItems(
       produce(draftItems, (newItems) => {
         return newItems
           .map((value) => ({ value, sort: Math.random() }))
           .sort((a, b) => a.sort - b.sort)
           .map(({ value }) => value);
       }),
-    );
+    ); };
 
   const handleRemoveAllClick = () => {
     // we also want to remove all links for the linked items
     void Promise.all(
       draftItems.map((item) => {
         const linkId = item[propertyIds.linkEntityId];
+
         if (linkId) {
           return graphModule.deleteEntity({
             data: { entityId: linkId },
@@ -165,9 +167,9 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
   };
 
   /**
-   * linked items does not store a `value`,
+   * Linked items does not store a `value`,
    * instead we use `entityId` to set the up-to-date entity label as `value`
-   * this way, we don't show a stale `value` if the linked entity gets updated
+   * this way, we don't show a stale `value` if the linked entity gets updated.
    */
   const enhancedDraftItems = useMemo(() => {
     const outgoingLinks = getOutgoingLinksForEntity(
@@ -202,25 +204,25 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
   }, [blockEntitySubgraph, draftItems, rootEntity.metadata.recordId.entityId]);
 
   return (
-    <Box ref={blockRootRef} display="flex" flexDirection="column" px={1}>
+    <Box ref={blockRootRef} display={"flex"} flexDirection={"column"} px={1}>
       {!readonly && (
-        <Box display="flex" alignSelf="end" gap={1}>
-          <TooltipButton tooltip="Add new" onClick={handleAddNewClick}>
+        <Box display={"flex"} alignSelf={"end"} gap={1}>
+          <TooltipButton tooltip={"Add new"} onClick={handleAddNewClick}>
             <AddIcon />
           </TooltipButton>
 
           <TooltipButton
-            tooltip="Shuffle"
-            onClick={handleShuffleClick}
+            tooltip={"Shuffle"}
             disabled={draftItems.length <= 1}
+            onClick={handleShuffleClick}
           >
             <ShuffleIcon />
           </TooltipButton>
 
           <TooltipButton
-            tooltip="Remove all"
+            tooltip={"Remove all"}
+            disabled={draftItems.length === 0}
             onClick={handleRemoveAllClick}
-            disabled={draftItems.length < 1}
           >
             <ClearIcon />
           </TooltipButton>
@@ -228,11 +230,11 @@ export const Shuffle: BlockComponent<BlockEntity> = ({
       )}
       <ItemList
         list={enhancedDraftItems}
+        readonly={Boolean(readonly)}
         onReorder={handleReorder}
         onValueChange={handleValueChange}
         onItemBlur={handleItemBlur}
         onDelete={handleDelete}
-        readonly={!!readonly}
       />
     </Box>
   );

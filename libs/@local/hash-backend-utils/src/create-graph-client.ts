@@ -1,16 +1,15 @@
 import { inspect } from "node:util";
 
+import HttpAgent, { HttpsAgent } from "agentkeepalive";
+import type { DataSource } from "apollo-datasource";
+import axios from "axios";
+import type { AxiosError } from "axios"
 import {
   Configuration,
   GraphApi as GraphApiClient,
 } from "@local/hash-graph-client";
-import type { Status } from "@local/status";
-import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
+import type { Status, convertHttpCodeToStatusCode, isStatus } from "@local/status";
 import type { ErrorInfo } from "@local/status/type-defs/status-payloads/error-info";
-import HttpAgent, { HttpsAgent } from "agentkeepalive";
-import type { DataSource } from "apollo-datasource";
-import type { AxiosError } from "axios";
-import axios from "axios";
 
 import type { Logger } from "./logger.js";
 
@@ -37,7 +36,7 @@ class GraphApiError extends Error {
    * Constructs a `GraphApiError` from an Axios error.
    *
    * @param axiosError
-   * @throws {Error} if the Axios error does not contain a response from the Graph API, (e.g. if
+   * @throws {Error} If the Axios error does not contain a response from the Graph API, (e.g. If
    *   there was a local error while trying to send the request to the Graph API) as this is a local
    *   error and not a Graph API error.
    */
@@ -55,19 +54,21 @@ class GraphApiError extends Error {
         this.status = responseData as GraphStatus;
       } else if (typeof responseData === "string") {
         const message = `Error from Graph API: ${responseData}`;
+
         super(message);
         const errorInfo: ErrorInfo = {
           reason: "UNKNOWN",
           domain: "HASH Graph",
           metadata: {},
         };
+
         this.status = {
           message: responseData,
           code: convertHttpCodeToStatusCode(axiosError.response.status),
           contents: [errorInfo],
         };
       } else {
-        throw new Error(
+        throw new TypeError(
           `Unknown response format from Graph API: ${inspect(responseData)}`,
         );
       }
@@ -96,6 +97,7 @@ export const createGraphClient = (
       }
       try {
         const graphApiError = new GraphApiError(error);
+
         return Promise.reject(graphApiError);
       } catch (secondaryError) {
         // the error was apparently not a valid error from the Graph API, construct a local one
@@ -103,8 +105,7 @@ export const createGraphClient = (
         /* @todo - Do we have any useful information we can extract from `response.request`? */
         return Promise.reject(
           new Error(
-            `Encountered an error while calling the Graph API, which wasn't identified as coming from the Graph API: ${
-              (secondaryError as Error).message
+            `Encountered an error while calling the Graph API, which wasn't identified as coming from the Graph API: ${(secondaryError as Error).message
             },`,
           ),
         );

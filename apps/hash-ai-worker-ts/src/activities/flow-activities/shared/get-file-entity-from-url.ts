@@ -13,6 +13,7 @@ import { finished } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
 import { fileURLToPath } from "node:url";
 
+import mime from "mime-types";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import {
@@ -36,7 +37,6 @@ import type {
   File,
   FileProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import mime from "mime-types";
 
 import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity.js";
 import { logger } from "../../shared/activity-logger.js";
@@ -55,17 +55,20 @@ const downloadFileToFileSystem = async (fileUrl: string) => {
   const filePath = join(baseFilePath, tempFileName);
 
   const response = await fetch(fileUrl);
+
   if (!response.ok || !response.body) {
     throw new Error(`Failed to fetch ${fileUrl}: ${response.statusText}`);
   }
 
   try {
     const fileStream = createWriteStream(filePath);
+
     await finished(
       Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(
         fileStream,
       ),
     );
+
     return filePath;
   } catch (error) {
     await unlink(filePath);
@@ -88,7 +91,7 @@ const writeFileToS3URL = async ({
 }) => {
   return new Promise((resolve, reject) => {
     const fileStream = createReadStream(filePath);
-    const req = (presignedPutUrl.startsWith("https://") ? https : http).request(
+    const request = (presignedPutUrl.startsWith("https://") ? https : http).request(
       presignedPutUrl,
       {
         headers: { "Content-Length": sizeInBytes, "Content-Type": mimeType },
@@ -110,15 +113,15 @@ const writeFileToS3URL = async ({
       },
     );
 
-    req.on("error", (error) => {
+    request.on("error", (error) => {
       reject(new Error(`Request error: ${error.message}`));
     });
 
     fileStream.on("error", (error) =>
-      reject(new Error(`Error reading file: ${error.message}`)),
+      { reject(new Error(`Error reading file: ${error.message}`)); },
     );
-    fileStream.pipe(req);
-    fileStream.on("end", () => req.end());
+    fileStream.pipe(request);
+    fileStream.on("end", () => request.end());
   }).finally(() => {
     void unlink(filePath);
   });
@@ -163,11 +166,12 @@ export const getFileEntityFromUrl = async (params: {
   );
 
   let localFilePath;
+
   try {
     localFilePath = await downloadFileToFileSystem(originalUrl);
-  } catch (err) {
+  } catch (error) {
     const message = `Error downloading file from URL: ${
-      (err as Error).message
+      (error as Error).message
     }`;
 
     logger.error(message);
@@ -309,8 +313,8 @@ export const getFileEntityFromUrl = async (params: {
       presignedPutUrl: presignedPut.url,
       sizeInBytes: fileSizeInBytes,
     });
-  } catch (err) {
-    const message = `Error uploading file: ${(err as Error).message}`;
+  } catch (error) {
+    const message = `Error uploading file: ${(error as Error).message}`;
 
     return {
       status: "error-uploading-file",

@@ -16,8 +16,7 @@ import type {
   OrganizationNamePropertyValueWithMetadata,
   OrganizationPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { AccountGroupEntityId } from "@local/hash-subgraph";
-import { extractAccountGroupId } from "@local/hash-subgraph";
+import type { AccountGroupEntityId , extractAccountGroupId } from "@local/hash-subgraph";
 import {
   extractBaseUrl,
   versionedUrlFromComponents,
@@ -36,23 +35,25 @@ import {
   getLatestEntityById,
   updateEntity,
 } from "../primitive/entity";
+
 import {
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
 } from "./account.fields";
 
-export type Org = {
+export interface Org {
   accountGroupId: AccountGroupId;
   orgName: string;
   shortname: string;
   entity: Entity<Organization>;
-};
+}
 
 function assertOrganizationEntity(
   entity: Entity,
 ): asserts entity is Entity<Organization> {
   const entityTypeBaseUrl = extractBaseUrl(entity.metadata.entityTypeId);
+
   if (entityTypeBaseUrl !== systemEntityTypes.organization.entityTypeBaseUrl) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -84,11 +85,10 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
 /**
  * Create a system organization entity.
  *
- * @param params.shortname - the shortname of the organization
- * @param params.name - the name of the organization
- * @param params.providedInfo - optional metadata about the organization
- * @param params.websiteUrl - the website of the organization
- *
+ * @param params.shortname - The shortname of the organization.
+ * @param params.name - The name of the organization.
+ * @param params.providedInfo - Optional metadata about the organization.
+ * @param params.websiteUrl - The website of the organization.
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createOrg: ImpureGraphFunction<
@@ -117,6 +117,7 @@ export const createOrg: ImpureGraphFunction<
   }
 
   let orgAccountGroupId: AccountGroupId;
+
   if (params.orgAccountGroupId) {
     orgAccountGroupId = params.orgAccountGroupId;
   } else {
@@ -195,7 +196,7 @@ export const createOrg: ImpureGraphFunction<
 /**
  * Get a system organization entity by its entity id.
  *
- * @param params.entityId - the entity id of the organization
+ * @param params.entityId - The entity id of the organization.
  */
 export const getOrgById: ImpureGraphFunction<
   { entityId: EntityId },
@@ -211,7 +212,7 @@ export const getOrgById: ImpureGraphFunction<
 /**
  * Get a system organization entity by its shortname.
  *
- * @param params.shortname - the shortname of the organization
+ * @param params.shortname - The shortname of the organization.
  */
 export const getOrgByShortname: ImpureGraphFunction<
   { shortname: string },
@@ -263,9 +264,9 @@ export const getOrgByShortname: ImpureGraphFunction<
 };
 
 /**
- * Whether an org name is invalid
+ * Whether an org name is invalid.
  *
- * @param params.orgName - the org name
+ * @param params.orgName - The org name.
  */
 export const orgNameIsInvalid: PureGraphFunction<
   { orgName: string },
@@ -275,11 +276,11 @@ export const orgNameIsInvalid: PureGraphFunction<
 };
 
 /**
- * Update the name of an Organization
+ * Update the name of an Organization.
  *
- * @param params.org - the org
- * @param params.updatedOrgName - the new name to assign to the Organization
- * @param params.actorId - the id of the account updating the name
+ * @param params.org - The org.
+ * @param params.updatedOrgName - The new name to assign to the Organization.
+ * @param params.actorId - The id of the account updating the name.
  */
 export const updateOrgName: ImpureGraphFunction<
   { org: Org; updatedOrgName: string },

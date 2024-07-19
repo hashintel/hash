@@ -24,7 +24,7 @@ import { mustBeDefined } from "../../shared/invariant.js";
  * - {@link isDataTypeRootedSubgraph}
  * - {@link isPropertyTypeRootedSubgraph}
  * - {@link isEntityTypeRootedSubgraph}
- * - {@link isEntityRootedSubgraph}
+ * - {@link isEntityRootedSubgraph}.
  *
  * @param subgraph
  */

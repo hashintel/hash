@@ -3,8 +3,8 @@ import type { AccountId } from "@local/hash-graph-types/account";
 
 import type { FileProperties } from "./system-types/shared.js";
 
-export type ParseTextFromFileParams = {
+export interface ParseTextFromFileParams {
   presignedFileDownloadUrl: string;
   fileEntity: SerializedEntity<FileProperties>;
   webMachineActorId: AccountId;
-};
+}

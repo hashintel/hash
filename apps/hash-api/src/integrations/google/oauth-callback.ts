@@ -1,3 +1,5 @@
+import type { RequestHandler } from "express";
+import { google } from "googleapis";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
@@ -10,8 +12,6 @@ import type {
 } from "@local/hash-isomorphic-utils/google-integration";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
-import type { RequestHandler } from "express";
-import { google } from "googleapis";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
@@ -24,25 +24,28 @@ export const googleOAuthCallback: RequestHandler<
 > =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  async (req, res) => {
-    if (!req.user) {
+  async (request, res) => {
+    if (!request.user) {
       res.status(401).send({ error: "User not authenticated." });
+
       return;
     }
 
-    const { vaultClient } = req.context;
+    const { vaultClient } = request.context;
 
     if (!vaultClient) {
       res.status(501).send({ error: "Vault integration is not configured." });
+
       return;
     }
 
     if (!enabledIntegrations.googleSheets) {
       res.status(501).send({ error: "Google integration is not enabled." });
+
       return;
     }
 
-    const { code } = req.body;
+    const { code } = request.body;
 
     const googleOAuth2Client = createGoogleOAuth2Client();
 
@@ -59,6 +62,7 @@ export const googleOAuthCallback: RequestHandler<
       res.status(500).send({
         error: "Could not exchange code for access and refresh tokens",
       });
+
       return;
     }
 
@@ -70,27 +74,29 @@ export const googleOAuthCallback: RequestHandler<
       res.status(500).send({
         error: "Google user data is missing required fields",
       });
+
       return;
     }
 
-    const authentication = { actorId: req.user.accountId };
+    const authentication = { actorId: request.user.accountId };
 
     const googleBotAccountId = await getMachineActorId(
-      req.context,
+      request.context,
       authentication,
       { identifier: "google" },
     );
 
     /**
-     * Create the Google Account entity if it doesn't exist
+     * Create the Google Account entity if it doesn't exist.
      */
     const existingGoogleAccountEntity = await getGoogleAccountById({
-      graphApiClient: req.context.graphApi,
-      userAccountId: req.user.accountId,
+      graphApiClient: request.context.graphApi,
+      userAccountId: request.user.accountId,
       googleAccountId: googleUser.data.id,
     });
 
     let newGoogleAccountEntity;
+
     if (!existingGoogleAccountEntity) {
       const googleAccountProperties: GoogleAccount["propertiesWithMetadata"] = {
         value: {
@@ -119,9 +125,9 @@ export const googleOAuthCallback: RequestHandler<
         },
       };
 
-      newGoogleAccountEntity = await createEntity(req.context, authentication, {
+      newGoogleAccountEntity = await createEntity(request.context, authentication, {
         entityTypeId: googleEntityTypes.account.entityTypeId,
-        ownedById: req.user.accountId as OwnedById,
+        ownedById: request.user.accountId as OwnedById,
         properties: googleAccountProperties,
         relationships: [
           {
@@ -151,6 +157,7 @@ export const googleOAuthCallback: RequestHandler<
       res.status(500).send({
         error: "Could not find or create Google Account entity",
       });
+
       return;
     }
 
@@ -172,14 +179,14 @@ export const googleOAuthCallback: RequestHandler<
        */
       archiveExistingSecrets: true,
       expiresAt: "", // the secret data includes an refresh token that lasts indefinitely and will be used as needed
-      graphApi: req.context.graphApi,
+      graphApi: request.context.graphApi,
       managingBotAccountId: googleBotAccountId,
-      provenance: req.context.provenance,
+      provenance: request.context.provenance,
       restOfPath: `account/${googleUser.data.id}`,
       secretData: tokens,
       service: "google",
       sourceIntegrationEntityId: googleAccountEntity.metadata.recordId.entityId,
-      userAccountId: req.user.accountId,
+      userAccountId: request.user.accountId,
       vaultClient,
     });
 
@@ -187,7 +194,7 @@ export const googleOAuthCallback: RequestHandler<
      * By this point we have:
      * 1. A Google Account entity for the account associated with the token
      * 2. An access token and refresh token stored in Vault, referenced by a user secret entity
-     * 3. A link between the Google Account and the user secret
+     * 3. A link between the Google Account and the user secret.
      *
      * Features may now create integrations with resources accessible by the user account, with the scopes from the
      * token.

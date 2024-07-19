@@ -3,16 +3,6 @@
  */
 
 import type {
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  DateTimeDataType,
-  DateTimeDataTypeWithMetadata,
-  DescriptionPropertyValue,
-  DescriptionPropertyValueWithMetadata,
-  DisplayNamePropertyValue,
-  DisplayNamePropertyValueWithMetadata,
-  File,
-  FileHashPropertyValue,
   FileHashPropertyValueWithMetadata,
   FileNamePropertyValue,
   FileNamePropertyValueWithMetadata,
@@ -58,16 +48,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  DateTimeDataType,
-  DateTimeDataTypeWithMetadata,
-  DescriptionPropertyValue,
-  DescriptionPropertyValueWithMetadata,
-  DisplayNamePropertyValue,
-  DisplayNamePropertyValueWithMetadata,
-  File,
-  FileHashPropertyValue,
   FileHashPropertyValueWithMetadata,
   FileNamePropertyValue,
   FileNamePropertyValueWithMetadata,
@@ -111,3 +91,5 @@ export type {
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
 };
+
+export {type BooleanDataType, type BooleanDataTypeWithMetadata, type DateTimeDataType, type DateTimeDataTypeWithMetadata, type DescriptionPropertyValue, type DescriptionPropertyValueWithMetadata, type DisplayNamePropertyValue, type DisplayNamePropertyValueWithMetadata, type File, type FileHashPropertyValue} from "./shared.js";

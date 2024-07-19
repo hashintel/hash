@@ -20,10 +20,10 @@ export const EmojiIcon: FunctionComponent<EmojiIconProps> = ({
 
   return (
     <button
-      disabled={disabled}
-      type="button"
-      contentEditable={false}
       suppressContentEditableWarning
+      disabled={disabled}
+      type={"button"}
+      contentEditable={false}
       style={{
         display: "inline-block",
         width: "1.5em",

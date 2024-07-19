@@ -14,8 +14,7 @@ import {
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType , extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 
 export const getSecretEntitiesForIntegration = async ({
@@ -34,7 +33,7 @@ export const getSecretEntitiesForIntegration = async ({
     userSecret: Entity<UserSecret>;
   }[]
 > => {
-  return await graphApiClient
+  return graphApiClient
     .getEntitySubgraph(authentication.actorId, {
       filter: {
         all: [

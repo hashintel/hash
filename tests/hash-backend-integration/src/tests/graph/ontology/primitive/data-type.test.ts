@@ -1,8 +1,8 @@
+import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { joinOrg,User  } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
@@ -16,7 +16,6 @@ import type {
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -90,10 +89,10 @@ beforeAll(async () => {
   };
 });
 
-describe("Data type CRU", () => {
+describe("data type CRU", () => {
   let createdDataType: DataTypeWithMetadata;
 
-  it("can create a data type", async () => {
+  test("can create a data type", async () => {
     const authentication = { actorId: testUser.accountId };
 
     createdDataType = await createDataType(graphContext, authentication, {
@@ -103,7 +102,7 @@ describe("Data type CRU", () => {
     });
   });
 
-  it("can read a data type", async () => {
+  test("can read a data type", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const fetchedDataType = await getDataTypeById(
@@ -118,7 +117,8 @@ describe("Data type CRU", () => {
   });
 
   const updatedTitle = "New text!";
-  it("can update a data type", async () => {
+
+  test("can update a data type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdDataType.metadata) &&
         createdDataType.metadata.provenance.edition.createdById,
@@ -130,7 +130,7 @@ describe("Data type CRU", () => {
       dataTypeId: createdDataType.schema.$id,
       schema: { ...dataTypeSchema, title: updatedTitle },
       relationships: [{ relation: "viewer", subject: { kind: "public" } }],
-    }).catch((err) => Promise.reject(err.data));
+    }).catch((error) => Promise.reject(error.data));
 
     expect(
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&

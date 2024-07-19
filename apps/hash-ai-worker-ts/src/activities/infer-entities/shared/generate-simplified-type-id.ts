@@ -13,8 +13,8 @@ const generateSimplifiedTypeIdFromTitle = (params: {
    */
   return `${title
     .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, "")
-    .replace(/ +/g, "-")}${postfix ? `-${postfix}` : ""}`;
+    .replaceAll(/[^\d a-z]/g, "")
+    .replaceAll(/ +/g, "-")}${postfix ? `-${postfix}` : ""}`;
 };
 
 export const generateSimplifiedTypeId = <

@@ -15,9 +15,9 @@ export const createInferredEntityNotification = async ({
   operation: "create" | "update";
   notifiedUserAccountId: AccountId;
 }) => {
-  const entityIsDraft = !!extractDraftIdFromEntityId(
+  const entityIsDraft = Boolean(extractDraftIdFromEntityId(
     entity.metadata.recordId.entityId,
-  );
+  ));
 
   if (entityIsDraft) {
     /**

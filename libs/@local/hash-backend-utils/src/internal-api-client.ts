@@ -1,10 +1,10 @@
+import axios from "axios";
+import type { AxiosError } from "axios";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import {
   Configuration,
   DefaultApi as InternalApiClient,
 } from "@local/internal-api-client";
-import type { AxiosError } from "axios";
-import axios from "axios";
 
 const basePath = process.env.INTERNAL_API_HOST ?? "http://localhost:5002";
 
@@ -33,6 +33,7 @@ axiosInstance.interceptors.response.use(
   (error: AxiosError) => {
     // eslint-disable-next-line no-param-reassign
     error.message = `Error occurred calling the Internal API: ${error.message}`;
+
     return Promise.reject(error);
   },
 );

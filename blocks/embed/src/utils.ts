@@ -48,7 +48,7 @@ export function getFormCopy(entityType?: ProviderName): {
 
 export const toCSSText = (styles: CSSStyleDeclaration): string =>
   Object.entries(styles)
-    .map(([prop, value]) => `${kebabCase(prop)}:${value}`)
+    .map(([property, value]) => `${kebabCase(property)}:${value}`)
     .join(";");
 
 export const toCSSObject = (cssText: string) =>
@@ -63,8 +63,8 @@ export const toCSSObject = (cssText: string) =>
 
 export const isInRange = (
   value: number,
-  minValue: number = -Infinity,
-  maxValue: number = +Infinity,
+  minValue = -Infinity,
+  maxValue = Number(Infinity),
 ) => {
   return value >= minValue && value <= maxValue;
 };

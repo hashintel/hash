@@ -3,16 +3,6 @@
  */
 
 import type {
-  Block,
-  BlockHasDataLink,
-  BlockOutgoingLinkAndTarget,
-  BlockOutgoingLinksByLinkEntityTypeId,
-  BlockProperties,
-  BlockPropertiesWithMetadata,
-  ComponentIdPropertyValue,
-  ComponentIdPropertyValueWithMetadata,
-  HasData,
-  HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
   HasDataPropertiesWithMetadata,
@@ -26,16 +16,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  Block,
-  BlockHasDataLink,
-  BlockOutgoingLinkAndTarget,
-  BlockOutgoingLinksByLinkEntityTypeId,
-  BlockProperties,
-  BlockPropertiesWithMetadata,
-  ComponentIdPropertyValue,
-  ComponentIdPropertyValueWithMetadata,
-  HasData,
-  HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
   HasDataPropertiesWithMetadata,
@@ -47,3 +27,5 @@ export type {
   TextDataType,
   TextDataTypeWithMetadata,
 };
+
+export {type Block, type BlockHasDataLink, type BlockOutgoingLinkAndTarget, type BlockOutgoingLinksByLinkEntityTypeId, type BlockProperties, type BlockPropertiesWithMetadata, type ComponentIdPropertyValue, type ComponentIdPropertyValueWithMetadata, type HasData, type HasDataOutgoingLinkAndTarget} from "./shared.js";

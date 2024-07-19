@@ -12,8 +12,7 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
-import type { Status } from "@local/status";
-import { StatusCode } from "@local/status";
+import type { Status , StatusCode } from "@local/status";
 import {
   ActivityCancellationType,
   ApplicationFailure,
@@ -23,6 +22,7 @@ import {
 
 import type { createFlowActivities } from "../activities/flow-activities.js";
 import { stringify } from "../activities/shared/stringify.js";
+
 import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./run-flow-workflow/get-step-definition-from-flow.js";
 import {
@@ -88,18 +88,18 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
          * If the input has been provided, the input has been satisfied.
          */
         return true;
-      } else if (inputDefinition.required) {
+      } if (inputDefinition.required) {
         /**
          * If the input is required, and it hasn't been provided the step
          * has not satisfied its dependencies.
          */
         return false;
-      } else if (
+      } if (
         inputSource.kind === "step-output" &&
         inputSource.sourceStepId !== "trigger"
       ) {
         /**
-         * If the input is optional, but depends on a runnable step (i.e. not
+         * If the input is optional, but depends on a runnable step (i.e. Not
          * the trigger), the step only has satisfied its dependencies if the
          * step it depends on has been processed.
          *
@@ -107,7 +107,7 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
          * are provided in the flow.
          */
         return processedStepIds.includes(inputSource.sourceStepId);
-      } else if (inputSource.kind === "parallel-group-input") {
+      } if (inputSource.kind === "parallel-group-input") {
         /**
          * If the input is optional, but has a parallel group input as it's source
          * the step should only be processed once this input has been provided.
@@ -115,14 +115,15 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
          * Otherwise the parallel group won't run, and produce any outputs.
          */
         return false;
-      } else {
+      }
+ 
         /**
          * Otherwise, we consider the input satisfied because it is optional.
          */
         return true;
-      }
+      
     });
-  } else {
+  } 
     /**
      * A parallel group step has satisfied dependencies if the input it
      * parallelizes over has been provided.
@@ -130,8 +131,8 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
 
     const { inputToParallelizeOn } = step;
 
-    return !!inputToParallelizeOn;
-  }
+    return Boolean(inputToParallelizeOn);
+  
 };
 
 const proxyFlowActivity = <
@@ -149,10 +150,10 @@ const proxyFlowActivity = <
     /** @todo H-2545 switch to WAIT_CANCELLATION_COMPLETED and handle cancellation cleanup in activities */
     cancellationType: ActivityCancellationType.TRY_CANCEL,
     /**
+     * @see https://docs.temporal.io/dev-guide/typescript/features#asynchronous-design-patterns
      * @todo H-2575 – decide what to do about timeouts, in light of potentially having to wait for user input
      *    – ideally we'd be able to wait on the workflow level, so that it's put to sleep until the response is
      *   received, but this requires refactoring the research task such that all tool calls are activities.
-     * @see https://docs.temporal.io/dev-guide/typescript/features#asynchronous-design-patterns
      */
     startToCloseTimeout: "7200 second", // 2 hours
     retry: { maximumAttempts },
@@ -201,6 +202,7 @@ export const runFlowWorkflow = async (
     const errorMessage = `User does not have permission to run flow in web ${webId}, because they are missing permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(
       `,`,
     )}`;
+
     throw ApplicationFailure.create({
       message: errorMessage,
       details: [
@@ -221,7 +223,7 @@ export const runFlowWorkflow = async (
     flowDefinition,
     flowTrigger,
     flowRunId: workflowId as EntityUuid,
-    /** use the flow definition's name as a placeholder – we need the Flow persisted to link the generating name usage to it */
+    /** Use the flow definition's name as a placeholder – we need the Flow persisted to link the generating name usage to it */
     name: flowDefinition.name,
   });
 
@@ -350,7 +352,7 @@ export const runFlowWorkflow = async (
           message: status.message,
         };
 
-        // eslint-disable-next-line no-useless-return
+         
         return;
       }
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -392,9 +394,10 @@ export const runFlowWorkflow = async (
                 overrideStepId: `${stepDefinition.stepId}~${index}`,
                 parallelGroupInputPayload,
               });
-            } else {
-              return initializeParallelGroup({ flowTrigger, stepDefinition });
             }
+ 
+              return initializeParallelGroup({ flowTrigger, stepDefinition });
+            
           }),
       );
 
@@ -423,6 +426,7 @@ export const runFlowWorkflow = async (
   if (stepWithSatisfiedDependencies.length === 0) {
     const errorMessage =
       "No steps have satisfied dependencies when initializing the flow.";
+
     throw ApplicationFailure.create({
       message: errorMessage,
       details: [
@@ -444,8 +448,8 @@ export const runFlowWorkflow = async (
           flowDefinition,
           processedStepIds,
         }) &&
-        !processedStepIds.some(
-          (processedStepId) => processedStepId === step.stepId,
+        !processedStepIds.includes(
+          step.stepId,
         ),
     );
 
@@ -467,9 +471,10 @@ export const runFlowWorkflow = async (
   log("All processable steps have completed processing");
 
   /**
-   * Wait to flush logs
-   * @todo flush logs by calling the debounced function's flush, flushLogs – need to deal with it importing code that
-   *   the workflow can't
+   * Wait to flush logs.
+   *
+   * @todo Flush logs by calling the debounced function's flush, flushLogs – need to deal with it importing code that
+   *   the workflow can't.
    */
   await sleep(3_000);
 
@@ -477,9 +482,10 @@ export const runFlowWorkflow = async (
     ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
   );
 
-  /** @todo this is not necessarily an error once there are branches */
+  /** @todo This is not necessarily an error once there are branches */
   if (processedStepIds.length !== getAllStepsInFlow(flow).length) {
     const errorMessage = "Not all steps in the flows were processed.";
+
     throw ApplicationFailure.create({
       message: errorMessage,
       details: [
@@ -505,6 +511,7 @@ export const runFlowWorkflow = async (
       }
 
       const errorMessage = `${errorPrefix}required step with id '${outputDefinition.stepId}' not found in outputs.`;
+
       throw ApplicationFailure.create({
         message: errorMessage,
         details: [
@@ -553,6 +560,7 @@ export const runFlowWorkflow = async (
 
       if (!output) {
         const errorMessage = `${errorPrefix}no aggregate output found in step ${step.stepId}`;
+
         throw ApplicationFailure.create({
           message: errorMessage,
           details: [
@@ -584,7 +592,7 @@ export const runFlowWorkflow = async (
      * Steps may error and be retried, or the whole workflow retried, while still producing the required outputs
      * – start with an initial status of OK if the outputs are present, to be adjusted if necessary.
      */
-    code: outputs.length ? StatusCode.Ok : StatusCode.Internal,
+    code: outputs.length > 0 ? StatusCode.Ok : StatusCode.Internal,
     contents: [{ outputs, stepErrors }],
   };
 };

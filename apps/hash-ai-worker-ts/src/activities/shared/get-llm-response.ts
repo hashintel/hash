@@ -1,8 +1,8 @@
+import { backOff } from "exponential-backoff";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { EnforcedEntityEditionProvenance , Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -10,20 +10,19 @@ import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IncurredIn } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import { StatusCode } from "@local/status";
-import { backOff } from "exponential-backoff";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
+
 import { logger } from "./activity-logger.js";
 import { getFlowContext } from "./get-flow-context.js";
 import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-service-usage-not-exceeded.js";
 import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response.js";
 import { getOpenAiResponse } from "./get-llm-response/get-openai-reponse.js";
 import { logLlmRequest } from "./get-llm-response/log-llm-request.js";
-import type { LlmParams, LlmResponse } from "./get-llm-response/types.js";
-import { isLlmParamsAnthropicLlmParams } from "./get-llm-response/types.js";
+import type { isLlmParamsAnthropicLlmParams,LlmParams, LlmResponse  } from "./get-llm-response/types.js";
 import { stringify } from "./stringify.js";
 
-export type UsageTrackingParams = {
+export interface UsageTrackingParams {
   /**
    * Required for tracking usage on a per-user basis.
    *
@@ -35,7 +34,7 @@ export type UsageTrackingParams = {
   webId: OwnedById;
   graphApiClient: GraphApi;
   incurredInEntities: { entityId: EntityId }[];
-};
+}
 
 /**
  * This function sends a request to the Anthropic or OpenAI API based on the
@@ -91,11 +90,12 @@ export const getLlmResponse = async <T extends LlmParams>(
 
   const { taskName } = customMetadata ?? {};
   let debugMessage = `Getting LLM response for model ${llmParams.model}`;
+
   if (taskName) {
-    debugMessage += ` for task ${taskName}`;
+    debugMessage = `${debugMessage  } for task ${taskName}`;
   }
 
-  debugMessage += ` in step ${stepId}`;
+  debugMessage = `${debugMessage  } in step ${stepId}`;
 
   logger.debug(debugMessage);
 

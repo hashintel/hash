@@ -29,52 +29,52 @@ export type InferenceModelName = (typeof inferenceModelNames)[number];
 export const isInferenceModelName = (tbd: string): tbd is InferenceModelName =>
   inferenceModelNames.includes(tbd as InferenceModelName);
 
-type BaseProposedEntitySchemaOrData = {
+interface BaseProposedEntitySchemaOrData {
   entityId: unknown;
   updateEntityId?: unknown;
   /**
    * The AI Model does not reliably return an empty properties object if the entity type has no properties.
    */
   properties?: unknown;
-};
+}
 
-type EntitySchemaOrDataLinkFields = {
+interface EntitySchemaOrDataLinkFields {
   sourceEntityId: unknown;
   targetEntityId: unknown;
-};
+}
 
 export type ProposedEntitySchemaOrData =
   | BaseProposedEntitySchemaOrData
   | (BaseProposedEntitySchemaOrData & EntitySchemaOrDataLinkFields);
 
-type BaseProposedEntity = {
+interface BaseProposedEntity {
   entityId: number;
   updateEntityId?: string;
   properties?: Record<BaseUrl, Property>;
-};
+}
 
-export type ProposedEntityLinkFields = {
+export interface ProposedEntityLinkFields {
   sourceEntityId: number | string;
   targetEntityId: number | string;
-};
+}
 
 export type ProposedEntity =
   | BaseProposedEntity
   | (BaseProposedEntity & ProposedEntityLinkFields);
 
-export type InferenceTokenUsage = {
+export interface InferenceTokenUsage {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;
-};
+}
 
-type InferredEntityResultBase = {
+interface InferredEntityResultBase {
   entity?: SerializedEntity | null;
   entityTypeId: VersionedUrl;
   operation: "create" | "update" | "already-exists-as-proposed";
   proposedEntity: ProposedEntity;
   status: "success" | "failure";
-};
+}
 
 export type InferredEntityCreationSuccess = InferredEntityResultBase & {
   entity: SerializedEntity;
@@ -122,38 +122,38 @@ export type InferEntitiesReturn = Status<{
   usage: InferenceTokenUsage[];
 }>;
 
-export type AutomaticInferenceWebsocketRequestMessage = {
+export interface AutomaticInferenceWebsocketRequestMessage {
   cookie: string;
   type: "automatic-inference-request";
   payload: AutomaticInferenceArguments;
   requestUuid: string;
-};
+}
 
-export type ManualInferenceWebsocketRequestMessage = {
+export interface ManualInferenceWebsocketRequestMessage {
   cookie: string;
   type: "manual-inference-request";
   payload: ManualInferenceArguments;
   requestUuid: string;
-};
+}
 
-export type CancelInferEntitiesWebsocketRequestMessage = {
+export interface CancelInferEntitiesWebsocketRequestMessage {
   cookie: string;
   flowRunId: string;
   type: "cancel-inference-request";
   requestUuid: string;
-};
+}
 
-export type CheckForExternalInputRequestsWebsocketRequestMessage = {
+export interface CheckForExternalInputRequestsWebsocketRequestMessage {
   cookie: string;
   type: "check-for-external-input-requests";
-};
+}
 
-export type ExternalInputWebsocketResponseMessage = {
+export interface ExternalInputWebsocketResponseMessage {
   cookie: string;
   workflowId: string;
   type: "external-input-response";
   payload: DistributiveOmit<ExternalInputResponseSignal, "resolvedBy">;
-};
+}
 
 export type InferenceWebsocketClientMessage =
   | AutomaticInferenceWebsocketRequestMessage
@@ -162,26 +162,26 @@ export type InferenceWebsocketClientMessage =
   | CheckForExternalInputRequestsWebsocketRequestMessage
   | ExternalInputWebsocketResponseMessage;
 
-export type ExternalInputWebsocketRequestMessage = {
+export interface ExternalInputWebsocketRequestMessage {
   workflowId: string;
   payload: ExternalInputRequestSignal;
   type: "external-input-request";
-};
+}
 
 export type InferenceWebsocketServerMessage =
   ExternalInputWebsocketRequestMessage;
 
-export type CreateEmbeddingsParams = {
+export interface CreateEmbeddingsParams {
   input: string[];
-};
+}
 
-export type CreateEmbeddingsReturn = {
+export interface CreateEmbeddingsReturn {
   embeddings: number[][];
   usage: {
     prompt_tokens: number;
     total_tokens: number;
   };
-};
+}
 
 export type GetResultsFromCancelledInferenceRequestQuery = QueryDefinition<
   InferEntitiesReturn,

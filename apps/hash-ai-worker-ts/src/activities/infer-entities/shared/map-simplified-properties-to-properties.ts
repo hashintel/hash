@@ -9,9 +9,9 @@ export type PropertyValueWithSimplifiedProperties =
   | PropertyValue
   | PropertiesObjectWithSimplifiedProperties;
 
-export type PropertiesObjectWithSimplifiedProperties = {
+export interface PropertiesObjectWithSimplifiedProperties {
   [_: string]: PropertyValueWithSimplifiedProperties;
-};
+}
 
 const mapSimplifiedPropertyValueToPropertyValue = (params: {
   simplifiedPropertyValue: PropertyValueWithSimplifiedProperties;
@@ -36,7 +36,7 @@ const mapSimplifiedPropertyValueToPropertyValue = (params: {
   }
 
   return Object.entries(simplifiedPropertyValue).reduce<PropertyObject>(
-    (acc, [maybeSimplifiedId, value]) => {
+    (accumulator, [maybeSimplifiedId, value]) => {
       const baseUrl = simplifiedPropertyTypeMappings[maybeSimplifiedId];
 
       if (!baseUrl) {
@@ -49,20 +49,20 @@ const mapSimplifiedPropertyValueToPropertyValue = (params: {
          * by requiring the property types in this method)
          */
         return {
-          ...acc,
+          ...accumulator,
           [maybeSimplifiedId]: value,
         };
       }
 
       return {
-        ...acc,
+        ...accumulator,
         [baseUrl]: mapSimplifiedPropertyValueToPropertyValue({
           simplifiedPropertyValue: value,
           simplifiedPropertyTypeMappings,
         }),
       };
     },
-    {} as Entity["properties"],
+    {},
   );
 };
 
@@ -73,7 +73,7 @@ export const mapSimplifiedPropertiesToProperties = (params: {
   const { simplifiedProperties, simplifiedPropertyTypeMappings } = params;
 
   return Object.entries(simplifiedProperties).reduce<Entity["properties"]>(
-    (acc, [simplifiedId, value]) => {
+    (accumulator, [simplifiedId, value]) => {
       const baseUrl = simplifiedPropertyTypeMappings[simplifiedId];
 
       if (!baseUrl) {
@@ -83,13 +83,13 @@ export const mapSimplifiedPropertiesToProperties = (params: {
       }
 
       return {
-        ...acc,
+        ...accumulator,
         [baseUrl]: mapSimplifiedPropertyValueToPropertyValue({
           simplifiedPropertyValue: value,
           simplifiedPropertyTypeMappings,
         }),
       };
     },
-    {} as Entity["properties"],
+    {},
   );
 };

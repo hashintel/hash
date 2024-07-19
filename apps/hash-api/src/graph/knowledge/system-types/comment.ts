@@ -34,23 +34,21 @@ import {
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import type { Block } from "./block";
-import { getBlockFromEntity } from "./block";
-import type { Text } from "./text";
-import { getTextFromEntity } from "./text";
-import type { User } from "./user";
-import { getUserFromEntity } from "./user";
 
-export type Comment = {
+import type { Block , getBlockFromEntity } from "./block";
+import type { getTextFromEntity,Text  } from "./text";
+import type { getUserFromEntity,User  } from "./user";
+
+export interface Comment {
   /**
    * @todo - these should probably be changed to encapsulate multi-axis versioning information, or should be explicitly
    *   documented as pertaining to either transaction or decision time
-   *   - https://linear.app/hash/issue/H-2991
+   *   - https://linear.app/hash/issue/H-2991.
    */
   resolvedAt?: string;
   deletedAt?: string;
   entity: Entity<CommentEntity>;
-};
+}
 
 function assertCommentEntity(
   entity: Entity,
@@ -86,7 +84,7 @@ export const getCommentFromEntity: PureGraphFunction<
 /**
  * Get a system comment entity by its entity id.
  *
- * @param params.entityId - the entity id of the comment
+ * @param params.entityId - The entity id of the comment.
  */
 export const getCommentById: ImpureGraphFunction<
   { entityId: EntityId },
@@ -100,7 +98,7 @@ export const getCommentById: ImpureGraphFunction<
 /**
  * Get the text entity linked to the comment.
  *
- * @param params.comment - the comment
+ * @param params.comment - The comment.
  */
 export const getCommentText: ImpureGraphFunction<
   {
@@ -137,10 +135,9 @@ export const getCommentText: ImpureGraphFunction<
 /**
  * Create a system comment entity.
  *
- * @param params.author - the user that created the comment
- * @param params.parent - the linked parent entity
- * @param params.textualContent - the textual content that describe the comment's text
- *
+ * @param params.author - The user that created the comment.
+ * @param params.parent - The linked parent entity.
+ * @param params.textualContent - The textual content that describe the comment's text.
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createComment: ImpureGraphFunction<
@@ -245,9 +242,9 @@ export const createComment: ImpureGraphFunction<
 /**
  * Edit the text content of a comment.
  *
- * @param params.comment - the comment
- * @param params.actorId - id of the user that edited the comment
- * @param params.textualContent - the new textual content that describe the comment's text
+ * @param params.comment - The comment.
+ * @param params.actorId - Id of the user that edited the comment.
+ * @param params.textualContent - The new textual content that describe the comment's text.
  */
 export const updateCommentText: ImpureGraphFunction<
   {
@@ -287,8 +284,8 @@ export const updateCommentText: ImpureGraphFunction<
 /**
  * Delete the comment.
  *
- * @param params.comment - the comment
- * @param params.actorId - id of the user that deleted the comment
+ * @param params.comment - The comment.
+ * @param params.actorId - Id of the user that deleted the comment.
  */
 export const deleteComment: ImpureGraphFunction<
   {
@@ -323,7 +320,7 @@ export const deleteComment: ImpureGraphFunction<
 /**
  * Get the parent entity linked to the comment (either a block or another comment).
  *
- * @param params.comment - the comment
+ * @param params.comment - The comment.
  */
 export const getCommentParent: ImpureGraphFunction<
   { commentEntityId: EntityId },
@@ -349,7 +346,7 @@ export const getCommentParent: ImpureGraphFunction<
     );
   }
 
-  return await getLinkEntityRightEntity(ctx, authentication, {
+  return getLinkEntityRightEntity(ctx, authentication, {
     linkEntity: parentLink,
   });
 };
@@ -357,7 +354,7 @@ export const getCommentParent: ImpureGraphFunction<
 /**
  * Get the user entity that created the comment.
  *
- * @param params.comment - the comment
+ * @param params.comment - The comment.
  */
 export const getCommentAuthor: ImpureGraphFunction<
   { commentEntityId: EntityId },
@@ -393,7 +390,7 @@ export const getCommentAuthor: ImpureGraphFunction<
 /**
  * Get the children comment entities of the comment.
  *
- * @param params.comment - the comment
+ * @param params.comment - The comment.
  */
 export const getCommentReplies: ImpureGraphFunction<
   { commentEntityId: EntityId },
@@ -418,8 +415,8 @@ export const getCommentReplies: ImpureGraphFunction<
 /**
  * Resolve the comment.
  *
- * @param params.comment - the comment
- * @param params.actorId - id of the user that resolved the comment
+ * @param params.comment - The comment.
+ * @param params.actorId - Id of the user that resolved the comment.
  */
 export const resolveComment: ImpureGraphFunction<
   {
@@ -454,7 +451,7 @@ export const resolveComment: ImpureGraphFunction<
 /**
  * Get the block ancestor of the comment.
  *
- * @param params.comment - the comment
+ * @param params.comment - The comment.
  */
 export const getCommentAncestorBlock: ImpureGraphFunction<
   { commentEntityId: EntityId },
@@ -469,9 +466,10 @@ export const getCommentAncestorBlock: ImpureGraphFunction<
   ) {
     // @todo - make sure the entity is really a block
     return getBlockFromEntity({ entity: parentEntity as Block["entity"] });
-  } else {
+  }
+ 
     return getCommentAncestorBlock(context, authentication, {
       commentEntityId: parentEntity.metadata.recordId.entityId,
     });
-  }
+  
 };

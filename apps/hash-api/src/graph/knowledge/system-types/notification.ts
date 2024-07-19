@@ -5,8 +5,7 @@ import { createNotificationEntityPermissions } from "@local/hash-backend-utils/n
 import type {
   CreateEntityParameters,
   Entity,
-} from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+ LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -48,16 +47,17 @@ import {
   updateEntity,
 } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
+
 import type { Block } from "./block";
 import type { Comment } from "./comment";
 import type { Page } from "./page";
 import type { Text } from "./text";
 import type { User } from "./user";
 
-type Notification = {
+interface Notification {
   archived?: boolean;
   entity: Entity<NotificationEntity>;
-};
+}
 
 export const archiveNotification: ImpureGraphFunction<
   { notification: Notification | MentionNotification | CommentNotification },
@@ -159,9 +159,9 @@ export const createMentionNotification: ImpureGraphFunction<
       /**
        * We do this separately with the user's authority because we need to use the user's authority to create the links
        * We cannot use a bot scoped to the user's web, because the thing that we are linking to (comments, pages)
-       * might be in different webs, e.g. if the page is in an organization's web, which the bot can't read.
+       * might be in different webs, e.g. If the page is in an organization's web, which the bot can't read.
        *
-       * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
+       * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605.
        */
       createLinkEntity<TriggeredByUser>(context, userAuthentication, {
         ownedById,
@@ -270,7 +270,6 @@ export const getMentionNotification: ImpureGraphFunction<
   /**
    * @todo: move these filters into the query when it is possible to filter
    * on more than one outgoing entity
-   *
    * @see https://linear.app/hash/issue/H-1169/explore-and-allow-specifying-multiple-structural-query-filters
    */
   const matchingEntities = getRoots(entitiesSubgraph).filter((entity) => {
@@ -451,9 +450,9 @@ export const createCommentNotification: ImpureGraphFunction<
       /**
        * We do this separately with the user's authority because we need to use the user's authority to create the links
        * We cannot use a bot scoped to the user's web, because the thing that we are linking to (comments, pages)
-       * might be in different webs, e.g. if the page is in an organization's web, which the bot can't read.
+       * might be in different webs, e.g. If the page is in an organization's web, which the bot can't read.
        *
-       * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
+       * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605.
        */
       createLinkEntity(context, userAuthentication, {
         ownedById,
@@ -548,7 +547,6 @@ export const getCommentNotification: ImpureGraphFunction<
   /**
    * @todo: move these filters into the query when it is possible to filter
    * on more than one outgoing entity
-   *
    * @see https://linear.app/hash/issue/H-1169/explore-and-allow-specifying-multiple-structural-query-filters
    */
   const matchingEntities = getRoots(entitiesSubgraph).filter((entity) => {

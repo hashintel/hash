@@ -7,6 +7,7 @@ import type { Logger } from "@local/hash-backend-utils/logger";
 import { isProdEnv } from "../../lib/env-config";
 import type { ImpureGraphContext } from "../context-types";
 import { systemAccountId } from "../system-account";
+
 import type {
   MigrationFunction,
   MigrationState,

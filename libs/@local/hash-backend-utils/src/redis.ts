@@ -1,14 +1,13 @@
 import { DataSource } from "apollo-datasource";
-import type { RedisClientType } from "redis";
-import { createClient } from "redis";
+import type { createClient,RedisClientType  } from "redis";
 
 import type { Logger } from "./logger.js";
 
-export type RedisSocketConfig = {
+export interface RedisSocketConfig {
   host: string;
   port: number;
   tls: boolean;
-};
+}
 
 /** An async-await compatible wrapper around a `RedisClient`. */
 export class AsyncRedisClient extends DataSource {
@@ -17,16 +16,16 @@ export class AsyncRedisClient extends DataSource {
    * of the `dst` list, and return the item. If the `src` list is empty, and
    * `timeoutSecs` is `0`, the function blocks indefinitely until an item arrives,
    * otherwise, it waits for the specified time, returning `null` if no new item arrives.
-   * */
+    */
   brpoplpush: (
-    src: string,
+    source: string,
     dst: string,
     timeoutSecs: number,
   ) => Promise<string | null>;
 
   /** Pop an item from the right side of the `src` list, push it onto the left side of
    * the `dst` list and return the item. Returns `null` if the `src` queue is empty. */
-  rpoplpush: (src: string, dst: string) => Promise<string | null>;
+  rpoplpush: (source: string, dst: string) => Promise<string | null>;
 
   /** Pop an item from the left side of a list, if the list exists. */
   lpop: (key: string) => Promise<string | null>;
@@ -116,16 +115,19 @@ export class AsyncRedisClient extends DataSource {
     this.llen = client.lLen.bind(client);
 
     const flushall = client.flushAll.bind(client);
+
     this.flushall = async () => {
       await flushall();
     };
 
     const set = client.set.bind(client);
+
     this.set = async (key: string, value: string) => {
       await set(key, value);
     };
 
     const setex = client.setEx.bind(client);
+
     this.setex = async (
       key: string,
       value: string,

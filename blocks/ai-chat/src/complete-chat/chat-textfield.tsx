@@ -1,6 +1,5 @@
+import type { FunctionComponent , useCallback, useState } from "react";
 import { BlockPromptInput } from "@hashintel/block-design-system";
-import type { FunctionComponent } from "react";
-import { useCallback, useState } from "react";
 
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
 
@@ -21,10 +20,6 @@ export const ChatTextField: FunctionComponent<{
   return (
     <BlockPromptInput
       value={inputValue}
-      onSubmit={handleSubmit}
-      onFocus={onFocus}
-      onBlur={onBlur}
-      onChange={({ target }) => setInputValue(target.value)}
       placeholder={chatHasStarted ? "Enter a response" : "Begin a conversation"}
       disabled={loading}
       buttonLabel={
@@ -38,6 +33,10 @@ export const ChatTextField: FunctionComponent<{
           />
         </>
       }
+      onSubmit={handleSubmit}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      onChange={({ target }) => { setInputValue(target.value); }}
     />
   );
 };

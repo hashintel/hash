@@ -125,15 +125,15 @@ export type {
 /**
  * A Microsoft PowerPoint presentation.
  */
-export type PPTXPresentation = {
+export interface PPTXPresentation {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/pptx-presentation/v/1";
   properties: PPTXPresentationProperties;
   propertiesWithMetadata: PPTXPresentationPropertiesWithMetadata;
-};
+}
 
 export type PPTXPresentationOutgoingLinkAndTarget = never;
 
-export type PPTXPresentationOutgoingLinksByLinkEntityTypeId = {};
+export interface PPTXPresentationOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A Microsoft PowerPoint presentation.
@@ -142,7 +142,7 @@ export type PPTXPresentationProperties = PPTXPresentationProperties1 &
   PPTXPresentationProperties2;
 export type PPTXPresentationProperties1 = PresentationFileProperties;
 
-export type PPTXPresentationProperties2 = {};
+export interface PPTXPresentationProperties2 {}
 
 export type PPTXPresentationPropertiesWithMetadata =
   PPTXPresentationPropertiesWithMetadata1 &
@@ -150,7 +150,7 @@ export type PPTXPresentationPropertiesWithMetadata =
 export type PPTXPresentationPropertiesWithMetadata1 =
   PresentationFilePropertiesWithMetadata;
 
-export type PPTXPresentationPropertiesWithMetadata2 = {
+export interface PPTXPresentationPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

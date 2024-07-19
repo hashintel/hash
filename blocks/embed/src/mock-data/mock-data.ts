@@ -1,8 +1,8 @@
 import type { ProviderName } from "../types";
 
-export type EmbedDataType = {
+export interface EmbedDataType {
   initialHtml?: string;
   initialWidth?: number;
   initialHeight?: number;
   embedType?: ProviderName;
-};
+}

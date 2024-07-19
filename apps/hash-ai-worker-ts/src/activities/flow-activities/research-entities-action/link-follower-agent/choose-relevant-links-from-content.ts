@@ -10,10 +10,10 @@ import type {
 } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 
-export type Link = {
+export interface Link {
   url: string;
   description: string;
-};
+}
 
 const defaultModel: LlmParams["model"] = "claude-3-haiku-20240307";
 
@@ -93,11 +93,12 @@ const submitLinksTool: LlmToolDefinition<"submitLinks"> = {
 const extractLinksFromHtml = (html: string) => {
   const dom = new JSDOM(html);
   const { document } = dom.window;
-  const links = document.getElementsByTagName("a");
+  const links = document.querySelectorAll("a");
 
   let linksList = "";
+
   for (const link of links) {
-    linksList += `${link.innerText ? `${link.innerText}: ` : ""}${link.href}\n`;
+    linksList = `${linksList  }${link.innerText ? `${link.innerText}: ` : ""}${link.href}\n`;
   }
 
   return linksList;
@@ -167,11 +168,11 @@ export const chooseRelevantLinksFromContent = async (params: {
 
     const baseUrl = new URL(contentUrl).origin;
 
-    const links = toolCalls.reduce<Link[]>((acc, toolCall) => {
+    const links = toolCalls.reduce<Link[]>((accumulator, toolCall) => {
       const { links: inputLinks } = toolCall.input as { links: Link[] };
 
       return [
-        ...acc,
+        ...accumulator,
         ...inputLinks.map(({ url, description }) => ({
           url: url.startsWith("/") ? `${baseUrl}${url}` : url,
           description,

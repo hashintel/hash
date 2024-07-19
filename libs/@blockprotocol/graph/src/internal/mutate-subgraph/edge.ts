@@ -1,39 +1,35 @@
+import isEqual from "lodash.isequal";
 import {
   extractBaseUrl,
   extractVersion,
   getReferencedIdsFromEntityType,
   getReferencedIdsFromPropertyType,
 } from "@blockprotocol/type-system/slim";
-import isEqual from "lodash.isequal";
 
 import { unionOfIntervals } from "../../stdlib.js";
 import type { EntityId } from "../../types/entity.js";
 import type {
   EntityIdWithInterval,
   EntityVertexId,
-  OntologyTypeRevisionId,
-  OntologyTypeVertexId,
-  OutwardEdge,
-  Subgraph,
-} from "../../types/subgraph.js";
-import {
   isEntityTypeVertex,
   isEntityVertex,
-  isPropertyTypeVertex,
-} from "../../types/subgraph.js";
+  isPropertyTypeVertex,  OntologyTypeRevisionId,
+  OntologyTypeVertexId,
+  OutwardEdge,
+  Subgraph} from "../../types/subgraph.js";
 
 /**
- * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`
+ * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`.
  *
  * This MUTATES the given {@link Subgraph}  by adding the given {@link OutwardEdge} to `edges` object from the
  * given element at the specified point.
  *
  * Mutating a Subgraph is unsafe in most situations – you should know why you need to do it.
  *
- * @param {Subgraph} subgraph – the subgraph to mutate by adding the outward edge
- * @param {EntityId | BaseUrl} sourceBaseId – the id of the element the edge is coming from
- * @param {string} at – the identifier for the revision, or the timestamp, at which the edge was added
- * @param {OutwardEdge} outwardEdge – the edge itself
+ * @param subgraph - – the subgraph to mutate by adding the outward edge.
+ * @param sourceBaseId - – the id of the element the edge is coming from.
+ * @param at - – the identifier for the revision, or the timestamp, at which the edge was added.
+ * @param outwardEdge - – the edge itself.
  */
 export const addOutwardEdgeToSubgraphByMutation = (
   subgraph: Subgraph,
@@ -57,17 +53,16 @@ export const addOutwardEdgeToSubgraphByMutation = (
 };
 
 /**
- * @todo - with the introduction of non-primitive data types edges will need to be added here
+ * @param subgraph - – the subgraph to mutate by adding edges.
+ * @param dataTypeVertexIds - The IDs of the data types to resolve edges for.
+ * @todo - with the introduction of non-primitive data types edges will need to be added here.
  *
- * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`
+ * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`.
  *
  * This MUTATES the given {@link Subgraph} by creating any ontology related edges that are **directly implied** by the given data type ids (see note below).
  * Mutating a Subgraph is unsafe in most situations – you should know why you need to do it.
  *
- * *Note*: This only creates edges when both endpoints are present in the {@link Subgraph} regardless of whether the data types reference more vertices.
- *
- * @param {Subgraph} subgraph – the subgraph to mutate by adding edges
- * @param {OntologyTypeVertexId[]} dataTypeVertexIds - the IDs of the data types to resolve edges for
+ * Note*: This only creates edges when both endpoints are present in the {@link Subgraph} regardless of whether the data types reference more vertices.
  */
 export const inferDataTypeEdgesInSubgraphByMutation = (
   _subgraph: Subgraph,
@@ -75,15 +70,15 @@ export const inferDataTypeEdgesInSubgraphByMutation = (
 ) => {};
 
 /**
- * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`
+ * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`.
  *
  * This MUTATES the given {@link Subgraph} by creating any ontology related edges that are **directly implied** by them (see note below).
  * Mutating a Subgraph is unsafe in most situations – you should know why you need to do it.
  *
- * *Note*: This only creates edges when both endpoints are present in the {@link Subgraph} regardless of whether the property types reference more vertices.
+ * Note*: This only creates edges when both endpoints are present in the {@link Subgraph} regardless of whether the property types reference more vertices.
  *
- * @param {Subgraph} subgraph – the subgraph to mutate by adding edges
- * @param {OntologyTypeVertexId[]} propertyTypeVertexIds - the IDs of the property types to resolve edges for
+ * @param subgraph - – the subgraph to mutate by adding edges.
+ * @param propertyTypeVertexIds - The IDs of the property types to resolve edges for.
  */
 export const inferPropertyTypeEdgesInSubgraphByMutation = (
   subgraph: Subgraph,
@@ -159,15 +154,15 @@ export const inferPropertyTypeEdgesInSubgraphByMutation = (
 };
 
 /**
- * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`
+ * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`.
  *
  * This MUTATES the given {@link Subgraph} by creating any ontology related edges that are **directly implied** by them (see note below).
  * Mutating a Subgraph is unsafe in most situations – you should know why you need to do it.
  *
- * *Note*: This only creates edges when both endpoints are present in the {@link Subgraph} regardless of whether the entity types reference more vertices.
+ * Note*: This only creates edges when both endpoints are present in the {@link Subgraph} regardless of whether the entity types reference more vertices.
  *
- * @param {Subgraph} subgraph – the subgraph to mutate by adding edges
- * @param {OntologyTypeVertexId[]} entityTypeVertexIds - the IDs of the entity types to resolve edges for
+ * @param subgraph - – the subgraph to mutate by adding edges.
+ * @param entityTypeVertexIds - The IDs of the entity types to resolve edges for.
  */
 export const inferEntityTypeEdgesInSubgraphByMutation = (
   subgraph: Subgraph,
@@ -247,15 +242,15 @@ export const inferEntityTypeEdgesInSubgraphByMutation = (
 };
 
 /**
- * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`
+ * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`.
  *
  * This MUTATES the given {@link Subgraph} by creating any link edges and ontology related edges that are **directly implied** by the entities in the list (see note below).
  * Mutating a Subgraph is unsafe in most situations – you should know why you need to do it.
  *
- * *Note*: This only creates edges when both endpoints are present in the {@link Subgraph} regardless of whether the entities reference more vertices.
+ * Note*: This only creates edges when both endpoints are present in the {@link Subgraph} regardless of whether the entities reference more vertices.
  *
- * @param {Subgraph} subgraph – the subgraph to mutate by adding edges
- * @param {EntityVertexId[]} entityVertexIds - the IDs of the entities to resolve edges for
+ * @param subgraph - – the subgraph to mutate by adding edges.
+ * @param entityVertexIds - The IDs of the entities to resolve edges for.
  */
 export const inferEntityEdgesInSubgraphByMutation = (
   subgraph: Subgraph,
@@ -298,7 +293,7 @@ export const inferEntityEdgesInSubgraphByMutation = (
         subgraph.temporalAxes.resolved.variable.axis
       ];
 
-    const entityTypeId = vertex.inner.metadata.entityTypeId;
+    const {entityTypeId} = vertex.inner.metadata;
     const entityTypeBaseUrl = extractBaseUrl(entityTypeId);
     const entityTypeRevisionId = extractVersion(entityTypeId).toString();
 
@@ -337,6 +332,7 @@ export const inferEntityEdgesInSubgraphByMutation = (
 
     if (entity.linkData) {
       const linkInfo = linkMap[entityId];
+
       if (!linkInfo) {
         linkMap[entityId] = {
           leftEntityId: entity.linkData.leftEntityId,

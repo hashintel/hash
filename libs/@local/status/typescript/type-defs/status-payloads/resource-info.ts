@@ -5,7 +5,7 @@
 /**
  * Describes the resource that is being accessed.
  */
-export type ResourceInfo = {
+export interface ResourceInfo {
   /**
    * A name for the type of resource being accessed.
    *
@@ -25,7 +25,7 @@ export type ResourceInfo = {
   /**
    * The owner of the resource (optional).
    *
-   * For example, a User's entity ID: `2cfa262a-f49a-4a61-a9c5-80a0c5959994%45e528cb-801d-49d1-8f71-d9e2af38a5e7`;
+   * For example, a User's entity ID: `2cfa262a-f49a-4a61-a9c5-80a0c5959994%45e528cb-801d-49d1-8f71-d9e2af38a5e7`;.
    */
   owner?: string;
 
@@ -35,4 +35,4 @@ export type ResourceInfo = {
    * For example, updating a property on a user's entity may require write permission on that property.
    */
   description: string;
-};
+}

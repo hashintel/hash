@@ -11,10 +11,10 @@ export type BeforeCreateEntityHookCallback = (params: {
   properties: PropertyObjectWithMetadata;
 }) => Promise<{ properties: PropertyObjectWithMetadata }>;
 
-export type BeforeCreateEntityHook = {
+export interface BeforeCreateEntityHook {
   entityTypeId: VersionedUrl;
   callback: BeforeCreateEntityHookCallback;
-};
+}
 
 export type AfterCreateEntityHookCallback = (params: {
   context: ImpureGraphContext;
@@ -22,7 +22,7 @@ export type AfterCreateEntityHookCallback = (params: {
   entity: Entity;
 }) => Promise<void>;
 
-export type AfterCreateEntityHook = {
+export interface AfterCreateEntityHook {
   entityTypeId: VersionedUrl;
   callback: AfterCreateEntityHookCallback;
-};
+}

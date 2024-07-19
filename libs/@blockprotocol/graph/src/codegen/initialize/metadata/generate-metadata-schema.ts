@@ -1,18 +1,15 @@
+import type { JSONSchema as PartialJsonSchema } from "json-schema-to-typescript";
 import type {
   DataType,
   EntityType,
-  PropertyType,
+ isPropertyValuesArray,  PropertyType,
   PropertyValues,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import { isPropertyValuesArray } from "@blockprotocol/type-system/slim";
-import type { JSONSchema as PartialJsonSchema } from "json-schema-to-typescript";
+  VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import type { JsonSchema } from "../../shared.js";
-import {
-  arrayMetadataSchema,
+import type {   arrayMetadataSchema,
   confidenceMetadataSchema,
   generatedTypeSuffix,
+JsonSchema ,
   metadataSchemaKind as kind,
   objectMetadataSchema,
   propertyProvenanceSchema,
@@ -31,7 +28,8 @@ export const generateMetadataSchemaIdentifiers = ({
   valueWithMetadata$id: $id.replace(
     /(\/types\/(?:entity-type|property-type|data-type)\/)/,
     /**
-     * Insert the path segment /with-metadata/ into the VersionedUrl
+     * Insert the path segment /with-metadata/ into the VersionedUrl.
+     *
      * @example "https://app.hash.ai/@hash/types/property-type/user/v/1" =>
      *   "https://app.hash.ai/@hash/types/property-type/with-metadata/user/v/1"
      */
@@ -45,7 +43,7 @@ export const generateMetadataSchemaIdentifiers = ({
 
 /**
  * Generate a schema for a data type with metadata, which is an object with two properties:
- * { value: SomeLeafValue, metadata: { provenance?: PropertyProvenance, confidence?: number, dataTypeId: VersionedUrl }
+ * { value: SomeLeafValue, metadata: { provenance?: PropertyProvenance, confidence?: number, dataTypeId: VersionedUrl }.
  */
 export const generateDataTypeWithMetadataSchema = (
   dataTypeSchema: DataType,
@@ -83,17 +81,17 @@ export const generateDataTypeWithMetadataSchema = (
   };
 };
 
-type EntityParentIdentifiers = {
+interface EntityParentIdentifiers {
   title: string;
   $id: VersionedUrl;
-};
+}
 
-type ObjectWithMetadataParams = {
+interface ObjectWithMetadataParams {
   allOf?: EntityType["allOf"];
   properties: EntityType["properties"];
   required: string[];
   entityParentIdentifiers: EntityParentIdentifiers | null;
-};
+}
 
 export function generatePropertiesObjectWithMetadataSchema({
   allOf,
@@ -140,13 +138,13 @@ export function generatePropertiesObjectWithMetadataSchema({
     : undefined;
 
   const propertiesSchema = Object.entries(properties).reduce<PartialJsonSchema>(
-    (acc, [baseUrl, refSchema]) => {
+    (accumulator, [baseUrl, refSchema]) => {
       const propertyWithMetadataRef = generateMetadataSchemaIdentifiers({
         $id: "items" in refSchema ? refSchema.items.$ref : refSchema.$ref,
       }).valueWithMetadata$id;
 
       if ("items" in refSchema) {
-        acc[baseUrl] = {
+        accumulator[baseUrl] = {
           type: "object",
           properties: {
             value: {
@@ -160,12 +158,12 @@ export function generatePropertiesObjectWithMetadataSchema({
           required: ["value"],
         };
       } else {
-        acc[baseUrl] = {
+        accumulator[baseUrl] = {
           $ref: propertyWithMetadataRef,
         };
       }
 
-      return acc;
+      return accumulator;
     },
     {},
   );

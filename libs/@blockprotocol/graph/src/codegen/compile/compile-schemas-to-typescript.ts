@@ -1,17 +1,14 @@
+import { compile as compileJsonSchema } from "json-schema-to-typescript";
 import type {
   DataType,
   EntityType,
   PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
-import { compile as compileJsonSchema } from "json-schema-to-typescript";
+ validateVersionedUrl,  VersionedUrl } from "@blockprotocol/type-system/slim";
 
 import { mustBeDefined } from "../../util/must-be-defined.js";
 import { typedValues } from "../../util/typed-object-iter.js";
 import type { CompileContext } from "../context.js";
-import type { CompiledTsType, JsonSchema } from "../shared.js";
-import { redundantTypePlaceholder } from "../shared.js";
+import type { CompiledTsType, JsonSchema , redundantTypePlaceholder } from "../shared.js";
 
 const compileIndividualSchemaToTypescript = async (
   type: DataType | PropertyType | EntityType | JsonSchema,
@@ -40,6 +37,7 @@ const compileIndividualSchemaToTypescript = async (
                 `Invalid URL in \`$ref\`, expected a Versioned URL of a type but encountered: ${url}`,
               );
             }
+
             // When the compiler encounters a $ref, we want to return a schema with the same `title` as we're going to
             // generate, but replace the schema with a placeholder string so we can easily strip the duplicate
             // definitions (as we're going to compile the definition for this type elsewhere)

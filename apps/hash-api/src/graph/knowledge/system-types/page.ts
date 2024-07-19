@@ -1,3 +1,5 @@
+import { ApolloError } from "apollo-server-errors";
+import { generateKeyBetween } from "fractional-indexing";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type {
   CreateEntityParameters,
@@ -30,8 +32,6 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type { Document } from "@local/hash-isomorphic-utils/system-types/document";
 import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
-import { ApolloError } from "apollo-server-errors";
-import { generateKeyBetween } from "fractional-indexing";
 
 import type {
   ImpureGraphFunction,
@@ -48,19 +48,19 @@ import {
   createLinkEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import type { Block } from "./block";
-import { getBlockComments, getBlockFromEntity } from "./block";
+
+import type { Block , getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
 import type { Comment } from "./comment";
 
-export type Page = {
+export interface Page {
   title: string;
   summary?: string;
   fractionalIndex?: string;
   icon?: string;
   archived?: boolean;
   entity: Entity<Canvas | Document>;
-};
+}
 
 function assertPageEntity(
   entity: Entity,
@@ -95,7 +95,7 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
 /**
  * Get a system page entity by its entity id.
  *
- * @param params.entityId - the entity id of the page
+ * @param params.entityId - The entity id of the page.
  */
 export const getPageById: ImpureGraphFunction<
   { entityId: EntityId },
@@ -115,8 +115,7 @@ export const getPageById: ImpureGraphFunction<
 /**
  * Create a system page entity.
  *
- * @param params.title - the title of the page
- *
+ * @param params.title - The title of the page.
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createPage: ImpureGraphFunction<
@@ -205,7 +204,7 @@ export const createPage: ImpureGraphFunction<
 /**
  * Get the parent page of the page.
  *
- * @param params.page - the page
+ * @param params.page - The page.
  */
 export const getPageParentPage: ImpureGraphFunction<
   { page: Page },
@@ -241,7 +240,7 @@ export const getPageParentPage: ImpureGraphFunction<
 /**
  * Whether or not the page (or an ancestor of the page) is archived.
  *
- * @param params.page - the page
+ * @param params.page - The page.
  */
 export const isPageArchived: ImpureGraphFunction<
   { page: Page },
@@ -256,14 +255,14 @@ export const isPageArchived: ImpureGraphFunction<
   const parentPage = await getPageParentPage(ctx, authentication, { page });
 
   return parentPage
-    ? await isPageArchived(ctx, authentication, { page: parentPage })
+    ? isPageArchived(ctx, authentication, { page: parentPage })
     : false;
 };
 
 /**
  * Get all the pages in a workspace.
  *
- * @param params.workspace - the user or org whose pages will be returned
+ * @param params.workspace - The user or org whose pages will be returned.
  */
 export const getAllPagesInWorkspace: ImpureGraphFunction<
   {
@@ -291,7 +290,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
 
   const pages = pageEntities.map((entity) => getPageFromEntity({ entity }));
 
-  return await Promise.all(
+  return Promise.all(
     pages.map(async (page) => {
       if (
         !includeArchived &&
@@ -299,6 +298,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       ) {
         return [];
       }
+
       return page;
     }),
   ).then((filteredPages) => filteredPages.flat());
@@ -307,8 +307,8 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
 /**
  * Whether a page (or an ancestor of the page) has a specific page as its parent.
  *
- * @param params.page - the page.
- * @param params.parentPage - the page that may or not be the parent of this page.
+ * @param params.page - The page.
+ * @param params.parentPage - The page that may or not be the parent of this page.
  */
 export const pageHasParentPage: ImpureGraphFunction<
   {
@@ -352,8 +352,8 @@ export const pageHasParentPage: ImpureGraphFunction<
 /**
  * Remove the current parent page of the page.
  *
- * @param params.page - the page
- * @param params.removedById - the account that is removing the parent page
+ * @param params.page - The page.
+ * @param params.removedById - The account that is removing the parent page.
  */
 export const removeParentPage: ImpureGraphFunction<
   {
@@ -390,11 +390,11 @@ export const removeParentPage: ImpureGraphFunction<
 /**
  * Set (or unset) the parent page of this page.
  *
- * @param params.page - the page
- * @param params.parentPage - the new parent page (or `null`)
- * @param params.actorId - the account that is setting the parent page
- * @param params.prevFractionalIndex - the fractionalIndex of the previous page
- * @param params.nextIndex- the fractionalIndex of the next page
+ * @param params.page - The page.
+ * @param params.parentPage - The new parent page (or `null`).
+ * @param params.actorId - The account that is setting the parent page.
+ * @param params.prevFractionalIndex - The fractionalIndex of the previous page.
+ * @param params.nextIndex- - The fractionalIndex of the next page.
  */
 export const setPageParentPage: ImpureGraphFunction<
   {
@@ -473,7 +473,7 @@ export const setPageParentPage: ImpureGraphFunction<
 /**
  * Get the blocks in this page.
  *
- * @param params.page - the page
+ * @param params.page - The page.
  */
 export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
@@ -501,7 +501,7 @@ export const getPageBlocks: ImpureGraphFunction<
     | LinkEntity<HasIndexedContent>[]
     | LinkEntity<HasSpatiallyPositionedContent>[];
 
-  return await Promise.all(
+  return Promise.all(
     outgoingBlockDataLinks
       .sort(sortBlockCollectionLinks)
       .map(async (linkEntity) => ({
@@ -516,7 +516,7 @@ export const getPageBlocks: ImpureGraphFunction<
 /**
  * Get the comments in this page's blocks.
  *
- * @param params.page - the page
+ * @param params.page - The page.
  */
 export const getPageComments: ImpureGraphFunction<
   { pageEntityId: EntityId },

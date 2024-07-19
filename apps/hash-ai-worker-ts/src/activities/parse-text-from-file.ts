@@ -1,14 +1,13 @@
+import officeParser from "officeparser";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { EnforcedEntityEditionProvenance , Entity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
-import officeParser from "officeparser";
 
 import { fetchFileFromUrl } from "./shared/fetch-file-from-url.js";
 import { getFlowContext } from "./shared/get-flow-context.js";

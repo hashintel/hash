@@ -17,15 +17,15 @@ export const mapRoots = (
         baseId: root.baseId,
         revisionId: root.revisionId as EntityRevisionId,
       };
-    } else if (isBaseUrl(root.baseId)) {
+    } if (isBaseUrl(root.baseId)) {
       return {
         baseId: root.baseId,
         revisionId: root.revisionId as OntologyTypeRevisionId,
       };
-    } else {
+    } 
       throw new Error(
         `Unrecognized root vertex ID format: ${JSON.stringify(root)}`,
       );
-    }
+    
   });
 };

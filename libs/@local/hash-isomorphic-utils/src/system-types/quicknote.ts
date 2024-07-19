@@ -85,22 +85,22 @@ export type {
 /**
  * A (usually) quick or short note.
  */
-export type QuickNote = {
+export interface QuickNote {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/quick-note/v/1";
   properties: QuickNoteProperties;
   propertiesWithMetadata: QuickNotePropertiesWithMetadata;
-};
+}
 
-export type QuickNoteHasIndexedContentLink = {
+export interface QuickNoteHasIndexedContentLink {
   linkEntity: HasIndexedContent;
   rightEntity: Block;
-};
+}
 
 export type QuickNoteOutgoingLinkAndTarget = QuickNoteHasIndexedContentLink;
 
-export type QuickNoteOutgoingLinksByLinkEntityTypeId = {
+export interface QuickNoteOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": QuickNoteHasIndexedContentLink;
-};
+}
 
 /**
  * A (usually) quick or short note.
@@ -108,18 +108,18 @@ export type QuickNoteOutgoingLinksByLinkEntityTypeId = {
 export type QuickNoteProperties = QuickNoteProperties1 & QuickNoteProperties2;
 export type QuickNoteProperties1 = BlockCollectionProperties;
 
-export type QuickNoteProperties2 = {
+export interface QuickNoteProperties2 {
   "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
-};
+}
 
 export type QuickNotePropertiesWithMetadata = QuickNotePropertiesWithMetadata1 &
   QuickNotePropertiesWithMetadata2;
 export type QuickNotePropertiesWithMetadata1 =
   BlockCollectionPropertiesWithMetadata;
 
-export type QuickNotePropertiesWithMetadata2 = {
+export interface QuickNotePropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
   };
-};
+}

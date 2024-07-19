@@ -1,9 +1,9 @@
+import mime from "mime-types";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { PresignedPutUpload } from "@local/hash-backend-utils/file-storage";
-import {
-  formatFileUrl,
+import type {   formatFileUrl,
   getEntityTypeIdForMimeType,
+PresignedPutUpload ,
 } from "@local/hash-backend-utils/file-storage";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -14,7 +14,6 @@ import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import mime from "mime-types";
 
 import type {
   MutationCreateFileFromUrlArgs,
@@ -45,6 +44,7 @@ const generateCommonParameters = async (
   const mimeType = mime.lookup(filename) || "application/octet-stream";
 
   const { fileEntityCreationInput, fileEntityUpdateInput } = entityInput;
+
   if (fileEntityUpdateInput && fileEntityCreationInput) {
     throw new Error(
       "You must provide exactly one of fileEntityCreationInput or fileEntityUpdateInput, not both",
@@ -66,7 +66,7 @@ const generateCommonParameters = async (
         existingEntity.metadata.recordId.entityId,
       ),
     };
-  } else if (fileEntityCreationInput) {
+  } if (fileEntityCreationInput) {
     const { entityTypeId: specifiedEntityTypeId } = fileEntityCreationInput;
 
     const entityTypeIdByMimeType = getEntityTypeIdForMimeType(mimeType);
@@ -85,9 +85,9 @@ const generateCommonParameters = async (
          * as the specified entity type ID, override it. Otherwise,
          * use the specified entity type ID.
          *
-         * @todo when not using the specified entity ID, consider
+         * @todo When not using the specified entity ID, consider
          * ensuring that the mime entity type ID is a sub-type of
-         * the specified type ID
+         * the specified type ID.
          */
         entityTypeId =
           entityTypeIdByMimeType &&
@@ -218,6 +218,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   };
 
   let fileEntity = existingEntity;
+
   if (!fileEntity) {
     fileEntity = await createEntity<File>(ctx, authentication, {
       ownedById,

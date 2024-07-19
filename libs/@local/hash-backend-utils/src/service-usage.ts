@@ -1,3 +1,4 @@
+import { backOff } from "exponential-backoff";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   type EnforcedEntityEditionProvenance,
@@ -21,8 +22,7 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
-import { getAggregateUsageRecordsByServiceFeature } from "@local/hash-isomorphic-utils/service-usage";
+import type { AggregatedUsageRecord , getAggregateUsageRecordsByServiceFeature } from "@local/hash-isomorphic-utils/service-usage";
 import {
   mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
@@ -32,17 +32,14 @@ import type {
   UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import type {
-  EntityRelationAndSubject,
-  EntityRootType,
-} from "@local/hash-subgraph";
-import { entityIdFromComponents } from "@local/hash-subgraph";
+ entityIdFromComponents,  EntityRelationAndSubject,
+  EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { backOff } from "exponential-backoff";
 
 import { getHashInstanceAdminAccountGroupId } from "./hash-instance.js";
 
 /**
- * Retrieve a web's service usage
+ * Retrieve a web's service usage.
  */
 export const getWebServiceUsage = async (
   context: { graphApi: GraphApi },
@@ -133,11 +130,11 @@ export const createUsageRecord = async (
     userAccountId,
   }: {
     /**
-     * Grant view access on the usage record to these additional accounts
+     * Grant view access on the usage record to these additional accounts.
      */
     additionalViewers?: AccountId[];
     /**
-     * The web the usage will be assigned to (user or org)
+     * The web the usage will be assigned to (user or org).
      */
     assignUsageToWebId: OwnedById;
     /**
@@ -149,7 +146,7 @@ export const createUsageRecord = async (
     inputUnitCount?: number;
     outputUnitCount?: number;
     /**
-     * The user that is incurring the usage (e.g. the user that triggered the flow)
+     * The user that is incurring the usage (e.g. The user that triggered the flow)
      * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
      */
     userAccountId: AccountId;

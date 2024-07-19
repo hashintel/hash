@@ -26,15 +26,19 @@ export const codegen = async (
   logLevel: LogLevel = "info",
 ): Promise<string[]> => {
   const initializeContext = new InitializeContext(params, logLevel);
+
   await initialize(initializeContext);
 
   const preProcessContext = new PreprocessContext(initializeContext);
+
   preprocess(preProcessContext);
 
   const compileContext = new CompileContext(preProcessContext);
+
   await compile(compileContext);
 
   const postProcessContext = new PostprocessContext(compileContext);
+
   await postprocess(postProcessContext);
 
   // Return all modified files

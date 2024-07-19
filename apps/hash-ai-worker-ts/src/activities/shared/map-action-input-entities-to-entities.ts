@@ -1,5 +1,4 @@
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { Entity,SerializedEntity  } from "@local/hash-graph-sdk/entity";
 import type {
   PersistedEntities,
   PersistedEntity,
@@ -12,9 +11,10 @@ export const mapActionInputEntitiesToEntities = (params: {
     if ("operation" in inputEntity) {
       if (inputEntity.entity) {
         return new Entity(inputEntity.entity);
-      } else {
-        return [];
       }
+ 
+        return [];
+      
     }
 
     if ("persistedEntities" in inputEntity) {

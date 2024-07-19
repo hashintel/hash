@@ -5,8 +5,7 @@ import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity , LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -26,12 +25,11 @@ const supportedLinearEntityTypeIds = linearTypeMappings.map(
 );
 
 const supportedLinearLinkEntityTypeIds = linearTypeMappings
-  .map(({ outgoingLinkMappings }) =>
+  .flatMap(({ outgoingLinkMappings }) =>
     outgoingLinkMappings.map(
       ({ linkEntityTypeId }) => linkEntityTypeId as VersionedUrl,
     ),
-  )
-  .flat();
+  );
 
 export const supportedLinearTypeIds = [
   ...supportedLinearEntityTypeIds,
@@ -73,7 +71,7 @@ export const processEntityChange = async (
       actorType: "machine",
       origin: {
         /**
-         * @todo use correct EntityId for Flow when Linear integration migrated to Flows
+         * @todo Use correct EntityId for Flow when Linear integration migrated to Flows.
          */
         id: "linear-integration",
         type: "flow",
@@ -95,6 +93,7 @@ export const processEntityChange = async (
   const temporalClient = await createTemporalClient();
 
   const vaultClient = createVaultClient();
+
   if (!vaultClient) {
     throw new Error(
       "Cannot create Vault client – are there missing environment variables?",

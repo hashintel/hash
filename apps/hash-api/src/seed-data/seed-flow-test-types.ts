@@ -18,20 +18,15 @@ import {
   systemDataTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityTypeRelationAndSubject } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import type { EntityTypeRelationAndSubject , linkEntityTypeUrl } from "@local/hash-subgraph";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import type { ImpureGraphFunction } from "../graph/context-types";
 import type {
   EntityTypeDefinition,
-  PropertyTypeDefinition,
-} from "../graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
-import {
   generateSystemEntityTypeSchema,
   generateSystemPropertyTypeSchema,
-  generateSystemTypeBaseUrl,
-} from "../graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
+  generateSystemTypeBaseUrl,  PropertyTypeDefinition} from "../graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import {
   createOrg,
   getOrgByShortname,
@@ -161,7 +156,7 @@ const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
 };
 
 /**
- * When this script is deleted, also remove 'ftse' from getEntityTypeBaseUrl in the frontend
+ * When this script is deleted, also remove 'ftse' from getEntityTypeBaseUrl in the frontend.
  */
 const seedFlowTestTypes = async () => {
   const graphApi = createGraphClient(logger, {
@@ -460,8 +455,8 @@ const seedFlowTestTypes = async () => {
 
   /**
    * This is a generic company entity type to allow
-   * 1. for identifying companies that are invested in an index but are not constituents of an index
-   * 2. for identifying companies that a person worked at
+   * 1. For identifying companies that are invested in an index but are not constituents of an index
+   * 2. For identifying companies that a person worked at.
    */
   const companyEntityType = await createSystemEntityTypeIfNotExists(
     context,

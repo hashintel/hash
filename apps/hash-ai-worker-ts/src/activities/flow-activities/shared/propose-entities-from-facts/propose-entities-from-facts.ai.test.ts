@@ -1,7 +1,6 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { expect, test } from "vitest";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
@@ -417,7 +416,7 @@ const ftse350Facts = [
 ];
 
 test.skip(
-  "Test proposeEntitiesFromFacts",
+  "test proposeEntitiesFromFacts",
   async () => {
     const { userAuthentication } = await getFlowContext();
 

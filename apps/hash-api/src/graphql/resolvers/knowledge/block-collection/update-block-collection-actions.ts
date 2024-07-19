@@ -1,25 +1,22 @@
+import { ApolloError, UserInputError } from "apollo-server-errors";
+import produce from "immer";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
+import type { Entity , mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   PropertyPatchOperation,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
-import { ApolloError, UserInputError } from "apollo-server-errors";
-import produce from "immer";
 
 import type { ImpureGraphContext } from "../../../../graph/context-types";
-import type { PropertyValue } from "../../../../graph/knowledge/primitive/entity";
-import {
-  createEntityWithLinks,
+import type {   createEntityWithLinks,
   getLatestEntityById,
+PropertyValue ,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
-import type { Block } from "../../../../graph/knowledge/system-types/block";
-import {
+import type { Block ,
   createBlock,
   getBlockById,
   updateBlockDataEntity,
@@ -61,7 +58,7 @@ export const createEntityWithPlaceholdersFn =
         );
       }
     } else {
-      return await createEntityWithLinks(context, authentication, {
+      return createEntityWithLinks(context, authentication, {
         ownedById,
         entityTypeId: entityDefinition.entityTypeId!,
         properties: entityDefinition.entityProperties ?? { value: {} },
@@ -86,12 +83,13 @@ export const filterForAction = <T extends UpdateBlockCollectionActionKey>(
 ): { action: NonNullable<UpdateBlockCollectionAction[T]>; index: number }[] =>
   actions.reduce<
     { action: NonNullable<UpdateBlockCollectionAction[T]>; index: number }[]
-  >((acc, current, index) => {
+  >((accumulator, current, index) => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (current != null && key in current) {
-      acc.push({ action: current[key]!, index });
+      accumulator.push({ action: current[key]!, index });
     }
-    return acc;
+
+    return accumulator;
   }, []);
 
 const isPlaceholderId = (value: unknown): value is `placeholder-${string}` =>
@@ -103,11 +101,14 @@ export class PlaceholderResultsMap {
   get(placeholderId: string) {
     if (isPlaceholderId(placeholderId)) {
       const entityId = this.map.get(placeholderId);
+
       if (!entityId) {
         throw new Error(`Placeholder ${placeholderId} missing`);
       }
+
       return entityId;
     }
+
     return placeholderId;
   }
 
@@ -125,7 +126,7 @@ export class PlaceholderResultsMap {
   }
 
   getResults() {
-    return Array.from(this.map.entries()).map(([placeholderId, entityId]) => ({
+    return [...this.map.entries()].map(([placeholderId, entityId]) => ({
       placeholderId,
       // All resulting values should be entityIds at this point.
       entityId,
@@ -135,7 +136,7 @@ export class PlaceholderResultsMap {
 
 /**
  * Create new entity.
- * Acts on {@link CreateEntityAction}
+ * Acts on {@link CreateEntityAction}.
  */
 export const handleCreateNewEntity = async (params: {
   createEntityAction: CreateEntityAction;
@@ -156,6 +157,7 @@ export const handleCreateNewEntity = async (params: {
       createEntityWithPlaceholders,
       placeholderResults,
     } = params;
+
     placeholderResults.set(entityPlaceholderId, {
       entityId: (
         await createEntityWithPlaceholders(entityDefinition, entityOwnedById)
@@ -175,7 +177,7 @@ export const handleCreateNewEntity = async (params: {
 
 /**
  * Insert new block onto block collection.
- * Acts on {@link InsertBlockAction}
+ * Acts on {@link InsertBlockAction}.
  */
 export const handleInsertNewBlock = async (
   context: ImpureGraphContext,
@@ -265,7 +267,7 @@ export const handleInsertNewBlock = async (
 
 /**
  * Swap a block's data entity to another entity.
- * Acts on {@link SwapBlockDataAction}
+ * Acts on {@link SwapBlockDataAction}.
  */
 export const handleSwapBlockData = async (
   context: ImpureGraphContext<false, true>,
@@ -307,7 +309,7 @@ export const handleSwapBlockData = async (
 
 /**
  * Update properties of an entity.
- * Acts on {@link UpdateEntityAction}
+ * Acts on {@link UpdateEntityAction}.
  */
 export const handleUpdateEntity = async (
   context: ImpureGraphContext<false, true>,
@@ -321,7 +323,8 @@ export const handleUpdateEntity = async (
   const authentication = { actorId: user.accountId };
 
   // If this entity ID is a placeholder, use that instead.
-  let entityId = action.entityId;
+  let {entityId} = action;
+
   if (placeholderResults.has(entityId)) {
     entityId = placeholderResults.get(entityId) as EntityId;
   }

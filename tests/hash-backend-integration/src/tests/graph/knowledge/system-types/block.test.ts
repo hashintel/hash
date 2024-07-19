@@ -1,9 +1,9 @@
+import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
-import {
+import type { Block ,
   createBlock,
   getBlockById,
   getBlockData,
@@ -17,7 +17,6 @@ import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -30,7 +29,7 @@ const logger = new Logger({
 
 const graphContext = createTestImpureGraphContext();
 
-describe("Block", () => {
+describe("block", () => {
   let testUser: User;
 
   let testBlock: Block;
@@ -95,7 +94,7 @@ describe("Block", () => {
     };
   });
 
-  it("can create a Block", async () => {
+  test("can create a Block", async () => {
     const authentication = { actorId: testUser.accountId };
 
     testBlock = await createBlock(graphContext, authentication, {
@@ -105,7 +104,7 @@ describe("Block", () => {
     });
   });
 
-  it("can get a block by its entity id", async () => {
+  test("can get a block by its entity id", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const fetchedBlock = await getBlockById(graphContext, authentication, {
@@ -117,7 +116,7 @@ describe("Block", () => {
     expect(fetchedBlock.entity).toEqual(testBlock.entity);
   });
 
-  it("can get the block's data entity", async () => {
+  test("can get the block's data entity", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const fetchedBlockData = await getBlockData(graphContext, authentication, {
@@ -127,7 +126,7 @@ describe("Block", () => {
     expect(fetchedBlockData).toEqual(testBlockDataEntity);
   });
 
-  it("can update the block data entity", async () => {
+  test("can update the block data entity", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const newBlockDataEntity = await createEntity(
@@ -144,21 +143,21 @@ describe("Block", () => {
     expect(newBlockDataEntity.toJSON()).not.toEqual(
       testBlockDataEntity.toJSON(),
     );
-    expect(
-      await getBlockData(graphContext, authentication, { block: testBlock }),
-    ).toEqual(testBlockDataEntity);
+    await expect(
+      getBlockData(graphContext, authentication, { block: testBlock }),
+    ).resolves.toEqual(testBlockDataEntity);
 
     await updateBlockDataEntity(graphContext, authentication, {
       block: testBlock,
       newBlockDataEntity,
     });
 
-    expect(
-      await getBlockData(graphContext, authentication, { block: testBlock }),
-    ).toEqual(newBlockDataEntity);
+    await expect(
+      getBlockData(graphContext, authentication, { block: testBlock }),
+    ).resolves.toEqual(newBlockDataEntity);
   });
 
-  it("cannot update the block data entity to the same data entity", async () => {
+  test("cannot update the block data entity to the same data entity", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const currentDataEntity = await getBlockData(graphContext, authentication, {

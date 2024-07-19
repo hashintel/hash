@@ -1,15 +1,11 @@
 import "./app.scss";
-
-import type { BlockComponent } from "@blockprotocol/graph/react";
-import {
+import { isValid, parseISO } from "date-fns";
+import * as duration from "duration-fns";
+import type { MouseEventHandler , useCallback, useMemo, useRef, useState } from "react";
+import type { BlockComponent ,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
-import { isValid, parseISO } from "date-fns";
-import * as duration from "duration-fns";
-import type { MouseEventHandler } from "react";
-import { useCallback, useMemo, useRef, useState } from "react";
-
 import { calculateDurationStepLength } from "./app/calculate-duration-step-length";
 import { clamp } from "./app/clamp";
 import { DurationInput } from "./app/duration-input";
@@ -21,20 +17,20 @@ import type {
   TimerBlockProgressPropertyValue,
 } from "./types/generated/block-entity";
 
-type TimerState = {
+interface TimerState {
   initialDurationInMs: number;
   pauseDurationInMs?: number;
   targetTimestamp?: number;
-};
+}
 
-export type BlockEntityProperties = {
-  /** https://en.wikipedia.org/wiki/ISO_8601#Durations */
+export interface BlockEntityProperties {
+  /** Https://en.wikipedia.org/wiki/ISO_8601#Durations */
   initialDuration: string;
-  /** https://en.wikipedia.org/wiki/ISO_8601#Durations */
+  /** Https://en.wikipedia.org/wiki/ISO_8601#Durations */
   pauseDuration?: string;
-  /** https://en.wikipedia.org/wiki/ISO_8601 */
+  /** Https://en.wikipedia.org/wiki/ISO_8601 */
   targetDateTime?: string;
-};
+}
 
 const defaultInitialDurationInMs = duration.toMilliseconds(
   duration.parse("PT5M"),
@@ -46,6 +42,7 @@ const normalizeDurationMinutesAndSeconds = (
   value: duration.DurationInput,
 ): duration.Duration => {
   const rawResult = duration.normalize(value);
+
   return {
     ...rawResult,
     minutes: rawResult.minutes + rawResult.hours * 60,
@@ -56,10 +53,12 @@ const normalizeDurationMinutesAndSeconds = (
 const parseDateIfPossible = (value: string | undefined): number | undefined => {
   if (value) {
     const result = parseISO(value);
+
     if (isValid(result)) {
       return result.valueOf();
     }
   }
+
   return undefined;
 };
 
@@ -127,9 +126,10 @@ export const App: BlockComponent<BlockEntity> = ({
 
   const [timerState, setTimerState] = useState<TimerState>(externalTimerState);
 
-  const prevExternalTimerState = useRef(externalTimerState);
-  if (prevExternalTimerState.current !== externalTimerState) {
-    prevExternalTimerState.current = externalTimerState;
+  const previousExternalTimerState = useRef(externalTimerState);
+
+  if (previousExternalTimerState.current !== externalTimerState) {
+    previousExternalTimerState.current = externalTimerState;
     setTimerState(externalTimerState);
   }
 
@@ -161,7 +161,7 @@ export const App: BlockComponent<BlockEntity> = ({
                       newTimerState.pauseDurationInMs,
                     ),
                   )
-                  .replace(/,/g, "."), // https://github.com/dlevs/duration-fns/issues/26
+                  .replaceAll(',', "."), // https://github.com/dlevs/duration-fns/issues/26
               }
             : {}),
           ...(newTimerState.targetTimestamp
@@ -192,7 +192,7 @@ export const App: BlockComponent<BlockEntity> = ({
   const remainingDurationInMs =
     timerState.pauseDurationInMs ??
     (timerState.targetTimestamp
-      ? timerState.targetTimestamp - new Date().valueOf()
+      ? timerState.targetTimestamp - Date.now()
       : timerState.initialDurationInMs);
 
   const remainingProportion = Math.max(
@@ -231,7 +231,7 @@ export const App: BlockComponent<BlockEntity> = ({
   const handlePauseClick = () => {
     if (
       !timerState.targetTimestamp ||
-      timerState.targetTimestamp < new Date().valueOf()
+      timerState.targetTimestamp < Date.now()
     ) {
       return;
     }
@@ -283,77 +283,77 @@ export const App: BlockComponent<BlockEntity> = ({
   };
 
   return (
-    <div ref={blockRef} className="timer-block">
-      <div className="dial">
-        <div className="dial-ring">
+    <div ref={blockRef} className={"timer-block"}>
+      <div className={"dial"}>
+        <div className={"dial-ring"}>
           <div
-            className="dial-ring-completion"
+            className={"dial-ring-completion"}
             style={{ animationDelay: `-${(1 - remainingProportion) * 100}s` }}
           />
         </div>
-        <div className="duration-container">
+        <div className={"duration-container"}>
           <DurationInput
             value={displayedDurationInMs}
-            disabled={!!readonly || timerStatus === "running"}
+            disabled={Boolean(readonly) || timerStatus === "running"}
             onChange={handleDurationInputChange}
             onSubmit={handlePlayClick}
           />
         </div>
         {timerStatus === "running" ? (
           <button
-            type="button"
-            aria-label="pause"
+            type={"button"}
+            aria-label={"pause"}
             ref={pauseButtonRef}
-            className="big-button big-button_type_pause"
-            onClick={handlePauseClick}
+            className={"big-button big-button_type_pause"}
             disabled={readonly}
+            onClick={handlePauseClick}
           >
-            <span className="big-button__icon" />
+            <span className={"big-button__icon"} />
           </button>
         ) : (
           <button
-            type="button"
-            aria-label="start"
+            type={"button"}
+            aria-label={"start"}
             ref={startButtonRef}
-            className="big-button big-button_type_play"
-            onClick={handlePlayClick}
+            className={"big-button big-button_type_play"}
             disabled={readonly}
+            onClick={handlePlayClick}
           >
-            <span className="big-button__icon" />
+            <span className={"big-button__icon"} />
           </button>
         )}
       </div>
-      <div className="button-row">
+      <div className={"button-row"}>
         <button
-          aria-label="Less time"
-          className="less-time-button"
+          aria-label={"Less time"}
+          className={"less-time-button"}
+          type={"button"}
           disabled={
-            !!readonly ||
+            Boolean(readonly) ||
             timerStatus === "running" ||
             displayedDurationInMs <= minInitialDurationInMs
           }
           onClick={handleLessOrMoreTimeButtonClick}
-          type="button"
         />
         <button
-          aria-label="Reset"
-          className="reset-button"
-          onClick={handleReset}
+          aria-label={"Reset"}
+          className={"reset-button"}
+          type={"button"}
           disabled={
-            !!readonly || timerStatus === "idle" || timerStatus === "finished"
+            Boolean(readonly) || timerStatus === "idle" || timerStatus === "finished"
           }
-          type="button"
+          onClick={handleReset}
         />
         <button
-          aria-label="More time"
-          className="more-time-button"
+          aria-label={"More time"}
+          className={"more-time-button"}
+          type={"button"}
           disabled={
-            !!readonly ||
+            Boolean(readonly) ||
             timerStatus === "running" ||
             displayedDurationInMs >= maxInitialDurationInMs
           }
           onClick={handleLessOrMoreTimeButtonClick}
-          type="button"
         />
       </div>
     </div>

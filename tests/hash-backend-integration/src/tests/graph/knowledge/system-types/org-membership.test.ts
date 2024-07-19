@@ -1,16 +1,15 @@
+import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type { OrgMembership } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
-import {
-  createOrgMembership,
+import type {   createOrgMembership,
   getOrgMembershipOrg,
   getOrgMembershipUser,
+OrgMembership ,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -27,7 +26,7 @@ const logger = new Logger({
 
 const graphContext = createTestImpureGraphContext();
 
-describe("OrgMembership", () => {
+describe("orgMembership", () => {
   let testUser: User;
 
   let testOrg: Org;
@@ -56,7 +55,7 @@ describe("OrgMembership", () => {
 
   let testOrgMembership: OrgMembership;
 
-  it("can create an OrgMembership", async () => {
+  test("can create an OrgMembership", async () => {
     testOrgMembership = await createOrgMembership(
       graphContext,
       authentication,
@@ -67,7 +66,7 @@ describe("OrgMembership", () => {
     );
   });
 
-  it("can get the org of an org membership", async () => {
+  test("can get the org of an org membership", async () => {
     const fetchedOrg = await getOrgMembershipOrg(graphContext, authentication, {
       orgMembership: testOrgMembership,
     });
@@ -75,7 +74,7 @@ describe("OrgMembership", () => {
     expect(fetchedOrg).toEqual(testOrg);
   });
 
-  it("can get the user of an org membership", async () => {
+  test("can get the user of an org membership", async () => {
     const fetchedUser = await getOrgMembershipUser(
       graphContext,
       authentication,

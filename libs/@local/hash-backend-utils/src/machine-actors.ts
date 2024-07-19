@@ -1,7 +1,7 @@
+import { backOff } from "exponential-backoff";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { EnforcedEntityEditionProvenance , Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -12,7 +12,6 @@ import {
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
-import { backOff } from "exponential-backoff";
 
 import { NotFoundError } from "./error.js";
 
@@ -31,7 +30,7 @@ export type MachineActorIdentifier =
   | WebMachineActorIdentifier;
 
 /**
- * Retrieve a machine actor's accountId by its unique identifier
+ * Retrieve a machine actor's accountId by its unique identifier.
  */
 export const getMachineActorId = async (
   context: { graphApi: GraphApi },
@@ -222,7 +221,7 @@ export const createMachineActorEntity = async (
 /**
  * 1. Creates an account for a machine and grants it ownership permissions for the specified web
  * 2. Grants it the permissions to create some special system types
- * 3. Creates an entity associated with the machine
+ * 3. Creates an entity associated with the machine.
  */
 export const createWebMachineActor = async (
   context: { graphApi: GraphApi },

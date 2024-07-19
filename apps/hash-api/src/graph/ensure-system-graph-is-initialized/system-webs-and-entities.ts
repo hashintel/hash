@@ -154,12 +154,12 @@ export const ensureSystemWebEntitiesExist = async ({
 
   /**
    * Create a machine entity associated with each machine actorId that created system types.
-   * These machines may also be added to other webs as needed (e.g. for integration workflows).
+   * These machines may also be added to other webs as needed (e.g. For integration workflows).
    *
    * Note: these are different from the web-scoped machine actors that EVERY org (system or not) has associated with.
-   *   - the web-scoped machine actors are for taking action in the web, e.g. to grant other bots permissions in it
+   *   - the web-scoped machine actors are for taking action in the web, e.g. To grant other bots permissions in it
    *   - _these_ machine actors are for performing actions across the system related to the types they create, e.g.
-   * Linear actions
+   * Linear actions.
    */
   try {
     await getMachineActorId(context, authentication, {
@@ -169,19 +169,23 @@ export const ensureSystemWebEntitiesExist = async ({
     let displayName;
 
     switch (webShortname) {
-      case "hash":
+      case "hash": {
         displayName = "HASH";
         break;
-      case "google":
+      }
+      case "google": {
         displayName = "Google Integration";
         break;
-      case "linear":
+      }
+      case "linear": {
         displayName = "Linear Integration";
         break;
-      default:
+      }
+      default: {
         throw new Error(
           `Unhandled web shortname ${webShortname} requires a display name for the machine actor specified`,
         );
+      }
     }
 
     if (error instanceof NotFoundError) {
@@ -228,7 +232,7 @@ export const ensureSystemWebEntitiesExist = async ({
 /**
  * Ensures that there are entities associated with each:
  * - system web (create an Organization associated with it)
- * - machine actor that creates the web (create a Machine associated with it)
+ * - machine actor that creates the web (create a Machine associated with it).
  *
  * Also creates other required system entities, such as the HASH AI Assistant.
  */
@@ -279,6 +283,7 @@ export const ensureSystemEntitiesExist = async (params: {
       );
 
       const hashAccountGroupId = owningWebs.hash.accountGroupId;
+
       if (!hashAccountGroupId) {
         throw new Error(
           `Somehow reached the point of creating the HASH AI machine actor without a hash accountGroupId`,

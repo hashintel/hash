@@ -1,6 +1,4 @@
-import type { BaseUrl } from "@blockprotocol/type-system/slim";
-import { validateBaseUrl } from "@blockprotocol/type-system/slim";
-
+import type { BaseUrl , validateBaseUrl } from "@blockprotocol/type-system/slim";
 import { stringIsNonNegativeInteger } from "../../util.js";
 import type {
   Entity,
@@ -14,27 +12,27 @@ import type { DataTypeWithMetadata } from "../ontology/data-type.js";
 import type { EntityTypeWithMetadata } from "../ontology/entity-type.js";
 import type { PropertyTypeWithMetadata } from "../ontology/property-type.js";
 
-export type DataTypeVertex = {
+export interface DataTypeVertex {
   kind: "dataType";
   inner: DataTypeWithMetadata;
-};
+}
 
-export type PropertyTypeVertex = {
+export interface PropertyTypeVertex {
   kind: "propertyType";
   inner: PropertyTypeWithMetadata;
-};
+}
 
-export type EntityTypeVertex = {
+export interface EntityTypeVertex {
   kind: "entityType";
   inner: EntityTypeWithMetadata;
-};
+}
 
-export type EntityVertex<
+export interface EntityVertex<
   Properties extends EntityPropertiesObject | null = Record<
     BaseUrl,
     EntityPropertyValue
   >,
-> = { kind: "entity"; inner: Entity<Properties> };
+> { kind: "entity"; inner: Entity<Properties> }
 
 export type OntologyVertex =
   | DataTypeVertex
@@ -75,10 +73,10 @@ export const isEntityVertex = (vertex: Vertex): vertex is EntityVertex => {
   return vertex.kind === "entity";
 };
 
-export type VertexId<BaseId, RevisionId> = {
+export interface VertexId<BaseId, RevisionId> {
   baseId: BaseId;
   revisionId: RevisionId;
-};
+}
 export type EntityVertexId = VertexId<EntityId, EntityRevisionId>;
 export type OntologyTypeVertexId = VertexId<BaseUrl, OntologyTypeRevisionId>;
 export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;

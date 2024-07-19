@@ -3,16 +3,6 @@
  */
 
 import type {
-  ActivePropertyValue,
-  ActivePropertyValueWithMetadata,
-  AdminPropertyValue,
-  AdminPropertyValueWithMetadata,
-  AllowedAuthServicePropertyValue,
-  AllowedAuthServicePropertyValueWithMetadata,
-  AllowMembersToInvitePropertyValue,
-  AllowMembersToInvitePropertyValueWithMetadata,
-  ArchivedAtPropertyValue,
-  ArchivedAtPropertyValueWithMetadata,
   AutoArchivedAtPropertyValue,
   AutoArchivedAtPropertyValueWithMetadata,
   AutoClosedAtPropertyValue,
@@ -205,16 +195,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  ActivePropertyValue,
-  ActivePropertyValueWithMetadata,
-  AdminPropertyValue,
-  AdminPropertyValueWithMetadata,
-  AllowedAuthServicePropertyValue,
-  AllowedAuthServicePropertyValueWithMetadata,
-  AllowMembersToInvitePropertyValue,
-  AllowMembersToInvitePropertyValueWithMetadata,
-  ArchivedAtPropertyValue,
-  ArchivedAtPropertyValueWithMetadata,
   AutoArchivedAtPropertyValue,
   AutoArchivedAtPropertyValueWithMetadata,
   AutoClosedAtPropertyValue,
@@ -405,3 +385,5 @@ export type {
   WorkflowStateProperties,
   WorkflowStatePropertiesWithMetadata,
 };
+
+export {type ActivePropertyValue, type ActivePropertyValueWithMetadata, type AdminPropertyValue, type AdminPropertyValueWithMetadata, type AllowedAuthServicePropertyValue, type AllowedAuthServicePropertyValueWithMetadata, type AllowMembersToInvitePropertyValue, type AllowMembersToInvitePropertyValueWithMetadata, type ArchivedAtPropertyValue, type ArchivedAtPropertyValueWithMetadata} from "./shared.js";

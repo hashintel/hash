@@ -6,20 +6,20 @@ export interface HashBlockMeta extends BlockMetadata {
   variants: NonNullable<BlockMetadata["variants"]>;
 }
 
-export type HashBlock = {
+export interface HashBlock {
   meta: HashBlockMeta;
   schema?: EntityType | null;
-};
+}
 
 export type ComponentIdHashBlockMap = Record<string, HashBlock>;
 
 /**
  * The cache is designed to store promises, not resolved values, in order to
  * ensure multiple requests for the same block in rapid succession don't cause
- * multiple web requests
+ * multiple web requests.
  *
- * @deprecated in favor of react context "blockMeta" (which is not the final
- *   solution either)
+ * @deprecated In favor of react context "blockMeta" (which is not the final
+ *   solution either).
  */
 const blockCache = new Map<string, Promise<HashBlock>>();
 
@@ -43,9 +43,11 @@ const configureAppReloadWhenBlockChanges = (
   if (devReloadEndpoint.match(/^wss?:\/\//)) {
     try {
       const socket = new WebSocket(devReloadEndpoint);
+
       socket.addEventListener("message", ({ data }) => {
         try {
           const messageType = JSON.parse(data).type;
+
           // Assume webpack dev server socket
           if (["invalid", "static-changed"].includes(messageType)) {
             window.location.reload();
@@ -57,6 +59,7 @@ const configureAppReloadWhenBlockChanges = (
     } catch {
       reportProblem(`Could not connect to a websocket at ${devReloadEndpoint}`);
     }
+
     return;
   }
 
@@ -81,6 +84,7 @@ function deriveAbsoluteUrl({
   path?: string | null;
 }): string | null | undefined {
   const regex = /^(?:[a-z]+:)?\/\//i;
+
   if (!path || regex.test(path)) {
     return path;
   }
@@ -137,6 +141,7 @@ export const prepareBlockCache = (
 ) => {
   if (typeof window !== "undefined") {
     const key = componentIdToUrl(componentId);
+
     if (!blockCache.has(key)) {
       blockCache.set(
         key,
@@ -157,7 +162,7 @@ export const fetchBlock = async (
 
   if (options.useCachedData && cachedPromise) {
     return cachedPromise;
-  } else if (blockCache.has(baseUrl)) {
+  } if (blockCache.has(baseUrl)) {
     blockCache.delete(baseUrl);
   }
 
@@ -165,17 +170,19 @@ export const fetchBlock = async (
     // the spec requires a metadata file called `block-metadata.json`
     const metadataUrl = `${baseUrl}/block-metadata.json`;
     let metadata: BlockMetadata;
-    let responseText: string = "";
+    let responseText = "";
+
     try {
       // @todo needs validation
       const response = await fetch(metadataUrl);
+
       responseText = await response.text();
       metadata = await JSON.parse(responseText);
-    } catch (err) {
+    } catch (error) {
       blockCache.delete(baseUrl);
       throw new Error(
         `Could not fetch and parse block metadata at url ${metadataUrl}: ${
-          (err as Error).message
+          (error as Error).message
         }. Raw response text: ${responseText}`,
       );
     }
@@ -187,7 +194,7 @@ export const fetchBlock = async (
       configureAppReloadWhenBlockChanges(
         metadata.devReloadEndpoint,
         (problem) => {
-          // eslint-disable-next-line no-console -- @todo consider using logger
+           
           console.error(
             `${baseUrl} → block-metadata.json → devReloadEndpoint: ${problem}`,
           );
@@ -207,21 +214,22 @@ export const fetchBlock = async (
 
   prepareBlockCache(baseUrl, promise);
 
-  return await promise;
+  return promise;
 };
 
 /**
  * @todo-0.3 replace this temporary domain with blockprotocol.org
  */
 export const blockProtocolHubOrigin =
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings either
+   
   process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_SITE_HOST ||
   "https://blockprotocol.org";
 
 /**
- * the componentId is the location of the block source code, which will be in one of two R2 buckets depending on environment
- * @todo use a componentId which isn't tied to source location in this way, e.g. based on the BP Hub host
- *   – this will also be required for block versioning, where we'll want different source locations for the same componentId
+ * The componentId is the location of the block source code, which will be in one of two R2 buckets depending on environment.
+ *
+ * @todo Use a componentId which isn't tied to source location in this way, e.g. Based on the BP Hub host
+ *   – this will also be required for block versioning, where we'll want different source locations for the same componentId.
  */
 export const componentIdBase = `https://blockprotocol${
   !blockProtocolHubOrigin.includes("blockprotocol.org") ? "-preview" : ""
@@ -236,20 +244,20 @@ const richTextBlockComponentIds = new Set([
 ]);
 
 const componentIdsWithTextualContentProperty = new Set([
-  ...Array.from(richTextBlockComponentIds),
+  ...richTextBlockComponentIds,
   `${componentIdBase}/blocks/hash/code`,
 ]);
 
 /**
  * Default blocks loaded for every user.
  *
- * @todo allow users to configure their own default block list, and store in db.
+ * @todo Allow users to configure their own default block list, and store in db.
  *    this should be a list of additions and removals from this default list,
  *    to allow us to add new default blocks that show up for all users.
  *    we currently store this in localStorage - see UserBlocksProvider.
  */
 export const defaultBlockComponentIds = [
-  ...Array.from(richTextBlockComponentIds),
+  ...richTextBlockComponentIds,
   `${componentIdBase}/blocks/hash/person`,
   `${componentIdBase}/blocks/hash/image`,
   `${componentIdBase}/blocks/hash/table`,
@@ -261,7 +269,7 @@ export const defaultBlockComponentIds = [
 /**
  * This is used to work out if the block is one of our hardcoded text blocks,
  * which is used to know if the block is compatible for switching from one
- * text block to another
+ * text block to another.
  */
 export const isHashTextBlock = (componentId: string) =>
   richTextBlockComponentIds.has(componentId);
@@ -274,7 +282,7 @@ export const isBlockWithTextualContentProperty = (componentId: string) =>
  * component we're trying to switch to are compatible, in order to know whether
  * to share existing properties or whether to enabling switching. This does that
  * by checking IDs are the same (i.e, they're variants of the same block) or
- * if we've hardcoded support for switching (i.e, they're HASH text blocks)
+ * if we've hardcoded support for switching (i.e, they're HASH text blocks).
  */
 export const areComponentsCompatible = (
   currentComponentId: string | null = null,

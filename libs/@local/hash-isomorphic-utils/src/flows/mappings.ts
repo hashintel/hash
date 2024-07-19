@@ -5,6 +5,7 @@ import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { simplifyProperties } from "../simplify-properties.js";
 import type { FlowDefinition as FlowDefinitionEntity } from "../system-types/flowdefinition.js";
 import type { FlowRun } from "../system-types/flowrun.js";
+
 import type { TriggerDefinitionId } from "./trigger-definitions.js";
 import type {
   FlowDefinition,
@@ -58,7 +59,7 @@ export const mapFlowDefinitionEntityToFlowDefinition = (
         ],
       outputs: triggerDefinition[
         "https://hash.ai/@hash/types/property-type/output-definitions/"
-      ] as OutputDefinition<boolean>[],
+      ] as OutputDefinition[],
       /** @todo: fix this */
     } as unknown as FlowDefinition["trigger"],
   };

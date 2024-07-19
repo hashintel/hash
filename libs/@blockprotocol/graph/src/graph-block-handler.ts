@@ -4,8 +4,9 @@ import { ModuleHandler } from "@blockprotocol/core";
  * There's an issue when importing useGraphEmbedderModule from @blockprotocol/graph/react in hashintel/hash:
  * NextJS's output file tracing does not include graph-module.json, and yet an import statement for it is preserved.
  * This leads to a 'module cannot be found error'. For now, commenting out the import of the JSON from this file.
- * @todo restore this when module resolution issue resolved
+ *
  * @see https://app.asana.com/0/1202542409311090/1202614421149286/f
+ * @todo Restore this when module resolution issue resolved.
  */
 // import graphModuleJson from "./graph-module.json" assert { type: "json" };
 import type {
@@ -79,7 +80,7 @@ export class GraphBlockHandler
 
   /**
    * Removes multiple callbacks at once.
-   * Useful when replacing previously registered callbacks
+   * Useful when replacing previously registered callbacks.
    */
   removeCallbacks(callbacks: Partial<GraphBlockMessageCallbacks>) {
     super.removeCallbacks(callbacks);
@@ -88,8 +89,9 @@ export class GraphBlockHandler
   /**
    * Call the provided function when the named message is received, passing the data/errors object from the message.
    * If the named message expects a response, the callback should provide the expected data/errors object as the return.
-   * @param messageName the message name to listen for
-   * @param handlerFunction the function to call when the message is received, with the message data / errors
+   *
+   * @param messageName - The message name to listen for.
+   * @param handlerFunction - The function to call when the message is received, with the message data / errors.
    */
   on<K extends keyof GraphBlockMessageCallbacks>(
     this: GraphBlockHandler,

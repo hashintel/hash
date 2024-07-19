@@ -7,8 +7,8 @@ export {
 /** Returns true if exactly one of items is not null or undefined. */
 export const exactlyOne = (...items: unknown[]): boolean =>
   items
-    .map((val) => val !== null && val !== undefined)
-    .reduce((acc, val) => (val ? 1 : 0) + acc, 0) === 1;
+    .map((value) => value !== null && value !== undefined)
+    .reduce((accumulator, value) => (value ? 1 : 0) + accumulator, 0) === 1;
 
 export const isRecord = (thing: unknown): thing is Record<string, unknown> => {
   if (typeof thing !== "object") {
@@ -17,31 +17,35 @@ export const isRecord = (thing: unknown): thing is Record<string, unknown> => {
   if (thing == null) {
     return false;
   }
-  if (thing instanceof Array) {
+  if (Array.isArray(thing)) {
     return false;
   }
+
   return true;
 };
 
 /** Returns the set intersection of `left` and `right`. */
 export const intersection = <T>(left: Set<T>, right: Set<T>): Set<T> => {
   const result = new Set<T>();
+
   for (const item of left) {
     if (right.has(item)) {
       result.add(item);
     }
   }
+
   return result;
 };
 
 /**
- * @todo this assumption of the slug might be brittle,
+ * @todo This assumption of the slug might be brittle,.
  */
 export const capitalizeComponentName = (cId: string) => {
   let componentId = cId;
 
   // If there's a trailing slash, remove it
   const indexLastSlash = componentId.lastIndexOf("/");
+
   if (indexLastSlash === componentId.length - 1) {
     componentId = componentId.slice(0, -1);
   }
@@ -49,13 +53,14 @@ export const capitalizeComponentName = (cId: string) => {
   //                      *
   // "https://example.org/value"
   const indexAfterLastSlash = componentId.lastIndexOf("/") + 1;
+
   return (
     //                      * and uppercase it
     // "https://example.org/value"
     componentId.charAt(indexAfterLastSlash).toUpperCase() +
     //                       ****
     // "https://example.org/value"
-    componentId.substring(indexAfterLastSlash + 1)
+    componentId.slice(Math.max(0, indexAfterLastSlash + 1))
   );
 };
 
@@ -63,11 +68,12 @@ export const capitalizeComponentName = (cId: string) => {
  * Given a tree structure that has links, flatten into an array with indices pointing to parent.
  * Note, this _will_ behave badly with circular structures!
  * This uses BFS.
- * @param graph The graph structure containing `key` for links
- * @param outerKey The key that allows recursive sub-graphs.
- * @param innerKey The key on the object, that contains metadata about the node, which contains the outer type.
- * @param depthLimit The maximum depth a tree may have before bailing.
- * @returns A flattened list of all nodes with an index referring to where in the list the parent is. parentIndex = -1
+ *
+ * @param graph - The graph structure containing `key` for links.
+ * @param outerKey - The key that allows recursive sub-graphs.
+ * @param innerKey - The key on the object, that contains metadata about the node, which contains the outer type.
+ * @param depthLimit - The maximum depth a tree may have before bailing.
+ * @returns A flattened list of all nodes with an index referring to where in the list the parent is. ParentIndex = -1
  *   means root.
  */
 export const linkedTreeFlatten = <
@@ -83,7 +89,7 @@ export const linkedTreeFlatten = <
   graph: Outer,
   outerKey: K,
   innerKey: K2,
-  depthLimit: number = 50,
+  depthLimit = 50,
 ) => {
   type AugmentedOuter = Outer & {
     meta?: Omit<Inner, K2>;
@@ -102,10 +108,11 @@ export const linkedTreeFlatten = <
   let depth = 0;
 
   // BFS traversal using FIFO queue
-  while (queue.length !== 0) {
+  while (queue.length > 0) {
     let currentIndex = index;
 
     const toInsert = queue.shift();
+
     if (!toInsert) {
       continue;
     }
@@ -114,18 +121,21 @@ export const linkedTreeFlatten = <
     result.push(
       ...toInsert.map((entry) => {
         const { [outerKey]: _1, currentIndex: _2, ...values } = entry;
+
         return values;
       }),
     );
 
     depth++;
     // Traverse direct descendants of all nodes in the current depth
-    const descendantsToQueue = toInsert.reduce((acc, current) => {
+    const descendantsToQueue = toInsert.reduce<AugmentedOuter[][]>((accumulator, current) => {
       const outer = current[outerKey];
+
       if (outer) {
         const extractedFromInner = outer.map((entry) => {
           // The direct descendants' structures get flattened
           const { [innerKey]: _omitted, ...innerValues } = entry;
+
           return {
             parentIndex: current.currentIndex,
             currentIndex: currentIndex++,
@@ -134,10 +144,12 @@ export const linkedTreeFlatten = <
           };
         });
 
-        acc.push(extractedFromInner);
+        accumulator.push(extractedFromInner);
       }
-      return acc;
-    }, [] as AugmentedOuter[][]);
+
+      return accumulator;
+    }, []);
+
     index = currentIndex;
     // all descendants of all of the nodes in this depth layer
     // added to queue to explore.
@@ -146,7 +158,7 @@ export const linkedTreeFlatten = <
     }
 
     // To prevent infinite loops, a depth is given to limit traversal.
-    if (depth >= depthLimit && queue.length !== 0) {
+    if (depth >= depthLimit && queue.length > 0) {
       throw new Error("Depth limit reached!");
     }
   }

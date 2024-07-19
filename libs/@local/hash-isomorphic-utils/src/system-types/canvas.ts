@@ -113,23 +113,23 @@ export type {
 /**
  * A page in canvas format, with content in a free-form arrangement.
  */
-export type Canvas = {
+export interface Canvas {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/canvas/v/1";
   properties: CanvasProperties;
   propertiesWithMetadata: CanvasPropertiesWithMetadata;
-};
+}
 
-export type CanvasHasSpatiallyPositionedContentLink = {
+export interface CanvasHasSpatiallyPositionedContentLink {
   linkEntity: HasSpatiallyPositionedContent;
   rightEntity: Block;
-};
+}
 
 export type CanvasOutgoingLinkAndTarget =
   CanvasHasSpatiallyPositionedContentLink;
 
-export type CanvasOutgoingLinksByLinkEntityTypeId = {
+export interface CanvasOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/has-spatially-positioned-content/v/1": CanvasHasSpatiallyPositionedContentLink;
-};
+}
 
 /**
  * A page in canvas format, with content in a free-form arrangement.
@@ -137,45 +137,45 @@ export type CanvasOutgoingLinksByLinkEntityTypeId = {
 export type CanvasProperties = CanvasProperties1 & CanvasProperties2;
 export type CanvasProperties1 = PageProperties;
 
-export type CanvasProperties2 = {};
+export interface CanvasProperties2 {}
 
 export type CanvasPropertiesWithMetadata = CanvasPropertiesWithMetadata1 &
   CanvasPropertiesWithMetadata2;
 export type CanvasPropertiesWithMetadata1 = PagePropertiesWithMetadata;
 
-export type CanvasPropertiesWithMetadata2 = {
+export interface CanvasPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
- * Something contained at a spatial position by something
+ * Something contained at a spatial position by something.
  */
-export type HasSpatiallyPositionedContent = {
+export interface HasSpatiallyPositionedContent {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-spatially-positioned-content/v/1";
   properties: HasSpatiallyPositionedContentProperties;
   propertiesWithMetadata: HasSpatiallyPositionedContentPropertiesWithMetadata;
-};
+}
 
 export type HasSpatiallyPositionedContentOutgoingLinkAndTarget = never;
 
-export type HasSpatiallyPositionedContentOutgoingLinksByLinkEntityTypeId = {};
+export interface HasSpatiallyPositionedContentOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * Something contained at a spatial position by something
+ * Something contained at a spatial position by something.
  */
 export type HasSpatiallyPositionedContentProperties =
   HasSpatiallyPositionedContentProperties1 &
     HasSpatiallyPositionedContentProperties2;
 export type HasSpatiallyPositionedContentProperties1 = LinkProperties;
 
-export type HasSpatiallyPositionedContentProperties2 = {
+export interface HasSpatiallyPositionedContentProperties2 {
   "https://hash.ai/@hash/types/property-type/height-in-pixels/": HeightInPixelsPropertyValue;
   "https://hash.ai/@hash/types/property-type/rotation-in-rads/": RotationInRadsPropertyValue;
   "https://hash.ai/@hash/types/property-type/width-in-pixels/": WidthInPixelsPropertyValue;
   "https://hash.ai/@hash/types/property-type/x-position/": XPositionPropertyValue;
   "https://hash.ai/@hash/types/property-type/y-position/": YPositionPropertyValue;
-};
+}
 
 export type HasSpatiallyPositionedContentPropertiesWithMetadata =
   HasSpatiallyPositionedContentPropertiesWithMetadata1 &
@@ -183,7 +183,7 @@ export type HasSpatiallyPositionedContentPropertiesWithMetadata =
 export type HasSpatiallyPositionedContentPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
-export type HasSpatiallyPositionedContentPropertiesWithMetadata2 = {
+export interface HasSpatiallyPositionedContentPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/height-in-pixels/": HeightInPixelsPropertyValueWithMetadata;
@@ -192,7 +192,7 @@ export type HasSpatiallyPositionedContentPropertiesWithMetadata2 = {
     "https://hash.ai/@hash/types/property-type/x-position/": XPositionPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/y-position/": YPositionPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * The height of something in pixels.

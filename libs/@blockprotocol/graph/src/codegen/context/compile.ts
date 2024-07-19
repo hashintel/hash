@@ -7,6 +7,7 @@ import type {
 
 import type { ProcessedCodegenParameters } from "../parameters.js";
 import type { CompiledTsType, JsonSchema, LogLevel } from "../shared.js";
+
 import type { PreprocessContext } from "./preprocess.js";
 import type { TypeDependencyMap } from "./shared.js";
 
@@ -47,7 +48,7 @@ export class CompileContext {
   /* @todo - Replace this with a proper logging implementation */
   logWarn(message: string) {
     if (this.logLevel !== "silent") {
-      // eslint-disable-next-line no-console
+       
       console.warn(`WARN: ${message}`);
     }
   }

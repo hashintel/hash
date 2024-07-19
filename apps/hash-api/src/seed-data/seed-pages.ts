@@ -3,16 +3,15 @@ import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { ImpureGraphContext } from "../graph/context-types";
-import type { Page } from "../graph/knowledge/system-types/page";
-import {
-  createPage,
+import type {   createPage,
+Page ,
   setPageParentPage,
 } from "../graph/knowledge/system-types/page";
 
-export type PageDefinition = {
+export interface PageDefinition {
   title: string;
   nestedPages?: PageDefinition[];
-};
+}
 
 export const seedPages = async (
   authentication: AuthenticationContext,
@@ -26,13 +25,13 @@ export const seedPages = async (
 ) => {
   const { context } = sharedParams;
 
-  let prevFractionalIndex: string | undefined;
+  let previousFractionalIndex: string | undefined;
 
   for (const pageDefinition of pageDefinitions) {
     const newPage: Page = await createPage(context, authentication, {
       ownedById,
       title: pageDefinition.title,
-      prevFractionalIndex,
+      prevFractionalIndex: previousFractionalIndex,
       type: "document",
     });
 
@@ -45,7 +44,7 @@ export const seedPages = async (
       });
     }
 
-    prevFractionalIndex = newPage.fractionalIndex;
+    previousFractionalIndex = newPage.fractionalIndex;
 
     if (pageDefinition.nestedPages) {
       await seedPages(

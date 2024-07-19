@@ -13,8 +13,8 @@ testTolerateConsoleErrors.beforeEach(async () => {
 const blockCollectionMountTimeout = 5_000;
 
 /**
- * @todo H-2006 fix bugs on profile page and revert to using 'test' from ./shared/runtime
- * @todo H-3126 update entity store in FE to handle immutable entities
+ * @todo H-2006 fix bugs on profile page and revert to using 'test' from ./shared/runtime.
+ * @todo H-3126 update entity store in FE to handle immutable entities.
  */
 testTolerateConsoleErrors.skip(
   "a user's profile page renders",
@@ -52,8 +52,8 @@ testTolerateConsoleErrors.skip(
 );
 
 /**
- * @todo H-2006 fix bugs on profile page and revert to using 'test' from ./shared/runtime
- * @todo H-3126 update entity store in FE to handle immutable entities
+ * @todo H-2006 fix bugs on profile page and revert to using 'test' from ./shared/runtime.
+ * @todo H-3126 update entity store in FE to handle immutable entities.
  */
 testTolerateConsoleErrors.skip(
   "an org's profile page renders, with and without a bio",
@@ -74,6 +74,7 @@ testTolerateConsoleErrors.skip(
     await sleep(blockCollectionMountTimeout);
 
     const bioText = "Example Org's bio";
+
     await page.keyboard.type(bioText);
 
     await page.click("[aria-label='Save Bio']");

@@ -1,7 +1,7 @@
-import {
-  type QueryTemporalAxes as QueryTemporalAxesBp,
-  type QueryTemporalAxesUnresolved as QueryTemporalAxesUnresolvedBp,
-  type SubgraphTemporalAxes as SubgraphTemporalAxesBp,
+import type {
+  QueryTemporalAxes as QueryTemporalAxesBp,
+  QueryTemporalAxesUnresolved as QueryTemporalAxesUnresolvedBp,
+  SubgraphTemporalAxes as SubgraphTemporalAxesBp,
 } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
@@ -55,11 +55,11 @@ export type SubgraphTemporalAxes = Subtype<
   SubgraphTemporalAxesBp,
   {
     /**
-     * The {@link QueryTemporalAxesUnresolved} provided in the query
+     * The {@link QueryTemporalAxesUnresolved} provided in the query.
      */
     initial: QueryTemporalAxesUnresolved;
     /**
-     * The {@link QueryTemporalAxes} used when resolving the {@link Subgraph}
+     * The {@link QueryTemporalAxes} used when resolving the {@link Subgraph}.
      */
     resolved: QueryTemporalAxes;
   }

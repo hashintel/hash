@@ -22,7 +22,7 @@ export const mapElementsIntoRevisions = <
 >(
   elements: GraphElementType[],
 ): BaseIdToRevisions<GraphElementType> => {
-  return elements.reduce((revisionMap, element) => {
+  return elements.reduce<BaseIdToRevisions<GraphElementType>>((revisionMap, element) => {
     const baseId =
       "entityId" in element.metadata.recordId
         ? element.metadata.recordId.entityId
@@ -33,5 +33,5 @@ export const mapElementsIntoRevisions = <
     revisionMap[baseId].push(element);
 
     return revisionMap;
-  }, {} as BaseIdToRevisions<GraphElementType>);
+  }, {});
 };

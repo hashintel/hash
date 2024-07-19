@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
+import type { DATA_TYPE_META_SCHEMA,VersionedUrl  } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   ArchiveDataTypeParams,
@@ -28,27 +27,25 @@ import type {
   DataTypeAuthorizationRelationship,
   DataTypeRelationAndSubject,
   DataTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
+ ontologyTypeRecordIdToVersionedUrl,  Subgraph } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
+
 import { getWebShortname, isExternalTypeId } from "./util";
 
 /**
  * Create a data type.
  *
- * @todo revisit data type creation
+ * @param params.ownedById - The id of the account who owns the data type.
+ * @param [params.webShortname] - – the shortname of the web that owns the data type, if the web entity does not yet exist.
+ *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
+ * @param params.schema - The `DataType`.
+ * @param params.actorId - The id of the account that is creating the data type.
+ * @todo Revisit data type creation
  *   User defined data types are not specified yet, which means this `create`
  *   operation should not be exposed to users yet.
  *   Depends on the RFC captured by:
- *   https://linear.app/hash/issue/BP-104
- *
- * @param params.ownedById - the id of the account who owns the data type
- * @param [params.webShortname] – the shortname of the web that owns the data type, if the web entity does not yet exist.
- *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
- * @param params.schema - the `DataType`
- * @param params.actorId - the id of the account that is creating the data type
+ *   https://linear.app/hash/issue/BP-104.
  */
 export const createDataType: ImpureGraphFunction<
   {
@@ -109,13 +106,13 @@ export const getDataTypes: ImpureGraphFunction<
 /**
  * Get data types by a structural query.
  *
- * @param params.query the structural query to filter data types by.
+ * @param params.query - The structural query to filter data types by.
  */
 export const getDataTypeSubgraph: ImpureGraphFunction<
   Omit<GetDataTypeSubgraphParams, "includeDrafts">,
   Promise<Subgraph<DataTypeRootType>>
 > = async ({ graphApi }, { actorId }, request) => {
-  return await graphApi
+  return graphApi
     .getDataTypeSubgraph(actorId, { includeDrafts: false, ...request })
     .then(({ data: response }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(
@@ -130,7 +127,7 @@ export const getDataTypeSubgraph: ImpureGraphFunction<
 /**
  * Get a data type by its versioned URL.
  *
- * @param params.dataTypeId the unique versioned URL for a data type.
+ * @param params.dataTypeId - The unique versioned URL for a data type.
  */
 export const getDataTypeById: ImpureGraphFunction<
   {
@@ -191,15 +188,14 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
 /**
  * Update a data type.
  *
- * @todo revisit data type update
+ * @param params.dataTypeId - The id of the data type that's being updated.
+ * @param params.schema - The updated `DataType`.
+ * @param params.actorId - The id of the account that is updating the data type.
+ * @todo Revisit data type update
  *   As with data type `create`, this `update` operation is not currently relevant to users
  *   because user defined data types are not fully specified.
  *   Depends on the RFC captured by:
- *   https://linear.app/hash/issue/BP-104
- *
- * @param params.dataTypeId - the id of the data type that's being updated
- * @param params.schema - the updated `DataType`
- * @param params.actorId - the id of the account that is updating the data type
+ *   https://linear.app/hash/issue/BP-104.
  */
 export const updateDataType: ImpureGraphFunction<
   {
@@ -237,10 +233,10 @@ export const updateDataType: ImpureGraphFunction<
 };
 
 /**
- * Archives a data type
+ * Archives a data type.
  *
- * @param params.dataTypeId - the id of the data type that's being archived
- * @param params.actorId - the id of the account that is archiving the data type
+ * @param params.dataTypeId - The id of the data type that's being archived.
+ * @param params.actorId - The id of the account that is archiving the data type.
  */
 export const archiveDataType: ImpureGraphFunction<
   ArchiveDataTypeParams,
@@ -255,10 +251,10 @@ export const archiveDataType: ImpureGraphFunction<
 };
 
 /**
- * Unarchives a data type
+ * Unarchives a data type.
  *
- * @param params.dataTypeId - the id of the data type that's being unarchived
- * @param params.actorId - the id of the account that is unarchiving the data type
+ * @param params.dataTypeId - The id of the data type that's being unarchived.
+ * @param params.actorId - The id of the account that is unarchiving the data type.
  */
 export const unarchiveDataType: ImpureGraphFunction<
   UnarchiveDataTypeParams,

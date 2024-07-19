@@ -5,23 +5,19 @@ import { fileURLToPath } from "node:url";
 
 import type {
   ArraySchema,
+  atLeastOne,
+  DATA_TYPE_META_SCHEMA,
   DataTypeReference,
+  ENTITY_TYPE_META_SCHEMA,
   EntityType,
+  extractVersion,
   ObjectSchema,
   OneOfSchema,
-  PropertyType,
+  PROPERTY_TYPE_META_SCHEMA,  PropertyType,
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import {
-  atLeastOne,
-  DATA_TYPE_META_SCHEMA,
-  ENTITY_TYPE_META_SCHEMA,
-  extractVersion,
-  PROPERTY_TYPE_META_SCHEMA,
-} from "@blockprotocol/type-system";
+  VersionedUrl} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   DataTypeRelationAndSubject,
@@ -51,19 +47,13 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
-  SchemaKind,
-  SystemTypeWebShortname,
-} from "@local/hash-isomorphic-utils/ontology-types";
-import {
   generateLinkMapWithConsistentSelfReferences,
-  generateTypeBaseUrl,
-} from "@local/hash-isomorphic-utils/ontology-types";
+  generateTypeBaseUrl,  SchemaKind,
+  SystemTypeWebShortname} from "@local/hash-isomorphic-utils/ontology-types";
 import type {
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
-  PropertyTypeRelationAndSubject,
-} from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+ extractOwnedByIdFromEntityId,  PropertyTypeRelationAndSubject } from "@local/hash-subgraph";
 import {
   componentsFromVersionedUrl,
   extractBaseUrl,
@@ -89,8 +79,8 @@ import {
   createPropertyType,
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
-import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
-import { getOrCreateOwningAccountGroupId } from "../system-webs-and-entities";
+import type { getOrCreateOwningAccountGroupId,PrimitiveDataTypeKey  } from "../system-webs-and-entities";
+
 import type { MigrationState } from "./types";
 import { upgradeWebEntities } from "./util/upgrade-entities";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
@@ -142,6 +132,7 @@ export const loadExternalDataTypeIfNotExists: ImpureGraphFunction<
   }
 
   const cached_file_name = CACHED_DATA_TYPE_SCHEMAS[dataTypeId];
+
   if (cached_file_name) {
     // We need an absolute path to `../../../seed-data`
     await context.graphApi.loadExternalDataType(authentication.actorId, {
@@ -169,14 +160,14 @@ export const loadExternalDataTypeIfNotExists: ImpureGraphFunction<
       ],
     });
 
-    return await getDataTypeById(context, authentication, { dataTypeId });
+    return getDataTypeById(context, authentication, { dataTypeId });
   }
 
   await context.graphApi.loadExternalDataType(authentication.actorId, {
     dataTypeId,
   });
 
-  return await getDataTypeById(context, authentication, { dataTypeId });
+  return getDataTypeById(context, authentication, { dataTypeId });
 };
 
 export const loadExternalPropertyTypeIfNotExists: ImpureGraphFunction<
@@ -209,6 +200,7 @@ export const loadExternalPropertyTypeIfNotExists: ImpureGraphFunction<
   }
 
   const cached_file_name = CACHED_PROPERTY_TYPE_SCHEMAS[propertyTypeId];
+
   if (cached_file_name) {
     // We need an absolute path to `../../../seed-data`
     await context.graphApi.loadExternalPropertyType(authentication.actorId, {
@@ -236,7 +228,7 @@ export const loadExternalPropertyTypeIfNotExists: ImpureGraphFunction<
       ],
     });
 
-    return await getPropertyTypeById(context, authentication, {
+    return getPropertyTypeById(context, authentication, {
       propertyTypeId,
     });
   }
@@ -245,7 +237,7 @@ export const loadExternalPropertyTypeIfNotExists: ImpureGraphFunction<
     propertyTypeId,
   });
 
-  return await getPropertyTypeById(context, authentication, { propertyTypeId });
+  return getPropertyTypeById(context, authentication, { propertyTypeId });
 };
 
 export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
@@ -274,6 +266,7 @@ export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
   }
 
   const cached_file_name = CACHED_ENTITY_TYPE_SCHEMAS[entityTypeId];
+
   if (cached_file_name) {
     // We need an absolute path to `../../../seed-data`
     await context.graphApi.loadExternalEntityType(authentication.actorId, {
@@ -307,17 +300,17 @@ export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
       ],
     });
 
-    return await getEntityTypeById(context, authentication, { entityTypeId });
+    return getEntityTypeById(context, authentication, { entityTypeId });
   }
 
   await context.graphApi.loadExternalEntityType(authentication.actorId, {
     entityTypeId,
   });
 
-  return await getEntityTypeById(context, authentication, { entityTypeId });
+  return getEntityTypeById(context, authentication, { entityTypeId });
 };
 
-export type PropertyTypeDefinition = {
+export interface PropertyTypeDefinition {
   propertyTypeId: VersionedUrl;
   title: string;
   description?: string;
@@ -331,7 +324,7 @@ export type PropertyTypeDefinition = {
     propertyTypeObjectRequiredProperties?: BaseUrl[];
     array?: boolean;
   }[];
-};
+}
 
 /**
  * Helper method for generating a property type schema for the Graph API.
@@ -353,11 +346,13 @@ export const generateSystemPropertyTypeSchema = (
         const dataTypeReference: DataTypeReference = {
           $ref: dataTypeId,
         };
+
         inner = dataTypeReference;
       } else if (primitiveDataType) {
         const dataTypeReference: DataTypeReference = {
           $ref: blockProtocolDataTypes[primitiveDataType].dataTypeId,
         };
+
         inner = dataTypeReference;
       } else if (propertyTypeObjectProperties) {
         const propertyTypeObject: ObjectSchema<
@@ -369,6 +364,7 @@ export const generateSystemPropertyTypeSchema = (
             ? atLeastOne(propertyTypeObjectRequiredProperties)
             : undefined,
         };
+
         inner = propertyTypeObject;
       } else {
         throw new Error(
@@ -385,10 +381,12 @@ export const generateSystemPropertyTypeSchema = (
               oneOf: [inner],
             },
           };
+
         return arrayOfPropertyValues;
-      } else {
-        return inner;
       }
+ 
+        return inner;
+      
     },
   );
 
@@ -402,10 +400,10 @@ export const generateSystemPropertyTypeSchema = (
   };
 };
 
-type BaseCreateTypeIfNotExistsParameters = {
+interface BaseCreateTypeIfNotExistsParameters {
   webShortname: SystemTypeWebShortname;
   migrationState: MigrationState;
-};
+}
 
 const generateSystemDataTypeSchema = ({
   dataTypeId,
@@ -483,10 +481,10 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
       relationships,
     });
 
-    return await getDataTypeById(context, authentication, {
+    return getDataTypeById(context, authentication, {
       dataTypeId: dataTypeSchema.$id,
     });
-  } else {
+  } 
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
     const createdDataType = await createDataType(
       context,
@@ -503,7 +501,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
     });
 
     return createdDataType;
-  }
+  
 };
 
 export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
@@ -579,10 +577,10 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
       relationships,
     });
 
-    return await getPropertyTypeById(context, authentication, {
+    return getPropertyTypeById(context, authentication, {
       propertyTypeId: propertyTypeSchema.$id,
     });
-  } else {
+  } 
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
     const createdPropertyType = await createPropertyType(
       context,
@@ -599,7 +597,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     });
 
     return createdPropertyType;
-  }
+  
 };
 
 type LinkDestinationConstraint =
@@ -608,7 +606,7 @@ type LinkDestinationConstraint =
   // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
   | "SELF_REFERENCE";
 
-export type EntityTypeDefinition = {
+export interface EntityTypeDefinition {
   allOf?: VersionedUrl[];
   entityTypeId: VersionedUrl;
   title: string;
@@ -628,7 +626,7 @@ export type EntityTypeDefinition = {
     minItems?: number;
     maxItems?: number;
   }[];
-};
+}
 
 /**
  * Helper method for generating an entity type schema for the Graph API.
@@ -639,8 +637,8 @@ export const generateSystemEntityTypeSchema = (
   /** @todo - clean this up to be more readable */
   const properties =
     params.properties?.reduce(
-      (prev, { propertyType, array }) => ({
-        ...prev,
+      (previous, { propertyType, array }) => ({
+        ...previous,
         [typeof propertyType === "object"
           ? propertyType.metadata.recordId.baseUrl
           : extractBaseUrl(propertyType)]: array
@@ -665,7 +663,7 @@ export const generateSystemEntityTypeSchema = (
     ) ?? {};
 
   const requiredProperties = params.properties
-    ?.filter(({ required }) => !!required)
+    ?.filter(({ required }) => Boolean(required))
     .map(({ propertyType }) =>
       typeof propertyType === "object"
         ? propertyType.metadata.recordId.baseUrl
@@ -675,10 +673,10 @@ export const generateSystemEntityTypeSchema = (
   const links =
     params.outgoingLinks?.reduce<EntityType["links"]>(
       (
-        prev,
+        previous,
         { linkEntityType, destinationEntityTypes, minItems, maxItems },
       ): EntityType["links"] => ({
-        ...prev,
+        ...previous,
         [typeof linkEntityType === "object"
           ? linkEntityType.schema.$id
           : linkEntityType]: {
@@ -803,10 +801,10 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       labelProperty: entityTypeDefinition.labelProperty,
     });
 
-    return await getEntityTypeById(context, authentication, {
+    return getEntityTypeById(context, authentication, {
       entityTypeId: entityTypeSchema.$id,
     });
-  } else {
+  } 
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we create the system types in a web
     const createdEntityType = await createEntityType(
       context,
@@ -824,7 +822,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     });
 
     return createdEntityType;
-  }
+  
 };
 
 export const getCurrentHashSystemEntityTypeId = ({
@@ -834,13 +832,13 @@ export const getCurrentHashSystemEntityTypeId = ({
   entityTypeKey: keyof typeof systemEntityTypes;
   migrationState: MigrationState;
 }) => {
-  const entityTypeBaseUrl = systemEntityTypes[entityTypeKey].entityTypeBaseUrl;
+  const {entityTypeBaseUrl} = systemEntityTypes[entityTypeKey];
 
   const entityTypeVersion =
     migrationState.entityTypeVersions[entityTypeBaseUrl];
 
   if (typeof entityTypeVersion === "undefined") {
-    throw new Error(
+    throw new TypeError(
       `Expected '${entityTypeKey}' entity type to have been seeded`,
     );
   }
@@ -855,14 +853,13 @@ export const getCurrentHashLinkEntityTypeId = ({
   linkEntityTypeKey: keyof typeof systemLinkEntityTypes;
   migrationState: MigrationState;
 }) => {
-  const linkEntityTypeBaseUrl =
-    systemLinkEntityTypes[linkEntityTypeKey].linkEntityTypeBaseUrl;
+  const {linkEntityTypeBaseUrl} = systemLinkEntityTypes[linkEntityTypeKey];
 
   const linkEntityTypeVersion =
     migrationState.entityTypeVersions[linkEntityTypeBaseUrl];
 
   if (typeof linkEntityTypeVersion === "undefined") {
-    throw new Error(
+    throw new TypeError(
       `Expected '${linkEntityTypeKey}' link entity type to have been seeded`,
     );
   }
@@ -880,14 +877,13 @@ export const getCurrentHashPropertyTypeId = ({
   propertyTypeKey: keyof typeof systemPropertyTypes;
   migrationState: MigrationState;
 }) => {
-  const propertyTypeBaseUrl =
-    systemPropertyTypes[propertyTypeKey].propertyTypeBaseUrl;
+  const {propertyTypeBaseUrl} = systemPropertyTypes[propertyTypeKey];
 
   const propertyTypeVersion =
     migrationState.propertyTypeVersions[propertyTypeBaseUrl];
 
   if (typeof propertyTypeVersion === "undefined") {
-    throw new Error(
+    throw new TypeError(
       `Expected '${propertyTypeKey}' property type to have been seeded`,
     );
   }
@@ -902,20 +898,20 @@ export const getCurrentHashDataTypeId = ({
   dataTypeKey: keyof typeof systemDataTypes;
   migrationState: MigrationState;
 }) => {
-  const dataTypeBaseUrl = systemDataTypes[dataTypeKey].dataTypeBaseUrl;
+  const {dataTypeBaseUrl} = systemDataTypes[dataTypeKey];
 
   const dataTypeVersion = migrationState.dataTypeVersions[dataTypeBaseUrl];
 
   if (typeof dataTypeVersion === "undefined") {
-    throw new Error(`Expected '${dataTypeKey}' data type to have been seeded`);
+    throw new TypeError(`Expected '${dataTypeKey}' data type to have been seeded`);
   }
 
   return versionedUrlFromComponents(dataTypeBaseUrl, dataTypeVersion);
 };
 
-type BaseUpdateTypeParameters = {
+interface BaseUpdateTypeParameters {
   migrationState: MigrationState;
-};
+}
 
 export const updateSystemEntityType: ImpureGraphFunction<
   {
@@ -945,6 +941,7 @@ export const updateSystemEntityType: ImpureGraphFunction<
   }
 
   const nextEntityTypeId = versionedUrlFromComponents(baseUrl, version + 1);
+
   try {
     await getEntityTypeById(context, authentication, {
       entityTypeId: nextEntityTypeId,
@@ -1037,10 +1034,12 @@ export const updateSystemPropertyType: ImpureGraphFunction<
   }
 
   const nextPropertyTypeId = versionedUrlFromComponents(baseUrl, version + 1);
+
   try {
     await getPropertyTypeById(context, authentication, {
       propertyTypeId: nextPropertyTypeId,
     });
+
     return { updatedPropertyTypeId: nextPropertyTypeId };
   } catch {
     // the next version doesn't exist, continue to create it
@@ -1085,7 +1084,7 @@ export const updateSystemPropertyType: ImpureGraphFunction<
 /**
  * Given a list of upgradedEntityTypeIds, and the keys of types which refer to them, update those types to refer to the new versions.
  *
- * @todo have some way of automatically checking all existing types for references to the upgraded types, avoid manually specifying them
+ * @todo Have some way of automatically checking all existing types for references to the upgraded types, avoid manually specifying them.
  */
 export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
   {
@@ -1099,7 +1098,7 @@ export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
   { dependentEntityTypeKeys, migrationState, upgradedEntityTypeIds },
 ) => {
   /**
-   * Because the dependents will be updated, we also need to make sure that any cross-references within them are updated
+   * Because the dependents will be updated, we also need to make sure that any cross-references within them are updated.
    */
   const nextDependentEntityTypeIds = dependentEntityTypeKeys.map((key) => {
     const currentDependentEntityTypeId = getCurrentHashSystemEntityTypeId({
@@ -1143,10 +1142,10 @@ export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
     });
 
     /**
-     * @todo handle cascading updates – some of the updated system types may themselves be dependencies of other types
+     * @todo Handle cascading updates – some of the updated system types may themselves be dependencies of other types
      *    not covered by the logic above
      * ideally we'd have a function to check all existing types for dependencies and update them
-     * would also need to handle circular references as part of this
+     * would also need to handle circular references as part of this.
      */
   }
 };
@@ -1229,9 +1228,9 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
   { entityTypeBaseUrls, migrationState, migrateProperties },
 ) => {
   /**
-   *  We have to do this web-by-web because we don't have a single actor that can see all entities in all webs
+   *  We have to do this web-by-web because we don't have a single actor that can see all entities in all webs.
    *
-   *  @todo figure out what to do about entities which the web machine bot can't view, if we ever create any such entities
+   *  @todo Figure out what to do about entities which the web machine bot can't view, if we ever create any such entities.
    */
   const { users, orgs } = await getExistingUsersAndOrgs(
     context,

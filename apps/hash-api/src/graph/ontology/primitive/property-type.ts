@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { PROPERTY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
+import type { PROPERTY_TYPE_META_SCHEMA,VersionedUrl  } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   ArchivePropertyTypeParams,
@@ -26,24 +25,23 @@ import {
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import type {
-  PropertyTypeAuthorizationRelationship,
+ ontologyTypeRecordIdToVersionedUrl,  PropertyTypeAuthorizationRelationship,
   PropertyTypeRelationAndSubject,
   PropertyTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { ontologyTypeRecordIdToVersionedUrl } from "@local/hash-subgraph";
+  Subgraph } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
+
 import { getWebShortname, isExternalTypeId } from "./util";
 
 /**
  * Create a property type.
  *
- * @param params.ownedById - the id of the account who owns the property type
- * @param params.schema - the `PropertyType`
- * @param [params.webShortname] – the shortname of the web that owns the property type, if the web entity does not yet exist.
+ * @param params.ownedById - The id of the account who owns the property type.
+ * @param params.schema - The `PropertyType`.
+ * @param [params.webShortname] - – the shortname of the web that owns the property type, if the web entity does not yet exist.
  *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
- * @param params.actorId - the id of the account that is creating the property type
+ * @param params.actorId - The id of the account that is creating the property type.
  */
 export const createPropertyType: ImpureGraphFunction<
   {
@@ -104,7 +102,7 @@ export const getPropertyTypes: ImpureGraphFunction<
 /**
  * Get property types by a structural query.
  *
- * @param params.query the structural query to filter property types by.
+ * @param params.query - The structural query to filter property types by.
  */
 export const getPropertyTypeSubgraph: ImpureGraphFunction<
   Omit<GetPropertyTypeSubgraphParams, "includeDrafts">,
@@ -119,7 +117,7 @@ export const getPropertyTypeSubgraph: ImpureGraphFunction<
 /**
  * Get a property type by its versioned URL.
  *
- * @param params.propertyTypeId the unique versioned URL for a property type.
+ * @param params.propertyTypeId - The unique versioned URL for a property type.
  */
 export const getPropertyTypeById: ImpureGraphFunction<
   {
@@ -186,9 +184,9 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
 /**
  * Update a property type.
  *
- * @param params.propertyTypeId - the id of the property type that's being updated
- * @param params.schema - the updated `PropertyType`
- * @param params.actorId - the id of the account that is updating the type
+ * @param params.propertyTypeId - The id of the property type that's being updated.
+ * @param params.schema - The updated `PropertyType`.
+ * @param params.actorId - The id of the account that is updating the type.
  */
 export const updatePropertyType: ImpureGraphFunction<
   {
@@ -230,10 +228,10 @@ export const updatePropertyType: ImpureGraphFunction<
 };
 
 /**
- * Archives a data type
+ * Archives a data type.
  *
- * @param params.propertyTypeId - the id of the property type that's being archived
- * @param params.actorId - the id of the account that is archiving the property type
+ * @param params.propertyTypeId - The id of the property type that's being archived.
+ * @param params.actorId - The id of the account that is archiving the property type.
  */
 export const archivePropertyType: ImpureGraphFunction<
   ArchivePropertyTypeParams,
@@ -248,10 +246,10 @@ export const archivePropertyType: ImpureGraphFunction<
 };
 
 /**
- * Unarchives a data type
+ * Unarchives a data type.
  *
- * @param params.propertyTypeId - the id of the property type that's being unarchived
- * @param params.actorId - the id of the account that is unarchiving the property type
+ * @param params.propertyTypeId - The id of the property type that's being unarchived.
+ * @param params.actorId - The id of the account that is unarchiving the property type.
  */
 export const unarchivePropertyType: ImpureGraphFunction<
   UnarchivePropertyTypeParams,

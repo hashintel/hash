@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
+import type { ENTITY_TYPE_META_SCHEMA,VersionedUrl  } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
@@ -36,15 +35,12 @@ import type {
   EntityTypeAuthorizationRelationship,
   EntityTypeRelationAndSubject,
   EntityTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
   linkEntityTypeUrl,
-  ontologyTypeRecordIdToVersionedUrl,
-} from "@local/hash-subgraph";
+  ontologyTypeRecordIdToVersionedUrl,  Subgraph} from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
+
 import { getWebShortname, isExternalTypeId } from "./util";
 
 export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
@@ -123,11 +119,11 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
 /**
  * Create an entity type.
  *
- * @param params.ownedById - the id of the account who owns the entity type
- * @param [params.webShortname] – the shortname of the web that owns the entity type, if the web entity does not yet exist.
+ * @param params.ownedById - The id of the account who owns the entity type.
+ * @param [params.webShortname] - – the shortname of the web that owns the entity type, if the web entity does not yet exist.
  *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
- * @param params.schema - the `EntityType`
- * @param params.actorId - the id of the account that is creating the entity type
+ * @param params.schema - The `EntityType`.
+ * @param params.actorId - The id of the account that is creating the entity type.
  */
 export const createEntityType: ImpureGraphFunction<
   {
@@ -182,7 +178,7 @@ export const createEntityType: ImpureGraphFunction<
 /**
  * Get entity types by a structural query.
  *
- * @param params.query the structural query to filter entity types by.
+ * @param params.query - The structural query to filter entity types by.
  */
 export const getEntityTypeSubgraph: ImpureGraphFunction<
   Omit<GetEntityTypeSubgraphParams, "includeDrafts"> & {
@@ -192,7 +188,7 @@ export const getEntityTypeSubgraph: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
-  return await graphApi
+  return graphApi
     .getEntityTypeSubgraph(actorId, { includeDrafts: false, ...request })
     .then(({ data: response }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
@@ -212,7 +208,7 @@ export const getEntityTypes: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, { temporalClient, ...request }) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
-  return await graphApi
+  return graphApi
     .getEntityTypes(actorId, { includeDrafts: false, ...request })
     .then(({ data: response }) =>
       mapGraphApiEntityTypeToEntityType(response.entityTypes),
@@ -222,7 +218,7 @@ export const getEntityTypes: ImpureGraphFunction<
 /**
  * Get an entity type by its versioned URL.
  *
- * @param params.entityTypeId the unique versioned URL for an entity type.
+ * @param params.entityTypeId - The unique versioned URL for an entity type.
  */
 export const getEntityTypeById: ImpureGraphFunction<
   {
@@ -286,9 +282,9 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
 /**
  * Update an entity type.
  *
- * @param params.entityTypeId - the id of the entity type that's being updated
- * @param params.schema - the updated `EntityType`
- * @param params.actorId - the id of the account that is updating the entity type
+ * @param params.entityTypeId - The id of the entity type that's being updated.
+ * @param params.schema - The updated `EntityType`.
+ * @param params.actorId - The id of the account that is updating the entity type.
  */
 export const updateEntityType: ImpureGraphFunction<
   {
@@ -368,16 +364,16 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
 
     void Promise.all(promises).then(() =>
       // If we haven't resolved yet, then none of the parent types are link types. If we have resolved this is a no-op.
-      resolve(false),
+      { resolve(false); },
     );
   });
 };
 
 /**
- * Archives a data type
+ * Archives a data type.
  *
- * @param params.entityTypeId - the id of the entity type that's being archived
- * @param params.actorId - the id of the account that is archiving the entity type
+ * @param params.entityTypeId - The id of the entity type that's being archived.
+ * @param params.actorId - The id of the account that is archiving the entity type.
  */
 export const archiveEntityType: ImpureGraphFunction<
   ArchiveEntityTypeParams,
@@ -392,10 +388,10 @@ export const archiveEntityType: ImpureGraphFunction<
 };
 
 /**
- * Unarchives a data type
+ * Unarchives a data type.
  *
- * @param params.entityTypeId - the id of the entity type that's being unarchived
- * @param params.actorId - the id of the account that is unarchiving the entity type
+ * @param params.entityTypeId - The id of the entity type that's being unarchived.
+ * @param params.actorId - The id of the account that is unarchiving the entity type.
  */
 export const unarchiveEntityType: ImpureGraphFunction<
   UnarchiveEntityTypeParams,

@@ -1,3 +1,4 @@
+import OpenAI from "openai";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Embedding, PropertyType } from "@local/hash-graph-client";
 import type { Property, PropertyObject } from "@local/hash-graph-types/entity";
@@ -8,7 +9,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import OpenAI from "openai";
+
 import Usage = OpenAI.CreateEmbeddingResponse.Usage;
 
 const openai = new OpenAI({
@@ -66,6 +67,7 @@ export const createEntityEmbeddings = async (params: {
   const propertyEmbeddings: string[] = [];
   const usedPropertyBaseUrls: BaseUrl[] = [];
   let combinedEntityEmbedding = "";
+
   for (const propertyType of params.propertyTypes) {
     const baseUrl = extractBaseUrl(propertyType.$id);
 
@@ -82,7 +84,7 @@ export const createEntityEmbeddings = async (params: {
       propertyValue: property,
     });
 
-    combinedEntityEmbedding += `${embeddingInput}\n`;
+    combinedEntityEmbedding = `${combinedEntityEmbedding  }${embeddingInput}\n`;
     propertyEmbeddings.push(embeddingInput);
     usedPropertyBaseUrls.push(baseUrl);
   }
@@ -103,8 +105,8 @@ export const createEntityEmbeddings = async (params: {
 
   return {
     usage,
-    embeddings: embeddings.map((embedding, idx) => ({
-      property: usedPropertyBaseUrls[idx],
+    embeddings: embeddings.map((embedding, index) => ({
+      property: usedPropertyBaseUrls[index],
       embedding,
     })),
   };
@@ -125,6 +127,7 @@ export const createEntityTypeEmbeddings = async (params: {
   const { embeddings, usage } = await createEmbeddings({
     input: embeddingInputs,
   });
+
   if (embeddings.length !== 1) {
     throw new Error("Expected exactly one embedding");
   }
@@ -150,6 +153,7 @@ export const createPropertyTypeEmbeddings = async (params: {
   const { embeddings, usage } = await createEmbeddings({
     input: embeddingInputs,
   });
+
   if (embeddings.length !== 1) {
     throw new Error("Expected exactly one embedding");
   }
@@ -175,6 +179,7 @@ export const createDataTypeEmbeddings = async (params: {
   const { embeddings, usage } = await createEmbeddings({
     input: embeddingInputs,
   });
+
   if (embeddings.length !== 1) {
     throw new Error("Expected exactly one embedding");
   }

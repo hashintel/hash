@@ -1,26 +1,21 @@
+import ts from "typescript";
 import type {
   BaseUrl,
   DataType,
   EntityType,
-  PropertyType,
-} from "@blockprotocol/type-system/slim";
-import {
   extractBaseUrl,
-  extractVersion,
-} from "@blockprotocol/type-system/slim";
-import ts from "typescript";
+  extractVersion,  PropertyType} from "@blockprotocol/type-system/slim";
 
 import { mustBeDefined } from "../../util/must-be-defined.js";
 import { typedEntries, typedKeys } from "../../util/typed-object-iter.js";
 import type { PreprocessContext } from "../context.js";
-import type { JsonSchema } from "../shared.js";
-import { generatedTypeSuffix } from "../shared.js";
+import type { generatedTypeSuffix,JsonSchema  } from "../shared.js";
 
 const typescriptKeywords = new Array(
   ts.SyntaxKind.LastKeyword - ts.SyntaxKind.FirstKeyword,
 )
   .fill(0)
-  .map((_, idx) => ts.tokenToString(ts.SyntaxKind.FirstKeyword + idx)!);
+  .map((_, index) => ts.tokenToString(ts.SyntaxKind.FirstKeyword + index)!);
 
 const isTypescriptKeyword = (name: string) => {
   return typescriptKeywords.includes(name);
@@ -28,18 +23,18 @@ const isTypescriptKeyword = (name: string) => {
 
 /**
  * Extracts the alphanumeric characters from the title and creates a Title Cased version that can be used as a
- * TypeScript identifier
+ * TypeScript identifier.
  *
  * @param title
  */
 const generateValidTypeScriptIdentifierFromTitle = (title: string): string => {
   /* @todo - Handle acronyms, we should do a non-case-sensitive match and then convert all the groups to lower-case */
   // extract all letters and numbers from the title, and capitalise the start of each component
-  const pascalCase = (title.match(/[a-zA-Z0-9]+/g) ?? [])
+  const pascalCase = (title.match(/[\dA-Za-z]+/g) ?? [])
     .map((word: string) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
     .join("");
 
-  const typeName = !/[a-zA-Z]/.test(pascalCase.charAt(0))
+  const typeName = !/[A-Za-z]/.test(pascalCase.charAt(0))
     ? `T${pascalCase}`
     : pascalCase;
 
@@ -72,7 +67,7 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
     metadataSchema: {},
   };
 
-  const typeNameOverrides = context.parameters.typeNameOverrides;
+  const {typeNameOverrides} = context.parameters;
 
   for (const [typeId, type] of typedEntries(context.allTypes)) {
     const override = typeNameOverrides[typeId];
@@ -99,6 +94,7 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
 
         for (const type of typesForName) {
           const baseUrl = extractBaseUrl(type.$id);
+
           baseUrlToTypes[baseUrl] ??= [];
           // @ts-expect-error ––  This `any` is safe as we're literally passing the same type back in, TS is just confused by the disjoint
           // union of `DataType[] | PropertyType[] | EntityType[]`
@@ -111,6 +107,7 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
 
           // We want this process to be deterministic so we sort by Base URL
           const baseUrlToTypesEntries = typedEntries(baseUrlToTypes);
+
           (baseUrlToTypesEntries as [BaseUrl, any][]).sort(
             ([baseUrlA, _A], [baseUrlB, _B]) =>
               baseUrlA.localeCompare(baseUrlB),
@@ -148,9 +145,9 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
       }
 
       for (const type of typesForName) {
-        type.title += generatedTypeSuffix[typeKind];
+        type.title = type.title + generatedTypeSuffix[typeKind];
         if (isTypescriptKeyword(type.title)) {
-          type.title += "Type";
+          type.title = `${type.title  }Type`;
         }
         context.logTrace(`Renamed the title of ${type.$id} to ${type.title}`);
       }

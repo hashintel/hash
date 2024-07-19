@@ -15,7 +15,7 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
 
   const typesToFiles: Record<VersionedUrl, Set<string>> = typedEntries(
     context.parameters.targets,
-  ).reduce(
+  ).reduce<Record<VersionedUrl, Set<string>>>(
     (mapObject, [file, { sourceTypeIds }]) => {
       for (const typeId of sourceTypeIds) {
         // eslint-disable-next-line no-param-reassign -- this is a reduce function..
@@ -33,7 +33,7 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
 
       return mapObject;
     },
-    {} as Record<VersionedUrl, Set<string>>,
+    {},
   );
 
   for (const [typeId, fileSet] of typedEntries(typesToFiles)) {
@@ -44,6 +44,7 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
     );
 
     let definingFile;
+
     if (files.length > 1) {
       context.logTrace(
         `Type ${type.title} is defined in multiple files: ${files.join(

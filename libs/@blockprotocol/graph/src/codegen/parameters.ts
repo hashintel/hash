@@ -1,12 +1,11 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
+import type { validateVersionedUrl,VersionedUrl  } from "@blockprotocol/type-system/slim";
 
 import { typedEntries, typedKeys } from "../util/typed-object-iter.js";
 
 /**
  * The input parameters of Codegen, prior to their validation.
  */
-export type CodegenParameters = {
+export interface CodegenParameters {
   /** Files, and the types to generate within them */
   outputFolder: string;
   targets: {
@@ -37,7 +36,7 @@ export type CodegenParameters = {
           [sourceTypeId: string]: string;
         };
       };
-};
+}
 
 export const validateCodegenParameters = (
   parameters: unknown,

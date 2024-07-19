@@ -1,3 +1,4 @@
+import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
@@ -10,8 +11,7 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { joinOrg,User  } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -28,10 +28,8 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import type { EntityRootType , linkEntityTypeUrl } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -50,7 +48,7 @@ const logger = new Logger({
 const graphContext = createTestImpureGraphContext();
 const { graphApi } = graphContext;
 
-describe("Entity CRU", () => {
+describe("entity CRU", () => {
   let testOrg: Org;
   let testUser: User;
   let testUser2: User;
@@ -102,12 +100,12 @@ describe("Entity CRU", () => {
           },
         ],
       })
-        .then((val) => {
-          linkEntityTypeFriend = val;
+        .then((value) => {
+          linkEntityTypeFriend = value;
         })
-        .catch((err) => {
-          logger.error("Something went wrong making link type Friends", err);
-          throw err;
+        .catch((error) => {
+          logger.error("Something went wrong making link type Friends", error);
+          throw error;
         }),
       createPropertyType(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
@@ -124,12 +122,12 @@ describe("Entity CRU", () => {
           },
         ],
       })
-        .then((val) => {
-          favoriteBookPropertyType = val;
+        .then((value) => {
+          favoriteBookPropertyType = value;
         })
-        .catch((err) => {
-          logger.error("Something went wrong making Favorite Book", err);
-          throw err;
+        .catch((error) => {
+          logger.error("Something went wrong making Favorite Book", error);
+          throw error;
         }),
       createPropertyType(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
@@ -146,12 +144,12 @@ describe("Entity CRU", () => {
           },
         ],
       })
-        .then((val) => {
-          namePropertyType = val;
+        .then((value) => {
+          namePropertyType = value;
         })
-        .catch((err) => {
-          logger.error("Something went wrong making Names", err);
-          throw err;
+        .catch((error) => {
+          logger.error("Something went wrong making Names", error);
+          throw error;
         }),
     ]);
 
@@ -204,8 +202,10 @@ describe("Entity CRU", () => {
   });
 
   let createdEntity: Entity;
-  it("can create an entity", async () => {
+
+  test("can create an entity", async () => {
     const authentication = { actorId: testUser.accountId };
+
     createdEntity = await createEntity(graphContext, authentication, {
       ownedById: testOrg.accountGroupId as OwnedById,
       properties: {
@@ -231,7 +231,7 @@ describe("Entity CRU", () => {
     });
   });
 
-  it("can read an entity", async () => {
+  test("can read an entity", async () => {
     const fetchedEntity = await getLatestEntityById(
       graphContext,
       { actorId: testUser.accountId },
@@ -249,7 +249,8 @@ describe("Entity CRU", () => {
   });
 
   let updatedEntity: Entity;
-  it("can update an entity", async () => {
+
+  test("can update an entity", async () => {
     expect(createdEntity.metadata.provenance.edition.createdById).toBe(
       testUser.accountId,
     );
@@ -284,14 +285,14 @@ describe("Entity CRU", () => {
           },
         ],
       },
-    ).catch((err) => Promise.reject(err));
+    ).catch((error) => Promise.reject(error));
 
     expect(updatedEntity.metadata.provenance.edition.createdById).toBe(
       testUser2.accountId,
     );
   });
 
-  it("can read all latest person entities", async () => {
+  test("can read all latest person entities", async () => {
     const allEntities = await graphApi
       .getEntitySubgraph(testUser.accountId, {
         filter: {
@@ -332,7 +333,7 @@ describe("Entity CRU", () => {
     );
 
     // Even though we've inserted two entities, they're the different versions of the same entity.
-    expect(allEntities.length).toBe(1);
+    expect(allEntities).toHaveLength(1);
     expect(newlyUpdated).toBeDefined();
 
     expect(newlyUpdated?.metadata.recordId.editionId).toEqual(
@@ -345,7 +346,7 @@ describe("Entity CRU", () => {
     );
   });
 
-  it("can create entity with linked entities from an entity definition", async () => {
+  test("can create entity with linked entities from an entity definition", async () => {
     const aliceEntity = await createEntityWithLinks(
       graphContext,
       { actorId: testUser.accountId },
@@ -398,13 +399,13 @@ describe("Entity CRU", () => {
       )
     )[0]!;
 
-    expect(
-      await getLinkEntityRightEntity(
+    await expect(
+      getLinkEntityRightEntity(
         graphContext,
         { actorId: testUser.accountId },
         { linkEntity },
       ),
-    ).toEqual(updatedEntity);
+    ).resolves.toEqual(updatedEntity);
     expect(linkEntity.metadata.entityTypeId).toEqual(
       linkEntityTypeFriend.schema.$id,
     );

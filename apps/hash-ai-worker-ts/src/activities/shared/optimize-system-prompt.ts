@@ -1,5 +1,4 @@
 import "../../shared/testing-utilities/mock-get-flow-context.js";
-
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -13,8 +12,9 @@ import type {
 
 const escapeCSV = (value: string) => {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
+    return `"${value.replaceAll('"', '""')}"`;
   }
+
   return value;
 };
 
@@ -107,7 +107,7 @@ const saveSummaryToCSV = (params: {
           );
 
         return scores.length > 0
-          ? scores.reduce((acc, score) => acc + score, 0) / scores.length
+          ? scores.reduce((accumulator, score) => accumulator + score, 0) / scores.length
           : 0;
       });
 
@@ -121,13 +121,13 @@ const saveSummaryToCSV = (params: {
         });
 
         return scores.length > 0
-          ? scores.reduce((acc, score) => acc + score, 0) / scores.length
+          ? scores.reduce((accumulator, score) => accumulator + score, 0) / scores.length
           : 0;
       });
 
       const allScores = [...modelAverageScores, ...metricAverageScores];
       const overallScore =
-        allScores.reduce((acc, score) => acc + score, 0) / allScores.length;
+        allScores.reduce((accumulator, score) => accumulator + score, 0) / allScores.length;
 
       return [
         iteration.toString(),
@@ -240,7 +240,7 @@ export const optimizeSystemPrompt = async (params: {
       filePrefix: runStartTimestamp,
     });
 
-    currentIteration += 1;
+    currentIteration = currentIteration + 1;
 
     /**
      * If the current iteration is greater than the number of iterations, there

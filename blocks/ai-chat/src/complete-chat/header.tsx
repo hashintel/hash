@@ -1,3 +1,4 @@
+import type { FunctionComponent , useState } from "react";
 import {
   BlockSettingsButton,
   GetHelpLink,
@@ -10,13 +11,9 @@ import {
   selectClasses,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useState } from "react";
 
-import type { ChatModelId } from "./chat-model-selector";
-import { ChatModelSelector } from "./chat-model-selector";
-import type { SystemPromptId } from "./system-prompt-selector";
-import { SystemPromptSelector } from "./system-prompt-selector";
+import type { ChatModelId , ChatModelSelector } from "./chat-model-selector";
+import type { SystemPromptId , SystemPromptSelector } from "./system-prompt-selector";
 
 export const Header: FunctionComponent<{
   readonly: boolean;
@@ -57,19 +54,19 @@ export const Header: FunctionComponent<{
       >
         <GetHelpLink
           sx={{ fontWeight: 500 }}
-          href="https://blockprotocol.org/@hash/blocks/ai-chat"
+          href={"https://blockprotocol.org/@hash/blocks/ai-chat"}
         />
 
         {isMobile ? (
           <BlockSettingsButton
             expanded={mobileSettingsExpanded}
-            onClick={() => setMobileSettingsExpanded(!mobileSettingsExpanded)}
+            onClick={() => { setMobileSettingsExpanded(!mobileSettingsExpanded); }}
           />
         ) : null}
 
         <Collapse in={!isMobile || mobileSettingsExpanded}>
           <Typography
-            variant="regularTextLabels"
+            variant={"regularTextLabels"}
             sx={{
               display: "inline-flex",
               gap: 1,
@@ -86,10 +83,7 @@ export const Header: FunctionComponent<{
             <ChatModelSelector
               open={chatModelSelectorOpen}
               disabled={disabled}
-              onOpen={() => setChatModelSelectorOpen(true)}
-              onClose={() => setChatModelSelectorOpen(false)}
               value={chatModel}
-              onChange={setChatModel}
               sx={{
                 [`& .${selectClasses.icon}`]: {
                   right: 0,
@@ -102,15 +96,15 @@ export const Header: FunctionComponent<{
                     paddingRight: disabled ? 0 : 2,
                   },
               }}
+              onOpen={() => { setChatModelSelectorOpen(true); }}
+              onClose={() => { setChatModelSelectorOpen(false); }}
+              onChange={setChatModel}
             />
             in
             <SystemPromptSelector
               open={systemPromptSelectorOpen}
               disabled={disabled}
-              onOpen={() => setSystemPromptSelectorOpen(true)}
-              onClose={() => setSystemPromptSelectorOpen(false)}
               value={systemPromptId}
-              onChange={setSystemPromptId}
               sx={{
                 [`& .${selectClasses.select}`]: {
                   paddingLeft: 0,
@@ -119,6 +113,9 @@ export const Header: FunctionComponent<{
                   paddingRight: disabled ? 0 : undefined,
                 },
               }}
+              onOpen={() => { setSystemPromptSelectorOpen(true); }}
+              onClose={() => { setSystemPromptSelectorOpen(false); }}
+              onChange={setSystemPromptId}
             />
           </Typography>
         </Collapse>

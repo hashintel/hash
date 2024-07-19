@@ -1,7 +1,7 @@
+import { describe, expect, test } from "vitest";
 import type { Subgraph as ApiClientSubgraph } from "@local/hash-graph-client";
 import { mapGraphApiVerticesToVertices } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Subgraph } from "@local/hash-subgraph";
-import { describe, expect, it } from "vitest";
 
 import { dereferenceEntityType } from "./dereference-entity-type.js";
 
@@ -1001,8 +1001,8 @@ const expectedResult = {
   },
 };
 
-describe("The dereferenceEntityType function", () => {
-  it("correctly dereferences an entity type", () => {
+describe("the dereferenceEntityType function", () => {
+  test("correctly dereferences an entity type", () => {
     const {
       simplifiedPropertyTypeMappings: _simplifiedPropertyTypeMappings,
       ...result

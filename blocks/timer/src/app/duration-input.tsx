@@ -3,19 +3,17 @@ import type {
   FocusEventHandler,
   FunctionComponent,
   KeyboardEventHandler,
-} from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
+ useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { clamp } from "./clamp";
 
-type DurationInputProps = {
-  /** milliseconds */
+interface DurationInputProps {
+  /** Milliseconds */
   value: number;
   disabled: boolean;
-  /** @param newValue milliseconds */
+  /** @param newValue - milliseconds 
   onChange: (newValue: number) => void;
   onSubmit: () => void;
-};
+}
 
 type InputTexts = [string, string];
 type InputTextIndex = 0 | 1;
@@ -46,6 +44,7 @@ const padDigits = (value: number): string => `${value}`.padStart(2, "0");
 const convertDurationInMsToInputTexts = (value: number): InputTexts => {
   const minutes = Math.floor(value / 60000);
   const seconds = Math.floor(value / 1000) % 60;
+
   return [padDigits(minutes), padDigits(seconds)];
 };
 
@@ -86,6 +85,7 @@ export const DurationInput: FunctionComponent<DurationInputProps> = ({
         .join("");
 
       const newInputTexts = [...userInputTexts] as InputTexts;
+
       newInputTexts[inputIndex] = sanitizedValue;
       setUserInputTexts(newInputTexts);
     },
@@ -95,6 +95,7 @@ export const DurationInput: FunctionComponent<DurationInputProps> = ({
   // onSubmit is called inside setTimeout. If this prop changes between re-renders,
   // we might end up with stale values in the closure. So calling a ref instead.
   const onSubmitRef = useRef(onSubmit);
+
   useEffect(() => {
     onSubmitRef.current = onSubmit;
   }, [onSubmit]);
@@ -112,6 +113,7 @@ export const DurationInput: FunctionComponent<DurationInputProps> = ({
 
         onChange(value + step);
         event.preventDefault();
+
         return;
       }
 
@@ -139,6 +141,7 @@ export const DurationInput: FunctionComponent<DurationInputProps> = ({
         inputToJumpTo.setSelectionRange(0, inputToJumpTo.value.length);
         inputToJumpTo.focus();
         event.preventDefault();
+
         return;
       }
 
@@ -157,6 +160,7 @@ export const DurationInput: FunctionComponent<DurationInputProps> = ({
       return;
     }
     const newDurationInMs = convertInputTextsToDurationInMs(userInputTexts);
+
     onChange(newDurationInMs);
     setUserInputTexts(normalizedInputTexts);
   }, [normalizedInputTexts, onChange, userInputTexts]);
@@ -171,21 +175,21 @@ export const DurationInput: FunctionComponent<DurationInputProps> = ({
       <input
         data-index={0}
         disabled={disabled}
+        tabIndex={disabled ? -1 : undefined}
+        value={userInputTexts[0]}
         onBlur={handleInputBlur}
         onChange={handleInputChange}
         onKeyDown={handleInputKeyDown}
-        tabIndex={disabled ? -1 : undefined}
-        value={userInputTexts[0]}
       />
       <span>:</span>
       <input
         data-index={1}
         disabled={disabled}
+        tabIndex={disabled ? -1 : undefined}
+        value={userInputTexts[1]}
         onBlur={handleInputBlur}
         onChange={handleInputChange}
         onKeyDown={handleInputKeyDown}
-        tabIndex={disabled ? -1 : undefined}
-        value={userInputTexts[1]}
       />
     </div>
   );

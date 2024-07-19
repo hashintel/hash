@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import {
   faArrowRotateLeft,
@@ -15,7 +16,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ContentStack } from "./address-card/content-stack";
 import { MapWrapper } from "./address-card/map-wrapper";
@@ -24,7 +24,7 @@ import { AppleIcon } from "./icons/apple-icon";
 import { GoogleIcon } from "./icons/google-icon";
 import { MapButton } from "./map-button";
 
-type AddressCardProps = {
+interface AddressCardProps {
   title?: string;
   description?: string;
   fullAddress: string;
@@ -38,7 +38,7 @@ type AddressCardProps = {
   updateDescription: (description: string) => void;
   incrementZoomLevel?: () => void;
   decrementZoomLevel?: () => void;
-};
+}
 
 export const AddressCard = ({
   title,
@@ -100,9 +100,7 @@ export const AddressCard = ({
         <Stack gap={1.5}>
           <EditableField
             value={titleValue}
-            placeholder="Enter title"
-            onChange={(event) => setTitleValue(event.target.value)}
-            onBlur={(event) => updateTitle(event.target.value)}
+            placeholder={"Enter title"}
             readonly={readonly}
             sx={{
               fontWeight: 700,
@@ -111,12 +109,14 @@ export const AddressCard = ({
               letterSpacing: "-0.02em",
               color: theme.palette.common.black,
             }}
+            onChange={(event) => { setTitleValue(event.target.value); }}
+            onBlur={(event) => { updateTitle(event.target.value); }}
           />
 
-          <Box display="flex" gap={1} alignItems="center">
+          <Box display={"flex"} gap={1} alignItems={"center"}>
             {fullAddress ? (
               <Typography
-                variant="regularTextLabels"
+                variant={"regularTextLabels"}
                 sx={{
                   fontWeight: 500,
                   lineHeight: 1.3,
@@ -129,8 +129,7 @@ export const AddressCard = ({
             ) : null}
             {readonly ? (
               <Button
-                onClick={copyToClipboard}
-                variant="tertiary"
+                variant={"tertiary"}
                 sx={{
                   display: "inline-flex",
                   alignItems: "flex-start",
@@ -140,6 +139,7 @@ export const AddressCard = ({
                   minHeight: "unset",
                   padding: 1,
                 }}
+                onClick={copyToClipboard}
               >
                 <FontAwesomeIcon icon={faCopy} sx={{ fontSize: 12 }} />
               </Button>
@@ -168,11 +168,7 @@ export const AddressCard = ({
         <EditableField
           editIconFontSize={14}
           value={descriptionValue}
-          placeholder="Click here to add a description or more detailed information"
-          onChange={(event) => setDescriptionValue(event.target.value)}
-          onBlur={(event) => {
-            updateDescription(event.target.value);
-          }}
+          placeholder={"Click here to add a description or more detailed information"}
           readonly={readonly}
           sx={{
             fontWeight: 500,
@@ -180,6 +176,10 @@ export const AddressCard = ({
             lineHeight: 1.3,
             letterSpacing: "-0.02em",
             color: theme.palette.gray[90],
+          }}
+          onChange={(event) => { setDescriptionValue(event.target.value); }}
+          onBlur={(event) => {
+            updateDescription(event.target.value);
           }}
         />
       </ContentStack>
@@ -196,9 +196,8 @@ export const AddressCard = ({
               }}
             >
               <Button
-                onClick={incrementZoomLevel}
                 disabled={!incrementZoomLevel}
-                variant="tertiary"
+                variant={"tertiary"}
                 sx={{
                   minWidth: "unset",
                   minHeight: "unset",
@@ -207,13 +206,13 @@ export const AddressCard = ({
                   borderBottomRightRadius: 0,
                   borderBottomWidth: 0,
                 }}
+                onClick={incrementZoomLevel}
               >
                 <FontAwesomeIcon icon={faPlus} />
               </Button>
               <Button
-                onClick={decrementZoomLevel}
                 disabled={!decrementZoomLevel}
-                variant="tertiary"
+                variant={"tertiary"}
                 sx={{
                   minWidth: "unset",
                   minHeight: "unset",
@@ -221,6 +220,7 @@ export const AddressCard = ({
                   borderTopLeftRadius: 0,
                   borderTopRightRadius: 0,
                 }}
+                onClick={decrementZoomLevel}
               >
                 <FontAwesomeIcon icon={faMinus} />
               </Button>
@@ -251,8 +251,8 @@ export const AddressCard = ({
             >
               ©{" "}
               <Link
-                href="https://www.mapbox.com/about/maps/"
-                target="_blank"
+                href={"https://www.mapbox.com/about/maps/"}
+                target={"_blank"}
                 sx={{
                   color: "inherit !important",
                   textDecoration: "none !important",
@@ -262,8 +262,8 @@ export const AddressCard = ({
               </Link>{" "}
               ©{" "}
               <Link
-                href="https://www.openstreetmap.org/copyright"
-                target="_blank"
+                href={"https://www.openstreetmap.org/copyright"}
+                target={"_blank"}
                 sx={{
                   color: "inherit !important",
                   textDecoration: "none !important",
@@ -291,9 +291,8 @@ export const AddressCard = ({
         {!readonly ? (
           <Fade in={hovered}>
             <Button
-              size="small"
-              onClick={onClose}
-              variant="tertiary"
+              size={"small"}
+              variant={"tertiary"}
               sx={({ palette }) => ({
                 position: "absolute",
                 minHeight: 0,
@@ -326,6 +325,7 @@ export const AddressCard = ({
                   sx={{ fill: "inherit" }}
                 />
               }
+              onClick={onClose}
             >
               Clear location
             </Button>

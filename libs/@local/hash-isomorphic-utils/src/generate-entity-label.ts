@@ -1,8 +1,7 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityMetadata, Property } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, extractEntityUuidFromEntityId,Subgraph  } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getRoots,
@@ -36,7 +35,7 @@ const getFallbackLabel = ({
   entity: { properties: Entity["properties"]; metadata: EntityMetadata };
 }) => {
   // fallback to the entity type and a few characters of the entityUuid
-  const entityId = entity.metadata.recordId.entityId;
+  const {entityId} = entity.metadata.recordId;
 
   const entityTypeName = entityType?.schema.title ?? "Entity";
 
@@ -49,6 +48,7 @@ const getFallbackLabel = ({
 /**
  * Generate a display label for an entity
  * Prefers the BP-specified labelProperty if it exists.
+ *
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
 export const generateEntityLabel = (
@@ -61,8 +61,10 @@ export const generateEntityLabel = (
   const entityToLabel = entity ?? getRoots(entitySubgraph!)[0]!;
 
   let entityType: EntityTypeWithMetadata | undefined;
+
   if (entitySubgraph) {
     let entityTypeAndAncestors: EntityTypeWithMetadata[] | undefined;
+
     try {
       entityTypeAndAncestors = getEntityTypeAndParentsById(
         entitySubgraph,
@@ -71,7 +73,7 @@ export const generateEntityLabel = (
 
       entityType = entityTypeAndAncestors[0];
     } catch (error) {
-      // eslint-disable-next-line no-console -- prefer not to crash here but still have some feedback that there's an issue
+       
       console.error(
         `Error looking for entity type and ancestors in provided subgraph: ${
           (error as Error).message
@@ -146,9 +148,9 @@ export const generateEntityLabel = (
 
   if (firstName && lastName) {
     return `${firstName} ${lastName}`;
-  } else if (firstName) {
+  } if (firstName) {
     return firstName;
-  } else if (lastName) {
+  } if (lastName) {
     return lastName;
   }
 

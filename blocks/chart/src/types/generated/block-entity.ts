@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity, LinkData } from "@blockprotocol/graph";
+import type { Entity, LinkData } from "@blockprotocol/graph";
 
 export type BlockEntity = ChartBlock;
 
@@ -10,21 +10,21 @@ export type BlockEntityOutgoingLinkAndTarget = ChartBlockOutgoingLinkAndTarget;
 
 export type ChartBlock = Entity<ChartBlockProperties>;
 
-export type ChartBlockHasQueryLink = {
+export interface ChartBlockHasQueryLink {
   linkEntity: HasQuery;
   rightEntity: Query;
-};
+}
 
 export type ChartBlockOutgoingLinkAndTarget = ChartBlockHasQueryLink;
 
-export type ChartBlockOutgoingLinksByLinkEntityTypeId = {
+export interface ChartBlockOutgoingLinksByLinkEntityTypeId {
   "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1": ChartBlockHasQueryLink;
-};
+}
 
-export type ChartBlockProperties = {
+export interface ChartBlockProperties {
   "https://blockprotocol.org/@hash/types/property-type/chart-defintion/"?: ChartDefintionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
-};
+}
 
 /**
  * The chart definition of something.
@@ -35,7 +35,7 @@ export type HasQuery = Entity<HasQueryProperties> & { linkData: LinkData };
 
 export type HasQueryOutgoingLinkAndTarget = never;
 
-export type HasQueryOutgoingLinksByLinkEntityTypeId = {};
+export interface HasQueryOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The query that something has.
@@ -43,30 +43,30 @@ export type HasQueryOutgoingLinksByLinkEntityTypeId = {};
 export type HasQueryProperties = HasQueryProperties1 & HasQueryProperties2;
 export type HasQueryProperties1 = LinkProperties;
 
-export type HasQueryProperties2 = {};
+export interface HasQueryProperties2 {}
 
 export type Link = Entity<LinkProperties>;
 
 export type LinkOutgoingLinkAndTarget = never;
 
-export type LinkOutgoingLinksByLinkEntityTypeId = {};
+export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export type LinkProperties = {};
+export interface LinkProperties {}
 
 /**
- * An opaque, untyped JSON object
+ * An opaque, untyped JSON object.
  */
-export type ObjectDataType = {};
+export interface ObjectDataType {}
 
 export type Query = Entity<QueryProperties>;
 
 export type QueryOutgoingLinkAndTarget = never;
 
-export type QueryOutgoingLinksByLinkEntityTypeId = {};
+export interface QueryOutgoingLinksByLinkEntityTypeId {}
 
-export type QueryProperties = {
+export interface QueryProperties {
   "https://blockprotocol.org/@hash/types/property-type/query/": QueryPropertyValue;
-};
+}
 
 /**
  * The query for something.
@@ -74,7 +74,7 @@ export type QueryProperties = {
 export type QueryPropertyValue = ObjectDataType;
 
 /**
- * An ordered sequence of characters
+ * An ordered sequence of characters.
  */
 export type TextDataType = string;
 

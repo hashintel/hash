@@ -1,7 +1,7 @@
+import dedent from "dedent";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
-import dedent from "dedent";
 
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page.js";
 import type {
@@ -40,13 +40,13 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   const { webId, userAuthentication } = await getFlowContext();
 
   /**
-   * Inference step 1: get a list of entities that can be inferred from the input text, without property details
+   * Inference step 1: get a list of entities that can be inferred from the input text, without property details.
    *
    * The two-step approach is intended to:
    * 1. Allow for inferring more entities than completion token limits would allow for if all entity details were
    * inferred in one step
    * 2. Split the task into steps to encourage the model to infer as many entities as possible first, before filling
-   * out the details
+   * out the details.
    *
    * This step may need its own internal iteration if there are very many entities to infer – to be handled inside the
    * inferEntitySummaries function.
@@ -76,11 +76,12 @@ export const inferEntitiesFromWebPageActivity = async (params: {
         status.message ?? "no message provided"
       }`,
     );
+
     return status;
   }
 
   /**
-   * Step 2: Ask the model to propose entities inferred in step 1
+   * Step 2: Ask the model to propose entities inferred in step 1.
    *
    * The function should handle pagination internally to keep within completion token limits.
    */
@@ -121,7 +122,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     ${JSON.stringify(Object.values(inferenceState.proposedEntitySummaries))}
   `);
 
-  return await proposeEntities({
+  return proposeEntities({
     maxTokens: maxTokens ?? undefined,
     firstUserMessage: proposeEntitiesPrompt,
     entityTypes,

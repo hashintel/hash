@@ -1,8 +1,7 @@
-import type { Page } from "@playwright/test";
-import { expect } from "@playwright/test";
+import type { expect,Page  } from "@playwright/test";
 
 /**
- * @todo Remove this function in favor of `loginUsingUi`once we have a proper login flow
+ * @todo Remove this function in favor of `loginUsingUi`once we have a proper login flow.
  */
 export const loginUsingTempForm = async ({
   page,
@@ -22,6 +21,7 @@ export const loginUsingTempForm = async ({
   await page.press(emailInputSelector, "Enter");
 
   const passwordInputSelector = '[type="password"]';
+
   await page.fill(passwordInputSelector, userPassword);
   await page.press(passwordInputSelector, "Enter");
 

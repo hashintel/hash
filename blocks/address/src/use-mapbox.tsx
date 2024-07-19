@@ -1,28 +1,28 @@
+import debounce from "lodash.debounce";
+import type { RefObject , useCallback, useEffect, useState } from "react";
+import { useSessionstorageState } from "rooks";
+import { v4 as uuid } from "uuid";
 import type { MapboxRetrieveStaticMapData } from "@blockprotocol/service";
 import type {
   AutofillFeatureSuggestion,
   AutofillSuggestion,
 } from "@blockprotocol/service/dist/mapbox-types";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
-import debounce from "lodash.debounce";
-import type { RefObject } from "react";
-import { useCallback, useEffect, useState } from "react";
-import { useSessionstorageState } from "rooks";
-import { v4 as uuid } from "uuid";
 
 const toArrayBuffer = (buffer: Uint8Array) => {
   const arrayBuffer = new ArrayBuffer(buffer.length);
   const view = new Uint8Array(arrayBuffer);
-  for (let i = 0; i < buffer.length; ++i) {
-    const bufferElem = buffer[i];
-    if (bufferElem) {
-      view[i] = bufferElem;
+
+  for (const [i, bufferElement] of buffer.entries()) {
+    if (bufferElement) {
+      view[i] = bufferElement;
     }
   }
+
   return arrayBuffer;
 };
 
-export type Address = {
+export interface Address {
   addressId: string;
   postalCode: string;
   streetAddress: string;
@@ -30,7 +30,7 @@ export type Address = {
   addressCountry: string;
   fullAddress: string;
   featureName: string;
-};
+}
 
 export const useMapbox = (
   blockRootRef: RefObject<HTMLDivElement>,
@@ -62,6 +62,7 @@ export const useMapbox = (
   useEffect(() => {
     if (!sessionToken) {
       const token = uuid();
+
       setSessionToken(token);
     }
   }, [sessionToken, setSessionToken]);
@@ -81,6 +82,7 @@ export const useMapbox = (
       .then(({ data, errors }) => {
         if (errors) {
           setSuggestionsError(true);
+
           return;
         }
 
@@ -118,6 +120,7 @@ export const useMapbox = (
           .then(({ data, errors }) => {
             if (errors) {
               setSuggestionsError(true);
+
               return;
             }
 
@@ -125,6 +128,7 @@ export const useMapbox = (
             setMapError(false);
             if (data) {
               const selectedAddress = data.features[0];
+
               if (selectedAddress) {
                 setSelectedMapboxSuggestionActionId(selectedAddressId);
                 setSelectedMapboxSuggestion(selectedAddress);
@@ -200,6 +204,7 @@ export const useMapbox = (
           [blob],
           `${params.mapboxSuggestionActionId}_${params.zoomLevel}x.png`,
         );
+
         await uploadMap(file, params.mapboxSuggestionActionId);
         setFetchedImageForSuggestionActionId(params.mapboxSuggestionActionId);
       } else {

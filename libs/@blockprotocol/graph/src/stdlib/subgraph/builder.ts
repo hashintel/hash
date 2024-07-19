@@ -18,13 +18,11 @@ import type {
   EntityTypeWithMetadata,
   EntityVertexId,
   GraphResolveDepths,
-  OntologyTypeRecordId,
+ isEntityRecordId, isOntologyTypeRecordId,  OntologyTypeRecordId,
   OntologyTypeVertexId,
   PropertyTypeWithMetadata,
   Subgraph,
-  SubgraphTemporalAxes,
-} from "../../types.js";
-import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
+  SubgraphTemporalAxes } from "../../types.js";
 import { typedEntries } from "../../util.js";
 import { getVertexIdForRecordId } from "./vertex-id-for-element.js";
 
@@ -41,25 +39,23 @@ import { getVertexIdForRecordId } from "./vertex-id-for-element.js";
  *   - the caller is responsible for both of the above.
  * It DOES check that the provided roots are present in the data.
  *
- * @param data – the data to build the subgraph from (which becomes the vertices)
- * @param data.dataTypes – the data types to include in the subgraph
- * @param data.propertyTypes – the property types to include in the subgraph
- * @param data.entityTypes – the entity types to include in the subgraph
- * @param data.entities – the entities to include in the subgraph
- * @param depths – the depth values to provide in the returned subgraph
- * @param rootRecordIds – the {@link EntityRecordId}s and {@link OntologyTypeRecordId}s of the root elements to provide
- *   in the returned subgraph
- * @param {SubgraphTemporalAxes} subgraphTemporalAxes - the sets of temporal axes that were used when originally
- *   selecting the provided data
- *
- * @returns a Subgraph containing:
+ * @param data - – the data to build the subgraph from (which becomes the vertices).
+ * @param data.dataTypes - – the data types to include in the subgraph.
+ * @param data.propertyTypes - – the property types to include in the subgraph.
+ * @param data.entityTypes - – the entity types to include in the subgraph.
+ * @param data.entities - – the entities to include in the subgraph.
+ * @param depths - – the depth values to provide in the returned subgraph.
+ * @param rootRecordIds - – the {@link EntityRecordId}s and {@link OntologyTypeRecordId}s of the root elements to provide
+ *   in the returned subgraph.
+ * @param subgraphTemporalAxes - The sets of temporal axes that were used when originally
+ *   selecting the provided data.
+ * @returns A Subgraph containing:
  *   - 'vertices' containing the provided entities
  *   - 'edges' calculated by the function, representing connections between vertices
  *   - 'depths' as provided by the caller
  *   - 'roots' as provided by the caller
- *   - 'temporalAxes' where both the `initial` and `resolved` are as provided by the caller
- *
- * @throws if the provided roots are not present in the data
+ *   - 'temporalAxes' where both the `initial` and `resolved` are as provided by the caller.
+ * @throws If the provided roots are not present in the data.
  */
 export const buildSubgraph = (
   data: {
@@ -93,7 +89,7 @@ export const buildSubgraph = (
   if (missingRoots.length > 0) {
     throw new Error(
       `Elements associated with these root RecordId(s) were not present in data: ${missingRoots
-        .map((missingRoot) => `${JSON.stringify(missingRoot)}`)
+        .map((missingRoot) => JSON.stringify(missingRoot))
         .join(", ")}`,
     );
   }
@@ -129,9 +125,11 @@ export const buildSubgraph = (
   inferEntityEdgesInSubgraphByMutation(subgraph, entityVertexIds);
 
   const missingRootVertexIds = [];
+
   for (const rootRecordId of rootRecordIds) {
     try {
       const vertexId = getVertexIdForRecordId(subgraph, rootRecordId);
+
       subgraph.roots.push(vertexId);
     } catch (error) {
       missingRootVertexIds.push(rootRecordId);
@@ -150,7 +148,7 @@ export const buildSubgraph = (
 };
 
 /**
- * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`
+ * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`.
  *
  * This function will infer/add edges to a subgraph based on the vertices that are already present.
  * The {@link Subgraph} must not have any edges already present, as this would result in invalid state.
@@ -158,11 +156,11 @@ export const buildSubgraph = (
  *  - data type vertices
  *  - property type vertices
  *  - entity type vertices
- *  - entity vertices
+ *  - entity vertices.
  *
  * This operation MUTATES the given {@link Subgraph} - you should know why you need to do it.
  *
- * @param {Subgraph} subgraph – the subgraph to mutate by adding edges
+ * @param subgraph - – the subgraph to mutate by adding edges.
  */
 export const inferSubgraphEdges = (
   subgraph: Subgraph<EntityRootType>,
@@ -170,7 +168,7 @@ export const inferSubgraphEdges = (
   // Construct object with vertex ids for each vertex kind
   const vertexIds = typedEntries(subgraph.vertices).reduce(
     (
-      acc: {
+      accumulator: {
         dataTypeVertexIds: OntologyTypeVertexId[];
         propertyTypeVertexIds: OntologyTypeVertexId[];
         entityTypeVertexIds: OntologyTypeVertexId[];
@@ -179,13 +177,13 @@ export const inferSubgraphEdges = (
       [baseId, revisionObject],
     ) => {
       for (const [revisionId, vertex] of typedEntries(revisionObject)) {
-        acc[`${vertex.kind}VertexIds`].push({
+        accumulator[`${vertex.kind}VertexIds`].push({
           baseId,
           revisionId,
         });
       }
 
-      return acc;
+      return accumulator;
     },
     {
       dataTypeVertexIds: [],

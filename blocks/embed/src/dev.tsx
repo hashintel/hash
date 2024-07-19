@@ -3,16 +3,16 @@
  * This file is not bundled with the library during the build process.
  */
 import { MockBlockDock } from "mock-block-dock";
-import type { FunctionComponent } from "react";
-import { useState } from "react";
+import type { FunctionComponent , useState } from "react";
 import { createRoot } from "react-dom/client";
 import { tw } from "twind";
 
 import variants from "../variants.json";
-import Component from "./index";
-import type { ProviderName } from "./types";
 
-const node = document.getElementById("app");
+import type { ProviderName } from "./types";
+import Component from "./index";
+
+const node = document.querySelector("#app");
 
 /** Temporarily leaving this here, till we fix importing it from hash-isomorphic-utils */
 const apiGraphQLEndpoint = "http://localhost:5001/graphql";
@@ -39,14 +39,14 @@ const getEmbedBlock = async (
         "query getEmbedCode($url: String!, $type: String) {\n  embedCode(url: $url, type: $type) {\n    html\n    providerName\n     height\n     width\n    __typename\n  }\n}\n",
     }),
   });
-  /* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-member-access -- @todo validate JSON or add types */
+  /* eslint-disable @typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-member-access -- @todo validate JSON or add types */
   const responseData = await response.json();
 
   return {
     ...responseData.data?.embedCode,
     error: responseData?.errors?.[0]?.message,
   };
-  /* eslint-enable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-member-access */
+  /* eslint-enable @typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-member-access */
 };
 
 // @todo replace typeof variants[number] with type BlockVariant when available
@@ -72,7 +72,7 @@ const AppComponent: FunctionComponent = () => {
         className={tw`text-base border-1 border-gray-300 rounded-md p-1`}
         value={selectedVariantIndex}
         onChange={(event) =>
-          setSelectedVariantIndex(parseInt(event.target.value, 10))
+          { setSelectedVariantIndex(parseInt(event.target.value, 10)); }
         }
       >
         {variants.map((variant, variantIndex) => (
@@ -85,9 +85,9 @@ const AppComponent: FunctionComponent = () => {
       <br />
       <MockBlockDock>
         <Component
-          accountId="uuid-1234-account"
-          entityId="uuid-1234-id"
-          entityTypeId="Embed"
+          accountId={"uuid-1234-account"}
+          entityId={"uuid-1234-id"}
+          entityTypeId={"Embed"}
           getEmbedBlock={getEmbedBlock}
           {...initialState}
           {...getVariantProperties(variants[selectedVariantIndex]!)}

@@ -66,13 +66,13 @@ export const getFlowRunEntityById = async (params: {
   return existingFlowEntity ?? null;
 };
 
-type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
+interface GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> {
   flowRunId: EntityUuid;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
   temporalClient: TemporalClient;
   userAuthentication: { actorId: AccountId };
-};
+}
 
 export async function getFlowRunById(
   args: GetFlowRunByIdFnArgs<true>,
@@ -92,7 +92,7 @@ export async function getFlowRunById({
   graphApiClient,
   temporalClient,
   userAuthentication,
-}: GetFlowRunByIdFnArgs<boolean>): Promise<SparseFlowRun | FlowRun | null> {
+}: GetFlowRunByIdFnArgs): Promise<SparseFlowRun | FlowRun | null> {
   const existingFlowEntity = await getFlowRunEntityById({
     flowRunId,
     graphApiClient,
@@ -118,7 +118,8 @@ export async function getFlowRunById({
       temporalClient,
       webId,
     });
-  } else {
+  }
+ 
     return getSparseFlowRunFromWorkflowId({
       name: existingFlowEntity.properties[
         "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
@@ -129,29 +130,29 @@ export async function getFlowRunById({
       temporalClient,
       webId,
     });
-  }
+  
 }
 
-const convertScreamingSnakeToPascalCase = (str: string) =>
-  str
+const convertScreamingSnakeToPascalCase = (string_: string) =>
+  string_
     .split("_")
     .map((word) =>
       word[0] ? word[0].toUpperCase() + word.slice(1).toLowerCase() : "",
     )
     .join("");
 
-type GetFlowRunsFilters = {
+interface GetFlowRunsFilters {
   executionStatus?: FlowRunStatus | null;
   flowDefinitionIds?: string[] | null;
-};
+}
 
-type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
+interface GetFlowRunsFnArgs<IncludeDetails extends boolean> {
   authentication: { actorId: AccountId };
   filters: GetFlowRunsFilters;
   includeDetails: IncludeDetails;
   graphApiClient: GraphApi;
   temporalClient: TemporalClient;
-};
+}
 
 export async function getFlowRuns(
   args: GetFlowRunsFnArgs<true>,
@@ -208,6 +209,7 @@ export async function getFlowRuns({
         EntityUuid,
         { ownedById: OwnedById; name: string }
       > = {};
+
       for (const entity of response.entities) {
         const [ownedById, entityUuid] = splitEntityId(
           entity.metadata.recordId.entityId as EntityId,
@@ -220,12 +222,13 @@ export async function getFlowRuns({
           ownedById,
         };
       }
+
       return flowRunIdToOwnedByAndName;
     });
 
   const relevantFlowRunIds = typedKeys(relevantFlows);
 
-  if (!relevantFlowRunIds.length) {
+  if (relevantFlowRunIds.length === 0) {
     return [];
   }
 
@@ -235,7 +238,7 @@ export async function getFlowRuns({
     .join(", ")})`;
 
   if (filters.executionStatus) {
-    query += ` AND ExecutionStatus = "${convertScreamingSnakeToPascalCase(
+    query = `${query  } AND ExecutionStatus = "${convertScreamingSnakeToPascalCase(
       filters.executionStatus,
     )}"`;
   }
@@ -261,11 +264,12 @@ export async function getFlowRuns({
         temporalClient,
         webId: flowDetails.ownedById,
       });
+
       workflows.push(runInfo);
     }
 
     return workflows;
-  } else {
+  } 
     const workflows: SparseFlowRun[] = [];
 
     for await (const workflow of workflowIterable) {
@@ -284,9 +288,10 @@ export async function getFlowRuns({
         temporalClient,
         webId: flowDetails.ownedById,
       });
+
       workflows.push(runInfo);
     }
 
     return workflows;
-  }
+  
 }

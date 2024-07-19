@@ -1,4 +1,4 @@
-import { type Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import {
   getDataTypeById as getDataTypeByIdBp,
   getDataTypeByVertexId as getDataTypeByVertexIdBp,
@@ -15,7 +15,7 @@ import type {
 import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
 
 /**
- * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph
+ * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph.
  *
  * @param subgraph
  */
@@ -28,7 +28,7 @@ export const getDataTypes = (subgraph: Subgraph): DataTypeWithMetadata[] =>
  *
  * @param subgraph
  * @param dataTypeId
- * @throws if the vertex isn't a `DataTypeVertex`
+ * @throws If the vertex isn't a `DataTypeVertex`.
  */
 export const getDataTypeById = (
   subgraph: Subgraph,
@@ -43,9 +43,11 @@ export const mustGetDataTypeById = (
   dataTypeId: VersionedUrl,
 ): DataTypeWithMetadata => {
   const dataType = getDataTypeById(subgraph, dataTypeId);
+
   if (!dataType) {
     throw new Error(`Data type with id ${dataTypeId} not found in subgraph`);
   }
+
   return dataType;
 };
 
@@ -55,7 +57,7 @@ export const mustGetDataTypeById = (
  *
  * @param subgraph
  * @param vertexId
- * @throws if the vertex isn't a `DataTypeVertex`
+ * @throws If the vertex isn't a `DataTypeVertex`.
  */
 export const getDataTypeByVertexId = (
   subgraph: Subgraph,
@@ -66,7 +68,7 @@ export const getDataTypeByVertexId = (
     | undefined;
 
 /**
- * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
+ * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`.
  *
  * @param subgraph
  * @param baseUrl
@@ -93,9 +95,11 @@ export const getJsonSchemaTypeFromValue = (
 
   switch (typeof value) {
     case "number":
-    case "bigint":
+    case "bigint": {
       return "number";
-    default:
+    }
+    default: {
       return typeof value;
+    }
   }
 };

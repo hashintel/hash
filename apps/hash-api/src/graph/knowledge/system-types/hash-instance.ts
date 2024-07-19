@@ -1,8 +1,7 @@
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
-import {
-  getHashInstance,
+import type {   getHashInstance,
   getHashInstanceFromEntity,
+HashInstance ,
 } from "@local/hash-backend-utils/hash-instance";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -12,16 +11,17 @@ import { createAccountGroup } from "../../account-permission-management";
 import type { ImpureGraphFunction } from "../../context-types";
 import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
 import { createEntity } from "../primitive/entity";
+
 import { getOrgByShortname } from "./org";
 import type { User } from "./user";
 
 /**
  * Create the hash instance entity.
  *
- * @param params.pagesAreEnabled - whether or not pages are enabled
- * @param params.userSelfRegistrationIsEnabled - whether or not user self registration is enabled
- * @param params.userRegistrationByInviteIsEnabled - whether or not user registration by invitation is enabled
- * @param params.orgSelfRegistrationIsEnabled - whether or not org registration is enabled
+ * @param params.pagesAreEnabled - Whether or not pages are enabled.
+ * @param params.userSelfRegistrationIsEnabled - Whether or not user self registration is enabled.
+ * @param params.userRegistrationByInviteIsEnabled - Whether or not user registration by invitation is enabled.
+ * @param params.orgSelfRegistrationIsEnabled - Whether or not org registration is enabled.
  */
 export const createHashInstance: ImpureGraphFunction<
   {
@@ -139,8 +139,7 @@ export const createHashInstance: ImpureGraphFunction<
 /**
  * Add an instance admin to the hash instance.
  *
- * @param params.user - the user to be added as a hash instance admin.
- *
+ * @param params.user - The user to be added as a hash instance admin.
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const addHashInstanceAdmin: ImpureGraphFunction<
@@ -174,7 +173,7 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
 /**
  * Remove an instance admin from the hash instance.
  *
- * @param params.user - the user to be removed as a hash instance admin.
+ * @param params.user - The user to be removed as a hash instance admin.
  */
 export const removeHashInstanceAdmin: ImpureGraphFunction<
   { user: User },

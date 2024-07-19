@@ -14,7 +14,7 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /**
-   * Step 1. Ensure the `hashInstanceAdmins` account group has the `editor` permission on all user entities
+   * Step 1. Ensure the `hashInstanceAdmins` account group has the `editor` permission on all user entities.
    */
 
   const hashInstanceAdminsAccountGroupId =

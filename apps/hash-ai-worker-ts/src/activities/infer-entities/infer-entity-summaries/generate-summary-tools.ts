@@ -1,10 +1,9 @@
+import type { JSONSchema } from "openai/lib/jsonschema";
 import type { JsonObject } from "@blockprotocol/core";
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { validateVersionedUrl } from "@blockprotocol/type-system";
+import type { validateVersionedUrl,VersionedUrl  } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
@@ -24,7 +23,8 @@ export type ProposedEntitySummariesByType = Record<
 
 /**
  * Validates that the provided object is a valid ProposedEntitiesByType object.
- * @throws Error if the provided object does not match ProposedEntitiesByType
+ *
+ * @throws Error if the provided object does not match ProposedEntitiesByType.
  */
 export const validateEntitySummariesByType = (params: {
   parsedJson: JsonObject;
@@ -58,6 +58,7 @@ export const validateEntitySummariesByType = (params: {
     }
 
     const entityType = entityTypesById[entityTypeId as VersionedUrl];
+
     if (!entityType) {
       errorMessages.push(
         `Call to register_entity_summaries for unknown entity type ${entityTypeId}`,
@@ -126,6 +127,7 @@ export const validateEntitySummariesByType = (params: {
 
   for (const potentiallyLinkEntity of validSummariesWithLinksUnchecked) {
     const entityType = entityTypesById[potentiallyLinkEntity.entityTypeId]!;
+
     if (!entityType.isLink) {
       validSummaries.push(potentiallyLinkEntity);
     } else {
@@ -217,8 +219,8 @@ export const generateSummaryTools = (params: {
       inputSchema: {
         type: "object",
         properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
-          (acc, { schema, isLink }) => {
-            acc[schema.$id] = {
+          (accumulator, { schema, isLink }) => {
+            accumulator[schema.$id] = {
               type: "array",
               title: `Summaries of entities of type ${
                 schema.title
@@ -254,7 +256,8 @@ export const generateSummaryTools = (params: {
                 ],
               },
             };
-            return acc;
+
+            return accumulator;
           },
           {},
         ),

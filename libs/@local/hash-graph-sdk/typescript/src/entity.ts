@@ -23,7 +23,9 @@ import type {
   EntityRecordId,
   EntityTemporalVersioningMetadata,
   EntityUuid,
-  LinkData,
+  isArrayMetadata,
+  isObjectMetadata,
+  isValueMetadata,  LinkData,
   Property,
   PropertyArrayWithMetadata,
   PropertyMetadata,
@@ -33,15 +35,8 @@ import type {
   PropertyPatchOperation,
   PropertyPath,
   PropertyValueWithMetadata,
-  PropertyWithMetadata,
-} from "@local/hash-graph-types/entity";
-import {
-  isArrayMetadata,
-  isObjectMetadata,
-  isValueMetadata,
-} from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
+  PropertyWithMetadata} from "@local/hash-graph-types/entity";
+import type { BaseUrl , isBaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
@@ -84,6 +79,7 @@ export type PatchEntityParameters = Omit<
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
 );
+
 type TypeId = typeof typeId;
 
 export interface SerializedEntity<
@@ -94,7 +90,7 @@ export interface SerializedEntity<
   [typeId]: TypeId;
 }
 
-type EntityData<Properties extends EntityProperties = EntityProperties> = {
+interface EntityData<Properties extends EntityProperties = EntityProperties> {
   metadata: EntityMetadata<Properties["entityTypeId"]> & {
     confidence?: number;
     properties?: PropertyMetadataObject;
@@ -106,7 +102,7 @@ type EntityData<Properties extends EntityProperties = EntityProperties> = {
     leftEntityProvenance?: PropertyProvenance;
     rightEntityProvenance?: PropertyProvenance;
   };
-};
+}
 
 type EntityInput<Properties extends PropertyObject> =
   | GraphApiEntity
@@ -145,7 +141,7 @@ export const propertyObjectToPatches = (
  * Creates an array of PropertyPatchOperations that, if applied, will transform the oldProperties into the
  * newProperties.
  *
- * @deprecated this is a function for migration purposes only.
+ * @deprecated This is a function for migration purposes only.
  *    For new code, track which properties are actually changed where they are changed, and create the patch operations
  *   directly. IF you use this, bear in mind that newProperties MUST represent ALL the properties that the entity will
  *   have after the patch. Any properties not specified in newProperties will be removed.
@@ -198,14 +194,14 @@ export const patchesFromPropertyObjects = ({
  * The 'new value' is defined as the value for the first 'add' or 'replace' operation at that BaseUrl.
  * NOT supported:
  *  - the net effect of multiple operations on the same path
- *  - nested paths / array paths
+ *  - nested paths / array paths.
  *
- * If you want to see if a value has been _removed_, see {@link isValueRemovedByPatches}
+ * If you want to see if a value has been _removed_, see {@link isValueRemovedByPatches}.
  *
  * An alternative implementation could avoid the need for an inner function, by requiring that the Key was specified as
  * a generic: export const getDefinedPropertyFromPatches = < Properties extends PropertyObject, Key extends keyof
  * Properties,
- * > => { ... }
+ * > => { ... }.
  *
  * const newValue = getDefinedPropertyFromPatches<Properties, "https://example.com/">({ propertyPatches, baseUrl:
  * "https://example.com/" });
@@ -280,6 +276,7 @@ export const mergePropertiesAndMetadata = (
         )}`,
       );
     }
+
     // Metadata is for a value, so we treat the property as a value
     return {
       value: property,
@@ -291,8 +288,9 @@ export const mergePropertiesAndMetadata = (
     if (!metadata) {
       const returnedValues: Record<BaseUrl, PropertyWithMetadata> = {};
       let isPropertyObject = true;
+
       for (const [key, value] of typedEntries(property)) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
+         
         if (value === undefined) {
           continue;
         }
@@ -310,6 +308,7 @@ export const mergePropertiesAndMetadata = (
           value: returnedValues,
         } satisfies PropertyObjectWithMetadata;
       }
+
       // If the keys are not base urls, we treat the object as a value
       return {
         value: property,
@@ -320,7 +319,7 @@ export const mergePropertiesAndMetadata = (
       return {
         value: Object.fromEntries(
           Object.entries(property)
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
+             
             .filter(([_key, value]) => value !== undefined)
             .map(([key, value]) => {
               if (!isBaseUrl(key)) {
@@ -332,6 +331,7 @@ export const mergePropertiesAndMetadata = (
                   )}`,
                 );
               }
+
               return [
                 key,
                 mergePropertiesAndMetadata(value, metadata.value[key]),
@@ -350,6 +350,7 @@ export const mergePropertiesAndMetadata = (
         )}`,
       );
     }
+
     // Metadata is for a value, so we treat the property as a value
     return {
       value: property,
@@ -402,7 +403,7 @@ export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
   return {
     value: Object.fromEntries(
       Object.entries(property)
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
+         
         .filter(([_key, value]) => value !== undefined)
         .map(([key, value]) => {
           if (!isBaseUrl(key)) {
@@ -414,6 +415,7 @@ export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
               )}`,
             );
           }
+
           return [key, mergePropertiesAndMetadata(value, metadata?.value[key])];
         }),
     ),
@@ -561,7 +563,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       properties: PropertyObjectWithMetadata;
     },
   ): Promise<void> {
-    return await graphAPI
+    await graphAPI
       .validateEntity(authentication.actorId, params)
       .then(({ data }) => data);
   }
@@ -583,7 +585,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
      *    public async patch<NewPropertyMap extends EntityProperties = PropertyMap>(
      *      // PatchEntityParams sets a specific VersionedUrl based on NewPropertyMap, but this is not enforced by the compiler
      *      params: PatchEntityParameters<NewPropertyMap>,
-     *    )
+     *    ).
      */
   ): Promise<this> {
     return graphAPI
@@ -655,14 +657,16 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
       if (typeof key === "number") {
         if (Array.isArray(map.value)) {
           return map.value[key];
-        } else {
-          return undefined;
         }
-      } else if (!Array.isArray(map.value)) {
+ 
+          return undefined;
+        
+      } if (!Array.isArray(map.value)) {
         return map.value[key];
-      } else {
-        return undefined;
       }
+ 
+        return undefined;
+      
     }, this.#entity.metadata.properties)?.metadata;
   }
 

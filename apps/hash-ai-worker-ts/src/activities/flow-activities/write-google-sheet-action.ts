@@ -1,3 +1,4 @@
+import type { google,sheets_v4  } from "googleapis";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
@@ -27,12 +28,11 @@ import type {
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
-import type { sheets_v4 } from "googleapis";
-import { google } from "googleapis";
 
 import { getEntityByFilter } from "../shared/get-entity-by-filter.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
+
 import { getEntityUpdate } from "./shared/graph-requests.js";
 import type { FlowActionActivity } from "./types.js";
 import { convertCsvToSheetRequests } from "./write-google-sheet-action/convert-csv-to-sheet-requests.js";
@@ -55,13 +55,13 @@ const createSpreadsheet = async ({
     },
   });
 
-  const spreadsheetId = response.data.spreadsheetId;
+  const {spreadsheetId} = response.data;
 
   if (!spreadsheetId) {
     throw new Error("No spreadsheetId returned from Google Sheets API");
   }
 
-  const spreadsheetUrl = response.data.spreadsheetUrl;
+  const {spreadsheetUrl} = response.data;
 
   if (!spreadsheetUrl) {
     throw new Error("No spreadsheetUrl returned from Google Sheets API");
@@ -70,9 +70,9 @@ const createSpreadsheet = async ({
   return { ...response.data, spreadsheetId, spreadsheetUrl };
 };
 
-type ActivityHeartbeatDetails = {
+interface ActivityHeartbeatDetails {
   spreadsheetId?: string;
-};
+}
 
 export const writeGoogleSheetAction: FlowActionActivity<{
   vaultClient: VaultClient;
@@ -87,7 +87,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     });
 
   /**
-   * 1. Confirm that the Google account exists and has valid credentials associated with it
+   * 1. Confirm that the Google account exists and has valid credentials associated with it.
    */
   const googleAccount = await getGoogleAccountById({
     googleAccountId,
@@ -130,7 +130,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
   googleOAuth2Client.setCredentials(tokens);
 
   /**
-   * 2. Generate the individual Google Sheet requests necessary to write the data
+   * 2. Generate the individual Google Sheet requests necessary to write the data.
    */
   let sheetRequests: sheets_v4.Schema$Request[] | undefined;
 
@@ -184,7 +184,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
        * If we've been given a Block Protocol query, also provide linked entities to depth 1, since the query can't specify it.
        * If not, just use the exact entities we've been given from the previous step.
        *
-       * @todo once we start using a Structural Query instead, it can specify the traversal depth itself (1 becomes variable)
+       * @todo Once we start using a Structural Query instead, it can specify the traversal depth itself (1 becomes variable).
        */
       traversalDepth: isPersistedEntities ? 0 : 1,
     });
@@ -230,13 +230,15 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     spreadsheetId: string;
     spreadsheetUrl: string;
   };
+
   if (existingSpreadsheetId) {
     try {
       const retrievalResponse = await sheetsClient.spreadsheets.get({
         spreadsheetId: existingSpreadsheetId,
       });
 
-      const spreadsheetUrl = retrievalResponse.data.spreadsheetUrl;
+      const {spreadsheetUrl} = retrievalResponse.data;
+
       if (!spreadsheetUrl) {
         return {
           code: StatusCode.Internal,
@@ -267,12 +269,12 @@ export const writeGoogleSheetAction: FlowActionActivity<{
   }
 
   /**
-   * 4. Write the data to the Google Sheet
+   * 4. Write the data to the Google Sheet.
    */
 
   /**
    * We can't leave the spreadsheet without a sheet, so we need to insert one first and delete it at the end,
-   * to allow clearing out the existing sheets. sheetId is an Int32
+   * to allow clearing out the existing sheets. SheetId is an Int32.
    */
   const placeholderFirstSheetId = 2147483647;
 
@@ -310,7 +312,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
   });
 
   /**
-   * 5. Create or update and return the associated Google Sheets entity
+   * 5. Create or update and return the associated Google Sheets entity.
    */
   const fileProperties: GoogleSheetsFile["propertiesWithMetadata"] = {
     value: {
@@ -402,6 +404,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
   });
 
   let entityToReturn: Entity;
+
   if (existingEntity) {
     const { existingEntityIsDraft, isExactMatch, patchOperations } =
       getEntityUpdate({

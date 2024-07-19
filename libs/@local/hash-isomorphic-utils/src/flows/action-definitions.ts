@@ -323,10 +323,10 @@ const actionDefinitionsAsConst = {
       },
       /**
        * This is a placeholder for an 'additional context' input that can be used to provide context to the model,
-       * e.g. a list of entities that are already known to the user, whether to enable the model to link proposed entities to,
-       * or as useful context for a research task where some relevant data is already known.
+       * e.g. A list of entities that are already known to the user, whether to enable the model to link proposed entities to,
+       * or as useful context for a research task where some relevant data is already known..
        *
-       * @todo make this do something / rethink it as needed
+       * @todo Make this do something / rethink it as needed.
        */
       {
         oneOfPayloadKinds: ["Entity", "PersistedEntities"],
@@ -555,14 +555,14 @@ export const getSimplifiedActionInputs = <
 }): SimplifiedActionInputsObject<T> => {
   const { inputs } = params;
 
-  return inputs.reduce((acc, input) => {
+  return inputs.reduce<SimplifiedActionInputsObject<T>>((accumulator, input) => {
     const inputName = input.inputName as InputNameForAction<T>;
 
-    acc[inputName] = input.payload.value as InputPayloadType<
+    accumulator[inputName] = input.payload.value as InputPayloadType<
       T,
       typeof inputName
     >;
 
-    return acc;
-  }, {} as SimplifiedActionInputsObject<T>);
+    return accumulator;
+  }, {});
 };

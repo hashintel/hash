@@ -3,16 +3,6 @@
  */
 
 import type {
-  ArchivedPropertyValue,
-  ArchivedPropertyValueWithMetadata,
-  BlockCollection,
-  BlockCollectionOutgoingLinkAndTarget,
-  BlockCollectionOutgoingLinksByLinkEntityTypeId,
-  BlockCollectionProperties,
-  BlockCollectionPropertiesWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  FractionalIndexPropertyValue,
   FractionalIndexPropertyValueWithMetadata,
   HasParent,
   HasParentOutgoingLinkAndTarget,
@@ -41,16 +31,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  ArchivedPropertyValue,
-  ArchivedPropertyValueWithMetadata,
-  BlockCollection,
-  BlockCollectionOutgoingLinkAndTarget,
-  BlockCollectionOutgoingLinksByLinkEntityTypeId,
-  BlockCollectionProperties,
-  BlockCollectionPropertiesWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  FractionalIndexPropertyValue,
   FractionalIndexPropertyValueWithMetadata,
   HasParent,
   HasParentOutgoingLinkAndTarget,
@@ -77,3 +57,5 @@ export type {
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
 };
+
+export {type ArchivedPropertyValue, type ArchivedPropertyValueWithMetadata, type BlockCollection, type BlockCollectionOutgoingLinkAndTarget, type BlockCollectionOutgoingLinksByLinkEntityTypeId, type BlockCollectionProperties, type BlockCollectionPropertiesWithMetadata, type BooleanDataType, type BooleanDataTypeWithMetadata, type FractionalIndexPropertyValue} from "./shared.js";

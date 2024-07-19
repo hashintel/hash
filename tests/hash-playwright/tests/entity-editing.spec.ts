@@ -3,8 +3,7 @@ import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 import { resetDb } from "./shared/reset-db";
-import type { Locator, Page } from "./shared/runtime";
-import { expect, test } from "./shared/runtime";
+import type { expect, Locator, Page , test } from "./shared/runtime";
 
 /**
  * This gets the text for the requested cell in the hidden html table,
@@ -15,9 +14,9 @@ import { expect, test } from "./shared/runtime";
  */
 const getCellText = async (
   canvas: Locator,
-  /** zero-based (first column -> 0) */
+  /** Zero-based (first column -> 0) */
   colIndex: number,
-  /** zero-based (first row after header row -> 0) */
+  /** Zero-based (first row after header row -> 0) */
   rowIndex: number,
 ) => {
   // wait until glide-grid updates the cell texts (on the invisible accessibility table)
@@ -26,11 +25,12 @@ const getCellText = async (
   const text = await canvas
     .getByTestId(`glide-cell-${colIndex}-${rowIndex}`)
     .textContent();
+
   return text;
 };
 
 /**
- * Check that there is content rendered in the first cell of the first non-header row
+ * Check that there is content rendered in the first cell of the first non-header row.
  */
 const checkIfCellContainsNonWhitePixels = async (canvasLocator: Locator) => {
   const hasNonWhitePixels = await (
@@ -79,12 +79,12 @@ const checkIfCellContainsNonWhitePixels = async (canvasLocator: Locator) => {
 };
 
 /**
- * Click on the cell containing the value in the properties table
+ * Click on the cell containing the value in the properties table.
  */
 const clickOnValueCell = async (
   page: Page,
   canvas: Locator,
-  /** zero-based (first row after header row -> 0) */
+  /** Zero-based (first row after header row -> 0) */
   rowIndex: number,
 ) => {
   const canvasPos = await canvas.boundingBox();
@@ -120,7 +120,7 @@ test("user can update values on property table", async ({ page }) => {
 
   await page.goto(`/new/entity`);
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/new\/entity/));
+  await page.waitForURL((url) => Boolean(url.pathname.match(/^\/new\/entity/)));
 
   await page.getByRole("button", { name: "Add a type" }).click();
 
@@ -138,6 +138,7 @@ test("user can update values on property table", async ({ page }) => {
   await clickOnValueCell(page, propertyTableCanvas, 0);
 
   const profileUrl = "https://github.com/Example";
+
   await sleep(200);
 
   await page.keyboard.type(profileUrl);
@@ -165,12 +166,12 @@ test("both the link and properties tables renders some content", async ({
 
   await page.goto(`/new/entity`);
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/new\/entity/));
+  await page.waitForURL((url) => Boolean(url.pathname.match(/^\/new\/entity/)));
 
   await page.getByRole("button", { name: "Add a type" }).click();
 
   /**
-   * Get the `Document` type ('document format' appears in its description but not that of other types mentioning 'Document')
+   * Get the `Document` type ('document format' appears in its description but not that of other types mentioning 'Document').
    */
   await page
     .getByPlaceholder("Search for an entity type")
@@ -185,7 +186,7 @@ test("both the link and properties tables renders some content", async ({
   const linkTableHasRenderedContent =
     await checkIfCellContainsNonWhitePixels(linkTableCanvas);
 
-  expect(linkTableHasRenderedContent).toEqual(true);
+  expect(linkTableHasRenderedContent).toBe(true);
 
   const propertyTableCanvas = page
     .locator(".dvn-underlay > canvas:first-of-type")
@@ -194,5 +195,5 @@ test("both the link and properties tables renders some content", async ({
   const propertyTableHasRenderedContent =
     await checkIfCellContainsNonWhitePixels(propertyTableCanvas);
 
-  expect(propertyTableHasRenderedContent).toEqual(true);
+  expect(propertyTableHasRenderedContent).toBe(true);
 });

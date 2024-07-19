@@ -15,6 +15,7 @@ import type {
   Timestamp,
   Unbounded,
 } from "../types.js";
+
 import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 
 export type JsonObject = CoreJsonObject;
@@ -27,10 +28,10 @@ export type EntityId = string;
 // used in a direct lookup and not a search in the vertices
 export type EntityRevisionId = Timestamp;
 
-export type EntityRecordId = {
+export interface EntityRecordId {
   entityId: EntityId;
   editionId: string;
-};
+}
 
 export const isEntityRecordId = (
   recordId: unknown,
@@ -45,12 +46,12 @@ export const isEntityRecordId = (
 
 /**
  * Entity Properties are JSON objects with `BaseUrl`s as keys, _except_ when there is a Data Type of primitive type
- * `object` in which case the nested objects become plain `JsonObject`s
+ * `object` in which case the nested objects become plain `JsonObject`s.
  */
 export type EntityPropertyValue = JsonValue | EntityPropertiesObject;
-export type EntityPropertiesObject = {
+export interface EntityPropertiesObject {
   [_: BaseUrl]: EntityPropertyValue;
-};
+}
 
 type HalfClosedInterval = TimeInterval<
   InclusiveLimitedTemporalBound,
@@ -62,16 +63,16 @@ export type EntityTemporalVersioningMetadata = Record<
   HalfClosedInterval
 >;
 
-export type EntityMetadata = {
+export interface EntityMetadata {
   recordId: EntityRecordId;
   entityTypeId: VersionedUrl;
   temporalVersioning: EntityTemporalVersioningMetadata;
-};
+}
 
-export type LinkData = {
+export interface LinkData {
   leftEntityId: EntityId;
   rightEntityId: EntityId;
-};
+}
 
 export type Entity<
   Properties extends EntityPropertiesObject | null = Record<
@@ -85,32 +86,32 @@ export type Entity<
   ? { properties?: never }
   : { properties: Properties });
 
-export type LinkEntityAndRightEntity = {
+export interface LinkEntityAndRightEntity {
   linkEntity: Entity[];
   rightEntity: Entity[];
-};
+}
 
-export type CreateEntityData = {
+export interface CreateEntityData {
   entityTypeId: VersionedUrl;
   properties: EntityPropertiesObject;
   linkData?: LinkData;
-};
+}
 
-export type GetEntityData = {
+export interface GetEntityData {
   entityId: EntityId;
   graphResolveDepths?: Partial<GraphResolveDepths>;
   temporalAxes: QueryTemporalAxesUnresolved;
-};
+}
 
-export type UpdateEntityData = {
+export interface UpdateEntityData {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
   properties: EntityPropertiesObject;
-};
+}
 
-export type DeleteEntityData = {
+export interface DeleteEntityData {
   entityId: EntityId;
-};
+}
 
 export type FilterOperatorType =
   | FilterOperatorRequiringValue
@@ -128,7 +129,7 @@ export type FilterOperatorRequiringValue =
 
 export type MultiFilterOperatorType = "AND" | "OR";
 
-export type MultiFilter = {
+export interface MultiFilter {
   filters: (
     | {
         field: (string | number)[];
@@ -138,33 +139,33 @@ export type MultiFilter = {
     | { field: (string | number)[]; operator: FilterOperatorWithoutValue }
   )[];
   operator: MultiFilterOperatorType;
-};
+}
 
-export type Sort = {
+export interface Sort {
   field: (string | number)[];
   desc?: boolean | undefined | null;
-};
+}
 
 export type MultiSort = Sort[];
 
-export type QueryOperationInput = {
+export interface QueryOperationInput {
   multiSort?: MultiSort | null;
   multiFilter?: MultiFilter | null;
-};
+}
 
-export type QueryEntitiesData = {
+export interface QueryEntitiesData {
   operation: QueryOperationInput;
   graphResolveDepths?: Partial<GraphResolveDepths>;
   temporalAxes: QueryTemporalAxesUnresolved;
-};
+}
 
-export type QueryEntitiesResult<T extends Subgraph<EntityRootType>> = {
+export interface QueryEntitiesResult<T extends Subgraph<EntityRootType>> {
   results: T;
   operation: QueryOperationInput;
-};
+}
 
 /**
- * A utility type that extracts the last segment of a string delimited by a separator
+ * A utility type that extracts the last segment of a string delimited by a separator.
  */
 type BeforeTrailingLast<
   CurrentString extends string,
@@ -177,7 +178,8 @@ type BeforeTrailingLast<
 /**
  * A properties object where the URL keys have been replaced by the last segment of the URL
  * To experiment with in block building – might be useful in patterns to make block building easier.
- * @todo remove this if we settle on a pattern that doesn't benefit from it
+ *
+ * @todo Remove this if we settle on a pattern that doesn't benefit from it.
  */
 export type SimpleProperties<Properties extends EntityPropertiesObject> = {
   [Key in keyof Properties as BeforeTrailingLast<

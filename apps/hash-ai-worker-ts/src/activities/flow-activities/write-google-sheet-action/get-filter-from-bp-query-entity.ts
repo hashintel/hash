@@ -19,6 +19,7 @@ export const getFilterFromBlockProtocolQueryEntity = async ({
   queryEntityId: EntityId;
 }) => {
   let queryEntity: Entity<Query> | undefined;
+
   try {
     queryEntity = (await getLatestEntityById({
       graphApiClient,

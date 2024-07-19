@@ -1,3 +1,5 @@
+import { useCallback, useMemo, useRef, useState } from "react";
+import { SizeMe } from "react-sizeme";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -22,8 +24,6 @@ import {
 import { autocompleteClasses } from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { SizeMe } from "react-sizeme";
 
 import { AddressCard, AddressCardLoading } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
@@ -40,8 +40,7 @@ import type {
   HasMapImage,
   Image,
 } from "./types/generated/block-entity";
-import type { Address } from "./use-mapbox";
-import { useMapbox } from "./use-mapbox";
+import type { Address , useMapbox } from "./use-mapbox";
 
 const INPUT_MAX_WIDTH = 420;
 const DEFAULT_ZOOM_LEVEL = 16;
@@ -404,13 +403,13 @@ export const App: BlockComponent<BlockEntity> = ({
   const displayTitle = title ?? selectedAddress?.featureName;
   const displayFullAddress = selectedAddress?.fullAddress ?? remoteFullAddress;
 
-  const shouldDisplayCard = !!displayFullAddress || selectedAddressLoading;
+  const shouldDisplayCard = Boolean(displayFullAddress) || selectedAddressLoading;
 
   return (
     <>
       {schema ? (
         <script
-          type="application/ld+json"
+          type={"application/ld+json"}
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: schema }}
         />
@@ -432,8 +431,8 @@ export const App: BlockComponent<BlockEntity> = ({
                   width: 1,
                   overflowX: "hidden",
                 }}
-                onMouseEnter={() => setHovered(true)}
-                onMouseLeave={() => setHovered(false)}
+                onMouseEnter={() => { setHovered(true); }}
+                onMouseLeave={() => { setHovered(false); }}
               >
                 {!readonly ? (
                   <>
@@ -441,7 +440,7 @@ export const App: BlockComponent<BlockEntity> = ({
                       in={
                         hovered ||
                         autocompleteFocused ||
-                        !!animatingIn ||
+                        Boolean(animatingIn) ||
                         animatingOut ||
                         (isMobile && mobileSettingsExpanded)
                       }
@@ -455,20 +454,20 @@ export const App: BlockComponent<BlockEntity> = ({
                           rowGap: isMobile ? 0 : 1,
                         }}
                       >
-                        <GetHelpLink href="https://blockprotocol.org/@hash/blocks/address" />
+                        <GetHelpLink href={"https://blockprotocol.org/@hash/blocks/address"} />
 
                         {isMobile ? (
                           <BlockSettingsButton
                             expanded={mobileSettingsExpanded}
                             onClick={() =>
-                              setMobileSettingsExpanded(!mobileSettingsExpanded)
+                              { setMobileSettingsExpanded(!mobileSettingsExpanded); }
                             }
                           />
                         ) : null}
 
                         <Collapse in={!isMobile || mobileSettingsExpanded}>
                           <Typography
-                            variant="regularTextLabels"
+                            variant={"regularTextLabels"}
                             sx={{
                               mt: isMobile ? 1 : 0,
                               display: "inline-flex",
@@ -481,13 +480,13 @@ export const App: BlockComponent<BlockEntity> = ({
                               color: ({ palette }) => palette.gray[50],
                             }}
                           >
-                            <Box component="span" sx={{ mr: 1 }}>
+                            <Box component={"span"} sx={{ mr: 1 }}>
                               Using
                             </Box>
                             {!shouldDisplayCard ? (
                               <>
                                 <Box
-                                  component="span"
+                                  component={"span"}
                                   sx={{
                                     display: "inline-flex",
                                     alignItems: "center",
@@ -500,13 +499,13 @@ export const App: BlockComponent<BlockEntity> = ({
                                   />
                                   Mapbox Address Autofill
                                 </Box>
-                                <Box component="span" sx={{ mr: 1 }}>
+                                <Box component={"span"} sx={{ mr: 1 }}>
                                   and
                                 </Box>
                               </>
                             ) : null}
                             <Box
-                              component="span"
+                              component={"span"}
                               sx={{
                                 display: "inline-flex",
                                 alignItems: "center",
@@ -527,7 +526,7 @@ export const App: BlockComponent<BlockEntity> = ({
                       in={
                         (!shouldDisplayCard && !animatingIn) || suggestionsError
                       }
-                      onEntered={() => setAnimatingOut(false)}
+                      onEntered={() => { setAnimatingOut(false); }}
                       onExited={() => {
                         if (animatingIn) {
                           selectAddress(animatingIn);
@@ -536,21 +535,9 @@ export const App: BlockComponent<BlockEntity> = ({
                     >
                       <Box sx={{ display: "flex", gap: 1.5 }}>
                         <Autocomplete<AutofillSuggestion, false, true>
-                          onFocus={() => setAutocompleteFocused(true)}
-                          onBlur={() => setAutocompleteFocused(false)}
                           getOptionLabel={getOptionLabel}
                           options={suggestions}
                           popupIcon={null}
-                          onInputChange={(_event, newInputValue) => {
-                            if (newInputValue.trim() !== "") {
-                              fetchSuggestions(newInputValue);
-                            }
-                          }}
-                          onChange={(_event, option) => {
-                            if (typeof option === "object") {
-                              setAnimatingIn(option);
-                            }
-                          }}
                           filterOptions={(options) => options}
                           inputPlaceholder={inputPlaceholder}
                           inputProps={{
@@ -575,10 +562,11 @@ export const App: BlockComponent<BlockEntity> = ({
                           }}
                           renderOption={(props, option) => {
                             const label = getOptionLabel(option);
+
                             return (
-                              <Stack component="li" {...props}>
+                              <Stack component={"li"} {...props}>
                                 <Typography
-                                  variant="microText"
+                                  variant={"microText"}
                                   sx={{
                                     fontSize: 14,
                                     fontWeight: 500,
@@ -592,7 +580,7 @@ export const App: BlockComponent<BlockEntity> = ({
                                 </Typography>
 
                                 <Typography
-                                  variant="microText"
+                                  variant={"microText"}
                                   sx={{
                                     fontSize: 13,
                                     lineHeight: "18px",
@@ -644,10 +632,22 @@ export const App: BlockComponent<BlockEntity> = ({
                                 `${spacing(2.75)} !important`,
                             },
                           }}
+                          onFocus={() => { setAutocompleteFocused(true); }}
+                          onBlur={() => { setAutocompleteFocused(false); }}
+                          onInputChange={(_event, newInputValue) => {
+                            if (newInputValue.trim() !== "") {
+                              fetchSuggestions(newInputValue);
+                            }
+                          }}
+                          onChange={(_event, option) => {
+                            if (typeof option === "object") {
+                              setAnimatingIn(option);
+                            }
+                          }}
                         />
 
                         {suggestionsError ? (
-                          <BlockErrorMessage apiName="Mapbox" />
+                          <BlockErrorMessage apiName={"Mapbox"} />
                         ) : null}
                       </Box>
                     </Collapse>
@@ -656,7 +656,7 @@ export const App: BlockComponent<BlockEntity> = ({
 
                 <Collapse
                   in={shouldDisplayCard && !animatingOut && !suggestionsError}
-                  onEntered={() => setAnimatingIn(null)}
+                  onEntered={() => { setAnimatingIn(null); }}
                 >
                   {displayFullAddress ? (
                     <AddressCard
@@ -668,12 +668,6 @@ export const App: BlockComponent<BlockEntity> = ({
                       mapError={mapError}
                       hovered={hovered}
                       readonly={readonly}
-                      onClose={() => {
-                        setAnimatingOut(true);
-                        setTimeout(() => {
-                          void resetBlock();
-                        }, 300);
-                      }}
                       updateTitle={updateTitle}
                       updateDescription={updateDescription}
                       incrementZoomLevel={
@@ -686,6 +680,12 @@ export const App: BlockComponent<BlockEntity> = ({
                           ? undefined
                           : decrementZoomLevel
                       }
+                      onClose={() => {
+                        setAnimatingOut(true);
+                        setTimeout(() => {
+                          void resetBlock();
+                        }, 300);
+                      }}
                     />
                   ) : (
                     <AddressCardLoading isMobile={isMobile} />

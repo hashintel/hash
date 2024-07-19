@@ -255,7 +255,7 @@ const migrate: MigrationFunction = async ({
   );
 
   /**
-   * Step 3: create a `Incurred In` link entity type
+   * Step 3: create a `Incurred In` link entity type.
    */
 
   const incurredInLinkEntityType = await createSystemEntityTypeIfNotExists(
@@ -277,7 +277,7 @@ const migrate: MigrationFunction = async ({
   /**
    * Step 4: Update the Usage Record entity type to:
    * 1. Accept an 'Incurred In' link
-   * 2. Accept custom metadata
+   * 2. Accept custom metadata.
    */
 
   const currentUsageRecordEntityTypeId = getCurrentHashSystemEntityTypeId({
@@ -334,7 +334,7 @@ const migrate: MigrationFunction = async ({
     });
 
   /**
-   * Step 4: Upgrade existing usage record entities to the latest version
+   * Step 4: Upgrade existing usage record entities to the latest version.
    */
 
   await upgradeEntitiesToNewTypeVersion(context, authentication, {

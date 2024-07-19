@@ -1,3 +1,6 @@
+import { useCallback, useMemo, useRef, useState } from "react";
+import { isMobile } from "react-device-detect";
+import { SizeMe } from "react-sizeme";
 import type { MultiFilter } from "@blockprotocol/graph";
 import {
   type BlockComponent,
@@ -7,9 +10,6 @@ import {
 import { EditableField, theme } from "@hashintel/block-design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { Box, ThemeProvider } from "@mui/material";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { isMobile } from "react-device-detect";
-import { SizeMe } from "react-sizeme";
 
 import type { RootKey } from "./additional-types";
 import { SettingsBar } from "./components/settings-bar/settings-bar";
@@ -62,7 +62,7 @@ export const App: BlockComponent<BlockEntity> = ({
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
 
-  const hasLinkedQuery = !!linkedQuery;
+  const hasLinkedQuery = Boolean(linkedQuery);
 
   const isLocalTableEmpty = useMemo(() => {
     const { tableLocalColumn, tableLocalRow } = simplifyProperties(
@@ -107,17 +107,17 @@ export const App: BlockComponent<BlockEntity> = ({
           return (
             <Box
               ref={blockRootRef}
-              onMouseEnter={() => setHovered(true)}
-              onMouseLeave={() => setHovered(false)}
               sx={{
                 position: "relative",
               }}
+              onMouseEnter={() => { setHovered(true); }}
+              onMouseLeave={() => { setHovered(false); }}
             >
               <WelcomeModal
-                onJustStartTypingClick={handleJustStartTypingClick}
-                onLoadExistingEntitiesClick={handleLoadExistingEntitiesClick}
                 open={isWelcomeModalOpen}
                 container={blockRootRef.current}
+                onJustStartTypingClick={handleJustStartTypingClick}
+                onLoadExistingEntitiesClick={handleLoadExistingEntitiesClick}
               />
               {!readonly ? (
                 <SettingsBar
@@ -139,19 +139,19 @@ export const App: BlockComponent<BlockEntity> = ({
                 <div>
                   <EditableField
                     value={titleValue}
-                    placeholder="Untitled Table"
-                    onChange={(event) => setTitleValue(event.target.value)}
-                    onBlur={(event) =>
-                      updateEntity({ [titleKey]: event.target.value })
-                    }
+                    placeholder={"Untitled Table"}
                     readonly={readonly}
+                    wrapperSx={{ mb: 1.5 }}
                     sx={{
                       fontWeight: 700,
                       fontSize: "21px !important",
                       lineHeight: "1.2 !important",
                       color: "black",
                     }}
-                    wrapperSx={{ mb: 1.5 }}
+                    onChange={(event) => { setTitleValue(event.target.value); }}
+                    onBlur={(event) =>
+                      updateEntity({ [titleKey]: event.target.value })
+                    }
                   />
                 </div>
               </Box>

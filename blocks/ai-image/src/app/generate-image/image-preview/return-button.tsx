@@ -7,9 +7,8 @@ export const ReturnButton = ({ onCancel }: { onCancel: () => void }) => {
   return (
     <Box>
       <Button
-        variant="tertiary"
-        size="small"
-        onClick={() => onCancel()}
+        variant={"tertiary"}
+        size={"small"}
         sx={({ palette }) => ({
           gap: 1,
           borderRadius: 1,
@@ -23,6 +22,7 @@ export const ReturnButton = ({ onCancel }: { onCancel: () => void }) => {
             fill: palette.gray[80],
           },
         })}
+        onClick={() => { onCancel(); }}
       >
         <ArrowLeftIcon
           sx={{

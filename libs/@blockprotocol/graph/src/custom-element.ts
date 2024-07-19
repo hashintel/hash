@@ -4,9 +4,7 @@ import type {
   BlockGraphProperties,
   Entity,
   EntityPropertiesObject,
-  LinkEntityAndRightEntity,
-} from "./main.js";
-import { GraphBlockHandler } from "./main.js";
+ GraphBlockHandler,  LinkEntityAndRightEntity } from "./main.js";
 import { getOutgoingLinkAndTargetEntities, getRoots } from "./stdlib.js";
 
 export interface BlockElementBase<
@@ -28,7 +26,8 @@ export abstract class BlockElementBase<
 > extends LitElement {
   /**
    * The 'graphModule' is a handler for sending messages to the embedding application, e.g. 'graphModule.updateEntity'
-   * It starts off undefined and will be available once the initial exchange of messages has taken place (handled internally)
+   * It starts off undefined and will be available once the initial exchange of messages has taken place (handled internally).
+   *
    * @see https://blockprotocol.org/spec/graph#message-definitions for a full list of available messages
    */
   protected graphModule?: GraphBlockHandler;
@@ -44,6 +43,7 @@ export abstract class BlockElementBase<
      * The 'graph' object contains messages sent under the graph module from the app to the block.
      * They are sent on initialization and again when the application has new values to send.
      * One such message is 'graph.blockEntitySubgraph', which is a graph rooted at the block entity.
+     *
      * @see https://blockprotocol.org/spec/graph#message-definitions for a full list
      */
     graph: { type: Object },
@@ -67,10 +67,11 @@ export abstract class BlockElementBase<
 
   /**
    * A helper method that returns the root entity from blockEntitySubgraph,
-   * i.e. the 'block entity'
+   * i.e. The 'block entity'.
    */
   getBlockEntity() {
     const blockEntity = getRoots(this.graph.blockEntitySubgraph)[0];
+
     if (!blockEntity) {
       throw new Error(
         "Cannot update self: no root entity on graph.blockEntitySubgraph passed to block",
@@ -82,11 +83,11 @@ export abstract class BlockElementBase<
 
   /**
    * A helper method that returns the entities linked from the root entity
-   * of blockEntitySubgraph, i.e. the 'block entity'
+   * of blockEntitySubgraph, i.e. The 'block entity'.
    */
   getLinkedEntities() {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime check in case being consumed as JS / to catch bugs
-    if (!this.graph || !this.graph.blockEntitySubgraph) {
+    if (!this.graph?.blockEntitySubgraph) {
       throw new Error("graph.blockEntitySubgraph was not passed to block.");
     }
 
@@ -97,8 +98,9 @@ export abstract class BlockElementBase<
   }
 
   /**
-   * A helper method to update the properties of the entity loaded into the block, i.e. this.graph.blockEntity
-   * @param properties the properties object to assign to the entity, which will overwrite the existing object
+   * A helper method to update the properties of the entity loaded into the block, i.e. This.graph.blockEntity.
+   *
+   * @param properties - The properties object to assign to the entity, which will overwrite the existing object.
    */
   protected updateSelfProperties(properties: EntityPropertiesObject) {
     if (!this.graphModule) {

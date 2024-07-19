@@ -1,8 +1,7 @@
-import type { S3ClientConfig } from "@aws-sdk/client-s3";
-import {
-  GetObjectCommand,
+import type {   GetObjectCommand,
   PutObjectCommand,
   S3Client,
+S3ClientConfig ,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -50,7 +49,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
 
     /**
      * Configure the default client for file uploads and downloads
-     * Previously uploaded entities may have different configs saved which will be applied on download
+     * Previously uploaded entities may have different configs saved which will be applied on download.
      */
     this.client = new S3Client({
       endpoint: bucketEndpoint,
@@ -73,7 +72,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
 
     const presignedPutUrl = await getSignedUrl(this.client, command, {
       expiresIn: params.expiresInSeconds,
-      signableHeaders: headers.length ? new Set(headers) : undefined,
+      signableHeaders: headers.length > 0 ? new Set(headers) : undefined,
     });
 
     return {
@@ -100,7 +99,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
             : {}),
           "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/":
             {
-              value: !!this.forcePathStyle,
+              value: Boolean(this.forcePathStyle),
               metadata: {
                 dataTypeId:
                   "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
@@ -150,7 +149,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
       fileStorageForcePathStyle,
     } = simplifyProperties(entity.properties);
 
-    let client = this.client;
+    let {client} = this;
 
     if (
       fileStorageBucket !== this.bucket ||
@@ -164,7 +163,8 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
        *
        * If the credentials in effect are invalid for the saved configuration,
        * the request will fail.
-       * @todo allow specifying different credentials for access based on the storage configuration
+       *
+       * @todo Allow specifying different credentials for access based on the storage configuration.
        */
       client = new S3Client({
         credentials: this.client.config.credentials,
@@ -182,6 +182,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
     const url = await getSignedUrl(client, command, {
       expiresIn: params.expiresInSeconds,
     });
+
     return url;
   }
 

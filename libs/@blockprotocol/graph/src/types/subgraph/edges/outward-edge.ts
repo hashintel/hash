@@ -1,5 +1,4 @@
-import type { EntityId } from "../../entity.js";
-import { isEntityRecordId } from "../../entity.js";
+import type { EntityId , isEntityRecordId } from "../../entity.js";
 import { isOntologyTypeRecordId } from "../../ontology.js";
 import type {
   LimitedTemporalBound,
@@ -21,10 +20,10 @@ import type { OntologyOutwardEdge } from "./variants/ontology.js";
  * When using this to query a {@link Subgraph}, along its variable axis, this should identify a single unique revision
  * of an {@link Entity} or possibly refer to nothing.
  */
-export type EntityIdWithTimestamp = {
+export interface EntityIdWithTimestamp {
   baseId: EntityId;
   timestamp: Timestamp;
-};
+}
 
 /**
  * A simple tuple type which identifies an {@link Entity} by its {@link EntityId}, over a given {@link TimeInterval}.
@@ -32,10 +31,10 @@ export type EntityIdWithTimestamp = {
  * When using this to query a {@link Subgraph}, along its variable axis, this could return any number of revisions
  * of an {@link Entity} (including possibly returning none).
  */
-export type EntityIdWithInterval = {
+export interface EntityIdWithInterval {
   entityId: EntityId;
-  interval: TimeInterval<LimitedTemporalBound, TemporalBound>;
-};
+  interval: TimeInterval<LimitedTemporalBound>;
+}
 
 export type OutwardEdge = OntologyOutwardEdge | KnowledgeGraphOutwardEdge;
 

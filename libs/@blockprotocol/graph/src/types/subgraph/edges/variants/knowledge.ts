@@ -90,7 +90,7 @@ export type KnowledgeGraphOutwardEdge =
  * This provides a sanity check that we've fully expressed all variants for KnowledgeGraphOutward edges. Should a new
  * variant be required (for example by the introduction of a new `SharedEdgeKind`) `tsc` will report an error.
  *
- * This can be affirmed by commenting out one of the edges above
+ * This can be affirmed by commenting out one of the edges above.
  */
 type _CheckKnowledgeGraphOutwardEdge = Subtype<
   KnowledgeGraphOutwardEdge,

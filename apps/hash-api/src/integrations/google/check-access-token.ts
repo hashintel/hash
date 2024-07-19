@@ -1,8 +1,8 @@
+import type { RequestHandler } from "express";
 import type {
   CheckGoogleTokenRequest,
   CheckGoogleTokenResponse,
 } from "@local/hash-isomorphic-utils/google-integration";
-import type { RequestHandler } from "express";
 
 import { getGoogleAccessTokenForExpressRequest } from "./shared/get-or-check-access-token";
 
@@ -17,10 +17,10 @@ export const checkGoogleAccessToken: RequestHandler<
 > =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  async (req, res) => {
+  async (request, res) => {
     const accessToken = await getGoogleAccessTokenForExpressRequest({
-      googleAccountId: req.body.googleAccountId,
-      req,
+      googleAccountId: request.body.googleAccountId,
+      req: request,
       res,
     });
 

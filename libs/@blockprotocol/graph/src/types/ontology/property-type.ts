@@ -5,36 +5,36 @@ import type {
 
 import type { QueryOperationInput } from "../entity.js";
 import type { PropertyTypeRootType, Subgraph } from "../subgraph.js";
+
 import type { OntologyElementMetadata } from "./metadata.js";
 
-export type PropertyTypeWithMetadata = {
+export interface PropertyTypeWithMetadata {
   schema: PropertyType;
   metadata: OntologyElementMetadata;
-};
+}
 
-export type QueryPropertyTypesData = {
+export interface QueryPropertyTypesData {
   graphResolveDepths?: Partial<
     Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
   >;
-};
+}
 
-export type QueryPropertyTypesResult<T extends Subgraph<PropertyTypeRootType>> =
-  {
+export interface QueryPropertyTypesResult<T extends Subgraph<PropertyTypeRootType>> {
     results: T[];
     operation: QueryOperationInput;
-  };
+  }
 
-export type GetPropertyTypeData = {
+export interface GetPropertyTypeData {
   propertyTypeId: VersionedUrl;
-};
+}
 
 type SystemDefinedPropertyTypeProperties = "$schema" | "$id" | "kind";
 
-export type CreatePropertyTypeData = {
+export interface CreatePropertyTypeData {
   propertyType: Omit<PropertyType, SystemDefinedPropertyTypeProperties>;
-};
+}
 
-export type UpdatePropertyTypeData = {
+export interface UpdatePropertyTypeData {
   propertyTypeId: VersionedUrl;
   propertyType: Omit<PropertyType, SystemDefinedPropertyTypeProperties>;
-};
+}

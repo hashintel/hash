@@ -1,11 +1,7 @@
 import type {
-  DropdownSelectorProps,
-  GroupedOptions,
-} from "@hashintel/block-design-system";
-import {
   codeBlockFormattingPrompt,
-  DropdownSelector,
-} from "@hashintel/block-design-system";
+  DropdownSelector,  DropdownSelectorProps,
+  GroupedOptions} from "@hashintel/block-design-system";
 import { Box } from "@mui/material";
 
 import { CardsIcon } from "../icons/cards";
@@ -95,7 +91,7 @@ export const SystemPromptSelector = (
 
       return (
         <Box
-          component="span"
+          component={"span"}
           sx={{
             display: "inline-flex",
             gap: 0.375,
@@ -114,7 +110,7 @@ export const SystemPromptSelector = (
             {icon}
           </Box>
           <Box
-            component="span"
+            component={"span"}
             sx={{ color: ({ palette }) => palette.gray[60] }}
           >
             {title}

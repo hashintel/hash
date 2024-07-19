@@ -32,8 +32,9 @@ export const listPublishablePackages = async (): Promise<PackageInfo[]> => {
 
   for (const packagePath of packagePaths) {
     try {
-      /* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access */
+      /* eslint-disable @typescript-eslint/no-unsafe-member-access */
       const packageJson = await fs.readJson(`${packagePath}/package.json`);
+
       if (packageJson.private !== true) {
         result.push({
           name: packageJson.name,
@@ -41,7 +42,7 @@ export const listPublishablePackages = async (): Promise<PackageInfo[]> => {
           version: packageJson.version,
         });
       }
-      /* eslint-enable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access */
+      /* eslint-enable @typescript-eslint/no-unsafe-member-access */
     } catch {
       // noop (libs/* is a file or does not contain package.json)
     }
@@ -74,6 +75,7 @@ export const derivePackageInfoFromEnv = async (): Promise<PackageInfo> => {
       `PACKAGE_DIR (${packageDirPath}) does not point to a publishable package`,
     );
   }
+
   return packageInfo;
 };
 

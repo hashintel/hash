@@ -7,7 +7,7 @@
  *
  * Including its cause, origin, and a collection of weakly-typed additional metadata.
  */
-export type ErrorInfo = {
+export interface ErrorInfo {
   /**
    * The reason of the error. This is a constant value that identifies the proximate cause of
    * the error. Error reasons are unique within a particular domain of errors. This should be at
@@ -33,4 +33,4 @@ export type ErrorInfo = {
    * instances that can be created in a single (batch) request.
    */
   metadata: Record<string, unknown>;
-};
+}

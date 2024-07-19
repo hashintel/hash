@@ -30,7 +30,7 @@ test.skip("user can create page", async ({ page }) => {
   await sleep(500);
   await page.locator(createPageButtonSelector).click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => Boolean(url.pathname.match(/^\/@[\w-]+\/[\w-]+$/)));
 
   const blockRegion = page.locator("#root");
   const listOfPages = page.locator(listOfPagesSelector);
@@ -106,6 +106,7 @@ test.skip("user can create page", async ({ page }) => {
   const blockChanger = blockRegion
     .locator('[data-testid="block-changer"]')
     .nth(2);
+
   await blockChanger.click();
 
   /** @todo-0.3 - re-enable this once HASH and BP are in sync again and the code block is fixed */
@@ -139,6 +140,7 @@ test.skip("user can create page", async ({ page }) => {
   await page.reload();
 
   const blocks = blockRegion.locator('[data-testid="block"]');
+
   await expect(blocks.nth(0)).toContainText(
     "My test paragraph with bold and italics",
     { useInnerText: true }, // Prevents words from sticking to each other
@@ -172,7 +174,7 @@ test.skip("user can rename page", async ({ page }) => {
   await sleep(500);
   await page.locator(createPageButtonSelector).click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => Boolean(url.pathname.match(/^\/@[\w-]+\/[\w-]+$/)));
 
   const listOfPages = page.locator(listOfPagesSelector);
   const pageTitle = page.locator(pageTitleInputSelector);

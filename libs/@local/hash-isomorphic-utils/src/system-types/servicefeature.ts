@@ -3,16 +3,6 @@
  */
 
 import type {
-  AppliesFromPropertyValue,
-  AppliesFromPropertyValueWithMetadata,
-  AppliesUntilPropertyValue,
-  AppliesUntilPropertyValueWithMetadata,
-  DateTimeDataType,
-  DateTimeDataTypeWithMetadata,
-  FeatureNamePropertyValue,
-  FeatureNamePropertyValueWithMetadata,
-  InputUnitCostPropertyValue,
-  InputUnitCostPropertyValueWithMetadata,
   NumberDataType,
   NumberDataTypeWithMetadata,
   OutputUnitCostPropertyValue,
@@ -31,16 +21,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  AppliesFromPropertyValue,
-  AppliesFromPropertyValueWithMetadata,
-  AppliesUntilPropertyValue,
-  AppliesUntilPropertyValueWithMetadata,
-  DateTimeDataType,
-  DateTimeDataTypeWithMetadata,
-  FeatureNamePropertyValue,
-  FeatureNamePropertyValueWithMetadata,
-  InputUnitCostPropertyValue,
-  InputUnitCostPropertyValueWithMetadata,
   NumberDataType,
   NumberDataTypeWithMetadata,
   OutputUnitCostPropertyValue,
@@ -57,3 +37,5 @@ export type {
   TextDataType,
   TextDataTypeWithMetadata,
 };
+
+export {type AppliesFromPropertyValue, type AppliesFromPropertyValueWithMetadata, type AppliesUntilPropertyValue, type AppliesUntilPropertyValueWithMetadata, type DateTimeDataType, type DateTimeDataTypeWithMetadata, type FeatureNamePropertyValue, type FeatureNamePropertyValueWithMetadata, type InputUnitCostPropertyValue, type InputUnitCostPropertyValueWithMetadata} from "./shared.js";

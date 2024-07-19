@@ -8,7 +8,7 @@ import { StatusCode } from "./status-code.js";
 /**
  * The canonical shape of a response object describing the status of a request between services.
  */
-export type Status<D extends object> = {
+export interface Status<D extends object> {
   code: StatusCode;
   /**
    * A developer-facing description of the status.
@@ -17,4 +17,4 @@ export type Status<D extends object> = {
    */
   message?: string;
   contents: D[];
-};
+}

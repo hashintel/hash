@@ -2,10 +2,10 @@
  * A type respresenting the change message format '2' of the Wal2Json logical decoding
  * plugin for PostgreSQL.
  *
- * Note: We ignore transaction begin / end messages (i.e. those with action "B" / "C"),
+ * Note: We ignore transaction begin / end messages (i.e. Those with action "B" / "C"),
  * and TRUNCATE messages (action "T").
  */
-export type Wal2JsonMsg = {
+export interface Wal2JsonMessage {
   /** The table the change is coming from. */
   table: string;
 
@@ -26,4 +26,4 @@ export type Wal2JsonMsg = {
     /** The column value. */
     value: unknown;
   }[];
-};
+}

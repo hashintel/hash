@@ -2,6 +2,7 @@ import type { FunctionComponent } from "react";
 import { tw } from "twind";
 
 import Pencil from "../svgs/pencil";
+
 import { ResizeImageBlock } from "./resize-image-block";
 
 type MediaWithCaptionProps = {
@@ -34,15 +35,16 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
 }) => {
   const captionNode = (
     <input
-      placeholder="Add a caption"
+      placeholder={"Add a caption"}
       className={tw`border-none bg-transparent focus:outline-none text-center mt-3`}
-      type="text"
+      type={"text"}
       value={caption}
       disabled={readonly}
-      onChange={(event) => onCaptionChange(event.target.value)}
+      onChange={(event) => { onCaptionChange(event.target.value); }}
       onBlur={onCaptionConfirm}
     />
   );
+
   return (
     <div className={tw`flex justify-center text-center w-full`}>
       {props.type === "image" ? (
@@ -61,20 +63,20 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video
             controls
+            src={src}
             style={{
               maxWidth: "100%",
             }}
-            src={src}
           />
           {captionNode}
         </div>
       )}
       {!readonly && (
         <button
-          aria-label="Stop editing"
-          type="button"
-          onClick={onReset}
+          aria-label={"Stop editing"}
+          type={"button"}
           className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start border-solid`}
+          onClick={onReset}
         >
           <Pencil />
         </button>

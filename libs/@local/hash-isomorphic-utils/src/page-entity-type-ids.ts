@@ -33,8 +33,9 @@ export const pageEntityTypeFilter = {
   /**
    * We specify each of these page types individually rather than Page, which they both inherit from,
    * because checking against types involving inheritance is currently slow.
-   * Once H-392 is implemented we can replace it with a single check against 'page', and remove ignoreParents
-   * @todo update this once H-392 is implemented
+   * Once H-392 is implemented we can replace it with a single check against 'page', and remove ignoreParents.
+   *
+   * @todo Update this once H-392 is implemented.
    */
   any: pageEntityTypeIds.map((entityTypeId) =>
     generateVersionedUrlMatchingFilter(entityTypeId, { ignoreParents: true }),

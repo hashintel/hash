@@ -4,7 +4,7 @@ import * as Sentry from "@sentry/node";
 
 Sentry.init({
   dsn: process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
-  enabled: !!process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
+  enabled: Boolean(process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN),
   tracesSampleRate: 1.0,
 });
 
@@ -14,6 +14,7 @@ import * as path from "node:path";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { config } from "dotenv-flow";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -21,7 +22,6 @@ import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temp
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
-import { config } from "dotenv-flow";
 
 import * as linearActivities from "./linear-activities";
 import * as workflows from "./workflows";
@@ -53,8 +53,8 @@ const TEMPORAL_PORT = process.env.HASH_TEMPORAL_SERVER_PORT
   : 7233;
 
 const createHealthCheckServer = () => {
-  const server = http.createServer((req, res) => {
-    if (req.method === "GET" && req.url === "/health") {
+  const server = http.createServer((request, res) => {
+    if (request.method === "GET" && request.url === "/health") {
       res.setHeader("Content-Type", "application/json");
       res.writeHead(200);
       res.end(
@@ -62,6 +62,7 @@ const createHealthCheckServer = () => {
           msg: "worker healthy",
         }),
       );
+
       return;
     }
     res.writeHead(404);
@@ -81,7 +82,7 @@ const workflowOption = () =>
     : { workflowsPath: require.resolve("./workflows") };
 
 async function run() {
-  // eslint-disable-next-line no-console
+   
   console.info("Starting integration worker...");
   const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
@@ -113,26 +114,27 @@ async function run() {
 
   const httpServer = createHealthCheckServer();
   const port = 4300;
+
   httpServer.listen({ host: "::", port });
-  // eslint-disable-next-line no-console
+   
   console.info(`HTTP server listening on port ${port}`);
 
   await worker.run();
 }
 
 process.on("SIGINT", () => {
-  // eslint-disable-next-line no-console
+   
   console.info("Received SIGINT, exiting...");
   process.exit(1);
 });
 process.on("SIGTERM", () => {
-  // eslint-disable-next-line no-console
+   
   console.info("Received SIGTERM, exiting...");
   process.exit(1);
 });
 
-run().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error(err);
+run().catch((error) => {
+   
+  console.error(error);
   process.exit(1);
 });

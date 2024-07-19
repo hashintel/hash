@@ -10,6 +10,7 @@ import type {
   QueryResolvers,
   Resolvers,
 } from "../api-types.gen";
+
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getFlowRunByIdResolver } from "./flows/get-flow-run-by-id";
@@ -245,11 +246,12 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     __resolveType(object: EntityAuthorizationSubject) {
       if ("accountGroupId" in object) {
         return "AccountGroupAuthorizationSubject";
-      } else if ("accountId" in object) {
+      } if ("accountId" in object) {
         return "AccountAuthorizationSubject";
-      } else {
-        return "PublicAuthorizationSubject";
       }
+ 
+        return "PublicAuthorizationSubject";
+      
     },
   },
 };

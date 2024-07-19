@@ -1,5 +1,5 @@
-import type { ProvidedEntityEditionProvenanceOriginTypeEnum } from "@local/hash-graph-client";
 import type { Request } from "express";
+import type { ProvidedEntityEditionProvenanceOriginTypeEnum } from "@local/hash-graph-client";
 
 export const hashClientTypes = [
   // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
@@ -19,12 +19,13 @@ export const getHashClientTypeFromRequest = (
   request: Request,
 ): ProvidedEntityEditionProvenanceOriginTypeEnum | undefined => {
   const header = request.headers[hashClientHeaderKey];
+
   if (!header) {
     return undefined;
   }
 
   if (Array.isArray(header)) {
-    throw new Error(
+    throw new TypeError(
       `Expected only one ${hashClientHeaderKey} header value, received: ${header.join(", ")}`,
     );
   }

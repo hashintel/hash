@@ -1,5 +1,5 @@
-import { Box } from "@mui/material";
 import type { ReactNode } from "react";
+import { Box } from "@mui/material";
 
 export const MapWrapper = ({
   children,

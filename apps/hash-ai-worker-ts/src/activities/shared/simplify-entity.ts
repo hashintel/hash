@@ -2,13 +2,13 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 
-type SimplifiedEntity = {
+interface SimplifiedEntity {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
   properties: Entity["properties"];
   sourceEntityId?: EntityId;
   targetEntityId?: EntityId;
-};
+}
 
 /**
  * Simplify the definition of an entity for LLM consumption.

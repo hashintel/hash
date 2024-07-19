@@ -7,6 +7,7 @@ import { convert } from "html-to-text";
 import { dump } from "js-yaml";
 
 import { logger } from "../../logger";
+
 import type {
   EmailTransporter,
   EmailTransporterSendMailOptions,
@@ -54,6 +55,7 @@ const yamlFileHeader = dedent`
 const derivePayload = (plainEmailDump: PlainEmailDump): DerivedPayload => {
   try {
     const { subject, html } = plainEmailDump;
+
     if (subject === "You've been invited to join an organization at HASH") {
       const invitationLink = html!.match(/href="(.*)"/)![1]!;
 
@@ -160,15 +162,16 @@ export class DummyEmailTransporter implements EmailTransporter {
     const rowsToDisplay: string[] = [`New email to ${emailDump.to}!`, ""];
 
     switch (emailDump.derivedPayload.payloadType) {
-      case "orgInvitation":
+      case "orgInvitation": {
         rowsToDisplay.push(
           "Org invitation link:",
           emailDump.derivedPayload.invitationLink,
         );
         break;
+      }
     }
 
-    if (!rowsToDisplay.length) {
+    if (rowsToDisplay.length === 0) {
       return;
     }
 
@@ -188,8 +191,10 @@ export class DummyEmailTransporter implements EmailTransporter {
 
     const maxAllowedRowWidth = process.stdout.columns || 40;
     let maxRowWidth = 10;
+
     for (const rowToDisplay of rowsToDisplay) {
       const rowWidth = rowToDisplay.length;
+
       if (rowWidth > maxRowWidth && rowWidth <= maxAllowedRowWidth) {
         maxRowWidth = rowWidth;
       }
@@ -197,8 +202,7 @@ export class DummyEmailTransporter implements EmailTransporter {
 
     rowsToDisplay.unshift("=".repeat(maxRowWidth));
     rowsToDisplay.unshift("");
-    rowsToDisplay.push("=".repeat(maxRowWidth));
-    rowsToDisplay.push("");
+    rowsToDisplay.push("=".repeat(maxRowWidth), "");
 
     for (const rowToDisplay of rowsToDisplay) {
       process.stdout.write(`${rowToDisplay}\n`);
@@ -215,7 +219,7 @@ export class DummyEmailTransporter implements EmailTransporter {
         recursive: true,
       });
 
-      const yamlFileContents = this.emailDumps.length
+      const yamlFileContents = this.emailDumps.length > 0
         ? `${yamlFileHeader}\n\n---\n${this.emailDumps
             .map((email) => dump(email, { lineWidth: -1 }))
             .join("\n---\n")}`

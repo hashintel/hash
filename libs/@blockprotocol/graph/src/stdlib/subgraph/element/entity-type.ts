@@ -1,7 +1,6 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
+import type { BaseUrl,   extractBaseUrl,
   extractVersion,
+VersionedUrl ,
 } from "@blockprotocol/type-system/slim";
 
 import type { EntityTypeWithMetadata } from "../../../types/ontology/entity-type.js";
@@ -13,7 +12,7 @@ import { isEntityTypeVertex } from "../../../types/subgraph/vertices.js";
 import { typedValues } from "../../../util.js";
 
 /**
- * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph
+ * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph.
  *
  * @param subgraph
  */
@@ -33,7 +32,7 @@ export const getEntityTypes = (
  *
  * @param subgraph
  * @param entityTypeId
- * @throws if the vertex isn't a `EntityTypeVertex`
+ * @throws If the vertex isn't a `EntityTypeVertex`.
  */
 export const getEntityTypeById = (
   subgraph: Subgraph,
@@ -62,7 +61,7 @@ export const getEntityTypeById = (
  *
  * @param subgraph
  * @param vertexId
- * @throws if the vertex isn't a `EntityTypeVertex`
+ * @throws If the vertex isn't a `EntityTypeVertex`.
  */
 export const getEntityTypeByVertexId = (
   subgraph: Subgraph,
@@ -82,7 +81,7 @@ export const getEntityTypeByVertexId = (
 };
 
 /**
- * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
+ * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`.
  *
  * @param subgraph
  * @param baseUrl

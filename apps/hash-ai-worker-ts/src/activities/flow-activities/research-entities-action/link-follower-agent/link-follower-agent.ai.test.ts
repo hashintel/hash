@@ -1,5 +1,4 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
@@ -8,7 +7,7 @@ import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { linkFollowerAgent } from "../link-follower-agent.js";
 
 test.skip(
-  "Test linkFollowerAgent for Church Lab members",
+  "test linkFollowerAgent for Church Lab members",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -45,7 +44,7 @@ test.skip(
 );
 
 test.skip(
-  "Test linkFollowerAgent for Sora article authors",
+  "test linkFollowerAgent for Sora article authors",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -82,7 +81,7 @@ test.skip(
 );
 
 test.skip(
-  "Test linkFollowerAgent: FTSE350 constituents",
+  "test linkFollowerAgent: FTSE350 constituents",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -121,7 +120,7 @@ test.skip(
 );
 
 test.skip(
-  "Test linkFollowerAgent: top 3 graphics cards",
+  "test linkFollowerAgent: top 3 graphics cards",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -161,7 +160,7 @@ test.skip(
 );
 
 test.skip(
-  "Test linkFollowerAgent for getting investors of M & S",
+  "test linkFollowerAgent for getting investors of M & S",
   async () => {
     const { userAuthentication } = await getFlowContext();
 

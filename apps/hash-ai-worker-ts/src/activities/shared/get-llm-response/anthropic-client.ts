@@ -85,7 +85,7 @@ const awsSecretKey = getRequiredEnv(
  */
 const awsRegion = "us-west-2";
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 const anthropicBedrockClient: AnthropicBedrock = new AnthropicBedrock({
   awsAccessKey,
   awsSecretKey,
@@ -134,6 +134,7 @@ export const createAnthropicMessagesWithTools = async (params: {
    */
   if (provider === "amazon-bedrock") {
     const bedrockModel = anthropicModelToBedrockModel[payload.model];
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     response = (await anthropicBedrockClient.messages.create(
       {

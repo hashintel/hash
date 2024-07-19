@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import type { Subgraph } from "@blockprotocol/graph";
 import {
   type BlockComponent,
@@ -6,19 +7,14 @@ import {
 import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
 import { theme } from "@hashintel/design-system/theme";
 import { ThemeProvider } from "@mui/material";
-import { useMemo, useState } from "react";
 
 import type {
+  CompleteChat,
   CompleteChatRequest,
   CompleteChatResponse,
-  RequestId,
-  ResponseId,
-} from "./complete-chat";
-import {
-  CompleteChat,
   createRequestId,
-  createResponseId,
-} from "./complete-chat";
+  createResponseId,  RequestId,
+  ResponseId} from "./complete-chat";
 import type {
   AIChatBlock,
   AIChatRequestMessage,
@@ -64,6 +60,7 @@ const getRemainingMessagesFromSubgraph = (params: {
 
     for (const childResponseEntity of childResponseEntities) {
       const responseId = createResponseId();
+
       childResponseIds.push(responseId);
 
       const childRemainingMessages = getRemainingMessagesFromSubgraph({
@@ -108,6 +105,7 @@ const getRemainingMessagesFromSubgraph = (params: {
 
     for (const childRequestEntity of childRequestEntities) {
       const requestId = createRequestId();
+
       childRequestIds.push(requestId);
 
       const childMessages = getRemainingMessagesFromSubgraph({

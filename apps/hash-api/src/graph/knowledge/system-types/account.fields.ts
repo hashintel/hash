@@ -69,20 +69,20 @@ export const RESTRICTED_SHORTNAMES = [
 
 // Validations for shortnames
 /**
- * @todo revisit (simple) shortname validation to make use of data type
+ * @todo Revisit (simple) shortname validation to make use of data type
  *   constraints.
- *   https://linear.app/hash/issue/H-2987
+ *   https://linear.app/hash/issue/H-2987.
  */
 export const shortnameMinimumLength = 4;
 export const shortnameMaximumLength = 24;
 
-const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
+const ALLOWED_SHORTNAME_CHARS = /^[\w-]+$/;
 
 export const shortnameContainsInvalidCharacter: PureGraphFunction<
   { shortname: string },
   boolean
 > = ({ shortname }) => {
-  return !!shortname.search(ALLOWED_SHORTNAME_CHARS);
+  return Boolean(shortname.search(ALLOWED_SHORTNAME_CHARS));
 };
 
 export const shortnameIsRestricted: PureGraphFunction<
@@ -100,10 +100,9 @@ export const shortnameIsTaken: ImpureGraphFunction<
   Promise<boolean>
 > = async (ctx, authentication, params) => {
   /**
-   * @todo this creates a circular dependencies between `org.ts` and `user.ts`
-   * and this file.
-   *
    * @see https://linear.app/hash/issue/H-2989
+   * @todo This creates a circular dependencies between `org.ts` and `user.ts`
+   * and this file.
    */
   return (
     (await getUserByShortname(ctx, authentication, params)) !== null ||
@@ -118,7 +117,7 @@ export const shortnameIsInvalid: PureGraphFunction<
   return (
     params.shortname.length < shortnameMinimumLength ||
     params.shortname.length > shortnameMaximumLength ||
-    params.shortname[0] === "-" ||
+    params.shortname.startsWith("-") ||
     shortnameContainsInvalidCharacter(params) ||
     shortnameIsRestricted(params)
   );

@@ -1,6 +1,6 @@
+import dedent from "dedent";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { OriginProvenance } from "@local/hash-graph-client";
-import { SourceType } from "@local/hash-graph-client";
+import type { OriginProvenance , SourceType } from "@local/hash-graph-client";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -11,7 +11,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
-import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger.js";
 import {
@@ -22,34 +21,31 @@ import {
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types.js";
 import { logProgress } from "../shared/log-progress.js";
 import { stringify } from "../shared/stringify.js";
+
 import { checkSubTasksAgent } from "./research-entities-action/check-sub-tasks-agent.js";
 import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "./research-entities-action/coordinating-agent.js";
-import { coordinatingAgent } from "./research-entities-action/coordinating-agent.js";
+ coordinatingAgent,  CoordinatingAgentInput,
+  CoordinatingAgentState } from "./research-entities-action/coordinating-agent.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "./research-entities-action/coordinator-tools.js";
-import type { DuplicateReport } from "./research-entities-action/deduplicate-entities.js";
-import { deduplicateEntities } from "./research-entities-action/deduplicate-entities.js";
+import type { deduplicateEntities,DuplicateReport  } from "./research-entities-action/deduplicate-entities.js";
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human.js";
 import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call.js";
 import { linkFollowerAgent } from "./research-entities-action/link-follower-agent.js";
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
-import type { CompletedCoordinatorToolCall } from "./research-entities-action/types.js";
-import { nullReturns } from "./research-entities-action/types.js";
+import type { CompletedCoordinatorToolCall , nullReturns } from "./research-entities-action/types.js";
 import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text.js";
 import type { Fact } from "./shared/infer-facts-from-text/types.js";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts.js";
 import type { FlowActionActivity } from "./types.js";
 
-export type AccessedRemoteFile = {
+export interface AccessedRemoteFile {
   entityTypeId: VersionedUrl;
   url: string;
   loadedAt: string;
-};
+}
 
 const adjustDuplicates = (params: {
   duplicates: DuplicateReport[];
@@ -97,7 +93,7 @@ const adjustDuplicates = (params: {
  * 1. Deduplicate entities
  * 2. Update the state with the new facts and entity summaries
  * 3. Create or update proposals for (1) new entities and (2) existing entities with new facts
- * 4. Update the state with the new and updated proposals
+ * 4. Update the state with the new and updated proposals.
  */
 const updateStateFromInferredFacts = async (params: {
   input: CoordinatingAgentInput;
@@ -108,10 +104,11 @@ const updateStateFromInferredFacts = async (params: {
   const { input, state, newEntitySummaries, newFacts } = params;
 
   /**
-   * Step 1: Deduplication (if necessary)
+   * Step 1: Deduplication (if necessary).
    */
 
   const canonicalEntityIdsForNewDuplicates: string[] = [];
+
   if (newEntitySummaries.length === 0) {
     // do nothing – there are no new entities to deduplicate
   } else {
@@ -131,13 +128,13 @@ const updateStateFromInferredFacts = async (params: {
      * There are some entities that shouldn't be marked as the duplicates, and
      * should instead always be the canonical entity.
      */
-    const entityIdsWhichCannotBeDeduplicated = [
+    const entityIdsWhichCannotBeDeduplicated = 
       /**
        * We don't want to deduplicate any entities that are already persisted in
-       * the graph (i.e. the `existingEntities` passed in as input to the action)
+       * the graph (i.e. The `existingEntities` passed in as input to the action).
        */
-      ...(input.existingEntitySummaries ?? []).map(({ entityId }) => entityId),
-    ];
+      (input.existingEntitySummaries ?? []).map(({ entityId }) => entityId)
+    ;
 
     const adjustedDuplicates = adjustDuplicates({
       duplicates,
@@ -194,14 +191,14 @@ const updateStateFromInferredFacts = async (params: {
   }
 
   /**
-   * Step 2: Create or update proposals for new entities and existing entities with new facts
+   * Step 2: Create or update proposals for new entities and existing entities with new facts.
    */
 
   /**
    * We want to (re)propose entities which may have new information, via one of:
    * 1. Appearing as a new summary
    * 2. Being the subject or object of a new fact
-   * 3. Having been identified as the canonical version of a new duplicate (which means it may have had new facts discovered)
+   * 3. Having been identified as the canonical version of a new duplicate (which means it may have had new facts discovered).
    */
   const entityIdsToPropose = [
     ...new Set([
@@ -214,7 +211,7 @@ const updateStateFromInferredFacts = async (params: {
   ];
 
   /**
-   * Gather the facts which relate to the entities that are being proposed
+   * Gather the facts which relate to the entities that are being proposed.
    */
   const entitySummaries = state.entitySummaries.filter(({ localId }) =>
     entityIdsToPropose.includes(localId),
@@ -241,7 +238,7 @@ const updateStateFromInferredFacts = async (params: {
   );
 
   /**
-   * Get the updated proposals
+   * Get the updated proposals.
    */
   const { proposedEntities: newProposedEntities } =
     await proposeEntitiesFromFacts({
@@ -380,7 +377,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: `The plan has been successfully updated.`,
             };
-          } else if (toolCall.name === "requestHumanInput") {
+          } if (toolCall.name === "requestHumanInput") {
             const { questions } =
               toolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
 
@@ -411,7 +408,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               ...toolCall,
               output: response,
             };
-          } else if (toolCall.name === "webSearch") {
+          } if (toolCall.name === "webSearch") {
             const webPageSummaries = await handleWebSearchToolCall({
               input:
                 toolCall.input as CoordinatorToolCallArguments["webSearch"],
@@ -423,7 +420,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: "Search successful",
               webPagesFromSearchQuery: webPageSummaries,
             };
-          } else if (toolCall.name === "inferFactsFromResources") {
+          } if (toolCall.name === "inferFactsFromResources") {
             const { resources } =
               toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
 
@@ -522,7 +519,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                     ),
                     linkEntityTypes: input.linkEntityTypes?.filter(
                       ({ $id }) =>
-                        !!linkEntityTypeIds?.includes($id) ||
+                        Boolean(linkEntityTypeIds?.includes($id)) ||
                         relevantEntities.some(
                           (entity) => entity.entityTypeId === $id,
                         ),
@@ -560,7 +557,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                   ? "Entities inferred from web page"
                   : "No facts were inferred about any relevant entities.",
             };
-          } else if (toolCall.name === "startFactGatheringSubTasks") {
+          } if (toolCall.name === "startFactGatheringSubTasks") {
             const { subTasks } =
               toolCall.input as CoordinatorToolCallArguments["startFactGatheringSubTasks"];
 
@@ -608,7 +605,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
                   const linkEntityTypes = input.linkEntityTypes?.filter(
                     ({ $id }) =>
-                      !!linkEntityTypeIds?.includes($id) ||
+                      Boolean(linkEntityTypeIds?.includes($id)) ||
                       relevantEntities.some(
                         (entity) => entity.entityTypeId === $id,
                       ),
@@ -647,7 +644,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             const entitySummaries: LocalEntitySummary[] = [];
             const subTasksCompleted: string[] = [];
 
-            let errorMessage: string = "";
+            let errorMessage = "";
 
             for (const { response, subTask } of responsesWithSubTask) {
               entitySummaries.push(...response.discoveredEntities);
@@ -656,7 +653,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               if (response.status === "ok") {
                 subTasksCompleted.push(subTask.goal);
               } else {
-                errorMessage += `An error was encountered when completing the sub-task with goal "${subTask.goal}": ${response.reason}\n`;
+                errorMessage = `${errorMessage  }An error was encountered when completing the sub-task with goal "${subTask.goal}": ${response.reason}\n`;
               }
             }
 
@@ -665,7 +662,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                 (subTask) => subTask.subTaskId === subTaskId,
               )!;
 
-              errorMessage += `The sub-task with goal "${goal}" was rejected for the following reason: ${reason}\n`;
+              errorMessage = `${errorMessage  }The sub-task with goal "${goal}" was rejected for the following reason: ${reason}\n`;
             }
 
             return {
@@ -675,9 +672,9 @@ export const researchEntitiesAction: FlowActionActivity<{
               entitySummaries,
               subTasksCompleted,
               output: errorMessage || "Sub-tasks all completed.",
-              isError: !!errorMessage,
+              isError: Boolean(errorMessage),
             };
-          } else if (toolCall.name === "complete") {
+          } if (toolCall.name === "complete") {
             if (!state.hasConductedCheckStep) {
               const warnings: string[] = [];
 
@@ -757,6 +754,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                 logger.debug(
                   `Conducting check step with warnings: ${stringify(warnings)}`,
                 );
+
                 return {
                   ...nullReturns,
                   ...toolCall,
@@ -771,9 +769,9 @@ export const researchEntitiesAction: FlowActionActivity<{
                   `),
                   isError: true,
                 };
-              } else {
+              } 
                 state.hasConductedCheckStep = true;
-              }
+              
             }
 
             return {
@@ -853,9 +851,9 @@ export const researchEntitiesAction: FlowActionActivity<{
     if (isCompleted) {
       if (state.hasConductedCheckStep) {
         return;
-      } else {
+      } 
         state.hasConductedCheckStep = true;
-      }
+      
     }
 
     state.previousCalls = [...state.previousCalls, { completedToolCalls }];
@@ -882,11 +880,13 @@ export const researchEntitiesAction: FlowActionActivity<{
   /**
    * These are entities the coordinator has chosen to highlight as the result of research,
    * but we want to output all entity proposals from the task.
-   * @todo do something with the highlighted entities, e.g.
+   *
+   * @todo Do something with the highlighted entities, e.g.
    * - mark them for the user's attention
-   * - pass them to future steps
+   * - pass them to future steps.
    */
   const _submittedEntities = getSubmittedEntities();
+
   logger.debug(`Submitted Entities: ${stringify(_submittedEntities)}`);
 
   const allProposedEntities = state.proposedEntities;
@@ -905,7 +905,7 @@ export const researchEntitiesAction: FlowActionActivity<{
           source.location?.uri &&
           source.type === SourceType.Document &&
           /**
-           * Exclude files we already have an entity for
+           * Exclude files we already have an entity for.
            */
           !providedFileEntities.some((fileEntity) =>
             areUrlsTheSameAfterNormalization(

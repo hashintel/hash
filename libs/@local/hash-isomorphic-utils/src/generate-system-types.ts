@@ -1,5 +1,4 @@
-import type { CodegenParameters } from "@blockprotocol/graph/codegen";
-import { codegen } from "@blockprotocol/graph/codegen";
+import type { codegen,CodegenParameters  } from "@blockprotocol/graph/codegen";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
@@ -35,8 +34,8 @@ const generateTypes = async (
        * codegen script because it throws an error when consuming
        * entity types with no properties.
        *
-       * @todo fix the codegen script to gracefully handle entity types with no properties
        * @see https://linear.app/hash/issue/H-1402/fix-the-codegen-script-to-handle-entity-types-with-no-properties
+       * @todo Fix the codegen script to gracefully handle entity types with no properties.
        */
       continue;
     }
@@ -55,6 +54,7 @@ const generateTypes = async (
 
         return rewrittenTypeId;
       }
+
       return typeId;
     },
   });
@@ -64,7 +64,7 @@ const generateTypes = async (
 };
 
 /**
- * Generate TypeScript types for the system types. The API and frontend must be running, i.e. `yarn dev`
+ * Generate TypeScript types for the system types. The API and frontend must be running, i.e. `yarn dev`.
  *
  * @todo H-2307 – if you run this as shown (with multiple namespaces), there will be an error
  *   – you have to comment the others out and run them one at a time, in which case they all work fine.

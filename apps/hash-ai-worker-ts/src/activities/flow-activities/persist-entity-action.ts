@@ -1,7 +1,7 @@
+import { backOff } from "exponential-backoff";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
-import {
+import type { CreateEntityParameters ,
   Entity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
@@ -15,7 +15,6 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
-import { backOff } from "exponential-backoff";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
@@ -27,6 +26,7 @@ import { createInferredEntityNotification } from "../shared/create-inferred-enti
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
+
 import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url.js";
 import { getEntityUpdate } from "./shared/graph-requests.js";
 import type { FlowActionActivity } from "./types.js";
@@ -239,10 +239,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           },
         );
       }
-    } catch (err) {
+    } catch (error) {
       return {
         code: StatusCode.Internal,
-        message: `Could not persist entity: ${extractErrorMessage(err)}`,
+        message: `Could not persist entity: ${extractErrorMessage(error)}`,
         contents: [
           {
             outputs: [

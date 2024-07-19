@@ -78,6 +78,7 @@ export const generateEntityDefinitions = (
   )) {
     for (const identifier of dependentIdentifiers) {
       const entityTypeId = entityTypeIdentifiersToIds[identifier];
+
       if (entityTypeId) {
         const { entityName, compiledContents } = mustBeDefined(
           entityTypeIdsToEntityDefinitions[entityTypeId],

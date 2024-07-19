@@ -8,6 +8,7 @@ import { promptTokensEstimate } from "openai-chat-tokens";
 import { logger } from "../activity-logger.js";
 import { modelToContextWindow, openai } from "../openai-client.js";
 import { stringify } from "../stringify.js";
+
 import {
   defaultRateLimitRetryDelay,
   maximumExponentialBackoffRetries,
@@ -18,11 +19,8 @@ import {
 import type {
   LlmMessageToolUseContent,
   LlmUserMessage,
-} from "./llm-message.js";
-import {
   mapLlmMessageToOpenAiMessages,
-  mapOpenAiMessagesToLlmMessages,
-} from "./llm-message.js";
+  mapOpenAiMessagesToLlmMessages} from "./llm-message.js";
 import type {
   LlmResponse,
   LlmStopReason,
@@ -51,16 +49,21 @@ const mapOpenAiFinishReasonToLlmStopReason = (
   finishReason: OpenAI.ChatCompletion["choices"][0]["finish_reason"],
 ): LlmStopReason => {
   switch (finishReason) {
-    case "stop":
+    case "stop": {
       return "stop";
-    case "tool_calls":
+    }
+    case "tool_calls": {
       return "tool_use";
-    case "length":
+    }
+    case "length": {
       return "length";
-    case "content_filter":
+    }
+    case "content_filter": {
       return "content_filter";
-    default:
+    }
+    default: {
       throw new Error(`Unexpected OpenAI finish reason: ${finishReason}`);
+    }
   }
 };
 
@@ -69,29 +72,35 @@ const mapOpenAiFinishReasonToLlmStopReason = (
  */
 const convertOpenAiTimeStringToMilliseconds = (timeString: string): number => {
   const timeValue = parseFloat(timeString);
-  const unit = timeString.match(/[a-zA-Z]+/)?.[0];
+  const unit = timeString.match(/[A-Za-z]+/)?.[0];
 
   if (!unit) {
     throw new Error("Invalid time format");
   }
 
   switch (unit) {
-    case "ms":
+    case "ms": {
       return timeValue;
-    case "s":
+    }
+    case "s": {
       return timeValue * 1000;
-    case "m":
+    }
+    case "m": {
       return timeValue * 1000 * 60;
-    case "h":
+    }
+    case "h": {
       return timeValue * 1000 * 60 * 60;
-    default:
+    }
+    default: {
       throw new Error(`Unsupported time unit: ${unit}`);
+    }
   }
 };
 
 const getWaitPeriodFromHeaders = (headers?: Headers): number => {
   const tokenReset = headers?.["x-ratelimit-reset-tokens"];
   const requestReset = headers?.["x-ratelimit-reset-requests"];
+
   if (!tokenReset && !requestReset) {
     return defaultRateLimitRetryDelay;
   }
@@ -102,6 +111,7 @@ const getWaitPeriodFromHeaders = (headers?: Headers): number => {
   if (!requestReset) {
     return convertOpenAiTimeStringToMilliseconds(tokenReset);
   }
+
   return Math.max(
     convertOpenAiTimeStringToMilliseconds(requestReset),
     convertOpenAiTimeStringToMilliseconds(tokenReset),
@@ -110,7 +120,7 @@ const getWaitPeriodFromHeaders = (headers?: Headers): number => {
 
 const isServerError = (error: unknown): error is APIError =>
   error instanceof APIError &&
-  !!error.status &&
+  Boolean(error.status) &&
   error.status >= 500 &&
   error.status < 600;
 
@@ -134,6 +144,7 @@ const openAiChatCompletionWithBackoff = async (params: {
           logger.debug(
             `Encountered server error with OpenAI, retrying with exponential backoff.`,
           );
+
           return true;
         }
 
@@ -220,12 +231,14 @@ export const getOpenAiResponse = async <ToolName extends string>(
    * according to the model's context window size.
    */
   let estimatedPromptTokens: number | undefined;
+
   if (typeof trimMessageAtIndex === "number") {
     const modelContextWindow = modelToContextWindow[params.model];
 
     const completionPayloadOverhead = 4_096;
 
     let excessTokens: number;
+
     do {
       estimatedPromptTokens = promptTokensEstimate({
         messages: openAiMessages,
@@ -493,6 +506,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
   } else {
     const { completion_tokens, prompt_tokens, total_tokens } =
       openAiResponse.usage;
+
     logger.info(
       `Actual usage for iteration: prompt tokens: ${prompt_tokens}, completion tokens: ${completion_tokens}, total tokens: ${total_tokens}`,
     );
@@ -548,7 +562,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
     lastRequestTime: currentRequestTime,
     totalRequestTime:
       previousInvalidResponses?.reduce(
-        (acc, { requestTime }) => acc + requestTime,
+        (accumulator, { requestTime }) => accumulator + requestTime,
         currentRequestTime,
       ) ?? currentRequestTime,
   };

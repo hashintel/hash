@@ -1,7 +1,6 @@
 import type { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
 import type { BlockComponent } from "blockprotocol/react";
-import type { Reducer } from "react";
-import {
+import type { Reducer ,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -24,7 +23,7 @@ import Pencil from "./svgs/pencil";
 import type { Actions, AppState, ProviderName } from "./types";
 import { getFormCopy } from "./utils";
 
-type BlockEntityProperties = {
+interface BlockEntityProperties {
   // @todo temporarily using application-provided getEmbedCode - implement fallbacks for CORS-blocked oembed endpoints and remove
   getEmbedBlock: (
     url: string,
@@ -40,7 +39,7 @@ type BlockEntityProperties = {
   initialHtml?: string;
   initialWidth?: number;
   initialHeight?: number;
-};
+}
 
 const getInitialState = ({
   html,
@@ -60,21 +59,24 @@ const getInitialState = ({
 
 const reducer = (state: AppState, action: Actions): AppState => {
   switch (action.type) {
-    case "UPDATE_STATE":
+    case "UPDATE_STATE": {
       return {
         ...state,
         ...action.payload,
       };
+    }
 
-    case "RESET_STATE":
+    case "RESET_STATE": {
       return {
         ...getInitialState(),
         embedType: state.embedType,
         embedUrl: state.embedUrl,
       };
+    }
 
-    default:
+    default: {
       return state;
+    }
   }
 };
 
@@ -150,6 +152,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         if (blockShouldRespectAspectRatio && embedHeight && embedWidth) {
           const embedAspectRatio =
             Math.round((embedWidth / embedHeight) * 100) / 100;
+
           if (embedAspectRatio) {
             defaultHeight = Math.ceil(defaultWidth / embedAspectRatio);
           }
@@ -189,10 +192,10 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   ]);
 
   const setErrorString = (error: string) =>
-    dispatch({ type: "UPDATE_STATE", payload: { errorString: error } });
+    { dispatch({ type: "UPDATE_STATE", payload: { errorString: error } }); };
 
   useLayoutEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) {return;}
     const blockWidth = containerRef.current.getBoundingClientRect().width;
 
     if (!blockWidthRef.current) {
@@ -251,10 +254,12 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     } = responseData;
 
     if (error) {
-      return dispatch({
+      dispatch({
         type: "UPDATE_STATE",
         payload: { errorString: error, loading: false },
       });
+
+ return;
     }
 
     const { defaultHeight, defaultWidth } = getBlockDefaultSize({
@@ -292,6 +297,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     if (!html) {
       const { bottomText, buttonText, placeholderText } =
         getFormCopy(embedType);
+
       return (
         <EditView
           errorString={errorString}
@@ -300,20 +306,20 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           buttonText={buttonText}
           bottomText={bottomText}
           placeholderText={placeholderText}
-          onSubmit={handleGetEmbed}
           embedUrl={embedUrl}
+          onSubmit={handleGetEmbed}
           onChangeEmbedUrl={(url: string) =>
-            dispatch({ type: "UPDATE_STATE", payload: { embedUrl: url } })
+            { dispatch({ type: "UPDATE_STATE", payload: { embedUrl: url } }); }
           }
         />
       );
     }
 
     const shouldRespectAspectRatio =
-      !!embedType && PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO.has(embedType);
+      Boolean(embedType) && PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO.has(embedType);
 
     const shouldNotBeResized =
-      !!embedType && PROVIDER_NAMES_THAT_CANT_BE_RESIZED.has(embedType);
+      Boolean(embedType) && PROVIDER_NAMES_THAT_CANT_BE_RESIZED.has(embedType);
 
     return (
       <div className={tw`flex justify-center`}>
@@ -336,10 +342,10 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           )}
         </div>
         <button
-          aria-label="Reset"
-          onClick={resetData}
-          type="button"
+          aria-label={"Reset"}
+          type={"button"}
           className={tw`border-solid bg-gray-100 w-10 h-10 flex items-center justify-center ml-1 border-1 border-gray-300 rounded-sm self-start`}
+          onClick={resetData}
         >
           <Pencil />
         </button>

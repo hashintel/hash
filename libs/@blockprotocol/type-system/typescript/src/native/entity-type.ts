@@ -6,7 +6,7 @@ export const ENTITY_TYPE_META_SCHEMA: EntityType["$schema"] =
 /**
  * Returns all the IDs of all types referenced in a given property type.
  *
- * @param {EntityType} entityType
+ * @param entityType
  */
 export const getReferencedIdsFromEntityType = (
   entityType: EntityType,

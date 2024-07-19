@@ -1,15 +1,11 @@
 import "@glideapps/glide-data-grid/dist/index.css";
-
-import type {
-  DataEditorProps,
-  DataEditorRef,
-  Theme,
-} from "@glideapps/glide-data-grid";
-import { DataEditor } from "@glideapps/glide-data-grid";
-import { Box, useTheme } from "@mui/material";
 import uniqueId from "lodash.uniqueid";
-import type { Ref } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import type { Ref , useEffect, useMemo, useRef, useState } from "react";
+import type {
+ DataEditor,  DataEditorProps,
+  DataEditorRef,
+  Theme } from "@glideapps/glide-data-grid";
+import { Box, useTheme } from "@mui/material";
 
 import { getScrollBarWidth } from "./get-scrollbar-width";
 import { useRenderGridPortal } from "./use-render-grid-portal";
@@ -33,8 +29,8 @@ export const Grid = ({ gridRef, ...props }: GridProps) => {
 
   useEffect(() => {
     /**
-     * wait a bit before adding the listener to the scroll container,
-     * because `glide-data-grid` needs some time to render it
+     * Wait a bit before adding the listener to the scroll container,
+     * because `glide-data-grid` needs some time to render it.
      */
     const timeout = setTimeout(() => {
       const grid = document.querySelector(
@@ -99,15 +95,15 @@ export const Grid = ({ gridRef, ...props }: GridProps) => {
       }}
     >
       <DataEditor
-        ref={gridRef}
-        theme={dataEditorTheme}
-        className={uniqueClassNameRef.current}
-        width="100%"
-        headerHeight={ROW_HEIGHT}
-        rowHeight={ROW_HEIGHT}
         smoothScrollX
         smoothScrollY
         getCellsForSelection
+        ref={gridRef}
+        theme={dataEditorTheme}
+        className={uniqueClassNameRef.current}
+        width={"100%"}
+        headerHeight={ROW_HEIGHT}
+        rowHeight={ROW_HEIGHT}
         keybindings={{ search: true }}
         experimental={{
           scrollbarWidthOverride: scrollbarVisible ? scrollbarWidth : 0,

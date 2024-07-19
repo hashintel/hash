@@ -1,12 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 import packageJSON from "../package.json";
-import Component from "./index";
-import type { BlockEntity } from "./types/generated/block-entity";
 
-const node = document.getElementById("app");
+import type { BlockEntity } from "./types/generated/block-entity";
+import Component from "./index";
+
+const node = document.querySelector("#app");
 
 const testEntity: BlockEntity = {
   metadata: {
@@ -22,6 +23,7 @@ const testEntity: BlockEntity = {
 const DevApp = () => {
   return (
     <MockBlockDock
+      debug
       blockDefinition={{ ReactComponent: Component }}
       blockEntityRecordId={testEntity.metadata.recordId}
       blockInfo={packageJSON.blockprotocol}
@@ -33,7 +35,6 @@ const DevApp = () => {
         min: 50,
         max: 200,
       }}
-      debug
     />
   );
 };

@@ -1,7 +1,6 @@
-import type { BlockComponent } from "@blockprotocol/graph/react";
-import { useEntitySubgraph } from "@blockprotocol/graph/react";
-import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
 import { useRef } from "react";
+import type { BlockComponent , useEntitySubgraph } from "@blockprotocol/graph/react";
+import { useHook, useHookBlockModule } from "@blockprotocol/hook/react";
 
 import { propertyIds } from "./property-ids";
 import type { BlockEntity } from "./types/generated/block-entity";
@@ -45,12 +44,12 @@ export const App: BlockComponent<BlockEntity> = ({
   return (
     <div ref={containerRef}>
       <Header
+        ref={headerRef}
         style={{
           fontFamily: "Arial",
           color: color ?? "black",
           marginBottom: 0,
         }}
-        ref={headerRef}
       />
     </div>
   );

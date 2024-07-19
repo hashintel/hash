@@ -3,16 +3,6 @@
  */
 
 import type {
-  AllowedAuthServicePropertyValue,
-  AllowedAuthServicePropertyValueWithMetadata,
-  AllowMembersToInvitePropertyValue,
-  AllowMembersToInvitePropertyValueWithMetadata,
-  ArchivedAtPropertyValue,
-  ArchivedAtPropertyValueWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  CreatedAtPropertyValue,
-  CreatedAtPropertyValueWithMetadata,
   CreatedIssueCountPropertyValue,
   CreatedIssueCountPropertyValueWithMetadata,
   DeletionRequestedAtPropertyValue,
@@ -61,16 +51,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  AllowedAuthServicePropertyValue,
-  AllowedAuthServicePropertyValueWithMetadata,
-  AllowMembersToInvitePropertyValue,
-  AllowMembersToInvitePropertyValueWithMetadata,
-  ArchivedAtPropertyValue,
-  ArchivedAtPropertyValueWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  CreatedAtPropertyValue,
-  CreatedAtPropertyValueWithMetadata,
   CreatedIssueCountPropertyValue,
   CreatedIssueCountPropertyValueWithMetadata,
   DeletionRequestedAtPropertyValue,
@@ -117,3 +97,5 @@ export type {
   UserCountPropertyValue,
   UserCountPropertyValueWithMetadata,
 };
+
+export {type AllowedAuthServicePropertyValue, type AllowedAuthServicePropertyValueWithMetadata, type AllowMembersToInvitePropertyValue, type AllowMembersToInvitePropertyValueWithMetadata, type ArchivedAtPropertyValue, type ArchivedAtPropertyValueWithMetadata, type BooleanDataType, type BooleanDataTypeWithMetadata, type CreatedAtPropertyValue, type CreatedAtPropertyValueWithMetadata} from "./shared.js";

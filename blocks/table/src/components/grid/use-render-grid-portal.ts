@@ -5,14 +5,15 @@ export const useRenderGridPortal = () => {
     const shouldRenderPortal = !document.querySelector(`div[id="portal"]`);
 
     if (shouldRenderPortal) {
-      const portalEl = document.createElement("div");
-      portalEl.setAttribute("id", "portal");
-      portalEl.style.position = "fixed";
-      portalEl.style.left = "0";
-      portalEl.style.top = "0";
-      portalEl.style.zIndex = "999";
+      const portalElement = document.createElement("div");
 
-      document.body.appendChild(portalEl);
+      portalElement.setAttribute("id", "portal");
+      portalElement.style.position = "fixed";
+      portalElement.style.left = "0";
+      portalElement.style.top = "0";
+      portalElement.style.zIndex = "999";
+
+      document.body.appendChild(portalElement);
     }
   }, []);
 };

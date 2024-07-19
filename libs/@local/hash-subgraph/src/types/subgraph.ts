@@ -1,7 +1,7 @@
-import {
-  type DataTypeRootType as DataTypeRootTypeBp,
-  type EntityTypeRootType as EntityTypeRootTypeBp,
-  type PropertyTypeRootType as PropertyTypeRootTypeBp,
+import type {
+  DataTypeRootType as DataTypeRootTypeBp,
+  EntityTypeRootType as EntityTypeRootTypeBp,
+  PropertyTypeRootType as PropertyTypeRootTypeBp,
 } from "@blockprotocol/graph";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { Entity, SerializedEntity } from "@local/hash-graph-sdk/entity";
@@ -51,12 +51,12 @@ export type EntityTypeRootType = Subtype<
   }
 >;
 
-export type EntityRootType<
+export interface EntityRootType<
   Properties extends EntityProperties = EntityProperties,
-> = {
+> {
   vertexId: EntityVertexId;
   element: Entity<Properties>;
-};
+}
 
 export type SubgraphRootType =
   | DataTypeRootType
@@ -64,10 +64,10 @@ export type SubgraphRootType =
   | EntityTypeRootType
   | EntityRootType;
 
-export type SerializedEntityRootType = {
+export interface SerializedEntityRootType {
   vertexId: EntityVertexId;
   element: SerializedEntity;
-};
+}
 
 export type SerializedSubgraphRootType =
   | DataTypeRootType
@@ -86,19 +86,19 @@ export type SerializedSubgraphRootType =
 //   temporalAxes: SubgraphTemporalAxes
 // }, SubgraphBp< RootType>;
 
-export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
+export interface Subgraph<RootType extends SubgraphRootType = SubgraphRootType> {
   roots: RootType["vertexId"][];
   vertices: Vertices;
   edges: Edges;
   depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;
-};
-export type SerializedSubgraph<
+}
+export interface SerializedSubgraph<
   RootType extends SerializedSubgraphRootType = SerializedSubgraphRootType,
-> = {
+> {
   roots: RootType["vertexId"][];
   vertices: SerializedVertices;
   edges: Edges;
   depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;
-};
+}

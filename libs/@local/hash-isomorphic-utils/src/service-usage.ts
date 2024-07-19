@@ -36,6 +36,7 @@ const getServiceFeatureForUsage = ({
       linkEntity[0]!.metadata.entityTypeId ===
       systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
   );
+
   if (serviceFeatureLinkAndEntities.length !== 1) {
     throw new Error(
       `Expected exactly one service feature link for service usage record ${usageRecord.metadata.recordId.entityId}, got ${serviceFeatureLinkAndEntities.length}.`,
@@ -48,12 +49,14 @@ const getServiceFeatureForUsage = ({
   const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
     serviceFeatureEntity.properties,
   );
+
   if (!serviceUnitCost) {
     throw new Error("Cannot calculate usage cost without service unit cost.");
   }
 
   const applicablePrice = serviceUnitCost.find((entry) => {
     const { appliesUntil, appliesFrom } = simplifyProperties(entry);
+
     if (
       appliesUntil &&
       appliesUntil <= usageRecord.metadata.provenance.createdAtTransactionTime
@@ -63,6 +66,7 @@ const getServiceFeatureForUsage = ({
     if (!appliesFrom) {
       return false;
     }
+
     return (
       appliesFrom <= usageRecord.metadata.provenance.createdAtTransactionTime
     );
@@ -84,7 +88,7 @@ const getServiceFeatureForUsage = ({
   return { inputUnitCost, outputUnitCost, serviceName, featureName };
 };
 
-export type AggregatedUsageRecord = {
+export interface AggregatedUsageRecord {
   serviceName: string;
   featureName: string;
   totalInputUnitCount: number;
@@ -92,7 +96,7 @@ export type AggregatedUsageRecord = {
   totalCostInUsd: number;
   last24hoursTotalCostInUsd: number;
   limitedToPeriod: BoundedTimeInterval | null;
-};
+}
 
 export const getAggregateUsageRecordsByServiceFeature = ({
   decisionTimeInterval,
@@ -133,10 +137,10 @@ export const getAggregateUsageRecordsByServiceFeature = ({
     };
     const aggregateUsage = aggregateUsageByServiceFeature[serviceFeatureKey];
 
-    aggregateUsage.totalInputUnitCount +=
-      inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;
-    aggregateUsage.totalOutputUnitCount +=
-      outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0;
+    aggregateUsage.totalInputUnitCount = aggregateUsage.totalInputUnitCount +
+      (inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0);
+    aggregateUsage.totalOutputUnitCount = aggregateUsage.totalOutputUnitCount +
+      (outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0);
 
     const inputCost =
       (inputUnitCount ?? 0) *
@@ -146,25 +150,26 @@ export const getAggregateUsageRecordsByServiceFeature = ({
       (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
     const totalCost = inputCost + outputCost;
 
-    aggregateUsage.totalCostInUsd += totalCost;
+    aggregateUsage.totalCostInUsd = aggregateUsage.totalCostInUsd + totalCost;
 
     const oneDayEarlier = new Date(
-      new Date().valueOf() - 24 * 60 * 60 * 1000,
+      Date.now() - 24 * 60 * 60 * 1000,
     ).toISOString();
+
     if (record.metadata.provenance.createdAtTransactionTime > oneDayEarlier) {
-      aggregateUsage.last24hoursTotalCostInUsd += totalCost;
+      aggregateUsage.last24hoursTotalCostInUsd = aggregateUsage.last24hoursTotalCostInUsd + totalCost;
     }
   }
 
   return Object.values(aggregateUsageByServiceFeature);
 };
 
-export type AggregatedUsageByTask = {
+export interface AggregatedUsageByTask {
   taskName: string;
   totalInputUnitCount: number;
   totalOutputUnitCount: number;
   totalCostInUsd: number;
-};
+}
 
 export const getAggregateUsageRecordsByTask = ({
   serviceUsageRecords,
@@ -182,6 +187,7 @@ export const getAggregateUsageRecordsByTask = ({
     const taskName = (
       customMetadata as FlowUsageRecordCustomMetadata | undefined
     )?.taskName;
+
     if (!taskName) {
       continue;
     }
@@ -199,10 +205,10 @@ export const getAggregateUsageRecordsByTask = ({
     };
     const aggregateUsage = aggregateUsageByTask[taskName];
 
-    aggregateUsage.totalInputUnitCount +=
-      inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;
-    aggregateUsage.totalOutputUnitCount +=
-      outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0;
+    aggregateUsage.totalInputUnitCount = aggregateUsage.totalInputUnitCount +
+      (inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0);
+    aggregateUsage.totalOutputUnitCount = aggregateUsage.totalOutputUnitCount +
+      (outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0);
 
     const inputCost =
       (inputUnitCount ?? 0) *
@@ -212,7 +218,7 @@ export const getAggregateUsageRecordsByTask = ({
       (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
     const totalCost = inputCost + outputCost;
 
-    aggregateUsage.totalCostInUsd += totalCost;
+    aggregateUsage.totalCostInUsd = aggregateUsage.totalCostInUsd + totalCost;
   }
 
   return Object.values(aggregateUsageByTask);

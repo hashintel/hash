@@ -1,7 +1,7 @@
-import type { ModalProps } from "@hashintel/design-system";
-import {
-  MagnifyingGlassRegularIcon,
+import type { FunctionComponent } from "react";
+import type {   MagnifyingGlassRegularIcon,
   Modal,
+ModalProps ,
   PersonRunningRegularIcon,
 } from "@hashintel/design-system";
 import {
@@ -11,7 +11,6 @@ import {
   styled,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 const ModalButton = styled(ButtonBase)(({ theme }) => ({
   flexGrow: 1,
@@ -94,13 +93,13 @@ export const WelcomeModal: FunctionComponent<
         },
       }}
     >
-      <Box display="flex">
+      <Box display={"flex"}>
         <ModalButton
-          onClick={onLoadExistingEntitiesClick}
           sx={{
             background: "#FAFBFC",
             width: 335,
           }}
+          onClick={onLoadExistingEntitiesClick}
         >
           <MagnifyingGlassRegularIcon />
           <Box
@@ -113,11 +112,11 @@ export const WelcomeModal: FunctionComponent<
             }}
           >
             <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
+              display={"flex"}
+              justifyContent={"space-between"}
+              alignItems={"center"}
             >
-              <ButtonHeadingTypography className="heading">
+              <ButtonHeadingTypography className={"heading"}>
                 Load Existing Entities
               </ButtonHeadingTypography>
               <Typography
@@ -142,8 +141,8 @@ export const WelcomeModal: FunctionComponent<
           </Box>
         </ModalButton>
         <ModalButton
-          onClick={onJustStartTypingClick}
           sx={{ background: ({ palette }) => palette.gray[10], width: 270 }}
+          onClick={onJustStartTypingClick}
         >
           <PersonRunningRegularIcon />
           <Box
@@ -155,7 +154,7 @@ export const WelcomeModal: FunctionComponent<
               rowGap: 1,
             }}
           >
-            <ButtonHeadingTypography className="heading">
+            <ButtonHeadingTypography className={"heading"}>
               Or just start typing
             </ButtonHeadingTypography>
             <ButtonSubheadingTypography>

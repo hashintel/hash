@@ -1,18 +1,12 @@
+import type { FunctionComponent, useMemo } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 import type {
   EntityRootType,
   Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
 import { getEntityTypeById, getRoots } from "@blockprotocol/graph/stdlib";
-import {
-  Box,
-  // eslint-disable-next-line no-restricted-imports
-  Button,
-  Typography,
-} from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useMemo } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { Box, Button, Typography } from "@mui/material";
 
 import { BarChartDefinitionForm } from "./edit-chart-definition/bar-chart-definition-form";
 import {
@@ -40,11 +34,10 @@ export const EditChartDefinition: FunctionComponent<{
     return entities
       .map((entity) => entity.metadata.entityTypeId)
       .filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index)
-      .map(
+      .flatMap(
         (entityTypeId) =>
           getEntityTypeById(queryResult, entityTypeId)?.schema ?? [],
-      )
-      .flat();
+      );
   }, [queryResult]);
 
   const defaultEntityType = useMemo(
@@ -114,11 +107,11 @@ export const EditChartDefinition: FunctionComponent<{
   return (
     <FormProvider {...form}>
       <Box
-        component="form"
-        onSubmit={innerSubmit}
+        component={"form"}
         sx={{ display: "flex", flexDirection: "column", rowGap: 2 }}
+        onSubmit={innerSubmit}
       >
-        <Typography variant="h5" marginBottom={2}>
+        <Typography variant={"h5"} marginBottom={2}>
           Configure {chartKindToLabel[chartKind]}
         </Typography>
         {chartKind === "bar-chart" ? (
@@ -129,7 +122,7 @@ export const EditChartDefinition: FunctionComponent<{
         ) : (
           <GraphChartDefinitionForm />
         )}
-        <Button type="submit" disabled={isSubmitDisabled}>
+        <Button type={"submit"} disabled={isSubmitDisabled}>
           {initialChartDefinition ? "Update" : "Create"} Chart
         </Button>
       </Box>

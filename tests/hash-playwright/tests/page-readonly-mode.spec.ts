@@ -27,7 +27,7 @@ test.skip("user can view page in read-only mode but not update", async ({
   await sleep(500);
   await page.locator('[data-testid="create-page-btn"]').click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => Boolean(url.pathname.match(/^\/@[\w-]+\/[\w-]+$/)));
 
   await expect(page.locator('[data-testid="page-sidebar"]')).toBeVisible();
 
@@ -43,17 +43,17 @@ test.skip("user can view page in read-only mode but not update", async ({
 
   await page.goto(`${page.url()}?readonly`);
 
-  await expect(page.locator('[data-testid="page-sidebar"]')).not.toBeVisible();
+  await expect(page.locator('[data-testid="page-sidebar"]')).toBeHidden();
 
   await blockRegion.locator("p div").click();
   await page.keyboard.type("typing in read-only mode");
   await expect(
     blockRegion.locator("text=typing in read-only mode"),
-  ).not.toBeVisible();
+  ).toBeHidden();
 
   await expect(
     blockRegion.locator('[data-testid="block-handle"]'),
-  ).not.toBeVisible();
+  ).toBeHidden();
 
   // @todo: test read-only mode in the code block once read-only version of code block
   // has been added to block hub

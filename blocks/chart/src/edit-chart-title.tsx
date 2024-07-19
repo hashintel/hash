@@ -1,8 +1,6 @@
-import type { BoxProps } from "@mui/material";
-import { Box, styled, TextField } from "@mui/material";
 import debounce from "lodash.debounce";
-import type { FunctionComponent } from "react";
-import { useMemo, useState } from "react";
+import type { FunctionComponent, useMemo, useState } from "react";
+import type { Box, BoxProps, styled, TextField } from "@mui/material";
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   "> .MuiInputBase-root > input": {
@@ -16,11 +14,11 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
   },
 }));
 
-type EditableChartTitleProps = {
+interface EditableChartTitleProps {
   title: string;
   updateTitle: (updatedTitle: string) => Promise<void>;
   sx?: BoxProps["sx"];
-};
+}
 
 export const EditableChartTitle: FunctionComponent<EditableChartTitleProps> = ({
   title: initialTitle,
@@ -44,18 +42,12 @@ export const EditableChartTitle: FunctionComponent<EditableChartTitleProps> = ({
           width: "100%",
           marginTop: 1,
         },
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- TODO why is this inferred as any?
+
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
       <StyledTextField
         value={textFieldValue}
-        onChange={({ target }) => {
-          const { value: updatedTitle } = target;
-
-          setTextFieldValue(updatedTitle);
-          void debouncedUpdateTitle(updatedTitle);
-        }}
         sx={{
           /** @todo: set the width of the input depending on the text width */
           width: 250,
@@ -69,6 +61,12 @@ export const EditableChartTitle: FunctionComponent<EditableChartTitleProps> = ({
             fontSize: 24,
             padding: 1,
           },
+        }}
+        onChange={({ target }) => {
+          const { value: updatedTitle } = target;
+
+          setTextFieldValue(updatedTitle);
+          void debouncedUpdateTitle(updatedTitle);
         }}
       />
     </Box>

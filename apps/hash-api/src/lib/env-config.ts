@@ -1,4 +1,4 @@
-const PORT = process.env.PORT;
+const {PORT} = process.env;
 
 // TODO: Switch to https://www.npmjs.com/package/envalid
 

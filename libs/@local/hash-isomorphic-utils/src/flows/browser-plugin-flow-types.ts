@@ -3,9 +3,10 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { InferenceModelName } from "../ai-inference-types.js";
+
 import type { OutputDefinition, Payload, WebPage } from "./types.js";
 
-export type AutomaticInferenceSettings = {
+export interface AutomaticInferenceSettings {
   createAs: "draft" | "live";
   displayGroupedBy: "type" | "location";
   enabled: boolean;
@@ -15,7 +16,7 @@ export type AutomaticInferenceSettings = {
     restrictToDomains: string[];
     entityTypeId: VersionedUrl;
   }[];
-};
+}
 
 export type AutomaticInferenceTriggerInputName = "visitedWebPage";
 
@@ -52,7 +53,7 @@ export type ManualInferenceTriggerInputs = Subtype<
   }
 >;
 
-type BaseInferenceArguments = { webId: OwnedById };
+interface BaseInferenceArguments { webId: OwnedById }
 
 export type AutomaticInferenceArguments = AutomaticInferenceTriggerInputs &
   BaseInferenceArguments;

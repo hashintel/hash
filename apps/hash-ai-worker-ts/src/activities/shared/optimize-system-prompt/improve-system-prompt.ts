@@ -9,6 +9,7 @@ import {
 } from "../get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../get-llm-response/types.js";
 import { graphApiClient } from "../graph-api-client.js";
+
 import type { MetricResultsForSystemPrompt } from "./types.js";
 
 const improveSystemPromptSystemPrompt = dedent(`
@@ -65,12 +66,10 @@ export const improveSystemPrompt = async (params: {
   const { previousSystemPrompt, results } = params;
 
   const metricDefinitions = results
-    .map(({ metricResultsForModels }) =>
+    .flatMap(({ metricResultsForModels }) =>
       metricResultsForModels
-        .map(({ metricResults }) => metricResults.map(({ metric }) => metric))
-        .flat(),
+        .flatMap(({ metricResults }) => metricResults.map(({ metric }) => metric)),
     )
-    .flat()
     .filter(
       (metric, index, all) =>
         all.findIndex(({ name }) => metric.name === name) === index,

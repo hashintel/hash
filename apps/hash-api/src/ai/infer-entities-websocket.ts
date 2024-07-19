@@ -1,5 +1,6 @@
 import type http from "node:http";
 
+import type { WebSocket , WebSocketServer } from "ws";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import {
   getFlowRunEntityById,
@@ -14,13 +15,12 @@ import type {
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
 import type { ExternalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/types";
 import type { Client } from "@temporalio/client";
-import type { WebSocket } from "ws";
-import { WebSocketServer } from "ws";
 
 import { getUserAndSession } from "../auth/create-auth-handlers";
 import type { GraphApi, ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
 import { FlowRunStatus } from "../graphql/api-types.gen";
+
 import { handleCancelInferEntitiesRequest } from "./infer-entities-websocket/handle-cancel-infer-entities-request";
 import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-infer-entities-request";
 
@@ -39,22 +39,26 @@ const inferEntitiesMessageHandler = async ({
 }) => {
   switch (message.type) {
     case "automatic-inference-request":
-    case "manual-inference-request":
+    case "manual-inference-request": {
       await handleInferEntitiesRequest({
         graphApiClient,
         temporalClient,
         message,
         user,
       });
+
       return;
-    case "cancel-inference-request":
+    }
+    case "cancel-inference-request": {
       await handleCancelInferEntitiesRequest({
         graphApiClient,
         temporalClient,
         message,
         user,
       });
+
       return;
+    }
     case "check-for-external-input-requests": {
       const openFlowRuns = await getFlowRuns({
         authentication: { actorId: user.accountId },
@@ -72,10 +76,12 @@ const inferEntitiesMessageHandler = async ({
               payload: inputRequest,
               type: "external-input-request",
             };
+
             socket.send(JSON.stringify(requestMessage));
           }
         }
       }
+
       return;
     }
     case "external-input-response": {
@@ -92,10 +98,12 @@ const inferEntitiesMessageHandler = async ({
       }
 
       const handle = temporalClient.workflow.getHandle(workflowId);
+
       await handle.signal<[ExternalInputResponseSignal]>(
         externalInputResponseSignal,
         { ...payload, resolvedBy: user.accountId },
       );
+
       return;
     }
   }
@@ -145,6 +153,7 @@ export const openInferEntitiesWebSocket = ({
         if (!user) {
           socket.send("Unauthenticated");
           socket.close();
+
           return;
         }
 

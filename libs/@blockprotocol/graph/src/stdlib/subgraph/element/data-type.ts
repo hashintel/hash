@@ -1,7 +1,6 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
+import type { BaseUrl,   extractBaseUrl,
   extractVersion,
+VersionedUrl ,
 } from "@blockprotocol/type-system/slim";
 
 import type { DataTypeWithMetadata } from "../../../types/ontology/data-type.js";
@@ -13,7 +12,7 @@ import { isDataTypeVertex } from "../../../types/subgraph/vertices.js";
 import { typedValues } from "../../../util.js";
 
 /**
- * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph
+ * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph.
  *
  * @param subgraph
  */
@@ -31,7 +30,7 @@ export const getDataTypes = (subgraph: Subgraph): DataTypeWithMetadata[] => {
  *
  * @param subgraph
  * @param dataTypeId
- * @throws if the vertex isn't a `DataTypeVertex`
+ * @throws If the vertex isn't a `DataTypeVertex`.
  */
 export const getDataTypeById = (
   subgraph: Subgraph,
@@ -60,7 +59,7 @@ export const getDataTypeById = (
  *
  * @param subgraph
  * @param vertexId
- * @throws if the vertex isn't a `DataTypeVertex`
+ * @throws If the vertex isn't a `DataTypeVertex`.
  */
 export const getDataTypeByVertexId = (
   subgraph: Subgraph,
@@ -80,7 +79,7 @@ export const getDataTypeByVertexId = (
 };
 
 /**
- * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
+ * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`.
  *
  * @param subgraph
  * @param baseUrl

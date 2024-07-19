@@ -2,10 +2,10 @@ import type { Brand } from "@local/advanced-types/brand";
 
 import type { Uuid } from "./branded.js";
 
-/** An ID to uniquely identify an account (e.g. a User) */
+/** An ID to uniquely identify an account (e.g. A User) */
 export type AccountId = Brand<Uuid, "AccountId">;
 
-/** An ID to uniquely identify an account group (e.g. an Org) */
+/** An ID to uniquely identify an account group (e.g. An Org) */
 export type AccountGroupId = Brand<Uuid, "AccountGroupId">;
 
 /** An account ID of creating actor */

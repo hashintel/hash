@@ -1,13 +1,12 @@
+import dedent from "dedent";
+import type OpenAI from "openai";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { Status } from "@local/status";
-import { StatusCode } from "@local/status";
-import dedent from "dedent";
-import type OpenAI from "openai";
+import type { Status , StatusCode } from "@local/status";
 
 import { logger } from "../shared/activity-logger.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -19,15 +18,13 @@ import {
   mapOpenAiMessagesToLlmMessages,
 } from "../shared/get-llm-response/llm-message.js";
 import { stringify } from "../shared/stringify.js";
+
 import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt.js";
 import type {
   CouldNotInferEntitiesReturn,
-  ProposedEntitySummariesByType,
-} from "./infer-entity-summaries/generate-summary-tools.js";
-import {
   generateSummaryTools,
-  validateEntitySummariesByType,
-} from "./infer-entity-summaries/generate-summary-tools.js";
+  ProposedEntitySummariesByType,
+  validateEntitySummariesByType} from "./infer-entity-summaries/generate-summary-tools.js";
 import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
@@ -44,7 +41,6 @@ export const inferEntitySummaries = async (params: {
   /**
    * @todo: remove these parameters when the `inferEntities` activity has
    * been deprecated, and access them via `getFlowContext` instead.
-   *
    * @see https://linear.app/hash/issue/H-2621/remove-superfluous-parameters-in-flow-activity-methods-and-use
    */
   userAccountId: AccountId;
@@ -85,7 +81,7 @@ export const inferEntitySummaries = async (params: {
   const tools = generateSummaryTools({
     entityTypes: Object.values(entityTypes),
     canLinkToExistingEntities:
-      !!existingEntities && existingEntities.length > 0,
+      Boolean(existingEntities) && existingEntities.length > 0,
   });
 
   const { stepId } = await getFlowContext();
@@ -204,7 +200,7 @@ export const inferEntitySummaries = async (params: {
       );
     }
 
-    case "content_filter":
+    case "content_filter": {
       logger.error(
         `The content filter was triggered on attempt ${iterationCount} with input: ${stringify(
           completionPayload.messages,
@@ -216,6 +212,7 @@ export const inferEntitySummaries = async (params: {
         contents: [inferenceState],
         message: "The content filter was triggered",
       };
+    }
 
     case "tool_use": {
       const retryMessages: (
@@ -243,10 +240,11 @@ export const inferEntitySummaries = async (params: {
 
         if (toolCall.name === "register_entity_summaries") {
           let proposedEntitySummariesByType: ProposedEntitySummariesByType;
+
           try {
             proposedEntitySummariesByType =
               toolCall.input as ProposedEntitySummariesByType;
-          } catch (err) {
+          } catch (error) {
             logger.error(
               `Model provided invalid argument to register_entity_summaries function. Argument provided: ${stringify(
                 toolCall.input,
@@ -255,7 +253,7 @@ export const inferEntitySummaries = async (params: {
 
             retryMessages.push({
               content: `Invalid JSON, please try again: ${
-                (err as Error).message
+                (error as Error).message
               }`,
               role: "tool",
               tool_call_id: toolCall.id,
@@ -355,7 +353,7 @@ export const inferEntitySummaries = async (params: {
       const toolCallsWithoutProblems = toolCalls.filter(
         (toolCall) =>
           !retryMessages.some(
-            (msg) => msg.role === "tool" && msg.tool_call_id === toolCall.id,
+            (message_) => message_.role === "tool" && message_.tool_call_id === toolCall.id,
           ),
       );
 
@@ -379,6 +377,7 @@ export const inferEntitySummaries = async (params: {
   }
 
   const errorMessage = `AI Model returned unhandled finish reason: ${stopReason}`;
+
   logger.error(errorMessage);
 
   return {

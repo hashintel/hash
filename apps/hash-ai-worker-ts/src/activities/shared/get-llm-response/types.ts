@@ -1,27 +1,27 @@
-import type { APIError as AnthropicApiError } from "@anthropic-ai/sdk/error";
 import type { OpenAI } from "openai";
 import type { APIError as OpenAiApiError } from "openai/error";
 import type { JSONSchema } from "openai/lib/jsonschema";
+import type { APIError as AnthropicApiError } from "@anthropic-ai/sdk/error";
 
 import type { PermittedOpenAiModel } from "../openai-client.js";
+
 import type {
   AnthropicMessageModel,
   AnthropicMessagesCreateParams,
   AnthropicMessagesCreateResponse,
-} from "./anthropic-client.js";
-import { isAnthropicMessageModel } from "./anthropic-client.js";
+ isAnthropicMessageModel } from "./anthropic-client.js";
 import type { LlmAssistantMessage, LlmMessage } from "./llm-message.js";
 
-export type LlmToolDefinition<ToolName extends string = string> = {
+export interface LlmToolDefinition<ToolName extends string = string> {
   name: ToolName;
   description: string;
   inputSchema: Omit<JSONSchema, "type"> & {
     type: "object";
   };
   sanitizeInputBeforeValidation?: (rawInput: object) => object;
-};
+}
 
-export type CommonLlmParams<ToolName extends string = string> = {
+export interface CommonLlmParams<ToolName extends string = string> {
   model: AnthropicMessageModel | PermittedOpenAiModel;
   tools?: LlmToolDefinition<ToolName>[];
   systemPrompt?: string;
@@ -32,7 +32,7 @@ export type CommonLlmParams<ToolName extends string = string> = {
     previousSuccessfulToolCalls: ParsedLlmToolCall<ToolName>[];
     previousUsage: LlmUsage;
   };
-};
+}
 
 export type AnthropicLlmParams<ToolName extends string = string> =
   CommonLlmParams<ToolName> & {
@@ -82,11 +82,11 @@ export type OpenAiResponse = Omit<
   invalidResponses: (OpenAI.ChatCompletion & { requestTime: number })[];
 };
 
-export type ParsedLlmToolCall<ToolName extends string = string> = {
+export interface ParsedLlmToolCall<ToolName extends string = string> {
   id: string;
   name: ToolName;
   input: object;
-};
+}
 
 /**
  * A unified definition of the stop reason for the LLM, one of:
@@ -94,7 +94,7 @@ export type ParsedLlmToolCall<ToolName extends string = string> = {
  * - `"tool_use"`: the model called one or more tools (equivalent to `tool_use` in the Anthropic API, or `tool_calls` in the OpenAI API)
  * - `"length"`: the model reached the maximum token length (equivalent to `max_tokens` in the Anthropic API, or `length` in the OpenAI API)
  * - `"content_filters"`: if content was omitted due to a flag from our content filters (OpenAI specific)
- * - `"stop_sequence"`: one of your provided custom `stop_sequences` was generated (Anthropic specific)
+ * - `"stop_sequence"`: one of your provided custom `stop_sequences` was generated (Anthropic specific).
  */
 export type LlmStopReason =
   | "stop"
@@ -103,7 +103,7 @@ export type LlmStopReason =
   | "content_filter"
   | "stop_sequence";
 
-export type LlmUsage = {
+export interface LlmUsage {
   /**
    * The number of input tokens which were used.
    * Equivalent to `prompt_tokens` in the OpenAI API, or `input_tokens` in the Anthropic API.
@@ -115,10 +115,10 @@ export type LlmUsage = {
    */
   outputTokens: number;
   /**
-   * Total number of tokens used in the request (input + output tokens)
+   * Total number of tokens used in the request (input + output tokens).
    */
   totalTokens: number;
-};
+}
 
 export type LlmErrorResponse =
   | {

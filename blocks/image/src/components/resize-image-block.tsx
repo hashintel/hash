@@ -1,13 +1,12 @@
-import type { FunctionComponent, MouseEvent } from "react";
-import { useLayoutEffect, useRef } from "react";
+import type { FunctionComponent, MouseEvent , useLayoutEffect, useRef } from "react";
 import { tw } from "twind";
 
-type ResizeBlockProps = {
+interface ResizeBlockProps {
   imageSrc: string;
   width: number | undefined;
   updateWidth: (width: number) => void;
   readonly?: boolean;
-};
+}
 
 const BLOCK_RESIZER_POSITIONS = ["left", "right"] as const;
 
@@ -30,13 +29,14 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
   });
 
   useLayoutEffect(() => {
-    if (!imageRef.current) return;
-    if (!imageSrc) return;
+    if (!imageRef.current) {return;}
+    if (!imageSrc) {return;}
 
     const imageWidth = imageRef.current.getBoundingClientRect().width;
 
     if (!width) {
       updateWidth(imageWidth);
+
       return;
     }
 
@@ -45,18 +45,18 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
     }
   }, [width, imageSrc, updateWidth]);
 
-  const handleResize = (_evt: MouseEvent, direction: "left" | "right") => {
-    function onMouseMove(mouseMoveEvt: globalThis.MouseEvent) {
-      if (!imageRef.current) return;
+  const handleResize = (_event: MouseEvent, direction: "left" | "right") => {
+    function onMouseMove(mouseMoveEvent: globalThis.MouseEvent) {
+      if (!imageRef.current) {return;}
       let newWidth;
       const { left, right } = imageRef.current.getBoundingClientRect();
 
       if (direction === "right") {
-        newWidth = mouseMoveEvt.pageX - left;
+        newWidth = mouseMoveEvent.pageX - left;
       }
 
       if (direction === "left") {
-        newWidth = right - mouseMoveEvt.pageX;
+        newWidth = right - mouseMoveEvent.pageX;
       }
 
       if (newWidth && newWidth > MIN_WIDTH) {
@@ -68,8 +68,9 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       setTimeout(() => {
-        if (!imageRef.current) return;
+        if (!imageRef.current) {return;}
         const { width: newWidth } = imageRef.current.getBoundingClientRect();
+
         updateWidthRef.current(newWidth);
       }, 1000);
     }
@@ -85,7 +86,7 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
         className={tw`mx-auto max-w-full`}
         ref={imageRef}
         src={imageSrc}
-        alt="Image block"
+        alt={"Image block"}
       />
       {readonly
         ? null
@@ -97,7 +98,7 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
               className={tw`transition-all absolute ${
                 position === "left" ? "left-1" : "right-1"
               } top-1/2 -translate-y-1/2 h-12 w-1.5 rounded-full bg-black bg-opacity-70 cursor-col-resize opacity-0 group-hover:opacity-100`}
-              onMouseDown={(evt) => handleResize(evt, position)}
+              onMouseDown={(event) => { handleResize(event, position); }}
             />
           ))}
     </div>

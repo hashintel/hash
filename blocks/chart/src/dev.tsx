@@ -2,8 +2,9 @@ import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
 import packageJson from "../package.json";
-import Component from "./index";
+
 import type { BlockEntity } from "./types/generated/block-entity";
+import Component from "./index";
 
 export const blockEntity: BlockEntity = {
   metadata: {
@@ -26,7 +27,7 @@ const exampleGraph = {
 
 export default exampleGraph;
 
-const node = document.getElementById("app");
+const node = document.querySelector("#app");
 
 /**
  * This is an embedding application for local development and debugging.
@@ -36,16 +37,16 @@ const node = document.getElementById("app");
  * The component used here, 'MockBlockDock', does the following:
  * 1. It renders your block on the page and provides the initial properties specified below
  * 2. It holds an in-memory datastore of entities and links
- * 3. It listens for messages from your blocks and updates its datastore appropriately (e.g. to create a new entity)
- * 4. It displays a debug UI allowing you to see the contents of its datastore, and messages sent back and forth
+ * 3. It listens for messages from your blocks and updates its datastore appropriately (e.g. To create a new entity)
+ * 4. It displays a debug UI allowing you to see the contents of its datastore, and messages sent back and forth.
  */
 const DevApp = () => {
   return (
     <MockBlockDock
+      debug // remove this to start with the debug UI minimised. You can also toggle it in the UI
       blockDefinition={{ ReactComponent: Component }}
       blockEntityRecordId={exampleGraph.blockEntityRecordId}
       blockInfo={packageJson.blockprotocol}
-      debug // remove this to start with the debug UI minimised. You can also toggle it in the UI
       initialData={{
         initialEntities: exampleGraph.entities,
       }}

@@ -3,16 +3,6 @@
  */
 
 import type {
-  FlowDefinitionIDPropertyValue,
-  FlowDefinitionIDPropertyValueWithMetadata,
-  FlowRun,
-  FlowRunOutgoingLinkAndTarget,
-  FlowRunOutgoingLinksByLinkEntityTypeId,
-  FlowRunProperties,
-  FlowRunPropertiesWithMetadata,
-  NamePropertyValue,
-  NamePropertyValueWithMetadata,
-  ObjectDataType,
   ObjectDataTypeWithMetadata,
   OutputsPropertyValue,
   OutputsPropertyValueWithMetadata,
@@ -27,16 +17,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  FlowDefinitionIDPropertyValue,
-  FlowDefinitionIDPropertyValueWithMetadata,
-  FlowRun,
-  FlowRunOutgoingLinkAndTarget,
-  FlowRunOutgoingLinksByLinkEntityTypeId,
-  FlowRunProperties,
-  FlowRunPropertiesWithMetadata,
-  NamePropertyValue,
-  NamePropertyValueWithMetadata,
-  ObjectDataType,
   ObjectDataTypeWithMetadata,
   OutputsPropertyValue,
   OutputsPropertyValueWithMetadata,
@@ -49,3 +29,5 @@ export type {
   TriggerPropertyValue,
   TriggerPropertyValueWithMetadata,
 };
+
+export {type FlowDefinitionIDPropertyValue, type FlowDefinitionIDPropertyValueWithMetadata, type FlowRun, type FlowRunOutgoingLinkAndTarget, type FlowRunOutgoingLinksByLinkEntityTypeId, type FlowRunProperties, type FlowRunPropertiesWithMetadata, type NamePropertyValue, type NamePropertyValueWithMetadata, type ObjectDataType} from "./shared.js";

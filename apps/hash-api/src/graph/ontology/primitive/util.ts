@@ -8,8 +8,7 @@ import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
-import type { WebAuthorizationRelationship } from "@local/hash-subgraph";
-import { entityIdFromComponents } from "@local/hash-subgraph";
+import type { entityIdFromComponents,WebAuthorizationRelationship  } from "@local/hash-subgraph";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getOrgById } from "../../knowledge/system-types/org";
@@ -25,7 +24,7 @@ export const isExternalTypeId = (typeId: VersionedUrl) =>
   );
 
 /**
- * Get the web shortname of an account or account group by its id
+ * Get the web shortname of an account or account group by its id.
  */
 export const getWebShortname: ImpureGraphFunction<
   {

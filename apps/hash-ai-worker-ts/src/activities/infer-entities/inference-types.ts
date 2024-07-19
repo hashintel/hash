@@ -1,3 +1,4 @@
+import type OpenAI from "openai";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -5,7 +6,6 @@ import type {
   InferredEntityChangeResult,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type OpenAI from "openai";
 
 import type { DereferencedEntityType } from "../shared/dereference-entity-type.js";
 import type { LlmUsage } from "../shared/get-llm-response/types.js";
@@ -25,22 +25,22 @@ export type DereferencedEntityTypesByTypeId = Record<
   }
 >;
 
-export type ProposedEntitySummary = {
+export interface ProposedEntitySummary {
   entityId: number;
   entityTypeId: VersionedUrl;
   sourceEntityId?: number | string;
   targetEntityId?: number | string;
   takenFromQueue?: boolean;
   summary: string;
-};
+}
 
-export type UpdateCandidate = {
+export interface UpdateCandidate {
   entity: SerializedEntity;
   proposedEntity: ProposedEntity;
   status: "update-candidate";
-};
+}
 
-export type InferenceState = {
+export interface InferenceState {
   /** Starting from 1, the current iteration number, where each iteration is a call to the LLM */
   iterationCount: number;
   /** The temporary ids for entities which the AI is being asked to provide details for */
@@ -56,4 +56,4 @@ export type InferenceState = {
   >;
   /** The token usage for each iteration, in order */
   usage: LlmUsage[];
-};
+}

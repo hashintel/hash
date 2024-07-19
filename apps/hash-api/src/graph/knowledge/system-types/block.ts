@@ -41,13 +41,13 @@ import {
   getLinkEntityRightEntity,
   isEntityLinkEntity,
 } from "../primitive/link-entity";
-import type { Comment } from "./comment";
-import { getCommentFromEntity } from "./comment";
 
-export type Block = {
+import type { Comment , getCommentFromEntity } from "./comment";
+
+export interface Block {
   componentId: string;
   entity: Entity<BlockEntity>;
-};
+}
 
 function assertBlockEntity(
   entity: Entity,
@@ -78,7 +78,7 @@ export const getBlockFromEntity: PureGraphFunction<
 /**
  * Get a system block entity by its entity id.
  *
- * @param params.entityId - the entity id of the block
+ * @param params.entityId - The entity id of the block.
  */
 export const getBlockById: ImpureGraphFunction<
   { entityId: EntityId },
@@ -92,9 +92,8 @@ export const getBlockById: ImpureGraphFunction<
 /**
  * Create a system block entity.
  *
- * @param params.componentId - the component id of the block
- * @param params.blockData - the linked block data entity
- *
+ * @param params.componentId - The component id of the block.
+ * @param params.blockData - The linked block data entity.
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createBlock: ImpureGraphFunction<
@@ -140,7 +139,7 @@ export const createBlock: ImpureGraphFunction<
 /**
  * Get the linked block data entity of the block.
  *
- * @param params.block - the block
+ * @param params.block - The block.
  */
 export const getBlockData: ImpureGraphFunction<
   { block: Block },
@@ -172,9 +171,9 @@ export const getBlockData: ImpureGraphFunction<
 /**
  * Update the linked block data entity of a block.
  *
- * @param params.block - the block
- * @param params.newBlockDataEntity - the new block data entity
- * @param params.actorId - the id of the account that is updating the block data entity
+ * @param params.block - The block.
+ * @param params.newBlockDataEntity - The new block data entity.
+ * @param params.actorId - The id of the account that is updating the block data entity.
  */
 export const updateBlockDataEntity: ImpureGraphFunction<
   {
@@ -238,7 +237,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
 /**
  * Get the comment of a block.
  *
- * @param params.block - the block
+ * @param params.block - The block.
  */
 export const getBlockComments: ImpureGraphFunction<
   { block: Block },
@@ -262,7 +261,7 @@ export const getBlockComments: ImpureGraphFunction<
  * Get the page the block collection entity that contains the block, or null if
  * if the block is in not contained in a block collection.
  *
- * @param params.block - the block entity
+ * @param params.block - The block entity.
  */
 export const getBlockCollectionByBlock: ImpureGraphFunction<
   { block: Block; includeDrafts?: boolean },

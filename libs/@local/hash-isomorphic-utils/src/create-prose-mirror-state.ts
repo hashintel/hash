@@ -1,10 +1,9 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { cloneDeep } from "lodash-es";
 import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import type { Node, Schema } from "prosemirror-model";
-import type { Plugin } from "prosemirror-state";
-import { EditorState } from "prosemirror-state";
+import type { EditorState,Plugin  } from "prosemirror-state";
+import type { OwnedById } from "@local/hash-graph-types/web";
 
 import { createEntityStorePlugin } from "./entity-store-plugin.js";
 import {
@@ -23,7 +22,7 @@ const nodes = {
   ...pageEditorNodes,
 };
 
-const createInitialDoc = (schema: Schema = createSchema(cloneDeep(nodes))) =>
+const createInitialDocument = (schema: Schema = createSchema(cloneDeep(nodes))) =>
   schema.node("doc", {}, [schema.node("loading")]);
 
 const defaultPlugins: Plugin<unknown>[] = [
@@ -34,7 +33,7 @@ const defaultPlugins: Plugin<unknown>[] = [
 
 export const createProseMirrorState = ({
   ownedById,
-  doc = createInitialDoc(),
+  doc: document = createInitialDocument(),
   plugins = [],
 }: {
   ownedById: OwnedById;
@@ -42,11 +41,11 @@ export const createProseMirrorState = ({
   plugins?: Plugin<unknown>[];
 }) => {
   return EditorState.create({
-    doc,
+    doc: document,
     plugins: [
       ...defaultPlugins,
       createEntityStorePlugin({ ownedById }),
-      formatKeymap(doc.type.schema),
+      formatKeymap(document.type.schema),
       ...plugins,
     ],
   });

@@ -1,3 +1,4 @@
+import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
@@ -9,15 +10,13 @@ import {
   createPage,
   getPageBlocks,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { joinOrg,User  } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Text } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -33,7 +32,7 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-describe("Comment Notification", () => {
+describe("comment Notification", () => {
   let triggerUser: User;
   let recipientUser: User;
 
@@ -79,7 +78,7 @@ describe("Comment Notification", () => {
     };
   });
 
-  it("can create a comment notification when a comment is left on a page", async () => {
+  test("can create a comment notification when a comment is left on a page", async () => {
     const graphContext = createTestImpureGraphContext();
 
     const initialBlock = await createBlock(
@@ -166,7 +165,7 @@ describe("Comment Notification", () => {
     expect(commentNotification).not.toBeNull();
   });
 
-  it("can create a comment notification when a user replies to an existing comment", async () => {
+  test("can create a comment notification when a user replies to an existing comment", async () => {
     const graphContext = createTestImpureGraphContext();
 
     const initialBlock = await createBlock(

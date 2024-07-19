@@ -3,21 +3,9 @@
  * We intend to find a way to share these between blocks using components, or
  * make these blocks variants.
  *
- * @todo Deduplicate this file
  * @see https://linear.app/hash/issue/H-3022
+ * @todo Deduplicate this file.
  */
-import type {
-  BlockGraphProperties,
-  UpdateEntityData,
-} from "@blockprotocol/graph";
-import {
-  useEntitySubgraph,
-  useGraphBlockModule,
-} from "@blockprotocol/graph/react";
-import {
-  getOutgoingLinksForEntity,
-  getRightEntityForLinkEntity,
-} from "@blockprotocol/graph/stdlib";
 import type {
   Dispatch,
   FunctionComponent,
@@ -32,9 +20,22 @@ import {
   useState,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
+import type {
+  BlockGraphProperties,
+  UpdateEntityData,
+} from "@blockprotocol/graph";
+import {
+  useEntitySubgraph,
+  useGraphBlockModule,
+} from "@blockprotocol/graph/react";
+import {
+  getOutgoingLinksForEntity,
+  getRightEntityForLinkEntity,
+} from "@blockprotocol/graph/stdlib";
 
 import { linkIds, propertyIds } from "../property-ids";
 import type { BlockEntity } from "../types/generated/block-entity";
+
 import { ErrorAlert } from "./error-alert";
 import { MediaWithCaption } from "./media-with-caption";
 import { UploadMediaForm } from "./upload-media-form";
@@ -56,12 +57,12 @@ const useDefaultState = <
   }
 
   const setState = useCallback((value: SetStateAction<T>) => {
-    setNextValue((prevValue) => {
+    setNextValue((previousValue) => {
       const nextValue =
-        typeof value === "function" ? value(prevValue.currentValue) : value;
+        typeof value === "function" ? value(previousValue.currentValue) : value;
 
       return {
-        ...prevValue,
+        ...previousValue,
         currentValue: nextValue,
       };
     });
@@ -71,7 +72,7 @@ const useDefaultState = <
 };
 
 /**
- * @todo Rewrite the state here to use a reducer, instead of batched updates
+ * @todo Rewrite the state here to use a reducer, instead of batched updates.
  */
 export const Media: FunctionComponent<
   BlockGraphProperties<BlockEntity> & {
@@ -98,7 +99,7 @@ export const Media: FunctionComponent<
 
   const { graphModule } = useGraphBlockModule(blockRef);
 
-  const [draftSrc, setDraftSrc] = useDefaultState(
+  const [draftSource, setDraftSource] = useDefaultState(
     fileEntity?.properties[propertyIds.bpUrl]?.toString() ?? "",
   );
 
@@ -108,7 +109,7 @@ export const Media: FunctionComponent<
   const [draftCaption, setDraftCaption] = useDefaultState(initialCaption ?? "");
 
   /**
-   * Default for this input field is blank, not the URL passed
+   * Default for this input field is blank, not the URL passed.
    */
   const [draftUrl, setDraftUrl] = useState("");
 
@@ -144,7 +145,7 @@ export const Media: FunctionComponent<
 
         unstable_batchedUpdates(() => {
           setErrorString(null);
-          setDraftSrc(src);
+          setDraftSource(src);
         });
       }
     },
@@ -153,12 +154,12 @@ export const Media: FunctionComponent<
       graphModule,
       metadata.entityTypeId,
       metadata.recordId.entityId,
-      setDraftSrc,
+      setDraftSource,
     ],
   );
 
   const handleImageUpload = useCallback(
-    (imageProp: { url: string } | { file: FileList[number] }) => {
+    (imageProperty: { url: string } | { file: FileList[number] }) => {
       if (readonly) {
         return;
       }
@@ -170,7 +171,7 @@ export const Media: FunctionComponent<
 
         graphModule
           .uploadFile({
-            data: imageProp,
+            data: imageProperty,
           })
           .then(async ({ data: file }) => {
             if (!file) {
@@ -204,10 +205,10 @@ export const Media: FunctionComponent<
             }
           })
           .catch((error: Error) =>
-            unstable_batchedUpdates(() => {
+            { unstable_batchedUpdates(() => {
               setErrorString(error.message);
               setLoading(false);
-            }),
+            }); },
           );
       }
     },
@@ -242,55 +243,55 @@ export const Media: FunctionComponent<
       setErrorString(null);
       setDraftUrl("");
       setDraftCaption("");
-      setDraftSrc("");
+      setDraftSource("");
     });
   };
 
   return (
     <>
       <div ref={blockRef}>
-        {draftSrc ? (
+        {draftSource ? (
           <MediaWithCaption
-            src={draftSrc}
+            src={draftSource}
             caption={draftCaption}
-            onCaptionChange={(caption) => setDraftCaption(caption)}
-            onCaptionConfirm={() => updateData({ src: draftSrc })}
-            onReset={resetComponent}
-            type="video"
+            type={"video"}
             readonly={readonly}
+            onCaptionChange={(caption) => { setDraftCaption(caption); }}
+            onCaptionConfirm={() => { updateData({ src: draftSource }); }}
+            onReset={resetComponent}
           />
         ) : (
           <>
             {errorString && (
               <ErrorAlert
                 error={errorString}
-                onClearError={() => setErrorString(null)}
+                onClearError={() => { setErrorString(null); }}
               />
             )}
             <UploadMediaForm
-              onUrlConfirm={onUrlConfirm}
-              onFileChoose={(file) => handleImageUpload({ file })}
-              onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
               loading={loading}
-              type="video"
+              type={"video"}
               readonly={readonly}
+              onUrlConfirm={onUrlConfirm}
+              onFileChoose={(file) => { handleImageUpload({ file }); }}
+              onUrlChange={(nextDraftUrl) => { setDraftUrl(nextDraftUrl); }}
             />
           </>
         )}
       </div>
-      {draftSrc ? (
+      {draftSource ? (
         // @note This does not yet contain all required properties – these will be added in a follow up
         <script
-          type="application/ld+json"
+          type={"application/ld+json"}
           /* eslint-disable-next-line react/no-danger */
           dangerouslySetInnerHTML={{
             // @note – using JSON.stringify to prevent potential XSS
             __html: JSON.stringify({
               "@context": "https://schema.org/",
               "@type": "VideoObject",
-              "@id": draftSrc,
-              url: draftSrc,
-              contentUrl: draftSrc,
+              "@id": draftSource,
+              url: draftSource,
+              contentUrl: draftSource,
               description: draftCaption,
             }),
           }}

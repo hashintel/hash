@@ -1,5 +1,4 @@
-import type { Connection, LinearDocument, Team } from "@linear/sdk";
-import { LinearClient } from "@linear/sdk";
+import type { Connection, LinearClient,LinearDocument, Team  } from "@linear/sdk";
 import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
 import type {
   CreateHashEntityFromLinearData,
@@ -8,8 +7,7 @@ import type {
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi, OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import {
+import type { EnforcedEntityEditionProvenance ,
   Entity,
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
@@ -34,7 +32,7 @@ const provenance: EnforcedEntityEditionProvenance = {
   origin: {
     type: "flow",
     /**
-     * @todo use correct EntityId for Flow when Linear integration migrated to Flows
+     * @todo Use correct EntityId for Flow when Linear integration migrated to Flows.
      */
     id: "linear-integration",
   } satisfies OriginProvenance,
@@ -226,8 +224,8 @@ const createOrUpdateHashEntity = async (params: {
     /** @todo: check which values have changed in a more sophisticated manor */
     const updatedProperties: PropertyObject = {
       ...Object.entries(partialEntity.properties).reduce(
-        (acc, [propertyTypeUrl, value]) => ({
-          ...acc,
+        (accumulator, [propertyTypeUrl, value]) => ({
+          ...accumulator,
           ...(typeof value === "undefined"
             ? {}
             : {
@@ -320,12 +318,14 @@ const updateHashEntityFromLinearData =
   };
 
 const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
-  const nodes = connection.nodes;
+  const {nodes} = connection;
+
   while (connection.pageInfo.hasNextPage) {
     // eslint-disable-next-line no-param-reassign
     connection = await connection.fetchNext();
     nodes.push(...connection.nodes);
   }
+
   return nodes;
 };
 
@@ -396,9 +396,11 @@ export const createLinearIntegrationActivities = ({
     const issuesQueryVariables: LinearDocument.IssuesQueryVariables = {
       filter: {},
     };
+
     if (filter?.teamId) {
       issuesQueryVariables.filter!.team = { id: { eq: filter.teamId } };
     }
+
     return createLinearClient(apiKey)
       .issues(issuesQueryVariables)
       .then(readNodes)

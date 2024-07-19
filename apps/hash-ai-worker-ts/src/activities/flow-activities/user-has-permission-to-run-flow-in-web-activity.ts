@@ -4,7 +4,7 @@ import { graphApiClient } from "../shared/graph-api-client.js";
 /**
  * Check whether a user has permission to run a flow in a web, which
  * requires the user to have permission to:
- * - create entities in the web
+ * - create entities in the web.
  */
 export const userHasPermissionToRunFlowInWebActivity = async (): Promise<
   | {

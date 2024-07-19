@@ -34,6 +34,7 @@ export const registerOpenTelemetryTracing = (
     logger.warn(
       "No OpenTelemetry Protocol endpoint given. Not sending tracespans anywhere.",
     );
+
     return () => {};
   }
 

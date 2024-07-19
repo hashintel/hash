@@ -11,27 +11,27 @@ export type { BooleanDataType, BooleanDataTypeWithMetadata };
 /**
  * An instance of HASH.
  */
-export type HASHInstance = {
+export interface HASHInstance {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/hash-instance/v/1";
   properties: HASHInstanceProperties;
   propertiesWithMetadata: HASHInstancePropertiesWithMetadata;
-};
+}
 
 export type HASHInstanceOutgoingLinkAndTarget = never;
 
-export type HASHInstanceOutgoingLinksByLinkEntityTypeId = {};
+export interface HASHInstanceOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * An instance of HASH.
  */
-export type HASHInstanceProperties = {
+export interface HASHInstanceProperties {
   "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValue;
   "https://hash.ai/@hash/types/property-type/pages-are-enabled/": PagesAreEnabledPropertyValue;
   "https://hash.ai/@hash/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValue;
   "https://hash.ai/@hash/types/property-type/user-self-registration-is-enabled/": UserSelfRegistrationIsEnabledPropertyValue;
-};
+}
 
-export type HASHInstancePropertiesWithMetadata = {
+export interface HASHInstancePropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValueWithMetadata;
@@ -39,7 +39,7 @@ export type HASHInstancePropertiesWithMetadata = {
     "https://hash.ai/@hash/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/user-self-registration-is-enabled/": UserSelfRegistrationIsEnabledPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * Whether or not a user can self-register an org (note this does not apply to instance admins).

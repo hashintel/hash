@@ -1,7 +1,6 @@
 import type { RequestHandler } from "express";
 
-import type { SimpleWeb } from "./shared/webs";
-import { getUserSimpleWebs } from "./shared/webs";
+import type { getUserSimpleWebs,SimpleWeb  } from "./shared/webs";
 
 export type GptGetUserWebsResponseBody =
   | { error: string }
@@ -13,21 +12,23 @@ export const gptGetUserWebs: RequestHandler<
   Record<string, never>,
   GptGetUserWebsResponseBody
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-> = async (req, res) => {
-  const { user } = req;
+> = async (request, res) => {
+  const { user } = request;
 
   if (!user) {
     res.status(401).send({ error: "No authenticated user" });
+
     return;
   }
 
   if (!user.shortname) {
     res.status(401).send({ error: "User has not completed signup." });
+
     return;
   }
 
   const userWebs = await getUserSimpleWebs(
-    req.context,
+    request.context,
     { actorId: user.accountId },
     { user },
   );

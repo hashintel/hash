@@ -4,6 +4,7 @@ import type { JSONSchema } from "openai/lib/jsonschema";
 
 import { logger } from "../activity-logger.js";
 import { stringify } from "../stringify.js";
+
 import type { LlmToolDefinition } from "./types.js";
 
 const Ajv = _Ajv as unknown as typeof _Ajv.default;
@@ -103,7 +104,7 @@ const applyAdditionalPropertiesFalseToSchema = (params: {
       patternProperties: updatedPatternProperties,
       additionalProperties: false,
     };
-  } else if (schema.type === "array" && schema.items) {
+  } if (schema.type === "array" && schema.items) {
     return {
       ...schema,
       items:

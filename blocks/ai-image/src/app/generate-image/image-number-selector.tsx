@@ -1,8 +1,6 @@
 import type {
-  DropdownSelectorProps,
-  Option,
-} from "@hashintel/block-design-system";
-import { DropdownSelector } from "@hashintel/block-design-system";
+ DropdownSelector,  DropdownSelectorProps,
+  Option } from "@hashintel/block-design-system";
 import { Box, Typography } from "@mui/material";
 
 import { GridIcon } from "../../icons/grid";
@@ -46,7 +44,7 @@ export const ImageNumberSelector = (
     renderValue={({ title }) => {
       return (
         <Typography
-          variant="regularTextLabels"
+          variant={"regularTextLabels"}
           sx={{
             display: "inline-flex",
             gap: 1,
@@ -59,7 +57,7 @@ export const ImageNumberSelector = (
         >
           Generating
           <Box
-            component="span"
+            component={"span"}
             sx={{
               display: "inline-flex",
               gap: 0.375,

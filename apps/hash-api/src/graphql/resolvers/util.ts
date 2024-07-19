@@ -7,6 +7,7 @@ export const graphQLContextToImpureGraphContext = ({
   temporal,
 }: GraphQLContext): ImpureGraphContext<true, true> => {
   const { graphApi, uploadProvider } = dataSources;
+
   return {
     graphApi,
     provenance,

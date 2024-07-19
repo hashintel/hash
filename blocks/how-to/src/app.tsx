@@ -1,3 +1,6 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SizeMe } from "react-sizeme";
+import { v4 as uuid } from "uuid";
 import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
 import {
   type BlockComponent,
@@ -9,9 +12,6 @@ import { Button, faPlus, FontAwesomeIcon } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
 import { Card, Collapse, Fade, Stack, ThemeProvider } from "@mui/material";
 import Box from "@mui/material/Box";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SizeMe } from "react-sizeme";
-import { v4 as uuid } from "uuid";
 
 import { Step } from "./step";
 import type {
@@ -234,13 +234,14 @@ export const App: BlockComponent<BlockEntity> = ({
         if (index === stepIndex) {
           return { ...step, animatingOut: true };
         }
+
         return step;
       }),
     );
   };
 
   useEffect(() => {
-    if (!stepEntities.length) {
+    if (stepEntities.length === 0) {
       void addStep();
     }
     // We only want to run this once when the block is initiated
@@ -249,7 +250,7 @@ export const App: BlockComponent<BlockEntity> = ({
 
   const schema = useMemo(() => {
     const stepsWithTitle = stepEntities.filter(
-      ({ properties: { [titleKey]: schemaTitle } }) => !!schemaTitle,
+      ({ properties: { [titleKey]: schemaTitle } }) => Boolean(schemaTitle),
     );
 
     return JSON.stringify({
@@ -279,7 +280,7 @@ export const App: BlockComponent<BlockEntity> = ({
   return (
     <>
       <script
-        type="application/ld+json"
+        type={"application/ld+json"}
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: schema }}
       />
@@ -292,8 +293,8 @@ export const App: BlockComponent<BlockEntity> = ({
               <Box
                 ref={blockRootRef}
                 sx={{ display: "inline-block", width: 1 }}
-                onMouseEnter={() => setHovered(true)}
-                onMouseLeave={() => setHovered(false)}
+                onMouseEnter={() => { setHovered(true); }}
+                onMouseLeave={() => { setHovered(false); }}
               >
                 {!readonly ? (
                   <Fade in={hovered}>
@@ -305,7 +306,7 @@ export const App: BlockComponent<BlockEntity> = ({
                         mb: 1.5,
                       }}
                     >
-                      <GetHelpLink href="https://blockprotocol.org/@hash/blocks/how-to" />
+                      <GetHelpLink href={"https://blockprotocol.org/@hash/blocks/how-to"} />
                     </Box>
                   </Fade>
                 ) : null}
@@ -331,7 +332,7 @@ export const App: BlockComponent<BlockEntity> = ({
                   }}
                 >
                   {
-                    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+                     
                     title || description || !readonly ? (
                       <Stack
                         sx={{
@@ -340,6 +341,15 @@ export const App: BlockComponent<BlockEntity> = ({
                       >
                         <EditableField
                           value={titleValue}
+                          placeholder={"Enter a how-to guide name"}
+                          readonly={readonly}
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: 21,
+                            lineHeight: 1,
+                            letterSpacing: "-0.02em",
+                            color: theme.palette.common.black,
+                          }}
                           onChange={(event) => {
                             if (!readonly) {
                               setTitleValue(event.target.value);
@@ -348,20 +358,23 @@ export const App: BlockComponent<BlockEntity> = ({
                           onBlur={(event) =>
                             updateField(event.target.value, titleKey)
                           }
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 21,
-                            lineHeight: 1,
-                            letterSpacing: "-0.02em",
-                            color: theme.palette.common.black,
-                          }}
-                          placeholder="Enter a how-to guide name"
-                          readonly={readonly}
                         />
 
                         <EditableField
                           editIconFontSize={14}
                           value={descriptionValue}
+                          placeholder={"Click here to add a description of the how-to process"}
+                          readonly={readonly}
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: 14,
+                            lineHeight: 1.3,
+                            letterSpacing: "-0.02em",
+                            color: theme.palette.gray[90],
+                          }}
+                          placeholderSx={{
+                            fontStyle: "italic",
+                          }}
                           onChange={(event) => {
                             if (!readonly) {
                               setDescriptionValue(event.target.value);
@@ -373,18 +386,6 @@ export const App: BlockComponent<BlockEntity> = ({
                               descriptionKey,
                             );
                           }}
-                          sx={{
-                            fontWeight: 500,
-                            fontSize: 14,
-                            lineHeight: 1.3,
-                            letterSpacing: "-0.02em",
-                            color: theme.palette.gray[90],
-                          }}
-                          placeholder="Click here to add a description of the how-to process"
-                          placeholderSx={{
-                            fontStyle: "italic",
-                          }}
-                          readonly={readonly}
                         />
                       </Stack>
                     ) : null
@@ -394,14 +395,14 @@ export const App: BlockComponent<BlockEntity> = ({
                     <Box>
                       <Collapse
                         in={!readonly && !introEntity && !introAnimatingOut}
-                        onExited={() => setIntroButtonAnimatingOut(false)}
+                        onExited={() => { setIntroButtonAnimatingOut(false); }}
                       >
                         <Button
-                          variant="tertiary"
-                          size="small"
+                          variant={"tertiary"}
+                          size={"small"}
                           sx={{ fontSize: 14 }}
-                          onClick={() => createIntroduction()}
                           disabled={introButtonAnimatingOut}
+                          onClick={() => createIntroduction()}
                         >
                           <FontAwesomeIcon
                             icon={{ icon: faPlus }}
@@ -412,22 +413,22 @@ export const App: BlockComponent<BlockEntity> = ({
                       </Collapse>
 
                       <Collapse
-                        in={!!introEntity && !introButtonAnimatingOut}
-                        onExited={() => setIntroAnimatingOut(false)}
                         appear
+                        in={Boolean(introEntity) && !introButtonAnimatingOut}
+                        onExited={() => { setIntroAnimatingOut(false); }}
                       >
                         <Step
-                          header="Introduction"
+                          header={"Introduction"}
                           title={introEntity?.properties[titleKey] ?? ""}
-                          titlePlaceholder="Requirements, Ingredients, Pre-requisites, etc."
+                          titlePlaceholder={"Requirements, Ingredients, Pre-requisites, etc."}
+                          descriptionPlaceholder={"Enter a list of things that might be helpful for people to know before they begin."}
+                          updateField={updateIntroductionField}
+                          readonly={readonly}
+                          deleteButtonText={"Remove intro"}
                           description={
                             introEntity?.properties[descriptionKey] ?? ""
                           }
-                          descriptionPlaceholder="Enter a list of things that might be helpful for people to know before they begin."
-                          updateField={updateIntroductionField}
                           onRemove={() => removeIntroduction()}
-                          readonly={readonly}
-                          deleteButtonText="Remove intro"
                         />
                       </Collapse>
                     </Box>
@@ -436,10 +437,12 @@ export const App: BlockComponent<BlockEntity> = ({
                   <Box>
                     {steps.map((step, index) => (
                       <Collapse
+                        appear
                         key={step.id}
                         in={!step.animatingOut}
                         onExited={async () => {
                           const newSteps = [...steps];
+
                           newSteps.splice(index, 1);
                           setSteps(newSteps);
 
@@ -456,7 +459,6 @@ export const App: BlockComponent<BlockEntity> = ({
                             },
                           });
                         }}
-                        appear
                       >
                         <Box
                           sx={{
@@ -467,13 +469,16 @@ export const App: BlockComponent<BlockEntity> = ({
                         >
                           <Step
                             header={`Step ${index + 1}`}
+                            title={step.properties[titleKey]}
+                            titlePlaceholder={"Step name goes here"}
+                            description={step.properties[descriptionKey]}
+                            readonly={readonly}
+                            deletable={stepEntities.length > 1}
+                            deleteButtonText={"Remove step"}
                             headerSx={{
                               fontSize: 12,
                               textTransform: "uppercase",
                             }}
-                            title={step.properties[titleKey]}
-                            titlePlaceholder="Step name goes here"
-                            description={step.properties[descriptionKey]}
                             descriptionPlaceholder={
                               isMobile
                                 ? "Additional instructions here"
@@ -482,10 +487,7 @@ export const App: BlockComponent<BlockEntity> = ({
                             updateField={(value, field) =>
                               updateStepField(index, value, field)
                             }
-                            onRemove={() => removeStep(index)}
-                            readonly={readonly}
-                            deletable={stepEntities.length > 1}
-                            deleteButtonText="Remove step"
+                            onRemove={() => { removeStep(index); }}
                           />
                         </Box>
                       </Collapse>
@@ -495,8 +497,8 @@ export const App: BlockComponent<BlockEntity> = ({
                   {!readonly ? (
                     <Box>
                       <Button
-                        variant="tertiary"
-                        size="small"
+                        variant={"tertiary"}
+                        size={"small"}
                         sx={{ fontSize: 14 }}
                         onClick={addStep}
                       >

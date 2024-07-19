@@ -125,15 +125,15 @@ export type {
 /**
  * A PDF document.
  */
-export type PDFDocument = {
+export interface PDFDocument {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/pdf-document/v/1";
   properties: PDFDocumentProperties;
   propertiesWithMetadata: PDFDocumentPropertiesWithMetadata;
-};
+}
 
 export type PDFDocumentOutgoingLinkAndTarget = never;
 
-export type PDFDocumentOutgoingLinksByLinkEntityTypeId = {};
+export interface PDFDocumentOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A PDF document.
@@ -142,14 +142,14 @@ export type PDFDocumentProperties = PDFDocumentProperties1 &
   PDFDocumentProperties2;
 export type PDFDocumentProperties1 = DocumentFileProperties;
 
-export type PDFDocumentProperties2 = {};
+export interface PDFDocumentProperties2 {}
 
 export type PDFDocumentPropertiesWithMetadata =
   PDFDocumentPropertiesWithMetadata1 & PDFDocumentPropertiesWithMetadata2;
 export type PDFDocumentPropertiesWithMetadata1 =
   DocumentFilePropertiesWithMetadata;
 
-export type PDFDocumentPropertiesWithMetadata2 = {
+export interface PDFDocumentPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

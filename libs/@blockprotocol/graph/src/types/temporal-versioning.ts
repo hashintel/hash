@@ -5,22 +5,22 @@
 import type { Subtype } from "../util.js";
 
 /**
- * An ISO 8601 formatted timestamp string
+ * An ISO 8601 formatted timestamp string.
  */
 export type Timestamp = string;
 
 /**
- * @todo - doc
+ * @todo - doc.
  */
 export type TemporalAxis = "transactionTime" | "decisionTime";
 
 /**
- * The bound of a time-interval that is either exclusively or inclusively limited by a `Timestamp`
+ * The bound of a time-interval that is either exclusively or inclusively limited by a `Timestamp`.
  */
-export type LimitedTemporalBound = {
+export interface LimitedTemporalBound {
   kind: "inclusive" | "exclusive";
   limit: Timestamp;
-};
+}
 
 export type InclusiveLimitedTemporalBound = Subtype<
   LimitedTemporalBound,
@@ -38,10 +38,10 @@ export type ExclusiveLimitedTemporalBound = Subtype<
   }
 >;
 
-export type Unbounded = { kind: "unbounded" };
+export interface Unbounded { kind: "unbounded" }
 
 /**
- * The bound (or explicit lack of a bound) of a time-interval
+ * The bound (or explicit lack of a bound) of a time-interval.
  */
 export type TemporalBound = Unbounded | LimitedTemporalBound;
 
@@ -53,25 +53,25 @@ export type TemporalBound = Unbounded | LimitedTemporalBound;
  * Leaving a bound unspecified means that the `null` can be replaced at time of resolution with the current clock, while
  * leaving the parameters of the query as statically defined.
  */
-export type TimeIntervalUnresolved<
+export interface TimeIntervalUnresolved<
   StartBound extends TemporalBound | null,
   EndBound extends TemporalBound | null,
-> = {
+> {
   start: StartBound;
   end: EndBound;
-};
+}
 
 /**
  * A range of time from a given `start` {@link TemporalBound} to a given `end` {@link TemporalBound}, where `start` is
  * strictly before or equal to `end`.
  */
-export type TimeInterval<
+export interface TimeInterval<
   StartBound extends TemporalBound = TemporalBound,
   EndBound extends TemporalBound = TemporalBound,
-> = {
+> {
   start: StartBound;
   end: EndBound;
-};
+}
 
 /**
  * A range of time from a given `start` to a given `end` where both bounds are {@link Timestamp}s, and where `start` is
@@ -90,46 +90,46 @@ export type BoundedTimeInterval = TimeInterval<
  * In a bitemporal system, a {@link VariableTemporalAxisUnresolved} should almost always be accompanied by a
  * {@link PinnedTemporalAxisUnresolved}.
  */
-export type VariableTemporalAxisUnresolved<
+export interface VariableTemporalAxisUnresolved<
   Axis extends TemporalAxis,
   StartBound extends TemporalBound | null = TemporalBound | null,
   EndBound extends LimitedTemporalBound | null = LimitedTemporalBound | null,
-> = {
+> {
   axis: Axis;
   interval: TimeIntervalUnresolved<StartBound, EndBound>;
-};
+}
 
 /**
  * A representation of a "variable" temporal axis, which bounded to a given {@link TimeInterval} where the end of the
- * interval must be limited by a {@link Timestamp}
+ * interval must be limited by a {@link Timestamp}.
  *
  * In a bitemporal system, a {@link VariableTemporalAxis} should almost always be accompanied by a
  * {@link PinnedTemporalAxis}.
  */
-export type VariableTemporalAxis<
+export interface VariableTemporalAxis<
   Axis extends TemporalAxis,
   StartBound extends TemporalBound = TemporalBound,
   EndBound extends LimitedTemporalBound = LimitedTemporalBound,
-> = {
+> {
   axis: Axis;
   interval: TimeInterval<StartBound, EndBound>;
-};
+}
 
 /**
  * A representation of a "pinned" temporal axis, used to project another temporal axis along the given
  * {@link Timestamp}. If the `timestamp` is set to `null`, then it will be filled in with the current time _when a query
- * is being resolved._
+ * is being resolved._.
  *
  * In a bitemporal system, a {@link PinnedTemporalAxisUnresolved} should almost always be accompanied by a
  * {@link VariableTemporalAxisUnresolved}.
  */
-export type PinnedTemporalAxisUnresolved<
+export interface PinnedTemporalAxisUnresolved<
   Axis extends TemporalAxis,
   PinnedTime extends Timestamp | null = Timestamp | null,
-> = {
+> {
   axis: Axis;
   timestamp: PinnedTime;
-};
+}
 
 /**
  * A representation of a "pinned" temporal axis, used to project another temporal axis along the given
@@ -138,10 +138,10 @@ export type PinnedTemporalAxisUnresolved<
  * In a bitemporal system, a {@link PinnedTemporalAxis} should almost always be accompanied by a
  * {@link VariableTemporalAxis}.
  */
-export type PinnedTemporalAxis<
+export interface PinnedTemporalAxis<
   Axis extends TemporalAxis,
   PinnedTime extends Timestamp = Timestamp,
-> = {
+> {
   axis: Axis;
   timestamp: PinnedTime;
-};
+}

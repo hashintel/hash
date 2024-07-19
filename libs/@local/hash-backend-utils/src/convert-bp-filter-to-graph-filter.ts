@@ -27,11 +27,12 @@ const bpMultiFilterFieldPathToPathExpression = (
 
       // case `EntityQueryToken.OwnedById`
       if (pathRoot === "ownedById") {
-        if (rest.length !== 0) {
+        if (rest.length > 0) {
           throw new InvalidEntityQueryError(
             `Invalid filter field path, unable to add more filters on top of \`ownedById\``,
           );
         }
+
         return ["ownedById"];
       }
 
@@ -112,6 +113,7 @@ const bpMultiFilterFieldPathToPathExpression = (
                 `Invalid filter field path, unable to index inside \`metadata.provenance.edition.createdById\``,
               );
             }
+
             return ["createdById"];
           }
 
@@ -191,8 +193,9 @@ const bpFilterToGraphFilter = (
   filter: MultiFilter["filters"][number],
 ): Filter => {
   const pathExpression = bpMultiFilterFieldPathToPathExpression(filter.field);
+
   switch (filter.operator) {
-    case "IS_DEFINED":
+    case "IS_DEFINED": {
       return {
         // TODO: check this against `notEqual`
         not: {
@@ -203,7 +206,8 @@ const bpFilterToGraphFilter = (
           ],
         },
       };
-    case "IS_NOT_DEFINED":
+    }
+    case "IS_NOT_DEFINED": {
       return {
         equal: [
           pathExpression,
@@ -211,15 +215,18 @@ const bpFilterToGraphFilter = (
           null,
         ],
       };
-    case "CONTAINS_SEGMENT":
+    }
+    case "CONTAINS_SEGMENT": {
       throw new Error(
         "UNIMPLEMENTED: `CONTAINS_SEGMENT` is currently unsupported by the Graph API",
       );
-    case "DOES_NOT_CONTAIN_SEGMENT":
+    }
+    case "DOES_NOT_CONTAIN_SEGMENT": {
       throw new Error(
         "UNIMPLEMENTED: `DOES_NOT_CONTAIN_SEGMENT` is currently unsupported by the Graph API",
       );
-    case "EQUALS":
+    }
+    case "EQUALS": {
       return {
         equal: [
           pathExpression,
@@ -228,7 +235,8 @@ const bpFilterToGraphFilter = (
           },
         ],
       };
-    case "DOES_NOT_EQUAL":
+    }
+    case "DOES_NOT_EQUAL": {
       return {
         not: {
           equal: [
@@ -239,14 +247,17 @@ const bpFilterToGraphFilter = (
           ],
         },
       };
-    case "STARTS_WITH":
+    }
+    case "STARTS_WITH": {
       throw new Error(
         "UNIMPLEMENTED: `STARTS_WITH` is currently unsupported by the Graph API",
       );
-    case "ENDS_WITH":
+    }
+    case "ENDS_WITH": {
       throw new Error(
         "UNIMPLEMENTED: `ENDS_WITH` is currently unsupported by the Graph API",
       );
+    }
   }
 
   throw new Error(
@@ -255,6 +266,7 @@ const bpFilterToGraphFilter = (
     `UNIMPLEMENTED: Unknown filter operator \`${filter.operator}\``,
   );
 };
+
 export const convertBpFilterToGraphFilter = (bpFilter: MultiFilter): Filter => {
   const { filters: bpFilters, operator } = bpFilter;
 

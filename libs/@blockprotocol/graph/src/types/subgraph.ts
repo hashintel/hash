@@ -18,25 +18,25 @@ export * from "./subgraph/graph-resolve-depths.js";
 export * from "./subgraph/temporal-axes.js";
 export * from "./subgraph/vertices.js";
 
-export type DataTypeRootType = {
+export interface DataTypeRootType {
   vertexId: OntologyTypeVertexId;
   element: DataTypeWithMetadata;
-};
+}
 
-export type PropertyTypeRootType = {
+export interface PropertyTypeRootType {
   vertexId: OntologyTypeVertexId;
   element: PropertyTypeWithMetadata;
-};
+}
 
-export type EntityTypeRootType = {
+export interface EntityTypeRootType {
   vertexId: OntologyTypeVertexId;
   element: EntityTypeWithMetadata;
-};
+}
 
-export type EntityRootType = {
+export interface EntityRootType {
   vertexId: EntityVertexId;
   element: Entity;
-};
+}
 
 export type SubgraphRootType =
   | DataTypeRootType
@@ -44,10 +44,10 @@ export type SubgraphRootType =
   | EntityTypeRootType
   | EntityRootType;
 
-export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
+export interface Subgraph<RootType extends SubgraphRootType = SubgraphRootType> {
   roots: RootType["vertexId"][];
   vertices: Vertices;
   edges: Edges;
   depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;
-};
+}

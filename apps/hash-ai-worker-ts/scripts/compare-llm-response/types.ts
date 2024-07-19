@@ -6,8 +6,8 @@ import type {
   OpenAiLlmParams,
 } from "../../src/activities/shared/get-llm-response/types.js";
 
-export type CompareLlmResponseConfig = {
+export interface CompareLlmResponseConfig {
   models: LlmParams["model"][];
   llmParams: Omit<AnthropicLlmParams, "model"> & Omit<OpenAiLlmParams, "model">;
   accountId?: AccountId;
-};
+}

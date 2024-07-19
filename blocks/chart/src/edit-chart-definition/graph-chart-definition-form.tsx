@@ -1,6 +1,6 @@
-import { Box, TextField } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useFormContext } from "react-hook-form";
+import { Box, TextField } from "@mui/material";
 
 import type { ChartDefinition } from "../types/chart-definition";
 
@@ -13,20 +13,20 @@ export const GraphChartDefinitionForm: FunctionComponent = () => {
   return (
     <Box>
       <TextField
-        id="incoming-links-depth"
         fullWidth
-        type="number"
-        label="Incoming Links Depth"
+        id={"incoming-links-depth"}
+        type={"number"}
+        label={"Incoming Links Depth"}
         InputProps={{ inputProps: { min: minDepth, max: maxDepth } }}
         {...register("incomingLinksDepth", {
           setValueAs: (value) => parseInt(value as string, 10),
         })}
       />
       <TextField
-        id="outgoing-links-depth"
         fullWidth
-        type="number"
-        label="Outgoing Links Depth"
+        id={"outgoing-links-depth"}
+        type={"number"}
+        label={"Outgoing Links Depth"}
         InputProps={{ inputProps: { min: minDepth, max: maxDepth } }}
         {...register("outgoingLinksDepth", {
           setValueAs: (value) => parseInt(value as string, 10),

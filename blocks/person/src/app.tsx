@@ -1,14 +1,12 @@
 import "./index.css";
-
-import type { BlockComponent } from "@blockprotocol/graph/react";
 import DOMPurify from "dompurify";
-import type { CSSProperties } from "react";
-import { useMemo, useRef } from "react";
+import type { CSSProperties , useMemo, useRef } from "react";
+import type { BlockComponent } from "@blockprotocol/graph/react";
 
 import { LinkIcon } from "./icons/link-icon";
 import { MailIcon } from "./icons/mail-icon";
 
-type BlockEntityProperties = {
+interface BlockEntityProperties {
   avatar?: string;
   email?: string;
   employer?: {
@@ -18,7 +16,7 @@ type BlockEntityProperties = {
   link?: string;
   name?: string;
   maxWidth?: string | number;
-};
+}
 
 export const App: BlockComponent<BlockEntityProperties> = ({
   graph: {
@@ -52,34 +50,34 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   return (
     <div
       ref={blockRef}
-      className="person-container"
+      className={"person-container"}
       style={{ "--person-container-max-width": maxWidth } as CSSProperties}
     >
       {avatar && (
         <img
           alt={`${name ? `${name}'s ` : ""}avatar`}
-          className="avatar-desktop"
+          className={"avatar-desktop"}
           src={avatar}
         />
       )}
-      <div className="person-text-container">
-        <div className="person-name-container">
+      <div className={"person-text-container"}>
+        <div className={"person-name-container"}>
           {avatar && (
             <img
               alt={`${name ? `${name}'s ` : ""}avatar`}
-              className="avatar-mobile"
+              className={"avatar-mobile"}
               src={avatar}
             />
           )}
           <div
-            className="person-name"
+            className={"person-name"}
             style={{ marginBottom: name && employer ? "4px" : undefined }}
           >
             {name}
           </div>
           {employer && (
-            <div className="person-employer">
-              {position} <span className="person-employer-breaker">at</span>{" "}
+            <div className={"person-employer"}>
+              {position} <span className={"person-employer-breaker"}>at</span>{" "}
               {employerName}
             </div>
           )}
@@ -88,9 +86,9 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         {(email || link) && (
           <>
             <hr />
-            <div className="person-links-container">
+            <div className={"person-links-container"}>
               {email && (
-                <div className="person-link" style={{ marginBottom: "4px" }}>
+                <div className={"person-link"} style={{ marginBottom: "4px" }}>
                   <MailIcon />
 
                   <a href={`mailto:${email}`}>{email}</a>
@@ -98,7 +96,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
               )}
 
               {safeAnchor && (
-                <div className="person-link">
+                <div className={"person-link"}>
                   <LinkIcon />
                   {/* eslint-disable-next-line react/no-danger */}
                   <span dangerouslySetInnerHTML={{ __html: safeAnchor }} />

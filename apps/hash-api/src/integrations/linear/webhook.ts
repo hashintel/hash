@@ -1,15 +1,14 @@
 import crypto from "node:crypto";
 
+import type { RequestHandler } from "express";
 import { tupleIncludes } from "@local/advanced-types/includes";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
-import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import { supportedLinearTypes } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type { supportedLinearTypes,WorkflowTypeMap  } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import type { RequestHandler } from "express";
 
 import type { ImpureGraphContext } from "../../graph/context-types";
 import {
@@ -20,7 +19,7 @@ import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/sys
 import { systemAccountId } from "../../graph/system-account";
 import { logger } from "../../logger";
 
-type LinearWebhookPayload = {
+interface LinearWebhookPayload {
   action: "create" | "update" | "delete";
   createdAt: string; // ISO timestamp when the action took place.
   data?: { id: string }; // The serialized value of the subject entity.
@@ -30,7 +29,7 @@ type LinearWebhookPayload = {
   updatedFrom?: unknown; // an object containing the previous values of updated properties;
   webhookId: string;
   webhookTimestamp: number; // UNIX timestamp of webhook delivery in milliseconds.
-};
+}
 
 export const linearWebhook: RequestHandler<
   Record<string, never>,
@@ -38,7 +37,7 @@ export const linearWebhook: RequestHandler<
   string
   // @todo upgrade to Express 5 which handles async controllers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-> = async (req, res) => {
+> = async (request, res) => {
   const secret = process.env.LINEAR_WEBHOOK_SECRET;
 
   if (!secret) {
@@ -47,19 +46,20 @@ export const linearWebhook: RequestHandler<
 
   const expectedSignature = crypto
     .createHmac("sha256", secret)
-    .update(req.body)
+    .update(request.body)
     .digest("hex");
 
-  if (expectedSignature !== req.headers["linear-signature"]) {
+  if (expectedSignature !== request.headers["linear-signature"]) {
     res.sendStatus(400);
+
     return;
   }
 
-  const payload = JSON.parse(req.body) as LinearWebhookPayload;
+  const payload = JSON.parse(request.body) as LinearWebhookPayload;
 
   const temporalClient = await createTemporalClient(logger);
 
-  const organizationId = payload.organizationId;
+  const {organizationId} = payload;
 
   if (!payload.data) {
     res
@@ -67,6 +67,7 @@ export const linearWebhook: RequestHandler<
       .send(
         `No data sent with ${payload.action} ${payload.type} webhook payload`,
       );
+
     return;
   }
 
@@ -76,17 +77,18 @@ export const linearWebhook: RequestHandler<
     res
       .status(400)
       .send(`No ID found in ${payload.action} ${payload.type} webhook payload`);
+
     return;
   }
 
-  const { graphApi, vaultClient } = req.context;
+  const { graphApi, vaultClient } = request.context;
 
   if (!vaultClient) {
     return;
   }
 
   const linearBotAccountId = await getMachineActorId(
-    req.context,
+    request.context,
     { actorId: systemAccountId },
     { identifier: "linear" },
   );
@@ -130,9 +132,8 @@ export const linearWebhook: RequestHandler<
         await Promise.all(
           syncedWorkspaces.map(async (workspace) => {
             /**
-             * @todo sync items from specific teams rather than syncing all items
-             *
              * @see https://linear.app/hash/issue/H-1467/in-the-linear-webhook-only-sync-items-from-specific-teams-rather-than
+             * @todo Sync items from specific teams rather than syncing all items.
              */
 
             const hashWorkspaceEntityId =

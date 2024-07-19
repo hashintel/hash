@@ -16,16 +16,18 @@ const script = async () => {
   console.log(chalk.bold("Cleaning up after publishing..."));
 
   const packageInfo = await derivePackageInfoFromEnv();
+
   outputPackageInfo(packageInfo);
 
   if (!(await checkIfDirHasUncommittedChanges(packageInfo.path))) {
     console.log(
       "No uncommitted changes detected. Did you forget to run the prepublish script?",
     );
+
     return;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+   
   const packageJson = await fs.readJson(
     path.join(packageInfo.path, "package.json"),
   );

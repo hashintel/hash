@@ -1,3 +1,5 @@
+ 
+import { vi } from "vitest";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
@@ -10,17 +12,16 @@ import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { Context } from "@temporalio/activity";
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { vi } from "vitest";
 
 import { graphApiClient } from "../../activities/shared/graph-api-client.js";
+
 import { getAliceUserAccountId } from "./get-alice-user-account-id.js";
 
 type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends Array<infer U>
-    ? Array<DeepPartial<U>>
-    : T[P] extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
+  [P in keyof T]?: T[P] extends (infer U)[]
+    ? DeepPartial<U>[]
+    : T[P] extends readonly (infer U)[]
+      ? readonly DeepPartial<U>[]
       : T[P] extends object
         ? DeepPartial<T[P]>
         : T[P];

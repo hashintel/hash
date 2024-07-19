@@ -1,3 +1,4 @@
+import { useMemo, useRef, useState } from "react";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -5,7 +6,6 @@ import {
 } from "@blockprotocol/graph/react";
 import { EditableField, theme } from "@hashintel/block-design-system";
 import { ThemeProvider } from "@mui/material";
-import { useMemo, useRef, useState } from "react";
 
 import type { BlockEntityKey } from "./additional-types";
 import styles from "./base.module.scss";
@@ -57,17 +57,17 @@ export const App: BlockComponent<BlockEntity> = ({
       <div className={styles.block} ref={blockRootRef}>
         <EditableField
           value={titleValue}
-          placeholder="Untitled Board"
-          onChange={(event) => setTitleValue(event.target.value)}
-          onBlur={(event) => updateEntity({ [titleKey]: event.target.value })}
+          placeholder={"Untitled Board"}
           readonly={readonly}
+          wrapperSx={{ mb: 1.5 }}
           sx={{
             fontWeight: 700,
             fontSize: "21px !important",
             lineHeight: "1.2 !important",
             color: "black",
           }}
-          wrapperSx={{ mb: 1.5 }}
+          onChange={(event) => { setTitleValue(event.target.value); }}
+          onBlur={(event) => updateEntity({ [titleKey]: event.target.value })}
         />
 
         <Board

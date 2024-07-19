@@ -37,26 +37,26 @@ export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
   return validateBaseUrl(baseUrl).type === "Ok";
 };
 
-export type OntologyProvenance = {
+export interface OntologyProvenance {
   edition: OntologyEditionProvenance;
-};
+}
 
-export type OntologyEditionProvenance = {
+export interface OntologyEditionProvenance {
   createdById: EditionCreatedById;
   archivedById?: EditionArchivedById;
   actorType?: ActorType;
   origin?: ProvidedEntityEditionProvenanceOrigin;
-  sources?: Array<SourceProvenance>;
-};
+  sources?: SourceProvenance[];
+}
 
-export type OntologyTypeRecordId = {
+export interface OntologyTypeRecordId {
   baseUrl: BaseUrl;
   version: number;
-};
+}
 
 /** @todo-0.3 - Consider redefining `EntityType` and `PropertyType` to use the branded `BaseUrl`s inside them */
 
-export type OwnedOntologyElementMetadata = {
+export interface OwnedOntologyElementMetadata {
   recordId: OntologyTypeRecordId;
   ownedById: OwnedById;
   provenance: OntologyProvenance;
@@ -66,9 +66,9 @@ export type OwnedOntologyElementMetadata = {
       ExclusiveLimitedTemporalBound | Unbounded
     >;
   };
-};
+}
 
-export type ExternalOntologyElementMetadata = {
+export interface ExternalOntologyElementMetadata {
   recordId: OntologyTypeRecordId;
   fetchedAt: Timestamp;
   provenance: OntologyProvenance;
@@ -78,7 +78,7 @@ export type ExternalOntologyElementMetadata = {
       ExclusiveLimitedTemporalBound | Unbounded
     >;
   };
-};
+}
 
 type OntologyElementMetadata = Subtype<
   OntologyElementMetadataBp,
@@ -86,11 +86,11 @@ type OntologyElementMetadata = Subtype<
 >;
 
 /**
- * Non-exhaustive list of possible values for 'format'
+ * Non-exhaustive list of possible values for 'format'.
  *
  * The presence of a format in this list does _NOT_ mean that:
  * 1. The Graph will validate it
- * 2. The frontend will treat it differently for input or display
+ * 2. The frontend will treat it differently for input or display.
  *
  * @see https://json-schema.org/understanding-json-schema/reference/string
  */
@@ -107,64 +107,64 @@ type StringFormat =
   | "uri"
   | "uuid";
 
-export type StringConstraint = {
+export interface StringConstraint {
   format?: StringFormat;
   minLength?: number; // Int
   maxLength?: number; // Int
   pattern?: string; // RegExp
   type: "string";
-};
+}
 
-export type NumberConstraint = {
+export interface NumberConstraint {
   minimum?: number;
   maximum?: number;
   exclusiveMinimum?: boolean;
   exclusiveMaximum?: boolean;
   multipleOf?: number;
   type: "number" | "integer";
-};
+}
 
-export type BooleanConstraint = {
+export interface BooleanConstraint {
   type: "boolean";
-};
+}
 
-export type NullConstraint = {
+export interface NullConstraint {
   type: "null";
-};
+}
 
-export type ObjectConstraint = {
+export interface ObjectConstraint {
   type: "object";
-};
+}
 
-export type StringEnumConstraint = {
+export interface StringEnumConstraint {
   enum: [string, ...string[]];
   type: "string";
-};
+}
 
-export type NumberEnumConstraint = {
+export interface NumberEnumConstraint {
   enum: [number, ...number[]];
   type: "number" | "integer";
-};
+}
 
 /** @see https://json-schema.org/understanding-json-schema/reference/enum */
 export type EnumConstraint = StringEnumConstraint | NumberEnumConstraint;
 
-export type StringConstConstraint = {
+export interface StringConstConstraint {
   const: string;
   type: "string";
-};
+}
 
-export type NumberConstConstraint = {
+export interface NumberConstConstraint {
   const: number;
   type: "number" | "integer";
-};
+}
 
 export type ConstConstraint = StringConstConstraint | NumberConstConstraint;
 
-type ValueLabel = {
+interface ValueLabel {
   left?: string;
   right?: string;
-};
+}
 
 export type SingleValueConstraint =
   | BooleanConstraint
@@ -175,17 +175,17 @@ export type SingleValueConstraint =
   | EnumConstraint
   | ConstConstraint;
 
-export type ArrayConstraint = {
+export interface ArrayConstraint {
   type: "array";
   items: ValueConstraint;
-};
+}
 
 /** @see https://json-schema.org/understanding-json-schema/reference/array#tuple-validation */
-export type TupleConstraint = {
+export interface TupleConstraint {
   type: "array";
   items: false; // disallow additional items;
   prefixItems: ValueConstraint[];
-};
+}
 
 export type ValueConstraint = (
   | SingleValueConstraint

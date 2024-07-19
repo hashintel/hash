@@ -10,8 +10,7 @@ import type {
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import type { UnresolvedPageGQL } from "../graphql-mapping";
-import { mapPageToGQL } from "../graphql-mapping";
+import type { mapPageToGQL,UnresolvedPageGQL  } from "../graphql-mapping";
 
 export const setParentPageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,
@@ -23,7 +22,7 @@ export const setParentPageResolver: ResolverFn<
   {
     pageEntityId,
     parentPageEntityId,
-    prevFractionalIndex = null,
+    prevFractionalIndex: previousFractionalIndex = null,
     nextIndex = null,
   },
   graphQLContext,
@@ -48,7 +47,7 @@ export const setParentPageResolver: ResolverFn<
   const updatedPage = await setPageParentPage(context, authentication, {
     page,
     parentPage: newParentPage,
-    prevFractionalIndex,
+    prevFractionalIndex: previousFractionalIndex,
     nextIndex,
   });
 

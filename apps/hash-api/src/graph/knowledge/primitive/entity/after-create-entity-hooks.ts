@@ -34,6 +34,7 @@ import {
 } from "../../system-types/text";
 import { getUserById } from "../../system-types/user";
 import { checkPermissionsOnEntity } from "../entity";
+
 import type {
   AfterCreateEntityHook,
   AfterCreateEntityHookCallback,
@@ -44,7 +45,7 @@ import { getTextUpdateOccurredIn } from "./shared/mention-notification";
  * This after create `Comment` entity hook is responsible for creating
  * comment notifications if:
  * - the parent of the comment is a block on a page
- * - the parent of the comment is another comment (i.e the comment is a reply)
+ * - the parent of the comment is another comment (i.e the comment is a reply).
  */
 const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
   entity,
@@ -187,7 +188,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
  * mention notifications if the right entity is a `Text` entity whose textual
  * content contains a mention to a user, and:
  * - the `Text` is in a page
- * - the `Text` is in a comment that's on a page
+ * - the `Text` is in a comment that's on a page.
  */
 const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
   entity,
@@ -222,8 +223,8 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
     ),
   });
 
-  await Promise.all([
-    ...mentionedUsers
+  await Promise.all(
+    mentionedUsers
       .filter((user) => user.accountId !== triggeredByUser.accountId)
       .map(async (mentionedUser) => {
         const { view: mentionedUserCanViewPage } =
@@ -266,8 +267,8 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
             },
           );
         }
-      }),
-  ]);
+      })
+  );
 };
 
 const userCreateHookCallback: AfterCreateEntityHookCallback = async ({

@@ -1,3 +1,4 @@
+import type { caching,MemoryCache  } from "cache-manager";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -16,8 +17,6 @@ import {
 } from "@local/hash-subgraph";
 import { Context } from "@temporalio/activity";
 import type { Client as TemporalClient } from "@temporalio/client";
-import type { MemoryCache } from "cache-manager";
-import { caching } from "cache-manager";
 
 import { graphApiClient } from "./graph-api-client.js";
 
@@ -37,11 +36,13 @@ const getCache = async () => {
       max: 100, // 100 items
       ttl: 10 * 60 * 1000, // 10 minutes
     }));
+
   return _runFlowWorkflowParamsCache;
 };
 
 const getTemporalClient = async () => {
   _temporalClient = _temporalClient ?? (await createTemporalClient());
+
   return _temporalClient;
 };
 
@@ -116,13 +117,13 @@ const getPartialRunFlowWorkflowParams = async (params: {
   return partialRunFlowWorkflowParams;
 };
 
-type FlowContext = {
+interface FlowContext {
   dataSources: FlowDataSources;
   flowEntityId: EntityId;
   stepId: string;
   userAuthentication: { actorId: AccountId };
   webId: OwnedById;
-};
+}
 
 /**
  * Get the context of the flow that is currently being executed
@@ -201,6 +202,7 @@ export const getProvidedFiles = async (): Promise<Entity<File>[]> => {
     );
 
   await cache.set(filesCacheKey, entities);
+
   return entities;
 };
 
@@ -210,7 +212,7 @@ export const getProvidedFiles = async (): Promise<Entity<File>[]> => {
  * A URL taken from the database and sent to an LLM, and then passed back from the LLM as part of a tool call,
  * may have differences in whitespace and escape characters, e.g.
  * - a URL from the database with spaces escaped (%20) may be played back with spaces
- * - a URL in the database may contain whitespace characters (e.g. NBSP / U+00A0 / 160) which are played back differently (U+0020 / 32)
+ * - a URL in the database may contain whitespace characters (e.g. NBSP / U+00A0 / 160) which are played back differently (U+0020 / 32).
  */
 export const areUrlsTheSameAfterNormalization = (
   first: string,
@@ -223,6 +225,7 @@ export const getProvidedFileByUrl = async (
   url: string,
 ): Promise<Entity<File> | undefined> => {
   const files = await getProvidedFiles();
+
   return files.find((file) => {
     /**
      * The URL may have been provided by an LLM, in which case it may be missing escape characters which may be present in the original.

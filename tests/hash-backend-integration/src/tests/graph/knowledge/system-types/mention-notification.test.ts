@@ -1,29 +1,25 @@
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   getEntityOutgoingLinks,
   updateEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
-import { getBlockData } from "@apps/hash-api/src/graph/knowledge/system-types/block";
-import type { Comment } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
-import {
+import type { Block , getBlockData } from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import type { Comment ,
   createComment,
   getCommentText,
 } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
-import type { MentionNotification } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
-import {
-  archiveNotification,
+import type {   archiveNotification,
   createMentionNotification,
   getMentionNotification,
+MentionNotification ,
 } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
-import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import {
-  createPage,
+import type {   createPage,
   getPageBlocks,
+Page ,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import type { Text } from "@apps/hash-api/src/graph/knowledge/system-types/text";
-import { getTextFromEntity } from "@apps/hash-api/src/graph/knowledge/system-types/text";
+import type { getTextFromEntity,Text  } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -34,7 +30,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -53,7 +48,7 @@ const logger = new Logger({
 //   see https://linear.app/hash/issue/H-1433
 // TODO: Figure out what to do if someone tries to create a Link for entities they don't see
 //   see https://linear.app/hash/issue/H-1434
-describe.skip("Page Mention Notification", () => {
+describe.skip("page Mention Notification", () => {
   let triggerUser: User;
   let recipientUser: User;
 
@@ -90,7 +85,7 @@ describe.skip("Page Mention Notification", () => {
 
   let occurredInText: Text;
 
-  it("can create a page mention notification", async () => {
+  test("can create a page mention notification", async () => {
     const graphContext = createTestImpureGraphContext();
     const authentication = { actorId: triggerUser.accountId };
 
@@ -182,7 +177,7 @@ describe.skip("Page Mention Notification", () => {
     );
   });
 
-  it("can get a mention notification by its triggered user, recipient user, page and text", async () => {
+  test("can get a mention notification by its triggered user, recipient user, page and text", async () => {
     const graphContext = createTestImpureGraphContext();
     const authentication = { actorId: recipientUser.accountId };
 
@@ -205,7 +200,7 @@ describe.skip("Page Mention Notification", () => {
     ).toBe(pageMentionNotification.entity.metadata.recordId.entityId);
   });
 
-  it("can archive a notification", async () => {
+  test("can archive a notification", async () => {
     const graphContext = createTestImpureGraphContext();
     const authentication = { actorId: recipientUser.accountId };
 
@@ -228,7 +223,7 @@ describe.skip("Page Mention Notification", () => {
     expect(fetchedPageMentionNotification).toBeNull();
   });
 
-  it("can create a page mention notification when a user is mentioned in a page via an update to a text entity", async () => {
+  test("can create a page mention notification when a user is mentioned in a page via an update to a text entity", async () => {
     const graphContext = createTestImpureGraphContext();
 
     const beforePageMentionNotification = await getMentionNotification(
@@ -302,7 +297,7 @@ describe.skip("Page Mention Notification", () => {
     expect(afterPageMentionNotification).not.toBeNull();
   });
 
-  it("can archive a page mention notification when a user mention is removed from a page", async () => {
+  test("can archive a page mention notification when a user mention is removed from a page", async () => {
     const graphContext = createTestImpureGraphContext();
 
     const beforePageMentionNotification = await getMentionNotification(
@@ -374,7 +369,7 @@ describe.skip("Page Mention Notification", () => {
 
   let commentText: Text;
 
-  it("can create a comment mention notification when a user is mentioned in a comment", async () => {
+  test("can create a comment mention notification when a user is mentioned in a comment", async () => {
     const graphContext = createTestImpureGraphContext();
 
     occurredInComment = await createComment(
@@ -424,7 +419,7 @@ describe.skip("Page Mention Notification", () => {
     expect(afterCommentMentionNotification).not.toBeNull();
   });
 
-  it("can archive a comment mention notification when a user mention is removed from a comment", async () => {
+  test("can archive a comment mention notification when a user mention is removed from a comment", async () => {
     const graphContext = createTestImpureGraphContext();
 
     const beforeCommentMentionNotification = await getMentionNotification(

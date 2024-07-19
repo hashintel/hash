@@ -1,7 +1,6 @@
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import type { OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { EnforcedEntityEditionProvenance , Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
@@ -13,11 +12,11 @@ import type { FlowRun } from "@local/hash-isomorphic-utils/system-types/shared";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 
-type PersistFlowActivityParams = {
+interface PersistFlowActivityParams {
   flow: LocalFlowRun;
   userAuthentication: { actorId: AccountId };
   webId: OwnedById;
-};
+}
 
 export const persistFlowActivity = async (
   params: PersistFlowActivityParams,

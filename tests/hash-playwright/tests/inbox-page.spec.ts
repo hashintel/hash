@@ -12,8 +12,7 @@ import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { createEntity, getUser } from "./shared/api-queries";
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
-import type { APIRequestContext } from "./shared/runtime";
-import { expect, test } from "./shared/runtime";
+import type { APIRequestContext , expect, test } from "./shared/runtime";
 
 const createNotification = async ({
   draft,
@@ -25,6 +24,7 @@ const createNotification = async ({
   targetEntityTitle: string;
 }) => {
   const user = await getUser(requestContext);
+
   if (!user) {
     throw new Error("Cannot create notification without authenticated user");
   }
@@ -119,7 +119,7 @@ test("new notifications are shown on inbox page", async ({ page }) => {
 
   await expect(
     page.locator(`text=${draftNotificationTitle}`),
-  ).not.toBeVisible();
+  ).toBeHidden();
 
   /** Check notifications linked to draft entities */
   await createNotification({
@@ -137,7 +137,7 @@ test("new notifications are shown on inbox page", async ({ page }) => {
 
   await expect(
     page.locator(`text=${nonDraftNotificationTitle}`),
-  ).not.toBeVisible();
+  ).toBeHidden();
 
   /** Check notifications linked to non-draft entities */
   await createNotification({

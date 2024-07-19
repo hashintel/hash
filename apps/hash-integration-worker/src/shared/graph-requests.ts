@@ -1,7 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity , LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -116,7 +115,6 @@ export const getEntityOutgoingLinks = async (params: {
 /**
  * @todo: move the primitive node helper methods from the Node API into a shared
  * package so that they can be used without importing from the Node API directly.
- *
  * @see https://linear.app/hash/issue/H-1458/move-primitive-node-api-helper-methods-into-shared-package-to-make
  */
 

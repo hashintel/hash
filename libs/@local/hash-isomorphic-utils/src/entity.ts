@@ -7,11 +7,8 @@ import type {
   DraftEntity,
   EntityStore,
   EntityStoreType,
-} from "./entity-store.js";
-import {
   isDraftBlockEntity,
-  textualContentPropertyTypeBaseUrl,
-} from "./entity-store.js";
+  textualContentPropertyTypeBaseUrl} from "./entity-store.js";
 import type {
   Block,
   BlockCollection as BlockCollectionGql,
@@ -24,12 +21,12 @@ export type BlockEntity = Omit<Block, "blockChildEntity"> & {
   blockChildEntity: Entity;
 };
 
-export type BlockCollectionContentItem = {
+export interface BlockCollectionContentItem {
   linkEntity:
     | LinkEntity<HasIndexedContent>
     | LinkEntity<HasSpatiallyPositionedContent>;
   rightEntity: BlockEntity;
-};
+}
 
 export type BlockCollection = Omit<BlockCollectionGql, "contents"> & {
   contents: BlockCollectionContentItem[];
@@ -60,6 +57,7 @@ export const getEntityChildEntity = (
   draftEntityStore: EntityStore["draft"],
 ) => {
   const entity = draftEntityStore[draftId];
+
   if (!entity) {
     throw new Error("invariant: missing entity");
   }

@@ -3,16 +3,6 @@
  */
 
 import type {
-  ActivePropertyValue,
-  ActivePropertyValueWithMetadata,
-  AdminPropertyValue,
-  AdminPropertyValueWithMetadata,
-  AllowedAuthServicePropertyValue,
-  AllowedAuthServicePropertyValueWithMetadata,
-  AllowMembersToInvitePropertyValue,
-  AllowMembersToInvitePropertyValueWithMetadata,
-  ArchivedAtPropertyValue,
-  ArchivedAtPropertyValueWithMetadata,
   AvatarURLPropertyValue,
   AvatarURLPropertyValueWithMetadata,
   BelongsToOrganization,
@@ -111,16 +101,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  ActivePropertyValue,
-  ActivePropertyValueWithMetadata,
-  AdminPropertyValue,
-  AdminPropertyValueWithMetadata,
-  AllowedAuthServicePropertyValue,
-  AllowedAuthServicePropertyValueWithMetadata,
-  AllowMembersToInvitePropertyValue,
-  AllowMembersToInvitePropertyValueWithMetadata,
-  ArchivedAtPropertyValue,
-  ArchivedAtPropertyValueWithMetadata,
   AvatarURLPropertyValue,
   AvatarURLPropertyValueWithMetadata,
   BelongsToOrganization,
@@ -217,3 +197,5 @@ export type {
   UserProperties,
   UserPropertiesWithMetadata,
 };
+
+export {type ActivePropertyValue, type ActivePropertyValueWithMetadata, type AdminPropertyValue, type AdminPropertyValueWithMetadata, type AllowedAuthServicePropertyValue, type AllowedAuthServicePropertyValueWithMetadata, type AllowMembersToInvitePropertyValue, type AllowMembersToInvitePropertyValueWithMetadata, type ArchivedAtPropertyValue, type ArchivedAtPropertyValueWithMetadata} from "./shared.js";

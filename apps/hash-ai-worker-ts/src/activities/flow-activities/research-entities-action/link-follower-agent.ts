@@ -1,9 +1,8 @@
-import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
-import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import type { SourceProvenance } from "@local/hash-graph-client";
-import { SourceType } from "@local/hash-graph-client";
 import dedent from "dedent";
 import { MetadataMode } from "llamaindex";
+import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
+import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
+import type { SourceProvenance , SourceType } from "@local/hash-graph-client";
 
 import { getWebPageActivity } from "../../get-web-page-activity.js";
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
@@ -18,21 +17,21 @@ import { stringify } from "../../shared/stringify.js";
 import { inferFactsFromText } from "../shared/infer-facts-from-text.js";
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
 import type { Fact } from "../shared/infer-facts-from-text/types.js";
+
 import { deduplicateEntities } from "./deduplicate-entities.js";
-import type { Link } from "./link-follower-agent/choose-relevant-links-from-content.js";
-import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-relevant-links-from-content.js";
+import type { chooseRelevantLinksFromContent,Link  } from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
 import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.js";
 
-type ResourceToExplore = {
+interface ResourceToExplore {
   url: string;
   descriptionOfExpectedContent: string;
   exampleOfExpectedContent: string;
   reason: string;
-};
+}
 
-type LinkFollowerAgentInput = {
+interface LinkFollowerAgentInput {
   /**
    * Existing entities which we are seeking more information on,
    * whether in their own right or to be linked to from other entities.
@@ -42,7 +41,7 @@ type LinkFollowerAgentInput = {
   task: string;
   entityTypes: DereferencedEntityType[];
   linkEntityTypes?: DereferencedEntityType[];
-};
+}
 
 const isContentAtUrlPdfFile = async (params: { url: string }) => {
   const { url } = params;
@@ -77,6 +76,7 @@ const isContentAtUrlPdfFile = async (params: { url: string }) => {
       `Error encountered when checking if content at URL ${url} is a PDF file: ${stringify(error)}`,
     );
   }
+
   return false;
 };
 
@@ -109,7 +109,7 @@ const exploreResource = async (params: {
   let resourceTitle: string | undefined =
     hashEntityForFile?.properties[
       "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings
+       
     ] ||
     hashEntityForFile?.properties[
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"
@@ -244,6 +244,7 @@ const exploreResource = async (params: {
           )}`,
         );
       }
+
       return {
         status: "not-explored",
         reason: "No relevant sections found in the PDF.",
@@ -313,20 +314,12 @@ const exploreResource = async (params: {
   );
 
   const dereferencedEntityTypesById = {
-    ...entityTypes.reduce<DereferencedEntityTypesByTypeId>(
-      (prev, schema) => ({
-        ...prev,
-        [schema.$id]: { schema, isLink: false },
-      }),
-      {},
-    ),
-    ...(linkEntityTypes ?? []).reduce<DereferencedEntityTypesByTypeId>(
-      (prev, schema) => ({
-        ...prev,
-        [schema.$id]: { schema, isLink: true },
-      }),
-      {},
-    ),
+    ...Object.fromEntries(entityTypes.map<DereferencedEntityTypesByTypeId>(
+      ( schema) => [schema.$id, { schema, isLink: false }],
+    )),
+    ...Object.fromEntries((linkEntityTypes ?? []).map<DereferencedEntityTypesByTypeId>(
+      ( schema) => [schema.$id, { schema, isLink: true }],
+    )),
   };
 
   const {

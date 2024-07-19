@@ -1,9 +1,8 @@
+import type { Auth } from "googleapis";
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type {
-  UserSecretService,
-  VaultClient,
-} from "@local/hash-backend-utils/vault";
-import { createUserSecretPath } from "@local/hash-backend-utils/vault";
+ createUserSecretPath,  UserSecretService,
+  VaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
@@ -16,12 +15,11 @@ import {
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
-import type { Auth } from "googleapis";
 
 import { createEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
-type CreateUserSecretParams<T extends object> = {
+interface CreateUserSecretParams<T extends object> {
   /**
    * Whether to archive all existing secrets linked from the sourceIntegrationEntityId.
    */
@@ -30,7 +28,7 @@ type CreateUserSecretParams<T extends object> = {
   graphApi: GraphApi;
   provenance: EnforcedEntityEditionProvenance;
   /**
-   * The bot that will manage the secret, e.g. update, archive, upgrade it.
+   * The bot that will manage the secret, e.g. Update, archive, upgrade it.
    * This is the only account that will have edit permissions for the secret.
    */
   managingBotAccountId: AccountId;
@@ -41,7 +39,7 @@ type CreateUserSecretParams<T extends object> = {
    */
   restOfPath: string;
   /**
-   * The entity to link the secret to via a usesUserSecret link, e.g. an external integration or account.
+   * The entity to link the secret to via a usesUserSecret link, e.g. An external integration or account.
    */
   sourceIntegrationEntityId: EntityId;
   /**
@@ -53,7 +51,7 @@ type CreateUserSecretParams<T extends object> = {
    */
   userAccountId: AccountId;
   vaultClient: VaultClient;
-};
+}
 
 /**
  * Stores a user secret in Vault, creates the secret entity, and links to it from the specified integration entity.
@@ -137,7 +135,8 @@ export const createUserSecret = async <
   /**
    * We currently don't bother to delete existing secrets at the path because when writing new secrets
    * we are using the same path in any case.
-   * @todo consider deleting secret at existing path anyway
+   *
+   * @todo Consider deleting secret at existing path anyway.
    */
   await vaultClient.write<Auth.Credentials>({
     data: secretData,
@@ -148,7 +147,7 @@ export const createUserSecret = async <
   /**
    * We use the authentication of the user to create entities,
    * as the managing bot may not have general write access to the user's web,
-   * e.g. if the integration does not involve updating entities in their web.
+   * e.g. If the integration does not involve updating entities in their web.
    */
   const authentication = { actorId: userAccountId };
 

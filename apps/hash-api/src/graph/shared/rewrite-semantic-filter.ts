@@ -43,12 +43,13 @@ export const rewriteSemanticFilter = async (
           ],
           workflowId: generateUuid(),
         });
+
         expression[1].parameter = embeddings[0];
       }
     }
 
     /**
-     * The cosineDistance filter may be nested inside an 'any' filter or 'all', so we need to recurse
+     * The cosineDistance filter may be nested inside an 'any' filter or 'all', so we need to recurse.
      */
     if (Array.isArray(expression)) {
       await Promise.all(

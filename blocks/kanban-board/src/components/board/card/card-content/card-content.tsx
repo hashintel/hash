@@ -4,6 +4,7 @@ import TextareaAutosize from "react-textarea-autosize";
 
 import { IconButton } from "../../../icon-button/icon-button";
 import { DiscardIcon } from "../../../icons/discard-icon";
+
 import styles from "./styles.module.scss";
 
 export const CardContent = ({
@@ -13,28 +14,28 @@ export const CardContent = ({
   onDelete,
 }: {
   content: string;
-  onChange?: (val: string) => void;
+  onChange?: (value: string) => void;
   readonly?: boolean;
   onDelete?: () => void;
 }) => {
-  const [prevContent, setPrevContent] = useState(content);
-  const [inputVal, setInputVal] = useState(content);
+  const [previousContent, setPreviousContent] = useState(content);
+  const [inputValue, setInputValue] = useState(content);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [editing, setEditing] = useState(false);
 
-  if (prevContent !== content) {
-    setPrevContent(content);
-    setInputVal(content);
+  if (previousContent !== content) {
+    setPreviousContent(content);
+    setInputValue(content);
   }
 
-  if (!!readonly || !editing) {
+  if (Boolean(readonly) || !editing) {
     return (
       <>
         <div
-          role="button"
+          role={"button"}
           tabIndex={0}
-          onClick={() => setEditing(true)}
           className={styles.wrapper}
+          onClick={() => { setEditing(true); }}
         >
           {content}
         </div>
@@ -52,12 +53,12 @@ export const CardContent = ({
       autoFocus
       ref={inputRef}
       className={styles.wrapper}
-      value={inputVal}
+      value={inputValue}
+      onBlur={() => { setEditing(false); }}
       onClick={(event) => {
         event.stopPropagation();
         event.preventDefault();
       }}
-      onBlur={() => setEditing(false)}
       onKeyDown={(event) => {
         event.stopPropagation();
 
@@ -66,7 +67,7 @@ export const CardContent = ({
         }
       }}
       onChange={(event) => {
-        setInputVal(event.target.value);
+        setInputValue(event.target.value);
         onChange?.(event.target.value);
       }}
     />

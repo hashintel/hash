@@ -2,55 +2,55 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity, LinkData } from "@blockprotocol/graph";
+import type { Entity, LinkData } from "@blockprotocol/graph";
 
 export type AIChatRequestMessage = Entity<AIChatRequestMessageProperties>;
 
-export type AIChatRequestMessageHasResponseLink = {
+export interface AIChatRequestMessageHasResponseLink {
   linkEntity: HasResponse;
   rightEntity: AIChatResponseMessage;
-};
+}
 
 export type AIChatRequestMessageOutgoingLinkAndTarget =
   AIChatRequestMessageHasResponseLink;
 
-export type AIChatRequestMessageOutgoingLinksByLinkEntityTypeId = {
+export interface AIChatRequestMessageOutgoingLinksByLinkEntityTypeId {
   "https://blockprotocol.org/@blockprotocol/types/entity-type/has-response/v/1": AIChatRequestMessageHasResponseLink;
-};
+}
 
 /**
  * Defines a user-provided request message in an “AI Chat” Block’s thread.
  */
-export type AIChatRequestMessageProperties = {
+export interface AIChatRequestMessageProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValue;
-};
+}
 
 export type AIChatResponseMessage = Entity<AIChatResponseMessageProperties>;
 
-export type AIChatResponseMessageFollowedByLink = {
+export interface AIChatResponseMessageFollowedByLink {
   linkEntity: FollowedBy;
   rightEntity: AIChatRequestMessage;
-};
+}
 
 export type AIChatResponseMessageOutgoingLinkAndTarget =
   AIChatResponseMessageFollowedByLink;
 
-export type AIChatResponseMessageOutgoingLinksByLinkEntityTypeId = {
+export interface AIChatResponseMessageOutgoingLinksByLinkEntityTypeId {
   "https://blockprotocol.org/@blockprotocol/types/entity-type/followed-by/v/1": AIChatResponseMessageFollowedByLink;
-};
+}
 
 /**
  * Defines an AI-generated response message in an “AI Chat” Block’s thread.
  */
-export type AIChatResponseMessageProperties = {
+export interface AIChatResponseMessageProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValue;
-};
+}
 
 export type FollowedBy = Entity<FollowedByProperties> & { linkData: LinkData };
 
 export type FollowedByOutgoingLinkAndTarget = never;
 
-export type FollowedByOutgoingLinksByLinkEntityTypeId = {};
+export interface FollowedByOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * This thing came after or occurred subsequently.
@@ -59,7 +59,7 @@ export type FollowedByProperties = FollowedByProperties1 &
   FollowedByProperties2;
 export type FollowedByProperties1 = LinkProperties;
 
-export type FollowedByProperties2 = {};
+export interface FollowedByProperties2 {}
 
 export type HasResponse = Entity<HasResponseProperties> & {
   linkData: LinkData;
@@ -67,7 +67,7 @@ export type HasResponse = Entity<HasResponseProperties> & {
 
 export type HasResponseOutgoingLinkAndTarget = never;
 
-export type HasResponseOutgoingLinksByLinkEntityTypeId = {};
+export interface HasResponseOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A reaction or reply to this thing.
@@ -76,18 +76,18 @@ export type HasResponseProperties = HasResponseProperties1 &
   HasResponseProperties2;
 export type HasResponseProperties1 = LinkProperties;
 
-export type HasResponseProperties2 = {};
+export interface HasResponseProperties2 {}
 
 export type Link = Entity<LinkProperties>;
 
 export type LinkOutgoingLinkAndTarget = never;
 
-export type LinkOutgoingLinksByLinkEntityTypeId = {};
+export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export type LinkProperties = {};
+export interface LinkProperties {}
 
 /**
- * An ordered sequence of characters
+ * An ordered sequence of characters.
  */
 export type TextDataType = string;
 

@@ -3,12 +3,11 @@ import type {
   EntityId,
   LinkEntityAndRightEntity,
 } from "../../../types/entity.js";
-import type { Subgraph } from "../../../types/subgraph.js";
-import {
-  isHasLeftEntityEdge,
+import type {   isHasLeftEntityEdge,
   isHasRightEntityEdge,
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
+Subgraph ,
 } from "../../../types/subgraph.js";
 import type { TimeInterval } from "../../../types/temporal-versioning.js";
 import { typedEntries } from "../../../util.js";
@@ -22,28 +21,30 @@ import { getLatestInstantIntervalForSubgraph } from "../temporal-axes.js";
 
 const getUniqueEntitiesFilter = () => {
   const set = new Set();
+
   return (entity: Entity) => {
     const recordIdString = JSON.stringify(entity.metadata.recordId);
+
     if (set.has(recordIdString)) {
       return false;
-    } else {
+    } 
       set.add(recordIdString);
+
       return true;
-    }
+    
   };
 };
 
 /**
  * Get all outgoing link entities from a given {@link Entity}.
  *
- * @param {Subgraph} subgraph
- * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from
- * @param {TimeInterval} [interval] - An optional {@link TimeInterval} which, when provided with a
+ * @param subgraph
+ * @param entityId - The ID of the source entity to search for outgoing links from.
+ * @param [interval] - An optional {@link TimeInterval} which, when provided with a
  *  {@link Subgraph} that supports temporal versioning, will constrain the results to links that were present during
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
- *  the latest instant of time in the {@link Subgraph}
- *
- * @returns {Entity[]} - A flat list of all {@link Entity}s associated with {@link OutgoingLinkEdge}s from the specified
+ *  the latest instant of time in the {@link Subgraph}.
+ * @returns - A flat list of all {@link Entity}s associated with {@link OutgoingLinkEdge}s from the specified
  *   {@link Entity}. This list may contain multiple revisions of the same {@link Entity}s, and it might be beneficial to
  *   pair the output with {@link mapElementsIntoRevisions}.
  */
@@ -108,14 +109,13 @@ export const getOutgoingLinksForEntity = (
 /**
  * Get all incoming link entities from a given {@link Entity}.
  *
- * @param {Subgraph} subgraph
- * @param {EntityId} entityId - The ID of the source entity to search for incoming links to
- * @param {TimeInterval} [interval] - An optional {@link TimeInterval} which, when provided with a
+ * @param subgraph
+ * @param entityId - The ID of the source entity to search for incoming links to.
+ * @param [interval] - An optional {@link TimeInterval} which, when provided with a
  *  {@link Subgraph} that supports temporal versioning, will constrain the results to links that were present during
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
- *  the latest instant of time in the {@link Subgraph}
- *
- * @returns {Entity[]} - A flat list of all {@link Entity}s associated with {@link IncomingLinkEdge}s from the specified
+ *  the latest instant of time in the {@link Subgraph}.
+ * @returns - A flat list of all {@link Entity}s associated with {@link IncomingLinkEdge}s from the specified
  *   {@link Entity}. This list may contain multiple revisions of the same {@link Entity}s, and it might be beneficial to
  *   pair the output with {@link mapElementsIntoRevisions}.
  */
@@ -179,13 +179,12 @@ export const getIncomingLinksForEntity = (
 /**
  * Get the "left entity" revisions (by default this is the "source") of a given link entity.
  *
- * @param {Subgraph} subgraph
- * @param {EntityId} entityId - The ID of the link entity
- * @param {TimeInterval} [interval] - An optional {@link TimeInterval} which, when provided with a
+ * @param subgraph
+ * @param entityId - The ID of the link entity.
+ * @param [interval] - An optional {@link TimeInterval} which, when provided with a
  *  {@link Subgraph} that supports temporal versioning, will constrain the results to links that were present during
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
- *  the latest instant of time in the {@link Subgraph}
- *
+ *  the latest instant of time in the {@link Subgraph}.
  * @returns {Entity[] | undefined} - all revisions of the left {@link Entity} which was associated with a
  *   {@link HasLeftEntityEdge}, if found, from the given {@link EntityId} within the {@link Subgraph}, otherwise
  *   `undefined`.
@@ -228,13 +227,12 @@ export const getLeftEntityForLinkEntity = (
 /**
  * Get the "right entity" revisions (by default this is the "target") of a given link entity.
  *
- * @param {Subgraph} subgraph
- * @param {EntityId} entityId - The ID of the link entity
- * @param {TimeInterval} [interval] - An optional {@link TimeInterval} which, when provided with a
+ * @param subgraph
+ * @param entityId - The ID of the link entity.
+ * @param [interval] - An optional {@link TimeInterval} which, when provided with a
  *  {@link Subgraph} that supports temporal versioning, will constrain the results to links that were present during
  *  that interval. If the parameter is omitted then results will default to only returning results that are active in
- *  the latest instant of time in the {@link Subgraph}
- *
+ *  the latest instant of time in the {@link Subgraph}.
  * @returns {Entity[] | undefined} - all revisions of the right {@link Entity} which was associated with a
  *   {@link HasRightEntityEdge}, if found, from the given {@link EntityId} within the {@link Subgraph}, otherwise
  *   `undefined`.
@@ -280,10 +278,10 @@ export const getRightEntityForLinkEntity = (
  * revisions (by default this is the "right entity"), from a given {@link Entity}.
  *
  * @param subgraph
- * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from
- * @param {TimeInterval} [interval] - An optional {@link TimeInterval} to constrain the period of time to search across.
+ * @param entityId - The ID of the source entity to search for outgoing links from.
+ * @param [interval] - An optional {@link TimeInterval} to constrain the period of time to search across.
  * If the parameter is omitted then results will default to only returning results that are active in the latest instant
- *   of time in the {@link Subgraph}
+ *   of time in the {@link Subgraph}.
  */
 export const getOutgoingLinkAndTargetEntities = <
   LinkAndRightEntities extends
@@ -301,7 +299,7 @@ export const getOutgoingLinkAndTargetEntities = <
     entityId,
     searchInterval,
   );
-  const mappedRevisions = outgoingLinkEntities.reduce(
+  const mappedRevisions = outgoingLinkEntities.reduce<Record<EntityId, Entity[]>>(
     (revisionMap, entity) => {
       const linkEntityId = entity.metadata.recordId.entityId;
 
@@ -311,7 +309,7 @@ export const getOutgoingLinkAndTargetEntities = <
 
       return revisionMap;
     },
-    {} as Record<EntityId, Entity[]>,
+    {},
   );
 
   return typedEntries(mappedRevisions).map(

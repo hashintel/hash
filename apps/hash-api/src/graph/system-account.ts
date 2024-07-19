@@ -8,7 +8,7 @@ import { createAccount } from "./account-permission-management";
 import type { ImpureGraphContext } from "./context-types";
 import { getEntityTypeById } from "./ontology/primitive/entity-type";
 
-// eslint-disable-next-line import/no-mutable-exports
+ 
 export let systemAccountId: AccountId;
 
 const authentication = { actorId: publicUserAccountId };

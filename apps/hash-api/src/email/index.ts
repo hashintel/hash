@@ -1,14 +1,14 @@
 /**
- * @todo Fix relevant portions of this file and remove the rest
  * @see https://linear.app/hash/issue/H-591
+ * @todo Fix relevant portions of this file and remove the rest.
  */
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+ 
 // @ts-nocheck
 
 import { URLSearchParams } from "node:url";
 
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import dedent from "dedent";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 
 import type { EmailTransporter } from "./transporters";
 

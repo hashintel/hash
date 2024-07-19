@@ -3,14 +3,14 @@ import { tw } from "twind";
 
 import Loader from "../svgs/loader";
 
-type UploadMediaFormProps = {
+interface UploadMediaFormProps {
   onFileChoose: (file: File) => void;
   onUrlChange: (url: string) => void;
   onUrlConfirm: () => void;
   loading: boolean;
   type: "image" | "video";
   readonly?: boolean;
-};
+}
 
 export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
   loading,
@@ -21,7 +21,7 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
   readonly,
 }) => {
   /**
-   * @todo This should throw some kind of error if an invalid media is passed
+   * @todo This should throw some kind of error if an invalid media is passed.
    */
   const onFilesChoose = (files: FileList | null) => {
     if (files?.[0] && files[0].type.search(type) > -1) {
@@ -54,13 +54,13 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
         }}
       >
         <div>
-          {/** @todo need to make this controlled */}
+          {/** @todo Need to make this controlled */}
           <input
             className={tw`box-border text-base border-solid px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
-            onChange={(event) => onUrlChange(event.target.value)}
-            type="url"
+            type={"url"}
             placeholder={`Enter ${capitalisedType} URL`}
             disabled={readonly}
+            onChange={(event) => { onUrlChange(event.target.value); }}
           />
         </div>
         <div>
@@ -76,10 +76,10 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
             <input
               className={tw`hidden`}
               disabled={readonly}
-              type="file"
+              type={"file"}
               accept={`${type}/*`}
               onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                onFilesChoose(event.target.files)
+                { onFilesChoose(event.target.files); }
               }
             />
           </label>
@@ -88,7 +88,7 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
           {!readonly && (
             <button
               className={tw`text-base border-none bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
-              type="submit"
+              type={"submit"}
             >
               {loading && <Loader />}
               Insert {capitalisedType}

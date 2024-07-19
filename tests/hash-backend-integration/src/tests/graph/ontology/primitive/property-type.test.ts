@@ -1,8 +1,8 @@
+import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { joinOrg,User  } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createPropertyType,
   getPropertyTypeById,
@@ -19,7 +19,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -81,10 +80,10 @@ beforeAll(async () => {
   };
 });
 
-describe("Property type CRU", () => {
+describe("property type CRU", () => {
   let createdPropertyType: PropertyTypeWithMetadata;
 
-  it("can create a property type", async () => {
+  test("can create a property type", async () => {
     const authentication = { actorId: testUser.accountId };
 
     createdPropertyType = await createPropertyType(
@@ -112,7 +111,7 @@ describe("Property type CRU", () => {
     );
   });
 
-  it("can read a property type", async () => {
+  test("can read a property type", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const fetchedPropertyType = await getPropertyTypeById(
@@ -128,7 +127,7 @@ describe("Property type CRU", () => {
 
   const updatedTitle = "New test!";
 
-  it("can update a property type", async () => {
+  test("can update a property type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdPropertyType.metadata) &&
         createdPropertyType.metadata.provenance.edition.createdById,
@@ -155,7 +154,7 @@ describe("Property type CRU", () => {
           },
         ],
       },
-    ).catch((err) => Promise.reject(err.data));
+    ).catch((error) => Promise.reject(error.data));
 
     expect(
       isOwnedOntologyElementMetadata(updatedPropertyType.metadata) &&
@@ -163,7 +162,7 @@ describe("Property type CRU", () => {
     ).toBe(testUser2.accountId);
   });
 
-  it.skip("can load an external type on demand", async () => {
+  test.skip("can load an external type on demand", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const propertyTypeId =

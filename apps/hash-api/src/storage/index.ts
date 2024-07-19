@@ -1,13 +1,10 @@
+import type { Express } from "express";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import type {
   FileStorageProvider,
-  StorageType,
-  UploadableStorageProvider,
-} from "@local/hash-backend-utils/file-storage";
-import {
   isStorageType,
-  storageProviderLookup,
-} from "@local/hash-backend-utils/file-storage";
+  storageProviderLookup,  StorageType,
+  UploadableStorageProvider} from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -21,7 +18,6 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isEntityId, splitEntityId } from "@local/hash-subgraph";
-import type { Express } from "express";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { CacheAdapter } from "../cache";
@@ -29,6 +25,7 @@ import type { ImpureGraphContext } from "../graph/context-types";
 import { getEntities } from "../graph/knowledge/primitive/entity";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
+
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
 
 // S3-like APIs have a upper bound.
@@ -66,16 +63,19 @@ export const initialiseStorageProvider = (
   const newProvider = initialiser(app);
 
   storageProviderLookup[provider] = newProvider;
+
   return newProvider;
 };
 
 export const getUploadStorageProvider = (): UploadableStorageProvider => {
   const uploadProvider = storageProviderLookup[uploadStorageProvider];
+
   if (!uploadProvider) {
     throw new Error(
       `Upload storage provider ${uploadStorageProvider} is required by the app but doesn't exist`,
     );
   }
+
   return uploadProvider as UploadableStorageProvider;
 };
 
@@ -85,6 +85,7 @@ export const setupStorageProviders = (
 ): UploadableStorageProvider => {
   initialiseStorageProvider(app, fileUploadProvider);
   uploadStorageProvider = fileUploadProvider;
+
   return getUploadStorageProvider();
 };
 
@@ -152,21 +153,22 @@ const getFileEntity = async (
 /**
  * Set up express route to proxy downloading files so we can cache presigned URLs.
  *
- * @param app - the express app
- * @param storageProvider - the provider we're using for file storage
- * @param cache - a cache to store presigned URLs so we don't needlessly create URLs for every download
+ * @param app - The express app.
+ * @param storageProvider - The provider we're using for file storage.
+ * @param cache - A cache to store presigned URLs so we don't needlessly create URLs for every download.
  */
 export const setupFileDownloadProxyHandler = (
   app: Express,
   cache: CacheAdapter,
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- should likely be using express-async-handler
-  app.get("/file/:key(*)", async (req, res) => {
-    const key = req.params.key;
+  app.get("/file/:key(*)", async (request, res) => {
+    const {key} = request.params;
 
     // We purposefully return 404 for all error cases.
     if (!key) {
       res.sendStatus(404);
+
       return;
     }
 
@@ -177,19 +179,21 @@ export const setupFileDownloadProxyHandler = (
       res.status(400).json({
         error: `File path ${key} is invalid – should be of the form [EntityId]/[EditionTimestamp]/[Filename], with an optional leading [Prefix]/`,
       });
+
       return;
     }
     if (!isEntityId(entityId)) {
       res.status(400).json({
         error: `File path contains invalid entityId ${entityId} in ${key}`,
       });
+
       return;
     }
 
-    const actorId = getActorIdFromRequest(req);
+    const actorId = getActorIdFromRequest(request);
 
     const fileEntity = await getFileEntity(
-      req.context,
+      request.context,
       { actorId },
       {
         entityId,
@@ -201,6 +205,7 @@ export const setupFileDownloadProxyHandler = (
       res.status(404).json({
         error: `Could not find file entity ${entityId} with edition timestamp ${editionTimestamp}, either it does not exist or you do not have permission to access it.`,
       });
+
       return;
     }
 
@@ -208,14 +213,17 @@ export const setupFileDownloadProxyHandler = (
       res.status(400).json({
         error: `Found entity ${fileEntity.metadata.recordId.entityId} is not a file entity – has type ${fileEntity.metadata.entityTypeId}`,
       });
+
       return;
     }
 
     const { fileStorageKey } = simplifyProperties(fileEntity.properties);
+
     if (!fileStorageKey) {
       res.status(400).json({
         error: `File entity ${fileEntity.metadata.recordId.entityId} is missing the necessary properties for file retrieval`,
       });
+
       return;
     }
 
@@ -225,11 +233,13 @@ export const setupFileDownloadProxyHandler = (
       const { fileStorageProvider: storageProviderName } = simplifyProperties(
         fileEntity.properties,
       );
+
       if (!storageProviderName) {
         res.status(500).json({
           error:
             "No storage provider listed on file entity – cannot retrieve file.",
         });
+
         return;
       }
 
@@ -237,6 +247,7 @@ export const setupFileDownloadProxyHandler = (
         res.status(500).json({
           error: `Entity lists invalid storage provider '${storageProviderName}'.`,
         });
+
         return;
       }
 
@@ -249,6 +260,7 @@ export const setupFileDownloadProxyHandler = (
           res.status(500).json({
             error: `Could not initialize ${storageProviderName} storage provider.`,
           });
+
           return;
         }
       }
@@ -261,6 +273,7 @@ export const setupFileDownloadProxyHandler = (
 
       if (!presignUrl) {
         res.sendStatus(404);
+
         return;
       }
 

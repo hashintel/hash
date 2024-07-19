@@ -1,5 +1,5 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import { UserInputError } from "apollo-server-errors";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import {
@@ -15,6 +15,7 @@ import type {
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
+
 import {
   createEntityWithPlaceholdersFn,
   filterForAction,
@@ -30,7 +31,7 @@ import {
  *   updates or none. currently there is no guarantee that a failure rolls back
  *   all changes, which could leave the database in an undesired state.
  *   When we have a transaction primitive in the Graph API, we should use it here.
- *   See https://linear.app/hash/issue/H-2992
+ *   See https://linear.app/hash/issue/H-2992.
  */
 export const updateBlockCollectionContents: ResolverFn<
   Promise<
@@ -144,7 +145,7 @@ export const updateBlockCollectionContents: ResolverFn<
     };
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Could not apply update: ${error.message}`);
+      throw new TypeError(`Could not apply update: ${error.message}`);
     }
 
     throw new Error(`Could not apply update: ${JSON.stringify(error)}`);

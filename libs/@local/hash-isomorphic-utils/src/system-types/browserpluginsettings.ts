@@ -3,16 +3,6 @@
  */
 
 import type {
-  AutomaticInferenceConfigurationPropertyValue,
-  AutomaticInferenceConfigurationPropertyValueWithMetadata,
-  BrowserPluginSettings,
-  BrowserPluginSettingsOutgoingLinkAndTarget,
-  BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId,
-  BrowserPluginSettingsProperties,
-  BrowserPluginSettingsPropertiesWithMetadata,
-  BrowserPluginTabPropertyValue,
-  BrowserPluginTabPropertyValueWithMetadata,
-  DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
   ManualInferenceConfigurationPropertyValue,
   ManualInferenceConfigurationPropertyValueWithMetadata,
@@ -23,16 +13,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  AutomaticInferenceConfigurationPropertyValue,
-  AutomaticInferenceConfigurationPropertyValueWithMetadata,
-  BrowserPluginSettings,
-  BrowserPluginSettingsOutgoingLinkAndTarget,
-  BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId,
-  BrowserPluginSettingsProperties,
-  BrowserPluginSettingsPropertiesWithMetadata,
-  BrowserPluginTabPropertyValue,
-  BrowserPluginTabPropertyValueWithMetadata,
-  DraftNotePropertyValue,
   DraftNotePropertyValueWithMetadata,
   ManualInferenceConfigurationPropertyValue,
   ManualInferenceConfigurationPropertyValueWithMetadata,
@@ -41,3 +21,5 @@ export type {
   TextDataType,
   TextDataTypeWithMetadata,
 };
+
+export {type AutomaticInferenceConfigurationPropertyValue, type AutomaticInferenceConfigurationPropertyValueWithMetadata, type BrowserPluginSettings, type BrowserPluginSettingsOutgoingLinkAndTarget, type BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId, type BrowserPluginSettingsProperties, type BrowserPluginSettingsPropertiesWithMetadata, type BrowserPluginTabPropertyValue, type BrowserPluginTabPropertyValueWithMetadata, type DraftNotePropertyValue} from "./shared.js";

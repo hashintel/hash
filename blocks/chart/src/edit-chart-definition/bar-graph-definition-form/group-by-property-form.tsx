@@ -1,11 +1,13 @@
+import type { FunctionComponent, useMemo } from "react";
+import { Controller, useFormContext } from "react-hook-form";
 import type {
   EntityRootType,
   EntityType,
+  extractBaseUrl,
   PropertyType,
   Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
-import { extractBaseUrl } from "@blockprotocol/graph";
 import { getEntityTypeById, getRoots } from "@blockprotocol/graph/stdlib";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import {
@@ -15,9 +17,6 @@ import {
   Select,
   TextField,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useMemo } from "react";
-import { Controller, useFormContext } from "react-hook-form";
 
 import type {
   BarChartGroupByPropertyVariant,
@@ -125,15 +124,18 @@ export const GroupByPropertyForm: FunctionComponent<{
     <>
       <Controller
         control={control}
-        name="groupByPropertyTypeId"
+        name={"groupByPropertyTypeId"}
         disabled={!entityTypePropertyTypes}
         render={({ field }) => (
           <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel id="group-by-property">Group by property</InputLabel>
+            <InputLabel id={"group-by-property"}>Group by property</InputLabel>
             <Select
               {...field}
               // prevent MUI from logging a warning
+              required
               value={entityTypePropertyTypes ? field.value : ""}
+              labelId={"group-by-property"}
+              label={"Group by property"}
               onChange={(event) => {
                 const groupByPropertyType = entityTypePropertyTypes?.find(
                   ({ $id }) => $id === event.target.value,
@@ -148,9 +150,6 @@ export const GroupByPropertyForm: FunctionComponent<{
 
                 field.onChange(event);
               }}
-              labelId="group-by-property"
-              label="Group by property"
-              required
             >
               {entityTypePropertyTypes?.map(({ $id, title }) => (
                 <MenuItem key={$id} value={$id}>
@@ -162,15 +161,15 @@ export const GroupByPropertyForm: FunctionComponent<{
         )}
       />
       <TextField
-        id="x-axis-label"
         fullWidth
-        label="X Axis Label"
+        id={"x-axis-label"}
+        label={"X Axis Label"}
         {...register("xAxisLabel")}
       />
       <TextField
-        id="y-axis-label"
         fullWidth
-        label="Y Axis Label"
+        id={"y-axis-label"}
+        label={"Y Axis Label"}
         {...register("yAxisLabel")}
       />
     </>

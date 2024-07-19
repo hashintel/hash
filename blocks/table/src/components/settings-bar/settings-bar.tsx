@@ -1,12 +1,13 @@
+import { useState } from "react";
 import {
   BlockSettingsButton,
   GetHelpLink,
 } from "@hashintel/block-design-system";
 import { Collapse, Fade, Switch } from "@mui/material";
-import { useState } from "react";
 
 import type { RootKey } from "../../additional-types";
 import type { BlockEntity } from "../../types/generated/block-entity";
+
 import styles from "./styles.module.scss";
 
 const isStripedKey: RootKey =
@@ -27,7 +28,7 @@ const SettingSwitch = ({ label, value, onChange }: SettingSwitchProps) => {
     <div className={styles.setting}>
       <div className={styles.settingLabel}>{label}</div>
       <Switch
-        size="small"
+        size={"small"}
         checked={value}
         onChange={(event) => onChange(event.target.checked)}
       />
@@ -61,29 +62,29 @@ export const SettingsBar = ({
   return (
     <Fade in={show}>
       <div className={styles.settingsBar}>
-        <GetHelpLink href="https://blockprotocol.org/@hash/blocks/table" />
+        <GetHelpLink href={"https://blockprotocol.org/@hash/blocks/table"} />
 
         {collapseSettings ? (
           <BlockSettingsButton
             expanded={mobileSettingsExpanded}
-            onClick={() => setMobileSettingsExpanded(!mobileSettingsExpanded)}
+            onClick={() => { setMobileSettingsExpanded(!mobileSettingsExpanded); }}
           />
         ) : null}
 
         <Collapse in={!collapseSettings || mobileSettingsExpanded}>
           <div className={styles.settingsContainer}>
             <SettingSwitch
-              label="Enable stripes for alternating rows"
+              label={"Enable stripes for alternating rows"}
               value={isStriped}
               onChange={(value) => updateEntity({ [isStripedKey]: value })}
             />
             <SettingSwitch
-              label="Show header row"
+              label={"Show header row"}
               value={!hideHeaderRow}
               onChange={(value) => updateEntity({ [hideHeaderRowKey]: !value })}
             />
             <SettingSwitch
-              label="Show row numbers"
+              label={"Show row numbers"}
               value={!hideRowNumbers}
               onChange={(value) =>
                 updateEntity({ [hideRowNumbersKey]: !value })

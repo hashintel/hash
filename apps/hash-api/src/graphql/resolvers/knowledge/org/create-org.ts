@@ -31,7 +31,7 @@ export const createOrgResolver: ResolverFn<
     userEntityId: user.entity.metadata.recordId.entityId,
   });
 
-  return await getLatestEntityRootedSubgraph(context, authentication, {
+  return getLatestEntityRootedSubgraph(context, authentication, {
     entity: org.entity,
     graphResolveDepths: {
       hasLeftEntity,

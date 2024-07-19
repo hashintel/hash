@@ -89,28 +89,28 @@ export type {
  */
 export type ActorTypeDataType = "human" | "machine";
 
-export type ActorTypeDataTypeWithMetadata = {
+export interface ActorTypeDataTypeWithMetadata {
   value: ActorTypeDataType;
   metadata: ActorTypeDataTypeMetadata;
-};
-export type ActorTypeDataTypeMetadata = {
+}
+export interface ActorTypeDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@hash/types/data-type/actor-type/v/1";
-};
+}
 
 /**
  * The account that something is associated with.
  */
-export type AssociatedWithAccount = {
+export interface AssociatedWithAccount {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1";
   properties: AssociatedWithAccountProperties;
   propertiesWithMetadata: AssociatedWithAccountPropertiesWithMetadata;
-};
+}
 
 export type AssociatedWithAccountOutgoingLinkAndTarget = never;
 
-export type AssociatedWithAccountOutgoingLinksByLinkEntityTypeId = {};
+export interface AssociatedWithAccountOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The account that something is associated with.
@@ -119,7 +119,7 @@ export type AssociatedWithAccountProperties = AssociatedWithAccountProperties1 &
   AssociatedWithAccountProperties2;
 export type AssociatedWithAccountProperties1 = LinkProperties;
 
-export type AssociatedWithAccountProperties2 = {};
+export interface AssociatedWithAccountProperties2 {}
 
 export type AssociatedWithAccountPropertiesWithMetadata =
   AssociatedWithAccountPropertiesWithMetadata1 &
@@ -127,25 +127,25 @@ export type AssociatedWithAccountPropertiesWithMetadata =
 export type AssociatedWithAccountPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
-export type AssociatedWithAccountPropertiesWithMetadata2 = {
+export interface AssociatedWithAccountPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
- * A True or False value
+ * A True or False value.
  */
 export type BooleanDataType = boolean;
 
-export type BooleanDataTypeWithMetadata = {
+export interface BooleanDataTypeWithMetadata {
   value: BooleanDataType;
   metadata: BooleanDataTypeMetadata;
-};
-export type BooleanDataTypeMetadata = {
+}
+export interface BooleanDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
-};
+}
 
 /**
  * The expected audience for some data.
@@ -160,15 +160,15 @@ export type DataAudiencePropertyValueWithMetadata =
  */
 export type DateTimeDataType = string;
 
-export type DateTimeDataTypeWithMetadata = {
+export interface DateTimeDataTypeWithMetadata {
   value: DateTimeDataType;
   metadata: DateTimeDataTypeMetadata;
-};
-export type DateTimeDataTypeMetadata = {
+}
+export interface DateTimeDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1";
-};
+}
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -178,16 +178,16 @@ export type DescriptionPropertyValue = TextDataType;
 export type DescriptionPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * A file hosted at a URL
+ * A file hosted at a URL.
  */
-export type File = {
+export interface File {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/2";
   properties: FileProperties;
   propertiesWithMetadata: FilePropertiesWithMetadata;
-};
+}
 
 /**
- * A unique signature derived from a file's contents
+ * A unique signature derived from a file's contents.
  */
 export type FileHashPropertyValue = TextDataType;
 
@@ -209,12 +209,12 @@ export type FileNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 export type FileOutgoingLinkAndTarget = never;
 
-export type FileOutgoingLinksByLinkEntityTypeId = {};
+export interface FileOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * A file hosted at a URL
+ * A file hosted at a URL.
  */
-export type FileProperties = {
+export interface FileProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
@@ -232,9 +232,9 @@ export type FileProperties = {
   "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
   "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
   "https://hash.ai/@hash/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValue;
-};
+}
 
-export type FilePropertiesWithMetadata = {
+export interface FilePropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
@@ -255,10 +255,10 @@ export type FilePropertiesWithMetadata = {
     "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValueWithMetadata;
   };
-};
+}
 
 /**
- * The size of a file
+ * The size of a file.
  */
 export type FileSizePropertyValue = NumberDataType;
 
@@ -321,23 +321,23 @@ export type FileURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A Google Sheets file.
  */
-export type GoogleSheetsFile = {
+export interface GoogleSheetsFile {
   entityTypeId: "https://hash.ai/@google/types/entity-type/google-sheets-file/v/1";
   properties: GoogleSheetsFileProperties;
   propertiesWithMetadata: GoogleSheetsFilePropertiesWithMetadata;
-};
+}
 
-export type GoogleSheetsFileAssociatedWithAccountLink = {
+export interface GoogleSheetsFileAssociatedWithAccountLink {
   linkEntity: AssociatedWithAccount;
   rightEntity: Account;
-};
+}
 
 export type GoogleSheetsFileOutgoingLinkAndTarget =
   GoogleSheetsFileAssociatedWithAccountLink;
 
-export type GoogleSheetsFileOutgoingLinksByLinkEntityTypeId = {
+export interface GoogleSheetsFileOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1": GoogleSheetsFileAssociatedWithAccountLink;
-};
+}
 
 /**
  * A Google Sheets file.
@@ -346,10 +346,10 @@ export type GoogleSheetsFileProperties = GoogleSheetsFileProperties1 &
   GoogleSheetsFileProperties2;
 export type GoogleSheetsFileProperties1 = SpreadsheetFileProperties;
 
-export type GoogleSheetsFileProperties2 = {
+export interface GoogleSheetsFileProperties2 {
   "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValue;
   "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValue;
-};
+}
 
 export type GoogleSheetsFilePropertiesWithMetadata =
   GoogleSheetsFilePropertiesWithMetadata1 &
@@ -368,29 +368,29 @@ export type GoogleSheetsFilePropertiesWithMetadata2 = {
 /**
  * A MIME (Multipurpose Internet Mail Extensions) type.
  *
- * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+ * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types.
  */
 export type MIMETypePropertyValue = TextDataType;
 
 export type MIMETypePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * An arithmetical value (in the Real number system)
+ * An arithmetical value (in the Real number system).
  */
 export type NumberDataType = number;
 
-export type NumberDataTypeWithMetadata = {
+export interface NumberDataTypeWithMetadata {
   value: NumberDataType;
   metadata: NumberDataTypeMetadata;
-};
-export type NumberDataTypeMetadata = {
+}
+export interface NumberDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
-};
+}
 
 /**
- * The original name of a file
+ * The original name of a file.
  */
 export type OriginalFileNamePropertyValue = TextDataType;
 
@@ -398,14 +398,14 @@ export type OriginalFileNamePropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
 /**
- * The original source of something
+ * The original source of something.
  */
 export type OriginalSourcePropertyValue = TextDataType;
 
 export type OriginalSourcePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * The original URL something was hosted at
+ * The original URL something was hosted at.
  */
 export type OriginalURLPropertyValue = TextDataType;
 
@@ -414,15 +414,15 @@ export type OriginalURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A spreadsheet file.
  */
-export type SpreadsheetFile = {
+export interface SpreadsheetFile {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1";
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
-};
+}
 
 export type SpreadsheetFileOutgoingLinkAndTarget = never;
 
-export type SpreadsheetFileOutgoingLinksByLinkEntityTypeId = {};
+export interface SpreadsheetFileOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A spreadsheet file.
@@ -431,7 +431,7 @@ export type SpreadsheetFileProperties = SpreadsheetFileProperties1 &
   SpreadsheetFileProperties2;
 export type SpreadsheetFileProperties1 = FileProperties;
 
-export type SpreadsheetFileProperties2 = {};
+export interface SpreadsheetFileProperties2 {}
 
 export type SpreadsheetFilePropertiesWithMetadata =
   SpreadsheetFilePropertiesWithMetadata1 &
@@ -444,7 +444,7 @@ export type SpreadsheetFilePropertiesWithMetadata2 = {
 } & FilePropertiesWithMetadata;
 
 /**
- * The timestamp when the upload of something has completed
+ * The timestamp when the upload of something has completed.
  */
 export type UploadCompletedAtPropertyValue = DateTimeDataType;
 

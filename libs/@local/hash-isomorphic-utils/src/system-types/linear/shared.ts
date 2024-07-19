@@ -70,15 +70,15 @@ export type AvatarURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The organization the user belongs to.
  */
-export type BelongsToOrganization = {
+export interface BelongsToOrganization {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/belongs-to-organization/v/1";
   properties: BelongsToOrganizationProperties;
   propertiesWithMetadata: BelongsToOrganizationPropertiesWithMetadata;
-};
+}
 
 export type BelongsToOrganizationOutgoingLinkAndTarget = never;
 
-export type BelongsToOrganizationOutgoingLinksByLinkEntityTypeId = {};
+export interface BelongsToOrganizationOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The organization the user belongs to.
@@ -87,7 +87,7 @@ export type BelongsToOrganizationProperties = BelongsToOrganizationProperties1 &
   BelongsToOrganizationProperties2;
 export type BelongsToOrganizationProperties1 = LinkProperties;
 
-export type BelongsToOrganizationProperties2 = {};
+export interface BelongsToOrganizationProperties2 {}
 
 export type BelongsToOrganizationPropertiesWithMetadata =
   BelongsToOrganizationPropertiesWithMetadata1 &
@@ -95,25 +95,25 @@ export type BelongsToOrganizationPropertiesWithMetadata =
 export type BelongsToOrganizationPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
-export type BelongsToOrganizationPropertiesWithMetadata2 = {
+export interface BelongsToOrganizationPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
- * A True or False value
+ * A True or False value.
  */
 export type BooleanDataType = boolean;
 
-export type BooleanDataTypeWithMetadata = {
+export interface BooleanDataTypeWithMetadata {
   value: BooleanDataType;
   metadata: BooleanDataTypeMetadata;
-};
-export type BooleanDataTypeMetadata = {
+}
+export interface BooleanDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
-};
+}
 
 /**
  * Suggested branch name for the issue.
@@ -196,7 +196,7 @@ export type DueDatePropertyValue = TextDataType;
 export type DueDatePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * An email address
+ * An email address.
  */
 export type EmailPropertyValue = TextDataType;
 
@@ -249,15 +249,15 @@ export type GuestPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 /**
  * The user to whom the issue is assigned to.
  */
-export type HasAssignee = {
+export interface HasAssignee {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/has-assignee/v/1";
   properties: HasAssigneeProperties;
   propertiesWithMetadata: HasAssigneePropertiesWithMetadata;
-};
+}
 
 export type HasAssigneeOutgoingLinkAndTarget = never;
 
-export type HasAssigneeOutgoingLinksByLinkEntityTypeId = {};
+export interface HasAssigneeOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The user to whom the issue is assigned to.
@@ -266,29 +266,29 @@ export type HasAssigneeProperties = HasAssigneeProperties1 &
   HasAssigneeProperties2;
 export type HasAssigneeProperties1 = LinkProperties;
 
-export type HasAssigneeProperties2 = {};
+export interface HasAssigneeProperties2 {}
 
 export type HasAssigneePropertiesWithMetadata =
   HasAssigneePropertiesWithMetadata1 & HasAssigneePropertiesWithMetadata2;
 export type HasAssigneePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type HasAssigneePropertiesWithMetadata2 = {
+export interface HasAssigneePropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * The user who created something.
  */
-export type HasCreator = {
+export interface HasCreator {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/has-creator/v/1";
   properties: HasCreatorProperties;
   propertiesWithMetadata: HasCreatorPropertiesWithMetadata;
-};
+}
 
 export type HasCreatorOutgoingLinkAndTarget = never;
 
-export type HasCreatorOutgoingLinksByLinkEntityTypeId = {};
+export interface HasCreatorOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The user who created something.
@@ -297,29 +297,29 @@ export type HasCreatorProperties = HasCreatorProperties1 &
   HasCreatorProperties2;
 export type HasCreatorProperties1 = LinkProperties;
 
-export type HasCreatorProperties2 = {};
+export interface HasCreatorProperties2 {}
 
 export type HasCreatorPropertiesWithMetadata =
   HasCreatorPropertiesWithMetadata1 & HasCreatorPropertiesWithMetadata2;
 export type HasCreatorPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type HasCreatorPropertiesWithMetadata2 = {
+export interface HasCreatorPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * A user who is subscribed to the issue.
  */
-export type HasSubscriber = {
+export interface HasSubscriber {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/has-subscriber/v/1";
   properties: HasSubscriberProperties;
   propertiesWithMetadata: HasSubscriberPropertiesWithMetadata;
-};
+}
 
 export type HasSubscriberOutgoingLinkAndTarget = never;
 
-export type HasSubscriberOutgoingLinksByLinkEntityTypeId = {};
+export interface HasSubscriberOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A user who is subscribed to the issue.
@@ -328,16 +328,16 @@ export type HasSubscriberProperties = HasSubscriberProperties1 &
   HasSubscriberProperties2;
 export type HasSubscriberProperties1 = LinkProperties;
 
-export type HasSubscriberProperties2 = {};
+export interface HasSubscriberProperties2 {}
 
 export type HasSubscriberPropertiesWithMetadata =
   HasSubscriberPropertiesWithMetadata1 & HasSubscriberPropertiesWithMetadata2;
 export type HasSubscriberPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type HasSubscriberPropertiesWithMetadata2 = {
+export interface HasSubscriberPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * The unique identifier of the entity.
@@ -354,7 +354,7 @@ export type IdentifierPropertyValue = TextDataType;
 export type IdentifierPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * Integration type that created this issue, if applicable. (e.g. slack)
+ * Integration type that created this issue, if applicable. (e.g. Slack).
  */
 export type IntegrationSourceTypePropertyValue = TextDataType;
 
@@ -378,23 +378,23 @@ export type IsMePropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 /**
  * An issue.
  */
-export type Issue = {
+export interface Issue {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/issue/v/1";
   properties: IssueProperties;
   propertiesWithMetadata: IssuePropertiesWithMetadata;
-};
+}
 
-export type IssueHasAssigneeLink = {
+export interface IssueHasAssigneeLink {
   linkEntity: HasAssignee;
   rightEntity: User;
-};
+}
 
-export type IssueHasCreatorLink = { linkEntity: HasCreator; rightEntity: User };
+export interface IssueHasCreatorLink { linkEntity: HasCreator; rightEntity: User }
 
-export type IssueHasSubscriberLink = {
+export interface IssueHasSubscriberLink {
   linkEntity: HasSubscriber;
   rightEntity: User;
-};
+}
 
 /**
  * The issue's unique number.
@@ -411,21 +411,21 @@ export type IssueOutgoingLinkAndTarget =
   | IssueSnoozedByLink
   | IssueStateLink;
 
-export type IssueOutgoingLinksByLinkEntityTypeId = {
+export interface IssueOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@linear/types/entity-type/has-assignee/v/1": IssueHasAssigneeLink;
   "https://hash.ai/@linear/types/entity-type/has-creator/v/1": IssueHasCreatorLink;
   "https://hash.ai/@linear/types/entity-type/has-subscriber/v/1": IssueHasSubscriberLink;
   "https://hash.ai/@linear/types/entity-type/parent/v/1": IssueParentLink;
   "https://hash.ai/@linear/types/entity-type/snoozed-by/v/1": IssueSnoozedByLink;
   "https://hash.ai/@linear/types/entity-type/state/v/1": IssueStateLink;
-};
+}
 
-export type IssueParentLink = { linkEntity: Parent; rightEntity: Issue };
+export interface IssueParentLink { linkEntity: Parent; rightEntity: Issue }
 
 /**
  * An issue.
  */
-export type IssueProperties = {
+export interface IssueProperties {
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/auto-archived-at/"?: AutoArchivedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/auto-closed-at/"?: AutoClosedAtPropertyValue;
@@ -454,9 +454,9 @@ export type IssueProperties = {
   "https://hash.ai/@linear/types/property-type/trashed/"?: TrashedPropertyValue;
   "https://hash.ai/@linear/types/property-type/triaged-at/"?: TriagedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
-};
+}
 
-export type IssuePropertiesWithMetadata = {
+export interface IssuePropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValueWithMetadata;
@@ -491,11 +491,11 @@ export type IssuePropertiesWithMetadata = {
     "https://hash.ai/@linear/types/property-type/triaged-at/"?: TriagedAtPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValueWithMetadata;
   };
-};
+}
 
-export type IssueSnoozedByLink = { linkEntity: SnoozedBy; rightEntity: User };
+export interface IssueSnoozedByLink { linkEntity: SnoozedBy; rightEntity: User }
 
-export type IssueStateLink = { linkEntity: State; rightEntity: WorkflowState };
+export interface IssueStateLink { linkEntity: State; rightEntity: WorkflowState }
 
 /**
  * The URL of the issue.
@@ -512,24 +512,24 @@ export type LastSeenPropertyValue = TextDataType;
 export type LastSeenPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * undefined
+ * Undefined.
  */
-export type Link = {
+export interface Link {
   entityTypeId: "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
-};
+}
 
 export type LinkOutgoingLinkAndTarget = never;
 
-export type LinkOutgoingLinksByLinkEntityTypeId = {};
+export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export type LinkProperties = {};
+export interface LinkProperties {}
 
-export type LinkPropertiesWithMetadata = {
+export interface LinkPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * The organization's logo URL.
@@ -554,37 +554,37 @@ export type NamePropertyValue = TextDataType;
 export type NamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * An arithmetical value (in the Real number system)
+ * An arithmetical value (in the Real number system).
  */
 export type NumberDataType = number;
 
-export type NumberDataTypeWithMetadata = {
+export interface NumberDataTypeWithMetadata {
   value: NumberDataType;
   metadata: NumberDataTypeMetadata;
-};
-export type NumberDataTypeMetadata = {
+}
+export interface NumberDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
-};
+}
 
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
-export type Organization = {
+export interface Organization {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/organization/v/1";
   properties: OrganizationProperties;
   propertiesWithMetadata: OrganizationPropertiesWithMetadata;
-};
+}
 
 export type OrganizationOutgoingLinkAndTarget = never;
 
-export type OrganizationOutgoingLinksByLinkEntityTypeId = {};
+export interface OrganizationOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
-export type OrganizationProperties = {
+export interface OrganizationProperties {
   "https://hash.ai/@linear/types/property-type/allow-members-to-invite/"?: AllowMembersToInvitePropertyValue;
   "https://hash.ai/@linear/types/property-type/allowed-auth-service/": AllowedAuthServicePropertyValue[];
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
@@ -607,9 +607,9 @@ export type OrganizationProperties = {
   "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/url-key/": URLKeyPropertyValue;
   "https://hash.ai/@linear/types/property-type/user-count/": UserCountPropertyValue;
-};
+}
 
-export type OrganizationPropertiesWithMetadata = {
+export interface OrganizationPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@linear/types/property-type/allow-members-to-invite/"?: AllowMembersToInvitePropertyValueWithMetadata;
@@ -641,20 +641,20 @@ export type OrganizationPropertiesWithMetadata = {
     "https://hash.ai/@linear/types/property-type/url-key/": URLKeyPropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/user-count/": UserCountPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * The parent of the issue.
  */
-export type Parent = {
+export interface Parent {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/parent/v/1";
   properties: ParentProperties;
   propertiesWithMetadata: ParentPropertiesWithMetadata;
-};
+}
 
 export type ParentOutgoingLinkAndTarget = never;
 
-export type ParentOutgoingLinksByLinkEntityTypeId = {};
+export interface ParentOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The parent of the issue.
@@ -662,16 +662,16 @@ export type ParentOutgoingLinksByLinkEntityTypeId = {};
 export type ParentProperties = ParentProperties1 & ParentProperties2;
 export type ParentProperties1 = LinkProperties;
 
-export type ParentProperties2 = {};
+export interface ParentProperties2 {}
 
 export type ParentPropertiesWithMetadata = ParentPropertiesWithMetadata1 &
   ParentPropertiesWithMetadata2;
 export type ParentPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type ParentPropertiesWithMetadata2 = {
+export interface ParentPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * Rolling 30-day total upload volume for the organization, in megabytes.
@@ -750,15 +750,15 @@ export type SCIMEnabledPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 /**
  * The user who snoozed the issue.
  */
-export type SnoozedBy = {
+export interface SnoozedBy {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/snoozed-by/v/1";
   properties: SnoozedByProperties;
   propertiesWithMetadata: SnoozedByPropertiesWithMetadata;
-};
+}
 
 export type SnoozedByOutgoingLinkAndTarget = never;
 
-export type SnoozedByOutgoingLinksByLinkEntityTypeId = {};
+export interface SnoozedByOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The user who snoozed the issue.
@@ -766,16 +766,16 @@ export type SnoozedByOutgoingLinksByLinkEntityTypeId = {};
 export type SnoozedByProperties = SnoozedByProperties1 & SnoozedByProperties2;
 export type SnoozedByProperties1 = LinkProperties;
 
-export type SnoozedByProperties2 = {};
+export interface SnoozedByProperties2 {}
 
 export type SnoozedByPropertiesWithMetadata = SnoozedByPropertiesWithMetadata1 &
   SnoozedByPropertiesWithMetadata2;
 export type SnoozedByPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type SnoozedByPropertiesWithMetadata2 = {
+export interface SnoozedByPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * The time until an issue will be snoozed in Triage view.
@@ -808,15 +808,15 @@ export type StartedTriageAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The workflow state that the issue is associated with.
  */
-export type State = {
+export interface State {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/state/v/1";
   properties: StateProperties;
   propertiesWithMetadata: StatePropertiesWithMetadata;
-};
+}
 
 export type StateOutgoingLinkAndTarget = never;
 
-export type StateOutgoingLinksByLinkEntityTypeId = {};
+export interface StateOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The workflow state that the issue is associated with.
@@ -824,16 +824,16 @@ export type StateOutgoingLinksByLinkEntityTypeId = {};
 export type StateProperties = StateProperties1 & StateProperties2;
 export type StateProperties1 = LinkProperties;
 
-export type StateProperties2 = {};
+export interface StateProperties2 {}
 
 export type StatePropertiesWithMetadata = StatePropertiesWithMetadata1 &
   StatePropertiesWithMetadata2;
 export type StatePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type StatePropertiesWithMetadata2 = {
+export interface StatePropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * The emoji to represent the user current status.
@@ -865,19 +865,19 @@ export type SubIssueSortOrderPropertyValueWithMetadata =
   NumberDataTypeWithMetadata;
 
 /**
- * An ordered sequence of characters
+ * An ordered sequence of characters.
  */
 export type TextDataType = string;
 
-export type TextDataTypeWithMetadata = {
+export interface TextDataTypeWithMetadata {
   value: TextDataType;
   metadata: TextDataTypeMetadata;
-};
-export type TextDataTypeMetadata = {
+}
+export interface TextDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
-};
+}
 
 /**
  * The local timezone of the user.
@@ -922,7 +922,7 @@ export type URLKeyPropertyValue = TextDataType;
 export type URLKeyPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't been updated after creation.
+ * The last time at which the entity was meaningfully updated, i.e. For all changes of syncable properties except those for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't been updated after creation.
  */
 export type UpdatedAtPropertyValue = TextDataType;
 
@@ -931,16 +931,16 @@ export type UpdatedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A user that has access to the the resources of an organization.
  */
-export type User = {
+export interface User {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/user/v/1";
   properties: UserProperties;
   propertiesWithMetadata: UserPropertiesWithMetadata;
-};
+}
 
-export type UserBelongsToOrganizationLink = {
+export interface UserBelongsToOrganizationLink {
   linkEntity: BelongsToOrganization;
   rightEntity: Organization;
-};
+}
 
 /**
  * Number of active users in the organization.
@@ -951,14 +951,14 @@ export type UserCountPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
 export type UserOutgoingLinkAndTarget = UserBelongsToOrganizationLink;
 
-export type UserOutgoingLinksByLinkEntityTypeId = {
+export interface UserOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@linear/types/entity-type/belongs-to-organization/v/1": UserBelongsToOrganizationLink;
-};
+}
 
 /**
  * A user that has access to the the resources of an organization.
  */
-export type UserProperties = {
+export interface UserProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValue;
   "https://hash.ai/@linear/types/property-type/active/": ActivePropertyValue;
@@ -981,9 +981,9 @@ export type UserProperties = {
   "https://hash.ai/@linear/types/property-type/status-until-at/"?: StatusUntilAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/timezone/"?: TimezonePropertyValue;
   "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
-};
+}
 
-export type UserPropertiesWithMetadata = {
+export interface UserPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
@@ -1009,27 +1009,27 @@ export type UserPropertiesWithMetadata = {
     "https://hash.ai/@linear/types/property-type/timezone/"?: TimezonePropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * A state in a team workflow.
  */
-export type WorkflowState = {
+export interface WorkflowState {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/workflow-state/v/1";
   properties: WorkflowStateProperties;
   propertiesWithMetadata: WorkflowStatePropertiesWithMetadata;
-};
+}
 
 export type WorkflowStateOutgoingLinkAndTarget = never;
 
-export type WorkflowStateOutgoingLinksByLinkEntityTypeId = {};
+export interface WorkflowStateOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A state in a team workflow.
  */
-export type WorkflowStateProperties = {};
+export interface WorkflowStateProperties {}
 
-export type WorkflowStatePropertiesWithMetadata = {
+export interface WorkflowStatePropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

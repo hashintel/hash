@@ -44,7 +44,7 @@ export const TextPreview = ({
           Prompt
         </Typography>
 
-        <Stack flexDirection="row" gap={1.5} alignItems="center">
+        <Stack flexDirection={"row"} gap={1.5} alignItems={"center"}>
           <TextIcon
             sx={{ fontSize: 16, color: ({ palette }) => palette.gray[40] }}
           />
@@ -106,35 +106,34 @@ export const TextPreview = ({
           paddingX: 3.75,
         })}
       >
-        <Box display="flex" gap={1} flexWrap="wrap">
+        <Box display={"flex"} gap={1} flexWrap={"wrap"}>
           <Button
-            size="small"
-            onClick={onConfirm}
+            size={"small"}
             sx={{
               borderRadius: 1,
               fontSize: 14,
               fontWeight: 500,
               lineHeight: "18px",
             }}
+            onClick={onConfirm}
           >
             Insert Into Page
             <CheckIcon sx={{ fontSize: "inherit", ml: 1.25 }} />
           </Button>
 
           <Button
-            variant="tertiary"
-            size="small"
-            onClick={onRegenerate}
+            variant={"tertiary"}
+            size={"small"}
             sx={{ fontSize: 14 }}
+            onClick={onRegenerate}
           >
             Regenerate output
             <ArrowRotateLeftIcon sx={{ fontSize: "inherit", ml: 1.25 }} />
           </Button>
 
           <Button
-            variant="tertiary_quiet"
-            size="small"
-            onClick={onDiscard}
+            variant={"tertiary_quiet"}
+            size={"small"}
             sx={({ palette }) => ({
               fontSize: 14,
               color: palette.gray[50],
@@ -144,6 +143,7 @@ export const TextPreview = ({
                 color: palette.gray[60],
               },
             })}
+            onClick={onDiscard}
           >
             Discard
             <BroomWideIcon sx={{ fontSize: "inherit", ml: 1.25 }} />

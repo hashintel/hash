@@ -5,7 +5,7 @@ export const parseHistoryItemPayload = (
 ) =>
   inputOrResults?.payloads
     ?.map(({ data }) => {
-      if (!data || !data.toString()) {
+      if (!data?.toString()) {
         return data;
       }
 

@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { loadAll } from "js-yaml";
 import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
-import { loadAll } from "js-yaml";
 
 const emailDumpsFilePath = path.resolve(
   monorepoRootDir,
@@ -21,6 +21,7 @@ const waitForRecentFileChange = async (
   const checkIntervalInMs = 50;
 
   let remainingWaitTime = maxWaitTimeInMs;
+
   do {
     try {
       if ((await fs.stat(filePath)).mtimeMs >= minFileChangeTimestamp) {
@@ -30,7 +31,7 @@ const waitForRecentFileChange = async (
       // noop because fs.stat will be retried
     }
     await sleep(checkIntervalInMs);
-    remainingWaitTime -= checkIntervalInMs;
+    remainingWaitTime = remainingWaitTime - checkIntervalInMs;
   } while (remainingWaitTime > 0);
   throw new Error(
     `Expected ${filePath} to be modified since timestamp ${minFileChangeTimestamp}. Giving up after ${maxWaitTimeInMs}ms.`,
@@ -73,7 +74,7 @@ export const getDerivedPayloadFromMostRecentEmail = async (
   }
 
   if (typeof mostRecentEmailDump !== "object") {
-    throw new Error(
+    throw new TypeError(
       `Expected most recent email to be an object, got ${JSON.stringify(
         mostRecentEmailDump,
       )}`,

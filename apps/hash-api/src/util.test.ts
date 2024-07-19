@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import {
   intersection,
@@ -8,7 +8,7 @@ import {
 } from "./util";
 
 describe("topological sort", () => {
-  it("can do topological sort", () => {
+  test("can do topological sort", () => {
     // ┌────── A ─────┐
     // │              │
     // ▼              ▼
@@ -32,7 +32,7 @@ describe("topological sort", () => {
     expect(topologicalSort(edges)).toEqual(["A", "C", "F", "G", "E", "B", "D"]);
   });
 
-  it("throws an error on topological sort on a graph with cycles", () => {
+  test("throws an error on topological sort on a graph with cycles", () => {
     //         ┌─────────────────────┐
     //         │                     │
     //         ▼                     │
@@ -61,7 +61,7 @@ describe("topological sort", () => {
   });
 });
 
-it("can compute intersection of sets", () => {
+test("can compute intersection of sets", () => {
   const setA = new Set([1, 2, 3]);
   const setB = new Set([2, 3, 4]);
   const setC = new Set([]);
@@ -73,16 +73,16 @@ it("can compute intersection of sets", () => {
 });
 
 describe("tree flattening", () => {
-  type Entity = {
+  interface Entity {
     name: string;
     linkedGraphs?: LinkedEntity[];
-  };
+  }
 
-  type LinkedEntity = {
+  interface LinkedEntity {
     entity: Entity;
-  };
+  }
 
-  it("can flatten a tree structure", () => {
+  test("can flatten a tree structure", () => {
     // ┌───────E1──────┐
     // │       │       │
     // ▼       ▼       ▼
@@ -143,7 +143,7 @@ describe("tree flattening", () => {
     ]);
   });
 
-  it("can handle non-linked tree structure", () => {
+  test("can handle non-linked tree structure", () => {
     // ┌───────E1──────┐
     // │       │       │
     // ▼       ▼       ▼
@@ -156,6 +156,7 @@ describe("tree flattening", () => {
     };
 
     const result = linkedTreeFlatten(graph, "linkedGraphs", "entity");
+
     expect(result).toEqual([
       {
         parentIndex: -1,
@@ -164,7 +165,7 @@ describe("tree flattening", () => {
     ]);
   });
 
-  it("can bail out of a circular tree", () => {
+  test("can bail out of a circular tree", () => {
     const graph: Entity = {
       name: "E1",
       linkedGraphs: [
@@ -183,13 +184,13 @@ describe("tree flattening", () => {
 });
 
 describe("restructure flat list to tree", () => {
-  type Element = {
+  interface Element {
     id: string;
     ref?: string | undefined;
     children?: Element[] | undefined;
-  };
+  }
 
-  it("can rebuild tree", () => {
+  test("can rebuild tree", () => {
     const test1 = [
       { id: "1" },
       { id: "2", ref: "1" },
@@ -214,7 +215,7 @@ describe("restructure flat list to tree", () => {
     ]);
   });
 
-  it("bails out if a circular tree is supplied", () => {
+  test("bails out if a circular tree is supplied", () => {
     const test1 = [
       { id: "1", ref: "2" },
       { id: "2", ref: "1" },
@@ -228,7 +229,7 @@ describe("restructure flat list to tree", () => {
     ).toThrow("graph is not acyclic");
   });
 
-  it("can rebuild tree with invalid refs", () => {
+  test("can rebuild tree with invalid refs", () => {
     const test1 = [
       { id: "1" },
       { id: "2", ref: "1" },
@@ -257,7 +258,7 @@ describe("restructure flat list to tree", () => {
     ]);
   });
 
-  it("ignores lists without references", () => {
+  test("ignores lists without references", () => {
     const test1 = [
       { id: "1" },
       { id: "2" },

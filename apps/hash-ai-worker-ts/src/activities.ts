@@ -1,3 +1,4 @@
+import type { OpenAI } from "openai";
 import type {
   Embedding,
   EntityEmbedding,
@@ -14,7 +15,6 @@ import type {
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type { OpenAI } from "openai";
 
 import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity.js";
 import { getDereferencedEntityTypesActivity } from "./activities/get-dereferenced-entity-types-activity.js";

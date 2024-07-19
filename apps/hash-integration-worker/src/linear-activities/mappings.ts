@@ -1,10 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
-  SupportedLinearTypeNames,
+ getLinearMappingByLinearType,  SupportedLinearTypeNames,
   SupportedLinearTypes,
-  SupportedLinearUpdateInput,
-} from "@local/hash-backend-utils/linear-type-mappings";
-import { getLinearMappingByLinearType } from "@local/hash-backend-utils/linear-type-mappings";
+  SupportedLinearUpdateInput } from "@local/hash-backend-utils/linear-type-mappings";
 import type { PartialEntity } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";

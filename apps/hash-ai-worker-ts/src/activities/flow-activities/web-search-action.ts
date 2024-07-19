@@ -1,10 +1,10 @@
+import { backOff } from "exponential-backoff";
 import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
-import { backOff } from "exponential-backoff";
 
 import type { FlowActionActivity } from "./types.js";
 

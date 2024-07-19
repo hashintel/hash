@@ -1,22 +1,19 @@
 import type {
   ArraySchema,
-  EntityType,
-  ObjectSchema,
+ atLeastOne,   EntityType,
+extractVersion,  ObjectSchema,
   OneOfSchema,
   PropertyType,
   PropertyValues,
   ValueOrArray,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
+  VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   BaseUrl,
   CustomDataType,
   EntityTypeMetadata,
 } from "@local/hash-graph-types/ontology";
-import type { Subgraph } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import type { linkEntityTypeUrl,Subgraph  } from "@local/hash-subgraph";
 import {
   getDataTypeById,
   getEntityTypeAndParentsById,
@@ -100,6 +97,7 @@ const dereferencePropertyTypeValue = (params: {
   }
 
   const isObject = "properties" in valueReference;
+
   if (isObject) {
     return {
       propertyValue: {
@@ -185,6 +183,7 @@ const dereferencePropertyTypeValue = (params: {
   }
 
   const dataType = getDataTypeById(subgraph, valueReference.$ref);
+
   if (!dataType) {
     throw new Error(
       `Could not find data type with id ${valueReference.$ref} in subgraph`,
@@ -251,13 +250,13 @@ const dereferencePropertyType = (params: {
 
 /**
  * For a given entityTypeId and a subgraph containing all its dependencies, return a single JSON schema with the following resolved:
- * 1. its parent types
- * 2. its property types
- * 3. property types and data types which its property types refer to
-
+ * 1. Its parent types
+ * 2. Its property types
+ * 3. Property types and data types which its property types refer to.
+ *
  * Does not dereference 'links', because 'links' is not an expected part of the data object the dereferenced schema describes.
  *
- * See the associated .test.ts file for example input/output
+ * See the associated .test.ts file for example input/output.
  */
 export const dereferenceEntityType = <
   SimplifyPropertyKeys extends boolean | undefined = undefined,
@@ -372,6 +371,7 @@ export const dereferenceEntityType = <
   }
 
   const mergedLinks: DereferencedEntityType["links"] = {};
+
   for (const entityType of entityTypeWithAncestors) {
     for (const [versionedUrl, linkSchema] of typedEntries(
       entityType.schema.links ?? {},
@@ -381,6 +381,7 @@ export const dereferenceEntityType = <
   }
 
   const entityType = entityTypeWithAncestors[0]!;
+
   if (entityType.schema.$id !== entityTypeId) {
     throw new Error(
       `Expected the entity type with id ${entityTypeId} in the first position in the entityTypeWithAncestors array, got ${entityType.schema.$id}.`,

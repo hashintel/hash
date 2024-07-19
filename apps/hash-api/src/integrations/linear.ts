@@ -1,5 +1,4 @@
-import type { Organization, Team } from "@linear/sdk";
-import { LinearClient } from "@linear/sdk";
+import type { LinearClient,Organization, Team  } from "@linear/sdk";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { SyncWorkspaceWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
@@ -15,10 +14,12 @@ export const listTeams = async (params: {
 
   let teamsConnection = await linearClient.teams();
   const teams = teamsConnection.nodes;
+
   while (teamsConnection.pageInfo.hasNextPage) {
     teamsConnection = await teamsConnection.fetchNext();
     teams.push(...teamsConnection.nodes);
   }
+
   return teams;
 };
 

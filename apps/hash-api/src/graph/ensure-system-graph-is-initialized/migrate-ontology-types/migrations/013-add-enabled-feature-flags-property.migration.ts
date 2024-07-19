@@ -19,7 +19,7 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /**
-   * Step 1. Create the `enabledFeatureFlags` property type
+   * Step 1. Create the `enabledFeatureFlags` property type.
    */
 
   const enabledFeatureFlagsPropertyType =
@@ -35,7 +35,7 @@ const migrate: MigrationFunction = async ({
     });
 
   /**
-   * Step 2: Add the `enabledFeatureFlags` property type to the `User` entity type
+   * Step 2: Add the `enabledFeatureFlags` property type to the `User` entity type.
    */
 
   const currentUserEntityTypeId = getCurrentHashSystemEntityTypeId({
@@ -69,8 +69,8 @@ const migrate: MigrationFunction = async ({
     });
 
   /**
-   * Step 4: Update the dependencies of the `User` entity type
-   * */
+   * Step 4: Update the dependencies of the `User` entity type.
+    */
   await upgradeDependenciesInHashEntityType(context, authentication, {
     upgradedEntityTypeIds: [updatedUserEntityTypeId],
     dependentEntityTypeKeys: [
@@ -84,7 +84,7 @@ const migrate: MigrationFunction = async ({
   });
 
   /**
-   * Step 5: Assign entities of updated types to the latest version
+   * Step 5: Assign entities of updated types to the latest version.
    */
   const baseUrls = [
     systemEntityTypes.user.entityTypeBaseUrl,

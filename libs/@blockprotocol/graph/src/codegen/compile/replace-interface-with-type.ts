@@ -6,7 +6,7 @@ const replaceInterfaceWithTypeInCompiledTsType = (
   compiledTsType: CompiledTsType,
 ): CompiledTsType =>
   // Find all occurrences of `interface (someName) =` and replace it with `type $1 =`
-  compiledTsType.replace(/interface ([a-zA-Z0-9]+)/gm, "type $1 =");
+  compiledTsType.replaceAll(/interface ([\dA-Za-z]+)/gm, "type $1 =");
 
 /**
  * We want to be able to use generated types as generics within `Entity<User>` for example, so we make
@@ -16,7 +16,7 @@ const replaceInterfaceWithTypeInCompiledTsType = (
  *   - `json-schema-to-typescript` generates each individual component as its own type so it doesn't create any
  *     `extends` clauses, it uses `type` when combining them, e.g. `Person = Person1 & Person2`
  *   - we aren't using `json-schema-to-typescript`'s formatting features, so we don't need to worry about replacing
- *     commas with semi-colons, etc. We'll call a formatter at the end of processing
+ *     commas with semi-colons, etc. We'll call a formatter at the end of processing.
  */
 export const replaceInterfaceWithType = (context: CompileContext): void => {
   context.logDebug("Replacing `interface` with `type`");

@@ -1,5 +1,4 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +9,7 @@ import { getWebPageActivity } from "../../../get-web-page-activity.js";
 import type { LlmParams } from "../../../shared/get-llm-response/types.js";
 import { optimizeSystemPrompt } from "../../../shared/optimize-system-prompt.js";
 import type { MetricDefinition } from "../../../shared/optimize-system-prompt/types.js";
+
 import {
   chooseRelevantLinksFromContent,
   chooseRelevantLinksFromContentSystemPrompt,
@@ -68,8 +68,8 @@ const ftse350Metric: MetricDefinition = {
     ];
 
     const correctLinks = expectedLinks.reduce(
-      (acc, expectedLink) =>
-        acc + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
+      (accumulator, expectedLink) =>
+        accumulator + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
       0,
     );
 
@@ -146,8 +146,8 @@ const marksAndSpencersAnnualInvestorsReport: MetricDefinition = {
     ];
 
     const correctLinks = expectedLinks.reduce(
-      (acc, expectedLink) =>
-        acc + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
+      (accumulator, expectedLink) =>
+        accumulator + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
       0,
     );
 
@@ -223,8 +223,8 @@ const graphicsCardSpecificationMetric: MetricDefinition = {
     ];
 
     const correctLinks = expectedLinks.reduce(
-      (acc, expectedLink) =>
-        acc + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
+      (accumulator, expectedLink) =>
+        accumulator + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
       0,
     );
 
@@ -266,7 +266,7 @@ const baseDirectoryPath = join(
 );
 
 test(
-  "Extract links form text system prompt test",
+  "extract links form text system prompt test",
   async () => {
     const models: LlmParams["model"][] = [
       "claude-3-5-sonnet-20240620",

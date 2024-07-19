@@ -1,31 +1,29 @@
 import { toggleMark } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
-import type { Node, NodeSpec, NodeType } from "prosemirror-model";
-import { Schema } from "prosemirror-model";
-
+import type { Node, NodeSpec, NodeType , Schema } from "prosemirror-model";
 import { paragraphBlockComponentId } from "./blocks.js";
 
-type NodeWithAttrs<Attrs extends Record<string, unknown>> = Omit<
+type NodeWithAttributes<Attributes extends Record<string, unknown>> = Omit<
   Node,
   "attrs"
 > & {
-  attrs: Attrs;
+  attrs: Attributes;
 };
 
-type ComponentNodeAttrs = Record<string, unknown>;
-export type ComponentNode = NodeWithAttrs<ComponentNodeAttrs>;
+type ComponentNodeAttributes = Record<string, unknown>;
+export type ComponentNode = NodeWithAttributes<ComponentNodeAttributes>;
 
-export type EntityNode = NodeWithAttrs<{
+export type EntityNode = NodeWithAttributes<{
   // @todo how can this ever be null?
   draftId: string | null;
 }>;
 
-export type NodeSpecs = {
+export interface NodeSpecs {
   [name: string]: NodeSpec;
-};
+}
 
 export const isEntityNode = (node: Node | null): node is EntityNode =>
-  !!node && node.type === node.type.schema.nodes.entity;
+  Boolean(node) && node.type === node.type.schema.nodes.entity;
 
 export const componentNodeGroupName = "componentNode";
 
@@ -60,6 +58,7 @@ export const mentionNode: NodeSpec = {
       propertyTypeBaseUrl,
       linkEntityTypeBaseUrl,
     } = node.attrs;
+
     return [
       "span",
       {
@@ -98,7 +97,7 @@ export const loadingNode: NodeSpec = {
    * as we have defined a different component node, we remove the blank
    * node from the componentNode group, which ensures that when
    * Prosemirror attempts to instantiate a componentNode it uses that
-   * node instead of the blank one
+   * node instead of the blank one.
    *
    * @see import("./ProsemirrorManager.ts").ProsemirrorManager#prepareToDisableBlankDefaultComponentNode
    */
@@ -110,7 +109,7 @@ export const blockNode: NodeSpec = {
   content: "entity",
   /**
    * These properties are necessary for copy and paste (which is
-   * necessary for drag and drop)
+   * necessary for drag and drop).
    *
    * @note – the actual rendering in the DOM is taken over by the NodeView
    *         so check `BlockView` and `ComponentView` for how this will
@@ -171,6 +170,7 @@ export const createSchema = (nodes: NodeSpecs) =>
            * This works around a Google Docs misbehavior where
            * pasted content will be inexplicably wrapped in `<b>`
            * tags with a font-weight normal.
+           *
            * @see https://github.com/ProseMirror/prosemirror-schema-basic/blob/860d60f764dcdcf186bcba0423d2c589a5e34ae5/src/schema-basic.js#L136
            */
           {
@@ -178,9 +178,9 @@ export const createSchema = (nodes: NodeSpecs) =>
             getAttrs: (node) => {
               /**
                * It is always a Node for tag rules but the types aren't
-               * smart enough for that
+               * smart enough for that.
                *
-               * @todo remove the need for this cast
+               * @todo Remove the need for this cast.
                */
               const castNode = node as unknown as HTMLElement;
 
@@ -192,14 +192,16 @@ export const createSchema = (nodes: NodeSpecs) =>
             getAttrs(value) {
               /**
                * It is always a string for style rules but the types aren't
-               * smart enough for that
+               * smart enough for that.
                *
-               * @todo remove the need for this cast
+               * @todo Remove the need for this cast.
                */
               const castValue = value as unknown as string;
+
               if (/^(bold(er)?|[5-9]\d{2,})$/.test(castValue)) {
                 return null;
               }
+
               return false;
             },
           },
@@ -216,7 +218,7 @@ export const createSchema = (nodes: NodeSpecs) =>
        * handle this within Prosemirror, so this formatting will be lost
        * when pasting from these apps.
        *
-       * @todo fix this
+       * @todo Fix this.
        */
       underlined: {
         toDOM: () => ["u", 0],
@@ -245,6 +247,7 @@ export const createSchema = (nodes: NodeSpecs) =>
         inclusive: false,
         toDOM(node) {
           const { href } = node.attrs;
+
           return [
             "a",
             { href, style: "color: blue; text-decoration: underline" },
@@ -350,7 +353,7 @@ export const mutateSchema = (
     );
   }
 
-  // eslint-disable-next-line no-new
+   
   new (class extends Schema {
     // @ts-expect-error: This is one of the hacks in our code to allow defining new node types at run time which isn't officially supported in ProseMirror
     get nodes() {
@@ -408,6 +411,7 @@ export const formatKeymap = (schema: Schema) =>
           .replaceSelectionWith(schema.nodes.hardBreak!.create())
           .scrollIntoView(),
       );
+
       return true;
     },
     // execCommand is flagged as depecrated but it seems that there isn't a viable alternative

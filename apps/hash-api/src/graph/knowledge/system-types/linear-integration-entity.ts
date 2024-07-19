@@ -24,8 +24,7 @@ import type {
   SyncLinearDataWith,
   SyncLinearDataWithProperties,
 } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
+import type { EntityRootType ,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
@@ -42,10 +41,10 @@ import { systemAccountId } from "../../system-account";
 import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
-export type LinearIntegration = {
+export interface LinearIntegration {
   linearOrgId: string;
   entity: Entity<LinearIntegrationEntity>;
-};
+}
 
 function assertLinearIntegrationEntity(
   entity: Entity,
@@ -74,7 +73,7 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
 };
 
 /**
- * Get all linear integrations by the linear org ID
+ * Get all linear integrations by the linear org ID.
  */
 export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
   { linearOrgId: string; includeDrafts?: boolean },
@@ -116,7 +115,7 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
 };
 
 /**
- * Get a linear integration by the linear org ID
+ * Get a linear integration by the linear org ID.
  */
 export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
   { userAccountId: AccountId; linearOrgId: string; includeDrafts?: boolean },
@@ -170,7 +169,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
 /**
  * Get a system linear integration entity by its entity id.
  *
- * @param params.entityId - the entity id of the block
+ * @param params.entityId - The entity id of the block.
  */
 export const getLinearIntegrationById: ImpureGraphFunction<
   { entityId: EntityId },

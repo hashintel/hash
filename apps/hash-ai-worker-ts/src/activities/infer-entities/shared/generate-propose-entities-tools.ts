@@ -1,14 +1,15 @@
+import dedent from "dedent";
+import type { JSONSchema } from "openai/lib/jsonschema";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type {
   ProposedEntity,
   ProposedEntitySchemaOrData,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import dedent from "dedent";
-import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
+
 import { generateSimplifiedTypeId } from "./generate-simplified-type-id.js";
 import type { PropertyValueWithSimplifiedProperties } from "./map-simplified-properties-to-properties.js";
 import { stripIdsFromDereferencedProperties } from "./strip-ids-from-dereferenced-properties.js";
@@ -101,7 +102,7 @@ export const generateProposeEntitiesTools = (params: {
       inputSchema: {
         type: "object",
         properties: entityTypes.reduce<Record<string, JSONSchema>>(
-          (acc, { schema, isLink }) => {
+          (accumulator, { schema, isLink }) => {
             const entityTypeId = schema.$id;
 
             const {
@@ -115,7 +116,7 @@ export const generateProposeEntitiesTools = (params: {
 
             simplifiedEntityTypeIdMappings = updatedTypeMappings;
 
-            acc[simplifiedEntityTypeId] = {
+            accumulator[simplifiedEntityTypeId] = {
               type: "array",
               title: `${schema.title} entities to create`,
               items: {
@@ -147,7 +148,8 @@ export const generateProposeEntitiesTools = (params: {
                 ],
               },
             };
-            return acc;
+
+            return accumulator;
           },
           {},
         ),

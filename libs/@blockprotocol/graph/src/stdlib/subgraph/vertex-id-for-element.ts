@@ -1,10 +1,8 @@
 import type {
   EntityRecordId,
   GraphElementVertexId,
-  OntologyTypeRecordId,
-  Subgraph,
-} from "../../types.js";
-import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
+ isEntityRecordId, isOntologyTypeRecordId,  OntologyTypeRecordId,
+  Subgraph } from "../../types.js";
 import { typedEntries } from "../../util.js";
 
 /**
@@ -13,7 +11,7 @@ import { typedEntries } from "../../util.js";
  *
  * @param subgraph
  * @param recordId
- * @throws if no {@link Vertex} is found that contains the provided RecordId within its metadata
+ * @throws if no {@link Vertex} is found that contains the provided RecordId within its metadata.
  */
 export const getVertexIdForRecordId = (
   subgraph: Subgraph,
@@ -22,6 +20,7 @@ export const getVertexIdForRecordId = (
   for (const [baseId, revisionObject] of typedEntries(subgraph.vertices)) {
     for (const [revisionId, vertex] of typedEntries(revisionObject)) {
       const { recordId: vertexRecordId } = vertex.inner.metadata;
+
       if (
         (isOntologyTypeRecordId(recordId) &&
           isOntologyTypeRecordId(vertexRecordId) &&

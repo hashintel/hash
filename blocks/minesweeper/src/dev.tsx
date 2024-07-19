@@ -1,12 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
+import type { VersionedUrl } from "@blockprotocol/graph";
 
 import packageJson from "../package.json";
-import ElementClass from "./index";
-import type { BlockEntity } from "./types/generated/block-entity";
 
-const node = document.getElementById("app");
+import type { BlockEntity } from "./types/generated/block-entity";
+import ElementClass from "./index";
+
+const node = document.querySelector("#app");
 
 const testEntity: BlockEntity = {
   metadata: {
@@ -30,11 +31,12 @@ const testEntity: BlockEntity = {
  * The component used here, 'MockBlockDock', does the following:
  * 1. It renders your block on the page and provides the initial properties specified below
  * 2. It holds an in-memory datastore of entities and links
- * 3. It listens for messages from your blocks and updates its datastore appropriately (e.g. to create a new entity)
- * 4. It displays a debug UI allowing you to see the contents of its datastore, and messages sent back and forth
+ * 3. It listens for messages from your blocks and updates its datastore appropriately (e.g. To create a new entity)
+ * 4. It displays a debug UI allowing you to see the contents of its datastore, and messages sent back and forth.
  */
 const DevApp = () => {
-  const tagName = packageJson.blockprotocol.blockType.tagName;
+  const {tagName} = packageJson.blockprotocol.blockType;
+
   if (!tagName) {
     throw new Error(
       "Please set a name for your custom element in package.json, under blockprotocol.blockType.tagName",
@@ -43,15 +45,15 @@ const DevApp = () => {
 
   return (
     <MockBlockDock
+      debug // remove this to start with the debug UI minimised. You can also toggle it in the UI
+      blockEntityRecordId={testEntity.metadata.recordId}
+      blockInfo={packageJson.blockprotocol}
       blockDefinition={{
         customElement: {
           elementClass: ElementClass,
           tagName,
         },
       }}
-      blockEntityRecordId={testEntity.metadata.recordId}
-      blockInfo={packageJson.blockprotocol}
-      debug // remove this to start with the debug UI minimised. You can also toggle it in the UI
       initialData={{
         initialEntities: [testEntity],
       }}

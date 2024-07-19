@@ -1,5 +1,8 @@
 import { performance } from "node:perf_hooks";
 
+import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
+import { ApolloServer } from "apollo-server-express";
+import type { StatsD } from "hot-shots";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
@@ -9,14 +12,12 @@ import type { VaultClient } from "@local/hash-backend-utils/vault";
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
 import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
 import * as Sentry from "@sentry/node";
-import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
-import { ApolloServer } from "apollo-server-express";
-import type { StatsD } from "hot-shots";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { CacheAdapter } from "../cache";
 import type { EmailTransporter } from "../email/transporters";
 import type { GraphApi } from "../graph/context-types";
+
 import type { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 
@@ -56,9 +57,11 @@ export const createApolloServer = ({
       cache,
       uploadProvider,
     };
+
     if (search) {
       sources.search = search;
     }
+
     return sources;
   };
 
@@ -98,7 +101,8 @@ export const createApolloServer = ({
 
           return {
             didResolveOperation: async (didResolveOperationCtx) => {
-              const operationName = didResolveOperationCtx.operationName;
+              const {operationName} = didResolveOperationCtx;
+
               if (operationName) {
                 statsd?.increment(operationName, ["graphql"]);
               }
@@ -114,21 +118,21 @@ export const createApolloServer = ({
             },
 
             didEncounterErrors: async (errorContext) => {
-              for (const err of errorContext.errors) {
+              for (const error of errorContext.errors) {
                 // Don't send ForbiddenErrors to Sentry – we can add more here as needed
                 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this may be undefined
-                if (err.extensions?.code === "FORBIDDEN") {
+                if (error.extensions?.code === "FORBIDDEN") {
                   continue;
                 }
 
-                if (err.path) {
+                if (error.path) {
                   Sentry.getCurrentScope().addBreadcrumb({
                     category: "query-path",
-                    message: err.path.join(" > "),
+                    message: error.path.join(" > "),
                   });
                 }
 
-                Sentry.captureException(err);
+                Sentry.captureException(error);
               }
             },
 
@@ -143,18 +147,19 @@ export const createApolloServer = ({
               const userAgent =
                 ctx.context.req.headers["user-agent"]?.split(" ")[0];
 
-              const msg = {
+              const message = {
                 message: "graphql",
                 operation: willSendResponseCtx.operationName,
                 elapsed: `${elapsed.toFixed(2)}ms`,
                 userAgent,
               };
+
               if (willSendResponseCtx.errors) {
                 willSendResponseCtx.logger.error({
-                  ...msg,
+                  ...message,
                   errors: willSendResponseCtx.errors,
                   stack: willSendResponseCtx.errors
-                    .map((err) => err.stack)
+                    .map((error) => error.stack)
                     // Filter stacks caused by an apollo Forbidden error to prevent cluttering logs
                     // with errors caused by a user being logged out.
                     .filter(
@@ -162,7 +167,7 @@ export const createApolloServer = ({
                     ),
                 });
               } else {
-                willSendResponseCtx.logger.info(msg);
+                willSendResponseCtx.logger.info(message);
                 if (willSendResponseCtx.operationName) {
                   statsd?.timing(
                     willSendResponseCtx.operationName,

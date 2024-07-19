@@ -11,41 +11,41 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { Confidence } from "@local/hash-graph-types/entity";
 
 /**
- * Someone or something that can perform actions in the system
+ * Someone or something that can perform actions in the system.
  */
-export type Actor = {
+export interface Actor {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/actor/v/2";
   properties: ActorProperties;
   propertiesWithMetadata: ActorPropertiesWithMetadata;
-};
+}
 
 export type ActorOutgoingLinkAndTarget = never;
 
-export type ActorOutgoingLinksByLinkEntityTypeId = {};
+export interface ActorOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * Someone or something that can perform actions in the system
+ * Someone or something that can perform actions in the system.
  */
-export type ActorProperties = {
+export interface ActorProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
-};
+}
 
-export type ActorPropertiesWithMetadata = {
+export interface ActorPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValueWithMetadata;
   };
-};
+}
 
 /**
- * The point in time at which something begins to apply
+ * The point in time at which something begins to apply.
  */
 export type AppliesFromPropertyValue = DateTimeDataType;
 
 export type AppliesFromPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
- * The point at which something ceases to apply
+ * The point at which something ceases to apply.
  */
 export type AppliesUntilPropertyValue = DateTimeDataType;
 
@@ -62,15 +62,15 @@ export type ArchivedPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 /**
  * What or whom something was authored by.
  */
-export type AuthoredBy = {
+export interface AuthoredBy {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/authored-by/v/1";
   properties: AuthoredByProperties;
   propertiesWithMetadata: AuthoredByPropertiesWithMetadata;
-};
+}
 
 export type AuthoredByOutgoingLinkAndTarget = never;
 
-export type AuthoredByOutgoingLinksByLinkEntityTypeId = {};
+export interface AuthoredByOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * What or whom something was authored by.
@@ -79,19 +79,19 @@ export type AuthoredByProperties = AuthoredByProperties1 &
   AuthoredByProperties2;
 export type AuthoredByProperties1 = LinkProperties;
 
-export type AuthoredByProperties2 = {};
+export interface AuthoredByProperties2 {}
 
 export type AuthoredByPropertiesWithMetadata =
   AuthoredByPropertiesWithMetadata1 & AuthoredByPropertiesWithMetadata2;
 export type AuthoredByPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type AuthoredByPropertiesWithMetadata2 = {
+export interface AuthoredByPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
- * Configuration for an automatic or passive entity inference feature
+ * Configuration for an automatic or passive entity inference feature.
  */
 export type AutomaticInferenceConfigurationPropertyValue = ObjectDataType;
 
@@ -101,96 +101,96 @@ export type AutomaticInferenceConfigurationPropertyValueWithMetadata =
 /**
  * A block that displays or otherwise uses data, part of a wider page or collection.
  */
-export type Block = {
+export interface Block {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/block/v/1";
   properties: BlockProperties;
   propertiesWithMetadata: BlockPropertiesWithMetadata;
-};
+}
 
 /**
  * A collection of blocks.
  */
-export type BlockCollection = {
+export interface BlockCollection {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/block-collection/v/1";
   properties: BlockCollectionProperties;
   propertiesWithMetadata: BlockCollectionPropertiesWithMetadata;
-};
+}
 
 export type BlockCollectionOutgoingLinkAndTarget = never;
 
-export type BlockCollectionOutgoingLinksByLinkEntityTypeId = {};
+export interface BlockCollectionOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A collection of blocks.
  */
-export type BlockCollectionProperties = {};
+export interface BlockCollectionProperties {}
 
-export type BlockCollectionPropertiesWithMetadata = {
+export interface BlockCollectionPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
-export type BlockHasDataLink = { linkEntity: HasData; rightEntity: Entity };
+export interface BlockHasDataLink { linkEntity: HasData; rightEntity: Entity }
 
 export type BlockOutgoingLinkAndTarget = BlockHasDataLink;
 
-export type BlockOutgoingLinksByLinkEntityTypeId = {
+export interface BlockOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/has-data/v/1": BlockHasDataLink;
-};
+}
 
 /**
  * A block that displays or otherwise uses data, part of a wider page or collection.
  */
-export type BlockProperties = {
+export interface BlockProperties {
   "https://hash.ai/@hash/types/property-type/component-id/": ComponentIdPropertyValue;
-};
+}
 
-export type BlockPropertiesWithMetadata = {
+export interface BlockPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/component-id/": ComponentIdPropertyValueWithMetadata;
   };
-};
+}
 
 /**
- * A True or False value
+ * A True or False value.
  */
 export type BooleanDataType = boolean;
 
-export type BooleanDataTypeWithMetadata = {
+export interface BooleanDataTypeWithMetadata {
   value: BooleanDataType;
   metadata: BooleanDataTypeMetadata;
-};
-export type BooleanDataTypeMetadata = {
+}
+export interface BooleanDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
-};
+}
 
 /**
- * Settings for the HASH browser plugin
+ * Settings for the HASH browser plugin.
  */
-export type BrowserPluginSettings = {
+export interface BrowserPluginSettings {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/browser-plugin-settings/v/1";
   properties: BrowserPluginSettingsProperties;
   propertiesWithMetadata: BrowserPluginSettingsPropertiesWithMetadata;
-};
+}
 
 export type BrowserPluginSettingsOutgoingLinkAndTarget = never;
 
-export type BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId = {};
+export interface BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * Settings for the HASH browser plugin
+ * Settings for the HASH browser plugin.
  */
-export type BrowserPluginSettingsProperties = {
+export interface BrowserPluginSettingsProperties {
   "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/": AutomaticInferenceConfigurationPropertyValue;
   "https://hash.ai/@hash/types/property-type/browser-plugin-tab/": BrowserPluginTabPropertyValue;
   "https://hash.ai/@hash/types/property-type/draft-note/"?: DraftNotePropertyValue;
   "https://hash.ai/@hash/types/property-type/manual-inference-configuration/": ManualInferenceConfigurationPropertyValue;
-};
+}
 
-export type BrowserPluginSettingsPropertiesWithMetadata = {
+export interface BrowserPluginSettingsPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/": AutomaticInferenceConfigurationPropertyValueWithMetadata;
@@ -198,10 +198,10 @@ export type BrowserPluginSettingsPropertiesWithMetadata = {
     "https://hash.ai/@hash/types/property-type/draft-note/"?: DraftNotePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/manual-inference-configuration/": ManualInferenceConfigurationPropertyValueWithMetadata;
   };
-};
+}
 
 /**
- * A tab in the HASH browser plugin
+ * A tab in the HASH browser plugin.
  */
 export type BrowserPluginTabPropertyValue = TextDataType;
 
@@ -211,50 +211,50 @@ export type BrowserPluginTabPropertyValueWithMetadata =
 /**
  * Comment associated with the issue.
  */
-export type Comment = {
+export interface Comment {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/5";
   properties: CommentProperties;
   propertiesWithMetadata: CommentPropertiesWithMetadata;
-};
+}
 
-export type CommentAuthoredByLink = {
+export interface CommentAuthoredByLink {
   linkEntity: AuthoredBy;
   rightEntity: User;
-};
+}
 
-export type CommentHasParentLink = {
+export interface CommentHasParentLink {
   linkEntity: HasParent;
   rightEntity: Comment | Block;
-};
+}
 
-export type CommentHasTextLink = { linkEntity: HasText; rightEntity: Text };
+export interface CommentHasTextLink { linkEntity: HasText; rightEntity: Text }
 
 export type CommentOutgoingLinkAndTarget =
   | CommentAuthoredByLink
   | CommentHasParentLink
   | CommentHasTextLink;
 
-export type CommentOutgoingLinksByLinkEntityTypeId = {
+export interface CommentOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/authored-by/v/1": CommentAuthoredByLink;
   "https://hash.ai/@hash/types/entity-type/has-parent/v/1": CommentHasParentLink;
   "https://hash.ai/@hash/types/entity-type/has-text/v/1": CommentHasTextLink;
-};
+}
 
 /**
  * Comment associated with the issue.
  */
-export type CommentProperties = {
+export interface CommentProperties {
   "https://hash.ai/@hash/types/property-type/deleted-at/"?: DeletedAtPropertyValue;
   "https://hash.ai/@hash/types/property-type/resolved-at/"?: ResolvedAtPropertyValue;
-};
+}
 
-export type CommentPropertiesWithMetadata = {
+export interface CommentPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/deleted-at/"?: DeletedAtPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/resolved-at/"?: ResolvedAtPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * An identifier for a component.
@@ -276,15 +276,15 @@ export type ConnectionSourceNamePropertyValueWithMetadata =
  */
 export type DateTimeDataType = string;
 
-export type DateTimeDataTypeWithMetadata = {
+export interface DateTimeDataTypeWithMetadata {
   value: DateTimeDataType;
   metadata: DateTimeDataTypeMetadata;
-};
-export type DateTimeDataTypeMetadata = {
+}
+export interface DateTimeDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1";
-};
+}
 
 /**
  * Stringified timestamp of when something was deleted.
@@ -301,7 +301,7 @@ export type DescriptionPropertyValue = TextDataType;
 export type DescriptionPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * A human-friendly display name for something
+ * A human-friendly display name for something.
  */
 export type DisplayNamePropertyValue = TextDataType;
 
@@ -310,15 +310,15 @@ export type DisplayNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A document file.
  */
-export type DocumentFile = {
+export interface DocumentFile {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/document-file/v/1";
   properties: DocumentFileProperties;
   propertiesWithMetadata: DocumentFilePropertiesWithMetadata;
-};
+}
 
 export type DocumentFileOutgoingLinkAndTarget = never;
 
-export type DocumentFileOutgoingLinksByLinkEntityTypeId = {};
+export interface DocumentFileOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A document file.
@@ -327,30 +327,30 @@ export type DocumentFileProperties = DocumentFileProperties1 &
   DocumentFileProperties2;
 export type DocumentFileProperties1 = FileProperties;
 
-export type DocumentFileProperties2 = {
+export interface DocumentFileProperties2 {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
-};
+}
 
 export type DocumentFilePropertiesWithMetadata =
   DocumentFilePropertiesWithMetadata1 & DocumentFilePropertiesWithMetadata2;
 export type DocumentFilePropertiesWithMetadata1 = FilePropertiesWithMetadata;
 
-export type DocumentFilePropertiesWithMetadata2 = {
+export interface DocumentFilePropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
   };
-};
+}
 
 /**
- * A working draft of a text note
+ * A working draft of a text note.
  */
 export type DraftNotePropertyValue = TextDataType;
 
 export type DraftNotePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * An email address
+ * An email address.
  */
 export type EmailPropertyValue = TextDataType;
 
@@ -361,13 +361,13 @@ export type EmailPropertyValueWithMetadata = TextDataTypeWithMetadata;
  */
 export type EnabledFeatureFlagsPropertyValue = TextDataType[];
 
-export type EnabledFeatureFlagsPropertyValueWithMetadata = {
+export interface EnabledFeatureFlagsPropertyValueWithMetadata {
   value: TextDataTypeWithMetadata[];
   metadata?: ArrayMetadata;
-};
+}
 
 /**
- * An identifier for an edition of an entity
+ * An identifier for an edition of an entity.
  */
 export type EntityEditionIdPropertyValue = TextDataType;
 
@@ -381,23 +381,23 @@ export type ExpiredAtPropertyValue = TextDataType;
 export type ExpiredAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * The name of a feature
+ * The name of a feature.
  */
 export type FeatureNamePropertyValue = TextDataType;
 
 export type FeatureNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * A file hosted at a URL
+ * A file hosted at a URL.
  */
-export type File = {
+export interface File {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/2";
   properties: FileProperties;
   propertiesWithMetadata: FilePropertiesWithMetadata;
-};
+}
 
 /**
- * A unique signature derived from a file's contents
+ * A unique signature derived from a file's contents.
  */
 export type FileHashPropertyValue = TextDataType;
 
@@ -412,12 +412,12 @@ export type FileNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 export type FileOutgoingLinkAndTarget = never;
 
-export type FileOutgoingLinksByLinkEntityTypeId = {};
+export interface FileOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * A file hosted at a URL
+ * A file hosted at a URL.
  */
-export type FileProperties = {
+export interface FileProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
@@ -435,9 +435,9 @@ export type FileProperties = {
   "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
   "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
   "https://hash.ai/@hash/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValue;
-};
+}
 
-export type FilePropertiesWithMetadata = {
+export interface FilePropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
@@ -458,10 +458,10 @@ export type FilePropertiesWithMetadata = {
     "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValueWithMetadata;
   };
-};
+}
 
 /**
- * The size of a file
+ * The size of a file.
  */
 export type FileSizePropertyValue = NumberDataType;
 
@@ -532,28 +532,28 @@ export type FlowDefinitionIDPropertyValueWithMetadata =
 /**
  * An execution run of a flow.
  */
-export type FlowRun = {
+export interface FlowRun {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/flow-run/v/1";
   properties: FlowRunProperties;
   propertiesWithMetadata: FlowRunPropertiesWithMetadata;
-};
+}
 
 export type FlowRunOutgoingLinkAndTarget = never;
 
-export type FlowRunOutgoingLinksByLinkEntityTypeId = {};
+export interface FlowRunOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * An execution run of a flow.
  */
-export type FlowRunProperties = {
+export interface FlowRunProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
   "https://hash.ai/@hash/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValue;
   "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValue;
   "https://hash.ai/@hash/types/property-type/step/": StepPropertyValue;
   "https://hash.ai/@hash/types/property-type/trigger/": TriggerPropertyValue;
-};
+}
 
-export type FlowRunPropertiesWithMetadata = {
+export interface FlowRunPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
@@ -562,7 +562,7 @@ export type FlowRunPropertiesWithMetadata = {
     "https://hash.ai/@hash/types/property-type/step/": StepPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/trigger/": TriggerPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * The fractional index indicating the current position of something.
@@ -572,26 +572,26 @@ export type FractionalIndexPropertyValue = TextDataType;
 export type FractionalIndexPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * Something that something has
+ * Something that something has.
  */
-export type Has = {
+export interface Has {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has/v/1";
   properties: HasProperties;
   propertiesWithMetadata: HasPropertiesWithMetadata;
-};
+}
 
 /**
  * The avatar something has.
  */
-export type HasAvatar = {
+export interface HasAvatar {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-avatar/v/1";
   properties: HasAvatarProperties;
   propertiesWithMetadata: HasAvatarPropertiesWithMetadata;
-};
+}
 
 export type HasAvatarOutgoingLinkAndTarget = never;
 
-export type HasAvatarOutgoingLinksByLinkEntityTypeId = {};
+export interface HasAvatarOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The avatar something has.
@@ -599,29 +599,29 @@ export type HasAvatarOutgoingLinksByLinkEntityTypeId = {};
 export type HasAvatarProperties = HasAvatarProperties1 & HasAvatarProperties2;
 export type HasAvatarProperties1 = LinkProperties;
 
-export type HasAvatarProperties2 = {};
+export interface HasAvatarProperties2 {}
 
 export type HasAvatarPropertiesWithMetadata = HasAvatarPropertiesWithMetadata1 &
   HasAvatarPropertiesWithMetadata2;
 export type HasAvatarPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type HasAvatarPropertiesWithMetadata2 = {
+export interface HasAvatarPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * The biography something has.
  */
-export type HasBio = {
+export interface HasBio {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-bio/v/1";
   properties: HasBioProperties;
   propertiesWithMetadata: HasBioPropertiesWithMetadata;
-};
+}
 
 export type HasBioOutgoingLinkAndTarget = never;
 
-export type HasBioOutgoingLinksByLinkEntityTypeId = {};
+export interface HasBioOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The biography something has.
@@ -629,29 +629,29 @@ export type HasBioOutgoingLinksByLinkEntityTypeId = {};
 export type HasBioProperties = HasBioProperties1 & HasBioProperties2;
 export type HasBioProperties1 = LinkProperties;
 
-export type HasBioProperties2 = {};
+export interface HasBioProperties2 {}
 
 export type HasBioPropertiesWithMetadata = HasBioPropertiesWithMetadata1 &
   HasBioPropertiesWithMetadata2;
 export type HasBioPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type HasBioPropertiesWithMetadata2 = {
+export interface HasBioPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * The cover image something has.
  */
-export type HasCoverImage = {
+export interface HasCoverImage {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-cover-image/v/1";
   properties: HasCoverImageProperties;
   propertiesWithMetadata: HasCoverImagePropertiesWithMetadata;
-};
+}
 
 export type HasCoverImageOutgoingLinkAndTarget = never;
 
-export type HasCoverImageOutgoingLinksByLinkEntityTypeId = {};
+export interface HasCoverImageOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The cover image something has.
@@ -660,29 +660,29 @@ export type HasCoverImageProperties = HasCoverImageProperties1 &
   HasCoverImageProperties2;
 export type HasCoverImageProperties1 = LinkProperties;
 
-export type HasCoverImageProperties2 = {};
+export interface HasCoverImageProperties2 {}
 
 export type HasCoverImagePropertiesWithMetadata =
   HasCoverImagePropertiesWithMetadata1 & HasCoverImagePropertiesWithMetadata2;
 export type HasCoverImagePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type HasCoverImagePropertiesWithMetadata2 = {
+export interface HasCoverImagePropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * The data that something has.
  */
-export type HasData = {
+export interface HasData {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-data/v/1";
   properties: HasDataProperties;
   propertiesWithMetadata: HasDataPropertiesWithMetadata;
-};
+}
 
 export type HasDataOutgoingLinkAndTarget = never;
 
-export type HasDataOutgoingLinksByLinkEntityTypeId = {};
+export interface HasDataOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The data that something has.
@@ -690,40 +690,40 @@ export type HasDataOutgoingLinksByLinkEntityTypeId = {};
 export type HasDataProperties = HasDataProperties1 & HasDataProperties2;
 export type HasDataProperties1 = LinkProperties;
 
-export type HasDataProperties2 = {};
+export interface HasDataProperties2 {}
 
 export type HasDataPropertiesWithMetadata = HasDataPropertiesWithMetadata1 &
   HasDataPropertiesWithMetadata2;
 export type HasDataPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type HasDataPropertiesWithMetadata2 = {
+export interface HasDataPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
- * Something contained at an index by something
+ * Something contained at an index by something.
  */
-export type HasIndexedContent = {
+export interface HasIndexedContent {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1";
   properties: HasIndexedContentProperties;
   propertiesWithMetadata: HasIndexedContentPropertiesWithMetadata;
-};
+}
 
 export type HasIndexedContentOutgoingLinkAndTarget = never;
 
-export type HasIndexedContentOutgoingLinksByLinkEntityTypeId = {};
+export interface HasIndexedContentOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * Something contained at an index by something
+ * Something contained at an index by something.
  */
 export type HasIndexedContentProperties = HasIndexedContentProperties1 &
   HasIndexedContentProperties2;
 export type HasIndexedContentProperties1 = LinkProperties;
 
-export type HasIndexedContentProperties2 = {
+export interface HasIndexedContentProperties2 {
   "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValue;
-};
+}
 
 export type HasIndexedContentPropertiesWithMetadata =
   HasIndexedContentPropertiesWithMetadata1 &
@@ -731,29 +731,29 @@ export type HasIndexedContentPropertiesWithMetadata =
 export type HasIndexedContentPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
-export type HasIndexedContentPropertiesWithMetadata2 = {
+export interface HasIndexedContentPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValueWithMetadata;
   };
-};
+}
 
 export type HasOutgoingLinkAndTarget = never;
 
-export type HasOutgoingLinksByLinkEntityTypeId = {};
+export interface HasOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The parent something has.
  */
-export type HasParent = {
+export interface HasParent {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-parent/v/1";
   properties: HasParentProperties;
   propertiesWithMetadata: HasParentPropertiesWithMetadata;
-};
+}
 
 export type HasParentOutgoingLinkAndTarget = never;
 
-export type HasParentOutgoingLinksByLinkEntityTypeId = {};
+export interface HasParentOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The parent something has.
@@ -761,46 +761,46 @@ export type HasParentOutgoingLinksByLinkEntityTypeId = {};
 export type HasParentProperties = HasParentProperties1 & HasParentProperties2;
 export type HasParentProperties1 = LinkProperties;
 
-export type HasParentProperties2 = {};
+export interface HasParentProperties2 {}
 
 export type HasParentPropertiesWithMetadata = HasParentPropertiesWithMetadata1 &
   HasParentPropertiesWithMetadata2;
 export type HasParentPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type HasParentPropertiesWithMetadata2 = {
+export interface HasParentPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
- * Something that something has
+ * Something that something has.
  */
 export type HasProperties = HasProperties1 & HasProperties2;
 export type HasProperties1 = LinkProperties;
 
-export type HasProperties2 = {};
+export interface HasProperties2 {}
 
 export type HasPropertiesWithMetadata = HasPropertiesWithMetadata1 &
   HasPropertiesWithMetadata2;
 export type HasPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type HasPropertiesWithMetadata2 = {
+export interface HasPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * The service account something has.
  */
-export type HasServiceAccount = {
+export interface HasServiceAccount {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-service-account/v/1";
   properties: HasServiceAccountProperties;
   propertiesWithMetadata: HasServiceAccountPropertiesWithMetadata;
-};
+}
 
 export type HasServiceAccountOutgoingLinkAndTarget = never;
 
-export type HasServiceAccountOutgoingLinksByLinkEntityTypeId = {};
+export interface HasServiceAccountOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The service account something has.
@@ -809,7 +809,7 @@ export type HasServiceAccountProperties = HasServiceAccountProperties1 &
   HasServiceAccountProperties2;
 export type HasServiceAccountProperties1 = LinkProperties;
 
-export type HasServiceAccountProperties2 = {};
+export interface HasServiceAccountProperties2 {}
 
 export type HasServiceAccountPropertiesWithMetadata =
   HasServiceAccountPropertiesWithMetadata1 &
@@ -817,23 +817,23 @@ export type HasServiceAccountPropertiesWithMetadata =
 export type HasServiceAccountPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
-export type HasServiceAccountPropertiesWithMetadata2 = {
+export interface HasServiceAccountPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * The text something has.
  */
-export type HasText = {
+export interface HasText {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-text/v/1";
   properties: HasTextProperties;
   propertiesWithMetadata: HasTextPropertiesWithMetadata;
-};
+}
 
 export type HasTextOutgoingLinkAndTarget = never;
 
-export type HasTextOutgoingLinksByLinkEntityTypeId = {};
+export interface HasTextOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The text something has.
@@ -841,16 +841,16 @@ export type HasTextOutgoingLinksByLinkEntityTypeId = {};
 export type HasTextProperties = HasTextProperties1 & HasTextProperties2;
 export type HasTextProperties1 = LinkProperties;
 
-export type HasTextProperties2 = {};
+export interface HasTextProperties2 {}
 
 export type HasTextPropertiesWithMetadata = HasTextPropertiesWithMetadata1 &
   HasTextPropertiesWithMetadata2;
 export type HasTextPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type HasTextPropertiesWithMetadata2 = {
+export interface HasTextPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * An emoji icon.
@@ -860,37 +860,37 @@ export type IconPropertyValue = TextDataType;
 export type IconPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * An image file hosted at a URL
+ * An image file hosted at a URL.
  */
-export type Image = {
+export interface Image {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/image/v/2";
   properties: ImageProperties;
   propertiesWithMetadata: ImagePropertiesWithMetadata;
-};
+}
 
 export type ImageOutgoingLinkAndTarget = never;
 
-export type ImageOutgoingLinksByLinkEntityTypeId = {};
+export interface ImageOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * An image file hosted at a URL
+ * An image file hosted at a URL.
  */
 export type ImageProperties = ImageProperties1 & ImageProperties2;
 export type ImageProperties1 = FileProperties;
 
-export type ImageProperties2 = {};
+export interface ImageProperties2 {}
 
 export type ImagePropertiesWithMetadata = ImagePropertiesWithMetadata1 &
   ImagePropertiesWithMetadata2;
 export type ImagePropertiesWithMetadata1 = FilePropertiesWithMetadata;
 
-export type ImagePropertiesWithMetadata2 = {
+export interface ImagePropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
- * The cost of an input unit
+ * The cost of an input unit.
  */
 export type InputUnitCostPropertyValue = NumberDataType;
 
@@ -899,15 +899,15 @@ export type InputUnitCostPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 /**
  * Something that someone or something is a member of.
  */
-export type IsMemberOf = {
+export interface IsMemberOf {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/is-member-of/v/1";
   properties: IsMemberOfProperties;
   propertiesWithMetadata: IsMemberOfPropertiesWithMetadata;
-};
+}
 
 export type IsMemberOfOutgoingLinkAndTarget = never;
 
-export type IsMemberOfOutgoingLinksByLinkEntityTypeId = {};
+export interface IsMemberOfOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * Something that someone or something is a member of.
@@ -916,16 +916,16 @@ export type IsMemberOfProperties = IsMemberOfProperties1 &
   IsMemberOfProperties2;
 export type IsMemberOfProperties1 = LinkProperties;
 
-export type IsMemberOfProperties2 = {};
+export interface IsMemberOfProperties2 {}
 
 export type IsMemberOfPropertiesWithMetadata =
   IsMemberOfPropertiesWithMetadata1 & IsMemberOfPropertiesWithMetadata2;
 export type IsMemberOfPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type IsMemberOfPropertiesWithMetadata2 = {
+export interface IsMemberOfPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * An identifier for a record in Ory Kratos.
@@ -936,27 +936,27 @@ export type KratosIdentityIdPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
 /**
- * undefined
+ * Undefined.
  */
-export type Link = {
+export interface Link {
   entityTypeId: "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
-};
+}
 
 export type LinkOutgoingLinkAndTarget = never;
 
-export type LinkOutgoingLinksByLinkEntityTypeId = {};
+export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export type LinkProperties = {};
+export interface LinkProperties {}
 
-export type LinkPropertiesWithMetadata = {
+export interface LinkPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
- * A location for something, expressed as a single string
+ * A location for something, expressed as a single string.
  */
 export type LocationPropertyValue = TextDataType;
 
@@ -965,14 +965,14 @@ export type LocationPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A MIME (Multipurpose Internet Mail Extensions) type.
  *
- * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+ * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types.
  */
 export type MIMETypePropertyValue = TextDataType;
 
 export type MIMETypePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * Configuration for a manual entity inference feature
+ * Configuration for a manual entity inference feature.
  */
 export type ManualInferenceConfigurationPropertyValue = ObjectDataType;
 
@@ -989,74 +989,74 @@ export type NamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A notification to a user.
  */
-export type Notification = {
+export interface Notification {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/notification/v/1";
   properties: NotificationProperties;
   propertiesWithMetadata: NotificationPropertiesWithMetadata;
-};
+}
 
 export type NotificationOutgoingLinkAndTarget = never;
 
-export type NotificationOutgoingLinksByLinkEntityTypeId = {};
+export interface NotificationOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A notification to a user.
  */
-export type NotificationProperties = {
+export interface NotificationProperties {
   "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
   "https://hash.ai/@hash/types/property-type/read-at/"?: ReadAtPropertyValue;
-};
+}
 
-export type NotificationPropertiesWithMetadata = {
+export interface NotificationPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/read-at/"?: ReadAtPropertyValueWithMetadata;
   };
-};
+}
 
 /**
- * An arithmetical value (in the Real number system)
+ * An arithmetical value (in the Real number system).
  */
 export type NumberDataType = number;
 
-export type NumberDataTypeWithMetadata = {
+export interface NumberDataTypeWithMetadata {
   value: NumberDataType;
   metadata: NumberDataTypeMetadata;
-};
-export type NumberDataTypeMetadata = {
+}
+export interface NumberDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
-};
+}
 
 /**
- * An opaque, untyped JSON object
+ * An opaque, untyped JSON object.
  */
-export type ObjectDataType = {};
+export interface ObjectDataType {}
 
-export type ObjectDataTypeWithMetadata = {
+export interface ObjectDataTypeWithMetadata {
   value: ObjectDataType;
   metadata: ObjectDataTypeMetadata;
-};
-export type ObjectDataTypeMetadata = {
+}
+export interface ObjectDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
-};
+}
 
 /**
  * A block that something occurred in.
  */
-export type OccurredInBlock = {
+export interface OccurredInBlock {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1";
   properties: OccurredInBlockProperties;
   propertiesWithMetadata: OccurredInBlockPropertiesWithMetadata;
-};
+}
 
 export type OccurredInBlockOutgoingLinkAndTarget = never;
 
-export type OccurredInBlockOutgoingLinksByLinkEntityTypeId = {};
+export interface OccurredInBlockOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A block that something occurred in.
@@ -1065,30 +1065,30 @@ export type OccurredInBlockProperties = OccurredInBlockProperties1 &
   OccurredInBlockProperties2;
 export type OccurredInBlockProperties1 = LinkProperties;
 
-export type OccurredInBlockProperties2 = {};
+export interface OccurredInBlockProperties2 {}
 
 export type OccurredInBlockPropertiesWithMetadata =
   OccurredInBlockPropertiesWithMetadata1 &
     OccurredInBlockPropertiesWithMetadata2;
 export type OccurredInBlockPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type OccurredInBlockPropertiesWithMetadata2 = {
+export interface OccurredInBlockPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * An entity that something occurred in.
  */
-export type OccurredInEntity = {
+export interface OccurredInEntity {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2";
   properties: OccurredInEntityProperties;
   propertiesWithMetadata: OccurredInEntityPropertiesWithMetadata;
-};
+}
 
 export type OccurredInEntityOutgoingLinkAndTarget = never;
 
-export type OccurredInEntityOutgoingLinksByLinkEntityTypeId = {};
+export interface OccurredInEntityOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * An entity that something occurred in.
@@ -1097,9 +1097,9 @@ export type OccurredInEntityProperties = OccurredInEntityProperties1 &
   OccurredInEntityProperties2;
 export type OccurredInEntityProperties1 = LinkProperties;
 
-export type OccurredInEntityProperties2 = {
+export interface OccurredInEntityProperties2 {
   "https://hash.ai/@hash/types/property-type/entity-edition-id/"?: EntityEditionIdPropertyValue;
-};
+}
 
 export type OccurredInEntityPropertiesWithMetadata =
   OccurredInEntityPropertiesWithMetadata1 &
@@ -1107,36 +1107,36 @@ export type OccurredInEntityPropertiesWithMetadata =
 export type OccurredInEntityPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
-export type OccurredInEntityPropertiesWithMetadata2 = {
+export interface OccurredInEntityPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/entity-edition-id/"?: EntityEditionIdPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
-export type Organization = {
+export interface Organization {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/organization/v/2";
   properties: OrganizationProperties;
   propertiesWithMetadata: OrganizationPropertiesWithMetadata;
-};
+}
 
-export type OrganizationHasAvatarLink = {
+export interface OrganizationHasAvatarLink {
   linkEntity: HasAvatar;
   rightEntity: Image;
-};
+}
 
-export type OrganizationHasBioLink = {
+export interface OrganizationHasBioLink {
   linkEntity: HasBio;
   rightEntity: ProfileBio;
-};
+}
 
-export type OrganizationHasCoverImageLink = {
+export interface OrganizationHasCoverImageLink {
   linkEntity: HasCoverImage;
   rightEntity: Image;
-};
+}
 
 /**
  * The name of an organization.
@@ -1151,16 +1151,16 @@ export type OrganizationOutgoingLinkAndTarget =
   | OrganizationHasBioLink
   | OrganizationHasCoverImageLink;
 
-export type OrganizationOutgoingLinksByLinkEntityTypeId = {
+export interface OrganizationOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/has-avatar/v/1": OrganizationHasAvatarLink;
   "https://hash.ai/@hash/types/entity-type/has-bio/v/1": OrganizationHasBioLink;
   "https://hash.ai/@hash/types/entity-type/has-cover-image/v/1": OrganizationHasCoverImageLink;
-};
+}
 
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
-export type OrganizationProperties = {
+export interface OrganizationProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://hash.ai/@hash/types/property-type/location/"?: LocationPropertyValue;
   "https://hash.ai/@hash/types/property-type/organization-name/": OrganizationNamePropertyValue;
@@ -1194,9 +1194,9 @@ export type OrganizationProperties = {
       ];
   "https://hash.ai/@hash/types/property-type/shortname/": ShortnamePropertyValue;
   "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValue;
-};
+}
 
-export type OrganizationPropertiesWithMetadata = {
+export interface OrganizationPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
@@ -1209,10 +1209,10 @@ export type OrganizationPropertiesWithMetadata = {
     "https://hash.ai/@hash/types/property-type/shortname/": ShortnamePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValueWithMetadata;
   };
-};
+}
 
 /**
- * The original name of a file
+ * The original name of a file.
  */
 export type OriginalFileNamePropertyValue = TextDataType;
 
@@ -1220,21 +1220,21 @@ export type OriginalFileNamePropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
 /**
- * The original source of something
+ * The original source of something.
  */
 export type OriginalSourcePropertyValue = TextDataType;
 
 export type OriginalSourcePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * The original URL something was hosted at
+ * The original URL something was hosted at.
  */
 export type OriginalURLPropertyValue = TextDataType;
 
 export type OriginalURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * The cost of an output unit
+ * The cost of an output unit.
  */
 export type OutputUnitCostPropertyValue = NumberDataType;
 
@@ -1246,27 +1246,27 @@ export type OutputUnitCostPropertyValueWithMetadata =
  */
 export type OutputsPropertyValue = ObjectDataType[];
 
-export type OutputsPropertyValueWithMetadata = {
+export interface OutputsPropertyValueWithMetadata {
   value: ObjectDataTypeWithMetadata[];
   metadata?: ArrayMetadata;
-};
+}
 
 /**
  * A page for displaying and potentially interacting with data.
  */
-export type Page = {
+export interface Page {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/page/v/1";
   properties: PageProperties;
   propertiesWithMetadata: PagePropertiesWithMetadata;
-};
+}
 
-export type PageHasParentLink = { linkEntity: HasParent; rightEntity: Page };
+export interface PageHasParentLink { linkEntity: HasParent; rightEntity: Page }
 
 export type PageOutgoingLinkAndTarget = PageHasParentLink;
 
-export type PageOutgoingLinksByLinkEntityTypeId = {
+export interface PageOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/has-parent/v/1": PageHasParentLink;
-};
+}
 
 /**
  * A page for displaying and potentially interacting with data.
@@ -1274,19 +1274,19 @@ export type PageOutgoingLinksByLinkEntityTypeId = {
 export type PageProperties = PageProperties1 & PageProperties2;
 export type PageProperties1 = BlockCollectionProperties;
 
-export type PageProperties2 = {
+export interface PageProperties2 {
   "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
   "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValue;
   "https://hash.ai/@hash/types/property-type/icon/"?: IconPropertyValue;
   "https://hash.ai/@hash/types/property-type/summary/"?: SummaryPropertyValue;
   "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValue;
-};
+}
 
 export type PagePropertiesWithMetadata = PagePropertiesWithMetadata1 &
   PagePropertiesWithMetadata2;
 export type PagePropertiesWithMetadata1 = BlockCollectionPropertiesWithMetadata;
 
-export type PagePropertiesWithMetadata2 = {
+export interface PagePropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
@@ -1295,7 +1295,7 @@ export type PagePropertiesWithMetadata2 = {
     "https://hash.ai/@hash/types/property-type/summary/"?: SummaryPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * The base URL of a pinned entity type.
@@ -1316,15 +1316,15 @@ export type PreferredPronounsPropertyValueWithMetadata =
 /**
  * A presentation file.
  */
-export type PresentationFile = {
+export interface PresentationFile {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/presentation-file/v/1";
   properties: PresentationFileProperties;
   propertiesWithMetadata: PresentationFilePropertiesWithMetadata;
-};
+}
 
 export type PresentationFileOutgoingLinkAndTarget = never;
 
-export type PresentationFileOutgoingLinksByLinkEntityTypeId = {};
+export interface PresentationFileOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A presentation file.
@@ -1333,9 +1333,9 @@ export type PresentationFileProperties = PresentationFileProperties1 &
   PresentationFileProperties2;
 export type PresentationFileProperties1 = FileProperties;
 
-export type PresentationFileProperties2 = {
+export interface PresentationFileProperties2 {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
-};
+}
 
 export type PresentationFilePropertiesWithMetadata =
   PresentationFilePropertiesWithMetadata1 &
@@ -1343,32 +1343,32 @@ export type PresentationFilePropertiesWithMetadata =
 export type PresentationFilePropertiesWithMetadata1 =
   FilePropertiesWithMetadata;
 
-export type PresentationFilePropertiesWithMetadata2 = {
+export interface PresentationFilePropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * A biography for display on someone or something's profile.
  */
-export type ProfileBio = {
+export interface ProfileBio {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/profile-bio/v/1";
   properties: ProfileBioProperties;
   propertiesWithMetadata: ProfileBioPropertiesWithMetadata;
-};
+}
 
-export type ProfileBioHasIndexedContentLink = {
+export interface ProfileBioHasIndexedContentLink {
   linkEntity: HasIndexedContent;
   rightEntity: Block;
-};
+}
 
 export type ProfileBioOutgoingLinkAndTarget = ProfileBioHasIndexedContentLink;
 
-export type ProfileBioOutgoingLinksByLinkEntityTypeId = {
+export interface ProfileBioOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": ProfileBioHasIndexedContentLink;
-};
+}
 
 /**
  * A biography for display on someone or something's profile.
@@ -1377,20 +1377,20 @@ export type ProfileBioProperties = ProfileBioProperties1 &
   ProfileBioProperties2;
 export type ProfileBioProperties1 = BlockCollectionProperties;
 
-export type ProfileBioProperties2 = {};
+export interface ProfileBioProperties2 {}
 
 export type ProfileBioPropertiesWithMetadata =
   ProfileBioPropertiesWithMetadata1 & ProfileBioPropertiesWithMetadata2;
 export type ProfileBioPropertiesWithMetadata1 =
   BlockCollectionPropertiesWithMetadata;
 
-export type ProfileBioPropertiesWithMetadata2 = {
+export interface ProfileBioPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
- * A URL to a profile
+ * A URL to a profile.
  */
 export type ProfileURLPropertyValue = TextDataType;
 
@@ -1413,53 +1413,53 @@ export type ResolvedAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A service account.
  */
-export type ServiceAccount = {
+export interface ServiceAccount {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/service-account/v/1";
   properties: ServiceAccountProperties;
   propertiesWithMetadata: ServiceAccountPropertiesWithMetadata;
-};
+}
 
 export type ServiceAccountOutgoingLinkAndTarget = never;
 
-export type ServiceAccountOutgoingLinksByLinkEntityTypeId = {};
+export interface ServiceAccountOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A service account.
  */
-export type ServiceAccountProperties = {
+export interface ServiceAccountProperties {
   "https://hash.ai/@hash/types/property-type/profile-url/": ProfileURLPropertyValue;
-};
+}
 
-export type ServiceAccountPropertiesWithMetadata = {
+export interface ServiceAccountPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/profile-url/": ProfileURLPropertyValueWithMetadata;
   };
-};
+}
 
 /**
- * A feature of a service
+ * A feature of a service.
  */
-export type ServiceFeature = {
+export interface ServiceFeature {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/service-feature/v/1";
   properties: ServiceFeatureProperties;
   propertiesWithMetadata: ServiceFeaturePropertiesWithMetadata;
-};
+}
 
 export type ServiceFeatureOutgoingLinkAndTarget = never;
 
-export type ServiceFeatureOutgoingLinksByLinkEntityTypeId = {};
+export interface ServiceFeatureOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * A feature of a service
+ * A feature of a service.
  */
-export type ServiceFeatureProperties = {
+export interface ServiceFeatureProperties {
   "https://hash.ai/@hash/types/property-type/feature-name/": FeatureNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/service-name/": ServiceNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/service-unit-cost/"?: ServiceUnitCostPropertyValue[];
-};
+}
 
-export type ServiceFeaturePropertiesWithMetadata = {
+export interface ServiceFeaturePropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/feature-name/": FeatureNamePropertyValueWithMetadata;
@@ -1469,26 +1469,26 @@ export type ServiceFeaturePropertiesWithMetadata = {
       metadata?: ArrayMetadata;
     };
   };
-};
+}
 
 /**
- * The name of a service
+ * The name of a service.
  */
 export type ServiceNamePropertyValue = TextDataType;
 
 export type ServiceNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * The unit cost of a service
+ * The unit cost of a service.
  */
-export type ServiceUnitCostPropertyValue = {
+export interface ServiceUnitCostPropertyValue {
   "https://hash.ai/@hash/types/property-type/applies-from/": AppliesFromPropertyValue;
   "https://hash.ai/@hash/types/property-type/applies-until/"?: AppliesUntilPropertyValue;
   "https://hash.ai/@hash/types/property-type/input-unit-cost/"?: InputUnitCostPropertyValue;
   "https://hash.ai/@hash/types/property-type/output-unit-cost/"?: OutputUnitCostPropertyValue;
-};
+}
 
-export type ServiceUnitCostPropertyValueWithMetadata = {
+export interface ServiceUnitCostPropertyValueWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/applies-from/": AppliesFromPropertyValueWithMetadata;
@@ -1496,10 +1496,10 @@ export type ServiceUnitCostPropertyValueWithMetadata = {
     "https://hash.ai/@hash/types/property-type/input-unit-cost/"?: InputUnitCostPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/output-unit-cost/"?: OutputUnitCostPropertyValueWithMetadata;
   };
-};
+}
 
 /**
- * A unique identifier for something, in the form of a slug
+ * A unique identifier for something, in the form of a slug.
  */
 export type ShortnamePropertyValue = TextDataType;
 
@@ -1510,10 +1510,10 @@ export type ShortnamePropertyValueWithMetadata = TextDataTypeWithMetadata;
  */
 export type StepPropertyValue = ObjectDataType[];
 
-export type StepPropertyValueWithMetadata = {
+export interface StepPropertyValueWithMetadata {
   value: ObjectDataTypeWithMetadata[];
   metadata?: ArrayMetadata;
-};
+}
 
 /**
  * The summary of the something.
@@ -1525,44 +1525,44 @@ export type SummaryPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * An ordered sequence of characters.
  */
-export type Text = {
+export interface Text {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/text/v/1";
   properties: TextProperties;
   propertiesWithMetadata: TextPropertiesWithMetadata;
-};
-
-/**
- * An ordered sequence of characters
- */
-export type TextDataType = string;
-
-export type TextDataTypeWithMetadata = {
-  value: TextDataType;
-  metadata: TextDataTypeMetadata;
-};
-export type TextDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
-};
-
-export type TextOutgoingLinkAndTarget = never;
-
-export type TextOutgoingLinksByLinkEntityTypeId = {};
+}
 
 /**
  * An ordered sequence of characters.
  */
-export type TextProperties = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValue;
-};
+export type TextDataType = string;
 
-export type TextPropertiesWithMetadata = {
+export interface TextDataTypeWithMetadata {
+  value: TextDataType;
+  metadata: TextDataTypeMetadata;
+}
+export interface TextDataTypeMetadata {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
+}
+
+export type TextOutgoingLinkAndTarget = never;
+
+export interface TextOutgoingLinksByLinkEntityTypeId {}
+
+/**
+ * An ordered sequence of characters.
+ */
+export interface TextProperties {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValue;
+}
+
+export interface TextPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * The text material, information, or body, that makes up the content of this thing.
@@ -1594,31 +1594,31 @@ export type TriggerDefinitionIDPropertyValueWithMetadata =
 /**
  * The trigger of a flow.
  */
-export type TriggerPropertyValue = {
+export interface TriggerPropertyValue {
   "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValue;
   "https://hash.ai/@hash/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValue;
-};
+}
 
-export type TriggerPropertyValueWithMetadata = {
+export interface TriggerPropertyValueWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * A user that triggered something.
  */
-export type TriggeredByUser = {
+export interface TriggeredByUser {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1";
   properties: TriggeredByUserProperties;
   propertiesWithMetadata: TriggeredByUserPropertiesWithMetadata;
-};
+}
 
 export type TriggeredByUserOutgoingLinkAndTarget = never;
 
-export type TriggeredByUserOutgoingLinksByLinkEntityTypeId = {};
+export interface TriggeredByUserOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A user that triggered something.
@@ -1627,20 +1627,20 @@ export type TriggeredByUserProperties = TriggeredByUserProperties1 &
   TriggeredByUserProperties2;
 export type TriggeredByUserProperties1 = LinkProperties;
 
-export type TriggeredByUserProperties2 = {};
+export interface TriggeredByUserProperties2 {}
 
 export type TriggeredByUserPropertiesWithMetadata =
   TriggeredByUserPropertiesWithMetadata1 &
     TriggeredByUserPropertiesWithMetadata2;
 export type TriggeredByUserPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type TriggeredByUserPropertiesWithMetadata2 = {
+export interface TriggeredByUserPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
- * The timestamp when the upload of something has completed
+ * The timestamp when the upload of something has completed.
  */
 export type UploadCompletedAtPropertyValue = DateTimeDataType;
 
@@ -1650,30 +1650,30 @@ export type UploadCompletedAtPropertyValueWithMetadata =
 /**
  * A user of the HASH application.
  */
-export type User = {
+export interface User {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/5";
   properties: UserProperties;
   propertiesWithMetadata: UserPropertiesWithMetadata;
-};
+}
 
-export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
+export interface UserHasAvatarLink { linkEntity: HasAvatar; rightEntity: Image }
 
-export type UserHasBioLink = { linkEntity: HasBio; rightEntity: ProfileBio };
+export interface UserHasBioLink { linkEntity: HasBio; rightEntity: ProfileBio }
 
-export type UserHasLink = {
+export interface UserHasLink {
   linkEntity: Has;
   rightEntity: BrowserPluginSettings;
-};
+}
 
-export type UserHasServiceAccountLink = {
+export interface UserHasServiceAccountLink {
   linkEntity: HasServiceAccount;
   rightEntity: ServiceAccount;
-};
+}
 
-export type UserIsMemberOfLink = {
+export interface UserIsMemberOfLink {
   linkEntity: IsMemberOf;
   rightEntity: Organization;
-};
+}
 
 export type UserOutgoingLinkAndTarget =
   | UserHasAvatarLink
@@ -1682,13 +1682,13 @@ export type UserOutgoingLinkAndTarget =
   | UserHasLink
   | UserIsMemberOfLink;
 
-export type UserOutgoingLinksByLinkEntityTypeId = {
+export interface UserOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/has-avatar/v/1": UserHasAvatarLink;
   "https://hash.ai/@hash/types/entity-type/has-bio/v/1": UserHasBioLink;
   "https://hash.ai/@hash/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
   "https://hash.ai/@hash/types/entity-type/has/v/1": UserHasLink;
   "https://hash.ai/@hash/types/entity-type/is-member-of/v/1": UserIsMemberOfLink;
-};
+}
 
 /**
  * A user of the HASH application.
@@ -1696,7 +1696,7 @@ export type UserOutgoingLinksByLinkEntityTypeId = {
 export type UserProperties = UserProperties1 & UserProperties2;
 export type UserProperties1 = ActorProperties;
 
-export type UserProperties2 = {
+export interface UserProperties2 {
   /**
    * @minItems 1
    */
@@ -1738,13 +1738,13 @@ export type UserProperties2 = {
   "https://hash.ai/@hash/types/property-type/preferred-pronouns/"?: PreferredPronounsPropertyValue;
   "https://hash.ai/@hash/types/property-type/shortname/"?: ShortnamePropertyValue;
   "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValue;
-};
+}
 
 export type UserPropertiesWithMetadata = UserPropertiesWithMetadata1 &
   UserPropertiesWithMetadata2;
 export type UserPropertiesWithMetadata1 = ActorPropertiesWithMetadata;
 
-export type UserPropertiesWithMetadata2 = {
+export interface UserPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/email/": {
@@ -1762,38 +1762,38 @@ export type UserPropertiesWithMetadata2 = {
     "https://hash.ai/@hash/types/property-type/shortname/"?: ShortnamePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * A secret or credential belonging to a user.
  */
-export type UserSecret = {
+export interface UserSecret {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/user-secret/v/1";
   properties: UserSecretProperties;
   propertiesWithMetadata: UserSecretPropertiesWithMetadata;
-};
+}
 
 export type UserSecretOutgoingLinkAndTarget = never;
 
-export type UserSecretOutgoingLinksByLinkEntityTypeId = {};
+export interface UserSecretOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A secret or credential belonging to a user.
  */
-export type UserSecretProperties = {
+export interface UserSecretProperties {
   "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValue;
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
-};
+}
 
-export type UserSecretPropertiesWithMetadata = {
+export interface UserSecretPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * The path to a secret in Hashicorp Vault.
@@ -1803,7 +1803,7 @@ export type VaultPathPropertyValue = TextDataType;
 export type VaultPathPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * A URL for a website
+ * A URL for a website.
  */
 export type WebsiteURLPropertyValue = TextDataType;
 

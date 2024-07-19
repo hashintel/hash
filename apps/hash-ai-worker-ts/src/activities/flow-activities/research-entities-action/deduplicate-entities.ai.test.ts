@@ -1,8 +1,8 @@
 import "../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import { expect, test } from "vitest";
 
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
+
 import { deduplicateEntities } from "./deduplicate-entities.js";
 
 const ftse350EntitySummaries: LocalEntitySummary[] = [
@@ -115,7 +115,7 @@ const nonDuplicateEntitySummaries: LocalEntitySummary[] = [
 ];
 
 test.skip(
-  "Test deduplicate entities with FTSE350 companies",
+  "test deduplicate entities with FTSE350 companies",
   async () => {
     const { duplicates } = await deduplicateEntities({
       entities: [
@@ -305,7 +305,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
 ];
 
 test.skip(
-  "Test deduplicate LLM providers",
+  "test deduplicate LLM providers",
   async () => {
     const { duplicates } = await deduplicateEntities({
       entities: llmProviderExistingEntitySummaries,

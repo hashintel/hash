@@ -91,6 +91,6 @@ export const scalars = {
 export const _localRelativeScalars = Object.fromEntries(
   Object.entries(scalars).map(([key, value]) => [
     key,
-    value.replace(/@local\/hash-isomorphic-utils\/([^#]+)(#.*)/g, "../$1.js$2"),
+    value.replaceAll(/@local\/hash-isomorphic-utils\/([^#]+)(#.*)/g, "../$1.js$2"),
   ]),
 );

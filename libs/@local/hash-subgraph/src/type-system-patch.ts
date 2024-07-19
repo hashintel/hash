@@ -1,12 +1,8 @@
 import type {
-  ParseVersionedUrlError,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import {
   extractBaseUrl as extractBaseUrlBp,
   extractVersion,
-  validateVersionedUrl,
-} from "@blockprotocol/type-system/slim";
+  ParseVersionedUrlError,
+  validateVersionedUrl,  VersionedUrl} from "@blockprotocol/type-system/slim";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
 export const extractBaseUrl = (versionedUrl: VersionedUrl): BaseUrl =>
@@ -32,12 +28,11 @@ export class InvalidVersionedUrlComponentsError extends Error {
 }
 
 /**
- * Extract the baseUrl and version from a versioned URL
+ * Extract the baseUrl and version from a versioned URL.
  *
- * @param versionedUrl a versioned URL
- * @throws {ParseVersionedUrlError} if the versionedUrl is invalid
- *
- * @todo - Expose this through the Type System package
+ * @param versionedUrl - A versioned URL.
+ * @throws {ParseVersionedUrlError} If the versionedUrl is invalid.
+ * @todo - Expose this through the Type System package.
  */
 export const componentsFromVersionedUrl = (
   versionedUrl: VersionedUrl,

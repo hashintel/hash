@@ -1,26 +1,25 @@
+import type { AxiosError } from "axios";
+import type { Express, Request, RequestHandler } from "express";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { Session } from "@ory/client";
-import type { AxiosError } from "axios";
-import type { Express, Request, RequestHandler } from "express";
 
 import type { ImpureGraphContext } from "../graph/context-types";
-import type { User } from "../graph/knowledge/system-types/user";
-import {
-  createUser,
+import type {   createUser,
   getUserByKratosIdentityId,
+User ,
 } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
+
 import { hydraAdmin } from "./ory-hydra";
-import type { KratosUserIdentity } from "./ory-kratos";
-import { kratosFrontendApi } from "./ory-kratos";
+import type { kratosFrontendApi,KratosUserIdentity  } from "./ory-kratos";
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
 
-const requestHeaderContainsValidKratosApiKey = (req: Request): boolean =>
-  req.header("KRATOS_API_KEY") === KRATOS_API_KEY;
+const requestHeaderContainsValidKratosApiKey = (request: Request): boolean =>
+  request.header("KRATOS_API_KEY") === KRATOS_API_KEY;
 
 const kratosAfterRegistrationHookHandler =
   (
@@ -30,16 +29,16 @@ const kratosAfterRegistrationHookHandler =
     string,
     { identity: KratosUserIdentity }
   > =>
-  (req, res) => {
+  (request, res) => {
     const {
       body: {
         identity: { id: kratosIdentityId, traits },
       },
-    } = req;
+    } = request;
     const authentication = { actorId: systemAccountId };
 
     // Authenticate the request originates from the kratos server
-    if (!requestHeaderContainsValidKratosApiKey(req)) {
+    if (!requestHeaderContainsValidKratosApiKey(request)) {
       res
         .status(401)
         .send(
@@ -120,16 +119,17 @@ export const getUserAndSession = async ({
       xSessionToken: sessionToken,
     })
     .then(({ data }) => data)
-    .catch((err: AxiosError) => {
+    .catch((error: AxiosError) => {
       // 403 on toSession means that we need to request 2FA
-      if (err.response && err.response.status === 403) {
+      if (error.response && error.response.status === 403) {
         /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
       }
       logger.debug(
         `Kratos response error: Could not fetch session, got: [${
-          err.response?.status
-        }] ${JSON.stringify(err.response?.data)}`,
+          error.response?.status
+        }] ${JSON.stringify(error.response?.data)}`,
       );
+
       return undefined;
     });
 
@@ -161,8 +161,8 @@ export const createAuthMiddleware = (params: {
   const { logger, context } = params;
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
-  return async (req, _res, next) => {
-    const authHeader = req.header("authorization");
+  return async (request, _res, next) => {
+    const authHeader = request.header("authorization");
     const hasAuthHeader = authHeader?.startsWith("Bearer ") ?? false;
 
     const accessOrSessionToken =
@@ -175,6 +175,7 @@ export const createAuthMiddleware = (params: {
       const introspectionResult = await hydraAdmin.introspectOAuth2Token({
         token: accessOrSessionToken,
       });
+
       if (introspectionResult.data.active && introspectionResult.data.sub) {
         const user = await getUserByKratosIdentityId(
           context,
@@ -183,9 +184,11 @@ export const createAuthMiddleware = (params: {
             kratosIdentityId: introspectionResult.data.sub,
           },
         );
+
         if (user) {
-          req.user = user;
+          request.user = user;
           next();
+
           return;
         }
       }
@@ -193,34 +196,35 @@ export const createAuthMiddleware = (params: {
 
     const { session, user } = await getUserAndSession({
       context,
-      cookie: req.header("cookie"),
+      cookie: request.header("cookie"),
       logger,
       sessionToken: accessOrSessionToken,
     });
 
     const kratosSession = await kratosFrontendApi
       .toSession({
-        cookie: req.header("cookie"),
+        cookie: request.header("cookie"),
         xSessionToken: accessOrSessionToken,
       })
       .then(({ data }) => data)
-      .catch((err: AxiosError) => {
+      .catch((error: AxiosError) => {
         // 403 on toSession means that we need to request 2FA
-        if (err.response && err.response.status === 403) {
+        if (error.response && error.response.status === 403) {
           /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
         }
         logger.debug(
           `Kratos response error: Could not fetch session, got: [${
-            err.response?.status
-          }] ${JSON.stringify(err.response?.data)}`,
+            error.response?.status
+          }] ${JSON.stringify(error.response?.data)}`,
         );
+
         return undefined;
       });
 
     if (kratosSession) {
-      req.session = session;
+      request.session = session;
 
-      req.user = user;
+      request.user = user;
     }
 
     next();

@@ -12,6 +12,7 @@ import type {
   JsonSchema,
   LogLevel,
 } from "../shared.js";
+
 import type { CompileContext } from "./compile.js";
 import type { TypeDependencyMap } from "./shared.js";
 
@@ -109,14 +110,14 @@ export class PostprocessContext {
 
   /**
    * Map of TypeScript identifiers, to their source (the file that exports them) and the contents required to define
-   * them if they're a locally defined type
+   * them if they're a locally defined type.
    */
   IdentifiersToSources: Record<string, IdentifierSources>;
 
   /** Map of files to the identifiers of types that they will **depend on**, either by defining or importing them */
   filesToDependentIdentifiers: Record<string, Set<string>> = {};
 
-  /** Map of files to the identifiers of types that they will **define** */
+  /** Map of files to the identifiers of types that they will **define*/
   filesToDefinedIdentifiers: Record<string, Set<string>> = {};
 
   /** Map of files to the actual TypeScript contents */
@@ -140,7 +141,7 @@ export class PostprocessContext {
   /* @todo - Replace this with a proper logging implementation */
   logWarn(message: string) {
     if (this.logLevel !== "silent") {
-      // eslint-disable-next-line no-console
+       
       console.warn(`WARN: ${message}`);
     }
   }
@@ -209,6 +210,7 @@ export class PostprocessContext {
       this.IdentifiersToSources[identifier] = locallyImportable
         ? { locallyImportable, source }
         : { locallyImportable, source: [source] };
+
       return;
     }
 

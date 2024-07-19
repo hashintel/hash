@@ -9,6 +9,7 @@ import type { Client as TemporalClient } from "@temporalio/client";
 
 import { getExternalInputResponseQuery } from "../../shared/queries.js";
 import { externalInputRequestSignal } from "../../shared/signals.js";
+
 import { logger } from "./activity-logger.js";
 
 let temporalClient: TemporalClient | undefined;
@@ -20,7 +21,7 @@ export const requestExternalInput = async <
 ): Promise<ExternalInputResponseSignal<Request["type"]>> => {
   temporalClient = temporalClient ?? (await createTemporalClient());
 
-  const workflowId = Context.current().info.workflowExecution.workflowId;
+  const {workflowId} = Context.current().info.workflowExecution;
 
   const handle = temporalClient.workflow.getHandle(workflowId);
 
@@ -39,7 +40,7 @@ export const requestExternalInput = async <
      * 3. The workflow crashes
      * 4. The activity that called this crashes
      * 5. The activity that called this times out (@see https://docs.temporal.io/activities#schedule-to-start-timeout onwards)
-     * 6. The workflow times out (workflow execution timeout, default: infinite)
+     * 6. The workflow times out (workflow execution timeout, default: infinite).
      *
      * Note that if the workflow or activity crashes and retried, the history will be replayed.
      * If workflows/activities can save progress to date and resume from that point, we may hit this again

@@ -1,6 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import {
+import type { Entity ,
   LinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
@@ -26,13 +25,13 @@ import {
   getLinkEntityRightEntity,
   updateLinkEntity,
 } from "../primitive/link-entity";
-import type { Block } from "./block";
-import { getBlockFromEntity } from "./block";
+
+import type { Block , getBlockFromEntity } from "./block";
 
 /**
  * Get the blocks in this blockCollection.
  *
- * @param params.blockCollection - the blockCollection
+ * @param params.blockCollection - The blockCollection.
  */
 export const getBlockCollectionBlocks: ImpureGraphFunction<
   {
@@ -66,7 +65,7 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
     | LinkEntity<HasSpatiallyPositionedContent>[]
     | LinkEntity<HasIndexedContent>[];
 
-  return await Promise.all(
+  return Promise.all(
     outgoingBlockDataLinks
       .sort(sortBlockCollectionLinks)
       .map(async (linkEntity) => ({
@@ -79,11 +78,11 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
 };
 
 /**
- * Insert a block into this blockCollection
+ * Insert a block into this blockCollection.
  *
- * @param params.block - the block to insert in the blockCollection
- * @param params.position (optional) - the position of the block in the blockCollection
- * @param params.insertedById - the id of the account that is inserting the block into the blockCollection
+ * @param params.block - The block to insert in the blockCollection.
+ * @param params.position - (optional) - the position of the block in the blockCollection.
+ * @param params.insertedById - The id of the account that is inserting the block into the blockCollection.
  */
 export const addBlockToBlockCollection: ImpureGraphFunction<
   {
@@ -125,10 +124,10 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
 /**
  * Move a block in the blockCollection from one position to another.
  *
- * @param params.blockCollection - the blockCollection
- * @param params.currentPosition - the current position of the block being moved
- * @param params.newPosition - the new position of the block being moved
- * @param params.movedById - the id of the account that is moving the block
+ * @param params.blockCollection - The blockCollection.
+ * @param params.currentPosition - The current position of the block being moved.
+ * @param params.newPosition - The new position of the block being moved.
+ * @param params.movedById - The id of the account that is moving the block.
  */
 export const moveBlockInBlockCollection: ImpureGraphFunction<
   {
@@ -163,7 +162,7 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
 /**
  * Remove a block from the blockCollection.
  *
- * @param params.linkEntityId - the EntityId of the link between the block collection and the block
+ * @param params.linkEntityId - The EntityId of the link between the block collection and the block.
  */
 export const removeBlockFromBlockCollection: ImpureGraphFunction<
   {

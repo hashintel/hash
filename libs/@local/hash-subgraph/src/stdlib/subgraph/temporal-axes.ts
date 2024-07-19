@@ -10,7 +10,7 @@ import type { Subgraph } from "../../main.js";
  * {@link Subgraph} that does _not_ support temporal versioning, an unbounded {@link TimeInterval} is returned
  * that spans the whole axis.
  *
- * @param {Subgraph} subgraph
+ * @param subgraph
  */
 export const getLatestInstantIntervalForSubgraph = (
   subgraph: Subgraph,

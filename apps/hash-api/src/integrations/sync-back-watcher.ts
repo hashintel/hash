@@ -11,6 +11,7 @@ import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph
 
 import { systemAccountId } from "../graph/system-account";
 import { logger } from "../logger";
+
 import {
   processEntityChange as processLinearEntityChange,
   supportedLinearTypeIds,
@@ -51,7 +52,7 @@ export const createIntegrationSyncBackWatcher = async (
           { identifier: "linear" },
         );
 
-        const entity = (
+        const [entity] = 
           await graphApiClient
             .getEntities(linearBotAccountId, {
               filter: {
@@ -68,21 +69,20 @@ export const createIntegrationSyncBackWatcher = async (
                 mapGraphApiEntityToEntity(graphEntity, null, true),
               ),
             )
-        )[0];
+        ;
 
         if (!entity) {
           /**
            * The linear bot may not have access to the entity, which means
            * it it's probably not an entity that should be processed.
            *
-           * @todo we probably want to avoid fetching the entity in the sync
+           * @see https://linear.app/hash/issue/H-756
+           * @todo We probably want to avoid fetching the entity in the sync
            * back watcher entirely, as we don't want to have a single actor
            * that can read all entities in the graph. One way of avoiding this
            * would be passing the `entityTypeId` of the modified entity so that
            * the correct integration processor can be called based on the entity's
            * type.
-           *
-           * @see https://linear.app/hash/issue/H-756
            */
           return;
         }
@@ -91,9 +91,9 @@ export const createIntegrationSyncBackWatcher = async (
 
         return true;
       })
-      .catch((err) => {
-        // eslint-disable-next-line no-console -- caught because this function loses ownership of the queue occasionally in dev
-        console.error(`Could not take message from queue: ${err.message}`);
+      .catch((error) => {
+         
+        console.error(`Could not take message from queue: ${error.message}`);
       });
   };
 

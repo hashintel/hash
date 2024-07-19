@@ -2,6 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { URL } from "node:url";
 
+import appRoot from "app-root-path";
+import express from "express";
+import type { Express } from "express";
 import type {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
@@ -11,16 +14,13 @@ import type {
   UploadableStorageProvider,
 } from "@local/hash-backend-utils/file-storage";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import appRoot from "app-root-path";
-import type { Express } from "express";
-import express from "express";
 
 export const UPLOAD_BASE_URL = "/local-file-storage-upload";
 const DOWNLOAD_BASE_URL = "/uploads";
 
 export interface LocalFileSystemStorageProviderConstructorArgs {
   app: Express;
-  /** relative path or folder name where to store uploaded files */
+  /** Relative path or folder name where to store uploaded files */
   fileUploadPath: string;
   /** Base URL of the API for generating upload/download URLs */
   apiOrigin: string;
@@ -31,8 +31,7 @@ export interface LocalFileSystemStorageProviderConstructorArgs {
  * This storage provider is given as an easy to setup alternative to S3 file uploads for simple setups.
  */
 export class LocalFileSystemStorageProvider
-  implements UploadableStorageProvider
-{
+  implements UploadableStorageProvider {
   public storageType: StorageType = "LOCAL_FILE_SYSTEM";
 
   private fileUploadPath: string;
@@ -56,6 +55,7 @@ export class LocalFileSystemStorageProvider
     const presignedPut: PresignedPutUpload = {
       url: `${new URL(UPLOAD_BASE_URL, this.apiOrigin).href}?key=${key}`,
     };
+
     return {
       presignedPut,
       fileStorageProperties: {
@@ -105,32 +105,36 @@ export class LocalFileSystemStorageProvider
   /** Sets up express routes required for uploading and downloading files */
   setupExpressRoutes(app: Express) {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    app.put(UPLOAD_BASE_URL, async (req, res, _next) => {
+    app.put(UPLOAD_BASE_URL, async (request, res, _next) => {
       await new Promise<void>((resolve, reject) => {
         const fileData: Uint8Array[] = [];
-        req.on("data", (chunk) => {
+
+        request.on("data", (chunk) => {
           fileData.push(chunk);
         });
-        req.on("end", () => {
-          if (typeof req.query.key !== "string") {
+        request.on("end", () => {
+          if (typeof request.query.key !== "string") {
             res.status(400).send("Missing key query parameter");
+
             return;
           }
 
           const fileWritePath = path.join(
             this.fileUploadPath,
-            path.normalize(req.query.key),
+            path.normalize(request.query.key),
           );
 
           if (!fileWritePath.startsWith(this.fileUploadPath)) {
             res.status(400).send("Invalid key query parameter");
+
             return;
           }
 
           const file = Buffer.concat(fileData);
-          fs.writeFile(fileWritePath, file, (err) => {
-            if (err) {
-              reject(err);
+
+          fs.writeFile(fileWritePath, file, (error) => {
+            if (error) {
+              reject(error);
             } else {
               resolve();
             }

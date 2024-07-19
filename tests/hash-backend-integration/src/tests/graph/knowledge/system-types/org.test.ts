@@ -1,12 +1,11 @@
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import {
-  getOrgByShortname,
+import type {   getOrgByShortname,
+Org ,
   updateOrgName,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestOrg } from "../../../util";
@@ -19,7 +18,7 @@ const logger = new Logger({
 
 const graphContext = createTestImpureGraphContext();
 
-describe("Org", () => {
+describe("org", () => {
   beforeAll(async () => {
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
   });
@@ -30,7 +29,8 @@ describe("Org", () => {
 
   let createdOrg: Org;
   let shortname: string;
-  it("can create an org", async () => {
+
+  test("can create an org", async () => {
     createdOrg = await createTestOrg(
       graphContext,
       { actorId: systemAccountId },
@@ -40,11 +40,11 @@ describe("Org", () => {
     shortname = createdOrg.shortname;
   });
 
-  it("can get the account id", () => {
+  test("can get the account id", () => {
     expect(createdOrg.entity.metadata.recordId.entityId).toBeDefined();
   });
 
-  it("can update the preferred name of an org", async () => {
+  test("can update the preferred name of an org", async () => {
     const authentication = { actorId: systemAccountId };
 
     createdOrg = await updateOrgName(graphContext, authentication, {
@@ -53,7 +53,7 @@ describe("Org", () => {
     });
   });
 
-  it("can get an org by its shortname", async () => {
+  test("can get an org by its shortname", async () => {
     const authentication = { actorId: systemAccountId };
 
     const fetchedOrg = await getOrgByShortname(graphContext, authentication, {

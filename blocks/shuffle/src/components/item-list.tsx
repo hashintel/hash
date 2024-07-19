@@ -1,3 +1,5 @@
+import React, { useMemo, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
 import type { DropAnimation, UniqueIdentifier } from "@dnd-kit/core";
 import {
   closestCenter,
@@ -14,22 +16,21 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { List } from "@mui/material";
-import type { FunctionComponent } from "react";
-import React, { useMemo, useRef, useState } from "react";
 
 import { propertyIds } from "../property-ids";
 import type { ShuffleBlockItemPropertyValue } from "../types/generated/block-entity";
+
 import { Item as ItemComponent } from "./item";
 import { SortableItem } from "./sortable-item";
 
-type ItemListProps = {
+interface ItemListProps {
   list: ShuffleBlockItemPropertyValue[];
   onReorder: (sourceIndex: number, destinationIndex: number) => void;
   onValueChange: (index: number, value: string) => void;
   onItemBlur: () => void;
   onDelete: (index: number) => void;
   readonly: boolean;
-};
+}
 
 const measuringConfig = {
   droppable: {
@@ -114,20 +115,23 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      onDragStart={({ active }) =>
-        setActiveIndex(findItemIndexById(list, active.id))
-      }
+      measuring={measuringConfig}
+      onDragCancel={() => {
+        setActiveIndex(null);
+      }}
+      onDragStart={({ active }) => {
+        setActiveIndex(findItemIndexById(list, active.id));
+      }}
       onDragEnd={({ active, over }) => {
         setActiveIndex(null);
 
         if (over?.id && active.id !== over.id) {
           const sourceIndex = findItemIndexById(list, active.id);
           const destinationIndex = findItemIndexById(list, over.id);
+
           onReorder(sourceIndex, destinationIndex);
         }
       }}
-      onDragCancel={() => setActiveIndex(null)}
-      measuring={measuringConfig}
     >
       <SortableContext
         items={mappedList}
@@ -139,15 +143,21 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
               key={item[propertyIds.id]}
               id={item[propertyIds.id]}
               value={item[propertyIds.value] ?? ""}
+              paperStyle={{ boxShadow }}
+              readonly={readonly}
+              linkedToEntity={Boolean(item[propertyIds.linkEntityId])}
               isDragging={
                 index === activeIndex || droppingId === item[propertyIds.id]
               }
-              onValueChange={(value: string) => onValueChange(index, value)}
-              onItemBlur={() => onItemBlur()}
-              onDelete={() => onDelete(index)}
-              paperStyle={{ boxShadow }}
-              readonly={readonly}
-              linkedToEntity={!!item[propertyIds.linkEntityId]}
+              onValueChange={(value: string) => {
+                onValueChange(index, value);
+              }}
+              onItemBlur={() => {
+                onItemBlur();
+              }}
+              onDelete={() => {
+                onDelete(index);
+              }}
             />
           ))}
           <DragOverlay dropAnimation={dropAnimationConfig}>
@@ -155,6 +165,9 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
               <ItemComponent
                 id={activeItem[propertyIds.id]}
                 value={activeItem[propertyIds.value] ?? ""}
+                dragOverlay={dragOverlayRef}
+                readonly={readonly}
+                linkedToEntity={Boolean(activeItem[propertyIds.linkEntityId])}
                 paperStyle={{
                   boxShadow: draggingBoxShadow,
                   transform: "scale(1.05)",
@@ -168,9 +181,6 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
                   },
                   animation: `pop 250ms normal ease`,
                 }}
-                dragOverlay={dragOverlayRef}
-                readonly={readonly}
-                linkedToEntity={!!activeItem[propertyIds.linkEntityId]}
               />
             ) : null}
           </DragOverlay>

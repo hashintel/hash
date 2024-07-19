@@ -1,10 +1,10 @@
-import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { Context } from "@temporalio/activity";
 import { JSDOM } from "jsdom";
 import _puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import sanitizeHtml from "sanitize-html";
+import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { Context } from "@temporalio/activity";
 
 import { logger } from "./shared/activity-logger.js";
 import { getFlowContext } from "./shared/get-flow-context.js";
@@ -85,14 +85,14 @@ export const sanitizeHtmlForLlmConsumption = (params: {
   });
 
   const dom = new JSDOM(sanitizedHtml);
-  const document = dom.window.document;
+  const {document} = dom.window;
 
   const elements = document.querySelectorAll(
     disallowedTagsWithNoRelevantAttributes.join(","),
   );
 
   for (const element of elements) {
-    if (!element.attributes.length) {
+    if (element.attributes.length === 0) {
       while (element.firstChild) {
         element.parentNode?.insertBefore(element.firstChild, element);
       }
@@ -102,7 +102,7 @@ export const sanitizeHtmlForLlmConsumption = (params: {
 
   const sanitizedHtmlWithNoDisallowedTags = document.body.innerHTML
     // Remove any whitespace between tags
-    .replace(/>\s+</g, "><")
+    .replaceAll(/>\s+</g, "><")
     .trim();
 
   const slicedSanitizedHtml = sliceContentForLlmConsumption({
@@ -135,7 +135,7 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
     });
 
     const timeoutPromise = new Promise((resolve) => {
-      setTimeout(() => resolve(undefined), timeout);
+      setTimeout(() => { resolve(undefined); }, timeout);
     });
 
     /**
@@ -166,17 +166,17 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
     await browser.close();
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    const errMessage = (error as Error).message ?? "Unknown error";
+    const errorMessage = (error as Error).message ?? "Unknown error";
 
-    logger.error(`Failed to load URL ${url} in Puppeteer: ${errMessage}`);
+    logger.error(`Failed to load URL ${url} in Puppeteer: ${errorMessage}`);
 
     return {
       /**
-       * @todo H-2604 consider returning this as a structured error that the calling code rather than the LLM can handle
+       * @todo H-2604 consider returning this as a structured error that the calling code rather than the LLM can handle.
        */
-      htmlContent: `Could not load page: ${errMessage}`,
-      innerText: `Could not load page: ${errMessage}`,
-      title: `Error loading page: ${errMessage}`,
+      htmlContent: `Could not load page: ${errorMessage}`,
+      innerText: `Could not load page: ${errorMessage}`,
+      title: `Error loading page: ${errorMessage}`,
       url,
     };
   }
@@ -193,9 +193,10 @@ const getWebPageFromBrowser = async (url: string): Promise<WebPage> => {
   });
 
   const webPage = externalResponse.data.webPages[0];
+
   if (!webPage) {
     /** No webpage returned from external source, fallback to whatever Puppeteer can provide */
-    return await getWebPageFromPuppeteer(url);
+    return getWebPageFromPuppeteer(url);
   }
 
   return webPage;
@@ -208,13 +209,15 @@ export const getWebPageActivity = async (params: {
   const { sanitizeForLlm, url } = params;
 
   let urlObject: URL;
+
   try {
     urlObject = new URL(url);
   } catch {
-    const errorMsg = `Invalid URL provided to getWebPageActivity: ${url}`;
-    logger.error(errorMsg);
+    const errorMessage = `Invalid URL provided to getWebPageActivity: ${url}`;
 
-    return { error: errorMsg };
+    logger.error(errorMessage);
+
+    return { error: errorMessage };
   }
 
   const {

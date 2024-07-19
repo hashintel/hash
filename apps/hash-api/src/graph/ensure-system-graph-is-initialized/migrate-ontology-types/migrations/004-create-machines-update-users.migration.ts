@@ -1,5 +1,4 @@
-import type { EntityType } from "@blockprotocol/type-system";
-import { atLeastOne } from "@blockprotocol/type-system";
+import type { atLeastOne,EntityType  } from "@blockprotocol/type-system";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
@@ -21,7 +20,7 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /**
-   * Step 1. Create the Actor entity type, which User and Machine will inherit from
+   * Step 1. Create the Actor entity type, which User and Machine will inherit from.
    */
   const actorEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -39,7 +38,7 @@ const migrate: MigrationFunction = async ({
   );
 
   /**
-   * Step 2: Create the Machine entity type
+   * Step 2: Create the Machine entity type.
    */
   const machineIdentifierPropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {

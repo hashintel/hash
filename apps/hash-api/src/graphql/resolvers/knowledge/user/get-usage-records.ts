@@ -1,3 +1,4 @@
+import { ForbiddenError } from "apollo-server-express";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -8,10 +9,7 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { AccountEntityId } from "@local/hash-subgraph";
-import { extractAccountId } from "@local/hash-subgraph";
-import { ForbiddenError } from "apollo-server-express";
-
+import type { AccountEntityId , extractAccountId } from "@local/hash-subgraph";
 import { getEntities } from "../../../../graph/knowledge/primitive/entity";
 import type {
   Query,
@@ -56,6 +54,7 @@ export const getUsageRecordsResolver: ResolverFn<
   );
 
   const records: UserUsageRecords[] = [];
+
   // @todo support getting org usage records
   for (const user of users) {
     const { shortname } = simplifyProperties(user.properties as UserProperties);
@@ -71,6 +70,7 @@ export const getUsageRecordsResolver: ResolverFn<
         webId: userAccountId as OwnedById,
       },
     );
+
     records.push({ shortname: shortname ?? "NO SHORTNAME", usageRecords });
   }
 

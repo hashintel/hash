@@ -1,17 +1,15 @@
-import type { BlockComponent } from "@blockprotocol/graph/react";
-import {
+import { useEffect, useRef, useState } from "react";
+import type { BlockComponent ,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
-import { useEffect, useRef, useState } from "react";
 
 import styles from "./app.module.css";
 import { Editor } from "./editor";
 import { CopyIcon } from "./icons";
 import { propertyIds } from "./property-ids";
 import type { BlockEntity } from "./types/generated/block-entity";
-import type { LanguageType } from "./utils";
-import { languages } from "./utils";
+import type { languages,LanguageType  } from "./utils";
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -81,6 +79,7 @@ export const App: BlockComponent<BlockEntity> = ({
       ...localData,
       [propertyIds.language]: newLanguage,
     };
+
     updateLocalData(newData);
     updateRemoteData(newData);
   };
@@ -95,23 +94,24 @@ export const App: BlockComponent<BlockEntity> = ({
             : "",
         );
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setTimeout(() => { setCopied(false); }, 2000);
+
         return;
       }
 
       if (document.queryCommandEnabled("copy")) {
-        if (!editorRef.current) return;
+        if (!editorRef.current) {return;}
         editorRef.current.select();
         const success = document.execCommand("copy");
 
         if (success) {
           setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
+          setTimeout(() => { setCopied(false); }, 2000);
         }
       }
-    } catch (err) {
-      // eslint-disable-next-line no-console -- TODO: consider using logger
-      console.error(err);
+    } catch (error) {
+       
+      console.error(error);
     }
   };
 
@@ -125,12 +125,12 @@ export const App: BlockComponent<BlockEntity> = ({
 
   useEffect(() => {
     if (captionRef.current !== document.activeElement) {
-      setCaptionVisibility(!!localData[propertyIds.caption]?.length);
+      setCaptionVisibility(Boolean(localData[propertyIds.caption]?.length));
     }
   }, [localData]);
 
   const handleCaptionInputBlur = () => {
-    setCaptionVisibility(!!captionRef.current?.value.length);
+    setCaptionVisibility(Boolean(captionRef.current?.value.length));
     updateRemoteData(localData);
   };
 
@@ -143,7 +143,7 @@ export const App: BlockComponent<BlockEntity> = ({
             value={localData[propertyIds.language]}
             onChange={
               // @todo remove assertion when the type system supports enums and CodeSnippet type is update
-              (evt) => handleLanguageChange(evt.target.value as LanguageType)
+              (event) => { handleLanguageChange(event.target.value as LanguageType); }
             }
           >
             {languages.map(({ code, title }) => (
@@ -155,7 +155,7 @@ export const App: BlockComponent<BlockEntity> = ({
 
           <div className={styles.buttonContainer}>
             <button
-              type="button"
+              type={"button"}
               className={styles.copyToClipboardButton}
               onClick={copyToClipboard}
             >
@@ -163,7 +163,7 @@ export const App: BlockComponent<BlockEntity> = ({
             </button>
             {!readonly && (
               <button
-                type="button"
+                type={"button"}
                 className={styles.captionButton}
                 onClick={handleCaptionButtonClick}
               >
@@ -173,31 +173,31 @@ export const App: BlockComponent<BlockEntity> = ({
           </div>
         </div>
         <Editor
+          language={localData[propertyIds.language] as LanguageType}
+          setContent={(text) =>
+            updateLocalData({ [propertyIds.content]: text })
+          }
+          // @todo remove assertion when the type system supports enums and CodeSnippet type is update
+          editorRef={editorRef}
+          readonly={!!readonly}
           content={
             typeof localData[propertyIds.content] === "string"
               ? (localData[propertyIds.content] as string)
               : ""
           }
-          setContent={(text) =>
-            updateLocalData({ [propertyIds.content]: text })
-          }
-          // @todo remove assertion when the type system supports enums and CodeSnippet type is update
-          language={localData[propertyIds.language] as LanguageType}
-          editorRef={editorRef}
           onBlur={() => updateRemoteData(localData)}
-          readonly={!!readonly}
         />
       </div>
       <input
         ref={captionRef}
         className={styles.caption}
         style={captionIsVisible ? {} : { visibility: "hidden" }}
-        placeholder="Write a caption..."
+        placeholder={"Write a caption..."}
         value={localData[propertyIds.caption] ?? ""}
-        onChange={(evt) =>
-          updateLocalData({ [propertyIds.caption]: evt.target.value })
-        }
         onBlur={handleCaptionInputBlur}
+        onChange={(event) =>
+          { updateLocalData({ [propertyIds.caption]: event.target.value }); }
+        }
       />
     </div>
   );

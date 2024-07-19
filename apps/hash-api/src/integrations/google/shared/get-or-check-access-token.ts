@@ -1,9 +1,9 @@
+import type { Request, Response } from "express";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
-import type { Request, Response } from "express";
 
 import { enabledIntegrations } from "../../enabled-integrations";
 
@@ -23,21 +23,24 @@ export const getGoogleAccessTokenForExpressRequest = async ({
 }) => {
   if (!req.user) {
     res.status(401).send({ error: "User not authenticated." });
+
     return;
   }
 
   if (!req.context.vaultClient) {
     res.status(501).send({ error: "Vault integration is not configured." });
+
     return;
   }
 
   if (!enabledIntegrations.googleSheets) {
     res.status(501).send({ error: "Google integration is not enabled." });
+
     return;
   }
 
   /**
-   * Get the Google Account and ensure it has an available token
+   * Get the Google Account and ensure it has an available token.
    */
   const googleAccount = await getGoogleAccountById({
     graphApiClient: req.context.graphApi,
@@ -49,6 +52,7 @@ export const getGoogleAccessTokenForExpressRequest = async ({
     res.status(404).send({
       error: `Google account with id ${googleAccountId} not found.`,
     });
+
     return;
   }
 
@@ -65,10 +69,12 @@ export const getGoogleAccessTokenForExpressRequest = async ({
     res.status(500).send({
       error: errorMessage,
     });
+
     return;
   }
 
   const googleOAuth2Client = createGoogleOAuth2Client();
+
   googleOAuth2Client.setCredentials(tokens);
 
   const response = await googleOAuth2Client.getAccessToken();
@@ -77,6 +83,7 @@ export const getGoogleAccessTokenForExpressRequest = async ({
     res.status(500).send({
       error: errorMessage,
     });
+
     return;
   }
 

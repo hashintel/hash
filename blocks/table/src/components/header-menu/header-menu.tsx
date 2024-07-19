@@ -1,8 +1,9 @@
-import type { Rectangle } from "@glideapps/glide-data-grid";
 import { useLayer } from "react-laag";
 import { useKey } from "rooks";
+import type { Rectangle } from "@glideapps/glide-data-grid";
 
 import { DangerButton } from "../shared/danger-button";
+
 import styles from "./styles.module.scss";
 
 interface HeaderMenuProps {
@@ -47,13 +48,13 @@ export const HeaderMenu = ({
       <input
         autoFocus
         defaultValue={title}
-        onChange={(event) => updateTitle(event.target.value)}
+        onChange={(event) => { updateTitle(event.target.value); }}
       />
       <DangerButton
-        onClick={onDelete}
         sx={{
           padding: ({ spacing }) => spacing(0.75, 1),
         }}
+        onClick={onDelete}
       >
         Delete
       </DangerButton>

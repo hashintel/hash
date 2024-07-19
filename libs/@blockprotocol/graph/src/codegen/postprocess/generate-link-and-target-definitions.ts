@@ -5,14 +5,14 @@ import { typedEntries, typedValues } from "../../util/typed-object-iter.js";
 import type { PostprocessContext } from "../context/postprocess.js";
 import { entityDefinitionNameForEntityType } from "../shared.js";
 
-type IdentifierToCompiledDefinition = {
+interface IdentifierToCompiledDefinition {
   identifier: string;
   compiledContents: string;
   dependentOnIdentifiers: string[];
-};
+}
 
 /**
- * Create the individual definition of a `LinkAndTargetEntity` for a given outgoing link from a source
+ * Create the individual definition of a `LinkAndTargetEntity` for a given outgoing link from a source.
  *
  * @param sourceName
  * @param linkIdentifier
@@ -27,6 +27,7 @@ const individualOutgoingLinkAndTargetDefinition = (
 
   const targetUnion = targetIdentifiers.join(" | ");
   const compiledContents = `export type ${identifier} = { linkEntity: ${linkIdentifier}; rightEntity: ${targetUnion} }`;
+
   return {
     identifier,
     compiledContents,
@@ -35,7 +36,7 @@ const individualOutgoingLinkAndTargetDefinition = (
 };
 
 /**
- * Create a lookup map of a link entity type ID to its associated link and target definition
+ * Create a lookup map of a link entity type ID to its associated link and target definition.
  *
  * @param entityName
  * @param linkEntityTypeIdToLinkAndTargetIdentifiers
@@ -64,7 +65,7 @@ const lookupDefinition = (
 };
 
 /**
- * Generates the union of all outgoing link and target definitions for a given entity
+ * Generates the union of all outgoing link and target definitions for a given entity.
  *
  * @param entityName
  * @param linkAndTargetIdentifiers
@@ -88,7 +89,7 @@ const linkAndTargetsUnionDefinition = (
 };
 
 /**
- * Generates definitions associated with the outgoing links and their targets of a given entity
+ * Generates definitions associated with the outgoing links and their targets of a given entity.
  *
  * @param entityName
  * @param entityTypeId
@@ -117,8 +118,7 @@ const generateOutgoingLinkAndTargetDefinitionsForEntity = (
       linkIdentifier: linkEntityIdentifier,
       targetIdentifiers: [],
     };
-    const targetIdentifiers =
-      mappedLinkAndTargetIdentifiers[linkTypeId].targetIdentifiers;
+    const {targetIdentifiers} = mappedLinkAndTargetIdentifiers[linkTypeId];
 
     if ("oneOf" in targetEntityTypeRefs.items) {
       for (const targetEntityTypeRef of targetEntityTypeRefs.items.oneOf) {
@@ -144,6 +144,7 @@ const generateOutgoingLinkAndTargetDefinitionsForEntity = (
             `Internal error, no target identifiers for link entity ${linkIdentifier}`,
           );
         }
+
         return [
           linkTypeId,
           individualOutgoingLinkAndTargetDefinition(
@@ -253,6 +254,7 @@ export const generateLinkAndTargetDefinitions = (
   )) {
     for (const dependentIdentifier of dependentIdentifiers) {
       const entityTypeId = entityTypeIdentifiersToIds[dependentIdentifier];
+
       if (entityTypeId) {
         const { entityName, lookup, linkAndTargets, linkAndTargetsUnion } =
           mustBeDefined(

@@ -1,14 +1,12 @@
 import "../../shared/testing-utilities/mock-get-flow-context.js";
-
-import type { InputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 import { expect, test } from "vitest";
+import type { actionDefinitions,InputNameForAction  } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 
 import { getWebPageSummaryAction } from "./get-web-page-summary-action.js";
 
 test.skip(
-  "Test getWebPageSummaryAction",
+  "test getWebPageSummaryAction",
   async () => {
     const url = "https://www.amazon.com/stores/author/B072YR2LJP";
 

@@ -1,14 +1,11 @@
 import "react-datepicker/dist/react-datepicker.css";
 import "./datepicker-override.scss";
 import "./styles.scss";
-
-import type { BlockComponent } from "@blockprotocol/graph/react";
-import {
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { BlockComponent ,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
-import { useCallback, useEffect, useRef, useState } from "react";
-
 import { CountdownTitle } from "./countdown-title";
 import { DatePickerInput } from "./date-picker-input";
 import { Display } from "./display";
@@ -47,7 +44,7 @@ export const App: BlockComponent<BlockEntity> = ({
   }, [title]);
 
   useEffect(() => {
-    setLocalDisplayTime(!!displayTime);
+    setLocalDisplayTime(Boolean(displayTime));
   }, [displayTime]);
 
   const updateRemoteData = useCallback(
@@ -93,6 +90,7 @@ export const App: BlockComponent<BlockEntity> = ({
   const handleDateChange = useCallback(
     (changes: Date | [Date | null, Date | null] | null) => {
       const newTargetDate = Array.isArray(changes) ? changes[0] : changes;
+
       setLocalTargetDate(newTargetDate);
       updateRemoteData({ targetDate: newTargetDate });
     },
@@ -108,20 +106,20 @@ export const App: BlockComponent<BlockEntity> = ({
   );
 
   return (
-    <div ref={blockRef} className="countdown-block">
+    <div ref={blockRef} className={"countdown-block"}>
       <CountdownTitle
         value={localTitle}
+        readonly={Boolean(readonly)}
         onChangeText={setLocalTitle}
         onBlur={updateRemoteData}
-        readonly={!!readonly}
       />
-      <Display targetDate={localTargetDate} displayTime={!!localDisplayTime} />
+      <Display targetDate={localTargetDate} displayTime={Boolean(localDisplayTime)} />
       <DatePickerInput
         selected={localTargetDate}
-        onChange={handleDateChange}
         displayTime={localDisplayTime}
         setDisplayTime={handleDisplayTimeChange}
-        readonly={!!readonly}
+        readonly={Boolean(readonly)}
+        onChange={handleDateChange}
       />
     </div>
   );

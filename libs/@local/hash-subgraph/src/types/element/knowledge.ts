@@ -42,10 +42,10 @@ export const isEntityRecordId: typeof isEntityRecordIdBp = (
   );
 };
 
-export type LinkEntityAndRightEntity = {
+export interface LinkEntityAndRightEntity {
   linkEntity: LinkEntity[];
   rightEntity: Entity[];
-};
+}
 
 export type DiffEntityInput = Subtype<
   DiffEntityParams,

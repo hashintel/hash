@@ -50,16 +50,16 @@ export type EntityTypeVertex = Subtype<
   }
 >;
 
-export type EntityVertex<
+export interface EntityVertex<
   Properties extends EntityProperties = EntityProperties,
-> = {
+> {
   kind: "entity";
   inner: Entity<Properties>;
-};
-export type SerializedEntityVertex = {
+}
+export interface SerializedEntityVertex {
   kind: "entity";
   inner: SerializedEntity;
-};
+}
 
 export type OntologyVertex = Subtype<
   OntologyVertexBp,
@@ -112,16 +112,16 @@ export type OntologyVertices = Subtype<
   }
 >;
 
-export type KnowledgeGraphVertices = {
+export interface KnowledgeGraphVertices {
   [entityId: EntityId]: {
     [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
   };
-};
-export type SerializedKnowledgeGraphVertices = {
+}
+export interface SerializedKnowledgeGraphVertices {
   [entityId: EntityId]: {
     [revisionId: EntityRevisionId]: SerializedKnowledgeGraphVertex;
   };
-};
+}
 
 export type Vertices = OntologyVertices & KnowledgeGraphVertices;
 export type SerializedVertices = OntologyVertices &

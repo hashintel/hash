@@ -1,18 +1,18 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
 
-type ErrorResponse = { error: string };
+interface ErrorResponse { error: string }
 
-export type GoogleOAuth2CallbackRequest = {
+export interface GoogleOAuth2CallbackRequest {
   code: string;
-};
+}
 
 export type GoogleOAuth2CallbackResponse =
   | { googleAccountEntityId: EntityId }
   | ErrorResponse;
 
-export type GetGoogleTokenRequest = {
+export interface GetGoogleTokenRequest {
   googleAccountId: string;
-};
+}
 
 export type GetGoogleTokenResponse =
   | {
@@ -20,9 +20,9 @@ export type GetGoogleTokenResponse =
     }
   | ErrorResponse;
 
-export type CheckGoogleTokenRequest = {
+export interface CheckGoogleTokenRequest {
   googleAccountId: string;
-};
+}
 
 export type CheckGoogleTokenResponse =
   | {

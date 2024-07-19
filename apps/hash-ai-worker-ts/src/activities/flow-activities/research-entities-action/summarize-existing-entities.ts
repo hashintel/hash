@@ -1,7 +1,7 @@
+import dedent from "dedent";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import dedent from "dedent";
 
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../shared/get-llm-response.js";
@@ -10,12 +10,12 @@ import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import { simplifyEntity } from "../../shared/simplify-entity.js";
 
-export type ExistingEntitySummary = {
+export interface ExistingEntitySummary {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
   name: string;
   summary: string;
-};
+}
 
 const systemPrompt = dedent(`
   You are an entity summary agent.

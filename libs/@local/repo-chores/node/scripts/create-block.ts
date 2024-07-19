@@ -1,9 +1,9 @@
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { JsonObject } from "@blockprotocol/core";
 import execa from "execa";
 import fs from "fs-extra";
+import type { JsonObject } from "@blockprotocol/core";
 
 import { monorepoRootDirPath } from "./shared/monorepo";
 
@@ -83,6 +83,7 @@ const script = async () => {
   }
 
   const indexFile = path.join(newBlockFolder, "src", "index.ts");
+
   fs.writeFileSync(
     indexFile,
     `/* eslint-disable canonical/filename-no-index */\n${fs

@@ -14,9 +14,7 @@ import type {
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type {
   CreateEntityParameters,
-  SerializedEntity,
-} from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+ Entity,  SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
 import type {
@@ -35,11 +33,9 @@ import {
 import type {
   DataTypeRootType,
   EntityTypeRootType,
-  PropertyTypeRootType,
+ extractEntityUuidFromEntityId,  PropertyTypeRootType,
   SerializedEntityRootType,
-  SerializedSubgraph,
-} from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+  SerializedSubgraph } from "@local/hash-subgraph";
 import {
   getDataTypes,
   getEntities,
@@ -47,10 +43,10 @@ import {
   getPropertyTypes,
 } from "@local/hash-subgraph/stdlib";
 
-export type EntityQueryResponse = {
+export interface EntityQueryResponse {
   subgraph: SerializedSubgraph<SerializedEntityRootType>;
   cursor?: EntityQueryCursor | null;
-};
+}
 
 export const createGraphActivities = ({
   graphApiClient,
@@ -79,6 +75,7 @@ export const createGraphActivities = ({
           const entity_uuid = extractEntityUuidFromEntityId(
             mappedEntity.metadata.recordId.entityId,
           );
+
           return entity_uuid as Uuid as AccountId;
         }),
       );

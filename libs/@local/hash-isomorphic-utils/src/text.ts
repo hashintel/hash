@@ -12,15 +12,17 @@ export const textBlockNodesFromTokens = (
   // eslint-disable-next-line array-callback-return -- TODO: disable the rule because it’s not aware of TS
   tokens.map((token) => {
     switch (token.tokenType) {
-      case "hardBreak":
+      case "hardBreak": {
         return schema.node("hardBreak");
-      case "mention":
+      }
+      case "mention": {
         return schema.node("mention", {
           mentionType: token.mentionType,
           entityId: token.entityId,
           propertyTypeBaseUrl: token.propertyTypeBaseUrl,
           linkEntityTypeBaseUrl: token.linkEntityTypeBaseUrl,
         });
+      }
       case "text": {
         return schema.text(
           token.text,
@@ -37,7 +39,7 @@ export const textBlockNodesFromTokens = (
             ] as const,
           ]
             .filter(([, include]) => include)
-            .map(([mark, _, attrs]) => schema.mark(mark, attrs)),
+            .map(([mark, _, attributes]) => schema.mark(mark, attributes)),
         );
       }
     }

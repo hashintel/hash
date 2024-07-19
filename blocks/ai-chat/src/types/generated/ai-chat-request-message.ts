@@ -2,11 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import {
-  AIChatRequestMessage,
-  AIChatRequestMessageHasResponseLink,
-  AIChatRequestMessageOutgoingLinkAndTarget,
-  AIChatRequestMessageOutgoingLinksByLinkEntityTypeId,
+import type {
   AIChatRequestMessageProperties,
   AIChatResponseMessage,
   AIChatResponseMessageFollowedByLink,
@@ -30,10 +26,6 @@ import {
 } from "./shared";
 
 export type {
-  AIChatRequestMessage,
-  AIChatRequestMessageHasResponseLink,
-  AIChatRequestMessageOutgoingLinkAndTarget,
-  AIChatRequestMessageOutgoingLinksByLinkEntityTypeId,
   AIChatRequestMessageProperties,
   AIChatResponseMessage,
   AIChatResponseMessageFollowedByLink,
@@ -55,3 +47,5 @@ export type {
   TextDataType,
   TextualContentPropertyValue,
 };
+
+export {type AIChatRequestMessage, type AIChatRequestMessageHasResponseLink, type AIChatRequestMessageOutgoingLinkAndTarget, type AIChatRequestMessageOutgoingLinksByLinkEntityTypeId} from "./shared";

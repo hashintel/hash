@@ -14,11 +14,11 @@ import {
 import md5 from "md5";
 
 import { logger } from "../../../../shared/activity-logger.js";
-import type { SimpleStorageContext } from "./simple-storage-context.js";
-import {
-  generateSimpleStorageContextFilePaths,
+
+import type {   generateSimpleStorageContextFilePaths,
   persistSimpleStorageContext,
   retrieveSimpleStorageContext,
+SimpleStorageContext ,
 } from "./simple-storage-context.js";
 
 export const indexPdfFile = async (params: {
@@ -51,6 +51,7 @@ export const indexPdfFile = async (params: {
 
     try {
       const fileStream = createWriteStream(filePath);
+
       await finished(
         Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(
           fileStream,

@@ -22,7 +22,7 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /**
-   * Step 1. Update the `Actor` entity type to define the `displayName` property type
+   * Step 1. Update the `Actor` entity type to define the `displayName` property type.
    */
 
   const currentActorEntityTypeId = getCurrentHashSystemEntityTypeId({
@@ -61,7 +61,7 @@ const migrate: MigrationFunction = async ({
     });
 
   /**
-   * Step 2. Update `Machine` to inherit from the latest version of `Actor`
+   * Step 2. Update `Machine` to inherit from the latest version of `Actor`.
    */
 
   await upgradeDependenciesInHashEntityType(context, authentication, {
@@ -72,7 +72,7 @@ const migrate: MigrationFunction = async ({
 
   /**
    * Step 3: as a drive-by update entity types that reference the
-   * `Image` entity type
+   * `Image` entity type.
    */
 
   const latestImageEntityTypeId = getCurrentHashSystemEntityTypeId({
@@ -93,7 +93,7 @@ const migrate: MigrationFunction = async ({
 
   /**
    * Step 4. Update `User` to inherit from the latest version of `Actor`,
-   * removing the `preferredName` property type in the same update
+   * removing the `preferredName` property type in the same update.
    */
 
   const currentUserEntityTypeId = getCurrentHashSystemEntityTypeId({
@@ -123,18 +123,19 @@ const migrate: MigrationFunction = async ({
       ],
     }),
     properties: Object.entries(userEntityTypeSchema.properties).reduce(
-      (prev, [propertyTypeBaseUrl, value]) => {
+      (previous, [propertyTypeBaseUrl, value]) => {
         if (
           propertyTypeBaseUrl ===
           systemPropertyTypes.preferredName.propertyTypeBaseUrl
         ) {
-          return prev;
-        } else {
+          return previous;
+        }
+ 
           return {
-            ...prev,
+            ...previous,
             [propertyTypeBaseUrl]: value,
           };
-        }
+        
       },
       {},
     ),
@@ -148,7 +149,7 @@ const migrate: MigrationFunction = async ({
     });
 
   /**
-   * Step 5: Update entity types that reference the `User` entity type
+   * Step 5: Update entity types that reference the `User` entity type.
    */
 
   await upgradeDependenciesInHashEntityType(context, authentication, {
@@ -165,7 +166,7 @@ const migrate: MigrationFunction = async ({
 
   /**
    * Step 6. Update entity types that reference the `Organization` entity type
-   * (excluding the `User` entity type which was updated in step 4)
+   * (excluding the `User` entity type which was updated in step 4).
    */
 
   await upgradeDependenciesInHashEntityType(context, authentication, {
@@ -175,7 +176,7 @@ const migrate: MigrationFunction = async ({
   });
 
   /**
-   * Step 7: Assign entities of updated types to the latest version
+   * Step 7: Assign entities of updated types to the latest version.
    */
   const baseUrls = [
     systemEntityTypes.machine.entityTypeBaseUrl,

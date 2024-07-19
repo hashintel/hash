@@ -1,5 +1,4 @@
-import type { ButtonProps } from "@hashintel/design-system";
-import { Button } from "@hashintel/design-system";
+import type { Button,ButtonProps  } from "@hashintel/design-system";
 import { Link } from "@mui/material";
 
 export const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
@@ -12,7 +11,7 @@ export const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
     >
       <Button
         {...props}
-        variant="tertiary_quiet"
+        variant={"tertiary_quiet"}
         sx={[
           ({ palette }) => ({
             height: 42,
@@ -26,7 +25,7 @@ export const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
             paddingY: 1.5,
             paddingX: 2.5,
           }),
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- TODO why is this inferred as any?
+           
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
       >

@@ -15,7 +15,7 @@ import type {
  * Get the `hasLeftEntity` and `hasRightEntity` resolve depths for a block
  * collection entity.
  *
- * @param blockDataDepth - the depth at which to resolve linked block data entities (1 by default)
+ * @param blockDataDepth - The depth at which to resolve linked block data entities (1 by default).
  */
 export const getBlockCollectionResolveDepth = ({
   blockDataDepth = 1,

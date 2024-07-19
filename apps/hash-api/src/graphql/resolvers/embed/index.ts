@@ -34,7 +34,7 @@ interface IoEmbedData {
   endpoints: Endpoint[];
 }
 
-type OembedResponse = {
+interface OembedResponse {
   title: string;
   author_name: string;
   author_url: string;
@@ -48,7 +48,7 @@ type OembedResponse = {
   thumbnail_width: number;
   thumbnail_url: string;
   html: string;
-};
+}
 
 const getOembedEndpoint = (url: string, type?: string) => {
   for (const { provider_name, endpoints } of oEmbedData as IoEmbedData[]) {
@@ -56,9 +56,9 @@ const getOembedEndpoint = (url: string, type?: string) => {
       continue;
     }
     for (const endpoint of endpoints) {
-      const isMatch = !!endpoint.schemes?.find((scheme) =>
+      const isMatch = Boolean(endpoint.schemes?.find((scheme) =>
         scheme.split("*").every((substring) => url.search(substring) > -1),
-      );
+      ));
 
       if (isMatch) {
         return endpoint.url;
@@ -82,7 +82,7 @@ async function getEmbedResponse({
     };
   }
 
-  return await fetch(`${oembedEndpoint}?url=${url}&maxwidth=1000`).then(
+  return fetch(`${oembedEndpoint}?url=${url}&maxwidth=1000`).then(
     (response) => response.json(),
   );
 }
@@ -96,7 +96,7 @@ export const embedCode: ResolverFn<
   const embedResponse = (await getEmbedResponse({
     url,
     type,
-  }).catch((__) => {
+  }).catch((error_) => {
     throw new ApolloError(
       `Embed Code for URL ${url} not found${
         type?.trim() ? ` for type ${type}` : ""

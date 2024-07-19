@@ -5,27 +5,27 @@ import type { PropertyPatchOperation } from "@local/hash-graph-types/entity";
 
 import type { ImpureGraphContext } from "../../../context-types";
 
-type UpdateEntityHookCallbackBaseParams = {
+interface UpdateEntityHookCallbackBaseParams {
   context: ImpureGraphContext<false, true>;
   authentication: AuthenticationContext;
   previousEntity: Entity;
   propertyPatches: PropertyPatchOperation[];
-};
+}
 
 export type BeforeUpdateEntityHookCallback = (
   params: UpdateEntityHookCallbackBaseParams,
 ) => Promise<void>;
 
-export type BeforeUpdateEntityHook = {
+export interface BeforeUpdateEntityHook {
   entityTypeId: VersionedUrl;
   callback: BeforeUpdateEntityHookCallback;
-};
+}
 
 export type AfterUpdateEntityHookCallback = (
   params: UpdateEntityHookCallbackBaseParams & { updatedEntity: Entity },
 ) => Promise<void>;
 
-export type AfterUpdateEntityHook = {
+export interface AfterUpdateEntityHook {
   entityTypeId: VersionedUrl;
   callback: AfterUpdateEntityHookCallback;
-};
+}

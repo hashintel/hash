@@ -1,10 +1,10 @@
-import type { JsonObject } from "@blockprotocol/core";
-import type { ClientOptions } from "@opensearch-project/opensearch";
-import { Client, errors } from "@opensearch-project/opensearch";
 import { DataSource } from "apollo-datasource";
+import type { JsonObject } from "@blockprotocol/core";
+import type { Client, ClientOptions , errors } from "@opensearch-project/opensearch";
 
 import type { Logger } from "../logger.js";
 import { sleep } from "../utils.js";
+
 import type {
   SearchAdapter,
   SearchField,
@@ -17,7 +17,7 @@ import type {
 
 const KEEP_ALIVE_CURSOR_DURATION = "10m";
 
-export type OpenSearchConfig = {
+export interface OpenSearchConfig {
   host: string;
   port: number;
   auth?: {
@@ -26,7 +26,7 @@ export type OpenSearchConfig = {
   };
   httpsEnabled: boolean;
   maxConnectionAttempts?: number;
-};
+}
 
 /**
  * The OpenSearch pagination endpoint does not provide good context about progress.
@@ -35,18 +35,18 @@ export type OpenSearchConfig = {
  *
  * Also used as an opaque cursor from the user's perspective.
  */
-type OpenSearchCursorExtension = {
+interface OpenSearchCursorExtension {
   seenCount: number;
   pageSize: number;
   openSearchCursor: string;
-};
+}
 
-type RawHit = {
+interface RawHit {
   _index: string;
   _id: string;
   _score: number;
   _source: JsonObject;
-};
+}
 
 const opaqueCursorToString = (params: OpenSearchCursorExtension): string =>
   Buffer.from(JSON.stringify(params)).toString("base64");
@@ -58,6 +58,7 @@ const opaqueCursorParse = (cursor: string): OpenSearchCursorExtension =>
 
 const generateSearchBody = (params: SearchParameters) => {
   const fields = Object.entries(params.fields);
+
   if (
     fields.some(
       ([_, it]) =>
@@ -88,12 +89,14 @@ const generateSearchBody = (params: SearchParameters) => {
       // "((new york) AND (city)) OR (the big apple)". For more see:
       // https://opensearch.org/docs/latest/opensearch/query-dsl/full-text/#query-string
       const matchField = { match: field };
+
       if (!state[presence]) {
         // eslint-disable-next-line no-param-reassign
         state[presence] = [matchField];
       } else {
         state[presence].push(matchField);
       }
+
       return state;
     }, {});
 
@@ -110,7 +113,7 @@ const generateSearchBody = (params: SearchParameters) => {
  * `OpenSearch` is an implementation of the `SearchAdapter` infterface for the
  * OpenSearch.org search index. Use `OpenSearch.connect` to open a connection to a
  * cluster.
- * */
+  */
 export class OpenSearch extends DataSource implements SearchAdapter {
   constructor(
     private client: Client,
@@ -126,38 +129,43 @@ export class OpenSearch extends DataSource implements SearchAdapter {
   ): Promise<OpenSearch> {
     const protocol = cfg.httpsEnabled ? "https" : "http";
     const node = `${protocol}://${cfg.host}:${cfg.port}/`;
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we want to override 0
+     
     const attempts = cfg.maxConnectionAttempts || 10;
+
     if (attempts < 1) {
       throw new Error("config maxConnectionAttempts must be at least 1");
     }
     const retryIntervalMillis = 5_000;
-    const opts: ClientOptions = { node };
+    const options: ClientOptions = { node };
+
     if (cfg.auth) {
-      opts.auth = cfg.auth;
+      options.auth = cfg.auth;
     }
-    let connErr;
+    let connError;
+
     for (let i = 0; i < attempts; i++) {
       try {
-        const client = new Client(opts);
+        const client = new Client(options);
+
         await client.ping();
         logger.info(`Connected to OpenSearch cluster at ${node}`);
+
         return new OpenSearch(client, logger);
-      } catch (err) {
-        connErr = err;
+      } catch (error) {
+        connError = error;
         logger.info({
           message: `Unable to connect to OpenSearch cluster at ${node} (attempt ${
             i + 1
           }/${attempts}). Trying again in ${
             retryIntervalMillis / 1000
           } seconds`,
-          error: err,
+          error,
         });
         await sleep(retryIntervalMillis);
       }
     }
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
-    throw new Error(`connecting to OpenSearch: ${connErr}`);
+    throw new Error(`connecting to OpenSearch: ${connError}`);
   }
 
   /** Close the connection to the OpenSearch cluster. */
@@ -167,10 +175,11 @@ export class OpenSearch extends DataSource implements SearchAdapter {
 
   /**
    * Create a new index.
-   * @param params.index the name of the index.
+   *
+   * @param params.index - The name of the index.
    * @todo: should be able to define type mappings here. Currently just creating an
    * index with a dynamic mapping.
-   * */
+    */
   async createIndex(params: { index: string }) {
     await this.client.indices.create({
       index: params.index,
@@ -179,7 +188,8 @@ export class OpenSearch extends DataSource implements SearchAdapter {
 
   /**
    * Delete an index. Does nothing if the index does not exist.
-   * @param params.index the name of the index.
+   *
+   * @param params.index - The name of the index.
    */
   async deleteIndex(params: { index: string }) {
     await this.client.indices.delete({
@@ -189,10 +199,12 @@ export class OpenSearch extends DataSource implements SearchAdapter {
 
   /**
    * Check if an index exists.
-   * @param params.index the name of the index.
-   * */
+   *
+   * @param params.index - The name of the index.
+    */
   async indexExists(params: { index: string }): Promise<boolean> {
     const resp = await this.client.indices.exists(params);
+
     return resp.statusCode === 200;
   }
 
@@ -221,6 +233,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
     });
 
     const { body, statusCode } = resp;
+
     if (statusCode !== 200) {
       // @todo: could have inspect the response for the tyep of error -- e.g. index
       // does not exist
@@ -242,19 +255,20 @@ export class OpenSearch extends DataSource implements SearchAdapter {
 
   private async clearScrollAndReturnUndefined(cursor: string) {
     await this.client.clear_scroll({ scroll_id: cursor });
+
     return undefined;
   }
 
   /**
    * Decide whether to increment the search cursor or to clear it.
-   * If there are no more pages left (we've seen all `total` hits) then clear
+   * If there are no more pages left (we've seen all `total` hits) then clear.
    *
-   * @param params.hitCount number of hits in the result
-   * @param params.seenCount number of hits seen so far (not including the newly seen)
-   * @param params.total  number of hits for the whole search
-   * @param params.openSearchCursor cursor used to receive the current result
-   * @param params.nextOpenSearchCursor cursor to retrieve results after the current results
-   * @returns a search cursor that contain more data or `undefined`
+   * @param params.hitCount - Number of hits in the result.
+   * @param params.seenCount - Number of hits seen so far (not including the newly seen).
+   * @param params.total  - Number of hits for the whole search.
+   * @param params.openSearchCursor - Cursor used to receive the current result.
+   * @param params.nextOpenSearchCursor - Cursor to retrieve results after the current results.
+   * @returns A search cursor that contain more data or `undefined`.
    */
   private async incrementOrClearOpenSearchCursor(params: {
     pageSize: number;
@@ -280,7 +294,9 @@ export class OpenSearch extends DataSource implements SearchAdapter {
       seenSoFar >= total;
 
     if (endOfSearch) {
-      return await this.clearScrollAndReturnUndefined(openSearchCursor);
+      await this.clearScrollAndReturnUndefined(openSearchCursor);
+
+ return;
     }
 
     /**
@@ -312,7 +328,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
    * it should be replaced with a custom pagination technique as described
    * in the end of the following section in documentation
    * https://opensearch.org/docs/latest/opensearch/ux/#sort-results
-   * "search contexts consume a lot of memory"
+   * "search contexts consume a lot of memory".
    */
   async startPaginatedSearch(
     params: Parameters<SearchAdapter["startPaginatedSearch"]>[0],
@@ -330,6 +346,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
     });
 
     const { body, statusCode } = resp;
+
     if (statusCode !== 200) {
       // @todo: could inspect the response for the type of error -- e.g. index
       // does not exist
@@ -353,9 +370,9 @@ export class OpenSearch extends DataSource implements SearchAdapter {
       hitCount: hits.length,
       seenCount: 0,
       total,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+       
       openSearchCursor: body._scroll_id,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+       
       nextOpenSearchCursor: body._scroll_id,
     });
 
@@ -380,21 +397,23 @@ export class OpenSearch extends DataSource implements SearchAdapter {
 
     // When a search is continued
     let resp;
+
     try {
       resp = await this.client.scroll({
         scroll: KEEP_ALIVE_CURSOR_DURATION,
         scroll_id: openSearchCursor,
       });
-    } catch (ex) {
-      if (ex instanceof errors.ResponseError && ex.statusCode === 404) {
+    } catch (error) {
+      if (error instanceof errors.ResponseError && error.statusCode === 404) {
         throw new Error(
           "OpenSearch could not execute query. Perhaps the cursor is closed or the query is malformed?",
         );
       }
-      throw ex;
+      throw error;
     }
 
     const { body, statusCode } = resp;
+
     if (statusCode !== 200) {
       // @todo: could have inspect the response for the tyep of error -- e.g. index
       // does not exist
@@ -419,7 +438,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
       seenCount,
       total,
       openSearchCursor,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+       
       nextOpenSearchCursor: body._scroll_id,
     });
 

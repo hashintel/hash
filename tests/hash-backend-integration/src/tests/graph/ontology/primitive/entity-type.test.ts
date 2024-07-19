@@ -1,8 +1,8 @@
+import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { joinOrg,User  } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createEntityType,
   getEntityTypeById,
@@ -29,7 +29,6 @@ import {
   isOwnedOntologyElementMetadata,
   linkEntityTypeUrl,
 } from "@local/hash-subgraph";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -92,8 +91,8 @@ beforeAll(async () => {
           },
         },
       ],
-    }).then((val) => {
-      workerEntityType = val;
+    }).then((value) => {
+      workerEntityType = value;
     }),
     createEntityType(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
@@ -110,8 +109,8 @@ beforeAll(async () => {
           },
         },
       ],
-    }).then((val) => {
-      addressEntityType = val;
+    }).then((value) => {
+      addressEntityType = value;
     }),
     createPropertyType(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
@@ -127,8 +126,8 @@ beforeAll(async () => {
           },
         },
       ],
-    }).then((val) => {
-      favoriteBookPropertyType = val;
+    }).then((value) => {
+      favoriteBookPropertyType = value;
     }),
     createPropertyType(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
@@ -144,8 +143,8 @@ beforeAll(async () => {
           },
         },
       ],
-    }).then((val) => {
-      namePropertyType = val;
+    }).then((value) => {
+      namePropertyType = value;
     }),
     createEntityType(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
@@ -165,8 +164,8 @@ beforeAll(async () => {
           },
         },
       ],
-    }).then((val) => {
-      knowsLinkEntityType = val;
+    }).then((value) => {
+      knowsLinkEntityType = value;
     }),
     createEntityType(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
@@ -185,8 +184,8 @@ beforeAll(async () => {
           },
         },
       ],
-    }).then((val) => {
-      previousAddressLinkEntityType = val;
+    }).then((value) => {
+      previousAddressLinkEntityType = value;
     }),
   ]);
 
@@ -228,10 +227,10 @@ beforeAll(async () => {
   };
 });
 
-describe("Entity type CRU", () => {
+describe("entity type CRU", () => {
   let createdEntityType: EntityTypeWithMetadata;
 
-  it("can create an entity type", async () => {
+  test("can create an entity type", async () => {
     const authentication = { actorId: testUser.accountId };
 
     createdEntityType = await createEntityType(graphContext, authentication, {
@@ -255,7 +254,7 @@ describe("Entity type CRU", () => {
     });
   });
 
-  it("can read an entity type", async () => {
+  test("can read an entity type", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const fetchedEntityType = await getEntityTypeById(
@@ -271,7 +270,7 @@ describe("Entity type CRU", () => {
 
   const updatedTitle = "New text!";
 
-  it("can update an entity type", async () => {
+  test("can update an entity type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdEntityType.metadata) &&
         createdEntityType.metadata.provenance.edition.createdById,
@@ -296,7 +295,7 @@ describe("Entity type CRU", () => {
           { relation: "instantiator", subject: { kind: "public" } },
         ],
       },
-    ).catch((err) => Promise.reject(err.data));
+    ).catch((error) => Promise.reject(error.data));
 
     expect(
       isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
@@ -304,7 +303,7 @@ describe("Entity type CRU", () => {
     ).toBe(testUser2.accountId);
   });
 
-  it.skip("can load an external type on demand", async () => {
+  test.skip("can load an external type on demand", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const entityTypeId =

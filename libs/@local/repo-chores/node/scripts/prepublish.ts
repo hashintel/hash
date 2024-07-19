@@ -12,13 +12,14 @@ import {
 } from "./shared/package-infos";
 import { updateJson } from "./shared/update-json";
 
-const replaceWithDistPath = (exportPath: string, extension: ".d.ts" | ".js") =>
+const replaceWithDistributionPath = (exportPath: string, extension: ".d.ts" | ".js") =>
   exportPath.replace("src", "dist").replace(".ts", extension);
 
 const script = async () => {
   console.log(chalk.bold("Cleaning up before publishing..."));
 
   const packageInfo = await derivePackageInfoFromEnv();
+
   outputPackageInfo(packageInfo);
 
   if (await checkIfDirHasUncommittedChanges(packageInfo.path)) {
@@ -89,17 +90,17 @@ const script = async () => {
         for (const [key, exportPath] of Object.entries(
           packageJson.exports as Record<string, string>,
         )) {
-          packageJson.exports[key] = replaceWithDistPath(exportPath, ".js");
+          packageJson.exports[key] = replaceWithDistributionPath(exportPath, ".js");
         }
         for (const [key, typePathArray] of Object.entries(
           packageJson.typesVersions["*"] as Record<string, string[]>,
         )) {
           packageJson.typesVersions["*"][key] = typePathArray.map(
-            (typePath: string) => replaceWithDistPath(typePath, ".d.ts"),
+            (typePath: string) => replaceWithDistributionPath(typePath, ".d.ts"),
           );
         }
 
-        packageJson.types = replaceWithDistPath(
+        packageJson.types = replaceWithDistributionPath(
           packageJson.types as string,
           ".d.ts",
         );

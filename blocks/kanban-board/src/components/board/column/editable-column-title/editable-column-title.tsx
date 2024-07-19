@@ -9,26 +9,26 @@ export const EditableColumnTitle = ({
   readonly,
 }: {
   title: string;
-  onChange?: (val: string) => void;
+  onChange?: (value: string) => void;
   readonly?: boolean;
 }) => {
-  const [prevTitle, setPrevTitle] = useState(title);
-  const [inputVal, setInputVal] = useState(title);
+  const [previousTitle, setPreviousTitle] = useState(title);
+  const [inputValue, setInputValue] = useState(title);
   const inputRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
 
-  if (prevTitle !== title) {
-    setPrevTitle(title);
-    setInputVal(title);
+  if (previousTitle !== title) {
+    setPreviousTitle(title);
+    setInputValue(title);
   }
 
-  if (!!readonly || !editing) {
+  if (Boolean(readonly) || !editing) {
     return (
       <div
-        role="button"
+        role={"button"}
         tabIndex={0}
-        onClick={() => setEditing(true)}
         className={styles.wrapper}
+        onClick={() => { setEditing(true); }}
       >
         {title}
       </div>
@@ -40,12 +40,12 @@ export const EditableColumnTitle = ({
       autoFocus
       ref={inputRef}
       className={styles.wrapper}
-      value={inputVal}
+      value={inputValue}
+      onBlur={() => { setEditing(false); }}
       onClick={(event) => {
         event.stopPropagation();
         event.preventDefault();
       }}
-      onBlur={() => setEditing(false)}
       onKeyDown={(event) => {
         event.stopPropagation();
 
@@ -54,7 +54,7 @@ export const EditableColumnTitle = ({
         }
       }}
       onChange={(event) => {
-        setInputVal(event.target.value);
+        setInputValue(event.target.value);
         onChange?.(event.target.value);
       }}
     />

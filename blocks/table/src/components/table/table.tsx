@@ -1,17 +1,14 @@
-import type {
-  DataEditorProps,
-  DataEditorRef,
-  GridColumn,
-  GridSelection,
-  Rectangle,
-} from "@glideapps/glide-data-grid";
-import { CompactSelection, GridCellKind } from "@glideapps/glide-data-grid";
-import { ButtonBase, useTheme } from "@mui/material";
 import produce from "immer";
 import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import type { FunctionComponent , useCallback, useMemo, useRef, useState } from "react";
+import type {
+ CompactSelection,   DataEditorProps,
+  DataEditorRef,
+GridCellKind,  GridColumn,
+  GridSelection,
+  Rectangle } from "@glideapps/glide-data-grid";
+import { ButtonBase, useTheme } from "@mui/material";
 
 import type { ColumnKey, RootKey } from "../../additional-types";
 import type {
@@ -20,6 +17,7 @@ import type {
 } from "../../types/generated/block-entity";
 import { Grid, ROW_HEIGHT } from "../grid/grid";
 import { HeaderMenu } from "../header-menu/header-menu";
+
 import { RowActions } from "./row-actions";
 
 const localColumnsKey: RootKey =
@@ -63,7 +61,7 @@ export const Table: FunctionComponent<{
 
   const [localColumns, setLocalColumns] = useState(entityLocalColumns);
   const [localRows, setLocalRows] = useState(entityLocalRows);
-  const [prevBlockEntity, setPrevBlockEntity] = useState(blockEntity);
+  const [previousBlockEntity, setPreviousBlockEntity] = useState(blockEntity);
 
   const [selection, setSelection] = useState<GridSelection>(emptySelection);
   const [headerMenu, setHeaderMenu] = useState<{
@@ -96,6 +94,7 @@ export const Table: FunctionComponent<{
         isDebounceQueued.current = false;
 
         const updateId = Date.now();
+
         updateEntityQueue.current.push(updateId);
         await updateEntity(newProperties);
         updateEntityQueue.current = updateEntityQueue.current.filter(
@@ -113,8 +112,8 @@ export const Table: FunctionComponent<{
       newLocalColumns?: TableLocalColumnPropertyValue[];
       newLocalRows?: Record<string, unknown>[];
     }) => {
-      if (newLocalColumns) setLocalColumns(newLocalColumns);
-      if (newLocalRows) setLocalRows(newLocalRows);
+      if (newLocalColumns) {setLocalColumns(newLocalColumns);}
+      if (newLocalRows) {setLocalRows(newLocalRows);}
 
       isDebounceQueued.current = true;
 
@@ -148,6 +147,7 @@ export const Table: FunctionComponent<{
 
     setImmediate(() => {
       const col = localColumns.length;
+
       gridRef.current?.scrollTo(
         { amount: col, unit: "cell" },
         0,
@@ -157,9 +157,10 @@ export const Table: FunctionComponent<{
 
       setTimeout(() => {
         const bounds = gridRef.current?.getBounds(col, 0);
-        if (!bounds) return;
 
-        bounds.y -= ROW_HEIGHT;
+        if (!bounds) {return;}
+
+        bounds.y = bounds.y - ROW_HEIGHT;
         setHeaderMenu({ col, bounds });
       }, 100);
     });
@@ -167,6 +168,7 @@ export const Table: FunctionComponent<{
 
   const handleAddNewRow = useCallback(() => {
     const newLocalRows = [...localRows, {}];
+
     updateStateAndEntity({ newLocalRows });
   }, [localRows, updateStateAndEntity]);
 
@@ -265,15 +267,17 @@ export const Table: FunctionComponent<{
   const shouldOverrideLocalState =
     !isDebounceQueued.current && !isUpdatingEntity;
 
-  if (blockEntity !== prevBlockEntity && shouldOverrideLocalState) {
-    setPrevBlockEntity(blockEntity);
+  if (blockEntity !== previousBlockEntity && shouldOverrideLocalState) {
+    setPreviousBlockEntity(blockEntity);
 
     const localColumnsChanged = !isEqual(entityLocalColumns, localColumns);
+
     if (localColumnsChanged) {
       setLocalColumns(entityLocalColumns);
     }
 
     const localRowsChanged = !isEqual(entityLocalRows, localRows);
+
     if (localRowsChanged) {
       setLocalRows(entityLocalRows);
     }
@@ -283,7 +287,7 @@ export const Table: FunctionComponent<{
 
   return (
     <>
-      {!!selectedRowCount && !readonly && (
+      {Boolean(selectedRowCount) && !readonly && (
         <RowActions
           selectedRowCount={selectedRowCount}
           onDelete={handleDeleteSelectedRows}
@@ -295,11 +299,17 @@ export const Table: FunctionComponent<{
         rowMarkerWidth={32}
         rows={numberOfRows}
         columns={columns}
+        getRowThemeOverride={getRowThemeOverride}
+        rightElementProps={{ fill: true }}
+        headerHeight={hideHeaderRow ? 0 : ROW_HEIGHT}
+        rowMarkers={hideRowNumbers ? "none" : readonly ? "number" : "both"}
+        rowSelectionMode={"multi"}
+        getCellContent={getCellContent}
+        gridSelection={selection}
         rightElement={
-          !!readonly || hideHeaderRow ? null : (
+          Boolean(readonly) || hideHeaderRow ? null : (
             <ButtonBase
-              type="button"
-              onClick={handleAddNewColumnClick}
+              type={"button"}
               sx={{
                 padding: ({ spacing }) => spacing(0, 1.25),
                 height: 40,
@@ -314,37 +324,42 @@ export const Table: FunctionComponent<{
                   backgroundColor: ({ palette }) => palette.gray[10],
                 },
               }}
+              onClick={handleAddNewColumnClick}
             >
               Add column +
             </ButtonBase>
           )
         }
-        getRowThemeOverride={getRowThemeOverride}
-        onPaste
-        onHeaderMenuClick={handleHeaderMenuClick}
-        onCellsEdited={handleCellsEdited}
-        rightElementProps={{ fill: true }}
         trailingRowOptions={{
           hint: "Add row...",
           sticky: true,
           tint: true,
         }}
+        onPaste
+        onHeaderMenuClick={handleHeaderMenuClick}
+        onCellsEdited={handleCellsEdited}
         onRowAppended={readonly ? undefined : handleAddNewRow}
-        headerHeight={hideHeaderRow ? 0 : ROW_HEIGHT}
-        rowMarkers={hideRowNumbers ? "none" : readonly ? "number" : "both"}
-        rowSelectionMode="multi"
-        getCellContent={getCellContent}
-        gridSelection={selection}
         onGridSelectionChange={setSelection}
       />
-      {!!headerMenu && (
+      {Boolean(headerMenu) && (
         <HeaderMenu
           key={headerMenu.col}
           title={columns[headerMenu.col]?.title ?? ""}
           bounds={headerMenu.bounds}
+          updateTitle={(newTitle) => {
+            updateStateAndEntity({
+              newLocalColumns: localColumns.map((col, index) =>
+                index === headerMenu.col
+                  ? { ...col, [columnTitleKey]: newTitle }
+                  : col,
+              ),
+            });
+          }}
+          onClose={() => { setHeaderMenu(undefined); }}
           onOutsideClick={() => {
             if (justClickedHeaderRef.current) {
               justClickedHeaderRef.current = false;
+
               return;
             }
             setHeaderMenu(undefined);
@@ -356,16 +371,6 @@ export const Table: FunctionComponent<{
               ),
             });
             setHeaderMenu(undefined);
-          }}
-          onClose={() => setHeaderMenu(undefined)}
-          updateTitle={(newTitle) => {
-            updateStateAndEntity({
-              newLocalColumns: localColumns.map((col, index) =>
-                index === headerMenu.col
-                  ? { ...col, [columnTitleKey]: newTitle }
-                  : col,
-              ),
-            });
           }}
         />
       )}

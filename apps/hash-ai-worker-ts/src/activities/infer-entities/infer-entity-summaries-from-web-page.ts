@@ -1,13 +1,14 @@
+import dedent from "dedent";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
-import dedent from "dedent";
 
 import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 import { simplifyEntity } from "../shared/simplify-entity.js";
+
 import { inferEntitySummaries } from "./infer-entity-summaries.js";
 import type {
   DereferencedEntityTypesByTypeId,
@@ -26,7 +27,6 @@ export const inferEntitySummariesFromWebPage = async (params: {
   /**
    * @todo: remove these parameters when the `inferEntities` activity has
    * been deprecated, and access them via `getFlowContext` instead.
-   *
    * @see https://linear.app/hash/issue/H-2621/remove-superfluous-parameters-in-flow-activity-methods-and-use
    */
   userAccountId: AccountId;
@@ -93,7 +93,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
   Your comprehensive list entities of the requested types you are able to infer from the website:
 `);
 
-  return await inferEntitySummaries({
+  return inferEntitySummaries({
     completionPayload: {
       max_tokens: maxTokens,
       messages: [

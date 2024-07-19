@@ -3,16 +3,6 @@
  */
 
 import type {
-  Actor,
-  ActorOutgoingLinkAndTarget,
-  ActorOutgoingLinksByLinkEntityTypeId,
-  ActorProperties,
-  ActorPropertiesWithMetadata,
-  AutomaticInferenceConfigurationPropertyValue,
-  AutomaticInferenceConfigurationPropertyValueWithMetadata,
-  Block,
-  BlockCollection,
-  BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
   BlockCollectionPropertiesWithMetadata,
@@ -187,16 +177,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  Actor,
-  ActorOutgoingLinkAndTarget,
-  ActorOutgoingLinksByLinkEntityTypeId,
-  ActorProperties,
-  ActorPropertiesWithMetadata,
-  AutomaticInferenceConfigurationPropertyValue,
-  AutomaticInferenceConfigurationPropertyValueWithMetadata,
-  Block,
-  BlockCollection,
-  BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
   BlockCollectionPropertiesWithMetadata,
@@ -369,3 +349,5 @@ export type {
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 };
+
+export {type Actor, type ActorOutgoingLinkAndTarget, type ActorOutgoingLinksByLinkEntityTypeId, type ActorProperties, type ActorPropertiesWithMetadata, type AutomaticInferenceConfigurationPropertyValue, type AutomaticInferenceConfigurationPropertyValueWithMetadata, type Block, type BlockCollection, type BlockCollectionOutgoingLinkAndTarget} from "./shared.js";

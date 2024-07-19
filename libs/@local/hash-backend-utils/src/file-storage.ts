@@ -1,10 +1,10 @@
+import type { DataSource } from "apollo-datasource";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { DataSource } from "apollo-datasource";
 
 export const storageTypes = ["AWS_S3", "LOCAL_FILE_SYSTEM"] as const;
 export type StorageType = (typeof storageTypes)[number];
@@ -33,10 +33,11 @@ export const storageProviderLookup: StorageProviderLookup = {};
 export interface FileStorageProvider {
   storageType: StorageType;
   /**
-   * Presigns a file download request for a client to later download a file
-   * @return {string} The download URL to access the file
+   * Presigns a file download request for a client to later download a file.
+   *
+   * @returns {string} The download URL to access the file.
    */
-  presignDownload(params: PresignedDownloadRequest): Promise<string>;
+  presignDownload: (params: PresignedDownloadRequest) => Promise<string>;
 }
 
 export interface GetFileEntityStorageKeyParams {
@@ -53,14 +54,15 @@ export interface UploadableStorageProvider
   extends FileStorageProvider,
     DataSource {
   /**
-   * Presigns a file upload request for a client to later upload a file
-   * @return Promise<Object> contains the presignedPut object with the url to PUT the file to, and the file storage
-   *   configuration used
+   * Presigns a file upload request for a client to later upload a file.
+   *
+   * @returns Promise<Object> contains the presignedPut object with the url to PUT the file to, and the file storage
+   *   configuration used.
    */
-  presignUpload(
+  presignUpload: (
     this: void,
     params: PresignedStorageRequest,
-  ): Promise<{
+  ) => Promise<{
     presignedPut: PresignedPutUpload;
     fileStorageProperties: Omit<File["propertiesWithMetadata"], "value"> & {
       value: Pick<
@@ -81,10 +83,10 @@ export interface UploadableStorageProvider
    * in different paths. The key must reliably have the EntityId and edition timestamp as the 2nd and 3rd to last path
    * segments, to identify the entity.
    */
-  getFileEntityStorageKey(
+  getFileEntityStorageKey: (
     this: void,
     params: GetFileEntityStorageKeyParams,
-  ): FileStorageKey;
+  ) => FileStorageKey;
 }
 
 /** Parameters needed to allow the storage of a file */
@@ -104,7 +106,7 @@ export interface PresignedStorageRequest {
 export interface PresignedDownloadRequest {
   /** The file entity to provide a download URL for */
   entity: Entity<File>;
-  /** File storage key * */
+  /** File storage key */
   key: string;
   /** Expiry delay for the download authorisation */
   expiresInSeconds: number;
@@ -112,7 +114,8 @@ export interface PresignedDownloadRequest {
 
 /**
  * Data returned for a client to be able to send a PUT request to upload a file
- * PUT rather than POST is used for R2 compatibility
+ * PUT rather than POST is used for R2 compatibility.
+ *
  * @see https://developers.cloudflare.com/r2/api/s3/presigned-urls
  */
 export interface PresignedPutUpload {

@@ -31,15 +31,15 @@ export type {
 /**
  * A Facebook account.
  */
-export type FacebookAccount = {
+export interface FacebookAccount {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/facebook-account/v/1";
   properties: FacebookAccountProperties;
   propertiesWithMetadata: FacebookAccountPropertiesWithMetadata;
-};
+}
 
 export type FacebookAccountOutgoingLinkAndTarget = never;
 
-export type FacebookAccountOutgoingLinksByLinkEntityTypeId = {};
+export interface FacebookAccountOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A Facebook account.
@@ -48,7 +48,7 @@ export type FacebookAccountProperties = FacebookAccountProperties1 &
   FacebookAccountProperties2;
 export type FacebookAccountProperties1 = ServiceAccountProperties;
 
-export type FacebookAccountProperties2 = {};
+export interface FacebookAccountProperties2 {}
 
 export type FacebookAccountPropertiesWithMetadata =
   FacebookAccountPropertiesWithMetadata1 &
@@ -56,7 +56,7 @@ export type FacebookAccountPropertiesWithMetadata =
 export type FacebookAccountPropertiesWithMetadata1 =
   ServiceAccountPropertiesWithMetadata;
 
-export type FacebookAccountPropertiesWithMetadata2 = {
+export interface FacebookAccountPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

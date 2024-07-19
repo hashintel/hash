@@ -8,12 +8,9 @@ import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/share
 import type {
   AccountEntityId,
   AccountGroupEntityId,
-} from "@local/hash-subgraph";
-import {
   extractAccountGroupId,
   extractAccountId,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+  extractEntityUuidFromEntityId} from "@local/hash-subgraph";
 
 import type {
   ImpureGraphFunction,
@@ -24,14 +21,13 @@ import {
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import type { Org } from "./org";
-import { getOrgFromEntity } from "./org";
-import type { User } from "./user";
-import { getUserFromEntity } from "./user";
 
-export type OrgMembership = {
+import type { getOrgFromEntity,Org  } from "./org";
+import type { getUserFromEntity,User  } from "./user";
+
+export interface OrgMembership {
   linkEntity: LinkEntity<IsMemberOf>;
-};
+}
 
 export const getOrgMembershipFromLinkEntity: PureGraphFunction<
   { linkEntity: LinkEntity },
@@ -56,9 +52,8 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
 /**
  * Create a system OrgMembership entity.
  *
- * @param params.org - the org
- * @param params.user - the user
- *
+ * @param params.org - The org.
+ * @param params.user - The user.
  * @see {@link createLinkEntity} for the documentation of the remaining parameters
  */
 export const createOrgMembership: ImpureGraphFunction<
@@ -80,6 +75,7 @@ export const createOrgMembership: ImpureGraphFunction<
   );
 
   let linkEntity;
+
   try {
     linkEntity = await createLinkEntity<IsMemberOf>(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
@@ -109,7 +105,7 @@ export const createOrgMembership: ImpureGraphFunction<
 /**
  * Get the org linked to the org membership.
  *
- * @param orgMembership - the org membership
+ * @param orgMembership - The org membership.
  */
 export const getOrgMembershipOrg: ImpureGraphFunction<
   { orgMembership: OrgMembership },
@@ -125,7 +121,7 @@ export const getOrgMembershipOrg: ImpureGraphFunction<
 /**
  * Get the user linked to the org membership.
  *
- * @param params.orgMembership - the org membership
+ * @param params.orgMembership - The org membership.
  */
 export const getOrgMembershipUser: ImpureGraphFunction<
   { orgMembership: OrgMembership },

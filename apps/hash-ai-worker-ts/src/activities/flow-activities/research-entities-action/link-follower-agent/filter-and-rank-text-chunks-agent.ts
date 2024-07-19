@@ -3,10 +3,8 @@ import dedent from "dedent";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type {
-  LlmMessage,
-  LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message.js";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
+ getToolCallsFromLlmAssistantMessage,  LlmMessage,
+  LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type {
   LlmErrorResponse,
   LlmToolDefinition,
@@ -207,7 +205,7 @@ export const filterAndRankTextChunksAgent = async (params: {
   const [toolCall] = toolCalls;
 
   if (!toolCall) {
-    return await retry({
+    return retry({
       retryMessageContent: [
         { type: "text", text: "You haven't made a tool call." },
       ],
@@ -233,7 +231,7 @@ export const filterAndRankTextChunksAgent = async (params: {
       );
 
     if (invalidChunkIds.length > 0) {
-      return await retry({
+      return retry({
         retryMessageContent: [
           {
             type: "tool_result",

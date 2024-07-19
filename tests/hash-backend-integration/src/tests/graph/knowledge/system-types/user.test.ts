@@ -1,20 +1,19 @@
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
   createKratosIdentity,
   kratosIdentityApi,
 } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import {
-  createUser,
+import type {   createUser,
   getUserByKratosIdentityId,
   getUserByShortname,
   isUserMemberOfOrg,
   joinOrg,
+User ,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -33,7 +32,7 @@ const graphContext = createTestImpureGraphContext();
 
 const shortname = generateRandomShortname("userTest");
 
-describe("User model class", () => {
+describe("user model class", () => {
   beforeAll(async () => {
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
   });
@@ -46,7 +45,7 @@ describe("User model class", () => {
 
   let kratosIdentityId: string;
 
-  it("can create a user", async () => {
+  test("can create a user", async () => {
     const authentication = { actorId: systemAccountId };
 
     const identity = await createKratosIdentity({
@@ -65,7 +64,7 @@ describe("User model class", () => {
     });
   });
 
-  it("cannot create a user with a kratos identity id that is already taken", async () => {
+  test("cannot create a user with a kratos identity id that is already taken", async () => {
     const authentication = { actorId: systemAccountId };
 
     await expect(
@@ -76,7 +75,7 @@ describe("User model class", () => {
     ).rejects.toThrowError(`"${kratosIdentityId}" already exists.`);
   });
 
-  it("can get a user by its shortname", async () => {
+  test("can get a user by its shortname", async () => {
     const authentication = { actorId: createdUser.accountId };
 
     const fetchedUser = await getUserByShortname(graphContext, authentication, {
@@ -88,7 +87,7 @@ describe("User model class", () => {
     expect(fetchedUser).toEqual(createdUser);
   });
 
-  it("can get a user by its kratos identity id", async () => {
+  test("can get a user by its kratos identity id", async () => {
     const authentication = { actorId: createdUser.accountId };
 
     const fetchedUser = await getUserByKratosIdentityId(
@@ -104,7 +103,7 @@ describe("User model class", () => {
     expect(fetchedUser).toEqual(createdUser);
   });
 
-  it("can join an org", async () => {
+  test("can join an org", async () => {
     const authentication = { actorId: systemAccountId };
     const testOrg = await createTestOrg(
       graphContext,
@@ -116,24 +115,24 @@ describe("User model class", () => {
       testOrg.entity.metadata.recordId.entityId,
     );
 
-    expect(
-      await isUserMemberOfOrg(graphContext, authentication, {
+    await expect(
+      isUserMemberOfOrg(graphContext, authentication, {
         userEntityId: createdUser.entity.metadata.recordId.entityId,
         orgEntityUuid,
       }),
-    ).toBe(false);
+    ).resolves.toBeFalsy();
 
     await joinOrg(graphContext, authentication, {
       userEntityId: createdUser.entity.metadata.recordId.entityId,
       orgEntityId: testOrg.entity.metadata.recordId.entityId,
     });
 
-    expect(
-      await isUserMemberOfOrg(graphContext, authentication, {
+    await expect(
+      isUserMemberOfOrg(graphContext, authentication, {
         userEntityId: createdUser.entity.metadata.recordId.entityId,
         orgEntityUuid,
       }),
-    ).toBe(true);
+    ).resolves.toBeTruthy();
   });
 
   afterAll(async () => {

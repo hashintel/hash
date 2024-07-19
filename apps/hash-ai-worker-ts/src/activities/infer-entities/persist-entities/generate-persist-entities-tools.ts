@@ -1,16 +1,14 @@
+import dedent from "dedent";
+import type { JSONSchema } from "openai/lib/jsonschema";
 import type { JsonObject } from "@blockprotocol/core";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProposedEntitySchemaOrData } from "@local/hash-isomorphic-utils/ai-inference-types";
-import dedent from "dedent";
-import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
 import type {
-  ProposedEntityToolCreationsByType,
-  ProposeEntitiesToolName,
-} from "../shared/generate-propose-entities-tools.js";
-import { generateProposeEntitiesTools } from "../shared/generate-propose-entities-tools.js";
+ generateProposeEntitiesTools,  ProposedEntityToolCreationsByType,
+  ProposeEntitiesToolName } from "../shared/generate-propose-entities-tools.js";
 import { generateSimplifiedTypeId } from "../shared/generate-simplified-type-id.js";
 import type { PropertyValueWithSimplifiedProperties } from "../shared/map-simplified-properties-to-properties.js";
 import { stripIdsFromDereferencedProperties } from "../shared/strip-ids-from-dereferenced-properties.js";
@@ -33,7 +31,8 @@ const stringifyArray = (array: unknown[]): string =>
 
 /**
  * Validates that the provided object is a valid ProposedEntitiesByType object.
- * @throws Error if the provided object does not match ProposedEntitiesByType
+ *
+ * @throws Error if the provided object does not match ProposedEntitiesByType.
  */
 export const validateProposedEntitiesByType = <
   EntityUpdate extends boolean = false,
@@ -144,7 +143,7 @@ export const generatePersistEntitiesTools = (params: {
       inputSchema: {
         type: "object" as const,
         properties: entityTypes.reduce<Record<string, JSONSchema>>(
-          (acc, { schema }) => {
+          (accumulator, { schema }) => {
             const entityTypeId = schema.$id;
 
             const existingSimplifiedEntityTypeId = Object.entries(
@@ -171,7 +170,7 @@ export const generatePersistEntitiesTools = (params: {
               simplifiedEntityTypeIdMappings = updatedTypeMappings;
             }
 
-            acc[simplifiedEntityTypeId] = {
+            accumulator[simplifiedEntityTypeId] = {
               type: "array",
               title: `${schema.title} entities to update`,
               items: {
@@ -202,7 +201,8 @@ export const generatePersistEntitiesTools = (params: {
                 required: ["entityId", "properties"],
               },
             };
-            return acc;
+
+            return accumulator;
           },
           {},
         ),

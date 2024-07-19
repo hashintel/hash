@@ -1,3 +1,4 @@
+import { beforeAll, describe, expect, test } from "vitest";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   addHashInstanceAdmin,
@@ -5,15 +6,13 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/hash-instance";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
-import {
-  getHashInstance,
+import type {   getHashInstance,
+HashInstance ,
   isUserHashInstanceAdmin,
 } from "@local/hash-backend-utils/hash-instance";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -26,7 +25,7 @@ const logger = new Logger({
 
 const graphContext = createTestImpureGraphContext();
 
-describe("Hash Instance", () => {
+describe("hash Instance", () => {
   beforeAll(async () => {
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
@@ -37,7 +36,7 @@ describe("Hash Instance", () => {
 
   let hashInstance: HashInstance;
 
-  it("can get the hash instance", async () => {
+  test("can get the hash instance", async () => {
     hashInstance = await getHashInstance(graphContext, {
       actorId: publicUserAccountId,
     });
@@ -48,7 +47,7 @@ describe("Hash Instance", () => {
   let testHashInstanceAdmin: User;
   let authentication: AuthenticationContext;
 
-  it("can determine if user is hash admin", async () => {
+  test("can determine if user is hash admin", async () => {
     testHashInstanceAdmin = await createTestUser(
       graphContext,
       "hashInstTest",
@@ -56,14 +55,14 @@ describe("Hash Instance", () => {
     );
     authentication = { actorId: testHashInstanceAdmin.accountId };
 
-    expect(
-      await isUserHashInstanceAdmin(graphContext, authentication, {
+    await expect(
+      isUserHashInstanceAdmin(graphContext, authentication, {
         userAccountId: testHashInstanceAdmin.accountId,
       }),
-    ).toBeFalsy();
+    ).resolves.toBeFalsy();
   });
 
-  it("can add a hash instance admin", async () => {
+  test("can add a hash instance admin", async () => {
     await addHashInstanceAdmin(
       graphContext,
       { actorId: systemAccountId },
@@ -72,14 +71,14 @@ describe("Hash Instance", () => {
       },
     );
 
-    expect(
-      await isUserHashInstanceAdmin(graphContext, authentication, {
+    await expect(
+      isUserHashInstanceAdmin(graphContext, authentication, {
         userAccountId: testHashInstanceAdmin.accountId,
       }),
-    ).toBeTruthy();
+    ).resolves.toBeTruthy();
   });
 
-  it("can remove a hash instance admin", async () => {
+  test("can remove a hash instance admin", async () => {
     await removeHashInstanceAdmin(
       graphContext,
       { actorId: systemAccountId },
@@ -88,10 +87,10 @@ describe("Hash Instance", () => {
       },
     );
 
-    expect(
-      await isUserHashInstanceAdmin(graphContext, authentication, {
+    await expect(
+      isUserHashInstanceAdmin(graphContext, authentication, {
         userAccountId: testHashInstanceAdmin.accountId,
       }),
-    ).toBeFalsy();
+    ).resolves.toBeFalsy();
   });
 });

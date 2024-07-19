@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BlockErrorMessage } from "@hashintel/block-design-system";
 import {
   ArrowUpRegularIcon,
@@ -14,13 +15,13 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Grid2PlusIcon } from "../../icons/grid-2-plus";
 import { RectangleHistoryCirclePlusIcon } from "../../icons/rectangle-history-circle-plus";
 import { SquarePlusIcon } from "../../icons/square-plus";
 import { ImageTile } from "../../shared/image-tile";
 import type { ImageObject } from "../generate-image";
+
 import { CTAButton } from "./image-preview/cta-button";
 import { ImageDetails } from "./image-preview/image-details";
 import { ReturnButton } from "./image-preview/return-button";
@@ -87,6 +88,7 @@ export const ImagePreview = ({
       const cols = Math.floor(
         (containerWidth + IMAGE_LIST_GAP) / (IMAGE_SIZE + IMAGE_LIST_GAP),
       );
+
       setImageListCols(cols);
       setImageSize((containerWidth + IMAGE_LIST_GAP) / cols - IMAGE_LIST_GAP);
     }
@@ -131,7 +133,7 @@ export const ImagePreview = ({
       resizeObserver.observe(imageListContainerRef.current);
     }
 
-    return () => resizeObserver.disconnect();
+    return () => { resizeObserver.disconnect(); };
   }, [calculateSelectedImageTransition]);
 
   useEffect(() => {
@@ -141,8 +143,10 @@ export const ImagePreview = ({
   const selectedImageGeneratedAt = useMemo(() => {
     const selectedImageDate =
       selectedImageIndex !== null && images[selectedImageIndex]?.date;
+
     if (selectedImageDate) {
       const date = new Date(selectedImageDate);
+
       return date.toString();
     }
 
@@ -181,7 +185,7 @@ export const ImagePreview = ({
           gap: 0.75,
         })}
       >
-        <Stack flexDirection="row" gap={1.5} alignItems="center">
+        <Stack flexDirection={"row"} gap={1.5} alignItems={"center"}>
           <ImageIconRegular
             sx={{ fontSize: 16, color: ({ palette }) => palette.gray[40] }}
           />
@@ -208,8 +212,8 @@ export const ImagePreview = ({
           {prompt}
         </Typography>
 
-        <Collapse in={!!errorMessage}>
-          <BlockErrorMessage apiName="OpenAI" sx={{ mt: 1 }} />
+        <Collapse in={Boolean(errorMessage)}>
+          <BlockErrorMessage apiName={"OpenAI"} sx={{ mt: 1 }} />
         </Collapse>
       </Stack>
 
@@ -242,7 +246,7 @@ export const ImagePreview = ({
             {selectedImageIndex !== null ? (
               <>
                 {" > "}
-                <Box component="span" sx={{ fontWeight: 400 }}>
+                <Box component={"span"} sx={{ fontWeight: 400 }}>
                   Option {selectedImageIndex + 1}
                 </Box>
               </>
@@ -252,7 +256,7 @@ export const ImagePreview = ({
           {isMobile ? (
             <Collapse
               in={shouldDetailsFadeIn}
-              onEntered={() => setAnimationStage(false)}
+              onEntered={() => { setAnimationStage(false); }}
               onExited={() => {
                 setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
                 setTimeout(() => {
@@ -267,7 +271,7 @@ export const ImagePreview = ({
             </Collapse>
           ) : null}
 
-          <Box position="relative">
+          <Box position={"relative"}>
             <Box
               sx={{
                 transition: ({ transitions }) => transitions.create("height"),
@@ -288,17 +292,18 @@ export const ImagePreview = ({
               <ImageList
                 cols={imageListCols}
                 gap={IMAGE_LIST_GAP}
+                ref={imageListContainerRef}
                 sx={{
                   width: 1,
                   margin: 0,
                   overflow: "visible",
                 }}
-                ref={imageListContainerRef}
               >
                 {images.map((image, index) => {
                   const id = "id" in image ? image.id : "";
 
                   const selected = selectedImageIndex === index;
+
                   return (
                     <Fade key={id} in={!shouldImagesFadeOut || selected}>
                       <Box
@@ -309,14 +314,6 @@ export const ImagePreview = ({
                         }}
                       >
                         <ImageListItem
-                          onClick={() => {
-                            if (!loading && selectedImageIndex === null) {
-                              setAnimationStage(
-                                ANIMATION_STAGES.IMAGES_FADE_OUT,
-                              );
-                              setSelectedImageIndex(index);
-                            }
-                          }}
                           sx={{
                             cursor:
                               !loading && selectedImageIndex === null
@@ -332,12 +329,20 @@ export const ImagePreview = ({
                                 }
                               : {}),
                           }}
+                          onClick={() => {
+                            if (!loading && selectedImageIndex === null) {
+                              setAnimationStage(
+                                ANIMATION_STAGES.IMAGES_FADE_OUT,
+                              );
+                              setSelectedImageIndex(index);
+                            }
+                          }}
                         >
                           <ImageTile
                             url={image.url}
                             description={`Option ${index + 1}`}
                             maxWidth={imageSize}
-                            objectFit="cover"
+                            objectFit={"cover"}
                           />
                         </ImageListItem>
                       </Box>
@@ -360,7 +365,7 @@ export const ImagePreview = ({
                     }}
                   >
                     <Button
-                      variant="tertiary"
+                      variant={"tertiary"}
                       disabled={loading}
                       sx={({ palette }) => ({
                         display: "flex",
@@ -380,7 +385,7 @@ export const ImagePreview = ({
                           fill: palette.gray[60],
                         },
                       })}
-                      onClick={() => generateAdditionalImages(number)}
+                      onClick={() => { generateAdditionalImages(number); }}
                     >
                       <Icon sx={{ fontSize: 28, mb: 1.5 }} />
                       <Box>
@@ -396,7 +401,7 @@ export const ImagePreview = ({
             {!isMobile ? (
               <Fade
                 in={shouldDetailsFadeIn}
-                onEntered={() => setAnimationStage(false)}
+                onEntered={() => { setAnimationStage(false); }}
                 onExited={() => {
                   setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
                   setTimeout(() => {
@@ -435,7 +440,7 @@ export const ImagePreview = ({
         {isMobile ? (
           <Collapse
             in={shouldDetailsFadeIn}
-            onEntered={() => setAnimationStage(false)}
+            onEntered={() => { setAnimationStage(false); }}
             onExited={() => {
               setAnimationStage(ANIMATION_STAGES.SELECTED_IMAGE_ZOOM_OUT);
               setTimeout(() => {
@@ -460,7 +465,7 @@ export const ImagePreview = ({
                 borderTopWidth: 1,
               }}
             >
-              <ImageDetails generatedAt={selectedImageGeneratedAt} isMobile />
+              <ImageDetails isMobile generatedAt={selectedImageGeneratedAt} />
             </Box>
           </Collapse>
         ) : null}
@@ -479,7 +484,7 @@ export const ImagePreview = ({
               mt: isMobile ? 2.25 : 0,
             })}
           >
-            <Box display="flex" gap={1}>
+            <Box display={"flex"} gap={1}>
               {loading ? (
                 <CircularProgress
                   size={16}
@@ -510,10 +515,10 @@ export const ImagePreview = ({
             </Box>
 
             <Button
-              variant="tertiary"
-              size="small"
-              onClick={onDiscard}
+              variant={"tertiary"}
+              size={"small"}
               sx={{ fontSize: 14 }}
+              onClick={onDiscard}
             >
               Try another prompt
             </Button>

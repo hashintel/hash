@@ -1,18 +1,16 @@
 import Prism from "prismjs";
-import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
-import { useCallback, useEffect, useRef } from "react";
-
+import type { ChangeEvent, KeyboardEvent, RefObject , useCallback, useEffect, useRef } from "react";
 import styles from "./editor.module.css";
 import type { LanguageType } from "./utils";
 
-type IEditorProps = {
+interface IEditorProps {
   content: string;
   setContent: (content: string) => void;
   language: LanguageType;
   editorRef: RefObject<HTMLTextAreaElement>;
   onBlur: () => void;
   readonly: boolean;
-};
+}
 
 export const Editor = ({
   content,
@@ -26,37 +24,38 @@ export const Editor = ({
   const highlightedElementRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
-    if (!highlightedElementRef.current) return;
+    if (!highlightedElementRef.current) {return;}
     Prism.highlightElement(highlightedElementRef.current.children[0]!);
   }, [language, content]);
 
   /**
    * This ensures the code block scrolls with
-   * the textarea
+   * the textarea.
    *
    */
   const syncScroll = useCallback(() => {
-    if (!highlightedElementRef.current || !textAreaRef.current) return;
+    if (!highlightedElementRef.current || !textAreaRef.current) {return;}
 
     highlightedElementRef.current.scrollLeft = textAreaRef.current.scrollLeft;
   }, [textAreaRef, highlightedElementRef]);
 
   /**
    * This helps in updating the height of the textarea especially when a new
-   * line is added/removed and updates the height of the code block
+   * line is added/removed and updates the height of the code block.
    */
   const syncHeight = useCallback(() => {
-    const textAreaEl = textAreaRef.current;
-    const preEl = highlightedElementRef.current; // <pre> element
-    if (!textAreaEl || !preEl) return;
+    const textAreaElement = textAreaRef.current;
+    const preElement = highlightedElementRef.current; // <pre> element
+
+    if (!textAreaElement || !preElement) {return;}
 
     const hasHorizontalScrollbar =
-      textAreaEl.scrollWidth > textAreaEl.clientWidth;
+      textAreaElement.scrollWidth > textAreaElement.clientWidth;
     const additionalHeight = hasHorizontalScrollbar ? 30 : 0;
 
-    textAreaEl.style.height = "auto";
-    textAreaEl.style.height = `${textAreaEl.scrollHeight + additionalHeight}px`;
-    preEl.style.height = `${textAreaEl.scrollHeight + additionalHeight}px`;
+    textAreaElement.style.height = "auto";
+    textAreaElement.style.height = `${textAreaElement.scrollHeight + additionalHeight}px`;
+    preElement.style.height = `${textAreaElement.scrollHeight + additionalHeight}px`;
   }, [textAreaRef, highlightedElementRef]);
 
   useEffect(() => {
@@ -66,7 +65,7 @@ export const Editor = ({
 
     window.addEventListener("resize", resizeListener);
 
-    return () => window.removeEventListener("resize", resizeListener);
+    return () => { window.removeEventListener("resize", resizeListener); };
   });
 
   useEffect(() => {
@@ -74,36 +73,36 @@ export const Editor = ({
     syncScroll();
   }, [content, syncScroll, syncHeight]);
 
-  const handleChange = (evt: ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(evt.target.value);
+  const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(event.target.value);
   };
 
-  const handleKeyDown = (evt: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!textAreaRef.current) return;
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!textAreaRef.current) {return;}
 
-    if (evt.key === "Tab") {
-      evt.preventDefault();
-      const { selectionStart } = evt.currentTarget;
+    if (event.key === "Tab") {
+      event.preventDefault();
+      const { selectionStart } = event.currentTarget;
       let newCursorPos;
       let newContent;
 
-      if (evt.shiftKey) {
+      if (event.shiftKey) {
         // The previous character has to be a tab
         if (content.substring(selectionStart - 1, selectionStart) !== "\t") {
           return;
         }
 
-        newContent = `${content.substring(
+        newContent = `${content.slice(
           0,
-          selectionStart - 1,
-        )}${content.substring(selectionStart)}`;
+          Math.max(0, selectionStart - 1),
+        )}${content.slice(Math.max(0, selectionStart))}`;
 
         newCursorPos = selectionStart - 1;
       } else {
-        newContent = `${content.substring(
+        newContent = `${content.slice(
           0,
-          selectionStart,
-        )}\t${content.substring(selectionStart)}`;
+          Math.max(0, selectionStart),
+        )}\t${content.slice(Math.max(0, selectionStart))}`;
         newCursorPos = selectionStart + 1;
       }
 
@@ -121,18 +120,18 @@ export const Editor = ({
   return (
     <div className={styles.editor}>
       <link
-        href="https://cdn.jsdelivr.net/npm/prismjs@1.25.0/themes/prism.css"
-        rel="stylesheet"
+        href={"https://cdn.jsdelivr.net/npm/prismjs@1.25.0/themes/prism.css"}
+        rel={"stylesheet"}
       />
       <textarea
         ref={textAreaRef}
-        onChange={handleChange}
         value={content}
+        spellCheck={"false"}
+        disabled={readonly}
+        onChange={handleChange}
         onKeyDown={handleKeyDown}
         onScroll={syncScroll}
         onBlur={onBlur}
-        spellCheck="false"
-        disabled={readonly}
       />
       <pre ref={highlightedElementRef}>
         <code className={`language-${language}`}>{content}</code>

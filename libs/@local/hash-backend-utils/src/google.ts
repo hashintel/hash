@@ -1,3 +1,4 @@
+import type { Auth , google } from "googleapis";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
@@ -12,8 +13,6 @@ import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subg
 import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import type { Auth } from "googleapis";
-import { google } from "googleapis";
 
 import { getSecretEntitiesForIntegration } from "./user-secret.js";
 import type { VaultClient } from "./vault.js";
@@ -41,7 +40,7 @@ export const createGoogleOAuth2Client = () => {
 };
 
 /**
- * Get a Google Account entity by the account id in Google
+ * Get a Google Account entity by the account id in Google.
  */
 export const getGoogleAccountById = async ({
   graphApiClient,
@@ -135,8 +134,9 @@ export const getTokensForGoogleAccount = async ({
       path: vaultPath,
       userAccountId,
     });
+
     return vaultResponse.data;
-  } catch (err) {
+  } catch (error) {
     return null;
   }
 };

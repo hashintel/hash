@@ -99,15 +99,15 @@ export type PropertyArray = Property[];
 /**
  * A mapping of property base URLs to their values.
  */
-export type PropertyObject = {
+export interface PropertyObject {
   [key: BaseUrl]: Property;
-};
+}
 
-export type EntityProperties = {
+export interface EntityProperties {
   entityTypeId: VersionedUrl;
   properties: PropertyObject;
   propertiesWithMetadata: PropertyObjectWithMetadata;
-};
+}
 
 /**
  * A property is a tree structure that represents a property of an entity.
@@ -123,31 +123,31 @@ export type Property = PropertyValue | PropertyArray | PropertyObject;
 /**
  * The metadata for a `PropertyValue`.
  */
-export type PropertyMetadataValue = {
+export interface PropertyMetadataValue {
   metadata: Omit<ValueMetadata, "dataTypeId"> & {
     dataTypeId?: VersionedUrl;
   };
-};
+}
 
 /**
  * The metadata for a `PropertyArray`.
  *
  * It contains metadata for the array itself and for each of its elements.
  */
-export type PropertyMetadataArray = {
+export interface PropertyMetadataArray {
   value: PropertyMetadata[];
   metadata?: ArrayMetadata;
-};
+}
 
 /**
  * The metadata for a `PropertyObject`.
  *
  * It contains metadata for the object itself and for each of its properties.
  */
-export type PropertyMetadataObject = {
+export interface PropertyMetadataObject {
   value: Record<BaseUrl, PropertyMetadata>;
   metadata?: ObjectMetadata;
-};
+}
 
 export type PropertyMetadata =
   | PropertyMetadataArray
@@ -215,7 +215,7 @@ export type PropertyWithMetadata =
   | PropertyValueWithMetadata;
 
 /**
- * A path to a property in a properties object
+ * A path to a property in a properties object.
  *
  * @example where the 'address' property is an array, the path to the street of the first address
  *    ["https://example.com/address/", 0, "https://example.com/street/"]
@@ -235,39 +235,39 @@ export type LinkData = Subtype<
   }
 >;
 
-export type EntityProvenance = {
+export interface EntityProvenance {
   createdById: CreatedById;
   createdAtTransactionTime: CreatedAtTransactionTime;
   createdAtDecisionTime: CreatedAtDecisionTime;
   edition: EntityEditionProvenance;
   firstNonDraftCreatedAtDecisionTime?: CreatedAtDecisionTime;
   firstNonDraftCreatedAtTransactionTime?: CreatedAtTransactionTime;
-};
+}
 
-export type EntityEditionProvenance = {
+export interface EntityEditionProvenance {
   createdById: EditionCreatedById;
   archivedById?: EditionArchivedById;
   actorType?: ActorType;
   origin?: ProvidedEntityEditionProvenanceOrigin;
-  sources?: Array<SourceProvenance>;
-};
+  sources?: SourceProvenance[];
+}
 
-export type AddPropertyPatchOperation = {
+export interface AddPropertyPatchOperation {
   op: "add";
   path: PropertyPath;
   property: PropertyWithMetadata;
-};
+}
 
-export type RemovePropertyPatchOperation = {
+export interface RemovePropertyPatchOperation {
   op: "remove";
   path: PropertyPath;
-};
+}
 
-export type ReplacePropertyPatchOperation = {
+export interface ReplacePropertyPatchOperation {
   op: "replace";
   path: PropertyPath;
   property: PropertyWithMetadata;
-};
+}
 
 export type PropertyPatchOperation =
   | AddPropertyPatchOperation

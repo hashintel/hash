@@ -34,7 +34,8 @@ const script = async () => {
 
   for (const licenseFilePath of licenseFilePaths) {
     const licenseFileName = path.basename(licenseFilePath);
-    if (!licenseFileName.match(/^LICENSE(-[A-Z0-9]+)?(\.(md|txt))?$/)) {
+
+    if (!licenseFileName.match(/^LICENSE(-[\dA-Z]+)?(\.(md|txt))?$/)) {
       misspelledLicenseFileSet.add(licenseFilePath);
     }
   }
@@ -58,6 +59,7 @@ const script = async () => {
     );
 
     let canonicalLicenseFilePathIsPresent = false;
+
     for (const licenseFilePath of currentLicenseFilePaths) {
       usedLicenseFileSet.add(licenseFilePath);
       if (licenseFilePath === canonicalLicenseFilePath) {
@@ -103,7 +105,8 @@ const script = async () => {
   );
 
   let extraLicenseFilesArePresent = false;
-  if (unusedLicenseFilePaths.length) {
+
+  if (unusedLicenseFilePaths.length > 0) {
     for (const licenseFilePath of unusedLicenseFilePaths) {
       if (misspelledLicenseFileSet.has(licenseFilePath)) {
         checkFailed = true;

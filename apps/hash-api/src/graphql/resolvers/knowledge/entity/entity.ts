@@ -1,3 +1,8 @@
+import {
+  ApolloError,
+  ForbiddenError,
+  UserInputError,
+} from "apollo-server-express";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
@@ -18,11 +23,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { splitEntityId } from "@local/hash-subgraph";
-import {
-  ApolloError,
-  ForbiddenError,
-  UserInputError,
-} from "apollo-server-express";
 
 import {
   addEntityAdministrator,
@@ -44,8 +44,10 @@ import {
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
 import type {
+  AccountGroupAuthorizationSubjectRelation,
+  AuthorizationSubjectKind,
   AuthorizationViewerInput,
-  EntityAuthorizationRelationship,
+  EntityAuthorizationRelation,  EntityAuthorizationRelationship,
   MutationAddEntityEditorArgs,
   MutationAddEntityOwnerArgs,
   MutationAddEntityViewerArgs,
@@ -61,13 +63,7 @@ import type {
   QueryGetEntitySubgraphArgs,
   QueryIsEntityPublicArgs,
   QueryResolvers,
-  ResolverFn,
-} from "../../../api-types.gen";
-import {
-  AccountGroupAuthorizationSubjectRelation,
-  AuthorizationSubjectKind,
-  EntityAuthorizationRelation,
-} from "../../../api-types.gen";
+  ResolverFn} from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
@@ -259,6 +255,7 @@ export const getEntityResolver: ResolverFn<
       },
     ],
   };
+
   if (draftId) {
     filter.all.push({
       equal: [{ path: ["draftId"] }, { parameter: draftId }],
@@ -509,21 +506,23 @@ const parseGqlAuthorizationViewerInput = ({
 }: AuthorizationViewerInput) => {
   if (kind === AuthorizationSubjectKind.Public) {
     return { kind: "public" } as const;
-  } else if (kind === AuthorizationSubjectKind.Account) {
+  } if (kind === AuthorizationSubjectKind.Account) {
     if (!viewer) {
       throw new UserInputError("Viewer Account ID must be specified");
     }
+
     return { kind: "account", subjectId: viewer as AccountId } as const;
-  } else {
+  } 
     if (!viewer) {
       throw new UserInputError("Viewer Account Group ID must be specified");
     }
+
     return {
       kind: "accountGroup",
       subjectId: viewer as AccountGroupId,
       subjectSet: "member",
     } as const;
-  }
+  
 };
 
 export const addEntityViewerResolver: ResolverFn<
@@ -605,9 +604,8 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
   );
 
   /**
-   * @todo align definitions with the ones in the API
-   *
    * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
+   * @todo Align definitions with the ones in the API.
    */
   return relationships
     .filter(({ subject }) =>

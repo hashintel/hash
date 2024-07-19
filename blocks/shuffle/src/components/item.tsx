@@ -1,12 +1,10 @@
+import React, { forwardRef, useState } from "react";
+import type { CSSProperties, RefObject } from "react";
 import type { DraggableAttributes } from "@dnd-kit/core";
 import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import LinkIcon from "@mui/icons-material/Link";
-import type { SxProps } from "@mui/material";
-import { Tooltip } from "@mui/material";
-import type { CSSProperties, RefObject } from "react";
-import React, { forwardRef, useState } from "react";
-
+import { type SxProps, Tooltip } from "@mui/material";
 import {
   SButtonsWrapper,
   SIconButton,
@@ -16,7 +14,7 @@ import {
   STextField,
 } from "./item.styled";
 
-export type ItemProps = {
+export interface ItemProps {
   id: string;
   value: string;
   isDragging?: boolean;
@@ -31,7 +29,7 @@ export type ItemProps = {
   dragOverlay?: RefObject<HTMLDivElement>;
   linkedToEntity?: boolean;
   readonly?: boolean;
-};
+}
 
 export const Item = forwardRef<HTMLLIElement, ItemProps>(
   (
@@ -55,18 +53,18 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
 
     return (
       <SListItem
-        ref={ref}
-        onMouseOver={() => setIsHovered(true)}
-        onMouseOut={() => setIsHovered(false)}
         disablePadding
+        ref={ref}
         sx={{ ...style, opacity: isDragging ? 0 : 1 }}
+        onMouseOver={() => { setIsHovered(true); }}
+        onMouseOut={() => { setIsHovered(false); }}
         {...attributes}
       >
         <SPaper sx={paperStyle} ref={dragOverlay}>
           {linkedToEntity && (
-            <Tooltip title="This item is linked to an entity">
+            <Tooltip title={"This item is linked to an entity"}>
               <SLinkIconWrapper>
-                <LinkIcon fontSize="small" />
+                <LinkIcon fontSize={"small"} />
               </SLinkIconWrapper>
             </Tooltip>
           )}
@@ -74,21 +72,21 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
           <STextField
             multiline
             fullWidth
-            variant="standard"
-            // editing is disabled if item is linked to an entity as well
-            disabled={readonly || linkedToEntity}
             value={value}
-            onChange={(event) => onValueChange?.(event.target.value)}
-            onBlur={() => onItemBlur?.()}
             InputProps={{
               disableUnderline: true,
             }}
+            onChange={(event) => onValueChange?.(event.target.value)}
+            onBlur={() => onItemBlur?.()}
+            variant="standard"
+            // editing is disabled if item is linked to an entity as well
+            disabled={readonly || linkedToEntity}
           />
 
           {!readonly && (
             <SButtonsWrapper>
               <SIconButton
-                onClick={() => onDelete?.()}
+                disableFocusRipple
                 sx={({ palette }) => ({
                   opacity: (dragOverlay ?? isHovered) ? 1 : 0,
                   transition: ({ transitions }) =>
@@ -98,22 +96,22 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
                     background: dragOverlay ? "none" : palette.action.hover,
                   },
                 })}
-                disableFocusRipple
+                onClick={() => onDelete?.()}
               >
-                <CloseIcon fontSize="small" />
+                <CloseIcon fontSize={"small"} />
               </SIconButton>
 
               <SIconButton
+                disableFocusRipple
                 sx={({ palette }) => ({
                   background: dragOverlay ? palette.action.hover : "none",
                   "&:focus-visible": {
                     background: palette.action.hover,
                   },
                 })}
-                disableFocusRipple
                 {...listeners}
               >
-                <DragIndicatorIcon fontSize="small" color="action" />
+                <DragIndicatorIcon fontSize={"small"} color={"action"} />
               </SIconButton>
             </SButtonsWrapper>
           )}

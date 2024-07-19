@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
@@ -9,13 +10,13 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import { vi } from "vitest";
 
 export const textDataTypeId =
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
-  return new Array(6)
+
+  return Array.from({length: 6})
     .fill(undefined)
     .map(() => alphabet[Math.floor(Math.random() * alphabet.length)])
     .join("");
@@ -90,13 +91,13 @@ export const createTestUser = async (
       shortname,
       emails: [`${shortname}@example.com`],
     },
-  }).catch((err) => {
+  }).catch((error) => {
     logger.error(
       `Error when creating Kratos Identity, ${shortname}: ${
-        (err as Error).message
+        (error as Error).message
       }`,
     );
-    throw err;
+    throw error;
   });
 
   const kratosIdentityId = identity.id;
@@ -110,9 +111,9 @@ export const createTestUser = async (
       shortname,
       displayName: shortname,
     },
-  ).catch((err) => {
+  ).catch((error) => {
     logger.error(`Error making UserModel for ${shortname}`);
-    throw err;
+    throw error;
   });
 };
 

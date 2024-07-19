@@ -1,14 +1,13 @@
-import type { FunctionComponent } from "react";
-import { useEffect, useRef } from "react";
+import type { FunctionComponent , useEffect, useRef } from "react";
 import { tw } from "twind";
 
 import { toCSSText } from "./utils";
 
-type HtmlBlockProps = {
+interface HtmlBlockProps {
   html: string;
   dimensions?: { height: number; width: number };
   [key: string]: unknown;
-};
+}
 
 export const HtmlBlock: FunctionComponent<HtmlBlockProps> = ({
   html,
@@ -22,13 +21,14 @@ export const HtmlBlock: FunctionComponent<HtmlBlockProps> = ({
       return;
     }
 
-    const docFragment = document.createRange().createContextualFragment(html);
+    const documentFragment = document.createRange().createContextualFragment(html);
 
     divRef.current.innerHTML = "";
-    divRef.current.appendChild(docFragment);
-    const el = divRef.current.children[0] as HTMLIFrameElement | undefined;
-    if (el) {
-      el.style.cssText = toCSSText({
+    divRef.current.appendChild(documentFragment);
+    const element = divRef.current.children[0] as HTMLIFrameElement | undefined;
+
+    if (element) {
+      element.style.cssText = toCSSText({
         position: "absolute",
         left: "0px",
         top: "0px",

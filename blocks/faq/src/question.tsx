@@ -1,11 +1,9 @@
+import type { FunctionComponent , useState } from "react";
 import { EditableField } from "@hashintel/block-design-system";
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Collapse, Fade } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useState } from "react";
 
-import type { QuestionOrAnswer } from "./app";
-import { answerKey, questionKey } from "./app";
+import type { answerKey, questionKey,QuestionOrAnswer  } from "./app";
 import { CaretDownIcon } from "./icons/caret-down";
 
 interface QuestionProps {
@@ -36,11 +34,10 @@ export const Question: FunctionComponent<QuestionProps> = ({
   const [expanded, setExpanded] = useState(true);
 
   return (
-    <Box display="flex" alignItems="flex-start">
-      <Box display="flex">
+    <Box display={"flex"} alignItems={"flex-start"}>
+      <Box display={"flex"}>
         <Button
-          variant="tertiary_quiet"
-          onClick={() => setExpanded(!expanded)}
+          variant={"tertiary_quiet"}
           sx={{
             border: "none",
             minWidth: 0,
@@ -55,13 +52,14 @@ export const Question: FunctionComponent<QuestionProps> = ({
             color: ({ palette }) => `${palette.black} !important`,
             transition: ({ transitions }) => transitions.create("margin-right"),
           }}
+          onClick={() => { setExpanded(!expanded); }}
         >
-          <Collapse in={displayNumber} orientation="horizontal">
+          <Collapse in={displayNumber} orientation={"horizontal"}>
             {index}
           </Collapse>
           <Collapse
             in={displayToggle}
-            orientation="horizontal"
+            orientation={"horizontal"}
             sx={{ display: "flex" }}
           >
             <CaretDownIcon
@@ -109,10 +107,8 @@ export const Question: FunctionComponent<QuestionProps> = ({
           <EditableField
             editIconFontSize={12}
             value={questionValue}
-            onChange={(event) => {
-              setQuestionValue(event.target.value);
-            }}
-            onBlur={(event) => updateField(event.target.value, questionKey)}
+            placeholder={"Your frequently asked question goes here"}
+            readonly={readonly}
             sx={{
               fontWeight: 700,
               fontSize: 15,
@@ -120,15 +116,17 @@ export const Question: FunctionComponent<QuestionProps> = ({
               flexGrow: 1,
               color: ({ palette }) => palette.gray[90],
             }}
-            placeholder="Your frequently asked question goes here"
-            readonly={readonly}
+            onBlur={(event) => { updateField(event.target.value, questionKey); }}
+            onChange={(event) => {
+              setQuestionValue(event.target.value);
+            }}
           />
 
           {!readonly ? (
             <Fade in={deletable}>
               <Button
-                variant="tertiary"
-                size="xs"
+                variant={"tertiary"}
+                size={"xs"}
                 sx={({ palette }) => ({
                   padding: 0.5,
                   minHeight: "unset",
@@ -170,10 +168,8 @@ export const Question: FunctionComponent<QuestionProps> = ({
             <EditableField
               editIconFontSize={12}
               value={answerValue}
-              onChange={(event) => {
-                setAnswerValue(event.target.value);
-              }}
-              onBlur={(event) => updateField(event.target.value, answerKey)}
+              placeholder={"Provide your answer here"}
+              readonly={readonly}
               sx={{
                 fontWeight: 400,
                 fontSize: 14,
@@ -181,8 +177,10 @@ export const Question: FunctionComponent<QuestionProps> = ({
                 color: ({ palette }) => palette.gray[90],
                 ...(readonly ? { paddingY: 0.5 } : {}),
               }}
-              placeholder="Provide your answer here"
-              readonly={readonly}
+              onBlur={(event) => { updateField(event.target.value, answerKey); }}
+              onChange={(event) => {
+                setAnswerValue(event.target.value);
+              }}
             />
           </Box>
         </Collapse>

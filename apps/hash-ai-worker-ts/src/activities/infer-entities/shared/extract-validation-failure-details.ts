@@ -1,22 +1,22 @@
 import { stringify } from "../../shared/stringify.js";
 
-const generateErrorMessage = (err: unknown) =>
-  err instanceof Error ? err.message : stringify(err);
+const generateErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : stringify(error);
 
-const isTrueObject = (obj: unknown): obj is object =>
-  obj !== null && typeof obj === "object";
+const isTrueObject = (object: unknown): object is object =>
+  object !== null && typeof object === "object";
 
-type ContextObject = {
+interface ContextObject {
   context: string;
   sources: ContextObject[];
-};
+}
 
-const isContextObject = (obj: unknown): obj is ContextObject =>
-  isTrueObject(obj) &&
-  "context" in obj &&
-  typeof obj.context === "string" &&
-  "sources" in obj &&
-  Array.isArray(obj.sources);
+const isContextObject = (object: unknown): object is ContextObject =>
+  isTrueObject(object) &&
+  "context" in object &&
+  typeof object.context === "string" &&
+  "sources" in object &&
+  Array.isArray(object.sources);
 
 /**
  * Extract validation failure messages from the error object, which at the time of writing looks like this:
@@ -39,20 +39,21 @@ const isContextObject = (obj: unknown): obj is ContextObject =>
  *                   "context": "the property `https://hash.ai/@hash/types/property-type/title/` was specified, but not in the schema",
  *                   "attachments": [],
  *                   "sources": []
- *                 },
+ *                 },.
  */
-export const extractErrorMessage = (err: unknown) => {
+export const extractErrorMessage = (error: unknown) => {
   try {
     if (
-      isTrueObject(err) &&
-      "status" in err &&
-      isTrueObject(err.status) &&
-      "contents" in err.status &&
-      Array.isArray(err.status.contents) &&
-      Array.isArray(err.status.contents[0]) &&
-      isContextObject(err.status.contents[0][0])
+      isTrueObject(error) &&
+      "status" in error &&
+      isTrueObject(error.status) &&
+      "contents" in error.status &&
+      Array.isArray(error.status.contents) &&
+      Array.isArray(error.status.contents[0]) &&
+      isContextObject(error.status.contents[0][0])
     ) {
-      const nestedContextObject = err.status.contents[0][0].sources[0];
+      const nestedContextObject = error.status.contents[0][0].sources[0];
+
       if (nestedContextObject) {
         const thisLevelContextMessage = nestedContextObject.context;
 
@@ -61,15 +62,16 @@ export const extractErrorMessage = (err: unknown) => {
         );
 
         return `Entity validation failed: ${
-          nestedAgainFailureMessages.length
+          nestedAgainFailureMessages.length > 0
             ? nestedAgainFailureMessages.join(", ")
             : thisLevelContextMessage
         }`;
       }
     }
   } catch {
-    // eslint-disable-next-line no-console
-    console.error(`Unexpected error message structure: ${stringify(err)}`);
+     
+    console.error(`Unexpected error message structure: ${stringify(error)}`);
   }
-  return generateErrorMessage(err);
+
+  return generateErrorMessage(error);
 };

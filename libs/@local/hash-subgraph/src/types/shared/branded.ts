@@ -1,3 +1,4 @@
+import { validate as validateUuid } from "uuid";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
 import type {
@@ -14,15 +15,13 @@ import type {
 } from "@local/hash-graph-types/account";
 import type {
   DraftId,
-  EntityId,
-  EntityUuid,
-} from "@local/hash-graph-types/entity";
-import { ENTITY_ID_DELIMITER } from "@local/hash-graph-types/entity";
+ ENTITY_ID_DELIMITER,  EntityId,
+  EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { validate as validateUuid } from "uuid";
 
 export const isEntityId = (entityId: string): entityId is EntityId => {
   const [accountId, entityUuid] = entityId.split(ENTITY_ID_DELIMITER);
+
   return (
     accountId != null &&
     entityUuid != null &&
@@ -49,11 +48,13 @@ export const splitEntityId = (
   entityId: EntityId,
 ): [OwnedById, EntityUuid, DraftId?] => {
   const [ownedById, entityUuid, draftId] = entityId.split(ENTITY_ID_DELIMITER);
+
   return [ownedById as OwnedById, entityUuid as EntityUuid, draftId as DraftId];
 };
 
 export const stripDraftIdFromEntityId = (entityId: EntityId) => {
   const [ownedById, entityUuid] = splitEntityId(entityId);
+
   return entityIdFromComponents(ownedById, entityUuid);
 };
 
@@ -76,7 +77,7 @@ export const extractDraftIdFromEntityId = (
 /** An `EntityId` identifying a `User` Entity */
 export type AccountEntityId = Brand<EntityId, "AccountEntityId">;
 
-/** An `EntityId`identifying an Account Group Entity, e.g. an `Org` */
+/** An `EntityId`identifying an Account Group Entity, e.g. An `Org` */
 export type AccountGroupEntityId = Brand<EntityId, "AccountGroupEntityId">;
 
 /** If the underlying `EntityUuid` is an `AccountId`, use this cast to convert the type */

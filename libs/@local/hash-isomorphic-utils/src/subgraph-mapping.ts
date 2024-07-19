@@ -22,19 +22,15 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import type {
-  KnowledgeGraphVertex,
+  extractOwnedByIdFromEntityId,
+  isEntityId,
+  isEntityVertex,  KnowledgeGraphVertex,
   SerializedKnowledgeGraphVertex,
   SerializedSubgraph,
   SerializedVertices,
   Subgraph,
   SubgraphRootType,
-  Vertices,
-} from "@local/hash-subgraph";
-import {
-  extractOwnedByIdFromEntityId,
-  isEntityId,
-  isEntityVertex,
-} from "@local/hash-subgraph";
+  Vertices} from "@local/hash-subgraph";
 
 import { systemEntityTypes, systemPropertyTypes } from "./ontology-type-ids.js";
 
@@ -45,12 +41,12 @@ const restrictedPropertyBaseUrls: string[] = [
 export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
   entity: GraphApiEntity,
   userAccountId: AccountId | null,
-  preserveProperties: boolean = false,
+  preserveProperties = false,
 ) =>
   new Entity<T>({
     ...entity,
     /**
-     * Until cell-level permissions is implemented (H-814), remove user properties that shouldn't be generally visible
+     * Until cell-level permissions is implemented (H-814), remove user properties that shouldn't be generally visible.
      */
     properties:
       preserveProperties ||
@@ -59,7 +55,7 @@ export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
       )
         ? entity.properties
         : Object.entries(entity.properties).reduce<PropertyObject>(
-            (acc, [key, value]) => {
+            (accumulator, [key, value]) => {
               const ownedById = extractOwnedByIdFromEntityId(
                 entity.metadata.recordId.entityId as EntityId,
               );
@@ -71,18 +67,19 @@ export const mapGraphApiEntityToEntity = <T extends EntityProperties>(
                 !restrictedPropertyBaseUrls.includes(key) ||
                 requesterOwnsEntity
               ) {
-                acc[key as BaseUrl] = value;
+                accumulator[key as BaseUrl] = value;
               }
-              return acc;
+
+              return accumulator;
             },
-            {} as PropertyObject,
+            {},
           ),
   });
 
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,
   userAccountId: AccountId | null,
-  preserveProperties: boolean = false,
+  preserveProperties = false,
 ) => {
   return {
     kind: vertex.kind,
@@ -113,7 +110,7 @@ const deserializeKnowledgeGraphVertex = (
 export const mapGraphApiVerticesToVertices = (
   vertices: VerticesGraphApi,
   userAccountId: AccountId | null,
-  preserveProperties: boolean = false,
+  preserveProperties = false,
 ) =>
   Object.fromEntries(
     typedEntries(vertices).map(([baseId, inner]) => [
@@ -167,16 +164,16 @@ export const deserializeGraphVertices = (vertices: SerializedVertices) =>
  * A mapping function that can be used to map the subgraph returned by the Graph API to the HASH `Subgraph` definition.
  *
  * @param subgraph
- * @param userAccountId the user making the request, to determine visibility of certain properties. 'null' if
- *   unauthenticated
- * @param preserveProperties don't filter out protected properties – for admins or internal-only processes
+ * @param userAccountId - The user making the request, to determine visibility of certain properties. 'null' if
+ *   unauthenticated.
+ * @param preserveProperties - Don't filter out protected properties – for admins or internal-only processes.
  */
 export const mapGraphApiSubgraphToSubgraph = <
   RootType extends SubgraphRootType,
 >(
   subgraph: GraphApiSubgraph,
   userAccountId: AccountId | null,
-  preserveProperties: boolean = false,
+  preserveProperties = false,
 ) => {
   return {
     ...subgraph,

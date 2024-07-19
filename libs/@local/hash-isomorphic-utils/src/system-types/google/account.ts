@@ -3,16 +3,6 @@
  */
 
 import type {
-  Account,
-  AccountIdPropertyValue,
-  AccountIdPropertyValueWithMetadata,
-  AccountOutgoingLinkAndTarget,
-  AccountOutgoingLinksByLinkEntityTypeId,
-  AccountProperties,
-  AccountPropertiesWithMetadata,
-  AccountUsesUserSecretLink,
-  ConnectionSourceNamePropertyValue,
-  ConnectionSourceNamePropertyValueWithMetadata,
   DisplayNamePropertyValue,
   DisplayNamePropertyValueWithMetadata,
   EmailPropertyValue,
@@ -41,16 +31,6 @@ import type {
 } from "./shared.js";
 
 export type {
-  Account,
-  AccountIdPropertyValue,
-  AccountIdPropertyValueWithMetadata,
-  AccountOutgoingLinkAndTarget,
-  AccountOutgoingLinksByLinkEntityTypeId,
-  AccountProperties,
-  AccountPropertiesWithMetadata,
-  AccountUsesUserSecretLink,
-  ConnectionSourceNamePropertyValue,
-  ConnectionSourceNamePropertyValueWithMetadata,
   DisplayNamePropertyValue,
   DisplayNamePropertyValueWithMetadata,
   EmailPropertyValue,
@@ -77,3 +57,5 @@ export type {
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
 };
+
+export {type Account, type AccountIdPropertyValue, type AccountIdPropertyValueWithMetadata, type AccountOutgoingLinkAndTarget, type AccountOutgoingLinksByLinkEntityTypeId, type AccountProperties, type AccountPropertiesWithMetadata, type AccountUsesUserSecretLink, type ConnectionSourceNamePropertyValue, type ConnectionSourceNamePropertyValueWithMetadata} from "./shared.js";

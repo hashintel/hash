@@ -1,19 +1,18 @@
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import dedent from "dedent";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { logger } from "../../../shared/activity-logger.js";
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type {
-  LlmMessage,
+ getToolCallsFromLlmAssistantMessage,  LlmMessage,
   LlmMessageToolResultContent,
-  LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message.js";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
+  LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
+
 import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
 import type { Fact } from "./types.js";
 
@@ -230,6 +229,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
       logger.debug(
         "Exceeded the retry limit for inferring facts from text, returning the previously inferred facts.",
       );
+
       /**
        * If some of the facts are repeatedly invalid, we handle this gracefully
        * by returning all the valid facts which were parsed.
@@ -282,7 +282,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
         },
       ],
     });
-  } else if (llmResponse.status !== "ok") {
+  } if (llmResponse.status !== "ok") {
     return { facts: params.retryContext?.previousValidFacts ?? [] };
   }
 

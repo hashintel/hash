@@ -1,12 +1,11 @@
 import type { sheets_v4 } from "googleapis";
-import type { ParseResult } from "papaparse";
 import Papa from "papaparse";
-
+import type { ParseResult } from "papaparse";
 import { createCellFromValue } from "./shared/create-sheet-data.js";
 
-type SheetOutputFormat = {
+interface SheetOutputFormat {
   audience: "human" | "machine";
-};
+}
 
 type ParsedCsvRow = (string | number | boolean)[];
 
@@ -24,19 +23,20 @@ export const convertCsvToSheetRequests = ({
   format: SheetOutputFormat;
 }): sheets_v4.Schema$Request[] => {
   let parsedCsv: ParseResult<ParsedCsvRow>;
+
   try {
     parsedCsv = Papa.parse<ParsedCsvRow>(csvString, {
       dynamicTyping: true,
       header: false,
       skipEmptyLines: "greedy", // ignore empty lines, whitespace counts as empty
     });
-  } catch (err) {
+  } catch (error) {
     throw new Error(
-      `Could not parse csvString content: ${(err as Error).message}`,
+      `Could not parse csvString content: ${(error as Error).message}`,
     );
   }
 
-  const data = parsedCsv.data;
+  const { data } = parsedCsv;
 
   if (!data[0]) {
     throw new Error(`CSV content is empty`);
@@ -84,28 +84,28 @@ export const convertCsvToSheetRequests = ({
     },
     ...(humanReadable
       ? [
-          {
-            setBasicFilter: {
-              filter: {
-                range: {
-                  sheetId,
-                  startRowIndex: 0,
-                  endRowIndex: rows.length,
-                  startColumnIndex: 0,
-                  endColumnIndex: rows[0]?.values?.length ?? 0,
-                },
-              },
-            },
-          },
-          {
-            autoResizeDimensions: {
-              dimensions: {
+        {
+          setBasicFilter: {
+            filter: {
+              range: {
                 sheetId,
-                dimension: "COLUMNS",
+                startRowIndex: 0,
+                endRowIndex: rows.length,
+                startColumnIndex: 0,
+                endColumnIndex: rows[0]?.values?.length ?? 0,
               },
             },
           },
-        ]
+        },
+        {
+          autoResizeDimensions: {
+            dimensions: {
+              sheetId,
+              dimension: "COLUMNS",
+            },
+          },
+        },
+      ]
       : []),
   ];
 

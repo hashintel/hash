@@ -11,8 +11,8 @@ import { boundIsAdjacentToBound, compareBounds } from "./bound.js";
  * Standard comparison function that returns whether `IntervalA` is before the `IntervalB`. Where "before"
  * is defined by first comparing the start bounds, and if those are equal, then the end bounds are compared.
  *
- * @param {TimeInterval} intervalA
- * @param {TimeInterval} intervalB
+ * @param intervalA
+ * @param intervalB
  */
 export const intervalCompareWithInterval = (
   intervalA: TimeInterval,
@@ -34,7 +34,7 @@ export const intervalCompareWithInterval = (
  * Sorts a given collection of {@link TimeInterval} in place, sorted first from earliest to latest start bounds, and
  * then earliest to latest end bounds.
  *
- * @param {TimeInterval[]} intervals
+ * @param intervals
  */
 export const sortIntervals = (intervals: TimeInterval[]) => {
   intervals.sort(intervalCompareWithInterval);
@@ -46,7 +46,7 @@ export const sortIntervals = (intervals: TimeInterval[]) => {
  * This is an interval where both bounds are `inclusive`, with limit points at the given {@link Timestamp}. Having an
  * `exclusive` start _or_ end would result in the interval never containing anything.
  *
- * @param {Timestamp} timestamp
+ * @param timestamp
  */
 export const intervalForTimestamp = (
   timestamp: Timestamp,
@@ -68,8 +68,8 @@ export const intervalForTimestamp = (
  * being next to one another on the timeline, without any points between, *and where they are not overlapping*. Thus,
  * if adjacent, the two intervals should span another given interval.
  *
- * @param {TimeInterval} left - The first interval of the comparison (order is unimportant)
- * @param {TimeInterval} right - The second interval of the comparison
+ * @param left - The first interval of the comparison (order is unimportant).
+ * @param right - The second interval of the comparison.
  */
 export const intervalIsAdjacentToInterval = (
   left: TimeInterval,
@@ -93,8 +93,8 @@ export const intervalIsAdjacentToInterval = (
  * Returns whether or not the `right` {@link TimeInterval} is *completely contained* within the `left`
  * {@link TimeInterval}.
  *
- * @param {TimeInterval} left - Checked if it contains the other
- * @param {TimeInterval} right - Checked if it's contained _within_ the other
+ * @param left - Checked if it contains the other.
+ * @param right - Checked if it's contained _within_ the other.
  */
 export const intervalContainsInterval = (
   left: TimeInterval,
@@ -117,8 +117,8 @@ export const intervalContainsInterval = (
 /**
  * Returns whether or not the given {@link Timestamp} falls within the span of a given {@link TimeInterval}.
  *
- * @param {TimeInterval} interval
- * @param {Timestamp} timestamp
+ * @param interval
+ * @param timestamp
  */
 export const intervalContainsTimestamp = (
   interval: TimeInterval,
@@ -128,6 +128,7 @@ export const intervalContainsTimestamp = (
     kind: "inclusive",
     limit: timestamp,
   };
+
   /*
    Examples            |     1     |     2     |     3     |     4
    ====================|===========|===========|===========|===========
@@ -143,10 +144,10 @@ export const intervalContainsTimestamp = (
 };
 
 /**
- * Checks whether there is *any* overlap between two {@link TimeInterval}
+ * Checks whether there is *any* overlap between two {@link TimeInterval}.
  *
- * @param {TimeInterval} left
- * @param {TimeInterval} right
+ * @param left
+ * @param right
  */
 export const intervalOverlapsInterval = (
   left: TimeInterval,
@@ -172,7 +173,7 @@ export const intervalOverlapsInterval = (
  * Advanced type to provide stronger type information when using {@link intervalIntersectionWithInterval}.
  *
  * If *either* of the `start` {@link TemporalBound}s is bounded, then the resultant `start` {@link TemporalBound} will
- * be bounded, same goes for `end` {@link TemporalBound}s respectively
+ * be bounded, same goes for `end` {@link TemporalBound}s respectively.
  */
 type IntersectionReturn<
   LeftInterval extends TimeInterval,
@@ -195,8 +196,8 @@ type IntersectionReturn<
  * Returns the intersection (overlapping range) of two given {@link TimeInterval}s, returning `null` if there
  * isn't any.
  *
- * @param {TimeInterval} left
- * @param {TimeInterval} right
+ * @param left
+ * @param right
  */
 export const intervalIntersectionWithInterval = <
   LeftInterval extends TimeInterval = TimeInterval,
@@ -215,7 +216,8 @@ export const intervalIntersectionWithInterval = <
    */
   if (!intervalOverlapsInterval(left, right)) {
     return null;
-  } else {
+  }
+ 
     return {
       start:
         compareBounds(left.start, right.start, "start", "start") <= 0
@@ -226,14 +228,14 @@ export const intervalIntersectionWithInterval = <
           ? left.end
           : right.end,
     } as IntersectionReturn<LeftInterval, RightInterval>;
-  }
+  
 };
 
 /**
  * Advanced type to provide stronger type information when using {@link intervalMergeWithInterval}.
  *
  * If *both* of the `start` {@link TemporalBound}s are bounded, then the resultant `start` {@link TemporalBound} will be
- * bounded, same goes for end respectively
+ * bounded, same goes for end respectively.
  */
 type MergeReturn<
   LeftInterval extends TimeInterval,
@@ -261,10 +263,10 @@ type MergeReturn<
  * end {@link TemporalBound}s of two provided {@link TimeInterval}s.
  *
  * If the intervals do not overlap and are not adjacent, the resultant interval will span _more_ space than that spanned
- * by the given intervals. _This is different behavior compared to {@link intervalUnionWithInterval}._
+ * by the given intervals. _This is different behavior compared to {@link intervalUnionWithInterval}._.
  *
- * @param {TimeInterval} left
- * @param {TimeInterval} right
+ * @param left
+ * @param right
  */
 export const intervalMergeWithInterval = <
   LeftInterval extends TimeInterval = TimeInterval,
@@ -308,8 +310,8 @@ type UnionReturn<
  * In other words, if the intervals _are_ adjacent, or overlap, then this returns the result of calling
  * {@link intervalMergeWithInterval} on the intervals, otherwise it returns the two intervals back.
  *
- * @param {TimeInterval}  left
- * @param {TimeInterval}  right
+ * @param  left
+ * @param  right
  */
 export const intervalUnionWithInterval = <
   LeftInterval extends TimeInterval = TimeInterval,
@@ -331,11 +333,12 @@ export const intervalUnionWithInterval = <
     intervalIsAdjacentToInterval(left, right)
   ) {
     return [intervalMergeWithInterval(left, right)];
-  } else if (compareBounds(left.start, right.start, "start", "start") < 0) {
+  } if (compareBounds(left.start, right.start, "start", "start") < 0) {
     return [left, right];
-  } else {
-    return [right, left];
   }
+ 
+    return [right, left];
+  
 };
 
 /**
@@ -345,7 +348,7 @@ export const intervalUnionWithInterval = <
  * Conceptually this recursively calls {@link intervalUnionWithInterval} pairwise until all intervals have been unioned
  * with one another. The space spanned by the result will not necessarily be contiguous (may contain gaps).
  *
- * @param {TimeInterval[]} intervals
+ * @param intervals
  */
 export const unionOfIntervals = <IntervalsType extends TimeInterval>(
   ...intervals: IntervalsType[]
@@ -362,11 +365,12 @@ export const unionOfIntervals = <IntervalsType extends TimeInterval>(
    */
   sortIntervals(intervals);
 
-  return intervals.reduce(
+  return intervals.reduce<UnionReturn<IntervalsType, IntervalsType>[number][]>(
     (union, currentInterval) => {
       if (union.length === 0) {
         return [currentInterval];
-      } else {
+      }
+ 
         // The intervals were sorted above, it's only necessary to check the union of this with the last interval, if it
         // overlaps two of the previous ones (which would make it necessary to check the union with more than just the
         // last) then those would have been merged into one in the previous iteration (again because they are sorted).
@@ -374,9 +378,9 @@ export const unionOfIntervals = <IntervalsType extends TimeInterval>(
           ...union.slice(0, -1),
           ...intervalUnionWithInterval(union.at(-1)!, currentInterval),
         ];
-      }
+      
     },
-    [] as UnionReturn<IntervalsType, IntervalsType>[number][],
+    [],
   );
 };
 
@@ -385,8 +389,8 @@ export const unionOfIntervals = <IntervalsType extends TimeInterval>(
  * range that is completely *before* the time range spanned by the `right` interval (which also implies they do not
  * overlap), and false otherwise.
  *
- * @param {TimeInterval} left
- * @param {TimeInterval} right
+ * @param left
+ * @param right
  */
 export const intervalIsStrictlyBeforeInterval = (
   left: TimeInterval,
@@ -400,8 +404,8 @@ export const intervalIsStrictlyBeforeInterval = (
  * range that is completely *after* the time range spanned by the `right` interval (which also implies they do not
  * overlap), and false otherwise.
  *
- * @param {TimeInterval} left
- * @param {TimeInterval} right
+ * @param left
+ * @param right
  */
 export const intervalIsStrictlyAfterInterval = (
   left: TimeInterval,

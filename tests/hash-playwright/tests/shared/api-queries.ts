@@ -1,3 +1,4 @@
+import type { GraphQLError } from "graphql/error";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityProperties,
@@ -10,7 +11,6 @@ import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import type { APIRequestContext } from "@playwright/test";
-import type { GraphQLError } from "graphql/error";
 
 import type {
   CreateEntityMutation,
@@ -82,6 +82,7 @@ export const createEntity = async <T extends EntityProperties>(
     if (!data) {
       throw new Error("Entity not created");
     }
+
     return new Entity<T>(data.createEntity);
   });
 };

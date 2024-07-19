@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 
+import type { RequestHandler } from "express";
 import { LinearClient } from "@linear/sdk";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -15,13 +16,11 @@ import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import type { RequestHandler } from "express";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
-import type { LinearIntegration } from "../../graph/knowledge/system-types/linear-integration-entity";
-import {
-  getLinearIntegrationByLinearOrgId,
+import type {   getLinearIntegrationByLinearOrgId,
   getLinearIntegrationFromEntity,
+LinearIntegration ,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
@@ -33,11 +32,11 @@ const linearOAuthCallbackUrl =
   process.env.LINEAR_OAUTH_CALLBACK_URL ?? `${apiOrigin}/oauth/linear/callback`;
 
 /**
- * @todo oauth state will need to be store somewhere other than memory if we need:
+ * @todo Oauth state will need to be store somewhere other than memory if we need:
  *   - the authorization process to work if the server is rebooted/redeployed while the user is in the middle of it
  *   - to be running multiple server instances without sticky sessions managed by the load balancer
  *   - to be running multiple processes on the same server instance (e.g. Node Clusters) without ensuring
- *        the same clients are handled by the same process
+ *        the same clients are handled by the same process.
  */
 const stateMap = new Map<
   string,
@@ -67,34 +66,37 @@ export const oAuthLinear: RequestHandler<
 > =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  async (req, res) => {
+  async (request, res) => {
     if (!linearClientId) {
       res
         .status(501)
         .send(
           "Linear integration is not configured – set a client id and secret.",
         );
+
       return;
     }
 
-    if (!req.user) {
+    if (!request.user) {
       res.status(401).send("You must be authenticated to do this.");
+
       return;
     }
-    const authentication = { actorId: req.user.accountId };
+    const authentication = { actorId: request.user.accountId };
 
-    const { ownedById } = req.query;
+    const { ownedById } = request.query;
 
     if (!ownedById) {
       res.status(400).send("No ownedById for secret provided.");
+
       return;
     }
 
-    const userEntityId = req.user.entity.metadata.recordId.entityId;
+    const userEntityId = request.user.entity.metadata.recordId.entityId;
 
     if (
       extractEntityUuidFromEntityId(userEntityId) !== ownedById &&
-      !(await isUserMemberOfOrg(req.context, authentication, {
+      !(await isUserMemberOfOrg(request.context, authentication, {
         userEntityId,
         orgEntityUuid: ownedById as EntityUuid,
       }))
@@ -104,13 +106,14 @@ export const oAuthLinear: RequestHandler<
         .send(
           "ownedById must represent the user or an organization they are a member of.",
         );
+
       return;
     }
 
     const state = crypto.randomBytes(16).toString("hex");
 
     stateMap.set(state, {
-      actorEntityId: req.user.entity.metadata.recordId.entityId,
+      actorEntityId: request.user.entity.metadata.recordId.entityId,
       expires: new Date(Date.now() + 1000 * 60 * 5), // 5 minutes expiry
       ownedById: ownedById as EntityUuid,
     });
@@ -126,16 +129,18 @@ export const oAuthLinearCallback: RequestHandler<
 > =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  async (req, res) => {
-    const { code, state } = req.query;
+  async (request, res) => {
+    const { code, state } = request.query;
 
-    if (!req.context.vaultClient) {
+    if (!request.context.vaultClient) {
       res.status(501).send({ error: "Vault integration is not configured." });
+
       return;
     }
 
     if (!state) {
       res.status(400).send({ error: "No state provided" });
+
       return;
     }
 
@@ -143,19 +148,23 @@ export const oAuthLinearCallback: RequestHandler<
 
     if (!stateData) {
       res.status(400).send({ error: "Invalid state" });
+
       return;
     }
 
     if (
-      stateData.actorEntityId !== req.user?.entity.metadata.recordId.entityId
+      stateData.actorEntityId !== request.user?.entity.metadata.recordId.entityId
     ) {
       res.status(403).send({ error: "State mismatch" });
+
       return;
     }
 
     const now = new Date();
+
     if (stateData.expires < now) {
       res.status(400).send({ error: "State expired" });
+
       return;
     }
 
@@ -165,10 +174,12 @@ export const oAuthLinearCallback: RequestHandler<
 
     if (!linearClientId || !linearClientSecret) {
       res.status(501).send({ error: "Linear integration is not configured." });
+
       return;
     }
 
     const formData = new URLSearchParams();
+
     formData.append("client_id", linearClientId);
     formData.append("client_secret", linearClientSecret);
     formData.append("code", code);
@@ -206,15 +217,16 @@ export const oAuthLinearCallback: RequestHandler<
     const authentication = { actorId: userAccountId };
 
     /**
-     * Create the linear integration entity if it doesn't exist, and link it to the user secret
+     * Create the linear integration entity if it doesn't exist, and link it to the user secret.
      */
     const existingLinearIntegration = await getLinearIntegrationByLinearOrgId(
-      req.context,
+      request.context,
       authentication,
       { linearOrgId, userAccountId },
     );
 
     let linearIntegration: LinearIntegration;
+
     if (existingLinearIntegration) {
       linearIntegration = existingLinearIntegration;
     } else {
@@ -233,7 +245,7 @@ export const oAuthLinearCallback: RequestHandler<
 
       // Create the Linear integration entity, which any web member can view and edit
       const linearIntegrationEntity = await createEntity(
-        req.context,
+        request.context,
         authentication,
         {
           entityTypeId: systemEntityTypes.linearIntegration.entityTypeId,
@@ -250,10 +262,10 @@ export const oAuthLinearCallback: RequestHandler<
     }
 
     /**
-     * Get the linear bot, which will be the only entity with edit access to the secret and the link to the secret
+     * Get the linear bot, which will be the only entity with edit access to the secret and the link to the secret.
      */
     const linearBotAccountId = await getMachineActorId(
-      req.context,
+      request.context,
       authentication,
       { identifier: "linear" },
     );
@@ -264,16 +276,16 @@ export const oAuthLinearCallback: RequestHandler<
        */
       archiveExistingSecrets: true,
       expiresAt: expiredAt.toISOString(),
-      graphApi: req.context.graphApi,
+      graphApi: request.context.graphApi,
       managingBotAccountId: linearBotAccountId,
-      provenance: req.context.provenance,
+      provenance: request.context.provenance,
       restOfPath: `workspace/${linearOrgId}`,
       secretData: { value: access_token },
       service: "linear",
       sourceIntegrationEntityId:
         linearIntegration.entity.metadata.recordId.entityId,
-      userAccountId: req.user.accountId,
-      vaultClient: req.context.vaultClient,
+      userAccountId: request.user.accountId,
+      vaultClient: request.context.vaultClient,
     });
 
     res.redirect(

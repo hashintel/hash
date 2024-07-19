@@ -1,28 +1,24 @@
+import dedent from "dedent";
+import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
-import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
-import {
+import type { EnforcedEntityEditionProvenance ,
   Entity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import dedent from "dedent";
-import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
 import { extractErrorMessage } from "../../../infer-entities/shared/extract-validation-failure-details.js";
-import type { PropertyValueWithSimplifiedProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties.js";
-import { mapSimplifiedPropertiesToProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties.js";
+import type { mapSimplifiedPropertiesToProperties,PropertyValueWithSimplifiedProperties  } from "../../../infer-entities/shared/map-simplified-properties-to-properties.js";
 import { stripIdsFromDereferencedProperties } from "../../../infer-entities/shared/strip-ids-from-dereferenced-properties.js";
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type {
-  LlmMessage,
-  LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message.js";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
+ getToolCallsFromLlmAssistantMessage,  LlmMessage,
+  LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
@@ -42,16 +38,15 @@ const mapPropertiesSchemaToInputPropertiesSchema = (params: {
   });
 
   return Object.entries(propertiesWithoutIds).reduce(
-    (prev, [simplifiedPropertyKey, jsonSchema]) => {
+    (previous, [simplifiedPropertyKey, jsonSchema]) => {
       return {
-        ...prev,
+        ...previous,
         [simplifiedPropertyKey]: {
           type: "object",
           properties: {
             /**
              * @todo: attach provenance information to nested properties which have corresponding
              * property type definitions.
-             *
              * @see https://linear.app/hash/issue/H-2755/attach-provenance-information-to-nested-properties-when-proposing
              */
             propertyValue: jsonSchema,
@@ -73,12 +68,12 @@ const mapPropertiesSchemaToInputPropertiesSchema = (params: {
   );
 };
 
-type InputPropertiesObject = {
+interface InputPropertiesObject {
   [key: string]: {
     propertyValue: unknown;
     factIdsUsedToDetermineValue: string[];
   };
-};
+}
 
 const mapInputPropertiesToPropertiesObject = (params: {
   inputProperties: InputPropertiesObject;
@@ -86,9 +81,9 @@ const mapInputPropertiesToPropertiesObject = (params: {
   const { inputProperties } = params;
 
   return Object.entries(inputProperties).reduce(
-    (prev, [simplifiedPropertyKey, { propertyValue }]) => {
+    (previous, [simplifiedPropertyKey, { propertyValue }]) => {
       return {
-        ...prev,
+        ...previous,
         [simplifiedPropertyKey]: propertyValue,
       };
     },
@@ -123,6 +118,7 @@ const generatePropertyMetadata = (params: {
        */
       .filter((source, index, all) => {
         const sourceLocationUri = source.location?.uri;
+
         if (sourceLocationUri) {
           return (
             all.findIndex(
@@ -130,6 +126,7 @@ const generatePropertyMetadata = (params: {
             ) === index
           );
         }
+
         return source;
       });
 

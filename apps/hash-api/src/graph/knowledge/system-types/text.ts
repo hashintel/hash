@@ -24,19 +24,16 @@ import type {
 } from "../../context-types";
 import { getEntities, getLatestEntityById } from "../primitive/entity";
 import { isEntityLinkEntity } from "../primitive/link-entity";
-import type { Block } from "./block";
-import { getBlockById } from "./block";
-import type { Comment } from "./comment";
-import { getCommentById } from "./comment";
-import type { Page } from "./page";
-import { getPageFromEntity } from "./page";
-import type { User } from "./user";
-import { getUserById } from "./user";
 
-export type Text = {
+import type { Block , getBlockById } from "./block";
+import type { Comment , getCommentById } from "./comment";
+import type { getPageFromEntity,Page  } from "./page";
+import type { getUserById,User  } from "./user";
+
+export interface Text {
   textualContent: TextToken[];
   entity: Entity<TextEntity>;
-};
+}
 
 function assertTextEntity(
   entity: Entity,
@@ -68,7 +65,7 @@ export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
 /**
  * Get a system text entity by its entity id.
  *
- * @param params.entityId - the entity id of the text
+ * @param params.entityId - The entity id of the text.
  */
 export const getTextById: ImpureGraphFunction<
   { entityId: EntityId },
@@ -84,7 +81,7 @@ export const getTextById: ImpureGraphFunction<
 /**
  * Get the page that contains the text, or null if the text is not in the page.
  *
- * @param params.text - the text entity
+ * @param params.text - The text entity.
  */
 export const getPageAndBlockByText: ImpureGraphFunction<
   { text: Text; includeDrafts?: boolean },
@@ -204,13 +201,14 @@ export const getPageAndBlockByText: ImpureGraphFunction<
 
     return { page, block };
   }
+
   return null;
 };
 
 /**
  * Get the comment that contains the text, or null if the text is not in a comment.
  *
- * @param params.text - the text entity
+ * @param params.text - The text entity.
  */
 export const getCommentByText: ImpureGraphFunction<
   { text: Text; includeDrafts?: boolean },
@@ -264,7 +262,7 @@ export const getCommentByText: ImpureGraphFunction<
 /**
  * Get the mentioned users in textual content.
  *
- * @param params.textualContent - the textual content (array of text tokens)
+ * @param params.textualContent - The textual content (array of text tokens).
  */
 export const getMentionedUsersInTextualContent: ImpureGraphFunction<
   { textualContent: TextToken[] },

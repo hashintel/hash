@@ -39,7 +39,7 @@ const main = async () => {
     host,
     port,
     auth: searchAuth,
-    httpsEnabled: !!process.env.HASH_OPENSEARCH_HTTPS_ENABLED,
+    httpsEnabled: Boolean(process.env.HASH_OPENSEARCH_HTTPS_ENABLED),
   });
 
   try {

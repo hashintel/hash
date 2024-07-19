@@ -1,20 +1,19 @@
 import { throttle } from "lodash";
-import type { FunctionComponent, MouseEvent, ReactNode } from "react";
-import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import type { FunctionComponent, MouseEvent, ReactNode , useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { tw } from "twind";
 
 import { MIN_HEIGHT, MIN_WIDTH } from "../constants";
 import { CornerResize } from "../svgs/corner-resize";
 import { isInRange, toCSSObject, toCSSText } from "../utils";
 
-type ResizeBlockProps = {
+interface ResizeBlockProps {
   width: number | undefined;
   height: number | undefined;
   maxWidth: number;
   updateDimensions: (width: number, height: number) => void;
   shouldRespectAspectRatio: boolean;
   children?: ReactNode;
-};
+}
 
 const BLOCK_RESIZER_POSITIONS = [
   {
@@ -41,8 +40,8 @@ const BLOCK_RESIZER_POSITIONS = [
 ] as const;
 
 /**
- * @todo this component is a candidate for the hash-ui package
- *  and should be imported from there
+ * @todo This component is a candidate for the hash-ui package
+ *  and should be imported from there.
  */
 
 export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
@@ -69,7 +68,7 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
 
   const updateLocalDimensions = useCallback(
     (dimensions: { width?: number; height?: number }) => {
-      if (!divRef.current) return;
+      if (!divRef.current) {return;}
 
       const styles = {
         ...toCSSObject(divRef.current.style.cssText),
@@ -93,7 +92,7 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
   );
 
   useLayoutEffect(() => {
-    if (!divRef.current) return;
+    if (!divRef.current) {return;}
     const { width: localWidth, height: localHeight } =
       divRef.current.getBoundingClientRect();
 
@@ -103,46 +102,53 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
   }, [width, height, updateLocalDimensions]);
 
   const handleResize = (
-    _evt: MouseEvent,
+    _event: MouseEvent,
     direction: (typeof BLOCK_RESIZER_POSITIONS)[number]["position"],
   ) => {
-    if (!childrenWrapperRef.current) return;
+    if (!childrenWrapperRef.current) {return;}
     let isResizing = false;
 
-    function onMouseMove(mouseMoveEvt: globalThis.MouseEvent) {
-      if (!divRef.current) return;
-      if (!childrenWrapperRef.current) return;
+    function onMouseMove(mouseMoveEvent: globalThis.MouseEvent) {
+      if (!divRef.current) {return;}
+      if (!childrenWrapperRef.current) {return;}
       /**
-       * Fixes issue with iframes affecting mouseover event. https://stackoverflow.com/q/32885485/6789071
-       * logic is to put off pointer events on embed iframe while resizing
+       * Fixes issue with iframes affecting mouseover event. Https://stackoverflow.com/q/32885485/6789071
+       * logic is to put off pointer events on embed iframe while resizing.
        */
       childrenWrapperRef.current.style.pointerEvents = "none";
 
       let newWidth;
       let newHeight;
       const { left, right, top } = divRef.current.getBoundingClientRect();
+
       isResizing = true;
 
       switch (direction) {
-        case "right":
-          newWidth = Math.ceil(mouseMoveEvt.clientX - left);
+        case "right": {
+          newWidth = Math.ceil(mouseMoveEvent.clientX - left);
           break;
-        case "left":
-          newWidth = Math.ceil(right - mouseMoveEvt.clientX);
+        }
+        case "left": {
+          newWidth = Math.ceil(right - mouseMoveEvent.clientX);
           break;
-        case "bottom":
-          newHeight = Math.ceil(mouseMoveEvt.clientY - top);
+        }
+        case "bottom": {
+          newHeight = Math.ceil(mouseMoveEvent.clientY - top);
           break;
-        case "bottom-right":
-          newHeight = Math.ceil(mouseMoveEvt.clientY - top);
-          newWidth = Math.ceil(mouseMoveEvt.clientX - left);
+        }
+        case "bottom-right": {
+          newHeight = Math.ceil(mouseMoveEvent.clientY - top);
+          newWidth = Math.ceil(mouseMoveEvent.clientX - left);
           break;
-        case "bottom-left":
-          newHeight = Math.ceil(mouseMoveEvt.clientY - top);
-          newWidth = Math.ceil(right - mouseMoveEvt.clientX);
+        }
+        case "bottom-left": {
+          newHeight = Math.ceil(mouseMoveEvent.clientY - top);
+          newWidth = Math.ceil(right - mouseMoveEvent.clientX);
           break;
-        default:
+        }
+        default: {
           break;
+        }
       }
 
       let newDimensions = {};
@@ -175,13 +181,13 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
     }
 
     function onMouseUp() {
-      if (!childrenWrapperRef.current) return;
+      if (!childrenWrapperRef.current) {return;}
       childrenWrapperRef.current.style.pointerEvents = "auto";
       isResizing = false;
       document.removeEventListener("mousemove", onMouseMove);
 
       setTimeout(() => {
-        if (!divRef.current) return;
+        if (!divRef.current) {return;}
         const { width: newWidth, height: newHeight } =
           divRef.current.getBoundingClientRect();
 
@@ -217,9 +223,9 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
             <button
               aria-label={`${position} resize button`}
               key={position}
-              type="button"
+              type={"button"}
               className={tw`transition-all absolute z-10 opacity-0 group-hover:opacity-100 focus:outline-none ${className}`}
-              onMouseDown={(evt) => handleResize(evt, position)}
+              onMouseDown={(event) => { handleResize(event, position); }}
             >
               <CornerResize position={position} />
             </button>
@@ -231,9 +237,9 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
             key={position}
             style={{ maxHeight: "50%" }}
             aria-label={`${position} resize button`}
-            type="button"
+            type={"button"}
             className={tw`transition-all absolute border-1 border-white rounded-full bg-black bg-opacity-70 z-10 opacity-0 focus:outline-none group-hover:opacity-100 ${className}`}
-            onMouseDown={(evt) => handleResize(evt, position)}
+            onMouseDown={(event) => { handleResize(event, position); }}
           />
         );
       })}

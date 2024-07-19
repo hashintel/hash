@@ -6,18 +6,19 @@ import { getLlmResponse } from "../../shared/get-llm-response.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
+
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
 } from "./coordinating-agent.js";
 import { simplifyEntityTypeForLlmConsumption } from "./shared/simplify-for-llm-consumption.js";
 
-type SubmitVerdictToolCallInput = {
+interface SubmitVerdictToolCallInput {
   [subTaskId: string]: {
     accept: boolean;
     reason: string;
   };
-};
+}
 
 export const checkSubTasksAgent = async (params: {
   input: CoordinatingAgentInput;
@@ -56,7 +57,6 @@ export const checkSubTasksAgent = async (params: {
       /**
        * @todo: simplify link type definitions, potentially by moving them to an "Outgoing Links" field
        * on the simplified entity type definition.
-       *
        * @see https://linear.app/hash/issue/H-2826/simplify-property-values-for-llm-consumption
        */
       input.linkEntityTypes
@@ -99,10 +99,8 @@ export const checkSubTasksAgent = async (params: {
     description: "Submit the verdict of which subTasks to accept or reject",
     inputSchema: {
       type: "object",
-      properties: subTasks.reduce(
-        (acc, subTask) => ({
-          ...acc,
-          [subTask.subTaskId]: {
+      properties: Object.fromEntries(subTasks.map<Record<string, JSONSchemaDefinition>>(
+        ( subTask) => [subTask.subTaskId, {
             type: "object",
             properties: {
               accept: {
@@ -116,11 +114,9 @@ export const checkSubTasksAgent = async (params: {
               },
             },
             required: ["reason", "accept"],
-          },
-        }),
-        {} as Record<string, JSONSchemaDefinition>,
-      ),
-      required: [...subTasks.map(({ subTaskId }) => subTaskId)],
+          }],
+      )),
+      required: subTasks.map(({ subTaskId }) => subTaskId),
     },
   };
 
@@ -181,7 +177,8 @@ export const checkSubTasksAgent = async (params: {
     }
 
     return { acceptedSubTasks, rejectedSubTasks };
-  } else {
+  }
+ 
     return {
       acceptedSubTasks: subTasks.map(({ subTaskId }) => ({
         subTaskId,
@@ -189,5 +186,5 @@ export const checkSubTasksAgent = async (params: {
       })),
       rejectedSubTasks: [],
     };
-  }
+  
 };

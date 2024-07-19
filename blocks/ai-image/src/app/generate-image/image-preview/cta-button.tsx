@@ -7,8 +7,7 @@ export const CTAButton = ({ onSubmit }: { onSubmit: () => void }) => {
   return (
     <Box>
       <Button
-        size="small"
-        onClick={() => onSubmit()}
+        size={"small"}
         sx={{
           gap: 1,
           borderRadius: 1,
@@ -16,6 +15,7 @@ export const CTAButton = ({ onSubmit }: { onSubmit: () => void }) => {
           fontWeight: 500,
           lineHeight: "18px",
         }}
+        onClick={() => { onSubmit(); }}
       >
         Insert this image
         <SquareDashedCirclePlusIcon

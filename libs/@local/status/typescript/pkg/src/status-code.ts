@@ -28,67 +28,67 @@ export const convertStatusCodeToHttpCode = (statusCode: StatusCode): number =>
 export const convertHttpCodeToStatusCode = (statusCode: number) => {
   if (statusCode >= 100 && statusCode < 200) {
     return StatusCode.Unknown;
-  } else if (statusCode === 207 || statusCode === 208) {
+  } if (statusCode === 207 || statusCode === 208) {
     // 207 is a "multi-status" code which requires introspection of the response body to determine
     // the status code, ideally we should never pass this to this function but throwing an error is
     // dangerous here as if this is used in an error mapping function we could drop all
     // the actual error information.
     // 208 is an "already reported" code which has the same considerations of 207, see above.
     return StatusCode.Unknown;
-  } else if (statusCode >= 200 && statusCode < 300) {
+  } if (statusCode >= 200 && statusCode < 300) {
     // We treat all other 2XX codes as OK, the additional meaning is purposefully dropped for simplicity
     return StatusCode.Ok;
-  } else if (statusCode >= 300 && statusCode < 400) {
+  } if (statusCode >= 300 && statusCode < 400) {
     // The status model doesn't encapsulate the nuances of 3XX codes. These should be handled by the
     // HTTP handler and ideally won't usually end up being passed to this function.
     return StatusCode.Unknown;
-  } else if (statusCode === 400) {
+  } if (statusCode === 400) {
     // Lossy transformation, could also be `FailedPrecondition`, although this seems more likely in
     // more circumstances.
     return StatusCode.InvalidArgument;
-  } else if (statusCode === 401) {
+  } if (statusCode === 401) {
     return StatusCode.Unauthenticated;
-  } else if (statusCode === 402) {
+  } if (statusCode === 402) {
     // This is a very uncommon status code to do with payment processing
     return StatusCode.FailedPrecondition;
-  } else if (statusCode === 403) {
+  } if (statusCode === 403) {
     return StatusCode.PermissionDenied;
-  } else if (statusCode === 404) {
+  } if (statusCode === 404) {
     return StatusCode.NotFound;
-  } else if (statusCode === 405 || statusCode === 406) {
+  } if (statusCode === 405 || statusCode === 406) {
     // 405 generally refers to an incorrect method being used (e.g. `GET` instead of `POST`)
     // 406 generally refers to an incorrect `Accept` header being used
     return StatusCode.InvalidArgument;
-  } else if (statusCode === 407) {
+  } if (statusCode === 407) {
     // We'll consider proxy authentication
     return StatusCode.FailedPrecondition;
-  } else if (statusCode === 408) {
+  } if (statusCode === 408) {
     // 408 generally refers to the _server_ waiting too long for the client to send the request
     // perhaps this would be better represented as `Unknown`, `Cancelled`, or `Aborted`?
     return StatusCode.DeadlineExceeded;
-  } else if (statusCode === 409) {
+  } if (statusCode === 409) {
     // 409 generally refers to a conflict with the current state of the server, this could refer to
     // transaction lock conflicts, but could also refer to a resource already existing.
     // Unfortunately that means using `AlreadyExists` wouldn't be correct generally here.
     return StatusCode.Aborted;
-  } else if (statusCode === 410) {
+  } if (statusCode === 410) {
     return StatusCode.NotFound;
-  } else if (statusCode === 411) {
+  } if (statusCode === 411) {
     return StatusCode.InvalidArgument;
-  } else if (statusCode === 412) {
+  } if (statusCode === 412) {
     return StatusCode.FailedPrecondition;
-  } else if (statusCode === 413 || statusCode === 414 || statusCode === 415) {
+  } if (statusCode === 413 || statusCode === 414 || statusCode === 415) {
     return StatusCode.InvalidArgument;
-  } else if (statusCode === 416) {
+  } if (statusCode === 416) {
     return StatusCode.OutOfRange;
-  } else if (statusCode === 417) {
+  } if (statusCode === 417) {
     // 417 generally refers to an incorrect `Expect` header being used, or the server not supporting
     // it. Perhaps this would be better represented as `InvalidArgument`?
     return StatusCode.Unimplemented;
-  } else if (statusCode === 418) {
+  } if (statusCode === 418) {
     // Unfortunately we don't support a teapot status code
     return StatusCode.Unknown;
-  } else if (statusCode > 418 && statusCode <= 422) {
+  } if (statusCode > 418 && statusCode <= 422) {
     return StatusCode.InvalidArgument;
   } else if (statusCode === 423) {
     return StatusCode.Aborted;

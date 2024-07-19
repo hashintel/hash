@@ -1,12 +1,9 @@
+import type { FunctionComponent , useState } from "react";
 import { EditableField } from "@hashintel/block-design-system";
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Fade, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useState } from "react";
+import type { Box, Fade, SxProps, Theme , Typography } from "@mui/material";
 
-import type { TitleOrDescription } from "./app";
-import { descriptionKey, titleKey } from "./app";
+import type { descriptionKey, titleKey,TitleOrDescription  } from "./app";
 
 interface StepProps {
   header: string;
@@ -42,7 +39,7 @@ export const Step: FunctionComponent<StepProps> = ({
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
         <Typography
-          variant="regularTextLabels"
+          variant={"regularTextLabels"}
           sx={{
             fontWeight: 700,
             fontSize: 15,
@@ -58,8 +55,8 @@ export const Step: FunctionComponent<StepProps> = ({
         {!readonly ? (
           <Fade in={deletable}>
             <Button
-              variant="tertiary"
-              size="xs"
+              variant={"tertiary"}
+              size={"xs"}
               sx={({ palette }) => ({
                 paddingX: 1.25,
                 paddingY: 0.75,
@@ -104,12 +101,8 @@ export const Step: FunctionComponent<StepProps> = ({
         <EditableField
           editIconFontSize={15}
           value={titleValue}
-          onChange={(event) => {
-            if (!readonly) {
-              setTitleValue(event.target.value);
-            }
-          }}
-          onBlur={(event) => updateField(event.target.value, titleKey)}
+          placeholder={titlePlaceholder}
+          readonly={readonly}
           sx={{
             fontWeight: 700,
             fontSize: 15,
@@ -117,8 +110,12 @@ export const Step: FunctionComponent<StepProps> = ({
             color: ({ palette }) => palette.gray[90],
             ...(readonly ? { paddingY: 0.5 } : {}),
           }}
-          placeholder={titlePlaceholder}
-          readonly={readonly}
+          onBlur={(event) => { updateField(event.target.value, titleKey); }}
+          onChange={(event) => {
+            if (!readonly) {
+              setTitleValue(event.target.value);
+            }
+          }}
         />
       </Box>
 
@@ -140,12 +137,8 @@ export const Step: FunctionComponent<StepProps> = ({
         <EditableField
           editIconFontSize={14}
           value={descriptionValue}
-          onChange={(event) => {
-            if (!readonly) {
-              setDescriptionValue(event.target.value);
-            }
-          }}
-          onBlur={(event) => updateField(event.target.value, descriptionKey)}
+          placeholder={descriptionPlaceholder}
+          readonly={readonly}
           sx={{
             fontWeight: 400,
             fontSize: 14,
@@ -153,8 +146,12 @@ export const Step: FunctionComponent<StepProps> = ({
             color: ({ palette }) => palette.gray[90],
             ...(readonly ? { paddingY: 0.5 } : {}),
           }}
-          placeholder={descriptionPlaceholder}
-          readonly={readonly}
+          onBlur={(event) => { updateField(event.target.value, descriptionKey); }}
+          onChange={(event) => {
+            if (!readonly) {
+              setDescriptionValue(event.target.value);
+            }
+          }}
         />
       </Box>
     </Box>

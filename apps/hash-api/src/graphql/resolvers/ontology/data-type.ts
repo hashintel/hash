@@ -11,7 +11,6 @@ import type {
   DataTypeRootType,
   SerializedSubgraph,
 } from "@local/hash-subgraph";
-
 import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
 import type {
   QueryGetDataTypeArgs,
@@ -74,8 +73,9 @@ export const getDataType: ResolverFn<
       graphQLContext.authentication,
       {
         dataTypeId,
-        /** @todo - make these configurable once non-primitive data types are a thing
-         * @see https://linear.app/hash/issue/H-2994
+                 * @see https://linear.app/hash/issue/H-2994
+/** @todo - make these configurable once non-primitive data types are a thing
+/**
          */
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,

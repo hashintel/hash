@@ -10,15 +10,17 @@ export const oauthConsentRequestHandler: RequestHandler<
   string,
   Record<string, never>,
   { consent_challenge: string }
-> = (req, res, next) => {
-  const query = req.query;
+> = (request, res, next) => {
+  const {query} = request;
 
   // The challenge is used to fetch information about the consent request from ORY hydraAdmin.
   const consentChallenge = query.consent_challenge;
+
   if (!consentChallenge) {
     next(
       new Error("Expected a consent_challenge to be set but received none."),
     );
+
     return;
   }
 
@@ -44,7 +46,7 @@ export const oauthConsentRequestHandler: RequestHandler<
           });
       }
 
-      if (consentRequest.subject !== req.user?.kratosIdentityId) {
+      if (consentRequest.subject !== request.user?.kratosIdentityId) {
         res
           .status(403)
           .send("Consent request subject does not match request user.");
@@ -53,7 +55,7 @@ export const oauthConsentRequestHandler: RequestHandler<
       const viewData = {
         challenge: consentChallenge,
         requested_scope: consentRequest.requested_scope,
-        username: req.user?.shortname,
+        username: request.user?.shortname,
         client: consentRequest.client,
       };
 
@@ -65,13 +67,13 @@ export const oauthConsentRequestHandler: RequestHandler<
 };
 
 export const oauthConsentSubmissionHandler: RequestHandler = (
-  req,
+  request,
   res,
   next,
 ) => {
-  const consentChallenge = req.body.challenge;
+  const consentChallenge = request.body.challenge;
 
-  if (req.body.submit === "deny") {
+  if (request.body.submit === "deny") {
     hydraAdmin
       .rejectOAuth2ConsentRequest({
         consentChallenge,
@@ -84,10 +86,12 @@ export const oauthConsentSubmissionHandler: RequestHandler = (
         res.json({ redirectTo: rejection.redirect_to });
       })
       .catch(next);
+
     return;
   }
 
-  let grantScope = req.body.grant_scope;
+  let grantScope = request.body.grant_scope;
+
   if (!Array.isArray(grantScope)) {
     grantScope = [grantScope];
   }

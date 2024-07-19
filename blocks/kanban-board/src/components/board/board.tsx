@@ -1,28 +1,25 @@
+import cloneDeep from "lodash.clonedeep";
+import debounce from "lodash.debounce";
+import isEqual from "lodash.isequal";
+import { useMemo, useRef, useState } from "react";
 import type {
-  DragOverEvent,
-  DragStartEvent,
-  UniqueIdentifier,
-} from "@dnd-kit/core";
-import {
   closestCenter,
   defaultDropAnimationSideEffects,
   DndContext,
+  DragOverEvent,
   DragOverlay,
+  DragStartEvent,
   KeyboardSensor,
   PointerSensor,
+  UniqueIdentifier,
   useSensor,
-  useSensors,
-} from "@dnd-kit/core";
+  useSensors} from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { PlusIcon } from "@hashintel/design-system";
-import cloneDeep from "lodash.clonedeep";
-import debounce from "lodash.debounce";
-import isEqual from "lodash.isequal";
-import { useMemo, useRef, useState } from "react";
 
 import type {
   BlockEntityKey,
@@ -33,6 +30,7 @@ import type {
   BlockEntity,
   KanbanBoardColumnPropertyValue,
 } from "../../types/generated/block-entity";
+
 import { StaticCard } from "./card/static-card";
 import { Column } from "./column/column";
 import { SortableColumn } from "./column/sortable-column";
@@ -97,6 +95,7 @@ const transformColumnsStateToEntityColumns = (
 ): KanbanBoardColumnPropertyValue[] => {
   return columnOrder.map((columnId) => {
     const column = columns[columnId]!;
+
     return {
       [columnIdKey]: column.id,
       [columnTitleKey]: column.title,
@@ -121,7 +120,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     properties: { [columnsKey]: entityColumns = [] },
   } = blockEntity;
 
-  const [prevBlockEntity, setPrevBlockEntity] = useState(blockEntity);
+  const [previousBlockEntity, setPreviousBlockEntity] = useState(blockEntity);
 
   const [activeItem, setActiveItem] = useState<ActiveItem>(null);
   const [columns, setColumns] = useState<ColumnsState>(
@@ -138,6 +137,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
         isDebounceQueued.current = false;
 
         const updateId = Date.now();
+
         updateEntityQueue.current.push(updateId);
         await updateEntity(newProperties);
         updateEntityQueue.current = updateEntityQueue.current.filter(
@@ -156,10 +156,10 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     newColumnOrder?: string[];
     skipUpdatingEntity?: boolean;
   }) => {
-    if (newColumns) setColumns(newColumns);
-    if (newColumnOrder) setColumnOrder(newColumnOrder);
+    if (newColumns) {setColumns(newColumns);}
+    if (newColumnOrder) {setColumnOrder(newColumnOrder);}
 
-    if (skipUpdatingEntity) return;
+    if (skipUpdatingEntity) {return;}
 
     isDebounceQueued.current = true;
     void debouncedUpdateEntity({
@@ -171,14 +171,14 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   };
 
   const isCardOrColumn = (id: UniqueIdentifier) => {
-    if (id in columns) return "column";
+    if (id in columns) {return "column";}
 
     return "card";
   };
 
   const findColumnOfCard = (cardId: UniqueIdentifier) => {
     return Object.values(columns).find(
-      (col) => !!col.cards.find((card) => card.id === cardId),
+      (col) => Boolean(col.cards.find((card) => card.id === cardId)),
     );
   };
 
@@ -202,6 +202,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
   const deleteColumn: DeleteColumnCallback = (columnId) => {
     const newColumns = { ...columns };
+
     delete newColumns[columnId];
 
     updateStateAndEntity({
@@ -212,7 +213,8 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
   const updateColumnTitle: UpdateColumnTitleCallback = (columnId, newTitle) => {
     const targetCol = columns[columnId];
-    if (!targetCol) return;
+
+    if (!targetCol) {return;}
 
     updateStateAndEntity({
       newColumns: {
@@ -224,9 +226,11 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
   const createCard: CreateCardCallback = (columnId, content) => {
     const targetCol = columns[columnId];
-    if (!targetCol) return;
+
+    if (!targetCol) {return;}
 
     const cloneCol = { ...targetCol };
+
     cloneCol.cards.push({ id: generateId(), content });
 
     updateStateAndEntity({
@@ -239,9 +243,11 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
 
   const deleteCard: DeleteCardCallback = (columnId, cardId) => {
     const targetCol = columns[columnId];
-    if (!targetCol) return;
+
+    if (!targetCol) {return;}
 
     const cloneCol = { ...targetCol };
+
     cloneCol.cards = cloneCol.cards.filter((card) => card.id !== cardId);
 
     updateStateAndEntity({
@@ -260,7 +266,8 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     }
 
     const targetCol = columns[columnId];
-    if (!targetCol) return;
+
+    if (!targetCol) {return;}
 
     const cloneCol = { ...targetCol };
 
@@ -279,7 +286,10 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const handleDragStart = ({ active }: DragStartEvent) => {
     if (isCardOrColumn(active.id) === "column") {
       setDataBeforeDrag({ type: "columnOrder", data: [...columnOrder] });
-      return setActiveItem({ type: "column", id: active.id });
+
+      setActiveItem({ type: "column", id: active.id });
+
+ return;
     }
 
     const foundCard = findColumnOfCard(active.id)?.cards.find(
@@ -309,8 +319,8 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
         ? over.id
         : findColumnOfCard(over.id)?.id;
 
-      const oldIndex = columnOrder.findIndex((id) => id === active.id);
-      const newIndex = columnOrder.findIndex((id) => id === overColumnId);
+      const oldIndex = columnOrder.indexOf(active.id);
+      const newIndex = columnOrder.indexOf(overColumnId);
 
       updateStateAndEntity({
         skipUpdatingEntity: true,
@@ -323,7 +333,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     const activeColumn = findColumnOfCard(active.id);
 
     if (!activeColumn) {
-      throw Error("activeColumn not found");
+      throw new Error("activeColumn not found");
     }
 
     // dropping card into a column
@@ -334,6 +344,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
       activeColumn.cards = activeColumn.cards.filter((card) => {
         if (card.id === active.id) {
           movedCard = card;
+
           return false;
         }
 
@@ -400,6 +411,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     activeColumn.cards = activeColumn.cards.filter((card) => {
       if (card.id === active.id) {
         movedCard = card;
+
         return false;
       }
 
@@ -413,6 +425,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     // insert the card into the new column
     const newIndex = overColumn.cards.findIndex((card) => card.id === over.id);
     const newCards = [...overColumn.cards];
+
     newCards.splice(newIndex, 0, movedCard);
     overColumn.cards = newCards;
 
@@ -427,7 +440,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   };
 
   const handleDragEnd = () => {
-    /** we call `updateStateAndEntity` to update the entity with the current state after drag ends */
+    /** We call `updateStateAndEntity` to update the entity with the current state after drag ends */
     updateStateAndEntity({});
     setDataBeforeDrag(null);
     setActiveItem(null);
@@ -436,12 +449,14 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
   const handleDragCancel = () => {
     setActiveItem(null);
 
-    if (!dataBeforeDrag) return;
+    if (!dataBeforeDrag) {return;}
 
     const { data, type } = dataBeforeDrag;
 
     if (type === "columnOrder") {
-      return setColumnOrder(data);
+      setColumnOrder(data);
+
+ return;
     }
 
     setColumns(data);
@@ -461,14 +476,15 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
     !isDebounceQueued.current && !isUpdatingEntity;
 
   if (
-    blockEntity !== prevBlockEntity &&
+    blockEntity !== previousBlockEntity &&
     shouldOverrideLocalState &&
-    /** do not update the state while user is dragging an item to prevent flickering */
+    /** Do not update the state while user is dragging an item to prevent flickering */
     !activeItem
   ) {
-    setPrevBlockEntity(blockEntity);
+    setPreviousBlockEntity(blockEntity);
 
     const columnsChanged = !isEqual(entityColumns, columns);
+
     if (columnsChanged) {
       setColumns(transformEntityColumnsToColumnsState(entityColumns));
       setColumnOrder(entityColumns.map((col) => col[columnIdKey]));
@@ -502,7 +518,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
           {!readonly && (
             <button
               className={styles.addColumnButton}
-              type="button"
+              type={"button"}
               onClick={createColumn}
             >
               Add another column
@@ -526,7 +542,7 @@ export const Board = ({ blockEntity, updateEntity, readonly }: BoardProps) => {
           activeItem.type === "column" ? (
             <Column data={columns[activeItem.id]!} />
           ) : (
-            <StaticCard data={activeItem.data} shadow />
+            <StaticCard shadow data={activeItem.data} />
           )
         ) : null}
       </DragOverlay>

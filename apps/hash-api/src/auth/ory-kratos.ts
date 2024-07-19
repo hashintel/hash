@@ -1,8 +1,6 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import type { Identity } from "@ory/client";
-import { Configuration } from "@ory/client";
-import type { CreateIdentityBody } from "@ory/kratos-client";
-import { FrontendApi, IdentityApi } from "@ory/kratos-client";
+import type { Configuration,Identity  } from "@ory/client";
+import type { CreateIdentityBody , FrontendApi, IdentityApi } from "@ory/kratos-client";
 
 export const kratosPublicUrl = getRequiredEnv("HASH_KRATOS_PUBLIC_URL");
 
@@ -16,10 +14,10 @@ export const kratosIdentityApi = new IdentityApi(
   new Configuration({ basePath: adminUrl }),
 );
 
-export type KratosUserIdentityTraits = {
+export interface KratosUserIdentityTraits {
   shortname?: string;
   emails: string[];
-};
+}
 
 export type KratosUserIdentity = Omit<Identity, "traits"> & {
   traits: KratosUserIdentityTraits;

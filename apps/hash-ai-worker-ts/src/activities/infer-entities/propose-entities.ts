@@ -1,24 +1,22 @@
+import dedent from "dedent";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Status } from "@local/status";
-import { StatusCode } from "@local/status";
+import type { Status , StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
-import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { getLlmResponse } from "../shared/get-llm-response.js";
 import type {
-  LlmMessage,
-  LlmUserMessage,
-} from "../shared/get-llm-response/llm-message.js";
-import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
+ getToolCallsFromLlmAssistantMessage,  LlmMessage,
+  LlmUserMessage } from "../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
 import { stringify } from "../shared/stringify.js";
+
 import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt.js";
 import type {
   DereferencedEntityTypesByTypeId,
@@ -26,8 +24,7 @@ import type {
 } from "./inference-types.js";
 import { validateProposedEntitiesByType } from "./persist-entities/generate-persist-entities-tools.js";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details.js";
-import type { ProposedEntityToolCreationsByType } from "./shared/generate-propose-entities-tools.js";
-import { generateProposeEntitiesTools } from "./shared/generate-propose-entities-tools.js";
+import type { generateProposeEntitiesTools,ProposedEntityToolCreationsByType  } from "./shared/generate-propose-entities-tools.js";
 import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties.js";
 
 /**
@@ -78,6 +75,7 @@ export const proposeEntities = async (params: {
     const inProgressEntity = proposedEntitySummaries.find(
       (entity) => entity.entityId === inProgressEntityId,
     );
+
     if (inProgressEntity) {
       inProgressEntity.takenFromQueue = true;
     } else {
@@ -93,13 +91,15 @@ export const proposeEntities = async (params: {
    * Only ask the model to provide full details for maximum 10 entities at a time.
    * We may have carried some over from the previous iteration if there were validation failures.
    *
-   * @todo vary the number of entities asked for based on the likely size of their properties (how many, value type)
+   * @todo Vary the number of entities asked for based on the likely size of their properties (how many, value type).
    */
   const spaceInQueue = 10 - inProgressEntityIds.length;
+
   for (let i = 0; i < spaceInQueue; i++) {
     const nextProposedEntity = proposedEntitySummaries.find(
       (entity) => !entity.takenFromQueue,
     );
+
     if (!nextProposedEntity) {
       break;
     }
@@ -117,7 +117,7 @@ export const proposeEntities = async (params: {
     generateProposeEntitiesTools({
       entityTypes: Object.values(entityTypes),
       canLinkToExistingEntities:
-        !!existingEntities && existingEntities.length > 0,
+        Boolean(existingEntities) && existingEntities.length > 0,
     });
 
   const entitiesToUpdate = inProgressEntityIds.filter(
@@ -343,6 +343,7 @@ export const proposeEntities = async (params: {
 
           // First, check the argument is valid
           const abandonedEntityIds = toolCall.input;
+
           if (
             !Array.isArray(abandonedEntityIds) ||
             !abandonedEntityIds.every((item) => typeof item === "number")
@@ -377,7 +378,7 @@ export const proposeEntities = async (params: {
 
           try {
             validateProposedEntitiesByType(proposedEntitiesByType, false);
-          } catch (err) {
+          } catch (error) {
             logger.error(
               `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
                 toolCall.input,
@@ -466,7 +467,7 @@ export const proposeEntities = async (params: {
           ).then((invalidProposals) => invalidProposals.flat());
 
           if (invalidProposedEntities.length > 0) {
-            retryMessageContentText += dedent(`
+            retryMessageContentText = retryMessageContentText + dedent(`
               Some of the entities you suggested for creation were invalid. Please review their properties and try again.
               The entities you should review and make a 'create_entities' call for are:
               ${invalidProposedEntities
@@ -631,17 +632,18 @@ export const proposeEntities = async (params: {
                     takenFromQueue: true,
                   };
                 }
+
                 return proposedEntitySummary;
               },
             );
 
           inferenceState.proposedEntityCreationsByType = Object.entries(
             validProposedEntitiesByType,
-          ).reduce((prev, [entityTypeId, proposedEntitiesOfType]) => {
+          ).reduce((previous, [entityTypeId, proposedEntitiesOfType]) => {
             return {
-              ...prev,
+              ...previous,
               [entityTypeId]: [
-                ...(prev[entityTypeId as VersionedUrl] ?? []),
+                ...(previous[entityTypeId as VersionedUrl] ?? []),
                 ...proposedEntitiesOfType,
               ],
             };
@@ -722,6 +724,7 @@ export const proposeEntities = async (params: {
   }
 
   const errorMessage = `AI Model returned unhandled finish reason: ${stopReason}`;
+
   logger.error(errorMessage);
 
   return {

@@ -1,15 +1,15 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getWebPageActivity } from "../../../get-web-page-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
+
 import { inferEntityFactsFromTextAgent } from "./infer-entity-facts-from-text-agent.js";
 
 test.skip(
-  "Test inferEntityFactsFromText with the FTSE350 table",
+  "test inferEntityFactsFromText with the FTSE350 table",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -63,7 +63,7 @@ test.skip(
 );
 
 test.skip(
-  "Test inferEntityFactsFromText for the GeForce RTX 4090 graphics card",
+  "test inferEntityFactsFromText for the GeForce RTX 4090 graphics card",
   async () => {
     const { userAuthentication } = await getFlowContext();
 

@@ -4,8 +4,7 @@ import {
   storageProviderLookup,
 } from "@local/hash-backend-utils/file-storage";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entity";
+import type { Entity , getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -59,7 +58,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
 
     if (textualContent && newFileStorageKey === oldFileStorageKey) {
       /**
-       * We already have parsed textual content, and the file version hasn't changed
+       * We already have parsed textual content, and the file version hasn't changed.
        */
       return;
     }

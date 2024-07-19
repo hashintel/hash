@@ -1,13 +1,14 @@
+import type { FunctionComponent } from "react";
+import { Controller, useFormContext } from "react-hook-form";
 import type {
   EntityRootType,
   EntityType,
   Subgraph,
 } from "@blockprotocol/graph";
 import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { Controller, useFormContext } from "react-hook-form";
 
 import type { ChartDefinition } from "../types/chart-definition";
+
 import {
   CountLinksForm,
   generateInitialChartDefinition as generateInitialCountLinkedEntitiesChartDefinition,
@@ -40,12 +41,15 @@ export const BarChartDefinitionForm: FunctionComponent<{
     <>
       <Controller
         control={control}
-        name="variant"
+        name={"variant"}
         render={({ field }) => (
           <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel id="bar-chart-variant">Bar Chart Variant</InputLabel>
+            <InputLabel id={"bar-chart-variant"}>Bar Chart Variant</InputLabel>
             <Select
               {...field}
+              required
+              labelId={"bar-chart-variant"}
+              label={"Bar Chart Variant"}
               onChange={(event) => {
                 const updatedVariant = event.target
                   .value as ChartDefinition<"bar-chart">["variant"];
@@ -89,9 +93,6 @@ export const BarChartDefinitionForm: FunctionComponent<{
 
                 field.onChange(event);
               }}
-              labelId="bar-chart-variant"
-              label="Bar Chart Variant"
-              required
             >
               {Object.entries(barChartVariantNames).map(([variant, label]) => (
                 <MenuItem key={variant} value={variant}>
@@ -105,12 +106,15 @@ export const BarChartDefinitionForm: FunctionComponent<{
       {entityTypes.length > 0 ? (
         <Controller
           control={control}
-          name="entityTypeId"
+          name={"entityTypeId"}
           render={({ field }) => (
             <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel id="entity-type">Entity type</InputLabel>
+              <InputLabel id={"entity-type"}>Entity type</InputLabel>
               <Select
                 {...field}
+                required
+                labelId={"entity-type"}
+                label={"Entity type"}
                 onChange={(event) => {
                   const selectedEntityType = entityTypes.find(
                     ({ $id }) => event.target.value === $id,
@@ -136,9 +140,6 @@ export const BarChartDefinitionForm: FunctionComponent<{
 
                   field.onChange(event);
                 }}
-                labelId="entity-type"
-                label="Entity type"
-                required
               >
                 {entityTypes.map(({ $id, title }) => (
                   <MenuItem key={$id} value={$id}>

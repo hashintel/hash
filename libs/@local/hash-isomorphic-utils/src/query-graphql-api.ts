@@ -1,7 +1,6 @@
 import type { GraphQLError } from "graphql/index.js";
 
-import type { HashClientType } from "./http-requests.js";
-import { hashClientHeaderKey } from "./http-requests.js";
+import type { hashClientHeaderKey,HashClientType  } from "./http-requests.js";
 
 export const queryGraphQlApi = <
   ReturnData,

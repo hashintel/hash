@@ -18,17 +18,14 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
-import type { AccountEntityId } from "@local/hash-subgraph";
-import {
+import type { AccountEntityId ,
   extractAccountId,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
 
 import type {
-  KratosUserIdentity,
-  KratosUserIdentityTraits,
-} from "../../../auth/ory-kratos";
-import { kratosIdentityApi } from "../../../auth/ory-kratos";
+ kratosIdentityApi,  KratosUserIdentity,
+  KratosUserIdentityTraits } from "../../../auth/ory-kratos";
 import { createAccount, createWeb } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
@@ -40,20 +37,20 @@ import {
   getEntityOutgoingLinks,
   getLatestEntityById,
 } from "../primitive/entity";
+
 import {
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
 } from "./account.fields";
 import { addHashInstanceAdmin } from "./hash-instance";
-import type { OrgMembership } from "./org-membership";
-import {
-  createOrgMembership,
+import type {   createOrgMembership,
   getOrgMembershipFromLinkEntity,
   getOrgMembershipOrg,
+OrgMembership ,
 } from "./org-membership";
 
-export type User = {
+export interface User {
   accountId: AccountId;
   kratosIdentityId: string;
   emails: string[];
@@ -61,7 +58,7 @@ export type User = {
   displayName?: string;
   isAccountSignupComplete: boolean;
   entity: Entity<UserEntity>;
-};
+}
 
 function assertUserEntity(
   entity: Entity,
@@ -87,7 +84,7 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
     email: emails,
   } = simplifyProperties(entity.properties);
 
-  const isAccountSignupComplete = !!shortname && !!displayName;
+  const isAccountSignupComplete = Boolean(shortname) && Boolean(displayName);
 
   return {
     accountId: extractAccountId(
@@ -105,7 +102,7 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
 /**
  * Get a system user entity by its entity id.
  *
- * @param params.entityId - the entity id of the user
+ * @param params.entityId - The entity id of the user.
  */
 export const getUserById: ImpureGraphFunction<
   { entityId: EntityId },
@@ -119,7 +116,7 @@ export const getUserById: ImpureGraphFunction<
 /**
  * Get a system user entity by their shortname.
  *
- * @param params.shortname - the shortname of the user
+ * @param params.shortname - The shortname of the user.
  */
 export const getUserByShortname: ImpureGraphFunction<
   { shortname: string; includeDrafts?: boolean },
@@ -172,7 +169,7 @@ export const getUserByShortname: ImpureGraphFunction<
  * Get a system user entity by their kratos identity id – only to be used for resolving the requesting user,
  * or checking for conflicts with an existing kratosIdentityId.
  *
- * @param params.kratosIdentityId - the kratos identity id
+ * @param params.kratosIdentityId - The kratos identity id.
  */
 export const getUserByKratosIdentityId: ImpureGraphFunction<
   { kratosIdentityId: string; includeDrafts?: boolean },
@@ -225,13 +222,13 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
 /**
  * Create a system user entity.
  *
- * @param params.emails - the emails of the user
- * @param params.kratosIdentityId - the kratos identity id of the user
- * @param params.enabledFeatureFlags (optional) - the feature flags enabled for the user
- * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the HASH instance (defaults to `false`)
- * @param params.shortname (optional) - the shortname of the user
- * @param params.displayName (optional) - the display name of the user
- * @param params.accountId (optional) - the pre-populated account Id of the user
+ * @param params.emails - The emails of the user.
+ * @param params.kratosIdentityId - The kratos identity id of the user.
+ * @param params.enabledFeatureFlags - (optional) - the feature flags enabled for the user.
+ * @param params.isInstanceAdmin - (optional) - whether or not the user is an instance admin of the HASH instance (defaults to `false`).
+ * @param params.shortname - (optional) - the shortname of the user.
+ * @param params.displayName - (optional) - the display name of the user.
+ * @param params.accountId - (optional) - the pre-populated account Id of the user.
  */
 export const createUser: ImpureGraphFunction<
   {
@@ -286,6 +283,7 @@ export const createUser: ImpureGraphFunction<
   const userShouldHavePermissionsOnWeb = shortname && displayName;
 
   let userAccountId: AccountId;
+
   if (params.userAccountId) {
     userAccountId = params.userAccountId;
   } else {
@@ -302,7 +300,7 @@ export const createUser: ImpureGraphFunction<
            * Creating a web allows users to create further entities in it
            * – we don't want them to do that until they've completed signup (have a shortname and display name)
            * - the web is created with the system account as the owner and will be updated to the user account as the
-           *   owner once the user has completed signup
+           *   owner once the user has completed signup.
            */
           subjectId: userShouldHavePermissionsOnWeb
             ? userAccountId
@@ -465,7 +463,7 @@ export const createUser: ImpureGraphFunction<
 /**
  * Get the kratos identity associated with the user.
  *
- * @param params.user - the user
+ * @param params.user - The user.
  */
 export const getUserKratosIdentity: ImpureGraphFunction<
   { user: User },
@@ -483,8 +481,8 @@ export const getUserKratosIdentity: ImpureGraphFunction<
 /**
  * Update the kratos identity associated with a user.
  *
- * @param params.user - the user
- * @param params.updatedTraits - the updated kratos identity traits of the user
+ * @param params.user - The user.
+ * @param params.updatedTraits - The updated kratos identity traits of the user.
  */
 export const updateUserKratosIdentityTraits: ImpureGraphFunction<
   { user: User; updatedTraits: Partial<KratosUserIdentityTraits> },
@@ -518,9 +516,9 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
 /**
  * Make the user a member of an organization.
  *
- * @param params.user - the user
- * @param params.org - the organization the user is joining
- * @param params.actorId - the id of the account that is making the user a member of the organization
+ * @param params.user - The user.
+ * @param params.org - The organization the user is joining.
+ * @param params.actorId - The id of the account that is making the user a member of the organization.
  */
 export const joinOrg: ImpureGraphFunction<
   {
@@ -540,7 +538,7 @@ export const joinOrg: ImpureGraphFunction<
 /**
  * Get the org memberships of a user.
  *
- * @param params.userEntityId - the entityId of the user
+ * @param params.userEntityId - The entityId of the user.
  */
 export const getUserOrgMemberships: ImpureGraphFunction<
   { userEntityId: EntityId },
@@ -564,8 +562,8 @@ export const getUserOrgMemberships: ImpureGraphFunction<
 /**
  * Whether or not a user is a member of an org.
  *
- * @param params.user - the user
- * @param params.orgEntityUuid - the entity Uuid of the org the user may be a member of
+ * @param params.user - The user.
+ * @param params.orgEntityUuid - The entity Uuid of the org the user may be a member of.
  */
 export const isUserMemberOfOrg: ImpureGraphFunction<
   { userEntityId: EntityId; orgEntityUuid: EntityUuid },
@@ -585,9 +583,9 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
     ),
   );
 
-  return !!orgs.find(
+  return Boolean(orgs.find(
     (org) =>
       extractEntityUuidFromEntityId(org.entity.metadata.recordId.entityId) ===
       params.orgEntityUuid,
-  );
+  ));
 };

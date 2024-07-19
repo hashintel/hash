@@ -4,7 +4,7 @@ import * as Sentry from "@sentry/node";
 
 Sentry.init({
   dsn: process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
-  enabled: !!process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
+  enabled: Boolean(process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN),
   tracesSampleRate: 1.0,
 });
 
@@ -14,15 +14,14 @@ import * as path from "node:path";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { config } from "dotenv-flow";
+import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
-import type { BundleOptions } from "@temporalio/worker";
-import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
-import { config } from "dotenv-flow";
-import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
+import type { BundleOptions , defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 
 import { createAiActivities, createGraphActivities } from "./activities.js";
 import { createFlowActivities } from "./activities/flow-activities.js";
@@ -45,8 +44,8 @@ const TEMPORAL_PORT = process.env.HASH_TEMPORAL_SERVER_PORT
   : 7233;
 
 const createHealthCheckServer = () => {
-  const server = http.createServer((req, res) => {
-    if (req.method === "GET" && req.url === "/health") {
+  const server = http.createServer((request, res) => {
+    if (request.method === "GET" && request.url === "/health") {
       res.setHeader("Content-Type", "application/json");
       res.writeHead(200);
       res.end(
@@ -54,6 +53,7 @@ const createHealthCheckServer = () => {
           msg: "worker healthy",
         }),
       );
+
       return;
     }
     res.writeHead(404);
@@ -82,6 +82,7 @@ const workflowOptions =
            * which refer to the transpiled JavaScript code.
            */
           webpackConfig.resolve.plugins.push(new TsconfigPathsPlugin());
+
           return webpackConfig;
         },
         workflowsPath: require.resolve("./workflows"),
@@ -98,6 +99,7 @@ async function run() {
   logToConsole.info("Created Graph client");
 
   const vaultClient = createVaultClient();
+
   if (!vaultClient) {
     throw new Error("Vault client not created");
   }
@@ -107,6 +109,7 @@ async function run() {
   const connection = await NativeConnection.connect({
     address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
   });
+
   logToConsole.info("Created Temporal connection");
 
   const worker = await Worker.create({
@@ -136,6 +139,7 @@ async function run() {
 
   const httpServer = createHealthCheckServer();
   const port = 4100;
+
   httpServer.listen({ host: "::", port });
 
   logToConsole.info(`HTTP server listening on port ${port}`);
@@ -152,7 +156,7 @@ process.on("SIGTERM", () => {
   process.exit(1);
 });
 
-run().catch((err) => {
-  logToConsole.error(`Error running worker: ${err}`);
+run().catch((error) => {
+  logToConsole.error(`Error running worker: ${error}`);
   process.exit(1);
 });

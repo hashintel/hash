@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   EntityRootType,
   MultiFilter,
@@ -23,7 +24,6 @@ import {
   IconButton,
   ThemeProvider,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BarChart } from "./bar-chart";
 import { EditChartDefinition } from "./edit-chart-definition";
@@ -347,9 +347,9 @@ export const App: BlockComponent<BlockEntity> = ({
           </Fade>
           {readonly ? null : (
             <IconButton
-              onClick={() =>
-                setDisplayEditChartDefinition(!displayEditChartDefinition)
-              }
+              onClick={() => {
+                setDisplayEditChartDefinition(!displayEditChartDefinition);
+              }}
             >
               <GearIcon />
             </IconButton>
@@ -370,7 +370,7 @@ export const App: BlockComponent<BlockEntity> = ({
               // @ts-expect-error -- The chart requires a temporal subgraph: BP-103
               subgraph={queryResult}
               isPrimaryEntity={(entity) =>
-                !!queryResult &&
+                Boolean(queryResult) &&
                 getRoots(queryResult).some(
                   (rootEntity) =>
                     entity.metadata.recordId.entityId ===

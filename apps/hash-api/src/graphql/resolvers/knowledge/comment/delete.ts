@@ -8,8 +8,7 @@ import type {
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import type { UnresolvedCommentGQL } from "../graphql-mapping";
-import { mapCommentToGQL } from "../graphql-mapping";
+import type { mapCommentToGQL,UnresolvedCommentGQL  } from "../graphql-mapping";
 
 export const deleteCommentResolver: ResolverFn<
   Promise<UnresolvedCommentGQL>,

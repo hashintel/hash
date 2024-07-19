@@ -14,9 +14,9 @@ export const isUnknownObject = (
   x !== null && typeof x === "object";
 
 /**
- * This allows you to collect calls to a function to run at the end of a tick
+ * This allows you to collect calls to a function to run at the end of a tick.
  */
-export const collect = <P extends Array<unknown>>(
+export const collect = <P extends unknown[]>(
   handler: (calls: P[]) => void,
 ): ((...args: P) => void) => {
   let id: ReturnType<typeof setImmediate> | null = null;
@@ -32,6 +32,7 @@ export const collect = <P extends Array<unknown>>(
 
     id = setImmediate(() => {
       const thisCalls = calls;
+
       calls = [];
       handler(thisCalls);
     });
@@ -49,21 +50,24 @@ export class DefaultMap<K, V> extends Map<K, V> {
 
   get = (key: K) => {
     let value = super.get(key);
+
     if (value) {
       return value;
     }
     value = this.makeDefault();
     super.set(key, value);
+
     return value;
   };
 }
 
 /**
  * Perform a topological sort [1] on an array of `edges` forming a directed acyclic graph.
- * [1] https://en.wikipedia.org/wiki/Topological_sorting
- * @returns a topological ordering of the nodes represented by the graph in `edges`.
- * @throws an error if the graph has a cycle.
- * */
+ * [1] https://en.wikipedia.org/wiki/Topological_sorting.
+ *
+ * @returns A topological ordering of the nodes represented by the graph in `edges`.
+ * @throws An error if the graph has a cycle.
+  */
 export const topologicalSort = <T>(edges: [T, T][]) => {
   // Implementation based on Kahn's algorithm. See:
   // https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm)
@@ -76,10 +80,12 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
 
   // Pre-compute the incoming and outgoing edges for each node as an optimization
   const outgoingEdges = new DefaultMap<T, Set<T>>(() => new Set());
+
   for (const [n1, n2] of edges) {
     outgoingEdges.get(n1).add(n2);
   }
   const incomingEdges = new DefaultMap<T, Set<T>>(() => new Set());
+
   for (const [n1, n2] of edges) {
     incomingEdges.get(n2).add(n1);
   }
@@ -89,10 +95,13 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
 
   while (stack.length > 0) {
     const node = stack.pop()!;
+
     sort.push(node);
     const nodeOutgoing = outgoingEdges.get(node);
-    for (const child of Array.from(nodeOutgoing.values())) {
+
+    for (const child of nodeOutgoing.values()) {
       const childIncoming = incomingEdges.get(child);
+
       // Remove the (node, child) edge from the graph
       nodeOutgoing.delete(child);
       childIncoming.delete(node);
@@ -103,8 +112,8 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
   }
 
   // If there are any edges left, then the graph is not acyclic
-  for (const [_, children] of Array.from(outgoingEdges.entries())) {
-    if (children.size !== 0) {
+  for (const [_, children] of outgoingEdges.entries()) {
+    if (children.size > 0) {
       throw new Error("graph is not acyclic");
     }
   }
@@ -115,12 +124,13 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
 /**
  * Restructure a list of elements with parent references into a tree
  * This will ignore elements with missing parent entities and add them at the root level
- * This can be used for recreating a page tree structure from the list of an account's pages
- * @param elements is the list of elements that should contain an id and optionally reference to a parent and a list of
- *   children
- * @param key is the name of the id property on the element, used to strongly type the code
- * @param reference is the name of the parent reference property on the element
- * @param recursive is the name of the property that deals with children of an element. This will be populated with the
+ * This can be used for recreating a page tree structure from the list of an account's pages.
+ *
+ * @param elements - Is the list of elements that should contain an id and optionally reference to a parent and a list of
+ *   children.
+ * @param key - Is the name of the id property on the element, used to strongly type the code.
+ * @param reference - Is the name of the parent reference property on the element.
+ * @param recursive - Is the name of the property that deals with children of an element. This will be populated with the
  *   tree structure.
  */
 export const treeFromParentReferences = <
@@ -154,10 +164,12 @@ export const treeFromParentReferences = <
 
   for (const currentId of topologicallySorted) {
     const current = mapping.get(currentId);
+
     if (!current) {
       continue;
     }
     const existingParent = mapping.get(current[reference]);
+
     if (!existingParent) {
       (current[reference] as string | undefined) = undefined;
       continue;
@@ -170,7 +182,7 @@ export const treeFromParentReferences = <
      *    throw new Error(
      *      `Circular references given. Unable to reconstruct tree at ${current[key]}`,
      *    );
-     *  }
+     *  }.
      * */
 
     if (existingParent[recursive]) {
@@ -180,7 +192,7 @@ export const treeFromParentReferences = <
     }
   }
 
-  return Array.from(mapping.values()).filter(
+  return [...mapping.values()].filter(
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     (element) => element[reference] == null,
   );
@@ -188,16 +200,17 @@ export const treeFromParentReferences = <
 
 /**
  * Try to traverse a Graph and flatMap each node.
- * @param graph any object which may contain object values
- * @param fn mapping function for each node
- * @returns List of mapped nodes
+ *
+ * @param graph - Any object which may contain object values.
+ * @param fn - Mapping function for each node.
+ * @returns List of mapped nodes.
  */
 export const flatMapTree = <T>(graph: object, fn: (a: unknown) => T[]) => {
   const queue = [graph];
   const result: T[] = [];
 
   // BFS traversal using FIFO queue
-  while (queue.length !== 0) {
+  while (queue.length > 0) {
     const currentNode = queue.shift();
 
     // Add current nodes to result array

@@ -1,3 +1,4 @@
+import { backOff } from "exponential-backoff";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -9,15 +10,13 @@ import {
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { SimpleProperties , simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   HASHInstance,
   HASHInstance as HASHInstanceEntity,
   HASHInstanceProperties,
 } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import { backOff } from "exponential-backoff";
 
 import { EntityTypeMismatchError, NotFoundError } from "./error.js";
 import { getMachineActorId } from "./machine-actors.js";
@@ -93,7 +92,7 @@ export const getHashInstance = async (
 /**
  * Check whether or not the user is a hash instance admin.
  *
- * @param params.user - the user that may be a hash instance admin.
+ * @param params.user - The user that may be a hash instance admin.
  */
 export const isUserHashInstanceAdmin = async (
   ctx: { graphApi: GraphApi },
@@ -102,14 +101,15 @@ export const isUserHashInstanceAdmin = async (
 ) => {
   // console.info(`[${userAccountId}] Fetching HASH Instance entity`);
   const hashInstance = await getHashInstance(ctx, authentication).catch(
-    (err) => {
-      // eslint-disable-next-line no-console
+    (error) => {
+       
       console.error(
-        `[${userAccountId}] ERROR Fetching HASH Instance entity: ${err}`,
+        `[${userAccountId}] ERROR Fetching HASH Instance entity: ${error}`,
       );
-      throw err;
+      throw error;
     },
   );
+
   // console.info(`[${userAccountId}] SUCCESS Fetching HASH Instance entity`);
   // console.info(`[${userAccountId}] Checking permission on instance`);
   return ctx.graphApi
@@ -124,11 +124,11 @@ export const isUserHashInstanceAdmin = async (
       // );
       return data.has_permission;
     })
-    .catch((err) => {
+    .catch((error) => {
       // console.error(
       //   `[${userAccountId}] ERROR Checking permission on instance: ${err}`,
       // );
-      throw err;
+      throw error;
     });
 };
 

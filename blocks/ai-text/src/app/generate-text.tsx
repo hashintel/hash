@@ -1,3 +1,4 @@
+import { useCallback, useRef, useState } from "react";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import {
@@ -6,11 +7,11 @@ import {
   GetHelpLink,
 } from "@hashintel/block-design-system";
 import { Box, Collapse, Fade } from "@mui/material";
-import { useCallback, useRef, useState } from "react";
 
 import { contentKey } from "../app";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
 import type { BlockEntity } from "../types/generated/block-entity";
+
 import { BouncingDotsLoader } from "./generate-text/bouncing-dots-loader";
 import {
   DEFAULT_MODEL_ID,
@@ -97,6 +98,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
     if (errors ?? !textResponse) {
       setError(true);
       setLoading(false);
+
       return;
     }
 
@@ -132,8 +134,8 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
   return (
     <Box
       ref={blockRootRef}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => { setHovered(true); }}
+      onMouseLeave={() => { setHovered(false); }}
     >
       <Fade
         in={
@@ -141,15 +143,15 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
         }
       >
         <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
-          <GetHelpLink href="https://blockprotocol.org/@hash/blocks/ai-text" />
+          <GetHelpLink href={"https://blockprotocol.org/@hash/blocks/ai-text"} />
 
           <Fade in={!generatedText}>
-            <Box display="flex" gap={1} alignItems="center">
+            <Box display={"flex"} gap={1} alignItems={"center"}>
               <ModelSelector
                 open={selectorOpen}
-                onOpen={() => setSelectorOpen(true)}
-                onClose={() => setSelectorOpen(false)}
                 value={model}
+                onOpen={() => { setSelectorOpen(true); }}
+                onClose={() => { setSelectorOpen(false); }}
                 onChange={setModel}
               />
             </Box>
@@ -159,18 +161,16 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
 
       <Collapse
         in={!generatedText && !animatingIn}
-        onEntered={() => setAnimatingOut(false)}
-        onExited={() => setAnimatingIn(false)}
+        onEntered={() => { setAnimatingOut(false); }}
+        onExited={() => { setAnimatingIn(false); }}
       >
         <BlockPromptInput
           value={promptText}
-          onSubmit={onSubmit}
-          onFocus={() => setInputFocused(true)}
-          onBlur={() => setInputFocused(false)}
-          onChange={(event) => setPromptText(event.target.value)}
-          placeholder="Enter a prompt to generate text, and hit enter"
+          placeholder={"Enter a prompt to generate text, and hit enter"}
           ref={inputRef}
           disabled={loading}
+          error={error}
+          apiName={"OpenAI"}
           buttonLabel={
             loading ? (
               <>
@@ -188,22 +188,24 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
               </>
             )
           }
-          error={error}
-          apiName="OpenAI"
+          onSubmit={onSubmit}
+          onFocus={() => { setInputFocused(true); }}
+          onBlur={() => { setInputFocused(false); }}
+          onChange={(event) => { setPromptText(event.target.value); }}
         />
       </Collapse>
 
       <Collapse
-        in={!!generatedText && !animatingOut && !animatingIn}
-        onExited={() => setGeneratedText("")}
+        in={Boolean(generatedText) && !animatingOut && !animatingIn}
+        onExited={() => { setGeneratedText(""); }}
       >
         {generatedText && (
           <TextPreview
+            prompt={promptText}
+            text={generatedText}
             onConfirm={confirm}
             onDiscard={handleDiscard}
             onRegenerate={regeneratePrompt}
-            prompt={promptText}
-            text={generatedText}
           />
         )}
       </Collapse>

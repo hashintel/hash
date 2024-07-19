@@ -8,10 +8,11 @@
  * be used everywhere.
  */
 
-import type { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 import { test } from "vitest";
+import type { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 
 import type { Subgraph } from "../src/main.js";
+
 import {
   mapQueryTemporalAxes,
   mapQueryTemporalAxesUnresolved,
@@ -20,7 +21,7 @@ import { mapEdges } from "./compatibility.test/map-edges.js";
 import { mapRoots } from "./compatibility.test/map-roots.js";
 import { mapVertices } from "./compatibility.test/map-vertices.js";
 
-test("Graph API subgraph type is compatible with library type", () => {
+test("graph API subgraph type is compatible with library type", () => {
   // We don't need an actual subgraph, we are just checking for TSC errors
   const subgraphGraphApi: SubgraphGraphApi = {
     roots: [],

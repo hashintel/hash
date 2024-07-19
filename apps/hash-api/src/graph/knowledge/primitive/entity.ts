@@ -1,3 +1,4 @@
+import { ApolloError } from "apollo-server-errors";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
@@ -15,8 +16,7 @@ import type {
   GraphResolveDepths,
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
-import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
-import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { CreateEntityParameters , Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   AccountGroupId,
   AccountId,
@@ -46,16 +46,11 @@ import type {
   DiffEntityInput,
   EntityAuthorizationRelationship,
   EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
   extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   isEntityVertex,
-  splitEntityId,
-} from "@local/hash-subgraph";
-import { ApolloError } from "apollo-server-errors";
+  splitEntityId,  Subgraph} from "@local/hash-subgraph";
 
 import type {
   EntityDefinition,
@@ -65,6 +60,7 @@ import { isTestEnv } from "../../../lib/env-config";
 import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
+
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
@@ -109,7 +105,7 @@ export const createEntity = async <Properties extends EntityProperties>(
   const { graphApi, provenance } = context;
   const { actorId } = authentication;
 
-  let properties = params.properties;
+  let {properties} = params;
 
   for (const beforeCreateHook of beforeCreateEntityHooks) {
     if (beforeCreateHook.entityTypeId === createParams.entityTypeId) {
@@ -173,7 +169,7 @@ export const getEntities: ImpureGraphFunction<
         { userAccountId: actorId },
       );
 
-  return await graphApi
+  return graphApi
     .getEntities(actorId, params)
     .then(({ data: response }) =>
       response.entities.map((entity) =>
@@ -185,7 +181,7 @@ export const getEntities: ImpureGraphFunction<
 /**
  * Get entities by a structural query.
  *
- * @param params.query the structural query to filter entities by.
+ * @param params.query - The structural query to filter entities by.
  */
 export const getEntitySubgraph: ImpureGraphFunction<
   GetEntitySubgraphRequest & {
@@ -203,12 +199,13 @@ export const getEntitySubgraph: ImpureGraphFunction<
         { userAccountId: actorId },
       );
 
-  return await graphApi.getEntitySubgraph(actorId, params).then(({ data }) => {
+  return graphApi.getEntitySubgraph(actorId, params).then(({ data }) => {
     const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
       data.subgraph,
       actorId,
       isRequesterAdmin,
     );
+
     // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
     for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
       const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
@@ -240,19 +237,18 @@ export const countEntities: ImpureGraphFunction<
  *
  * This function does NOT implement:
  * 1. The ability to get the latest draft version without knowing its id.
- * 2. The ability to get ALL versions of an entity at a given timestamp, i.e. if there is a live and one or more drafts
- *    – use {@link getEntitySubgraph} instead, includeDrafts, and match on its ownedById and uuid
+ * 2. The ability to get ALL versions of an entity at a given timestamp, i.e. If there is a live and one or more drafts
+ *    – use {@link getEntitySubgraph} instead, includeDrafts, and match on its ownedById and uuid.
  *
- * @param params.entityId the id of the entity, in one of the following formats:
+ * @param params.entityId - The id of the entity, in one of the following formats:
  *    - `[webUuid]~[entityUuid]` for the 'live', non-draft version of the entity
  *    - `[webUuid]~[entityUuid]~[draftUuid]` for a specific draft series identified by the draftUuid.
  *    - Each entity may have either no live version and a single draft series, or one live version and zero to many
  *   draft series representing potential updates to the entity.
- *
  * @throws Error if one of the following is true:
  *   1. if the entityId does not exist or is inaccessible to the requesting user
  *   2. if there is somehow more than one edition for the requested entityId at the current time, which is an internal
- *   fault
+ *   fault.
  */
 export const getLatestEntityById: ImpureGraphFunction<
   {
@@ -276,7 +272,7 @@ export const getLatestEntityById: ImpureGraphFunction<
 
   if (draftId) {
     /**
-     * If the requested entityId includes a draftId, we know we're looking for a specific draft
+     * If the requested entityId includes a draftId, we know we're looking for a specific draft.
      */
     allFilter.push({
       equal: [{ path: ["draftId"] }, { parameter: draftId }],
@@ -310,7 +306,7 @@ export const getLatestEntityById: ImpureGraphFunction<
         all: allFilter,
       },
       temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: !!draftId,
+      includeDrafts: Boolean(draftId),
     },
   );
 
@@ -318,6 +314,7 @@ export const getLatestEntityById: ImpureGraphFunction<
     const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities
       .map((unexpectedEntity) => unexpectedEntity.metadata.recordId.entityId)
       .join(", ")}`;
+
     throw new Error(errorMessage);
   }
 
@@ -336,7 +333,7 @@ export const getLatestEntityById: ImpureGraphFunction<
  *
  * If the existence of ONLY a draft version is acceptable, pass includeDrafts: true.
  *
- * @param params.entityId the id of the entity, in one of the following formats:
+ * @param params.entityId - The id of the entity, in one of the following formats:
  *    - `[webUuid]~[entityUuid]` for the 'live', non-draft version of the entity
  *    - `[webUuid]~[entityUuid]~[draftUuid]` for a specific draft series identified by the draftUuid.
  *    - Each entity may have either no live version and a single draft series, or one live version and zero to many
@@ -345,10 +342,9 @@ export const getLatestEntityById: ImpureGraphFunction<
  *    - count the existence of a draft as the entity existing.
  *    - this parameter will be treated as `true` if an entityId CONTAINING a draftUuid is passed
  *    - useful for when creating a draft link or link to/from a draft entity, because a draft source/target is
- *   permissible
- *
- * @returns true if at least one version of the entity exists
- * @throws Error if the entity does not exist as far as the requesting user is concerned
+ *   permissible.
+ * @returns True if at least one version of the entity exists.
+ * @throws Error if the entity does not exist as far as the requesting user is concerned.
  */
 export const canUserReadEntity: ImpureGraphFunction<
   {
@@ -373,7 +369,7 @@ export const canUserReadEntity: ImpureGraphFunction<
 
   if (draftId) {
     /**
-     * If the requested entityId includes a draftId, we know we're looking for a specific draft
+     * If the requested entityId includes a draftId, we know we're looking for a specific draft.
      */
     allFilter.push({
       equal: [{ path: ["draftId"] }, { parameter: draftId }],
@@ -385,7 +381,7 @@ export const canUserReadEntity: ImpureGraphFunction<
       all: allFilter,
     },
     temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: !!draftId || includeDrafts,
+    includeDrafts: Boolean(draftId) || includeDrafts,
   });
 
   if (count === 0) {
@@ -426,7 +422,7 @@ export const createEntityWithLinks = async <
   /**
    * @todo Once the graph API validates the required links of entities on creation, this may have to be reworked in
    *   order to create valid entities. this code currently creates entities first, then links them together. See
-   *   https://linear.app/hash/issue/H-2986
+   *   https://linear.app/hash/issue/H-2986.
    */
   const entities = await Promise.all(
     entitiesInTree.map(async (definition) => {
@@ -472,6 +468,7 @@ export const createEntityWithLinks = async <
   );
 
   let rootEntity: Entity<Properties>;
+
   if (entities[0]) {
     // First element will be the root entity.
     rootEntity = entities[0].entity;
@@ -486,6 +483,7 @@ export const createEntityWithLinks = async <
     entities.map(async ({ link, entity }) => {
       if (link) {
         const parentEntity = entities[link.parentIndex];
+
         if (!parentEntity) {
           throw new ApolloError("Could not find parent entity");
         }
@@ -502,7 +500,7 @@ export const createEntityWithLinks = async <
           draft:
             /** If either side of the link is a draft entity, the link entity must be draft also */
             params.draft ||
-            !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
+            Boolean(extractDraftIdFromEntityId(entity.metadata.recordId.entityId)),
         });
       }
     }),
@@ -576,8 +574,8 @@ export const updateEntity = async <Properties extends EntityProperties>(
 /**
  * Get the incoming links of an entity.
  *
- * @param params.entity - the entity
- * @param params.linkEntityType (optional) - the specific link entity type of the incoming links
+ * @param params.entity - The entity.
+ * @param params.linkEntityType - (optional) - the specific link entity type of the incoming links.
  */
 export const getEntityIncomingLinks: ImpureGraphFunction<
   {
@@ -623,7 +621,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     });
   }
 
-  return await getEntities(context, authentication, {
+  return getEntities(context, authentication, {
     filter,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
@@ -634,6 +632,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
           `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
         );
       }
+
       return linkEntity;
     }),
   );
@@ -642,9 +641,9 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
 /**
  * Get the outgoing links of an entity.
  *
- * @param params.entityId - the entityId of the entity to get the outgoing links of
- * @param [params.linkEntityTypeVersionedUrl] (optional) – the specific link type of the outgoing links to filter to
- * @param [params.rightEntityId] (optional) – limit returned links to those with the specified right entity
+ * @param params.entityId - The entityId of the entity to get the outgoing links of.
+ * @param [params.linkEntityTypeVersionedUrl] - (optional) – the specific link type of the outgoing links to filter to.
+ * @param [params.rightEntityId] - (optional) – limit returned links to those with the specified right entity.
  */
 export const getEntityOutgoingLinks: ImpureGraphFunction<
   {
@@ -718,7 +717,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     );
   }
 
-  return await getEntities(context, authentication, {
+  return getEntities(context, authentication, {
     filter,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
@@ -729,6 +728,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
           `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
         );
       }
+
       return new LinkEntity(linkEntity);
     }),
   );
@@ -737,8 +737,8 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
 /**
  * Get subgraph rooted at the entity.
  *
- * @param params.entity - the entity
- * @param params.graphResolveDepths - the custom resolve depths of the subgraph
+ * @param params.entity - The entity.
+ * @param params.graphResolveDepths - The custom resolve depths of the subgraph.
  */
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   {
@@ -751,7 +751,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { entity, graphResolveDepths } = params;
 
-  return await getEntitySubgraph(context, authentication, {
+  return getEntitySubgraph(context, authentication, {
     filter: {
       all: [
         {
@@ -898,6 +898,7 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
   const { subgraph } = params;
 
   const entities: Entity[] = [];
+
   for (const editionMap of Object.values(subgraph.vertices)) {
     const latestEditionTimestamp = Object.keys(editionMap).sort().pop()!;
     // @ts-expect-error -- subgraph needs revamping to make typing less annoying
@@ -909,6 +910,7 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
   }
 
   const userPermissionsOnEntities: UserPermissionsOnEntities = {};
+
   await Promise.all(
     entities.map(async (entity) => {
       const permissions = await checkPermissionsOnEntity(
@@ -916,6 +918,7 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
         authentication,
         { entity },
       );
+
       userPermissionsOnEntities[entity.metadata.recordId.entityId] =
         permissions;
     }),

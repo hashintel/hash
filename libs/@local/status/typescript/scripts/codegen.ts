@@ -9,7 +9,7 @@ import execa from "execa";
 import { snakeCase } from "lodash-es";
 import yargs from "yargs";
 
-const removeOldGenDirs = (outDir: string) => {
+const removeOldGenDirectories = (outDir: string) => {
   const outDirParent = path.dirname(outDir);
 
   if (!existsSync(outDirParent)) {
@@ -26,8 +26,10 @@ const removeOldGenDirs = (outDir: string) => {
 
 async function* getFiles(dir: string): AsyncGenerator<string> {
   const dirEntries = await readdir(dir, { withFileTypes: true });
+
   for (const dirEntry of dirEntries) {
     const resolvedChildPath = path.resolve(dir, dirEntry.name);
+
     if (dirEntry.isDirectory()) {
       yield* getFiles(resolvedChildPath);
     } else {
@@ -55,6 +57,7 @@ const postProcessRustDir = async (dir: string) => {
       }
     }
     const moduleName = path.parse(childDirEntryPath).name;
+
     moduleNames.push(moduleName);
   }
 
@@ -72,7 +75,7 @@ const postProcessRustDir = async (dir: string) => {
 
 /**
  *  @todo - Consider using `quicktype-core` and orchestrating ourselves from TS instead of calling
- *    the CLI (https://blog.quicktype.io/customizing-quicktype/)
+ *    the CLI (https://blog.quicktype.io/customizing-quicktype/).
  */
 const codegen = async ({
   typeDefsDir,
@@ -98,6 +101,7 @@ const codegen = async ({
     if (fileExtension === ".ts") {
       if (rustOutputDir) {
         const rustParentsPath = path.join(rustOutputDir, fileParentStructure);
+
         await mkdir(rustParentsPath, { recursive: true });
 
         const rustOutputPath = path.join(
@@ -122,6 +126,7 @@ const codegen = async ({
           jsonSchemaOutputDir,
           fileParentStructure,
         );
+
         await mkdir(jsonSchemaParentsPath, { recursive: true });
 
         const jsonSchemaOutputPath = path.join(
@@ -187,6 +192,7 @@ void (async () => {
           "At least one of `rust-out-dir` or `json-schema-out-dir` must be specified",
         );
       }
+
       return true;
     })
     .parseSync();
@@ -196,12 +202,12 @@ void (async () => {
 
   if (rustOutDir) {
     console.log("Removing old directories for generated Rust files");
-    removeOldGenDirs(rustOutDir);
+    removeOldGenDirectories(rustOutDir);
   }
 
   if (jsonSchemaOutDir) {
     console.log("Removing old directories for generated JSON Schema files");
-    removeOldGenDirs(jsonSchemaOutDir);
+    removeOldGenDirectories(jsonSchemaOutDir);
   }
 
   console.log("Running codegen");

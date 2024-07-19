@@ -1,7 +1,6 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  extractBaseUrl,
+import type { BaseUrl,   extractBaseUrl,
   extractVersion,
+VersionedUrl ,
 } from "@blockprotocol/type-system/slim";
 
 import type { PropertyTypeWithMetadata } from "../../../types/ontology/property-type.js";
@@ -13,7 +12,7 @@ import { isPropertyTypeVertex } from "../../../types/subgraph/vertices.js";
 import { typedValues } from "../../../util.js";
 
 /**
- * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph
+ * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph.
  *
  * @param subgraph
  */
@@ -33,7 +32,7 @@ export const getPropertyTypes = (
  *
  * @param subgraph
  * @param propertyTypeId
- * @throws if the vertex isn't a `PropertyTypeVertex`
+ * @throws If the vertex isn't a `PropertyTypeVertex`.
  */
 export const getPropertyTypeById = (
   subgraph: Subgraph,
@@ -62,7 +61,7 @@ export const getPropertyTypeById = (
  *
  * @param subgraph
  * @param vertexId
- * @throws if the vertex isn't a `PropertyTypeVertex`
+ * @throws If the vertex isn't a `PropertyTypeVertex`.
  */
 export const getPropertyTypeByVertexId = (
   subgraph: Subgraph,
@@ -82,7 +81,7 @@ export const getPropertyTypeByVertexId = (
 };
 
 /**
- * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
+ * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`.
  *
  * @param subgraph
  * @param baseUrl

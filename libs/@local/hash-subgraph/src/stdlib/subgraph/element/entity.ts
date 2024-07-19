@@ -4,8 +4,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
-import type { EntityRevisionId, Subgraph, Vertices } from "../../../main.js";
-import { isEntityVertex } from "../../../main.js";
+import type { EntityRevisionId, isEntityVertex,Subgraph, Vertices  } from "../../../main.js";
 import { mustBeDefined } from "../../../shared/invariant.js";
 import {
   intervalContainsTimestamp,
@@ -19,7 +18,7 @@ import {
  * latest revisions.
  *
  * @param subgraph
- * @param latest - whether or not to only return the latest revisions of each entity
+ * @param latest - Whether or not to only return the latest revisions of each entity.
  */
 export const getEntities = (subgraph: Subgraph): Entity[] =>
   typedValues(subgraph.vertices).flatMap((revisions) =>
@@ -41,14 +40,14 @@ const getRevisionsForEntity = (
   // check for the presence of draft versions of the entity in the subgraph
   if (entityId.split("~")[2]) {
     /**
-     * This entityId contains a draftId, and so we would have already found it via vertices[entityId] if it exists
+     * This entityId contains a draftId, and so we would have already found it via vertices[entityId] if it exists.
      */
     return undefined;
   }
 
   /**
    * We haven't found the exact entityId in the subgraph, but it might be qualified by a draftId
-   * – check for vertices which are keyed by a qualified version of the provided entityId
+   * – check for vertices which are keyed by a qualified version of the provided entityId.
    */
   const draftEntityIds = Object.keys(subgraph.vertices).filter((id) =>
     id.startsWith(`${entityId}~`),
@@ -64,16 +63,19 @@ const getRevisionsForEntity = (
      * If this is the case, some will not be present among the editions, as they will be overwritten by the last one.
      * @todo reconsider the approach to this as part of rethinking the subgraph shape
      */
-    const acc: Vertices[EntityId] = {};
+    const accumulator: Vertices[EntityId] = {};
+
     for (const draftEntityId of draftEntityIds) {
       const draftEntity = subgraph.vertices[draftEntityId];
+
       if (draftEntity) {
         for (const [timestamp, vertex] of typedEntries(draftEntity)) {
-          acc[timestamp] = vertex;
+          accumulator[timestamp] = vertex;
         }
       }
     }
-    return acc;
+
+    return accumulator;
   }
 };
 
@@ -84,11 +86,11 @@ const getRevisionsForEntity = (
  * Returns `undefined` if the entity couldn't be found.
  *
  * @param subgraph
- * @param {EntityId} entityId - The {@link EntityId} of the entity to get.
- * @param {EntityRevisionId|Timestamp|Date} [targetRevisionInformation] - Optional information needed to uniquely
+ * @param entityId - The {@link EntityId} of the entity to get.
+ * @param [targetRevisionInformation] - Optional information needed to uniquely
  *     identify a revision of an entity either by an explicit {@link EntityRevisionId}, `Date`, or by a given
  *     {@link Timestamp} where the entity whose lifespan overlaps the given timestamp will be returned.
- * @throws if the vertex isn't an {@link EntityVertex}
+ * @throws If the vertex isn't an {@link EntityVertex}.
  */
 export const getEntityRevision = (
   subgraph: Subgraph,
@@ -117,7 +119,7 @@ export const getEntityRevision = (
     }
 
     return vertex.inner;
-  } else {
+  } 
     const targetTime =
       typeof targetRevisionInformation === "string"
         ? targetRevisionInformation
@@ -149,7 +151,7 @@ export const getEntityRevision = (
     }
 
     return undefined;
-  }
+  
 };
 
 /**
@@ -158,9 +160,9 @@ export const getEntityRevision = (
  * When querying a subgraph with support for temporal versioning, it optionally constrains the search to a given
  * {@link TimeInterval}.
  *
- * @param {Subgraph }subgraph
- * @param {EntityId} entityId
- * @param {TimeInterval} [interval]
+ * @param entityId
+ * @param [interval]
+ * @paramsubgraph
  */
 export const getEntityRevisionsByEntityId = (
   subgraph: Subgraph,
@@ -207,10 +209,11 @@ export const getEntityRevisionsByEntityId = (
     }
 
     return filteredEntities;
-  } else {
+  } 
     const entityVertices = typedValues(entityRevisions);
+
     return entityVertices.filter(isEntityVertex).map((vertex) => {
       return vertex.inner;
     });
-  }
+  
 };

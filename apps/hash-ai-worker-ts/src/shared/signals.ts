@@ -1,6 +1,6 @@
 /**
- * @fileoverview This file contents signals which are local to the Temporal worker.
- * Signals that need to be sent from outside are in @local/hash-isomorphic-utils/src/flows/signals.ts
+ * @file This file contents signals which are local to the Temporal worker.
+ * Signals that need to be sent from outside are in @local/hash-isomorphic-utils/src/flows/signals.ts.
  */
 
 import type {

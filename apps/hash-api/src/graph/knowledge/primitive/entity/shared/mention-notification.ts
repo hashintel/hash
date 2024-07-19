@@ -1,16 +1,12 @@
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 
 import type { ImpureGraphFunction } from "../../../../context-types";
-import type { Block } from "../../../system-types/block";
-import { getBlockCollectionByBlock } from "../../../system-types/block";
-import type { Comment } from "../../../system-types/comment";
-import { getCommentAncestorBlock } from "../../../system-types/comment";
-import type { Page } from "../../../system-types/page";
-import { getPageFromEntity } from "../../../system-types/page";
-import type { Text } from "../../../system-types/text";
-import {
-  getCommentByText,
+import type { Block , getBlockCollectionByBlock } from "../../../system-types/block";
+import type { Comment , getCommentAncestorBlock } from "../../../system-types/comment";
+import type { getPageFromEntity,Page  } from "../../../system-types/page";
+import type {   getCommentByText,
   getPageAndBlockByText,
+Text ,
 } from "../../../system-types/text";
 
 export const getTextUpdateOccurredIn: ImpureGraphFunction<
@@ -29,6 +25,7 @@ export const getTextUpdateOccurredIn: ImpureGraphFunction<
 
   if (pageAndBlock) {
     const { page, block } = pageAndBlock;
+
     return { occurredInEntity: page, occurredInBlock: block };
   }
 

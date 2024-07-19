@@ -1,17 +1,15 @@
+import dedent from "dedent";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
-import dedent from "dedent";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../shared/get-llm-response.js";
 import type {
-  LlmMessage,
+ getToolCallsFromLlmAssistantMessage,  LlmMessage,
   LlmMessageTextContent,
-  LlmUserMessage,
-} from "../../shared/get-llm-response/llm-message.js";
-import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message.js";
+  LlmUserMessage } from "../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
   LlmToolDefinition,
@@ -21,13 +19,12 @@ import { graphApiClient } from "../../shared/graph-api-client.js";
 import { stringify } from "../../shared/stringify.js";
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
 import type { Fact } from "../shared/infer-facts-from-text/types.js";
+
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
-} from "./coordinator-tools.js";
-import { generateToolDefinitions as generateCoordinatorToolDefinitions } from "./coordinator-tools.js";
-import type { DuplicateReport } from "./deduplicate-entities.js";
-import { deduplicateEntities } from "./deduplicate-entities.js";
+ generateToolDefinitions as generateCoordinatorToolDefinitions } from "./coordinator-tools.js";
+import type { deduplicateEntities,DuplicateReport  } from "./deduplicate-entities.js";
 import { generatePreviouslyInferredFactsSystemPromptMessage } from "./generate-previously-inferred-facts-system-prompt-message.js";
 import { handleWebSearchToolCall } from "./handle-web-search-tool-call.js";
 import { linkFollowerAgent } from "./link-follower-agent.js";
@@ -71,7 +68,7 @@ const generateToolDefinitions = <
 > => {
   const coordinatorToolDefinitions = generateCoordinatorToolDefinitions({
     dataSources: params.dataSources,
-    omitTools: omittedCoordinatorToolNames.concat(),
+    omitTools: [...omittedCoordinatorToolNames],
   });
 
   const allToolDefinitions = {
@@ -168,22 +165,22 @@ const generateSystemPromptPrefix = (params: { input: SubTaskAgentInput }) => {
   `);
 };
 
-export type SubTaskAgentInput = {
+export interface SubTaskAgentInput {
   goal: string;
   relevantEntities: LocalEntitySummary[];
   existingFactsAboutRelevantEntities: Fact[];
   entityTypes: DereferencedEntityType[];
   linkEntityTypes?: DereferencedEntityType[];
-};
+}
 
-export type SubTaskAgentState = {
+export interface SubTaskAgentState {
   plan: string;
   entitySummaries: LocalEntitySummary[];
   inferredFacts: Fact[];
   previousCalls: {
     completedToolCalls: CompletedToolCall<SubTaskAgentToolName>[];
   }[];
-};
+}
 
 const generateInitialUserMessage = (params: {
   input: SubTaskAgentInput;
@@ -501,7 +498,7 @@ export const runSubTaskAgent = async (params: {
                 ...toolCall,
                 output: `The plan has been successfully updated.`,
               };
-            } else if (toolCall.name === "webSearch") {
+            } if (toolCall.name === "webSearch") {
               const webPageSummaries = await handleWebSearchToolCall({
                 input:
                   toolCall.input as SubTaskAgentToolCallArguments["webSearch"],
@@ -520,7 +517,7 @@ Summary: ${summary}`,
                 ...toolCall,
                 output,
               };
-            } else if (toolCall.name === "inferFactsFromResources") {
+            } if (toolCall.name === "inferFactsFromResources") {
               const { resources } =
                 toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
 
@@ -615,7 +612,7 @@ Summary: ${summary}`,
                       ),
                       linkEntityTypes: input.linkEntityTypes?.filter(
                         ({ $id }) =>
-                          !!linkEntityTypeIds?.includes($id) ||
+                          Boolean(linkEntityTypeIds?.includes($id)) ||
                           input.relevantEntities.some(
                             (entity) => entity.entityTypeId === $id,
                           ),
@@ -636,7 +633,7 @@ Summary: ${summary}`,
                 inferredFacts.push(...response.facts);
                 entitySummaries.push(...response.existingEntitiesOfInterest);
 
-                outputMessage += `Inferred ${
+                outputMessage = `${outputMessage  }Inferred ${
                   response.facts.length
                 } facts on the web page with url ${url} for the following entities: ${stringify(
                   response.existingEntitiesOfInterest.map(
@@ -648,7 +645,7 @@ Summary: ${summary}`,
                 )}. ${response.suggestionForNextSteps}\n`;
               }
 
-              outputMessage += dedent(`
+              outputMessage = outputMessage + dedent(`
               If further research is needed to fill more properties of the entities,
                 consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
 

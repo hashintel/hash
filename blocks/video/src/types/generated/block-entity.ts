@@ -2,14 +2,14 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity, LinkData } from "@blockprotocol/graph";
+import type { Entity, LinkData } from "@blockprotocol/graph";
 
 export type BlockEntity = VideoBlock;
 
 export type BlockEntityOutgoingLinkAndTarget = VideoBlockOutgoingLinkAndTarget;
 
 /**
- * A True or False value
+ * A True or False value.
  */
 export type BooleanDataType = boolean;
 
@@ -24,7 +24,7 @@ export type CaptionPropertyValue = TextDataType;
 export type DescriptionPropertyValue = TextDataType;
 
 /**
- * A human-friendly display name for something
+ * A human-friendly display name for something.
  */
 export type DisplayNamePropertyValue = TextDataType;
 
@@ -34,7 +34,7 @@ export type DisplaysMediaFile = Entity<DisplaysMediaFileProperties> & {
 
 export type DisplaysMediaFileOutgoingLinkAndTarget = never;
 
-export type DisplaysMediaFileOutgoingLinksByLinkEntityTypeId = {};
+export interface DisplaysMediaFileOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * Displays this media file.
@@ -43,12 +43,12 @@ export type DisplaysMediaFileProperties = DisplaysMediaFileProperties1 &
   DisplaysMediaFileProperties2;
 export type DisplaysMediaFileProperties1 = LinkProperties;
 
-export type DisplaysMediaFileProperties2 = {};
+export interface DisplaysMediaFileProperties2 {}
 
 export type File = Entity<FileProperties>;
 
 /**
- * A unique signature derived from a file's contents
+ * A unique signature derived from a file's contents.
  */
 export type FileHashPropertyValue = TextDataType;
 
@@ -59,12 +59,12 @@ export type FileNamePropertyValue = TextDataType;
 
 export type FileOutgoingLinkAndTarget = never;
 
-export type FileOutgoingLinksByLinkEntityTypeId = {};
+export interface FileOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * A file hosted at a URL
+ * A file hosted at a URL.
  */
-export type FileProperties = {
+export interface FileProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
@@ -81,10 +81,10 @@ export type FileProperties = {
   "https://hash.ai/@hash/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
   "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
   "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
-};
+}
 
 /**
- * The size of a file
+ * The size of a file.
  */
 export type FileSizePropertyValue = NumberDataType;
 
@@ -127,74 +127,74 @@ export type Image = Entity<ImageProperties>;
 
 export type ImageOutgoingLinkAndTarget = never;
 
-export type ImageOutgoingLinksByLinkEntityTypeId = {};
+export interface ImageOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * An image file hosted at a URL
+ * An image file hosted at a URL.
  */
 export type ImageProperties = ImageProperties1 & ImageProperties2;
 export type ImageProperties1 = FileProperties;
 
-export type ImageProperties2 = {};
+export interface ImageProperties2 {}
 
 export type Link = Entity<LinkProperties>;
 
 export type LinkOutgoingLinkAndTarget = never;
 
-export type LinkOutgoingLinksByLinkEntityTypeId = {};
+export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export type LinkProperties = {};
+export interface LinkProperties {}
 
 /**
  * A MIME (Multipurpose Internet Mail Extensions) type.
  *
- * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+ * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types.
  */
 export type MIMETypePropertyValue = TextDataType;
 
 /**
- * An arithmetical value (in the Real number system)
+ * An arithmetical value (in the Real number system).
  */
 export type NumberDataType = number;
 
 /**
- * The original name of a file
+ * The original name of a file.
  */
 export type OriginalFileNamePropertyValue = TextDataType;
 
 /**
- * The original source of something
+ * The original source of something.
  */
 export type OriginalSourcePropertyValue = TextDataType;
 
 /**
- * The original URL something was hosted at
+ * The original URL something was hosted at.
  */
 export type OriginalURLPropertyValue = TextDataType;
 
 /**
- * An ordered sequence of characters
+ * An ordered sequence of characters.
  */
 export type TextDataType = string;
 
 export type VideoBlock = Entity<VideoBlockProperties>;
 
-export type VideoBlockDisplaysMediaFileLink = {
+export interface VideoBlockDisplaysMediaFileLink {
   linkEntity: DisplaysMediaFile;
   rightEntity: Image;
-};
+}
 
 export type VideoBlockOutgoingLinkAndTarget = VideoBlockDisplaysMediaFileLink;
 
-export type VideoBlockOutgoingLinksByLinkEntityTypeId = {
+export interface VideoBlockOutgoingLinksByLinkEntityTypeId {
   "https://blockprotocol.org/@hash/types/entity-type/displays-media-file/v/1": VideoBlockDisplaysMediaFileLink;
-};
+}
 
 /**
  * The block entity for the “Video” block.
  *
- * See: https://blockprotocol.org/@hash/blocks/video
+ * See: https://blockprotocol.org/@hash/blocks/video.
  */
-export type VideoBlockProperties = {
+export interface VideoBlockProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/caption/"?: CaptionPropertyValue;
-};
+}

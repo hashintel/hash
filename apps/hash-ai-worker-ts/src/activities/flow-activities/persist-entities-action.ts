@@ -29,9 +29,10 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     (a, b) => {
       const isAFileEntity = fileEntityTypeIds.includes(a.entityTypeId);
       const isBFileEntity = fileEntityTypeIds.includes(b.entityTypeId);
+
       if (isAFileEntity && !isBFileEntity) {
         return -1;
-      } else if (isBFileEntity && !isAFileEntity) {
+      } if (isBFileEntity && !isAFileEntity) {
         return 1;
       }
 
@@ -39,7 +40,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
        * This assumes that there are no link entities which link to other link entities, which require being able to
        * create multiple entities at once in a single transaction (since they refer to each other).
        *
-       * @todo handle links pointing to other links via creating many entities at once, unblocked by H-1178
+       * @todo Handle links pointing to other links via creating many entities at once, unblocked by H-1178.
        */
       if (
         (a.sourceEntityId && b.sourceEntityId) ||
@@ -144,6 +145,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     for (const source of entitySources) {
       if (source.location?.uri && !source.entityId) {
         const persistedFile = persistedFilesByOriginalUrl[source.location.uri];
+
         if (persistedFile?.entity) {
           source.entityId = new Entity(persistedFile.entity).entityId;
         }

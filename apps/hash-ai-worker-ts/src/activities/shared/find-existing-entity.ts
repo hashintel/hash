@@ -17,16 +17,14 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { EntityTypeRootType } from "@local/hash-subgraph";
-import {
+import type { EntityTypeRootType ,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { logger } from "./activity-logger.js";
-import type { DereferencedEntityType } from "./dereference-entity-type.js";
-import { dereferenceEntityType } from "./dereference-entity-type.js";
+import type { DereferencedEntityType , dereferenceEntityType } from "./dereference-entity-type.js";
 import { createEntityEmbeddings } from "./embeddings.js";
 import { getEntityByFilter } from "./get-entity-by-filter.js";
 
@@ -45,7 +43,7 @@ export const findExistingEntity = async ({
   proposedEntity: Pick<ProposedEntity, "entityTypeId" | "properties">;
   includeDrafts: boolean;
 }): Promise<Entity | undefined> => {
-  const entityTypeId = proposedEntity.entityTypeId;
+  const {entityTypeId} = proposedEntity;
 
   const entityType: DereferencedEntityType | undefined =
     dereferencedEntityType ??
@@ -85,7 +83,7 @@ export const findExistingEntity = async ({
    * Search for an existing entity that seems to semantically match the proposed entity, based on:
    * 1. The value for the label property, or other properties which are good candidates for unique identifying
    * an entity
-   * 2. The entire entity properties object, if there is no match from (1)
+   * 2. The entire entity properties object, if there is no match from (1).
    */
 
   /** We are going to need the embeddings in both cases, so create these first */
@@ -122,9 +120,9 @@ export const findExistingEntity = async ({
   const maximumSemanticDistance = 0.3;
 
   /**
-   * First find suitable specific properties to match on
+   * First find suitable specific properties to match on.
    */
-  const labelProperty = entityType.labelProperty;
+  const {labelProperty} = entityType;
 
   const propertyBaseUrlsToMatchOn: BaseUrl[] =
     labelProperty &&
@@ -141,6 +139,7 @@ export const findExistingEntity = async ({
     "shortname",
     "organization name",
   ];
+
   for (const [key, schema] of typedEntries(entityType.properties)) {
     if (
       nameProperties.includes(
@@ -166,6 +165,7 @@ export const findExistingEntity = async ({
           logger.error(
             `Could not find embedding for property ${baseUrl} – skipping`,
           );
+
           return null;
         }
 
@@ -246,7 +246,7 @@ export const findExistingLinkEntity = async ({
   ownedById: OwnedById;
   includeDrafts: boolean;
 }) => {
-  return await getEntityByFilter({
+  return getEntityByFilter({
     actorId,
     graphApiClient,
     filter: {

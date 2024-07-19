@@ -125,15 +125,15 @@ export type {
 /**
  * A Microsoft Word document.
  */
-export type DOCXDocument = {
+export interface DOCXDocument {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/docx-document/v/1";
   properties: DOCXDocumentProperties;
   propertiesWithMetadata: DOCXDocumentPropertiesWithMetadata;
-};
+}
 
 export type DOCXDocumentOutgoingLinkAndTarget = never;
 
-export type DOCXDocumentOutgoingLinksByLinkEntityTypeId = {};
+export interface DOCXDocumentOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A Microsoft Word document.
@@ -142,14 +142,14 @@ export type DOCXDocumentProperties = DOCXDocumentProperties1 &
   DOCXDocumentProperties2;
 export type DOCXDocumentProperties1 = DocumentFileProperties;
 
-export type DOCXDocumentProperties2 = {};
+export interface DOCXDocumentProperties2 {}
 
 export type DOCXDocumentPropertiesWithMetadata =
   DOCXDocumentPropertiesWithMetadata1 & DOCXDocumentPropertiesWithMetadata2;
 export type DOCXDocumentPropertiesWithMetadata1 =
   DocumentFilePropertiesWithMetadata;
 
-export type DOCXDocumentPropertiesWithMetadata2 = {
+export interface DOCXDocumentPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

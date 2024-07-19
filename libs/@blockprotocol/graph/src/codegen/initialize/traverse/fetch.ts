@@ -28,10 +28,10 @@ export const fetchTypeAsJson = async (
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return await response.json();
-    } catch (err) {
+    } catch (error) {
       if (retry === MAX_RETRIES - 1) {
         context.logWarn(`Could not fetch ${versionedUrl}`);
-        throw err;
+        throw error;
       }
     }
   }

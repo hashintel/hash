@@ -23,7 +23,7 @@ import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
  * This after update `Text` entity hook is responsible for creating
  * mention notifications if the textual content contain a mention to a user and:
  * - the `Text` entity is in a page
- * - the `Text` entity is in a comment that's on a page
+ * - the `Text` entity is in a comment that's on a page.
  */
 export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
   async ({ previousEntity, propertyPatches, authentication, context }) => {

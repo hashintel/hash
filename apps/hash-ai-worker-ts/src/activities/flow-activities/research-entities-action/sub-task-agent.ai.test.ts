@@ -1,5 +1,4 @@
 import "../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import {
   existsSync,
   mkdirSync,
@@ -15,8 +14,8 @@ import { expect, test } from "vitest";
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
-import type { SubTaskAgentState } from "./sub-task-agent.js";
-import { runSubTaskAgent } from "./sub-task-agent.js";
+
+import type { runSubTaskAgent,SubTaskAgentState  } from "./sub-task-agent.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -38,6 +37,7 @@ export const retrievePreviousState = (params: {
   }
 
   const files = readdirSync(directoryPath);
+
   if (files.length === 0) {
     return undefined;
   }
@@ -58,7 +58,7 @@ const persistState = (params: {
 
   const directoryPath = `${baseDirectoryPath}/${testName}`;
 
-  const filePath = `${directoryPath}/${new Date().getTime()}-state.json`;
+  const filePath = `${directoryPath}/${Date.now()}-state.json`;
 
   if (!existsSync(directoryPath)) {
     mkdirSync(directoryPath, { recursive: true });
@@ -67,7 +67,7 @@ const persistState = (params: {
 };
 
 test(
-  "Test runSubTaskAgent: Find Ben Werner's Github profile URL",
+  "test runSubTaskAgent: Find Ben Werner's Github profile URL",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -92,7 +92,7 @@ test(
       },
       testingParams: {
         persistState: (state) =>
-          persistState({ state, testName: "github-url" }),
+          { persistState({ state, testName: "github-url" }); },
         resumeFromState: retrievePreviousState({
           testName: "github-url",
         }),

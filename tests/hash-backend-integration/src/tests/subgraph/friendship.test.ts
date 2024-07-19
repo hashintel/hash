@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
@@ -40,8 +41,7 @@ import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { QueryTemporalAxesUnresolved } from "@local/hash-subgraph";
-import { linkEntityTypeUrl } from "@local/hash-subgraph";
+import type { linkEntityTypeUrl,QueryTemporalAxesUnresolved  } from "@local/hash-subgraph";
 import {
   getEntityTypes as getEntityTypesFromSubgraph,
   getIncomingLinksForEntity,
@@ -51,7 +51,6 @@ import {
   getRightEntityForLinkEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../test-server";
 import { createTestImpureGraphContext } from "../util";
@@ -207,8 +206,8 @@ afterAll(async () => {
   await resetGraph();
 });
 
-describe("Ontology queries", () => {
-  it.each([
+describe("ontology queries", () => {
+  test.each([
     zeroedGraphResolveDepths,
     {
       ...zeroedGraphResolveDepths,
@@ -226,8 +225,9 @@ describe("Ontology queries", () => {
       graphResolveDepths: resolve_depths,
       temporalAxes: fullDecisionTimeAxis,
     });
-    expect(subgraph.roots.length).toEqual(3);
-    expect(Object.keys(subgraph.edges).length).toEqual(0);
+
+    expect(subgraph.roots).toHaveLength(3);
+    expect(Object.keys(subgraph.edges)).toHaveLength(0);
 
     expect(
       getRoots(subgraph)
@@ -240,7 +240,7 @@ describe("Ontology queries", () => {
     ]);
   });
 
-  it("archives/unarchives data types", async () => {
+  test("archives/unarchives data types", async () => {
     const dataTypeId: VersionedUrl =
       "http://localhost:3000/@alice/types/data-type/number/v/1";
 
@@ -264,7 +264,8 @@ describe("Ontology queries", () => {
       authentication,
       request,
     );
-    expect(initialDataTypes.length).toEqual(1);
+
+    expect(initialDataTypes).toHaveLength(1);
 
     const actorId =
       initialDataTypes[0]!.metadata.provenance.edition.createdById;
@@ -282,7 +283,8 @@ describe("Ontology queries", () => {
       authentication,
       request,
     );
-    expect(emptyDataTypes.length).toEqual(0);
+
+    expect(emptyDataTypes).toHaveLength(0);
 
     await unarchiveDataType(
       graphContext,
@@ -297,10 +299,11 @@ describe("Ontology queries", () => {
       authentication,
       request,
     );
-    expect(nonEmptyDataTypes.length).toEqual(1);
+
+    expect(nonEmptyDataTypes).toHaveLength(1);
   });
 
-  it.each([
+  test.each([
     zeroedGraphResolveDepths,
     {
       ...zeroedGraphResolveDepths,
@@ -327,7 +330,8 @@ describe("Ontology queries", () => {
         temporalAxes: fullDecisionTimeAxis,
       },
     );
-    expect(subgraph.roots.length).toEqual(2);
+
+    expect(subgraph.roots).toHaveLength(2);
 
     expect(
       getRoots(subgraph)
@@ -339,7 +343,7 @@ describe("Ontology queries", () => {
     ]);
   });
 
-  it("archives/unarchives property types", async () => {
+  test("archives/unarchives property types", async () => {
     const propertyTypeId: VersionedUrl =
       "http://localhost:3000/@alice/types/property-type/name/v/1";
 
@@ -363,7 +367,8 @@ describe("Ontology queries", () => {
       authentication,
       request,
     );
-    expect(initialPropertyTypes.length).toEqual(1);
+
+    expect(initialPropertyTypes).toHaveLength(1);
 
     const actorId =
       initialPropertyTypes[0]!.metadata.provenance.edition.createdById;
@@ -381,7 +386,8 @@ describe("Ontology queries", () => {
       authentication,
       request,
     );
-    expect(emptyPropertyTypes.length).toEqual(0);
+
+    expect(emptyPropertyTypes).toHaveLength(0);
 
     await unarchivePropertyType(
       graphContext,
@@ -396,10 +402,11 @@ describe("Ontology queries", () => {
       authentication,
       request,
     );
-    expect(nonEmptyPropertyTypes.length).toEqual(1);
+
+    expect(nonEmptyPropertyTypes).toHaveLength(1);
   });
 
-  it.each([
+  test.each([
     zeroedGraphResolveDepths,
     {
       ...zeroedGraphResolveDepths,
@@ -432,9 +439,11 @@ describe("Ontology queries", () => {
       graphResolveDepths: resolve_depths,
       temporalAxes: fullDecisionTimeAxis,
     });
-    expect(subgraph.roots.length).toEqual(4);
+
+    expect(subgraph.roots).toHaveLength(4);
 
     const entityTypes = getRoots(subgraph);
+
     expect(entityTypes.map(({ schema }) => schema.$id).sort()).toStrictEqual([
       "http://localhost:3000/@alice/types/entity-type/friendship/v/1",
       "http://localhost:3000/@alice/types/entity-type/person/v/1",
@@ -456,11 +465,11 @@ describe("Ontology queries", () => {
           schema.$id ===
           "http://localhost:3000/@alice/types/entity-type/person/v/2",
       )!.metadata.labelProperty,
-    ).toStrictEqual("http://localhost:3000/@alice/types/property-type/name/");
+    ).toBe("http://localhost:3000/@alice/types/property-type/name/");
   });
 });
 
-it("archives/unarchives entity types", async () => {
+test("archives/unarchives entity types", async () => {
   const entityTypeId: VersionedUrl =
     "http://localhost:3000/@alice/types/entity-type/person/v/1";
 
@@ -484,7 +493,8 @@ it("archives/unarchives entity types", async () => {
     authentication,
     request,
   );
-  expect(initialEntityTypes.length).toEqual(1);
+
+  expect(initialEntityTypes).toHaveLength(1);
 
   const actorId =
     initialEntityTypes[0]!.metadata.provenance.edition.createdById;
@@ -502,7 +512,8 @@ it("archives/unarchives entity types", async () => {
     authentication,
     request,
   );
-  expect(emptyEntityTypes.length).toEqual(0);
+
+  expect(emptyEntityTypes).toHaveLength(0);
 
   await unarchiveEntityType(
     graphContext,
@@ -517,11 +528,12 @@ it("archives/unarchives entity types", async () => {
     authentication,
     request,
   );
-  expect(nonEmptyEntityTypes.length).toEqual(1);
+
+  expect(nonEmptyEntityTypes).toHaveLength(1);
 });
 
-describe("Simple queries", () => {
-  it("read all entities", async () => {
+describe("simple queries", () => {
+  test("read all entities", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: {
         all: [],
@@ -530,15 +542,16 @@ describe("Simple queries", () => {
       temporalAxes: fullDecisionTimeAxis,
       includeDrafts: true,
     });
-    expect(subgraph.roots.length).toEqual(5);
-    expect(Object.keys(subgraph.vertices).length).toEqual(4);
-    expect(Object.keys(subgraph.edges).length).toEqual(0);
+
+    expect(subgraph.roots).toHaveLength(5);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(4);
+    expect(Object.keys(subgraph.edges)).toHaveLength(0);
     const entities = getRoots(subgraph);
 
-    expect(entities.length).toBe(5);
+    expect(entities).toHaveLength(5);
   });
 
-  it("read entities at 2000-01-01 as of now", async () => {
+  test("read entities at 2000-01-01 as of now", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: {
         all: [],
@@ -550,15 +563,16 @@ describe("Simple queries", () => {
       ),
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(0);
-    expect(Object.keys(subgraph.vertices).length).toEqual(0);
-    expect(Object.keys(subgraph.edges).length).toEqual(0);
+
+    expect(subgraph.roots).toHaveLength(0);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(0);
+    expect(Object.keys(subgraph.edges)).toHaveLength(0);
     const entities = getRoots(subgraph);
 
-    expect(entities.length).toBe(0);
+    expect(entities).toHaveLength(0);
   });
 
-  it("read entities at 2001-01-01 as of now", async () => {
+  test("read entities at 2001-01-01 as of now", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: {
         all: [],
@@ -570,15 +584,16 @@ describe("Simple queries", () => {
       ),
       includeDrafts: true,
     });
-    expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(1);
-    expect(Object.keys(subgraph.edges).length).toEqual(0);
+
+    expect(subgraph.roots).toHaveLength(1);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(1);
+    expect(Object.keys(subgraph.edges)).toHaveLength(0);
     const entities = getRoots(subgraph);
 
-    expect(entities.length).toBe(1);
+    expect(entities).toHaveLength(1);
   });
 
-  it("read entities at 2001-01-01 as of 2001-01-01", async () => {
+  test("read entities at 2001-01-01 as of 2001-01-01", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: {
         all: [],
@@ -590,15 +605,16 @@ describe("Simple queries", () => {
       ),
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(0);
-    expect(Object.keys(subgraph.vertices).length).toEqual(0);
-    expect(Object.keys(subgraph.edges).length).toEqual(0);
+
+    expect(subgraph.roots).toHaveLength(0);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(0);
+    expect(Object.keys(subgraph.edges)).toHaveLength(0);
     const entities = getRoots(subgraph);
 
-    expect(entities.length).toBe(0);
+    expect(entities).toHaveLength(0);
   });
 
-  it("read entities at 2001-01-01 as of 2001-01-20", async () => {
+  test("read entities at 2001-01-01 as of 2001-01-20", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: {
         all: [],
@@ -610,15 +626,16 @@ describe("Simple queries", () => {
       ),
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(1);
-    expect(Object.keys(subgraph.edges).length).toEqual(0);
+
+    expect(subgraph.roots).toHaveLength(1);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(1);
+    expect(Object.keys(subgraph.edges)).toHaveLength(0);
     const entities = getRoots(subgraph);
 
-    expect(entities.length).toBe(1);
+    expect(entities).toHaveLength(1);
   });
 
-  it("read entities at 2002-01-01 as of 2001-01-01", async () => {
+  test("read entities at 2002-01-01 as of 2001-01-01", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: {
         all: [],
@@ -630,15 +647,16 @@ describe("Simple queries", () => {
       ),
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(0);
-    expect(Object.keys(subgraph.vertices).length).toEqual(0);
-    expect(Object.keys(subgraph.edges).length).toEqual(0);
+
+    expect(subgraph.roots).toHaveLength(0);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(0);
+    expect(Object.keys(subgraph.edges)).toHaveLength(0);
     const entities = getRoots(subgraph);
 
-    expect(entities.length).toBe(0);
+    expect(entities).toHaveLength(0);
   });
 
-  it("read entities at 2002-02-01 as of now", async () => {
+  test("read entities at 2002-02-01 as of now", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: {
         all: [],
@@ -650,44 +668,47 @@ describe("Simple queries", () => {
       ),
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(1);
-    expect(Object.keys(subgraph.edges).length).toEqual(0);
+
+    expect(subgraph.roots).toHaveLength(1);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(1);
+    expect(Object.keys(subgraph.edges)).toHaveLength(0);
     const entities = getRoots(subgraph);
 
-    expect(entities.length).toBe(1);
+    expect(entities).toHaveLength(1);
     expect(entities[0]!.metadata.recordId.editionId).toBe(
       "00000001-0001-0000-0000-000000000002",
     );
     expect(entities[0]!.properties[nameProperty]).toBe("Alice Allison");
   });
 
-  it("read latest alice entity", async () => {
+  test("read latest alice entity", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: aliceFilter,
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(1);
-    expect(Object.keys(subgraph.edges).length).toEqual(0);
+
+    expect(subgraph.roots).toHaveLength(1);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(1);
+    expect(Object.keys(subgraph.edges)).toHaveLength(0);
     const entities = getRoots(subgraph);
 
-    expect(entities.length).toBe(1);
+    expect(entities).toHaveLength(1);
     expect(entities[0]).toStrictEqual(aliceEntities[aliceEntities.length - 1]);
   });
 
-  it("read latest friendship entity", async () => {
+  test("read latest friendship entity", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: friendshipFilter,
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(1);
-    expect(Object.keys(subgraph.edges).length).toEqual(0);
+
+    expect(subgraph.roots).toHaveLength(1);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(1);
+    expect(Object.keys(subgraph.edges)).toHaveLength(0);
     const entities = getRoots(subgraph);
 
     expect(entities).toStrictEqual(linkEntities);
@@ -695,7 +716,7 @@ describe("Simple queries", () => {
 });
 
 describe("non-zero, simple resolve depths", () => {
-  it("read persons based on the friendship (as of now)", async () => {
+  test("read persons based on the friendship (as of now)", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: friendshipFilter,
       graphResolveDepths: {
@@ -712,29 +733,32 @@ describe("non-zero, simple resolve depths", () => {
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(1);
+
+    expect(subgraph.roots).toHaveLength(1);
     // changed from 3 to 2 because the archived entity is filtered out in getEntities – check expectations after H-349 (proper archival)
-    expect(Object.keys(subgraph.vertices).length).toEqual(2);
-    expect(Object.keys(subgraph.edges).length).toEqual(1);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(2);
+    expect(Object.keys(subgraph.edges)).toHaveLength(1);
 
     const friendshipEntity = getRoots(subgraph)[0]!;
+
     expect(friendshipEntity).toStrictEqual(linkEntities[0]);
     expect(
       Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!)
-        .length,
-    ).toEqual(1);
+        ,
+    ).toHaveLength(1);
     expect(
       Object.keys(
         subgraph.edges[friendshipEntity.metadata.recordId.entityId]![
           friendshipEntity.metadata.temporalVersioning.decisionTime.start.limit
         ]!,
-      ).length,
-    ).toEqual(2);
+      ),
+    ).toHaveLength(2);
 
     const leftEntities = getLeftEntityForLinkEntity(
       subgraph,
       friendshipEntity.metadata.recordId.entityId,
     );
+
     expect(leftEntities).toStrictEqual([
       aliceEntities[aliceEntities.length - 1],
     ]);
@@ -743,11 +767,12 @@ describe("non-zero, simple resolve depths", () => {
       subgraph,
       friendshipEntity.metadata.recordId.entityId,
     );
+
     // right entity is archived so shouldn't exist – check expectations after H-349
     expect(rightEntities).toStrictEqual([]);
   });
 
-  it("read persons based on the friendship (all time)", async () => {
+  test("read persons based on the friendship (all time)", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: friendshipFilter,
       graphResolveDepths: {
@@ -764,25 +789,27 @@ describe("non-zero, simple resolve depths", () => {
       temporalAxes: fullDecisionTimeAxis,
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(1);
+
+    expect(subgraph.roots).toHaveLength(1);
     // changed from 3 to 2 because the archived entity is filtered out in getEntities
     // – this should probably change back to 3 after H-349 when the getEntities hack is removed: this is an 'all time' query
-    expect(Object.keys(subgraph.vertices).length).toEqual(2);
-    expect(Object.keys(subgraph.edges).length).toEqual(1);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(2);
+    expect(Object.keys(subgraph.edges)).toHaveLength(1);
 
     const friendshipEntity = getRoots(subgraph)[0]!;
+
     expect(friendshipEntity).toStrictEqual(linkEntities[0]);
     expect(
       Object.keys(subgraph.edges[friendshipEntity.metadata.recordId.entityId]!)
-        .length,
-    ).toEqual(1);
+        ,
+    ).toHaveLength(1);
     expect(
       Object.keys(
         subgraph.edges[friendshipEntity.metadata.recordId.entityId]![
           friendshipEntity.metadata.temporalVersioning.decisionTime.start.limit
         ]!,
-      ).length,
-    ).toEqual(2);
+      ),
+    ).toHaveLength(2);
 
     const leftEntitiesNow = getLeftEntityForLinkEntity(
       subgraph,
@@ -808,6 +835,7 @@ describe("non-zero, simple resolve depths", () => {
       subgraph,
       friendshipEntity.metadata.recordId.entityId,
     );
+
     // Check expectations after H-349 – bob is archived so this should not show up in a 'now' query
     expect(rightEntitiesNow).toStrictEqual([]);
 
@@ -824,7 +852,7 @@ describe("non-zero, simple resolve depths", () => {
     // expect(rightEntitiesUnbounded).not.toStrictEqual(rightEntitiesNow);
   });
 
-  it("read friendship type based on the friendship", async () => {
+  test("read friendship type based on the friendship", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: friendshipFilter,
       graphResolveDepths: {
@@ -836,19 +864,22 @@ describe("non-zero, simple resolve depths", () => {
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(2);
-    expect(Object.keys(subgraph.edges).length).toEqual(1);
+
+    expect(subgraph.roots).toHaveLength(1);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(2);
+    expect(Object.keys(subgraph.edges)).toHaveLength(1);
     const roots = getRoots(subgraph);
 
     const friendship_entity = roots[0]!;
+
     expect(friendship_entity).toStrictEqual(linkEntities[0]);
 
     const entityTypes = getEntityTypesFromSubgraph(subgraph);
+
     expect(entityTypes).toStrictEqual([friendshipEntityType]);
   });
 
-  it("read friendship from left entity (as of now)", async () => {
+  test("read friendship from left entity (as of now)", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: aliceFilter,
       graphResolveDepths: {
@@ -861,24 +892,28 @@ describe("non-zero, simple resolve depths", () => {
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(2);
-    expect(Object.keys(subgraph.edges).length).toEqual(1);
+
+    expect(subgraph.roots).toHaveLength(1);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(2);
+    expect(Object.keys(subgraph.edges)).toHaveLength(1);
     const roots = getRoots(subgraph);
 
     const aliceEntity = roots[0]!;
+
     expect(aliceEntity).toStrictEqual(aliceEntities[aliceEntities.length - 1]);
 
     const links = getOutgoingLinksForEntity(
       subgraph,
       aliceEntity.metadata.recordId.entityId,
     );
+
     expect(links).toStrictEqual(linkEntities);
 
     const linksAndTargets = getOutgoingLinkAndTargetEntities(
       subgraph,
       aliceEntity.metadata.recordId.entityId,
     );
+
     expect(linksAndTargets).toStrictEqual([
       {
         linkEntity: [linkEntities[0]!],
@@ -887,7 +922,7 @@ describe("non-zero, simple resolve depths", () => {
     ]);
   });
 
-  it("read friendship from right entity", async () => {
+  test("read friendship from right entity", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: bobFilter,
       graphResolveDepths: {
@@ -900,22 +935,25 @@ describe("non-zero, simple resolve depths", () => {
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(2);
-    expect(Object.keys(subgraph.edges).length).toEqual(1);
+
+    expect(subgraph.roots).toHaveLength(1);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(2);
+    expect(Object.keys(subgraph.edges)).toHaveLength(1);
     const roots = getRoots(subgraph);
 
     const bobEntity = roots[0]!;
+
     expect(bobEntity).toStrictEqual(bobEntities[bobEntities.length - 1]);
 
     const links = getIncomingLinksForEntity(
       subgraph,
       bobEntity.metadata.recordId.entityId,
     );
+
     expect(links).toStrictEqual(linkEntities);
   });
 
-  it("read person through a link", async () => {
+  test("read person through a link", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: aliceFilter,
       graphResolveDepths: {
@@ -932,19 +970,22 @@ describe("non-zero, simple resolve depths", () => {
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(1);
+
+    expect(subgraph.roots).toHaveLength(1);
     // changed from 3 to 2 because the archived entity is filtered out in getEntities – check expectations after H-349 (proper archival)
-    expect(Object.keys(subgraph.vertices).length).toEqual(2);
-    expect(Object.keys(subgraph.edges).length).toEqual(2);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(2);
+    expect(Object.keys(subgraph.edges)).toHaveLength(2);
     const roots = getRoots(subgraph);
 
     const aliceEntity = roots[0]!;
+
     expect(aliceEntity).toStrictEqual(aliceEntities[aliceEntities.length - 1]);
 
     const linksAndTargets = getOutgoingLinkAndTargetEntities(
       subgraph,
       aliceEntity.metadata.recordId.entityId,
     );
+
     expect(linksAndTargets).toStrictEqual([
       {
         linkEntity: [linkEntities[0]!],
@@ -956,7 +997,7 @@ describe("non-zero, simple resolve depths", () => {
 });
 
 describe("complex resolve depths", () => {
-  it("read persons based on the friendship (as of now)", async () => {
+  test("read persons based on the friendship (as of now)", async () => {
     const subgraph = await getEntitySubgraph(graphContext, authentication, {
       filter: aliceFilter,
       graphResolveDepths: {
@@ -972,12 +1013,14 @@ describe("complex resolve depths", () => {
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
     });
-    expect(subgraph.roots.length).toEqual(1);
-    expect(Object.keys(subgraph.vertices).length).toEqual(4);
-    expect(Object.keys(subgraph.edges).length).toEqual(2);
+
+    expect(subgraph.roots).toHaveLength(1);
+    expect(Object.keys(subgraph.vertices)).toHaveLength(4);
+    expect(Object.keys(subgraph.edges)).toHaveLength(2);
     const roots = getRoots(subgraph);
 
     const aliceEntity = roots[0]!;
+
     expect(aliceEntity).toStrictEqual(aliceEntities[aliceEntities.length - 1]);
 
     const personTypes = subgraph.edges[aliceEntity.metadata.recordId.entityId]![
@@ -985,7 +1028,8 @@ describe("complex resolve depths", () => {
     ]!.filter((edge) => edge.kind === "IS_OF_TYPE").map(
       (edge) => edge.rightEndpoint,
     );
-    expect(personTypes.length).toEqual(1);
+
+    expect(personTypes).toHaveLength(1);
     const personType = personTypes[0]!;
 
     expect(
@@ -997,7 +1041,8 @@ describe("complex resolve depths", () => {
       subgraph,
       aliceEntity.metadata.recordId.entityId,
     );
-    expect(links.length).toEqual(1);
+
+    expect(links).toHaveLength(1);
     const link = links[0]!;
 
     const linkTypes = subgraph.edges[link.metadata.recordId.entityId]![
@@ -1005,7 +1050,8 @@ describe("complex resolve depths", () => {
     ]!.filter((edge) => edge.kind === "IS_OF_TYPE").map(
       (edge) => edge.rightEndpoint,
     );
-    expect(linkTypes.length).toEqual(1);
+
+    expect(linkTypes).toHaveLength(1);
     const linkType = linkTypes[0]!;
 
     expect(

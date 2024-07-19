@@ -190,9 +190,10 @@ export const initializeFlow = (params: {
     steps: flowDefinition.steps.map<FlowStep>((stepDefinition) => {
       if (stepDefinition.kind === "action") {
         return initializeActionStep({ flowTrigger, stepDefinition });
-      } else {
-        return initializeParallelGroup({ flowTrigger, stepDefinition });
       }
+ 
+        return initializeParallelGroup({ flowTrigger, stepDefinition });
+      
     }),
   };
 };

@@ -1,5 +1,5 @@
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { sheets_v4 } from "googleapis";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
 import { cellHeaderFormat, cellPadding } from "./format.js";
 

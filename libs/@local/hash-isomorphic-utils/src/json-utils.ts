@@ -1,19 +1,18 @@
+import type { Schema , validate } from "jsonschema";
 import type { JsonArray, JsonObject, JsonValue } from "@blockprotocol/core";
-import type { Schema } from "jsonschema";
-import { validate } from "jsonschema";
 
 export const validateDataAgainstSchema = (data: unknown, schema: Schema) =>
   validate(data, schema);
 
 export const isParsedJsonObject = (
-  val: JsonValue | undefined,
-): val is JsonObject =>
-  typeof val === "object" && val !== null && !Array.isArray(val);
+  value: JsonValue | undefined,
+): value is JsonObject =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 export const isParsedJsonObjectOrArray = (
-  val: JsonValue,
-): val is JsonObject | JsonArray =>
-  Array.isArray(val) || isParsedJsonObject(val);
+  value: JsonValue,
+): value is JsonObject | JsonArray =>
+  Array.isArray(value) || isParsedJsonObject(value);
 
 export const parseJson = <T extends JsonObject | JsonArray>(
   jsonString: string,

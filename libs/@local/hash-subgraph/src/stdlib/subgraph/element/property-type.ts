@@ -22,6 +22,7 @@ import type {
 } from "@local/hash-graph-types/ontology";
 
 import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
+
 import {
   getJsonSchemaTypeFromValue,
   mustGetDataTypeById,
@@ -32,7 +33,7 @@ import {
 } from "./entity-type.js";
 
 /**
- * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph
+ * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph.
  *
  * @param subgraph
  */
@@ -49,7 +50,7 @@ export const getPropertyTypes = (
  *
  * @param subgraph
  * @param propertyTypeId
- * @throws if the vertex isn't a `PropertyTypeVertex`
+ * @throws If the vertex isn't a `PropertyTypeVertex`.
  */
 export const getPropertyTypeById = (
   subgraph: Subgraph,
@@ -65,7 +66,7 @@ export const getPropertyTypeById = (
  *
  * @param subgraph
  * @param vertexId
- * @throws if the vertex isn't a `PropertyTypeVertex`
+ * @throws If the vertex isn't a `PropertyTypeVertex`.
  */
 export const getPropertyTypeByVertexId = (
   subgraph: Subgraph,
@@ -76,7 +77,7 @@ export const getPropertyTypeByVertexId = (
     | undefined;
 
 /**
- * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
+ * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`.
  *
  * @param subgraph
  * @param baseUrl
@@ -113,11 +114,13 @@ export const getPropertyTypeForEntity = (
         subgraph,
         propertyTypeId,
       );
+
       if (!propertyTypeWithMetadata) {
         throw new Error(
           `Property type ${propertyTypeId} not found in subgraph`,
         );
       }
+
       return {
         propertyType: propertyTypeWithMetadata.schema,
         refSchema,
@@ -139,10 +142,10 @@ export const getPropertyTypeForEntity = (
  * 3. Expected value is an array of mixed data types
  *    – matching schemas are returned in order of the array's values, if all values could be matched to an expected
  * schema
- * 4. Expected value is one of multiple singular data types
+ * 4. Expected value is one of multiple singular data types.
  *
- * @todo handle more complex mixed values and arrays, nested arrays and property objects. Will need a recursive
- *   function
+ * @todo Handle more complex mixed values and arrays, nested arrays and property objects. Will need a recursive
+ *   function.
  */
 export const guessSchemaForPropertyValue = (
   subgraph: Subgraph,
@@ -167,6 +170,7 @@ export const guessSchemaForPropertyValue = (
         firstSchema.$ref,
       ).schema;
       const isArrayOfSchema = false;
+
       return {
         schema: guessedSchema,
         isArrayOfSchema,
@@ -188,23 +192,25 @@ export const guessSchemaForPropertyValue = (
             subgraph,
             possibleArrayValue.$ref,
           ).schema;
+
           return {
             schema: guessedSchema,
             isArrayOfSchema,
           };
-        } else {
+        }
+ 
           // This is a nested array or property object
           return {
             schema: null,
             isArrayOfSchema,
           };
-        }
-      } else {
+        
+      } 
         // There are multiple potential values of the expected array
         if (possibleArrayValues.every((schema) => "$ref" in schema)) {
           // The potential values of the array are all data types
           if (!Array.isArray(value)) {
-            throw new Error("Non-array value provided for array property type");
+            throw new TypeError("Non-array value provided for array property type");
           }
 
           const possibleDataTypes = possibleArrayValues.map((schema) =>
@@ -223,11 +229,12 @@ export const guessSchemaForPropertyValue = (
               // None of the available schemas match the value's type
               return null;
             }
+
             return dataType.schema;
           });
 
           const allSchemasFound = guessedSchemas.every(
-            (schema): schema is DataTypeWithMetadata["schema"] => !!schema,
+            Boolean,
           );
 
           if (!allSchemasFound) {
@@ -242,16 +249,17 @@ export const guessSchemaForPropertyValue = (
             isArrayOfSchema,
           };
         }
+
         return {
           schema: null,
           isArrayOfSchema,
         };
-      }
+      
     }
   } else {
     // There are multiple potential top-level values
 
-    // eslint-disable-next-line no-lonely-if -- TODO add more logic to the else branch
+     
     if (propertyType.oneOf.every((schema) => "$ref" in schema)) {
       // Each possible value is a single data type
 
@@ -261,6 +269,7 @@ export const guessSchemaForPropertyValue = (
 
       const guessedDataType = possibleDataTypes.find(({ schema }) => {
         const jsonSchemaType = getJsonSchemaTypeFromValue(value);
+
         return schema.type === jsonSchemaType;
       });
 
@@ -285,15 +294,12 @@ export const guessSchemaForPropertyValue = (
  * The subgraph must be a result of having queried for an entity type with sufficiently high depth
  * for constrainsPropertiesOn to contain all property types referenced by the entity type and its properties.
  *
- * @param propertyReferenceObjects The values of an entity type or property type's 'properties' object
- * @param subgraph a subgraph which is assumed to contain all relevant property types
- * @param propertyTypesMap the map to add the property types to
- *
- * @return nothing, because the caller provided the map
- *
- * @throws if the subgraph does not contain a property type referenced by the given reference objects
- *
- * @todo this is a good candidate for moving to somewhere shared, possibly @blockprotocol/graph's stdlib
+ * @param propertyReferenceObjects - The values of an entity type or property type's 'properties' object.
+ * @param subgraph - A subgraph which is assumed to contain all relevant property types.
+ * @param propertyTypesMap - The map to add the property types to.
+ * @returns Nothing, because the caller provided the map.
+ * @throws If the subgraph does not contain a property type referenced by the given reference objects.
+ * @todo This is a good candidate for moving to somewhere shared, possibly @blockprotocol/graph's stdlib.
  */
 const addPropertyTypesToMapFromReferences = (
   propertyReferenceObjects: ValueOrArray<PropertyTypeReference>[],
@@ -310,10 +316,10 @@ const addPropertyTypesToMapFromReferences = (
       const propertyType = getPropertyTypeById(subgraph, propertyUrl);
 
       if (propertyType) {
-        for (const childProp of propertyType.schema.oneOf) {
-          if ("type" in childProp && childProp.type === "object") {
+        for (const childProperty of propertyType.schema.oneOf) {
+          if ("type" in childProperty && childProperty.type === "object") {
             addPropertyTypesToMapFromReferences(
-              Object.values(childProp.properties),
+              Object.values(childProperty.properties),
               subgraph,
               propertyTypesMap,
             );
@@ -330,17 +336,15 @@ const addPropertyTypesToMapFromReferences = (
 
 /**
  * Gets a map of all property types referenced by the entity type to the provided map,
- * including from any parents in its inheritance chain and nested property objects,
+ * including from any parents in its inheritance chain and nested property objects,.
  *
  * The subgraph must be a result of having queried for an entity type with sufficiently high depth
  * for constrainsPropertiesOn and inheritsFrom to contain all parent entity types and property types they reference.
  *
- * @param entityType The entity type to provide properties for
- * @param subgraph a subgraph which is assumed to contain all relevant property types
- *
- * @throws Error if the subgraph does not contain a property type or parent entity type relied on by the entity type
- *
- * @todo this is a good candidate for moving to somewhere shared, possibly @blockprotocol/graph's stdlib
+ * @param entityType - The entity type to provide properties for.
+ * @param subgraph - A subgraph which is assumed to contain all relevant property types.
+ * @throws Error if the subgraph does not contain a property type or parent entity type relied on by the entity type.
+ * @todo This is a good candidate for moving to somewhere shared, possibly @blockprotocol/graph's stdlib.
  */
 export const getPropertyTypesForEntityType = (
   entityType: EntityType,

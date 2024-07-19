@@ -7,8 +7,7 @@ import { getPageBlocks } from "../../../../graph/knowledge/system-types/page";
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import type { UnresolvedBlockGQL, UnresolvedPageGQL } from "../graphql-mapping";
-import { mapBlockToGQL } from "../graphql-mapping";
+import type { mapBlockToGQL,UnresolvedBlockGQL, UnresolvedPageGQL  } from "../graphql-mapping";
 
 export const pageContents: ResolverFn<
   {

@@ -1,3 +1,5 @@
+import { useCallback, useRef, useState } from "react";
+import { v4 as uuid } from "uuid";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import {
@@ -6,13 +8,12 @@ import {
   GetHelpLink,
 } from "@hashintel/block-design-system";
 import { Box, Collapse, Fade, Typography } from "@mui/material";
-import { useCallback, useRef, useState } from "react";
-import { v4 as uuid } from "uuid";
 
 import { generatedLinkKey, urlKey } from "../app";
 import { AbstractAiIcon } from "../icons/abstract-ai";
 import { ArrowTurnDownLeftIcon } from "../icons/arrow-turn-down-left";
 import type { BlockEntity } from "../types/generated/block-entity";
+
 import { BouncingDotsLoader } from "./generate-image/bouncing-dots-loader";
 import {
   DEFAULT_IMAGE_NUMBER,
@@ -20,12 +21,12 @@ import {
 } from "./generate-image/image-number-selector";
 import { ImagePreview } from "./generate-image/image-preview";
 
-export type ImageObject = {
+export interface ImageObject {
   id: string;
   entityId?: string;
   url?: string;
   date?: string;
-};
+}
 
 const promptKey: keyof BlockEntity["properties"] =
   "https://blockprotocol.org/@blockprotocol/types/property-type/openai-image-model-prompt/";
@@ -113,12 +114,13 @@ export const GenerateImage = ({
         );
         setImages(oldImages);
         setLoading(false);
+
         return;
       }
 
       const generatedImageUrls = data.data
         .map(({ url }) => url)
-        .filter((url): url is string => !!url);
+        .filter(Boolean);
 
       if (!numberOfImages) {
         setAnimatingIn(true);
@@ -157,7 +159,7 @@ export const GenerateImage = ({
             date: entity.metadata.recordId.editionId,
             url: entity.properties[urlKey],
           }))
-          .filter(({ url }) => !!url);
+          .filter(({ url }) => Boolean(url));
 
         setImages([
           ...oldImages,
@@ -168,10 +170,10 @@ export const GenerateImage = ({
             url,
           })),
         ]);
-      } catch (err) {
+      } catch (error) {
         setErrorMessage(
           `Could not upload images: ${
-            err instanceof Error ? err.message : "unknown error"
+            error instanceof Error ? error.message : "unknown error"
           }`,
         );
         setImages(oldImages);
@@ -188,8 +190,8 @@ export const GenerateImage = ({
     <Box
       ref={blockRootRef}
       style={{ fontFamily: "colfax-web", fontWeight: 400 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => { setHovered(true); }}
+      onMouseLeave={() => { setHovered(false); }}
     >
       <Fade
         in={
@@ -201,19 +203,19 @@ export const GenerateImage = ({
         }
       >
         <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap", mb: 1.5 }}>
-          <GetHelpLink href="https://blockprotocol.org/@hash/blocks/ai-image" />
+          <GetHelpLink href={"https://blockprotocol.org/@hash/blocks/ai-image"} />
 
           {isMobile ? (
             <BlockSettingsButton
               expanded={mobileSettingsExpanded}
-              onClick={() => setMobileSettingsExpanded(!mobileSettingsExpanded)}
+              onClick={() => { setMobileSettingsExpanded(!mobileSettingsExpanded); }}
             />
           ) : null}
 
           <Collapse in={!isMobile || mobileSettingsExpanded}>
-            <Box display="flex" gap={1} flexWrap="wrap" mt={isMobile ? 1 : 0}>
+            <Box display={"flex"} gap={1} flexWrap={"wrap"} mt={isMobile ? 1 : 0}>
               <Typography
-                variant="regularTextLabels"
+                variant={"regularTextLabels"}
                 sx={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -226,11 +228,11 @@ export const GenerateImage = ({
                   color: ({ palette }) => palette.gray[50],
                 }}
               >
-                <Box component="span" sx={{ mr: 1 }}>
+                <Box component={"span"} sx={{ mr: 1 }}>
                   Using
                 </Box>
                 <Box
-                  component="span"
+                  component={"span"}
                   sx={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -246,9 +248,9 @@ export const GenerateImage = ({
               {!images?.length ? (
                 <ImageNumberSelector
                   open={selectorOpen}
-                  onOpen={() => setSelectorOpen(true)}
-                  onClose={() => setSelectorOpen(false)}
                   value={imageNumber}
+                  onOpen={() => { setSelectorOpen(true); }}
+                  onClose={() => { setSelectorOpen(false); }}
                   onChange={setImageNumber}
                 />
               ) : null}
@@ -259,18 +261,16 @@ export const GenerateImage = ({
 
       <Collapse
         in={!images?.length && !animatingIn}
-        onEntered={() => setAnimatingOut(false)}
-        onExited={() => setAnimatingIn(false)}
+        onEntered={() => { setAnimatingOut(false); }}
+        onExited={() => { setAnimatingIn(false); }}
       >
         <BlockPromptInput
           value={promptText}
-          onSubmit={() => generateAndUploadImages()}
-          onFocus={() => setInputFocused(true)}
-          onBlur={() => setInputFocused(false)}
-          onChange={(event) => setPromptText(event.target.value)}
-          placeholder="Enter a prompt to generate image, and hit enter"
+          placeholder={"Enter a prompt to generate image, and hit enter"}
           ref={inputRef}
-          disabled={!!loading}
+          disabled={Boolean(loading)}
+          error={Boolean(errorMessage)}
+          apiName={"OpenAI"}
           buttonLabel={
             loading === "service" ? (
               <>
@@ -292,17 +292,26 @@ export const GenerateImage = ({
               </>
             )
           }
-          error={!!errorMessage}
-          apiName="OpenAI"
+          onSubmit={() => generateAndUploadImages()}
+          onFocus={() => { setInputFocused(true); }}
+          onBlur={() => { setInputFocused(false); }}
+          onChange={(event) => { setPromptText(event.target.value); }}
         />
       </Collapse>
 
       <Collapse
-        in={!!images?.length && !animatingOut && !animatingIn}
-        onExited={() => setImages(null)}
+        in={Boolean(images?.length) && !animatingOut && !animatingIn}
+        onExited={() => { setImages(null); }}
       >
         {images && (
           <ImagePreview
+            images={images}
+            prompt={promptText}
+            loading={Boolean(loading)}
+            errorMessage={errorMessage}
+            generateAdditionalImages={(numberOfImages) =>
+              generateAndUploadImages(numberOfImages)
+            }
             onConfirm={(entityId) => {
               confirm(entityId);
             }}
@@ -310,13 +319,6 @@ export const GenerateImage = ({
               setAnimatingOut(true);
               inputRef.current?.focus();
             }}
-            images={images}
-            prompt={promptText}
-            loading={!!loading}
-            generateAdditionalImages={(numberOfImages) =>
-              generateAndUploadImages(numberOfImages)
-            }
-            errorMessage={errorMessage}
           />
         )}
       </Collapse>

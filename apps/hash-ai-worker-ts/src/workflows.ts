@@ -1,10 +1,10 @@
+import type { OpenAI } from "openai";
 import type {
   Entity as GraphApiEntity,
   EntityQueryCursor,
   Filter,
 } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { Entity,SerializedEntity  } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type {
   DataTypeWithMetadata,
@@ -21,13 +21,12 @@ import {
   ActivityCancellationType,
   proxyActivities,
 } from "@temporalio/workflow";
-import type { OpenAI } from "openai";
 
 import type {
   createAiActivities,
   createGraphActivities,
 } from "./activities.js";
-import { runFlowWorkflow } from "./workflows/run-flow-workflow.js";
+
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
   cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
@@ -49,7 +48,7 @@ const graphActivities = proxyActivities<
 export const createEmbeddings = async (
   params: CreateEmbeddingsParams,
 ): Promise<CreateEmbeddingsReturn> => {
-  return await aiActivities.createEmbeddingsActivity(params);
+  return aiActivities.createEmbeddingsActivity(params);
 };
 
 type UpdateDataTypeEmbeddingsParams = {
@@ -110,6 +109,7 @@ export const updateDataTypeEmbeddings = async (
         includeDrafts: true,
       },
     });
+
     dataTypes = await graphActivities.getSubgraphDataTypes({
       subgraph: response.subgraph,
     });
@@ -130,8 +130,8 @@ export const updateDataTypeEmbeddings = async (
       reset: true,
     });
 
-    usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
-    usage.total_tokens += generatedEmbeddings.usage.total_tokens;
+    usage.prompt_tokens = usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
+    usage.total_tokens = usage.total_tokens + generatedEmbeddings.usage.total_tokens;
   }
 
   return usage;
@@ -195,6 +195,7 @@ export const updatePropertyTypeEmbeddings = async (
         includeDrafts: true,
       },
     });
+
     propertyTypes = await graphActivities.getSubgraphPropertyTypes({
       subgraph: response.subgraph,
     });
@@ -215,8 +216,8 @@ export const updatePropertyTypeEmbeddings = async (
       reset: true,
     });
 
-    usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
-    usage.total_tokens += generatedEmbeddings.usage.total_tokens;
+    usage.prompt_tokens = usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
+    usage.total_tokens = usage.total_tokens + generatedEmbeddings.usage.total_tokens;
   }
 
   return usage;
@@ -280,6 +281,7 @@ export const updateEntityTypeEmbeddings = async (
         includeDrafts: true,
       },
     });
+
     entityTypes = await graphActivities.getSubgraphEntityTypes({
       subgraph: response.subgraph,
     });
@@ -300,8 +302,8 @@ export const updateEntityTypeEmbeddings = async (
       reset: true,
     });
 
-    usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
-    usage.total_tokens += generatedEmbeddings.usage.total_tokens;
+    usage.prompt_tokens = usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
+    usage.total_tokens = usage.total_tokens + generatedEmbeddings.usage.total_tokens;
   }
 
   return usage;
@@ -370,6 +372,7 @@ export const updateEntityEmbeddings = async (
           limit: 100,
         },
       });
+
       cursor = queryResponse.cursor;
       entities = await graphActivities.getSubgraphEntities({
         subgraph: queryResponse.subgraph,
@@ -382,6 +385,7 @@ export const updateEntityEmbeddings = async (
 
     for (const serializedEntity of entities) {
       const entity = new Entity(serializedEntity);
+
       /**
        * Don't try to create embeddings for `FlowRun` entities, due to the size
        * of their property values.
@@ -445,8 +449,8 @@ export const updateEntityEmbeddings = async (
         });
       }
 
-      usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
-      usage.total_tokens += generatedEmbeddings.usage.total_tokens;
+      usage.prompt_tokens = usage.prompt_tokens + generatedEmbeddings.usage.prompt_tokens;
+      usage.total_tokens = usage.total_tokens + generatedEmbeddings.usage.total_tokens;
     }
 
     if (!cursor) {
@@ -459,7 +463,7 @@ export const updateEntityEmbeddings = async (
 
 export const updateAllDataTypeEmbeddings =
   async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
-    await updateDataTypeEmbeddings({
+    updateDataTypeEmbeddings({
       authentication: {
         actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
       },
@@ -479,7 +483,7 @@ export const updateAllDataTypeEmbeddings =
 
 export const updateAllPropertyTypeEmbeddings =
   async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
-    await updatePropertyTypeEmbeddings({
+    updatePropertyTypeEmbeddings({
       authentication: {
         actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
       },
@@ -499,7 +503,7 @@ export const updateAllPropertyTypeEmbeddings =
 
 export const updateAllEntityTypeEmbeddings =
   async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
-    await updateEntityTypeEmbeddings({
+    updateEntityTypeEmbeddings({
       authentication: {
         actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
       },
@@ -546,8 +550,9 @@ export const updateAllEntityEmbeddings =
           ],
         },
       });
-      usage.prompt_tokens += this_usage.prompt_tokens;
-      usage.total_tokens += this_usage.total_tokens;
+
+      usage.prompt_tokens = usage.prompt_tokens + this_usage.prompt_tokens;
+      usage.total_tokens = usage.total_tokens + this_usage.total_tokens;
     }
 
     return usage;
@@ -559,4 +564,6 @@ export const parseTextFromFile = async (
   await aiActivities.parseTextFromFileActivity(params);
 };
 
-export const runFlow = runFlowWorkflow;
+
+
+export {runFlowWorkflow as runFlow} from "./workflows/run-flow-workflow.js";

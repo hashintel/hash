@@ -1,4 +1,4 @@
-import { type Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import {
   getEntityTypeById as getEntityTypeByIdBp,
   getEntityTypeByVertexId as getEntityTypeByVertexIdBp,
@@ -14,7 +14,7 @@ import type {
 import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
 
 /**
- * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph
+ * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph.
  *
  * @param subgraph
  */
@@ -29,7 +29,7 @@ export const getEntityTypes = (subgraph: Subgraph): EntityTypeWithMetadata[] =>
  *
  * @param subgraph
  * @param entityTypeId
- * @throws if the vertex isn't a `EntityTypeVertex`
+ * @throws If the vertex isn't a `EntityTypeVertex`.
  */
 export const getEntityTypeById = (
   subgraph: Subgraph,
@@ -41,12 +41,12 @@ export const getEntityTypeById = (
 
 /**
  * Gets an array of `EntityTypeWithMetadata` containing the requested entity type and all its ancestors
- * i.e. entity types it inherits from, whether directly or indirectly.
+ * i.e. Entity types it inherits from, whether directly or indirectly..
  *
- * @param subgraph a subgraph containing the entity type and its ancestors
- * @param entityTypeId the `VersionedUrl` of the entity type
- * @throws Error if the entity type or any of its ancestors aren't present in the subgraph
- * @returns EntityTypeWithMetadata[] an array of `EntityTypeWithMetadata`, where the first element is the entity type
+ * @param subgraph - A subgraph containing the entity type and its ancestors.
+ * @param entityTypeId - The `VersionedUrl` of the entity type.
+ * @returns EntityTypeWithMetadata[] an array of `EntityTypeWithMetadata`, where the first element is the entity type.
+ * @throws Error if the entity type or any of its ancestors aren't present in the subgraph.
  */
 export const getEntityTypeAndParentsById = (
   subgraph: Subgraph,
@@ -73,12 +73,12 @@ export const getEntityTypeAndParentsById = (
 
 /**
  * Gets an array of `EntityTypeWithMetadata` containing the requested entity type and all its descendants
- * i.e. entity types which inherit from it, whether directly or indirectly.
+ * i.e. Entity types which inherit from it, whether directly or indirectly..
  *
- * @param subgraph a subgraph containing the entity type and its descendants
- * @param entityTypeId the `VersionedUrl` of the entity type
- * @throws Error if the entity type or any of its descendants aren't present in the subgraph
- * @returns EntityTypeWithMetadata[] an array of `EntityTypeWithMetadata`, where the first element is the entity type
+ * @param subgraph - A subgraph containing the entity type and its descendants.
+ * @param entityTypeId - The `VersionedUrl` of the entity type.
+ * @returns EntityTypeWithMetadata[] an array of `EntityTypeWithMetadata`, where the first element is the entity type.
+ * @throws Error if the entity type or any of its descendants aren't present in the subgraph.
  */
 export const getEntityTypeAndDescendantsById = (
   subgraph: Subgraph,
@@ -109,7 +109,7 @@ export const getEntityTypeAndDescendantsById = (
  *
  * @param subgraph
  * @param vertexId
- * @throws if the vertex isn't a `EntityTypeVertex`
+ * @throws If the vertex isn't a `EntityTypeVertex`.
  */
 export const getEntityTypeByVertexId = (
   subgraph: Subgraph,
@@ -120,7 +120,7 @@ export const getEntityTypeByVertexId = (
     | undefined;
 
 /**
- * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
+ * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`.
  *
  * @param subgraph
  * @param baseUrl

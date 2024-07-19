@@ -1,37 +1,37 @@
+import type { OpenAI } from "openai";
 import type {
   MessageParam as AnthropicMessage,
   ToolResultBlockParam as AnthropicToolResultBlockParam,
 } from "@anthropic-ai/sdk/resources/messages";
-import type { OpenAI } from "openai";
 
-export type LlmMessageTextContent = {
+export interface LlmMessageTextContent {
   type: "text";
   text: string;
-};
+}
 
-export type LlmMessageToolUseContent<ToolName = string> = {
+export interface LlmMessageToolUseContent<ToolName = string> {
   type: "tool_use";
   id: string;
   name: ToolName;
   input: object;
-};
+}
 
-export type LlmAssistantMessage<ToolName = string> = {
+export interface LlmAssistantMessage<ToolName = string> {
   role: "assistant";
   content: (LlmMessageTextContent | LlmMessageToolUseContent<ToolName>)[];
-};
+}
 
-export type LlmMessageToolResultContent = {
+export interface LlmMessageToolResultContent {
   type: "tool_result";
   tool_use_id: string;
   content: string;
   is_error?: true;
-};
+}
 
-export type LlmUserMessage = {
+export interface LlmUserMessage {
   role: "user";
   content: (LlmMessageTextContent | LlmMessageToolResultContent)[];
-};
+}
 
 export type LlmMessage = LlmAssistantMessage | LlmUserMessage;
 
@@ -72,21 +72,27 @@ export const mapAnthropicMessageToLlmMessage = (params: {
               },
             ]
           : anthropicMessage.content.map((content) => {
-              if (content.type === "image") {
+              switch (content.type) {
+              case "image": {
                 throw new Error("Image content not supported");
-              } else if (content.type === "tool_result") {
+              }
+              case "tool_result": {
                 throw new Error(
                   `Anthropic assistant message contains a tool result: ${JSON.stringify(
                     content,
                   )}`,
                 );
-              } else if (content.type === "tool_use") {
+              }
+              case "tool_use": {
                 return {
                   type: "tool_use" as const,
                   id: content.id,
                   name: content.name,
                   input: content.input as object,
                 } satisfies LlmMessageToolUseContent;
+              }
+              default:
+              // Do nothing
               }
 
               return content;
@@ -105,11 +111,14 @@ export const mapAnthropicMessageToLlmMessage = (params: {
             },
           ]
         : anthropicMessage.content.map((block) => {
-            if (block.type === "image") {
+            switch (block.type) {
+            case "image": {
               throw new Error("Image content not supported");
-            } else if (block.type === "tool_use") {
+            }
+            case "tool_use": {
               throw new Error("Tool use content not supported");
-            } else if (block.type === "tool_result") {
+            }
+            case "tool_result": {
               /**
                * Currently images are not supported in LLM messages,
                * so we filter them out from the content.
@@ -132,6 +141,9 @@ export const mapAnthropicMessageToLlmMessage = (params: {
                 tool_use_id: block.tool_use_id,
                 content: textBlocks?.join("\n") ?? "",
               } satisfies LlmMessageToolResultContent;
+            }
+            default:
+            // Do nothing
             }
 
             return block;
@@ -206,7 +218,7 @@ export const mapLlmMessageToOpenAiMessages = (params: {
 };
 
 const sanitizeToolCallName = (toolName: string): string => {
-  const allowedPattern = /[a-zA-Z0-9_-]/g;
+  const allowedPattern = /[\w-]/g;
 
   const filteredString = toolName.match(allowedPattern)?.join("") ?? "";
 
@@ -226,6 +238,7 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
             (toolCall) => {
               const rawInput = toolCall.function.arguments;
               let jsonInput: object;
+
               try {
                 jsonInput = JSON.parse(rawInput) as object;
               } catch {
@@ -260,7 +273,7 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
             ],
           } satisfies LlmAssistantMessage,
         ];
-      } else if (currentMessage.role === "user") {
+      } if (currentMessage.role === "user") {
         return [
           ...previousLlmMessages,
           {
@@ -289,7 +302,7 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
               : [],
           } satisfies LlmUserMessage,
         ];
-      } else if (currentMessage.role === "tool") {
+      } if (currentMessage.role === "tool") {
         const toolResultContent: LlmMessageToolResultContent = {
           type: "tool_result",
           tool_use_id: currentMessage.tool_call_id,
@@ -325,6 +338,6 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
 
       return previousLlmMessages;
     },
-    [] as LlmMessage[],
+    [],
   );
 };

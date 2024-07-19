@@ -17,19 +17,19 @@ export type SystemTypeWebShortname = (typeof systemTypeWebShortnames)[number];
 
 /**
  * IF YOU EDIT THIS FILE in a way which affects the number or structure of system types,
- * run `yarn generate-system-types` to update their TypeScript representation
+ * run `yarn generate-system-types` to update their TypeScript representation.
  *
- * @todo enforce this in CI – H-308
+ * @todo Enforce this in CI – H-308.
  */
 
 /**
  * Generate the base identifier of a type (its un-versioned URL).
  *
- * @param [domain] - the domain of the type, defaults the frontend url.
- * @param namespace - the namespace of the type.
- * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
- * @param title - the title of the type.
- * @param [slugOverride] - optional override for the slug used at the end of the URL
+ * @param [domain] - The domain of the type, defaults the frontend url.
+ * @param namespace - The namespace of the type.
+ * @param kind - The "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
+ * @param title - The title of the type.
+ * @param [slugOverride] - Optional override for the slug used at the end of the URL.
  */
 export const generateTypeBaseUrl = ({
   domain,
@@ -55,11 +55,11 @@ export const generateTypeBaseUrl = ({
 /**
  * Generate the identifier of a type (its versioned URL).
  *
- * @param domain (optional) - the domain of the type, defaults the frontend url.
- * @param namespace - the namespace of the type.
- * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
- * @param title - the title of the type.
- * @param [slugOverride] - optional override for the slug used at the end of the URL
+ * @param domain - (optional) - the domain of the type, defaults the frontend url.
+ * @param namespace - The namespace of the type.
+ * @param kind - The "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
+ * @param title - The title of the type.
+ * @param [slugOverride] - Optional override for the slug used at the end of the URL.
  */
 export const generateTypeId = ({
   domain,
@@ -98,9 +98,11 @@ export const generateLinkMapWithConsistentSelfReferences = (
           ? atLeastOne(
               linkSchema.items.oneOf.map((item) => {
                 const isSelfReference = item.$ref === currentEntityTypeId;
+
                 if (isSelfReference) {
                   const { baseUrl, version: currentVersion } =
                     componentsFromVersionedUrl(currentEntityTypeId);
+
                   return {
                     $ref: versionedUrlFromComponents(
                       baseUrl,
@@ -108,6 +110,7 @@ export const generateLinkMapWithConsistentSelfReferences = (
                     ),
                   };
                 }
+
                 return item;
               }),
             )
@@ -119,6 +122,7 @@ export const generateLinkMapWithConsistentSelfReferences = (
       };
 
       accumulator[linkTypeId] = schemaWithConsistentSelfReferences;
+
       return accumulator;
     },
     {},
@@ -127,14 +131,14 @@ export const generateLinkMapWithConsistentSelfReferences = (
 const hashFormattedVersionedUrlRegExp =
   /https?:\/\/.+\/@(.+)\/types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;
 
-export type DeconstructedVersionedUrl = {
+export interface DeconstructedVersionedUrl {
   baseUrl: string;
   hostname: string;
   kind?: SchemaKind;
   isHashFormatted: boolean;
   version: number;
   webShortname?: string;
-};
+}
 
 export const deconstructVersionedUrl = (
   url: VersionedUrl,
@@ -150,7 +154,7 @@ export const deconstructVersionedUrl = (
 
   const matchArray = baseUrl.match(hashFormattedVersionedUrlRegExp);
 
-  const isHashFormatted = !!matchArray;
+  const isHashFormatted = Boolean(matchArray);
 
   const [_url, webShortname, kind] = matchArray ?? [];
 

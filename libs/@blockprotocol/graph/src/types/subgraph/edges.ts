@@ -3,6 +3,7 @@ import type { BaseUrl } from "@blockprotocol/type-system/slim";
 import type { EntityId } from "../entity.js";
 import type { OntologyTypeRevisionId } from "../ontology.js";
 import type { Timestamp } from "../temporal-versioning.js";
+
 import type { KnowledgeGraphOutwardEdge } from "./edges/variants/knowledge.js";
 import type { OntologyOutwardEdge } from "./edges/variants/ontology.js";
 

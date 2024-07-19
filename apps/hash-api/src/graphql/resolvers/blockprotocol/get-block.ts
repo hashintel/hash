@@ -1,5 +1,5 @@
-import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
 import { ApolloError, ForbiddenError } from "apollo-server-express";
+import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
 
 import type { BlockProtocolBlock, ResolverFn } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
