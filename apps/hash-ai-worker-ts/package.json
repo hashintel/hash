@@ -85,7 +85,7 @@
     "typescript": "5.5.3"
   },
   "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
+    "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@sentry/cli": "2.31.0",
     "@types/dedent": "0.7.0",
@@ -101,7 +101,7 @@
     "@types/papaparse": "5.3.14",
     "@types/sanitize-html": "2.11.0",
     "@vitest/coverage-istanbul": "2.0.3",
-    "eslint": "8.57.0",
+    "eslint": "^8.57.0",
     "rimraf": "6.0.1",
     "vite-tsconfig-paths": "4.3.2",
     "vitest": "2.0.3"
