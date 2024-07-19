@@ -14,7 +14,7 @@ import type {
   PropertyObject,
 } from "@local/hash-graph-types/entity";
 import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { Subgraph } from "@local/hash-subgraph";
+import { isEntityId, Subgraph } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 /* eslint-enable no-restricted-imports */
 import type { BoxProps } from "@mui/material";
@@ -35,6 +35,8 @@ const generateEntityLabel = (
   return hashGenerateEntityLabel(subgraph, entity);
 };
 
+const nodeCategories = [{ name: "entity" }, { name: "entityType" }];
+
 export const EntitiesGraphChart = <T extends EntityForGraphChart>({
   entities,
   filterEntity,
@@ -42,10 +44,12 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
   subgraphWithTypes,
   sx,
   onEntityClick,
+  onEntityTypeClick,
 }: {
   entities?: T[];
   filterEntity?: (entity: T) => boolean;
-  onEntityClick?: (entity: T) => void;
+  onEntityClick?: (entityId: EntityId) => void;
+  onEntityTypeClick?: (entityTypeId: VersionedUrl) => void;
   isPrimaryEntity?: (entity: T) => boolean;
   subgraphWithTypes: Subgraph;
   sx?: BoxProps["sx"];
@@ -90,29 +94,29 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
     if (chart) {
       chart.on("click", (params) => {
         if (
-          params.componentType === "series" &&
-          params.seriesType === "graph"
+          (params.dataType === "node" &&
+            (params.data as GraphNode).category === "entity") ||
+          (params.dataType === "edge" &&
+            isEntityId((params.data as GraphEdge).target as string))
         ) {
-          if (params.dataType === "node" || params.dataType === "edge") {
-            /** @todo: improve typing */
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-            const entityId = (params.data as any).id as EntityId;
+          const entityId = (params.data as GraphNode | GraphEdge)
+            .id as EntityId;
 
-            const entity = entities?.find(
-              ({ metadata }) => entityId === metadata.recordId.entityId,
-            );
+          onEntityClick?.(entityId);
+        } else if (
+          params.dataType === "node" &&
+          (params.data as GraphNode).category === "entityType"
+        ) {
+          const entityTypeId = (params.data as GraphNode).id as VersionedUrl;
 
-            if (entity) {
-              onEntityClick?.(entity);
-            }
-          }
+          onEntityTypeClick?.(entityTypeId);
         }
       });
     }
     return () => {
       chart?.off("click");
     };
-  }, [chart, entities, onEntityClick]);
+  }, [chart, entities, onEntityClick, onEntityTypeClick]);
 
   const chartInitialized = !!chart;
 
@@ -137,6 +141,7 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
 
     for (const entity of nonLinkEntities ?? []) {
       nodes.push({
+        category: "entity",
         name: generateEntityLabel(subgraphWithTypes, entity),
         id: entity.metadata.recordId.entityId,
         label: nodeLabelStyle,
@@ -165,6 +170,7 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
           typesAlreadyAdded.add($id);
 
           nodes.push({
+            category: "entityType",
             name: title,
             id: $id,
             label: {
@@ -215,16 +221,19 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
     }
 
     return {
+      categories: nodeCategories,
       tooltip: {
         show: true,
         trigger: "item",
-        formatter: (params) => {
-          /** @todo: improve typing */
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-          const id = (params as any).data.id as string;
+        formatter: (untypedParams) => {
+          const params = untypedParams as {
+            data: GraphNode | GraphEdge;
+            dataType: "node" | "edge";
+          };
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-          if ((params as any).dataType === "edge") {
+          const id = params.data.id;
+
+          if (params.dataType === "edge") {
             const linkEntity = linkEntities?.find(
               ({ metadata }) => metadata.recordId.entityId === id,
             );

@@ -440,11 +440,14 @@ export const Outputs = ({
             />
           ) : (
             <EntityResultGraph
-              onEntityClick={(entity) =>
+              onEntityClick={(entityId) =>
                 setSlideOver({
                   type: "entity",
-                  entityId: entity.metadata.recordId.entityId,
+                  entityId,
                 })
+              }
+              onEntityTypeClick={(entityTypeId) =>
+                setSlideOver({ type: "entityType", entityTypeId })
               }
               entities={entitiesForGraph}
               subgraphWithTypes={

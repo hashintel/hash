@@ -15,11 +15,15 @@ import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
+import type {
+  GraphNodeItemOption,
+  GraphEdgeItemOption,
+} from "echarts/types/src/chart/graph/GraphSeries";
 
 export type Chart = echarts.ECharts;
 
-export type GraphNode = NonNullable<GraphSeriesOption["data"]>[number];
-export type GraphEdge = NonNullable<GraphSeriesOption["edges"]>[number];
+export type GraphNode = GraphNodeItemOption;
+export type GraphEdge = GraphEdgeItemOption;
 
 export type SeriesOption =
   | LineSeriesOption

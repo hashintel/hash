@@ -1,14 +1,8 @@
-import type {
-  Entity as BpEntity,
-  EntityRootType as BpEntityRootType,
-  Subgraph as BpSubgraph,
-} from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
-import { ListRegularIcon, Skeleton } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
+import { ListRegularIcon } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -22,6 +16,7 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
+  Skeleton,
   ToggleButton,
   toggleButtonClasses,
   ToggleButtonGroup,
@@ -363,9 +358,9 @@ export const EntitiesTable: FunctionComponent<{
   const getOwnerForEntity = useGetOwnerForEntity();
 
   const handleEntityClick = useCallback(
-    (entity: BpEntity) => {
+    (entityId: EntityId) => {
       const { shortname: entityNamespace } = getOwnerForEntity({
-        entity: entity as Entity,
+        entityId,
       });
 
       if (entityNamespace === "") {
@@ -374,7 +369,7 @@ export const EntitiesTable: FunctionComponent<{
 
       void router.push(
         `/@${entityNamespace}/entities/${extractEntityUuidFromEntityId(
-          entity.metadata.recordId.entityId as EntityId,
+          entityId,
         )}`,
       );
     },

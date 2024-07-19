@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -9,13 +10,15 @@ import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 
 type EntityResultGraphProps = {
-  onEntityClick: (entity: EntityForGraphChart) => void;
+  onEntityClick: (entityId: EntityId) => void;
+  onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   entities: EntityForGraphChart[];
   subgraphWithTypes?: Subgraph;
 };
 
 export const EntityResultGraph = ({
   onEntityClick,
+  onEntityTypeClick,
   entities,
   subgraphWithTypes,
 }: EntityResultGraphProps) => {
@@ -69,7 +72,8 @@ export const EntityResultGraph = ({
       {subgraphWithTypes && (
         <EntitiesGraphChart
           entities={deduplicatedEntities}
-          onEntityClick={(entity) => onEntityClick(entity)}
+          onEntityClick={onEntityClick}
+          onEntityTypeClick={onEntityTypeClick}
           subgraphWithTypes={subgraphWithTypes}
           sx={{ maxHeight: "100%" }}
         />
